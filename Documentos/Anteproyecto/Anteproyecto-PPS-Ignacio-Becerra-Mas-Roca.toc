@@ -1,0 +1,54 @@
+\xpg@aux {}{spanish}
+\contentsline {section}{\numberline {1}Resumen}{3}{section.1}%
+\contentsline {section}{\numberline {2}Palabras clave}{3}{section.2}%
+\contentsline {section}{\numberline {3}Glosario}{3}{section.3}%
+\contentsline {section}{\numberline {4}Introducci\'on}{4}{section.4}%
+\contentsline {section}{\numberline {5}Formulaci\'on del problema}{4}{section.5}%
+\contentsline {section}{\numberline {6}Antecedentes}{5}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Contexto institucional}{5}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Estado del arte}{6}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Tecnolog\'ias de c\'odigo abierto}{6}{subsection.6.3}%
+\contentsline {section}{\numberline {7}Prop\'osito y justificaci\'on}{6}{section.7}%
+\contentsline {section}{\numberline {8}Objetivos globales y espec\'ificos}{7}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Situaci\'on actual (As Is)}{7}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Situaci\'on deseada (To Be)}{7}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Objetivos espec\'ificos}{7}{subsection.8.3}%
+\contentsline {section}{\numberline {9}Alcances}{8}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Alcance del proyecto}{8}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Alcance del producto}{8}{subsection.9.2}%
+\contentsline {subsubsection}{\numberline {9.2.1}Incluido en este PPS}{8}{subsubsection.9.2.1}%
+\contentsline {subsubsection}{\numberline {9.2.2}Excluido de este PPS}{8}{subsubsection.9.2.2}%
+\contentsline {section}{\numberline {10}Marco referencial}{9}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Extensi\'on universitaria en Argentina}{9}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Gesti\'on por procesos (BPM)}{9}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}Sistemas multiagente}{9}{subsection.10.3}%
+\contentsline {subsection}{\numberline {10.4}Retrieval-Augmented Generation (RAG)}{9}{subsection.10.4}%
+\contentsline {subsection}{\numberline {10.5}LLMs locales y soberan\'ia de datos}{9}{subsection.10.5}%
+\contentsline {subsection}{\numberline {10.6}Technology Readiness Level (TRL)}{9}{subsection.10.6}%
+\contentsline {section}{\numberline {11}Ciclo de vida}{10}{section.11}%
+\contentsline {section}{\numberline {12}Metodolog\'ia(s) candidata(s)}{11}{section.12}%
+\contentsline {section}{\numberline {13}Plataforma requerida}{11}{section.13}%
+\contentsline {section}{\numberline {14}Enunciado de factibilidad}{12}{section.14}%
+\contentsline {subsection}{\numberline {14.1}Viabilidad t\'ecnica}{12}{subsection.14.1}%
+\contentsline {subsection}{\numberline {14.2}Viabilidad econ\'omica}{12}{subsection.14.2}%
+\contentsline {subsection}{\numberline {14.3}Viabilidad operativa}{13}{subsection.14.3}%
+\contentsline {subsection}{\numberline {14.4}Viabilidad legal}{13}{subsection.14.4}%
+\contentsline {subsection}{\numberline {14.5}Viabilidad medioambiental}{13}{subsection.14.5}%
+\contentsline {subsection}{\numberline {14.6}Riesgos identificados y mitigaciones}{13}{subsection.14.6}%
+\contentsline {section}{\numberline {15}Acuerdos preliminares de nivel de seguridad y de calidad}{13}{section.15}%
+\contentsline {subsection}{\numberline {15.1}Seguridad}{13}{subsection.15.1}%
+\contentsline {subsection}{\numberline {15.2}Calidad}{15}{subsection.15.2}%
+\contentsline {section}{\numberline {16}Participantes}{15}{section.16}%
+\contentsline {subsection}{\numberline {16.1}Equipo de proyecto}{15}{subsection.16.1}%
+\contentsline {subsection}{\numberline {16.2}Interesados}{15}{subsection.16.2}%
+\contentsline {section}{\numberline {17}Presentaci\'on de la propuesta}{15}{section.17}%
+\contentsline {subsection}{\numberline {17.1}Arquitectura multiagente de alto nivel}{16}{subsection.17.1}%
+\contentsline {subsection}{\numberline {17.2}Flujo del Agente~2 (Historia Viva)}{17}{subsection.17.2}%
+\contentsline {subsection}{\numberline {17.3}Evoluci\'on de infraestructura por semestre}{17}{subsection.17.3}%
+\contentsline {subsection}{\numberline {17.4}Storyboard de alto nivel --- Agente~2}{17}{subsection.17.4}%
+\contentsline {subsection}{\numberline {17.5}Mapeo de procesos BPM a agentes}{18}{subsection.17.5}%
+\contentsline {subsection}{\numberline {17.6}Interacciones entre agentes}{18}{subsection.17.6}%
+\contentsline {section}{\numberline {18}Cronograma de alto nivel}{19}{section.18}%
+\contentsline {subsection}{\numberline {18.1}Estructura de Descomposici\'on del Trabajo (EDT)}{19}{subsection.18.1}%
+\contentsline {subsection}{\numberline {18.2}Entregables por semestre}{19}{subsection.18.2}%
+\contentsline {section}{\numberline {19}M\'etricas}{19}{section.19}%

@@ -1,0 +1,498 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated as
+% required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+\datalist[entry]{nyt/global//global/global/global}
+  \entry{anderson2010}{book}{}{}
+    \name{author}{1}{}{%
+      {{hash=ADJ}{%
+         family={Anderson},
+         familyi={A\bibinitperiod},
+         given={David\bibnamedelima J.},
+         giveni={D\bibinitperiod\bibinitdelim J\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Blue Hole Press}%
+    }
+    \strng{namehash}{ADJ1}
+    \strng{fullhash}{ADJ1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2010}
+    \field{labeldatesource}{}
+    \field{sortinit}{A}
+    \field{sortinithash}{A}
+    \field{title}{Kanban: Successful Evolutionary Change for Your Technology
+  Business}
+    \list{location}{1}{%
+      {Sequim, WA}%
+    }
+    \field{year}{2010}
+  \endentry
+
+  \entry{coneau2020}{misc}{}{}
+    \name{author}{1}{}{%
+      {{hash=C}{%
+         family={{Comisi{\'o}n Nacional de Evaluaci{\'o}n y Acreditaci{\'o}n
+  Universitaria}},
+         familyi={C\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {CONEAU}%
+    }
+    \strng{namehash}{C1}
+    \strng{fullhash}{C1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2020}
+    \field{labeldatesource}{}
+    \field{sortinit}{C}
+    \field{sortinithash}{C}
+    \field{title}{Gu{\'i}a de Autoevaluaci{\'o}n Institucional}
+    \verb{url}
+    \verb https://www.coneau.gob.ar/
+    \endverb
+    \list{location}{1}{%
+      {Buenos Aires}%
+    }
+    \field{year}{2020}
+  \endentry
+
+  \entry{ley24521}{misc}{}{}
+    \name{author}{1}{}{%
+      {{hash=C}{%
+         family={{Congreso de la Naci{\'o}n Argentina}},
+         familyi={C\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{C2}
+    \strng{fullhash}{C2}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{1995}
+    \field{labeldatesource}{}
+    \field{sortinit}{C}
+    \field{sortinithash}{C}
+    \field{howpublished}{Bolet{\'i}n Oficial de la Rep{\'u}blica Argentina}
+    \field{title}{Ley de Educaci{\'o}n Superior {N\textsuperscript{o}} 24.521}
+    \verb{url}
+    \verb https://www.argentina.gob.ar/normativa/nacional/ley-24521
+    \endverb
+    \field{year}{1995}
+  \endentry
+
+  \entry{ley25326}{misc}{}{}
+    \name{author}{1}{}{%
+      {{hash=C}{%
+         family={{Congreso de la Naci{\'o}n Argentina}},
+         familyi={C\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{C2}
+    \strng{fullhash}{C2}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2000}
+    \field{labeldatesource}{}
+    \field{sortinit}{C}
+    \field{sortinithash}{C}
+    \field{howpublished}{Bolet{\'i}n Oficial de la Rep{\'u}blica Argentina}
+    \field{title}{Ley de Protecci{\'o}n de los Datos Personales
+  {N\textsuperscript{o}} 25.326}
+    \verb{url}
+    \verb https://www.argentina.gob.ar/normativa/nacional/ley-25326
+    \endverb
+    \field{year}{2000}
+  \endentry
+
+  \entry{iso25010}{misc}{}{}
+    \name{author}{1}{}{%
+      {{hash=I}{%
+         family={{International Organization for Standardization}},
+         familyi={I\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {ISO}%
+    }
+    \strng{namehash}{I1}
+    \strng{fullhash}{I1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2011}
+    \field{labeldatesource}{}
+    \field{sortinit}{I}
+    \field{sortinithash}{I}
+    \field{title}{{ISO/IEC} 25010:2011 --- Systems and software engineering ---
+  Systems and software Quality Requirements and Evaluation ({SQuaRE}) ---
+  System and software quality models}
+    \list{location}{1}{%
+      {Geneva}%
+    }
+    \field{year}{2011}
+  \endentry
+
+  \entry{iso9001}{misc}{}{}
+    \name{author}{1}{}{%
+      {{hash=I}{%
+         family={{International Organization for Standardization}},
+         familyi={I\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {ISO}%
+    }
+    \strng{namehash}{I1}
+    \strng{fullhash}{I1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2015}
+    \field{labeldatesource}{}
+    \field{sortinit}{I}
+    \field{sortinithash}{I}
+    \field{title}{{ISO} 9001:2015 --- Quality management systems ---
+  Requirements}
+    \list{location}{1}{%
+      {Geneva}%
+    }
+    \field{year}{2015}
+  \endentry
+
+  \entry{lewis2020}{inproceedings}{}{}
+    \name{author}{12}{}{%
+      {{hash=LP}{%
+         family={Lewis},
+         familyi={L\bibinitperiod},
+         given={Patrick},
+         giveni={P\bibinitperiod},
+      }}%
+      {{hash=PE}{%
+         family={Perez},
+         familyi={P\bibinitperiod},
+         given={Ethan},
+         giveni={E\bibinitperiod},
+      }}%
+      {{hash=PA}{%
+         family={Piktus},
+         familyi={P\bibinitperiod},
+         given={Aleksandra},
+         giveni={A\bibinitperiod},
+      }}%
+      {{hash=PF}{%
+         family={Petroni},
+         familyi={P\bibinitperiod},
+         given={Fabio},
+         giveni={F\bibinitperiod},
+      }}%
+      {{hash=KV}{%
+         family={Karpukhin},
+         familyi={K\bibinitperiod},
+         given={Vladimir},
+         giveni={V\bibinitperiod},
+      }}%
+      {{hash=GN}{%
+         family={Goyal},
+         familyi={G\bibinitperiod},
+         given={Naman},
+         giveni={N\bibinitperiod},
+      }}%
+      {{hash=KH}{%
+         family={K{\"u}ttler},
+         familyi={K\bibinitperiod},
+         given={Heinrich},
+         giveni={H\bibinitperiod},
+      }}%
+      {{hash=LM}{%
+         family={Lewis},
+         familyi={L\bibinitperiod},
+         given={Mike},
+         giveni={M\bibinitperiod},
+      }}%
+      {{hash=YWt}{%
+         family={Yih},
+         familyi={Y\bibinitperiod},
+         given={Wen-tau},
+         giveni={W\bibinithyphendelim t\bibinitperiod},
+      }}%
+      {{hash=RT}{%
+         family={Rockt{\"a}schel},
+         familyi={R\bibinitperiod},
+         given={Tim},
+         giveni={T\bibinitperiod},
+      }}%
+      {{hash=RS}{%
+         family={Riedel},
+         familyi={R\bibinitperiod},
+         given={Sebastian},
+         giveni={S\bibinitperiod},
+      }}%
+      {{hash=KD}{%
+         family={Kiela},
+         familyi={K\bibinitperiod},
+         given={Douwe},
+         giveni={D\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Curran Associates}%
+    }
+    \strng{namehash}{LP+1}
+    \strng{fullhash}{LPPEPAPFKVGNKHLMYWtRTRSKD1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2020}
+    \field{labeldatesource}{}
+    \field{sortinit}{L}
+    \field{sortinithash}{L}
+    \field{booktitle}{Advances in Neural Information Processing Systems}
+    \field{pages}{9459\bibrangedash 9474}
+    \field{title}{Retrieval-Augmented Generation for Knowledge-Intensive {NLP}
+  Tasks}
+    \field{volume}{33}
+    \field{year}{2020}
+  \endentry
+
+  \entry{llamaindex2024}{manual}{}{}
+    \name{author}{1}{}{%
+      {{hash=L}{%
+         family={{LlamaIndex}},
+         familyi={L\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{L1}
+    \strng{fullhash}{L1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2024}
+    \field{labeldatesource}{}
+    \field{sortinit}{L}
+    \field{sortinithash}{L}
+    \field{title}{{LlamaIndex} Documentation}
+    \verb{url}
+    \verb https://docs.llamaindex.ai/
+    \endverb
+    \field{year}{2024}
+  \endentry
+
+  \entry{mankins1995}{report}{}{}
+    \name{author}{1}{}{%
+      {{hash=MJC}{%
+         family={Mankins},
+         familyi={M\bibinitperiod},
+         given={John\bibnamedelima C.},
+         giveni={J\bibinitperiod\bibinitdelim C\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{MJC1}
+    \strng{fullhash}{MJC1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{1995}
+    \field{labeldatesource}{}
+    \field{sortinit}{M}
+    \field{sortinithash}{M}
+    \field{title}{Technology Readiness Levels: A White Paper}
+    \list{location}{1}{%
+      {Washington, DC}%
+    }
+    \list{institution}{2}{%
+      {National Aeronautics}%
+      {Space Administration ({NASA})}%
+    }
+    \field{type}{techreport}
+    \field{year}{1995}
+  \endentry
+
+  \entry{ollama2024}{manual}{}{}
+    \name{author}{1}{}{%
+      {{hash=O}{%
+         family={{Ollama}},
+         familyi={O\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{O1}
+    \strng{fullhash}{O1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2024}
+    \field{labeldatesource}{}
+    \field{sortinit}{O}
+    \field{sortinithash}{O}
+    \field{title}{{Ollama} Documentation}
+    \verb{url}
+    \verb https://ollama.com/
+    \endverb
+    \field{year}{2024}
+  \endentry
+
+  \entry{pressman2019}{book}{}{}
+    \name{author}{2}{}{%
+      {{hash=PRS}{%
+         family={Pressman},
+         familyi={P\bibinitperiod},
+         given={Roger\bibnamedelima S.},
+         giveni={R\bibinitperiod\bibinitdelim S\bibinitperiod},
+      }}%
+      {{hash=MBR}{%
+         family={Maxim},
+         familyi={M\bibinitperiod},
+         given={Bruce\bibnamedelima R.},
+         giveni={B\bibinitperiod\bibinitdelim R\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {McGraw-Hill Education}%
+    }
+    \strng{namehash}{PRSMBR1}
+    \strng{fullhash}{PRSMBR1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2019}
+    \field{labeldatesource}{}
+    \field{sortinit}{P}
+    \field{sortinithash}{P}
+    \field{edition}{9}
+    \field{title}{Software Engineering: A Practitioner's Approach}
+    \list{location}{1}{%
+      {New York}%
+    }
+    \field{year}{2019}
+  \endentry
+
+  \entry{fastapi2024}{manual}{}{}
+    \name{author}{1}{}{%
+      {{hash=RS}{%
+         family={Ram{\'i}rez},
+         familyi={R\bibinitperiod},
+         given={Sebasti{\'a}n},
+         giveni={S\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{RS1}
+    \strng{fullhash}{RS1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2024}
+    \field{labeldatesource}{}
+    \field{sortinit}{R}
+    \field{sortinithash}{R}
+    \field{title}{{FastAPI} Documentation}
+    \verb{url}
+    \verb https://fastapi.tiangolo.com/
+    \endverb
+    \field{year}{2024}
+  \endentry
+
+  \entry{russell2021}{book}{}{}
+    \name{author}{2}{}{%
+      {{hash=RS}{%
+         family={Russell},
+         familyi={R\bibinitperiod},
+         given={Stuart},
+         giveni={S\bibinitperiod},
+      }}%
+      {{hash=NP}{%
+         family={Norvig},
+         familyi={N\bibinitperiod},
+         given={Peter},
+         giveni={P\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Pearson}%
+    }
+    \strng{namehash}{RSNP1}
+    \strng{fullhash}{RSNP1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2021}
+    \field{labeldatesource}{}
+    \field{sortinit}{R}
+    \field{sortinithash}{R}
+    \field{edition}{4}
+    \field{title}{Artificial Intelligence: A Modern Approach}
+    \list{location}{1}{%
+      {Hoboken, NJ}%
+    }
+    \field{year}{2021}
+  \endentry
+
+  \entry{schwaber2020}{book}{}{}
+    \name{author}{2}{}{%
+      {{hash=SK}{%
+         family={Schwaber},
+         familyi={S\bibinitperiod},
+         given={Ken},
+         giveni={K\bibinitperiod},
+      }}%
+      {{hash=SJ}{%
+         family={Sutherland},
+         familyi={S\bibinitperiod},
+         given={Jeff},
+         giveni={J\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Scrum.org}%
+    }
+    \strng{namehash}{SKSJ1}
+    \strng{fullhash}{SKSJ1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2020}
+    \field{labeldatesource}{}
+    \field{sortinit}{S}
+    \field{sortinithash}{S}
+    \field{title}{The Scrum Guide: The Definitive Guide to Scrum: The Rules of
+  the Game}
+    \verb{url}
+    \verb https://scrumguides.org/
+    \endverb
+    \field{year}{2020}
+  \endentry
+
+  \entry{wooldridge2009}{book}{}{}
+    \name{author}{1}{}{%
+      {{hash=WM}{%
+         family={Wooldridge},
+         familyi={W\bibinitperiod},
+         given={Michael},
+         giveni={M\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {John Wiley \& Sons}%
+    }
+    \strng{namehash}{WM1}
+    \strng{fullhash}{WM1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2009}
+    \field{labeldatesource}{}
+    \field{sortinit}{W}
+    \field{sortinithash}{W}
+    \field{edition}{2}
+    \field{title}{An Introduction to {MultiAgent} Systems}
+    \list{location}{1}{%
+      {Chichester}%
+    }
+    \field{year}{2009}
+  \endentry
+\enddatalist
+\endinput

@@ -1,0 +1,986 @@
+% =============================================================================
+% ANTEPROYECTO - Proyecto Centenario (P100-AMHV)
+% Facultad de Ingenieria del Ejercito - UNDEF
+% Proyecto de Promocion y Sintesis 2026
+% Autor: Becerra Mas Roca, Ignacio
+% =============================================================================
+\documentclass[a4paper, 12pt]{article}
+
+% --- Paquetes esenciales ---
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{spanish}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+
+% --- Tipografia ---
+\usepackage{microtype}
+
+% --- Tablas ---
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+
+% --- Figuras y graficos ---
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{shapes, arrows.meta, positioning, calc, fit, backgrounds, decorations.pathreplacing}
+
+% --- Listas ---
+\usepackage{enumitem}
+
+% --- Codigo fuente (si aplica) ---
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  captionpos=b
+}
+
+% --- Links ---
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
+% --- Bibliografia APA ---
+\usepackage[backend=bibtex, style=authoryear, sorting=nyt, natbib=true]{biblatex}
+\addbibresource{referencias.bib}
+
+% --- Acronimos ---
+\usepackage{acronym}
+
+% --- Encabezado y pie ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small FIE -- UNDEF}
+\fancyhead[C]{\small Proyecto de Promoci\'on y S\'intesis 2026}
+\fancyhead[R]{\small Anteproyecto}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Definiciones globales compartidas ---
+\input{../Comun/definiciones.tex}
+
+% =============================================================================
+\begin{document}
+
+% --- PORTADA ---
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\Large\bfseries Facultad de Ingenier\'ia del Ej\'ercito\\}
+  {\large Universidad de la Defensa Nacional\\}
+  \vspace{0.5cm}
+  {\large Proyecto de Promoci\'on y S\'intesis 2026\\}
+
+  \vspace{2cm}
+
+  {\LARGE\bfseries ANTEPROYECTO\\}
+  \vspace{0.5cm}
+  {\Huge\bfseries \proyectonombre\\}
+  \vspace{0.3cm}
+  {\Large (\proyectoacronimo)\\}
+
+  \vspace{3cm}
+
+  \begin{tabular}{ll}
+    \textbf{Autor:} & \autorNombre \\
+    \textbf{Tutor:} & \tutorNombre \\
+  \end{tabular}
+
+  \vfill
+  {\large \today}
+\end{titlepage}
+
+% --- INDICE (Seccion 0) ---
+\newpage
+\tableofcontents
+\newpage
+
+% =============================================================================
+% SECCION 1: RESUMEN
+% =============================================================================
+\section{Resumen}
+
+El presente anteproyecto describe el dise\~no e implementaci\'on parcial de una arquitectura multiagente destinada a la Secretar\'ia de Extensi\'on Universitaria (SEU) de la Facultad de Ingenier\'ia del Ej\'ercito (FIE), en el marco de su centenario institucional. El sistema propuesto contempla cinco agentes inteligentes especializados que automatizan, asisten y optimizan los nueve procesos BPM identificados para la extensi\'on universitaria. El alcance espec\'ifico de este Proyecto de Promoci\'on y S\'intesis (PPS) comprende dos ejes: (1)~el dise\~no de la arquitectura multiagente completa ---segura, fiable e interoperable--- y (2)~el desarrollo del Agente~2, denominado ``Historia Viva'' o ``Centenario AI'', un repositorio hist\'orico institucional con capacidades de ingesta documental, indexaci\'on sem\'antica, generaci\'on de efem\'erides y recuperaci\'on inteligente de informaci\'on. La propuesta se sustenta en tecnolog\'ias de c\'odigo abierto (Ollama, LlamaIndex, FastAPI, PostgreSQL con pgvector), garant\'ia de soberan\'ia de datos mediante ejecuci\'on local de modelos de lenguaje, y un esquema de maduraci\'on progresiva basado en niveles TRL. El an\'alisis econ\'omico detallado se presenta en la Secci\'on~\ref{sec:factibilidad}; la base de software libre minimiza las erogaciones recurrentes.
+
+% =============================================================================
+% SECCION 2: PALABRAS CLAVE
+% =============================================================================
+\section{Palabras clave}
+
+Arquitectura multiagente, agentes inteligentes, extensi\'on universitaria, repositorio hist\'orico, indexaci\'on sem\'antica, Retrieval-Augmented Generation (RAG), Large Language Models (LLM), Business Process Management (BPM), CONEAU, c\'odigo abierto, soberan\'ia de datos, Technology Readiness Level (TRL).
+
+% =============================================================================
+% SECCION 3: GLOSARIO
+% =============================================================================
+\section{Glosario}
+
+\begin{acronym}[CONEAU]
+  \acro{SEU}{Secretar\'ia de Extensi\'on Universitaria}
+  \acro{FIE}{Facultad de Ingenier\'ia del Ej\'ercito}
+  \acro{UNDEF}{Universidad de la Defensa Nacional}
+  \acro{P100}{Proyecto Centenario}
+  \acro{BPM}{Business Process Management}
+  \acro{CONEAU}{Comisi\'on Nacional de Evaluaci\'on y Acreditaci\'on Universitaria}
+  \acro{TRL}{Technology Readiness Level}
+  \acro{LLM}{Large Language Model}
+  \acro{RAG}{Retrieval-Augmented Generation}
+  \acro{SDLC}{Software Development Life Cycle}
+  \acro{API}{Application Programming Interface}
+  \acro{RRSS}{Redes Sociales}
+  \acro{KPI}{Key Performance Indicator}
+  \acro{DoD}{Definition of Done}
+  \acro{SP}{Story Points}
+  \acro{MVP}{Minimum Viable Product}
+  \acro{RACI}{Responsible, Accountable, Consulted, Informed}
+  \acro{RF}{Requisito Funcional}
+  \acro{RNF}{Requisito No Funcional}
+  \acro{EDT}{Estructura de Descomposici\'on del Trabajo}
+  \acro{HU}{Historia de Usuario}
+  \acro{PDCA}{Plan--Do--Check--Act}
+\end{acronym}
+
+% =============================================================================
+% SECCION 4: INTRODUCCION
+% =============================================================================
+\section{Introducci\'on}
+
+La Facultad de Ingenier\'ia del Ej\'ercito se aproxima a su centenario, hito que representa una oportunidad estrat\'egica para modernizar sus procesos de extensi\'on universitaria mediante la incorporaci\'on de tecnolog\'ias de inteligencia artificial. La \ac{SEU} de la \ac{FIE} gestiona actualmente nueve procesos sustantivos ---desde la planificaci\'on estrat\'egica hasta la atenci\'on a aspirantes--- de forma predominantemente manual, con informaci\'on dispersa y escasa trazabilidad documental frente a los requisitos de \ac{CONEAU}.
+
+El Proyecto Centenario (\ac{P100}) propone abordar esta problem\'atica mediante una arquitectura de cinco agentes inteligentes especializados, cada uno asociado a un proceso \ac{BPM} espec\'ifico. El presente anteproyecto delimita el alcance del PPS de Ignacio Becerra Mas Roca a dos componentes: el dise\~no de la arquitectura multiagente global y la implementaci\'on del Agente~2 (``Historia Viva''), orientado a la gesti\'on del conocimiento y la memoria institucional. Este alcance se alinea con el Objetivo Espec\'ifico~1 formulado por el director de carrera, CR(R) Ing. C\'esar Daniel Cicerchia, quien supervisa el proyecto en su totalidad.
+
+El documento se estructura en veinte secciones que cubren desde la formulaci\'on del problema y los antecedentes hasta la propuesta t\'ecnica, el cronograma y las m\'etricas de \'exito, siguiendo los lineamientos de c\'atedra para anteproyectos de la \ac{FIE}.
+
+% =============================================================================
+% SECCION 5: FORMULACION DEL PROBLEMA
+% =============================================================================
+\section{Formulaci\'on del problema}
+
+La \ac{SEU} de la \ac{FIE} enfrenta un conjunto de carencias estructurales que limitan su capacidad operativa, su trazabilidad documental y su alineaci\'on con los est\'andares de calidad universitaria. Estas carencias se manifiestan en la gesti\'on cotidiana de los procesos de extensi\'on y representan un obst\'aculo para la preparaci\'on institucional ante futuras evaluaciones de \ac{CONEAU}.
+
+La documentaci\'on institucional ---actas, resoluciones, convenios, material hist\'orico--- se encuentra dispersa en m\'ultiples repositorios f\'isicos y digitales sin criterios uniformes de organizaci\'on. No existe un repositorio centralizado que permita la indexaci\'on, b\'usqueda y reutilizaci\'on del conocimiento acumulado a lo largo de d\'ecadas. Las efem\'erides y contenidos hist\'oricos se generan de forma manual y reactiva, dependiendo del conocimiento t\'acito de personas clave cuya eventual ausencia constituye un riesgo institucional.
+
+La comunicaci\'on institucional opera sin automatizaci\'on: cada gacetilla, publicaci\'on en redes sociales o correo de difusi\'on requiere intervenci\'on manual completa. Los sistemas de informaci\'on existentes (Google Workspace, redes sociales, formularios) funcionan de forma aislada, sin integraci\'on entre s\'i ni con procesos de an\'alisis. Finalmente, la ausencia de indicadores sistem\'aticos y dashboards dificulta la toma de decisiones basada en evidencia.
+
+La Tabla~\ref{tab:causa-efecto} sintetiza estas causas y sus efectos observables.
+
+\begin{table}[htbp]
+  \centering
+  \caption{An\'alisis Causa -- Efecto de la problem\'atica de la SEU}
+  \label{tab:causa-efecto}
+  \begin{tabularx}{\textwidth}{c>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{\#} & \textbf{Causa} & \textbf{Efecto} \\
+    \midrule
+    1 & Documentos institucionales dispersos en m\'ultiples repositorios f\'isicos y digitales & Dificultad para localizar informaci\'on, duplicaci\'on de esfuerzos, p\'erdida de material hist\'orico \\
+    2 & Ausencia de repositorio centralizado con indexaci\'on sem\'antica & Imposibilidad de realizar b\'usquedas inteligentes sobre el corpus institucional \\
+    3 & Generaci\'on manual y reactiva de efem\'erides y contenidos hist\'oricos & Baja frecuencia de publicaciones, oportunidades de difusi\'on desaprovechadas \\
+    4 & Dependencia de personas clave para el conocimiento institucional & Riesgo de p\'erdida irreversible de conocimiento t\'acito ante cambios de personal \\
+    5 & Falta de integraci\'on entre sistemas (Google Workspace, RRSS, formularios) & Procesos manuales redundantes, datos no consolidados \\
+    6 & Ausencia de trazabilidad documental sistematizada & Dificultad para generar evidencia ante evaluaciones CONEAU \\
+    7 & Comunicaci\'on institucional informal y sin automatizaci\'on & Inconsistencia en mensajes, tiempos de respuesta elevados, carga operativa alta \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 6: ANTECEDENTES
+% =============================================================================
+\section{Antecedentes}
+
+Los antecedentes del presente proyecto se organizan en tres ejes: el contexto institucional, el estado del arte en sistemas multiagente para entornos universitarios y las tecnolog\'ias de c\'odigo abierto disponibles.
+
+\subsection{Contexto institucional}
+
+La \ac{FIE} no cuenta con un sistema previo de gesti\'on automatizada de la extensi\'on universitaria. Los procesos de la \ac{SEU} se han gestionado hist\'oricamente mediante herramientas de oficina est\'andar (procesadores de texto, planillas de c\'alculo, correo electr\'onico) sin integraci\'on ni automatizaci\'on. No se registran iniciativas anteriores de aplicaci\'on de inteligencia artificial a la gesti\'on institucional de la facultad.
+
+\subsection{Estado del arte}
+
+Los sistemas multiagente constituyen un paradigma consolidado en la inteligencia artificial, en el que m\'ultiples agentes aut\'onomos interact\'uan para resolver problemas complejos \parencite{wooldridge2009}. En el \'ambito universitario, su aplicaci\'on a la gesti\'on administrativa y acad\'emica es un \'area emergente. La t\'ecnica de Retrieval-Augmented Generation (RAG) \parencite{lewis2020} permite combinar la recuperaci\'on de documentos relevantes con la generaci\'on de respuestas contextualizadas, lo que resulta particularmente \'util para repositorios institucionales. Los Large Language Models (LLMs) de c\'odigo abierto, ejecutables localmente, han alcanzado niveles de calidad que los hacen viables para aplicaciones de dominio espec\'ifico \parencite{russell2021}.
+
+\subsection{Tecnolog\'ias de c\'odigo abierto}
+
+El ecosistema actual ofrece herramientas maduras para la construcci\'on de sistemas multiagente sin dependencia de servicios en la nube propietarios: Ollama \parencite{ollama2024} como motor de ejecuci\'on local de LLMs, LlamaIndex \parencite{llamaindex2024} como framework de indexaci\'on y recuperaci\'on sem\'antica, FastAPI \parencite{fastapi2024} como framework de desarrollo de APIs, y PostgreSQL con la extensi\'on pgvector para almacenamiento y b\'usqueda de embeddings vectoriales.
+
+% =============================================================================
+% SECCION 7: PROPOSITO Y JUSTIFICACION
+% =============================================================================
+\section{Prop\'osito y justificaci\'on}
+
+El prop\'osito del proyecto es dise\~nar e implementar una arquitectura multiagente que permita a la \ac{SEU} de la \ac{FIE} automatizar progresivamente sus procesos de extensi\'on, comenzando por la gesti\'on del conocimiento y la memoria institucional. Las razones que justifican esta iniciativa son las siguientes:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Necesidad institucional:} el centenario de la \ac{FIE} constituye un momento estrat\'egico para preservar, organizar y difundir el patrimonio hist\'orico de la instituci\'on.
+
+  \item \textbf{Alineaci\'on con \ac{CONEAU}:} la sistematizaci\'on de procesos y la generaci\'on de evidencia documental trazable responden directamente a los criterios de calidad universitaria exigidos en las evaluaciones institucionales \parencite{coneau2020}.
+
+  \item \textbf{Viabilidad tecnol\'ogica:} el stack propuesto se compone \'integramente de tecnolog\'ias de c\'odigo abierto maduras, con comunidades activas y documentaci\'on amplia.
+
+  \item \textbf{Viabilidad econ\'omica:} la utilizaci\'on de software libre y hardware institucional existente mantiene las erogaciones en un rango controlado. La estimaci\'on detallada se desarrolla en la Secci\'on~\ref{sec:factibilidad}.
+
+  \item \textbf{Soberan\'ia de datos:} la ejecuci\'on local de modelos de lenguaje garantiza que la informaci\'on institucional no abandone la infraestructura de la facultad, cumpliendo con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326}.
+
+  \item \textbf{Escalabilidad modular:} la arquitectura permite incorporar agentes de forma incremental, sin disrupciones en la operaci\'on cotidiana ni necesidad de redise\~no del sistema.
+
+  \item \textbf{Complemento, no reemplazo:} el sistema asiste al personal de la \ac{SEU} sin sustituirlo. Todo contenido generado autom\'aticamente requiere validaci\'on humana antes de su publicaci\'on o uso oficial.
+\end{enumerate}
+
+% =============================================================================
+% SECCION 8: OBJETIVOS GLOBALES Y ESPECIFICOS
+% =============================================================================
+\section{Objetivos globales y espec\'ificos}
+
+\subsection{Situaci\'on actual (As Is)}
+
+La \ac{SEU} opera con procesos predominantemente manuales. El conocimiento institucional se encuentra disperso en archivos f\'isicos y digitales sin indexaci\'on. No existe un sistema de b\'usqueda sem\'antica sobre el corpus documental. Las efem\'erides se redactan manualmente cuando alg\'un miembro del personal recuerda la fecha. Los sistemas de informaci\'on (Google Workspace, redes sociales, formularios) funcionan de forma aislada, sin integraci\'on entre s\'i ni con herramientas de an\'alisis. No se dispone de dashboards ni indicadores sistem\'aticos para la toma de decisiones.
+
+\subsection{Situaci\'on deseada (To Be)}
+
+Un sistema multiagente integrado en el que el Agente~2 (``Historia Viva'') provee indexaci\'on sem\'antica del repositorio institucional, generaci\'on autom\'atica de efem\'erides y recuperaci\'on inteligente de informaci\'on, alimentando al Agente~1 (``Extensi\'on Bot'') con contenido hist\'orico para difusi\'on. La arquitectura orquesta los cinco agentes mediante mecanismos event-driven y batch, con trazabilidad completa y alineaci\'on a los nueve procesos \ac{BPM} de la \ac{SEU}.
+
+\subsection{Objetivos espec\'ificos}
+
+\begin{enumerate}[label=OE\arabic*.]
+  \item Definir la arquitectura multiagente completa, incluyendo modelo de orquestaci\'on, flujos entre agentes, interfaces t\'ecnicas y requisitos no funcionales.
+  \item Dise\~nar el Agente~2 (``Historia Viva'') con sus cuatro funciones principales: ingesta, indexaci\'on sem\'antica, generaci\'on de efem\'erides y recuperaci\'on inteligente.
+  \item Implementar una prueba de concepto (PoC) del Agente~2 con nivel \ac{TRL}~3, validada en entorno controlado.
+  \item Validar la arquitectura contra los nueve procesos \ac{BPM} definidos para la \ac{SEU}, asegurando cobertura completa.
+  \item Establecer un framework de maduraci\'on basado en niveles \ac{TRL} para la evoluci\'on progresiva del sistema.
+  \item Definir criterios de \ac{DoD} globales y espec\'ificos por tipo de historia de usuario, alineados con los est\'andares de calidad de \ac{CONEAU}.
+  \item Producir un plan de infraestructura detallado para los cuatro semestres del proyecto, con estimaciones de costo y componentes por etapa.
+\end{enumerate}
+
+% =============================================================================
+% SECCION 9: ALCANCES
+% =============================================================================
+\section{Alcances}
+
+\subsection{Alcance del proyecto}
+
+Las actividades del equipo de desarrollo abarcan cinco fases, alineadas con los pasos metodol\'ogicos establecidos por el director de carrera:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Relevamiento:} an\'alisis de los procesos actuales de la \ac{SEU}, identificaci\'on de necesidades, restricciones y fuentes de informaci\'on hist\'orica.
+  \item \textbf{Dise\~no:} definici\'on de la arquitectura multiagente, especificaci\'on del Agente~2 y selecci\'on del stack tecnol\'ogico.
+  \item \textbf{Prototipado:} implementaci\'on de la prueba de concepto del Agente~2 (ingesta, indexaci\'on y recuperaci\'on b\'asica).
+  \item \textbf{Validaci\'on:} verificaci\'on funcional contra los procesos \ac{BPM}, validaci\'on con usuarios de la \ac{SEU} y evaluaci\'on \ac{TRL}.
+  \item \textbf{Documentaci\'on:} producci\'on de todos los entregables acad\'emicos y t\'ecnicos.
+\end{enumerate}
+
+\subsection{Alcance del producto}
+
+\subsubsection{Incluido en este PPS}
+
+\begin{itemize}
+  \item Arquitectura multiagente completa: modelo de orquestaci\'on (event-driven + batch h\'ibrido), flujos de interacci\'on entre los cinco agentes, interfaces t\'ecnicas de entrada/salida, requisitos no funcionales.
+  \item Agente~2 (``Historia Viva''): m\'odulo de ingesta de documentos institucionales, m\'odulo de indexaci\'on sem\'antica (LlamaIndex + pgvector), m\'odulo de generaci\'on de efem\'erides (Ollama), m\'odulo de recuperaci\'on inteligente de informaci\'on.
+  \item Integraci\'on Agente~2 $\rightarrow$ Agente~1: flujo de contenido hist\'orico para difusi\'on institucional.
+  \item Plan de infraestructura: detalle de componentes, costos y evoluci\'on por semestre (S1--S4).
+\end{itemize}
+
+\subsubsection{Excluido de este PPS}
+
+\begin{itemize}
+  \item Implementaci\'on del Agente~1 (``Extensi\'on Bot''), a cargo de Juan Go\~ne en un PPS independiente.
+  \item Implementaci\'on de los Agentes 3, 4 y 5, prevista para el segundo a\~no del Proyecto Centenario.
+  \item Reemplazo del personal de la \ac{SEU}.
+  \item Automatizaci\'on sin validaci\'on humana en contenidos cr\'iticos.
+  \item Infraestructura de alto costo (servidores GPU, servicios cloud premium).
+  \item Integraci\'on con sistemas externos complejos no definidos en la etapa actual.
+\end{itemize}
+
+% =============================================================================
+% SECCION 10: MARCO REFERENCIAL
+% =============================================================================
+\section{Marco referencial}
+
+\subsection{Extensi\'on universitaria en Argentina}
+
+La extensi\'on universitaria constituye una de las tres funciones sustantivas de la universidad argentina, junto con la docencia y la investigaci\'on. La Ley de Educaci\'on Superior N\textsuperscript{o}~24.521 \parencite{ley24521} establece el marco normativo para la organizaci\'on y evaluaci\'on de las instituciones universitarias, incluyendo la extensi\'on como dimensi\'on evaluable por la \ac{CONEAU}. En este contexto, la sistematizaci\'on y trazabilidad de las actividades de extensi\'on adquieren relevancia estrat\'egica.
+
+\subsection{Gesti\'on por procesos (BPM)}
+
+La gesti\'on por procesos de negocio (\ac{BPM}) propone organizar las actividades de una organizaci\'on en torno a procesos bien definidos, medibles y mejorables. El presente proyecto adopta el ciclo \ac{PDCA} como marco de mejora continua, aplicado a los nueve procesos identificados para la \ac{SEU}: dos estrat\'egicos, cuatro sustantivos y tres de soporte.
+
+\subsection{Sistemas multiagente}
+
+Un sistema multiagente es un sistema compuesto por m\'ultiples agentes que interact\'uan entre s\'i para alcanzar objetivos individuales o colectivos \parencite{wooldridge2009}. En el contexto de este proyecto, cada agente se especializa en un proceso \ac{BPM} espec\'ifico y se comunica con los dem\'as a trav\'es de un bus de datos (Google Sheets) y mecanismos de orquestaci\'on (Apps Script, Celery).
+
+\subsection{Retrieval-Augmented Generation (RAG)}
+
+La t\'ecnica de RAG \parencite{lewis2020} combina un sistema de recuperaci\'on de informaci\'on con un modelo generativo de lenguaje. Ante una consulta, el sistema primero recupera documentos relevantes de un \'indice y luego genera una respuesta contextualizada. Esta arquitectura resulta especialmente adecuada para repositorios institucionales donde la precisi\'on factual es cr\'itica.
+
+\subsection{LLMs locales y soberan\'ia de datos}
+
+Los Large Language Models de c\'odigo abierto ---como LLaMA~3 8B y Mistral 7B--- pueden ejecutarse localmente mediante plataformas como Ollama \parencite{ollama2024}, eliminando la necesidad de enviar datos institucionales a servicios externos. Esta caracter\'istica es fundamental para cumplir con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326} y con los requisitos de soberan\'ia de datos de una instituci\'on de defensa.
+
+\subsection{Technology Readiness Level (TRL)}
+
+Los niveles de madurez tecnol\'ogica (\ac{TRL}) fueron originalmente definidos por la NASA \parencite{mankins1995} como una escala de nueve niveles para evaluar el grado de madurez de una tecnolog\'ia. Este proyecto adopta los niveles TRL~3 a TRL~6 como framework de validaci\'on progresiva. La Tabla~\ref{tab:trl-criterios} detalla los criterios de cada nivel.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Criterios de evaluaci\'on por nivel TRL}
+  \label{tab:trl-criterios}
+  \begin{tabularx}{\textwidth}{clX}
+    \toprule
+    \textbf{TRL} & \textbf{Semestre} & \textbf{Criterio de evidencia} \\
+    \midrule
+    3 & S1 & Prototipos funcionales b\'asicos en entorno controlado. Demostraci\'on de capacidades nucleares (ingesta + indexaci\'on b\'asica). \\
+    4 & S2 & Validaci\'on en entorno real limitado. Prototipo probado con documentos y usuarios reales de la \ac{SEU}. \\
+    5 & S3 & Operaci\'on real con interacci\'on externa. Agente~2 en uso cotidiano, integraci\'on A2$\rightarrow$A1 funcional. \\
+    6 & S4 & Operaci\'on consolidada. M\'etricas de impacto medidas, documentaci\'on completa, transferencia al usuario final. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 11: CICLO DE VIDA
+% =============================================================================
+\section{Ciclo de vida}
+
+Se adopta un enfoque \textbf{iterativo-incremental} alineado con los cinco pasos metodol\'ogicos establecidos por el director de carrera: relevamiento, dise\~no, prototipado, validaci\'on y documentaci\'on. Cada semestre acad\'emico constituye un ciclo completo que culmina en un gate de evaluaci\'on \ac{TRL}, lo que permite ajustar el alcance y las prioridades al inicio de cada iteraci\'on.
+
+\textbf{Alcance temporal del PPS:} el presente Proyecto de Promoci\'on y S\'intesis tiene un ciclo de vida de \textbf{un a\~no} (dos semestres: S1 y S2), durante el cual se dise\~na la arquitectura multiagente y se implementa el Agente~2 hasta nivel TRL~4. El Proyecto Centenario (\ac{P100}) en su totalidad abarca dos a\~nos (cuatro semestres), pero los semestres S3 y S4 quedan fuera del alcance de este PPS y se presentan \'unicamente como proyecci\'on de continuidad.
+
+La justificaci\'on de este enfoque radica en la naturaleza exploratoria del proyecto ---donde los requisitos del Agente~2 dependen en parte de la disponibilidad y calidad de los documentos hist\'oricos--- y en la necesidad de producir entregables tangibles al final de cada semestre para la evaluaci\'on acad\'emica \parencite{pressman2019}.
+
+La Figura~\ref{fig:ciclo-vida} ilustra la estructura del ciclo de vida. Los semestres S1 y S2 constituyen el alcance de este PPS; S3 y S4 se incluyen como proyecci\'on del \ac{P100}.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    fase/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=1.2cm, align=center, font=\small},
+    trl/.style={fill=blue!10, font=\small\bfseries},
+    arrow/.style={-{Stealth[length=3mm]}, thick},
+    semestre/.style={font=\footnotesize\itshape, text=gray}
+  ]
+    % Semestre 1
+    \node[fase] (r1) at (0,0) {Relevamiento};
+    \node[fase] (d1) at (3.2,0) {Dise\~no};
+    \node[fase] (p1) at (6.4,0) {Prototipado};
+    \node[fase] (v1) at (9.6,0) {Validaci\'on};
+    \node[fase] (doc1) at (12.8,0) {Documentaci\'on};
+    \node[trl] (trl3) at (14.8,0) {TRL 3};
+
+    \draw[arrow] (r1) -- (d1);
+    \draw[arrow] (d1) -- (p1);
+    \draw[arrow] (p1) -- (v1);
+    \draw[arrow] (v1) -- (doc1);
+    \draw[arrow] (doc1) -- (trl3);
+
+    \node[semestre] at (6.4, 0.9) {Semestre 1 (Mar--Jul 2026)};
+
+    % Semestre 2
+    \node[fase] (r2) at (0,-2) {Relevamiento};
+    \node[fase] (d2) at (3.2,-2) {Dise\~no};
+    \node[fase] (p2) at (6.4,-2) {Prototipado};
+    \node[fase] (v2) at (9.6,-2) {Validaci\'on};
+    \node[fase] (doc2) at (12.8,-2) {Documentaci\'on};
+    \node[trl] (trl4) at (14.8,-2) {TRL 4};
+
+    \draw[arrow] (r2) -- (d2);
+    \draw[arrow] (d2) -- (p2);
+    \draw[arrow] (p2) -- (v2);
+    \draw[arrow] (v2) -- (doc2);
+    \draw[arrow] (doc2) -- (trl4);
+
+    \node[semestre] at (6.4, -1.1) {Semestre 2 (Ago--Dic 2026)};
+
+    % Semestre 3 (proyeccion P100, fuera del PPS)
+    \node[fase, draw=gray!50, text=gray] (r3) at (0,-4) {Relevamiento};
+    \node[fase, draw=gray!50, text=gray] (d3) at (3.2,-4) {Dise\~no};
+    \node[fase, draw=gray!50, text=gray] (p3) at (6.4,-4) {Prototipado};
+    \node[fase, draw=gray!50, text=gray] (v3) at (9.6,-4) {Validaci\'on};
+    \node[fase, draw=gray!50, text=gray] (doc3) at (12.8,-4) {Documentaci\'on};
+    \node[trl] (trl5) at (14.8,-4) {TRL 5};
+
+    \draw[arrow, gray!50] (r3) -- (d3);
+    \draw[arrow, gray!50] (d3) -- (p3);
+    \draw[arrow, gray!50] (p3) -- (v3);
+    \draw[arrow, gray!50] (v3) -- (doc3);
+    \draw[arrow, gray!50] (doc3) -- (trl5);
+
+    \node[semestre] at (6.4, -3.1) {Semestre 3 (Mar--Jul 2027) --- Proyecci\'on P100};
+
+    % Semestre 4
+    \node[fase, draw=gray!50, text=gray] (r4) at (0,-6) {Relevamiento};
+    \node[fase, draw=gray!50, text=gray] (d4) at (3.2,-6) {Dise\~no};
+    \node[fase, draw=gray!50, text=gray] (p4) at (6.4,-6) {Prototipado};
+    \node[fase, draw=gray!50, text=gray] (v4) at (9.6,-6) {Validaci\'on};
+    \node[fase, draw=gray!50, text=gray] (doc4) at (12.8,-6) {Documentaci\'on};
+    \node[trl] (trl6) at (14.8,-6) {TRL 6};
+
+    \draw[arrow, gray!50] (r4) -- (d4);
+    \draw[arrow, gray!50] (d4) -- (p4);
+    \draw[arrow, gray!50] (p4) -- (v4);
+    \draw[arrow, gray!50] (v4) -- (doc4);
+    \draw[arrow, gray!50] (doc4) -- (trl6);
+
+    \node[semestre] at (6.4, -5.1) {Semestre 4 (Ago--Dic 2027) --- Proyecci\'on P100};
+
+    % Alcance PPS
+    \begin{scope}[on background layer]
+      \node[draw, dashed, thick, blue!60, rounded corners, inner sep=10pt, fit=(r1) (trl4) (doc2), label={[font=\small\bfseries, blue!60]above left:Alcance PPS (1 a\~no)}] {};
+    \end{scope}
+
+    % Flechas de retroalimentacion
+    \draw[arrow, dashed, gray] (trl3.south) -- ++(0,-0.3) -| (r2.north);
+    \draw[arrow, dashed, gray] (trl4.south) -- ++(0,-0.3) -| (r3.north);
+    \draw[arrow, dashed, gray] (trl5.south) -- ++(0,-0.3) -| (r4.north);
+
+  \end{tikzpicture}
+  \caption{Ciclo de vida iterativo-incremental con gates TRL por semestre. S1--S2: alcance del PPS (1 a\~no). S3--S4: proyecci\'on del P100.}
+  \label{fig:ciclo-vida}
+\end{figure}
+
+% =============================================================================
+% SECCION 12: METODOLOGIA(S) CANDIDATA(S)
+% =============================================================================
+\section{Metodolog\'ia(s) candidata(s)}
+
+Se evaluaron tres modelos de proceso para el desarrollo del sistema. La Tabla~\ref{tab:metodologias} presenta la comparaci\'on seg\'un cinco criterios relevantes para el contexto del proyecto.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Comparaci\'on de metodolog\'ias candidatas}
+  \label{tab:metodologias}
+  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{Criterio} & \textbf{Scrum} & \textbf{Kanban} & \textbf{Iterativo convencional} \\
+    \midrule
+    Adaptabilidad a equipo de 1--2 personas & Baja (ceremonias pensadas para equipos) & Alta (flujo continuo, sin ceremonias) & Media (estructura definida pero flexible) \\
+    Trazabilidad para CONEAU & Media (sprint reviews documentables) & Alta (tablero visual, logs de flujo) & Alta (entregables por fase) \\
+    Baja ceremonia & Baja (daily, sprint review, retro) & Alta (sin ceremonias obligatorias) & Media \\
+    Compatibilidad con TRL & Media & Alta (flujo continuo, hitos externos) & Alta (fases con gates) \\
+    Gesti\'on de backlog & Nativa (product backlog) & Nativa (columnas de estado) & Adaptable \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{Selecci\'on:} se adopta un enfoque \textbf{h\'ibrido iterativo con Kanban}. Esta decisi\'on se fundamenta en tres factores: (1)~el equipo consta de una sola persona para este PPS, lo que hace innecesarias las ceremonias de Scrum; (2)~el tablero Kanban provee trazabilidad visual compatible con los requisitos de evidencia de \ac{CONEAU}; y (3)~la estructura iterativa por semestre permite alinear los entregables con los gates \ac{TRL} definidos \parencite{anderson2010, schwaber2020}.
+
+% =============================================================================
+% SECCION 13: PLATAFORMA REQUERIDA
+% =============================================================================
+\section{Plataforma requerida}
+
+La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico validado para el proyecto. La selecci\'on de cada componente responde a tres criterios: (1)~licencia de c\'odigo abierto o gratuita para uso educativo, (2)~madurez y estabilidad de la tecnolog\'ia, y (3)~compatibilidad con la infraestructura existente de la \ac{FIE}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Plataforma tecnol\'ogica del proyecto}
+  \label{tab:plataforma}
+  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}Xl}
+    \toprule
+    \textbf{Categor\'ia} & \textbf{Componente} & \textbf{Licencia} \\
+    \midrule
+    Lenguaje principal      & Python 3.x                             & MIT \\
+    Framework backend       & FastAPI                                & MIT \\
+    Base de datos           & PostgreSQL + pgvector                  & PostgreSQL / MIT \\
+    Motor IA local          & Ollama                                 & MIT \\
+    Modelos de lenguaje     & LLaMA 3 8B / Mistral 7B                & Meta / Apache 2.0 \\
+    Framework RAG           & LlamaIndex                             & MIT \\
+    Framework agentes       & LangChain                              & MIT \\
+    Orquestaci\'on async    & Celery + Redis                         & BSD / BSD \\
+    Automatizaci\'on        & Google Apps Script                     & Gratuito (institucional) \\
+    Contenedores            & Docker / Docker Compose                & Apache 2.0 \\
+    Control de versiones    & Git + GitHub                           & GPL / Gratuito \\
+    Testing                 & PyTest                                 & MIT \\
+    Suite institucional     & Google Workspace (Drive, Sheets, Docs) & Institucional \\
+    Anal\'itica             & Metabase                               & AGPL \\
+    Visualizaci\'on         & Google Looker Studio                   & Gratuito \\
+    SO servidor             & Ubuntu Server LTS                      & GPL \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 14: ENUNCIADO DE FACTIBILIDAD
+% =============================================================================
+\section{Enunciado de factibilidad}
+\label{sec:factibilidad}
+
+\subsection{Viabilidad t\'ecnica}
+
+El stack tecnol\'ogico seleccionado se compone de herramientas maduras con amplia adopci\'on en la industria. Los modelos de lenguaje de 7--8B de par\'ametros pueden ejecutarse en hardware de consumo sin GPU dedicada, lo que los hace compatibles con los servidores institucionales existentes (equivalentes a Lenovo ThinkSystem ST50/ST250). Los frameworks LlamaIndex y LangChain proveen abstracciones probadas para la implementaci\'on de pipelines RAG. La infraestructura de red de la \ac{FIE} soporta la ejecuci\'on local requerida.
+
+\subsection{Viabilidad econ\'omica}
+
+% TODO: Completar con estimaci\'on de costos validada.
+% Incluir tabla desglosada por categor\'ia (hardware, cloud, APIs, backups)
+% para el a\~no de alcance del PPS (2 semestres).
+
+\textit{[Pendiente: estimaci\'on de costos en revisi\'on. Se completar\'a con valores validados antes de la entrega.]}
+
+\noindent La base de software de c\'odigo abierto tiene costo cero. Las erogaciones previstas son opcionales y controladas, lo que garantiza viabilidad incluso sin presupuesto adicional.
+
+\subsection{Business Model Canvas}
+
+La Tabla~\ref{tab:bmc} presenta el Business Model Canvas del sistema, adaptado al contexto de un proyecto acad\'emico con aplicaci\'on institucional. Aunque el producto no persigue fines comerciales, el canvas permite visualizar la l\'ogica de creaci\'on y entrega de valor del sistema multiagente dentro de la \ac{FIE}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Business Model Canvas del Proyecto Centenario}
+  \label{tab:bmc}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{|l|X|}
+    \hline
+    \textbf{Segmentos de clientes} &
+    Secretar\'ia de Extensi\'on Universitaria (SEU) --- usuario primario. \'Areas administrativas de la FIE. Aspirantes y comunidad acad\'emica (beneficiarios indirectos). \\
+    \hline
+    \textbf{Propuesta de valor} &
+    Automatizaci\'on progresiva de procesos de extensi\'on; preservaci\'on y recuperaci\'on inteligente de la memoria institucional; generaci\'on asistida de contenido (efem\'erides, difusi\'on); trazabilidad documental alineada a CONEAU; soberan\'ia de datos con ejecuci\'on local de IA. \\
+    \hline
+    \textbf{Canales} &
+    Google Workspace (Drive, Sheets, Docs, Forms, Gmail) como canal primario. Interfaz web simple para consultas al Agente~2. Correo electr\'onico y RRSS institucionales para difusi\'on. \\
+    \hline
+    \textbf{Relaci\'on con clientes} &
+    Asistencia automatizada con validaci\'on humana obligatoria. Capacitaci\'on al personal de la SEU. Retroalimentaci\'on mediante checklist de validaci\'on (escala 1--4) en cada gate TRL. \\
+    \hline
+    \textbf{Fuentes de ingreso} &
+    No aplica (proyecto acad\'emico sin fines de lucro). El valor se mide en reducci\'on de tiempos operativos, preservaci\'on de conocimiento institucional y cumplimiento de indicadores CONEAU. \\
+    \hline
+    \textbf{Recursos clave} &
+    Servidor institucional existente. Google Workspace institucional. Stack de c\'odigo abierto (Ollama, LlamaIndex, FastAPI, PostgreSQL). Corpus documental hist\'orico de la FIE. Conocimiento del equipo de desarrollo. \\
+    \hline
+    \textbf{Actividades clave} &
+    Dise\~no de arquitectura multiagente. Desarrollo del Agente~2 (ingesta, indexaci\'on, generaci\'on, recuperaci\'on). Validaci\'on con usuarios reales. Documentaci\'on acad\'emica y t\'ecnica. \\
+    \hline
+    \textbf{Socios clave} &
+    Director de carrera (CR(R) Ing. Cicerchia) --- supervisi\'on y definici\'on de alcance. Personal de la SEU --- validaci\'on funcional y provisi\'on de documentos. Docentes tutores --- orientaci\'on t\'ecnica. Juan Go\~ne --- desarrollo del Agente~1 (PPS independiente). \\
+    \hline
+    \textbf{Estructura de costos} &
+    Base de software libre: costo cero. Erogaciones opcionales y controladas en cloud, APIs de IA y backups. Hardware institucional existente sin costo adicional. Estimaci\'on detallada pendiente de validaci\'on (ver Secci\'on~\ref{sec:factibilidad}). \\
+    \hline
+  \end{tabularx}
+\end{table}
+
+\subsection{Viabilidad operativa}
+
+El sistema se integra con Google Workspace, ya adoptado institucionalmente por la \ac{FIE}. La adopci\'on es progresiva: cada agente se incorpora en un semestre distinto, sin disrupciones. Todo contenido generado requiere validaci\'on humana, minimizando el riesgo de errores en comunicaciones oficiales.
+
+\subsection{Viabilidad legal}
+
+El stack se compone de software con licencias de c\'odigo abierto (MIT, Apache 2.0, BSD, GPL, AGPL). La ejecuci\'on local de modelos de lenguaje y el almacenamiento de datos en infraestructura propia cumplen con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326}. No se utilizan datos personales de terceros sin consentimiento.
+
+\subsection{Viabilidad medioambiental}
+
+El proyecto reutiliza hardware institucional existente, evitando la adquisici\'on de equipamiento nuevo. Los modelos de lenguaje seleccionados (7--8B de par\'ametros) son livianos y no requieren GPU dedicada, con un consumo energ\'etico marginal respecto al servidor base. La ejecuci\'on local elimina la huella de carbono asociada al uso de centros de datos en la nube.
+
+\subsection{Riesgos identificados y mitigaciones}
+
+La Tabla~\ref{tab:riesgos} presenta los riesgos identificados para el alcance de este PPS y sus estrategias de mitigaci\'on.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Riesgos y mitigaciones}
+  \label{tab:riesgos}
+  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{\#} & \textbf{Riesgo} & \textbf{Mitigaci\'on} \\
+    \midrule
+    R1 & Prioridad del Agente~2 a\'un no definida por la \ac{SEU} (nota del director, 20/03/2026) & Avanzar con el dise\~no de la arquitectura multiagente (primer eje del PPS) mientras se aguarda definici\'on. Si A2 se pospone, el PPS conserva valor por la arquitectura. \\
+    R2 & Documentos hist\'oricos no digitalizados o en formatos heterog\'eneos & Plan de digitalizaci\'on progresiva. El m\'odulo de ingesta soporta m\'ultiples formatos (PDF, DOCX, im\'agenes con OCR). \\
+    R3 & Calidad variable de documentos fuente (baja resoluci\'on, texto ilegible) & Normalizaci\'on en el pipeline de ingesta. Documentos ilegibles se marcan para revisi\'on manual. \\
+    R4 & Dependencia del framework LlamaIndex & Dise\~no modular con capa de abstracci\'on que permita reemplazar el framework RAG sin afectar el resto del sistema. \\
+    R5 & Volumen creciente de datos que degrade el rendimiento & PostgreSQL con pgvector es escalable. Particionamiento de \'indices si el corpus supera umbrales definidos. \\
+    R6 & Dependencia de HU-001/HU-002 (plataforma base) & Estas historias son prerequisito global. La estructura base de Google Drive/Sheets se implementa como actividad compartida entre ambos PPS (Becerra Mas Roca y Go\~ne) en las primeras semanas de S1. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 15: ACUERDOS DE SEGURIDAD Y CALIDAD
+% =============================================================================
+\section{Acuerdos preliminares de nivel de seguridad y de calidad}
+
+\subsection{Seguridad}
+
+Se establecen los siguientes acuerdos preliminares de seguridad:
+
+\begin{itemize}
+  \item \textbf{Gesti\'on de credenciales:} todas las credenciales (tokens de API, claves de acceso) se almacenan en archivos \texttt{.env} excluidos del control de versiones, o en almacenamiento seguro equivalente (Google Properties Service para Apps Script).
+  \item \textbf{Autenticaci\'on:} integraci\'on con OAuth2 para el acceso a servicios de Google Workspace.
+  \item \textbf{Control de acceso:} modelo RBAC (Role-Based Access Control) alineado con la matriz \ac{RACI} de cada proceso.
+  \item \textbf{Integridad de datos:} hash de verificaci\'on en el proceso de ingesta de documentos para detectar alteraciones.
+  \item \textbf{Ejecuci\'on local:} los modelos de lenguaje se ejecutan en infraestructura propia, sin env\'io de datos a servicios externos.
+  \item \textbf{Auditor\'ia:} registro de logs de ejecuci\'on, errores y acciones para trazabilidad completa.
+\end{itemize}
+
+\subsection{Calidad}
+
+La gesti\'on de calidad se estructura en tres niveles:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Framework de \ac{DoD}:} se define una Definition of Done global aplicable a todas las historias de usuario, complementada por criterios espec\'ificos seg\'un el tipo de historia (automatizaci\'on, integraci\'on API, generaci\'on de contenido, repositorio, datos, dashboards, atenci\'on, seguridad, orquestaci\'on entre agentes).
+
+  \item \textbf{Backlog de calidad:} se mantiene un backlog espec\'ifico de caracter\'isticas de calidad alineado con ISO/IEC~25010 \parencite{iso25010} e ISO~9001 \parencite{iso9001}.
+
+  \item \textbf{Validaci\'on con la \ac{SEU}:} se aplica un checklist de validaci\'on no t\'ecnica con escala de 1 a 4 (1 = no cumple, 2 = cumple parcialmente, 3 = cumple adecuadamente, 4 = cumple completamente), evaluado por usuarios reales de la Secretar\'ia en cada gate \ac{TRL}. Los registros de validaci\'on se almacenan en una carpeta dedicada de Google Drive (\texttt{P100/Validaciones/SX-TRL-N/}) con nomenclatura estandarizada: \texttt{VAL-SX-YYYY-MM-DD-descripcion.pdf}, garantizando trazabilidad auditable para \ac{CONEAU}.
+\end{enumerate}
+
+% =============================================================================
+% SECCION 16: PARTICIPANTES
+% =============================================================================
+\section{Participantes}
+
+\subsection{Equipo de proyecto}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Integrantes del equipo de proyecto}
+  \label{tab:equipo}
+  \begin{tabularx}{\textwidth}{lXl}
+    \toprule
+    \textbf{Nombre} & \textbf{Rol} & \textbf{Alcance} \\
+    \midrule
+    Becerra Mas Roca, Ignacio & Desarrollador principal & Arquitectura multiagente + Agente~2 \\
+    Go\~ne, Juan              & Desarrollador           & Agente~1 (PPS independiente) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Interesados}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Interesados del proyecto}
+  \label{tab:interesados}
+  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}Xl}
+    \toprule
+    \textbf{Nombre} & \textbf{Rol en el proyecto} & \textbf{Nivel} \\
+    \midrule
+    CR(R) Ing. C\'esar Daniel Cicerchia & Director de carrera / Tutor del PPS    & Primario \\
+    Ing. Cinthia Vegega                  & Docente primario -- IA, agentes inteligentes        & Primario \\
+    Lic. Daniel Britez                   & Docente primario -- comportamientos, flujos          & Primario \\
+    Ing. Carlos Maceira Garc\'ia Coni    & Docente secundario -- arquitectura de software       & Secundario \\
+    Mg. Adri\'an Tozzi                   & Apoyo -- Paradigmas de Programaci\'on IV e ISA       & Apoyo \\
+    Lic. Daniel Calvache                 & Apoyo -- Paradigmas de Programaci\'on IV e ISA       & Apoyo \\
+    TP SCD Fernando Vera Batista         & Soporte de infraestructura                           & Apoyo \\
+    \ac{SEU}                             & Product Owner funcional                & Primario \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 17: PRESENTACION DE LA PROPUESTA
+% =============================================================================
+\section{Presentaci\'on de la propuesta}
+
+La propuesta se articula en torno a una arquitectura modular de cinco agentes inteligentes, orquestados mediante mecanismos event-driven y procesos batch, integrados sobre la infraestructura institucional de Google Workspace y complementados con un backend de c\'odigo abierto. A continuaci\'on se presentan los tres diagramas principales y la tabla de interacciones entre agentes.
+
+\subsection{Arquitectura multiagente de alto nivel}
+
+La Figura~\ref{fig:arquitectura} presenta la vista de alto nivel del sistema. Los cinco agentes se comunican a trav\'es de un bus de datos centralizado en Google Sheets, con Google Workspace como capa de interacci\'on con usuarios y Ollama como motor de IA local. El alcance de este PPS (arquitectura + Agente~2) se resalta con borde punteado.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    agente/.style={rectangle, draw, rounded corners, minimum width=3cm, minimum height=1.4cm, align=center, font=\small},
+    infra/.style={rectangle, draw, fill=gray!10, minimum width=2.5cm, minimum height=1cm, align=center, font=\small},
+    bus/.style={rectangle, draw, fill=yellow!15, minimum width=12cm, minimum height=0.8cm, align=center, font=\small\bfseries},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick},
+    scope/.style={draw, dashed, thick, blue!60, rounded corners, inner sep=8pt}
+  ]
+
+    % Google Workspace (arriba)
+    \node[infra, minimum width=12cm] (gw) at (6, 5) {Google Workspace (Drive, Sheets, Docs, Apps Script, Forms, Gmail)};
+
+    % Bus de datos
+    \node[bus] (bus) at (6, 3.2) {Google Sheets --- Bus de datos};
+
+    % Agentes
+    \node[agente, fill=green!10] (a1) at (0, 1.2) {A1\\Extensi\'on Bot\\(Juan)};
+    \node[agente, fill=blue!10] (a2) at (3.5, 1.2) {A2\\Historia Viva\\(Nacho)};
+    \node[agente, fill=orange!10] (a3) at (7, 1.2) {A3\\Vinculaci\'on\\(A\~no 2)};
+    \node[agente, fill=red!10] (a4) at (10, 1.2) {A4\\Atenci\'on\\(A\~no 2)};
+    \node[agente, fill=purple!10] (a5) at (13, 1.2) {A5\\Anal\'iticas\\(A\~no 2)};
+
+    % Infraestructura (abajo)
+    \node[infra] (ollama) at (3, -0.8) {Ollama\\(LLaMA 3 / Mistral)};
+    \node[infra] (pg) at (7, -0.8) {PostgreSQL\\+ pgvector};
+    \node[infra] (celery) at (11, -0.8) {Celery + Redis};
+
+    % Flechas agentes <-> bus
+    \draw[arrow] (a1.north) -- (a1.north |- bus.south);
+    \draw[arrow] (a2.north) -- (a2.north |- bus.south);
+    \draw[arrow] (a3.north) -- (a3.north |- bus.south);
+    \draw[arrow] (a4.north) -- (a4.north |- bus.south);
+    \draw[arrow] (a5.north) -- (a5.north |- bus.south);
+
+    % Flechas bus <-> GW
+    \draw[arrow] (bus.north) -- (gw.south);
+
+    % Flechas inter-agente
+    \draw[arrow, blue!60] (a2.west) -- (a1.east) node[midway, above, font=\tiny] {contenido};
+    \draw[arrow, orange!60] (a3.north west) -- +(-0.5,0.5) -- (a1.north east);
+    \draw[arrow, purple!60] (a5.north west) -- +(-0.5,0.5) -- +(-2,0.5) -- (a1.north east);
+
+    % Flechas infra
+    \draw[arrow, gray] (a2.south) -- (ollama.north);
+    \draw[arrow, gray] (a2.south east) -- (pg.north west);
+    \draw[arrow, gray] (a1.south) -- (ollama.north west);
+
+    % Scope PPS Nacho
+    \begin{scope}[on background layer]
+      \node[scope, fit=(a2) (ollama) (pg), label={[font=\small\itshape, blue!60]below:Alcance PPS Becerra Mas Roca}] {};
+    \end{scope}
+
+  \end{tikzpicture}
+  \caption{Arquitectura multiagente de alto nivel del Proyecto Centenario}
+  \label{fig:arquitectura}
+\end{figure}
+
+\subsection{Flujo del Agente~2 (Historia Viva)}
+
+La Figura~\ref{fig:flujo-a2} detalla el pipeline de procesamiento del Agente~2, desde la detecci\'on de un nuevo documento en Google Drive hasta la generaci\'on de salidas (efem\'erides, b\'usqueda sem\'antica) y la alimentaci\'on del Agente~1.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    bloque/.style={rectangle, draw, rounded corners, minimum width=2.4cm, minimum height=1cm, align=center, font=\small},
+    data/.style={cylinder, draw, shape border rotate=90, minimum width=1.5cm, minimum height=1cm, align=center, font=\small, aspect=0.3},
+    output/.style={rectangle, draw, fill=green!10, rounded corners, minimum width=2cm, minimum height=0.8cm, align=center, font=\small},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick}
+  ]
+
+    % Entrada
+    \node[bloque, fill=yellow!15] (drive) at (0, 0) {Google\\Drive};
+    \node[bloque] (trigger) at (2.8, 0) {Trigger\\(Apps Script)};
+    \node[bloque, fill=blue!10] (ingesta) at (5.6, 0) {Ingesta\\(parseo)};
+    \node[bloque, fill=blue!10] (indexacion) at (8.8, 0) {Indexaci\'on\\sem\'antica};
+    \node[data, fill=gray!10] (pgvec) at (8.8, -1.8) {pgvector};
+    \node[bloque, fill=blue!10] (generacion) at (12, 0) {Generaci\'on\\(Ollama)};
+
+    % Salidas
+    \node[output] (efem) at (12, -1.8) {Efem\'erides};
+    \node[output] (busq) at (12, -3) {B\'usqueda\\sem\'antica};
+    \node[output] (a1out) at (15, 0) {A1\\(difusi\'on)};
+
+    % Flechas
+    \draw[arrow] (drive) -- (trigger);
+    \draw[arrow] (trigger) -- (ingesta);
+    \draw[arrow] (ingesta) -- (indexacion);
+    \draw[arrow] (indexacion) -- (pgvec);
+    \draw[arrow] (indexacion) -- (generacion);
+    \draw[arrow] (generacion) -- (efem);
+    \draw[arrow] (generacion) -- (busq);
+    \draw[arrow] (generacion) -- (a1out);
+
+    % LlamaIndex label
+    \node[font=\tiny\itshape, text=gray] at (8.8, 0.7) {LlamaIndex + pgvector};
+    \node[font=\tiny\itshape, text=gray] at (12, 0.7) {LLaMA 3 8B};
+
+  \end{tikzpicture}
+  \caption{Flujo de procesamiento del Agente~2 (Historia Viva)}
+  \label{fig:flujo-a2}
+\end{figure}
+
+\subsection{Evoluci\'on de infraestructura por semestre}
+
+La Figura~\ref{fig:evolucion} muestra la incorporaci\'on progresiva de agentes y componentes de infraestructura a lo largo de los cuatro semestres.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    sem/.style={rectangle, draw, minimum width=3.2cm, minimum height=5cm, align=center, font=\small, rounded corners},
+    comp/.style={rectangle, draw, fill=gray!10, minimum width=2.8cm, minimum height=0.5cm, align=center, font=\tiny, rounded corners},
+    aglabel/.style={font=\small\bfseries},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, gray}
+  ]
+
+    % S1
+    \node[sem] (s1) at (0, 0) {};
+    \node[aglabel] at (0, 2.8) {S1 (TRL 3)};
+    \node[comp, fill=green!15] at (0, 2) {A1 -- inicio};
+    \node[comp] at (0, 1.2) {Servidor local};
+    \node[comp] at (0, 0.5) {Docker + Ollama};
+    \node[comp] at (0, -0.2) {Google Workspace};
+    \node[comp] at (0, -0.9) {Cron + Celery};
+    \node[comp] at (0, -1.6) {Logs b\'asicos};
+
+    % S2
+    \node[sem] (s2) at (4, 0) {};
+    \node[aglabel] at (4, 2.8) {S2 (TRL 4)};
+    \node[comp, fill=green!15] at (4, 2) {A1 -- consolidaci\'on};
+    \node[comp, fill=blue!15] at (4, 1.2) {A2 -- implementaci\'on};
+    \node[comp, fill=purple!15] at (4, 0.5) {A5 -- parcial};
+    \node[comp] at (4, -0.2) {+ PostgreSQL};
+    \node[comp] at (4, -0.9) {+ LlamaIndex};
+    \node[comp] at (4, -1.6) {+ Apps Script};
+
+    % S3
+    \node[sem] (s3) at (8, 0) {};
+    \node[aglabel] at (8, 2.8) {S3 (TRL 5)};
+    \node[comp, fill=orange!15] at (8, 2) {+ A3 -- implementaci\'on};
+    \node[comp, fill=red!15] at (8, 1.2) {+ A4 -- implementaci\'on};
+    \node[comp] at (8, 0.5) {+ Cloud low-cost};
+    \node[comp] at (8, -0.2) {+ WhatsApp API};
+    \node[comp] at (8, -0.9) {+ APIs IA};
+    \node[comp] at (8, -1.6) {};
+
+    % S4
+    \node[sem] (s4) at (12, 0) {};
+    \node[aglabel] at (12, 2.8) {S4 (TRL 6)};
+    \node[comp, fill=purple!15] at (12, 2) {A5 -- completo};
+    \node[comp] at (12, 1.2) {Integraci\'on total};
+    \node[comp] at (12, 0.5) {Metabase/Superset};
+    \node[comp] at (12, -0.2) {Prometheus/Grafana};
+    \node[comp] at (12, -0.9) {Backups externos};
+    \node[comp] at (12, -1.6) {Redundancia};
+
+    % Flechas entre semestres
+    \draw[arrow] (s1.east) -- (s2.west);
+    \draw[arrow] (s2.east) -- (s3.west);
+    \draw[arrow] (s3.east) -- (s4.west);
+
+  \end{tikzpicture}
+  \caption{Evoluci\'on de infraestructura y agentes por semestre}
+  \label{fig:evolucion}
+\end{figure}
+
+\subsection{Storyboard de alto nivel --- Agente~2}
+
+A continuaci\'on se describe la secuencia de interacci\'on t\'ipica que experimentar\'a un usuario de la \ac{SEU} con el Agente~2:
+
+\begin{enumerate}[label=\textbf{Paso \arabic*:}]
+  \item \textbf{Carga de documento:} el usuario sube un documento hist\'orico (PDF, DOCX, imagen) a la carpeta designada en Google Drive.
+  \item \textbf{Detecci\'on autom\'atica:} un trigger de Google Apps Script detecta el nuevo archivo y notifica al backend del Agente~2.
+  \item \textbf{Ingesta y procesamiento:} el sistema extrae el texto, normaliza el contenido y solicita al usuario completar metadatos m\'inimos (fecha, tipo, origen) mediante un formulario de Google Forms.
+  \item \textbf{Indexaci\'on sem\'antica:} el documento se indexa en el repositorio (LlamaIndex + pgvector), quedando disponible para b\'usqueda.
+  \item \textbf{Consulta:} el usuario formula una pregunta en lenguaje natural (ej: ``\textit{?`Qu\'e actividades de extensi\'on se realizaron en 2015?}'') a trav\'es de una interfaz web simple o un formulario.
+  \item \textbf{Recuperaci\'on y respuesta:} el Agente~2 recupera los documentos relevantes del \'indice, genera una respuesta contextualizada usando Ollama y la presenta al usuario con las fuentes citadas.
+  \item \textbf{Generaci\'on de efem\'erides:} peri\'odicamente, el sistema genera autom\'aticamente contenido de efem\'erides a partir del corpus indexado y lo env\'ia al Agente~1 para difusi\'on, previa validaci\'on humana.
+\end{enumerate}
+
+\subsection{Mapeo de procesos BPM a agentes}
+
+La Tabla~\ref{tab:bpm-agentes} presenta el mapeo completo de los nueve procesos \ac{BPM} de la \ac{SEU} a los agentes del sistema.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Mapeo de procesos BPM a agentes del sistema}
+  \label{tab:bpm-agentes}
+  \begin{tabularx}{\textwidth}{clXl}
+    \toprule
+    \textbf{C\'od.} & \textbf{Proceso} & \textbf{Descripci\'on} & \textbf{Agente(s)} \\
+    \midrule
+    P1 & Planificaci\'on estrat\'egica & Lineamientos anuales de extensi\'on & A5 \\
+    P2 & Vinculaci\'on institucional & Convenios, alianzas, contactos & A3 \\
+    P3 & Dise\~no de actividades & Proyectos de extensi\'on, cursos, talleres & A1 \\
+    P4 & Comunicaci\'on y difusi\'on & Gacetillas, RRSS, correos, web & A1 \\
+    P5 & Programas y cursos & Formaci\'on abierta, extensi\'on acad\'emica & A1, A4 \\
+    P6 & Eventos acad\'emicos & Congresos, jornadas, seminarios & A3, A1 \\
+    P7 & Gesti\'on del conocimiento & Repositorio hist\'orico, efem\'erides, memoria institucional & \textbf{A2} \\
+    P8 & Monitoreo e indicadores & KPIs, dashboards, m\'etricas de impacto & A5 \\
+    P9 & Servicio a la comunidad & Atenci\'on a aspirantes, consultas, difusi\'on & A4 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+El Agente~2 (``Historia Viva''), alcance de este PPS, mapea espec\'ificamente al Proceso~7 (Gesti\'on del Conocimiento y Memoria Institucional).
+
+\subsection{Interacciones entre agentes}
+
+La Tabla~\ref{tab:interacciones} describe las interacciones definidas entre los agentes del sistema. El Agente~1 funciona como hub de comunicaci\'on ---recibe contenido de los dem\'as agentes para generar difusi\'on institucional--- pero no act\'ua como orquestador.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Interacciones entre agentes}
+  \label{tab:interacciones}
+  \begin{tabularx}{\textwidth}{llX}
+    \toprule
+    \textbf{Origen} & \textbf{Destino} & \textbf{Prop\'osito} \\
+    \midrule
+    A2 (Historia Viva) & A1 (Extensi\'on Bot) & Contenido hist\'orico para difusi\'on institucional \\
+    A3 (Vinculaci\'on) & A1 (Extensi\'on Bot) & Difusi\'on de eventos y oportunidades detectadas \\
+    A4 (Atenci\'on)    & A1 (Extensi\'on Bot) & Generaci\'on de respuestas complejas que requieren redacci\'on institucional \\
+    A5 (Anal\'iticas)  & A1 (Extensi\'on Bot) & Limpieza y enriquecimiento de texto de publicaciones en RRSS \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 18: CRONOGRAMA DE ALTO NIVEL
+% =============================================================================
+\section{Cronograma de alto nivel}
+
+\subsection{Estructura de Descomposici\'on del Trabajo (EDT)}
+
+La EDT se organiza en cinco fases, alineadas con los pasos metodol\'ogicos del director de carrera. La Tabla~\ref{tab:edt} presenta las fases, actividades principales y semestres asociados.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Estructura de Descomposici\'on del Trabajo (EDT)}
+  \label{tab:edt}
+  \begin{tabularx}{\textwidth}{clXl}
+    \toprule
+    \textbf{ID} & \textbf{Fase} & \textbf{Actividades principales} & \textbf{Semestres} \\
+    \midrule
+    F1 & Relevamiento & An\'alisis de procesos SEU, identificaci\'on de fuentes hist\'oricas, relevamiento de infraestructura existente, definici\'on de requisitos & S1 \\
+    F2 & Dise\~no & Especificaci\'on de arquitectura multiagente, dise\~no del Agente~2, selecci\'on de stack, definici\'on de DoD y m\'etricas & S1 \\
+    F3 & Prototipado & PoC Agente~2 (ingesta + indexaci\'on + recuperaci\'on), integraci\'on b\'asica A2$\rightarrow$A1 & S1--S2 \\
+    F4 & Validaci\'on & Verificaci\'on funcional contra BPM, validaci\'on con SEU (checklist 1--4), evaluaci\'on TRL, ajustes iterativos & S2--S3 \\
+    F5 & Documentaci\'on & Anteproyecto, informes de avance, documentaci\'on t\'ecnica, informe final & S1--S4 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Entregables por semestre}
+
+La Tabla~\ref{tab:entregables} detalla los entregables esperados en cada semestre, junto con el nivel \ac{TRL} objetivo.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Entregables por semestre}
+  \label{tab:entregables}
+  \begin{tabularx}{\textwidth}{clXl}
+    \toprule
+    \textbf{Semestre} & \textbf{Per\'iodo} & \textbf{Entregables} & \textbf{TRL} \\
+    \midrule
+    S1 & Mar--Jul 2026 & Documento de arquitectura multiagente, especificaci\'on funcional del Agente~2, PoC b\'asico de ingesta e indexaci\'on en entorno controlado\textsuperscript{*} & TRL 3 \\
+    S2 & Ago--Dic 2026 & Agente~2 prototipo funcional (indexaci\'on sem\'antica + efem\'erides + recuperaci\'on), validado por usuarios internos & TRL 4 \\
+    \midrule
+    \multicolumn{4}{l}{\textit{Proyecci\'on P100 (fuera del alcance de este PPS):}} \\
+    \midrule
+    S3 & Mar--Jul 2027 & Agente~2 en operaci\'on real con la SEU, integraci\'on A2$\rightarrow$A1 funcional, m\'etricas de uso & TRL 5 \\
+    S4 & Ago--Dic 2027 & Consolidaci\'on, m\'etricas de impacto, documentaci\'on final, informe de cierre & TRL 6 \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.3cm}
+  \footnotesize{\textsuperscript{*} Nota: el backlog general del \ac{P100} ubica la implementaci\'on del Agente~2 en S2. Sin embargo, dado que este PPS se enfoca espec\'ificamente en la arquitectura y el Agente~2, se adelanta el PoC b\'asico a S1 como parte del dise\~no arquitect\'onico, reservando la implementaci\'on funcional completa para S2 conforme al plan global.}
+\end{table}
+
+% =============================================================================
+% SECCION 19: METRICAS
+% =============================================================================
+\section{M\'etricas}
+
+Se seleccionan seis m\'etricas representativas que cubren las dimensiones de calidad t\'ecnica, valor funcional y progreso del proyecto:
+
+\begin{enumerate}[label=M\arabic*.]
+  \item \textbf{Recall de recuperaci\'on:} proporci\'on de documentos relevantes efectivamente recuperados por el sistema de b\'usqueda sem\'antica del Agente~2. \textit{Criterio de aceptaci\'on:} $\geq 80\%$ sobre un conjunto de prueba de consultas predefinidas.
+
+  \item \textbf{Precisi\'on de indexaci\'on:} proporci\'on de documentos correctamente indexados (metadatos completos, sin duplicaciones, sin p\'erdida de contenido). \textit{Criterio de aceptaci\'on:} $\geq 95\%$.
+
+  \item \textbf{Tiempo de b\'usqueda:} tiempo transcurrido desde que se formula una consulta hasta que el sistema retorna resultados. \textit{Criterio de aceptaci\'on:} $< 15$~segundos.
+
+  \item \textbf{Calidad de efem\'erides:} evaluaci\'on por usuarios de la \ac{SEU} mediante el checklist de validaci\'on con escala 1--4. \textit{Criterio de aceptaci\'on:} puntuaci\'on promedio $\geq 3/4$.
+
+  \item \textbf{Progresi\'on \ac{TRL}:} cumplimiento del nivel \ac{TRL} objetivo al final de cada semestre. \textit{Criterio de aceptaci\'on:} binario (cumple / no cumple) seg\'un los criterios definidos para cada nivel.
+
+  \item \textbf{Cobertura BPM:} cantidad de procesos de la \ac{SEU} cubiertos por la arquitectura multiagente. \textit{Criterio de aceptaci\'on:} 9 de 9 procesos con agente asignado y flujo de orquestaci\'on definido.
+\end{enumerate}
+
+% =============================================================================
+% SECCION 20: REFERENCIAS Y BIBLIOGRAFIA
+% =============================================================================
+\printbibliography[title={Referencias y bibliograf\'ia}]
+
+\end{document}
