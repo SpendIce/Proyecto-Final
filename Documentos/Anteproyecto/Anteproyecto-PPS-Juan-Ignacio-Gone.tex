@@ -1,0 +1,1124 @@
+% =============================================================================
+% ANTEPROYECTO - Proyecto Centenario P100 - Agente 1: Extension Bot
+% Facultad de Ingenieria del Ejercito - UNDEF
+% Proyecto de Promocion y Sintesis 2026
+% Autor: Gone, Juan Ignacio
+% =============================================================================
+\documentclass[a4paper, 12pt]{article}
+
+% --- Paquetes esenciales ---
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{spanish}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+
+% --- Tipografia ---
+\usepackage{microtype}
+
+% --- Tablas ---
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+
+% --- Figuras y graficos ---
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{shapes, arrows.meta, positioning, calc, fit, backgrounds, decorations.pathreplacing}
+
+% --- Listas ---
+\usepackage{enumitem}
+
+% --- Simbolos matematicos ---
+\usepackage{amssymb}
+
+% --- Codigo fuente ---
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  captionpos=b
+}
+
+% --- Links ---
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
+% --- Bibliografia APA ---
+\usepackage[backend=bibtex, style=authoryear, sorting=nyt, natbib=true]{biblatex}
+\addbibresource{referencias.bib}
+
+% --- Acronimos ---
+\usepackage{acronym}
+
+% --- Encabezado y pie ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small FIE -- UNDEF}
+\fancyhead[C]{\small Anteproyecto 2026}
+\fancyhead[R]{\small Anteproyecto}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Definiciones globales compartidas ---
+\input{../Comun/definiciones.tex}
+
+% --- Override local: este PPS pertenece a Juan Ignacio Gone ---
+\renewcommand{\autorNombre}{Go\~ne, Juan Ignacio}
+\renewcommand{\autorEmail}{jgone@fie.undef.edu.ar}
+
+% --- Override del titulo del proyecto para este PPS ---
+\renewcommand{\proyectonombre}{Proyecto Centenario --- Agente~1: Extensi\'on Bot para la Secretar\'ia de Extensi\'on Universitaria de la FIE}
+
+% =============================================================================
+\begin{document}
+
+% --- PORTADA ---
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\Large\bfseries Facultad de Ingenier\'ia del Ej\'ercito\\}
+  {\large Universidad de la Defensa Nacional\\}
+  \vspace{0.5cm}
+  {\large Anteproyecto 2026\\}
+
+  \vspace{2cm}
+
+  {\LARGE\bfseries ANTEPROYECTO\\}
+  \vspace{0.5cm}
+  {\LARGE\bfseries \proyectonombre\\}
+  \vspace{0.3cm}
+  {\large (\proyectoacronimo)\\}
+
+  \vspace{3cm}
+
+  \begin{tabular}{ll}
+    \textbf{Autor:} & \autorNombre \\
+    \textbf{Correo:} & \autorEmail \\
+    \textbf{Tutor:} & \tutorNombre \\
+    \textbf{Compa\~nero de proyecto:} & \companeroNombre\ (\companeroEmail) \\
+  \end{tabular}
+
+  \vfill
+  {\large \today}
+\end{titlepage}
+
+% --- INDICE ---
+\newpage
+\tableofcontents
+\newpage
+
+% =============================================================================
+% SECCION 1: RESUMEN
+% =============================================================================
+\section{Resumen}
+
+El presente anteproyecto describe el dise\~no e implementaci\'on del \agenteUno{} (\ac{A1}), componente de la arquitectura multiagente del Proyecto Centenario (\ac{P100}) de la Facultad de Ingenier\'ia del Ej\'ercito (\ac{FIE}). El Agente~1 es el agente de comunicaci\'on institucional del sistema: automatiza la generaci\'on de gacetillas, publicaciones para redes sociales, newsletters, correos electr\'onicos y confirmaciones de inscripci\'on para la Secretar\'ia de Extensi\'on Universitaria (\ac{SEU}), liberando al personal de tareas manuales repetitivas y garantizando consistencia en las comunicaciones oficiales.
+
+El alcance espec\'ifico de este Proyecto comprende la implementaci\'on completa del Agente~1 a lo largo de \textbf{un a\~no acad\'emico} (dos semestres: Semestre~1 y Semestre~2, 2026): en el Semestre~1 se desarrollan las historias de usuario de mayor prioridad (generaci\'on de gacetillas y posts para redes sociales, \ac{TRL}~3), y en el Semestre~2 se incorporan las funcionalidades de confirmaciones autom\'aticas, interacci\'on en lenguaje natural y generaci\'on de certificados (\ac{TRL}~4). Nota: el Proyecto Centenario (\ac{P100}) en su totalidad abarca \textbf{dos a\~nos} (cuatro semestres, 2026--2027), pero este Proyecto cubre \'unicamente el primer a\~no. La arquitectura multiagente global ---en la que este agente se integra--- es dise\~nada e implementada de forma conjunta con el Proyecto de Ignacio Becerra Mas Roca, quien se especializa posteriormente en el Agente~2.
+
+La propuesta se sustenta en tecnolog\'ias de c\'odigo abierto (Ollama, LangChain/LangGraph, FastAPI, Google Workspace), ejecuci\'on local de modelos de lenguaje que garantiza soberan\'ia de datos, y un esquema de maduraci\'on progresiva basado en niveles \ac{TRL}. Todo contenido generado autom\'aticamente requiere validaci\'on humana antes de su publicaci\'on, eliminando el riesgo de errores en comunicaciones oficiales. La estimaci\'on de costos para el a\~no de alcance del Proyecto se ubica en el rango de \$~180 a \$~1.400~USD, fundamentalmente en componentes de infraestructura opcionales.
+
+% =============================================================================
+% SECCION 2: PALABRAS CLAVE
+% =============================================================================
+\section{Palabras clave}
+
+Agente de comunicaci\'on institucional, automatizaci\'on de contenido, gacetillas universitarias, redes sociales, Large Language Models (LLM), LangChain/LangGraph, Ollama, Google Workspace, extensi\'on universitaria, Business Process Management (BPM), Technology Readiness Level (TRL), CONEAU, c\'odigo abierto, soberan\'ia de datos, arquitectura multiagente.
+
+% =============================================================================
+% SECCION 3: GLOSARIO
+% =============================================================================
+\section{Glosario}
+
+\begin{acronym}[CONEAU]
+  \acro{SEU}{Secretar\'ia de Extensi\'on Universitaria}
+  \acro{FIE}{Facultad de Ingenier\'ia del Ej\'ercito}
+  \acro{UNDEF}{Universidad de la Defensa Nacional}
+  \acro{P100}{Proyecto Centenario}
+  \acro{PPS}{Proyecto Privado}
+  \acro{A1}{Agente~1 --- Extensi\'on Bot}
+  \acro{A2}{Agente~2 --- Historia Viva}
+  \acro{BPM}{Business Process Management}
+  \acro{CONEAU}{Comisi\'on Nacional de Evaluaci\'on y Acreditaci\'on Universitaria}
+  \acro{TRL}{Technology Readiness Level}
+  \acro{LLM}{Large Language Model}
+  \acro{API}{Application Programming Interface}
+  \acro{RRSS}{Redes Sociales}
+  \acro{DoD}{Definition of Done}
+  \acro{SP}{Story Points}
+  \acro{MVP}{Minimum Viable Product}
+  \acro{HU}{Historia de Usuario}
+  \acro{RACI}{Responsible, Accountable, Consulted, Informed}
+  \acro{RF}{Requisito Funcional}
+  \acro{RNF}{Requisito No Funcional}
+  \acro{EDT}{Estructura de Descomposici\'on del Trabajo}
+  \acro{PDCA}{Plan--Do--Check--Act}
+  \acro{RBAC}{Role-Based Access Control}
+  \acro{RAG}{Retrieval-Augmented Generation}
+\end{acronym}
+
+\noindent\textbf{Glosario de t\'erminos espec\'ificos:}
+
+\begin{description}
+  \item[Gacetilla institucional:] comunicado oficial de extensi\'on universitaria que describe una actividad, curso o evento de la \ac{SEU}. Formato estandarizado con plantilla institucional.
+  \item[Hub de comunicaci\'on:] rol del Agente~1 como receptor de contenido de otros agentes (A2--A5) para su adaptaci\'on y difusi\'on. No act\'ua como orquestador del sistema.
+  \item[Validaci\'on humana:] revisi\'on obligatoria por parte del personal de la \ac{SEU} de todo contenido generado autom\'aticamente, antes de cualquier publicaci\'on o env\'io oficial.
+  \item[Trigger:] evento autom\'atico que inicia un proceso en el sistema, generalmente una nueva fila en Google Sheets o la carga de un documento.
+  \item[LangChain/LangGraph:] framework de c\'odigo abierto para orquestar cadenas de llamadas a modelos de lenguaje, incluyendo gesti\'on de prompts, memoria y herramientas.
+  \item[Ollama:] plataforma de c\'odigo abierto para ejecutar modelos de lenguaje de gran escala de forma local, sin dependencia de servicios en la nube.
+  \item[Google Apps Script:] plataforma de automatizaci\'on nativa de Google Workspace para crear triggers, flujos y conexiones entre servicios (Sheets, Drive, Gmail, Docs).
+\end{description}
+
+% =============================================================================
+% SECCION 4: INTRODUCCION
+% =============================================================================
+\section{Introducci\'on}
+
+La Facultad de Ingenier\'ia del Ej\'ercito se aproxima a su centenario institucional, hito que representa una oportunidad estrat\'egica para modernizar sus procesos de extensi\'on universitaria mediante la incorporaci\'on de inteligencia artificial. La \ac{SEU} de la \ac{FIE} gestiona actualmente nueve procesos sustantivos de forma predominantemente manual, con escasa automatizaci\'on, informaci\'on dispersa en m\'ultiples herramientas y alta carga operativa sobre un equipo reducido.
+
+El proceso de comunicaci\'on y difusi\'on institucional (Proceso~4 del mapa \ac{BPM}) es uno de los m\'as onerosos en t\'erminos de tiempo: cada gacetilla, publicaci\'on en redes sociales o correo de confirmaci\'on requiere intervenci\'on manual completa, desde la redacci\'on hasta el formato y la publicaci\'on. Esta carga limita la frecuencia y calidad de las comunicaciones, genera inconsistencias en el mensaje institucional y represent a un cuello de botella operativo que escala negativamente con el volumen de actividades de extensi\'on.
+
+El Proyecto Centenario (\ac{P100}) aborda esta problem\'atica mediante una arquitectura de cinco agentes inteligentes especializados, con un horizonte de dos a\~nos (2026--2027). El presente anteproyecto delimita el alcance del Proyecto de Juan Ignacio Go\~ne al primer a\~no acad\'emico (2026) y al \ac{A1} (``Extensi\'on Bot''): el agente de comunicaci\'on institucional del sistema. Su prop\'osito es automatizar la generaci\'on de contenido comunicacional de la \ac{SEU}, desde gacetillas y posts para redes sociales hasta confirmaciones de inscripci\'on y certificados, liberando al personal de tareas repetitivas y garantizando consistencia en los mensajes institucionales.
+
+La arquitectura multiagente global en la que se integra el Agente~1 ---incluyendo los mecanismos de orquestaci\'on, la infraestructura compartida y el dise\~no del sistema de cinco agentes--- es definida e implementada en forma conjunta por ambos desarrolladores (Go\~ne y Becerra Mas Roca). Sobre esa base com\'un, cada desarrollador se especializa en su agente: Go\~ne en el Agente~1 (``Extensi\'on Bot'') y Becerra Mas Roca en el Agente~2 (``Historia Viva'').
+
+El documento se estructura en veinte secciones que cubren desde la formulaci\'on del problema y los antecedentes hasta la propuesta t\'ecnica detallada, el cronograma de implementaci\'on y las m\'etricas de \'exito, siguiendo los lineamientos de c\'atedra para anteproyectos de la \ac{FIE}.
+
+% =============================================================================
+% SECCION 5: FORMULACION DEL PROBLEMA
+% =============================================================================
+\section{Formulaci\'on del problema}
+
+La comunicaci\'on institucional de la \ac{SEU} de la \ac{FIE} se realiza actualmente de forma manual e inconsistente. Cada pieza de comunicaci\'on ---gacetilla, publicaci\'on en redes sociales, correo de confirmaci\'on de inscripci\'on, newsletter--- es redactada desde cero por miembros del personal, sin plantillas automatizadas, sin flujos de aprobaci\'on sistem\'aticos y sin integraci\'on con los sistemas de registro de actividades (Google Sheets, formularios). Esta situaci\'on genera una serie de problemas estructurales que se retroalimentan y limitan la capacidad de difusi\'on de la extensi\'on universitaria.
+
+La carga operativa de redacci\'on recae sobre pocas personas, cuya disponibilidad var\'ia seg\'un la temporada acad\'emica. En per\'iodos de alta actividad (inicio de semestre, inscripciones, eventos), las comunicaciones se retrasan o simplifican, perdi\'endose oportunidades de difusi\'on. La ausencia de plantillas institucionales provoca variaciones en el tono, formato y contenido de los mensajes, da\~nando la consistencia de la imagen institucional. Los registros de env\'io son informales o inexistentes, dificultando la trazabilidad requerida por \ac{CONEAU}.
+
+La Tabla~\ref{tab:causa-efecto} sintetiza las causas identificadas y sus efectos observables.
+
+\begin{table}[htbp]
+  \centering
+  \caption{An\'alisis Causa -- Efecto: problem\'atica de comunicaci\'on de la SEU}
+  \label{tab:causa-efecto}
+  \begin{tabularx}{\textwidth}{c>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{\#} & \textbf{Causa} & \textbf{Efecto} \\
+    \midrule
+    1 & Redacci\'on manual de cada gacetilla, post y correo sin plantillas ni automatizaci\'on & Tiempo excesivo por pieza ($>$~30 minutos en promedio), cuellos de botella operativos en per\'iodos de alta demanda \\
+    2 & Ausencia de integraci\'on entre el registro de actividades (Google Sheets) y los canales de difusi\'on & Duplicaci\'on de esfuerzos: el mismo dato se ingresa manualmente en m\'ultiples sistemas \\
+    3 & Falta de plantillas institucionales estandarizadas & Inconsistencia en tono, formato y mensaje entre distintas comunicaciones de la misma organizaci\'on \\
+    4 & Sin confirmaciones autom\'aticas de inscripci\'on & P\'erdida de confianza del p\'ublico inscripto; consultas reiterativas al personal de la SEU \\
+    5 & Ausencia de registro sistem\'atico de env\'ios y publicaciones & Imposibilidad de generar evidencia de actividad comunicacional para evaluaciones CONEAU \\
+    6 & Dependencia de personas clave para adaptaci\'on a distintos canales (Instagram, LinkedIn, email) & Fragilidad ante ausencia de personal; conocimiento t\'acito no documentado \\
+    7 & Sin mecanismo de generaci\'on de certificados autom\'aticos & Demoras en la emisi\'on, proceso manual propenso a errores, alta carga administrativa \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 6: ANTECEDENTES
+% =============================================================================
+\section{Antecedentes}
+
+Los antecedentes del presente proyecto se organizan en tres ejes: el contexto institucional de la \ac{FIE}, el estado del arte en automatizaci\'on de comunicaciones institucionales con IA, y las tecnolog\'ias de c\'odigo abierto disponibles.
+
+\subsection{Contexto institucional}
+
+La \ac{FIE} no cuenta con un sistema previo de automatizaci\'on de comunicaciones para la extensi\'on universitaria. Los procesos de la \ac{SEU} se han gestionado hist\'oricamente mediante herramientas de oficina est\'andar (Google Docs, Gmail, hojas de c\'alculo) sin integraci\'on ni automatizaci\'on. No se registran iniciativas anteriores de aplicaci\'on de inteligencia artificial a la generaci\'on de contenido institucional en la facultad. La \ac{SEU} opera con Google Workspace como plataforma central, lo que la constituye en el punto de partida natural para la integraci\'on del Agente~1.
+
+\subsection{Estado del arte}
+
+Los sistemas de generaci\'on autom\'atica de contenido basados en \ac{LLM} han alcanzado madurez suficiente para aplicaciones de dominio espec\'ifico \parencite{russell2021}. Los \ac{LLM} tanto de c\'odigo abierto como propietarios demuestran capacidad para generar textos institucionales de calidad aceptable a partir de insumos estructurados. Sin embargo, su adopci\'on en instituciones universitarias argentinas es incipiente, y no se conocen implementaciones locales que integren generaci\'on de contenido con flujos automatizados sobre Google Workspace.
+
+El paradigma de sistemas multiagente \parencite{wooldridge2009} proporciona el marco te\'orico para organizar el Agente~1 como componente especializado dentro de un sistema mayor, con interfaces bien definidas hacia los dem\'as agentes. La orquestaci\'on de cadenas de llamadas a \ac{LLM} mediante frameworks como LangChain/LangGraph \parencite{langchain2024} permite construir flujos de generaci\'on de contenido complejos, reutilizables y testeables.
+
+\subsection{Tecnolog\'ias de c\'odigo abierto}
+
+El ecosistema actual ofrece herramientas maduras para construir el Agente~1 sin dependencia de servicios en la nube propietarios: Ollama \parencite{ollama2024} para la ejecuci\'on local de \ac{LLM}, LangChain/LangGraph \parencite{langchain2024} para la orquestaci\'on de cadenas de prompts y gesti\'on de memoria, FastAPI \parencite{fastapi2024} como framework de backend, y Google Workspace como bus de datos e interfaz primaria de usuario. Esta combinaci\'on provee un stack completo, libre de costos de licencia, compatible con la infraestructura institucional existente y alineado con la pol\'itica de soberan\'ia de datos requerida para una instituci\'on de defensa.
+
+% =============================================================================
+% SECCION 7: PROPOSITO Y JUSTIFICACION
+% =============================================================================
+\section{Prop\'osito y justificaci\'on}
+
+El prop\'osito del presente Proyecto es implementar el \ac{A1} --- Extensi\'on Bot: un agente de comunicaci\'on institucional que automatice la generaci\'on de contenido para la \ac{SEU} de la \ac{FIE}, asistiendo al personal sin sustituirlo y garantizando validaci\'on humana en toda comunicaci\'on oficial. Las razones que justifican esta iniciativa son las siguientes:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Necesidad operativa verificada:} la carga de redacci\'on manual de comunicaciones es un cuello de botella identificado en el relevamiento de procesos de la \ac{SEU}. La automatizaci\'on parcial de este proceso libera tiempo del personal para actividades de mayor valor estrat\'egico.
+
+  \item \textbf{Alineaci\'on con CONEAU:} la sistematizaci\'on y trazabilidad de las comunicaciones institucionales ---con registro de env\'ios, fechas y validaciones--- responde directamente a los criterios de calidad universitaria exigidos en las evaluaciones institucionales \parencite{coneau2020}.
+
+  \item \textbf{Momento estrat\'egico:} el centenario de la \ac{FIE} representa una oportunidad para elevar la calidad y frecuencia de las comunicaciones institucionales, con mayor impacto en la comunidad acad\'emica y el entorno social.
+
+  \item \textbf{Viabilidad tecnol\'ogica:} el stack propuesto se compone \'integramente de tecnolog\'ias de c\'odigo abierto maduras. Los modelos de lenguaje de 7--8B par\'ametros generan contenido de calidad suficiente para comunicaciones institucionales, sin requerir GPU dedicada.
+
+  \item \textbf{Viabilidad econ\'omica:} la base de software libre tiene costo cero. Las erogaciones opcionales se estiman entre \$~180 y \$~1.400~USD para el a\~no de alcance del Proyecto, lo que resulta asequible para el presupuesto institucional. La estimaci\'on detallada se presenta en la Secci\'on~\ref{sec:factibilidad}.
+
+  \item \textbf{Soberan\'ia de datos:} la ejecuci\'on local de modelos de lenguaje garantiza que la informaci\'on institucional no abandone la infraestructura de la facultad, cumpliendo con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326}.
+
+  \item \textbf{Complemento, no reemplazo:} el sistema asiste al personal de la \ac{SEU} sin sustituirlo. Todo contenido generado autom\'aticamente requiere validaci\'on humana obligatoria antes de cualquier publicaci\'on o env\'io oficial. Esta premisa es estructural al dise\~no del agente.
+
+  \item \textbf{Integraci\'on modular:} el Agente~1 act\'ua como hub de comunicaci\'on del sistema multiagente: recibe contenido de los agentes A2 (historia institucional), A3 (eventos), A4 (respuestas complejas) y A5 (enriquecimiento de texto de \ac{RRSS}) para producir comunicaciones integradas y contextualizadas.
+\end{enumerate}
+
+% =============================================================================
+% SECCION 8: OBJETIVOS GLOBALES Y ESPECIFICOS
+% =============================================================================
+\section{Objetivos globales y espec\'ificos}
+
+\subsection{Situaci\'on actual (As Is)}
+
+La \ac{SEU} opera sin automatizaci\'on en su proceso de comunicaci\'on institucional. Las gacetillas se redactan manualmente por distintos miembros del personal, sin plantilla unificada, con tiempos variables y calidad inconsistente. Los posts para redes sociales dependen del criterio individual de qui\'en los redacta en cada ocasi\'on. Las confirmaciones de inscripci\'on se gestionan de forma manual o directamente no se env\'ian. No existen registros sistem\'aticos de env\'ios ni dashboards de actividad comunicacional. Los sistemas de informaci\'on (Google Sheets con registros de actividades, formularios de inscripci\'on, Google Drive con documentos institucionales) funcionan de forma aislada, sin integraci\'on autom\'atica entre s\'i ni con los canales de difusi\'on.
+
+\subsection{Situaci\'on deseada (To Be)}
+
+Un sistema en el que el personal de la \ac{SEU} ingresa datos de una actividad en Google Sheets (o un formulario equivalente) y el Agente~1 genera autom\'aticamente, previa validaci\'on humana: (a)~la gacetilla institucional en Google Docs con plantilla aplicada, (b)~los posts adaptados para Instagram y LinkedIn, (c)~el correo de difusi\'on correspondiente. Las inscripciones a actividades disparar\'an autom\'aticamente correos de confirmaci\'on. El sistema registrar\'a cada acci\'on con fecha, usuario solicitante y estado de validaci\'on, proveyendo trazabilidad completa para auditor\'ias de \ac{CONEAU}.
+
+\subsection{Objetivos espec\'ificos}
+
+\begin{enumerate}[label=OE\arabic*.]
+  \item Implementar el m\'odulo de generaci\'on de gacetillas institucionales, con input desde Google Sheets y output en Google Docs con plantilla oficial de la \ac{SEU}.
+  \item Implementar el m\'odulo de generaci\'on de posts para redes sociales, con formato adaptado a Instagram (texto breve, hashtags) y LinkedIn (texto extendido, tono profesional), controlando longitud y tono seg\'un canal.
+  \item Implementar el sistema de confirmaciones autom\'aticas de inscripci\'on, con trigger al registrarse una nueva inscripci\'on en Google Sheets y registro de cada env\'io.
+  \item Implementar la interfaz de interacci\'on en lenguaje natural para uso interno del personal de la \ac{SEU}, accesible mediante Google Sheets o Docs.
+  \item Implementar el m\'odulo de generaci\'on de certificados autom\'aticos con plantilla base y flujo obligatorio de validaci\'on humana antes de emisi\'on.
+  \item Integrar el Agente~1 como hub de comunicaci\'on del sistema multiagente, recibiendo insumos de los dem\'as agentes y produci\'endo comunicaciones institucionales integrales.
+  \item Establecer un log de ejecuci\'on completo (acci\'on, fecha, usuario, estado de validaci\'on) que garantice trazabilidad auditable.
+  \item Validar el sistema con usuarios reales de la \ac{SEU} mediante checklist de satisfacci\'on con escala 1--4, alcanzando una puntuaci\'on promedio $\geq 3/4$ al cierre del Semestre~2.
+\end{enumerate}
+
+% =============================================================================
+% SECCION 9: ALCANCES
+% =============================================================================
+\section{Alcances}
+
+\subsection{Alcance del proyecto}
+
+Las actividades de este Proyecto (primer a\~no del Proyecto Centenario) abarcan cinco fases, distribuidas en dos semestres acad\'emicos (2026), alineadas con los pasos metodol\'ogicos establecidos por el Director del Proyecto:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Relevamiento:} an\'alisis de los procesos de comunicaci\'on actuales de la \ac{SEU}, identificaci\'on de plantillas existentes, relevamiento de la infraestructura de Google Workspace disponible y definici\'on de requisitos junto al personal de la Secretar\'ia.
+  \item \textbf{Dise\~no:} especificaci\'on funcional del Agente~1, dise\~no de prompts y cadenas LangChain/LangGraph, definici\'on de plantillas institucionales con la \ac{SEU}, dise\~no de flujos de validaci\'on humana.
+  \item \textbf{Prototipado:} implementaci\'on del \ac{MVP} del Agente~1 (HU-010 y HU-011), incluyendo la integraci\'on con Google Sheets y Google Docs.
+  \item \textbf{Validaci\'on:} verificaci\'on funcional con usuarios reales de la \ac{SEU}, evaluaci\'on \ac{TRL}, ajuste de prompts seg\'un retroalimentaci\'on, incorporaci\'on de funcionalidades de Semestre~2.
+  \item \textbf{Documentaci\'on:} producci\'on de todos los entregables acad\'emicos y t\'ecnicos.
+\end{enumerate}
+
+\subsection{Alcance del producto}
+
+\subsubsection{Incluido en este Proyecto}
+
+\begin{itemize}
+  \item \textbf{HU-010} (Semestre~1): generaci\'on autom\'atica de gacetillas institucionales. Input: datos de Google Sheets. Output: Google Docs con plantilla institucional aplicada.
+  \item \textbf{HU-011} (Semestre~1): generaci\'on de posts para redes sociales. Canales: Instagram y LinkedIn. Longitud y tono configurables por canal.
+  \item \textbf{HU-012} (Semestre~2): env\'io autom\'atico de confirmaciones de inscripci\'on. Trigger al registrarse nueva inscripci\'on en Google Sheets. Registro de cada env\'io.
+  \item \textbf{HU-013} (Semestre~2): interfaz de interacci\'on en lenguaje natural para uso interno. Accesible mediante Google Sheets o Docs.
+  \item \textbf{HU-014} (Semestre~2): generaci\'on de certificados autom\'aticos con plantilla base, generaci\'on PDF y validaci\'on humana obligatoria previa a emisi\'on.
+  \item Integraci\'on del Agente~1 como hub de comunicaci\'on: recepci\'on de insumos de A2 (contenido hist\'orico), A3 (datos de eventos), A4 (respuestas complejas) y A5 (enriquecimiento de texto de \ac{RRSS}).
+  \item Log de ejecuci\'on con trazabilidad completa de todas las acciones.
+\end{itemize}
+
+\subsubsection{Dependencias compartidas con el Proyecto de Becerra Mas Roca}
+
+\begin{itemize}
+  \item \textbf{HU-001}: estructura base de Google Drive y Sheets (prerequisito global del \ac{P100}). Se implementa como actividad compartida entre ambos desarrolladores en las primeras semanas de S1.
+  \item \textbf{HU-002}: automatizaciones base de Google Apps Script (prerequisito global del \ac{P100}). Idem HU-001.
+\end{itemize}
+
+\subsubsection{Excluido de este Proyecto}
+
+\begin{itemize}
+  \item Dise\~no e implementaci\'on de la arquitectura multiagente global en solitario: es un trabajo conjunto con el Proyecto de Ignacio Becerra Mas Roca. Este Proyecto contribuye al dise\~no de la arquitectura com\'un pero no implementa los agentes del otro desarrollador.
+  \item Implementaci\'on del Agente~2 (``Historia Viva''): cargo de Ignacio Becerra Mas Roca.
+  \item Implementaci\'on de los Agentes~3, 4 y 5: prevista para el segundo a\~no del Proyecto Centenario.
+  \item Extracci\'on de datos de redes sociales y analítica (\ac{KPI}s, dashboards): Agente~5.
+  \item Atenci\'on masiva al p\'ublico general: Agente~4.
+  \item Scraping o consumo de APIs externas complejas no definidas en la etapa actual.
+  \item Automatizaci\'on sin validaci\'on humana en contenidos destinados a publicaci\'on oficial.
+  \item Infraestructura de alto costo (servidores GPU, servicios cloud premium).
+\end{itemize}
+
+% =============================================================================
+% SECCION 10: MARCO REFERENCIAL
+% =============================================================================
+\section{Marco referencial}
+
+\subsection{Extensi\'on universitaria en Argentina}
+
+La extensi\'on universitaria constituye una de las tres funciones sustantivas de la universidad argentina, junto con la docencia y la investigaci\'on. La Ley de Educaci\'on Superior N\textsuperscript{o}~24.521 \parencite{ley24521} establece el marco normativo para la organizaci\'on y evaluaci\'on de las instituciones universitarias, incluyendo la extensi\'on como dimensi\'on evaluable por la \ac{CONEAU}. La sistematizaci\'on y trazabilidad de las comunicaciones de extensi\'on adquieren en este contexto relevancia estrat\'egica: cada gacetilla generada, cada inscripci\'on confirmada y cada publicaci\'on realizada puede constituir evidencia de actividad institucional ante futuras evaluaciones.
+
+\subsection{Comunicaci\'on institucional y automatizaci\'on}
+
+La comunicaci\'on institucional eficaz requiere consistencia de mensaje, oportunidad de publicaci\'on y adecuaci\'on al canal. La automatizaci\'on de contenido con IA permite escalar la producci\'on sin incrementar proporcionalmente la carga de trabajo del personal. Sin embargo, la calidad del contenido generado depende cr\'iticamente de la calidad de los prompts, de la especificidad del dominio y de la retroalimentaci\'on humana continua. La validaci\'on humana obligatoria antes de publicaci\'on es una pr\'actica recomendada en todos los marcos de adopci\'on responsable de IA generativa \parencite{russell2021}.
+
+\subsection{Gesti\'on por procesos (BPM)}
+
+La gesti\'on por procesos de negocio (\ac{BPM}) propone organizar las actividades de una organizaci\'on en torno a procesos bien definidos, medibles y mejorables. El presente proyecto aplica este enfoque al Proceso~4 de la \ac{SEU} (Comunicaci\'on y Difusi\'on Institucional), definiendo flujos claros de entrada, procesamiento, validaci\'on y salida para cada tipo de comunicaci\'on. El ciclo \ac{PDCA} se adopta como marco de mejora continua de los prompts y plantillas a lo largo de los semestres.
+
+\subsection{Sistemas multiagente}
+
+Un sistema multiagente es un sistema compuesto por m\'ultiples agentes que interact\'uan entre s\'i para alcanzar objetivos individuales o colectivos \parencite{wooldridge2009}. En el contexto del \ac{P100}, el Agente~1 se especializa en el Proceso~4 (Comunicaci\'on y Difusi\'on) y act\'ua como hub de contenido: recibe insumos de los dem\'as agentes y los transforma en comunicaciones institucionales. No ejerce funciones de orquestaci\'on; la capa de orquestaci\'on y la arquitectura multiagente son dise\~nadas e implementadas en forma conjunta por ambos desarrolladores, sobre la cual cada uno construye su agente especializado.
+
+\subsection{LLMs locales y soberan\'ia de datos}
+
+Los Large Language Models de c\'odigo abierto pueden ejecutarse localmente mediante Ollama \parencite{ollama2024}, eliminando la necesidad de enviar datos institucionales a servicios externos. Esta caracter\'istica es fundamental para cumplir con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326} y con los requisitos de soberan\'ia de datos de una instituci\'on de defensa. LangChain/LangGraph \parencite{langchain2024} provee la capa de orquestaci\'on de prompts, permitiendo construir cadenas de generaci\'on de contenido complejas y reutilizables sobre estos modelos.
+
+\subsection{Technology Readiness Level (TRL)}
+
+Los niveles de madurez tecnol\'ogica (\ac{TRL}) fueron definidos por la NASA \parencite{mankins1995} como una escala de nueve niveles para evaluar el grado de madurez de una tecnolog\'ia. Este proyecto adopta los niveles TRL~3 a TRL~4 como framework de validaci\'on progresiva para el alcance del Proyecto. La Tabla~\ref{tab:trl-criterios} detalla los criterios de evidencia para cada nivel.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Criterios de evaluaci\'on por nivel TRL para el Agente~1}
+  \label{tab:trl-criterios}
+  \begin{tabularx}{\textwidth}{clX}
+    \toprule
+    \textbf{TRL} & \textbf{Semestre} & \textbf{Criterio de evidencia} \\
+    \midrule
+    3 & S1 & Prototipos funcionales de HU-010 y HU-011 en entorno controlado. Generaci\'on de gacetilla y post dem ostrada sobre datos de prueba. Integración b\'asica con Google Sheets y Google Docs. \\
+    4 & S2 & Validaci\'on con usuarios reales de la \ac{SEU}. HU-012, HU-013 y HU-014 funcionales. Flujo de validaci\'on humana operativo. Logs de ejecuci\'on activos. \\
+    5 & S3 & Operaci\'on real con integraci\'on completa de agentes A2--A5. (Proyecci\'on P100, fuera del alcance de este Proyecto.) \\
+    6 & S4 & Consolidaci\'on con m\'etricas de impacto medidas, documentaci\'on final, transferencia al usuario final. (Proyecci\'on P100.) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 11: CICLO DE VIDA
+% =============================================================================
+\section{Ciclo de vida}
+
+Se adopta un enfoque \textbf{iterativo-incremental} alineado con los cinco pasos metodol\'ogicos establecidos por el Director del Proyecto: relevamiento, dise\~no, prototipado, validaci\'on y documentaci\'on. Cada semestre acad\'emico constituye un ciclo completo que culmina en un gate de evaluaci\'on \ac{TRL}, permitiendo ajustar el alcance y las prioridades al inicio de cada iteraci\'on.
+
+\textbf{Alcance temporal del Proyecto:} el presente Proyecto tiene un ciclo de vida de \textbf{un a\~no} (dos semestres: S1 y S2), durante el cual se implementa el Agente~1 hasta nivel TRL~4. El Proyecto Centenario (\ac{P100}) en su totalidad abarca dos a\~nos (cuatro semestres), pero los semestres S3 y S4 quedan fuera del alcance de este Proyecto y se presentan \'unicamente como proyecci\'on de continuidad.
+
+La justificaci\'on de este enfoque radica en la naturaleza exploratoria del proyecto ---donde la calidad del contenido generado depende de la retroalimentaci\'on iterativa con los usuarios de la \ac{SEU}--- y en la necesidad de producir entregables tangibles al final de cada semestre para la evaluaci\'on acad\'emica \parencite{pressman2019}. La Figura~\ref{fig:ciclo-vida} ilustra la estructura del ciclo de vida.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    fase/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=1.2cm, align=center, font=\small},
+    trl/.style={fill=blue!10, font=\small\bfseries},
+    arrow/.style={-{Stealth[length=3mm]}, thick},
+    semestre/.style={font=\footnotesize\itshape, text=gray}
+  ]
+    % Semestre 1
+    \node[fase] (r1) at (0,0) {Relevamiento};
+    \node[fase] (d1) at (3.2,0) {Dise\~no};
+    \node[fase] (p1) at (6.4,0) {Prototipado};
+    \node[fase] (v1) at (9.6,0) {Validaci\'on};
+    \node[fase] (doc1) at (12.8,0) {Documentaci\'on};
+    \node[trl] (trl3) at (14.8,0) {TRL 3};
+
+    \draw[arrow] (r1) -- (d1);
+    \draw[arrow] (d1) -- (p1);
+    \draw[arrow] (p1) -- (v1);
+    \draw[arrow] (v1) -- (doc1);
+    \draw[arrow] (doc1) -- (trl3);
+
+    \node[semestre] at (6.4, 0.9) {Semestre 1 (Mar--Jul 2026) --- HU-010, HU-011};
+
+    % Semestre 2
+    \node[fase] (r2) at (0,-2) {Relevamiento};
+    \node[fase] (d2) at (3.2,-2) {Dise\~no};
+    \node[fase] (p2) at (6.4,-2) {Prototipado};
+    \node[fase] (v2) at (9.6,-2) {Validaci\'on};
+    \node[fase] (doc2) at (12.8,-2) {Documentaci\'on};
+    \node[trl] (trl4) at (14.8,-2) {TRL 4};
+
+    \draw[arrow] (r2) -- (d2);
+    \draw[arrow] (d2) -- (p2);
+    \draw[arrow] (p2) -- (v2);
+    \draw[arrow] (v2) -- (doc2);
+    \draw[arrow] (doc2) -- (trl4);
+
+    \node[semestre] at (6.4, -1.1) {Semestre 2 (Ago--Dic 2026) --- HU-012, HU-013, HU-014};
+
+    % Semestre 3 (proyeccion P100)
+    \node[fase, draw=gray!50, text=gray] (r3) at (0,-4) {Relevamiento};
+    \node[fase, draw=gray!50, text=gray] (d3) at (3.2,-4) {Dise\~no};
+    \node[fase, draw=gray!50, text=gray] (p3) at (6.4,-4) {Prototipado};
+    \node[fase, draw=gray!50, text=gray] (v3) at (9.6,-4) {Validaci\'on};
+    \node[fase, draw=gray!50, text=gray] (doc3) at (12.8,-4) {Documentaci\'on};
+    \node[trl] (trl5) at (14.8,-4) {TRL 5};
+
+    \draw[arrow, gray!50] (r3) -- (d3);
+    \draw[arrow, gray!50] (d3) -- (p3);
+    \draw[arrow, gray!50] (p3) -- (v3);
+    \draw[arrow, gray!50] (v3) -- (doc3);
+    \draw[arrow, gray!50] (doc3) -- (trl5);
+
+    \node[semestre] at (6.4, -3.1) {Semestre 3 (Mar--Jul 2027) --- Proyecci\'on P100};
+
+    % Semestre 4
+    \node[fase, draw=gray!50, text=gray] (r4) at (0,-6) {Relevamiento};
+    \node[fase, draw=gray!50, text=gray] (d4) at (3.2,-6) {Dise\~no};
+    \node[fase, draw=gray!50, text=gray] (p4) at (6.4,-6) {Prototipado};
+    \node[fase, draw=gray!50, text=gray] (v4) at (9.6,-6) {Validaci\'on};
+    \node[fase, draw=gray!50, text=gray] (doc4) at (12.8,-6) {Documentaci\'on};
+    \node[trl] (trl6) at (14.8,-6) {TRL 6};
+
+    \draw[arrow, gray!50] (r4) -- (d4);
+    \draw[arrow, gray!50] (d4) -- (p4);
+    \draw[arrow, gray!50] (p4) -- (v4);
+    \draw[arrow, gray!50] (v4) -- (doc4);
+    \draw[arrow, gray!50] (doc4) -- (trl6);
+
+    \node[semestre] at (6.4, -5.1) {Semestre 4 (Ago--Dic 2027) --- Proyecci\'on P100};
+
+    % Borde de alcance PPS
+    \begin{scope}[on background layer]
+      \node[draw, dashed, thick, blue!60, rounded corners, inner sep=10pt,
+            fit=(r1) (trl4) (doc2),
+            label={[font=\small\bfseries, blue!60]above left:Alcance Proyecto Go\~ne (1 a\~no)}] {};
+    \end{scope}
+
+    % Flechas de retroalimentacion
+    \draw[arrow, dashed, gray] (trl3.south) -- ++(0,-0.3) -| (r2.north);
+    \draw[arrow, dashed, gray] (trl4.south) -- ++(0,-0.3) -| (r3.north);
+    \draw[arrow, dashed, gray] (trl5.south) -- ++(0,-0.3) -| (r4.north);
+
+  \end{tikzpicture}
+  \caption{Ciclo de vida iterativo-incremental con gates TRL por semestre. S1--S2: alcance del Proyecto Go\~ne (1 a\~no). S3--S4: proyecci\'on del P100.}
+  \label{fig:ciclo-vida}
+\end{figure}
+
+% =============================================================================
+% SECCION 12: METODOLOGIA(S) CANDIDATA(S)
+% =============================================================================
+\section{Metodolog\'ia(s) candidata(s)}
+
+Se evaluaron tres modelos de proceso para el desarrollo del sistema. La Tabla~\ref{tab:metodologias} presenta la comparaci\'on seg\'un cinco criterios relevantes para el contexto del proyecto.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Comparaci\'on de metodolog\'ias candidatas}
+  \label{tab:metodologias}
+  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{Criterio} & \textbf{Scrum} & \textbf{Kanban} & \textbf{Iterativo convencional} \\
+    \midrule
+    Adaptabilidad a equipo de 1 persona & Baja (ceremonias pensadas para equipos) & Alta (flujo continuo, sin ceremonias) & Media (estructura definida pero flexible) \\
+    Trazabilidad para CONEAU & Media (sprint reviews documentables) & Alta (tablero visual, logs de flujo) & Alta (entregables por fase) \\
+    Baja ceremonia & Baja (daily, sprint review, retro) & Alta (sin ceremonias obligatorias) & Media \\
+    Compatibilidad con gates TRL & Media & Alta (flujo continuo, hitos externos) & Alta (fases con gates de evaluaci\'on) \\
+    Gesti\'on de backlog priorizado & Nativa (product backlog) & Nativa (columnas de estado) & Adaptable \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{Selecci\'on:} se adopta un enfoque \textbf{h\'ibrido iterativo con Kanban}. Esta decisi\'on se fundamenta en tres factores: (1)~el equipo consta de una sola persona, lo que hace innecesarias las ceremonias de Scrum; (2)~el tablero Kanban provee trazabilidad visual compatible con los requisitos de evidencia de \ac{CONEAU}; y (3)~la estructura iterativa por semestre permite alinear los entregables con los gates \ac{TRL} definidos \parencite{anderson2010, schwaber2020}. Las historias de usuario del backlog (HU-010 a HU-014) se organizan en columnas de estado: Pendiente~$\rightarrow$ En progreso~$\rightarrow$ En validaci\'on~$\rightarrow$ Completado.
+
+% =============================================================================
+% SECCION 13: PLATAFORMA REQUERIDA
+% =============================================================================
+\section{Plataforma requerida}
+
+La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico validado para el Agente~1. La selecci\'on de cada componente responde a tres criterios: (1)~licencia de c\'odigo abierto o gratuita para uso educativo/institucional, (2)~madurez y estabilidad de la tecnolog\'ia, y (3)~compatibilidad con la infraestructura de Google Workspace ya adoptada por la \ac{FIE}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Plataforma tecnol\'ogica del Agente~1}
+  \label{tab:plataforma}
+  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}Xl}
+    \toprule
+    \textbf{Categor\'ia} & \textbf{Componente} & \textbf{Licencia} \\
+    \midrule
+    Lenguaje principal      & Python 3.x                                & MIT \\
+    Framework backend       & FastAPI                                   & MIT \\
+    Orquestaci\'on LLM      & LangChain/LangGraph                                 & MIT \\
+    Motor IA local          & Ollama                                    & MIT \\
+    Modelos de lenguaje     & LLM de c\'odigo abierto (configurable)     & Variada \\
+    Tareas asincr\'onicas   & Celery + Redis (S2)                       & BSD / BSD \\
+    Tareas iniciales (S1)   & Cron (scheduler nativo)                   & GPL \\
+    Automatizaci\'on        & Google Apps Script                        & Gratuito (institucional) \\
+    Suite institucional     & Google Workspace (Sheets, Drive, Docs, Gmail) & Institucional \\
+    Base de datos           & PostgreSQL (S2)                           & PostgreSQL License \\
+    Contenedores            & Docker / Docker Compose                   & Apache 2.0 \\
+    Control de versiones    & Git + GitHub                              & GPL / Gratuito \\
+    Testing                 & PyTest                                    & MIT \\
+    SO servidor             & Ubuntu Server LTS                         & GPL \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\noindent\textbf{Nota sobre evoluci\'on de infraestructura:} en el Semestre~1 (TRL~3) se opera con un stack m\'inimo: servidor local, Docker/Compose, Ollama, LangChain/LangGraph, FastAPI y Google Workspace. En el Semestre~2 (TRL~4) se incorporan Google Apps Script para triggers autom\'aticos, PostgreSQL para persistencia de logs y estado, y Celery~+~Redis para tareas asincr\'onicas. Esta evoluci\'on progresiva minimiza la complejidad inicial y permite validar el n\'ucleo de generaci\'on de contenido antes de agregar capas de automatizaci\'on.
+
+% =============================================================================
+% SECCION 14: ENUNCIADO DE FACTIBILIDAD
+% =============================================================================
+\section{Enunciado de factibilidad}
+\label{sec:factibilidad}
+
+\subsection{Viabilidad t\'ecnica}
+
+El stack tecnol\'ogico seleccionado se compone de herramientas maduras con amplia adopci\'on en la industria. Los modelos de lenguaje de c\'odigo abierto pueden ejecutarse en hardware de consumo sin GPU dedicada, lo que los hace compatibles con los servidores institucionales existentes. LangChain/LangGraph provee abstracciones probadas para la construcci\'on de cadenas de generaci\'on de contenido, con soporte nativo para prompts con variables, memoria de contexto y salidas estructuradas. La integraci\'on con Google Workspace a trav\'es de su API y Apps Script es un patr\'on bien documentado y ampliamente utilizado. Los mayores riesgos t\'ecnicos son la calidad del contenido generado (mitigado con validaci\'on humana obligatoria) y la latencia de generaci\'on (objetivo: $<$~30 segundos por pieza).
+
+\subsection{Viabilidad econ\'omica}
+
+La Tabla~\ref{tab:costos} presenta la estimaci\'on de costos para el a\~no de alcance del Proyecto (Semestres~1 y~2). La base de software libre tiene costo cero; las erogaciones son opcionales y controladas.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Estimaci\'on de costos del A\~no 1 del Proyecto Centenario (alcance del Proyecto)}
+  \label{tab:costos}
+  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}Xrr}
+    \toprule
+    \textbf{Categor\'ia} & \textbf{Componente} & \textbf{Costo anual (USD)} & \textbf{Tipo} \\
+    \midrule
+    Hardware        & Servidor institucional existente (reutilizaci\'on) & 0 & Existente \\
+    Software base   & Stack open-source (Python, FastAPI, LangChain/LangGraph, Ollama, Docker, PostgreSQL, Git) & 0 & Gratuito \\
+    Google Workspace & Suite institucional (Sheets, Drive, Docs, Gmail, Apps Script) & 0 & Institucional \\
+    Modelos LLM     & LLM de c\'odigo abierto (ejecuci\'on local) & 0 & Open-source \\
+    Backup externo  & Almacenamiento en nube para copias de respaldo (opcional) & 0--60 & Opcional \\
+    API IA externa  & Fallback a API comercial si calidad es insuficiente (opcional) & 0--240 & Contingencia \\
+    Dominio / HTTPS & Certificado SSL y configuraci\'on de red (si aplica) & 0--50 & Opcional \\
+    Infraestructura adicional & Eventual upgrade de RAM/SSD del servidor (si se requiere) & 0--1.000 & Contingencia \\
+    \midrule
+    \textbf{Total estimado} & & \textbf{0 -- 1.350 USD} & \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+El escenario base (sin erogaciones opcionales) tiene costo cero. El escenario m\'aximo (\$~1.350~USD) incorpora todos los componentes opcionales y la contingencia de upgrade de hardware. La mayor parte del rango superior corresponde a la contingencia de infraestructura, que solo se activar\'ia si el servidor existente resulta insuficiente para la ejecuci\'on local del modelo de lenguaje.
+
+\subsection{Business Model Canvas}
+
+La Tabla~\ref{tab:bmc} presenta el Business Model Canvas del Agente~1, adaptado al contexto de un proyecto acad\'emico con aplicaci\'on institucional.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Business Model Canvas --- Agente~1 (Extensi\'on Bot)}
+  \label{tab:bmc}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{|l|X|}
+    \hline
+    \textbf{Segmentos de clientes} &
+    Personal de la Secretar\'ia de Extensi\'on Universitaria (usuario primario). Coordinadores de actividades. Docentes responsables de cursos y talleres de extensi\'on. \\
+    \hline
+    \textbf{Propuesta de valor} &
+    Automatizaci\'on de la generaci\'on de comunicaciones institucionales (gacetillas, posts, correos, certificados); consistencia en el mensaje institucional; liberaci\'on de tiempo del personal para tareas de mayor valor; trazabilidad auditable de todas las comunicaciones; soberan\'ia de datos con ejecuci\'on local de IA. \\
+    \hline
+    \textbf{Canales} &
+    Google Workspace como canal primario de interacci\'on (Sheets para insumos, Docs para salidas, Gmail para env\'ios). Redes sociales institucionales (Instagram, LinkedIn) como canales de publicaci\'on. \\
+    \hline
+    \textbf{Relaci\'on con clientes} &
+    Asistencia automatizada con validaci\'on humana obligatoria. Capacitaci\'on al personal de la SEU. Retroalimentaci\'on iterativa sobre calidad de contenido generado. Checklist de validaci\'on (escala 1--4) en cada gate TRL. \\
+    \hline
+    \textbf{Fuentes de ingreso} &
+    No aplica (proyecto acad\'emico sin fines de lucro). El valor se mide en reducci\'on de tiempo operativo, consistencia comunicacional y cumplimiento de indicadores CONEAU. \\
+    \hline
+    \textbf{Recursos clave} &
+    Servidor institucional existente. Google Workspace institucional. Stack open-source (LangChain/LangGraph, Ollama, FastAPI). Plantillas institucionales definidas con la SEU. Conocimiento del equipo de desarrollo. \\
+    \hline
+    \textbf{Actividades clave} &
+    Desarrollo de m\'odulos de generaci\'on de contenido (HU-010 a HU-014). Dise\~no y ajuste iterativo de prompts. Validaci\'on con usuarios reales. Documentaci\'on acad\'emica y t\'ecnica. \\
+    \hline
+    \textbf{Socios clave} &
+    Director del Proyecto (CR(R) Ing. Cicerchia) --- supervisi\'on y definici\'on de alcance. Personal de la SEU --- validaci\'on funcional y co-dise\~no de plantillas. Docentes tutores --- orientaci\'on t\'ecnica. Ignacio Becerra Mas Roca --- arquitectura multiagente (conjunta) y Agente~2 (Proyecto independiente). \\
+    \hline
+    \textbf{Estructura de costos} &
+    Base de software libre: costo cero. Erogaciones opcionales y controladas (backup, APIs de contingencia, infraestructura): 0--1.350 USD para el a\~no de alcance del Proyecto. Hardware institucional reutilizado sin costo adicional. \\
+    \hline
+  \end{tabularx}
+\end{table}
+
+\subsection{Viabilidad operativa}
+
+El Agente~1 se integra con Google Workspace, ya adoptado institucionalmente por la \ac{FIE}. La incorporaci\'on es progresiva: en S1 se implementan las funcionalidades de mayor valor (gacetillas y posts), y en S2 se agregan confirmaciones, interacci\'on natural y certificados. El flujo de validaci\'on humana obligatoria garantiza que el personal mantiene el control total sobre las comunicaciones oficiales, minimizando la resistencia al cambio y los riesgos operativos.
+
+\subsection{Viabilidad legal}
+
+El stack se compone \'integramente de software con licencias de c\'odigo abierto (MIT, Apache 2.0, BSD, GPL). La ejecuci\'on local de modelos de lenguaje y el almacenamiento de datos en infraestructura propia cumplen con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326}. Los datos de inscripciones y correos de confirmaci\'on se procesan dentro de la infraestructura institucional, sin transferencia a terceros.
+
+\subsection{Viabilidad medioambiental}
+
+El proyecto reutiliza hardware institucional existente. Los modelos de lenguaje de c\'odigo abierto seleccionados no requieren GPU dedicada, con consumo energ\'etico marginal. La ejecuci\'on local elimina la huella de carbono asociada al uso de centros de datos en la nube para el procesamiento de datos institucionales.
+
+\subsection{Riesgos identificados y mitigaciones}
+
+La Tabla~\ref{tab:riesgos} presenta los riesgos identificados para el alcance de este Proyecto y sus estrategias de mitigaci\'on.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Riesgos y mitigaciones del Agente~1}
+  \label{tab:riesgos}
+  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{\#} & \textbf{Riesgo} & \textbf{Mitigaci\'on} \\
+    \midrule
+    R1 & Alucinaciones del LLM: generaci\'on de contenido incorrecto o inventado & Validaci\'on humana obligatoria antes de publicaci\'on. Prompts con restricciones expl\'icitas. Fallback a API externa si la calidad es insuficiente. \\
+    R2 & Calidad insuficiente del contenido generado (tono, formato, longitud) & Ciclo iterativo de ajuste de prompts con retroalimentaci\'on del personal de la SEU. Evaluaci\'on con checklist de escala 1--4 en cada gate TRL. \\
+    R3 & Plantillas institucionales no definidas antes del inicio del desarrollo & Definici\'on de plantillas como primera actividad del proyecto, en colaboraci\'on con la SEU, antes del Semestre~1. \\
+    R4 & Falta de aceptaci\'on del personal de la SEU & Involucramiento temprano: el personal participa en el co-dise\~no de plantillas y en la validaci\'on funcional desde TRL~3. \\
+    R5 & Dependencia de HU-001 y HU-002 (plataforma base) & Estas historias son prerequisitos globales compartidos con el Proyecto de Becerra Mas Roca. Se implementan como actividad conjunta en las primeras semanas de S1. \\
+    R6 & Latencia de generaci\'on superior a 30 segundos & Optimizaci\'on de prompts, selecci\'on de un modelo m\'as eficiente, y posibilidad de fallback a API externa con menor latencia. \\
+    R7 & Cambios en las APIs de Google Workspace & Abstracci\'on de la capa de integraci\'on con Workspace, permitiendo ajustes sin impacto en el n\'ucleo del agente. \\
+    R8 & Hardware insuficiente para inferencia local con Ollama & La ausencia de una m\'aquina con m\'inimo 8~GB de RAM impide ejecutar el \ac{LLM} localmente, comprometiendo la soberan\'ia de datos. Mitigaci\'on: relevamiento de infraestructura en marzo (F1). Alternativa: servidor GPU de la FIE (coordinaci\'on con \infraestructura) o ajuste del modelo a uno de menor tama\~no. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 15: ACUERDOS DE SEGURIDAD Y CALIDAD
+% =============================================================================
+\section{Acuerdos preliminares de nivel de seguridad y de calidad}
+
+\subsection{Seguridad}
+
+Se establecen los siguientes acuerdos preliminares de seguridad para el Agente~1:
+
+\begin{itemize}
+  \item \textbf{Gesti\'on de credenciales:} todas las credenciales (tokens OAuth2, claves de API, configuraci\'on de Google Workspace) se almacenan en archivos \texttt{.env} excluidos del control de versiones, o en Google Properties Service para el c\'odigo de Apps Script.
+  \item \textbf{Autenticaci\'on:} integraci\'on con OAuth2 para el acceso a servicios de Google Workspace. Las cuentas de servicio de Google se configuran con permisos m\'inimos necesarios.
+  \item \textbf{Control de acceso:} modelo \ac{RBAC} con tres niveles: administrador (configura el sistema), validador (revisa y aprueba contenido) y visualizador (consulta logs). Solo el validador puede aprobar contenido para publicaci\'on.
+  \item \textbf{Validaci\'on humana obligatoria:} ning\'un contenido generado por el Agente~1 puede publicarse ni enviarse sin la aprobaci\'on expl\'icita de un validador humano. Este mecanismo es estructural y no puede deshabilitarse sin modificar el c\'odigo fuente.
+  \item \textbf{Ejecuci\'on local:} los modelos de lenguaje se ejecutan en infraestructura propia, sin env\'io de datos institucionales a servicios externos. Solo en caso de fallback expl\'icito, con aprobaci\'on del administrador, se puede utilizar una API externa.
+  \item \textbf{Trazabilidad y auditor\'ia:} registro de logs de ejecuci\'on con: acci\'on realizada, timestamp, usuario solicitante, estado de validaci\'on (pendiente/aprobado/rechazado), contenido generado. Los registros se almacenan en PostgreSQL (S2) o en Google Sheets (S1).
+\end{itemize}
+
+\subsection{Calidad}
+
+La gesti\'on de calidad del Agente~1 se estructura en tres niveles:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Definition of Done por historia de usuario:} cada \ac{HU} tiene un \ac{DoD} espec\'ifico con criterios verificables. El \ac{DoD} global exige: c\'odigo revisado (code review), pruebas unitarias con PyTest ($\geq 80\%$ de cobertura), documentaci\'on de prompts, validaci\'on funcional por usuario de la SEU.
+
+  \item \textbf{Calidad del contenido generado:} se eval\'ua con un checklist de cuatro dimensiones: precisi\'on factual, adecuaci\'on al tono institucional, correcta aplicaci\'on de plantilla y longitud adecuada al canal. La escala es 1--4 (1~=~no cumple, 4~=~cumple completamente). El criterio de aceptaci\'on es $\geq 3$ en todas las dimensiones.
+
+  \item \textbf{Alineaci\'on con ISO/IEC~25010 e ISO~9001:} se mantiene un backlog de calidad espec\'ifico alineado con las caracter\'isticas de funcionalidad, confiabilidad y usabilidad de la norma \parencite{iso25010, iso9001}. Los registros de validaci\'on se almacenan en Google Drive con nomenclatura estandarizada: \texttt{VAL-SX-YYYY-MM-DD-descripcion.pdf}, garantizando trazabilidad auditable para \ac{CONEAU}.
+\end{enumerate}
+
+% =============================================================================
+% SECCION 16: PARTICIPANTES
+% =============================================================================
+\section{Participantes}
+
+\subsection{Equipo de proyecto}
+
+\begin{table}[H]
+  \centering
+  \caption{Integrantes del equipo de proyecto}
+  \label{tab:equipo}
+  \begin{tabularx}{\textwidth}{lXl}
+    \toprule
+    \textbf{Nombre} & \textbf{Rol} & \textbf{Alcance en P100} \\
+    \midrule
+    Go\~ne, Juan Ignacio       & Desarrollador principal (este Proyecto) & Arquitectura multiagente (conjunta) + Agente~1 \\
+    Becerra Mas Roca, Ignacio  & Desarrollador principal (Proyecto independiente) & Arquitectura multiagente (conjunta) + Agente~2 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Interesados}
+
+\begin{table}[H]
+  \centering
+  \caption{Interesados del proyecto}
+  \label{tab:interesados}
+  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}Xl}
+    \toprule
+    \textbf{Nombre} & \textbf{Rol en el proyecto} & \textbf{Nivel} \\
+    \midrule
+    CR(R) Ing. C\'esar Daniel Cicerchia & Director del Proyecto / Tutor         & Primario \\
+    Ing. Cinthia Vegega                  & Docente primario -- IA, agentes inteligentes & Primario \\
+    Lic. Daniel Britez                   & Docente primario -- comportamientos, flujos  & Primario \\
+    Ing. Carlos Maceira Garc\'ia Coni    & Docente secundario -- arquitectura de software & Secundario \\
+    Mg. Adri\'an Tozzi                   & Apoyo -- Paradigmas de Programaci\'on IV e ISA & Apoyo \\
+    Lic. Daniel Calvache                 & Apoyo -- Paradigmas de Programaci\'on IV e ISA & Apoyo \\
+    TP SCD Fernando Vera Batista         & Soporte de infraestructura                     & Apoyo \\
+    \ac{SEU}                             & Product Owner funcional, usuario final         & Primario \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Matriz RACI}
+
+\begin{table}[H]
+  \centering
+  \caption{Matriz RACI del proyecto}
+  \label{tab:raci}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{l>{\centering\arraybackslash}X>{\centering\arraybackslash}X>{\centering\arraybackslash}X>{\centering\arraybackslash}X}
+    \toprule
+    \textbf{Actividad} & \textbf{Go\~ne} & \textbf{Cicerchia} & \textbf{Docentes} & \textbf{SEU} \\
+    \midrule
+    Dise\~no de prompts y plantillas   & R     & C     & C     & C \\
+    Desarrollo del Agente~1            & R     & I     & C     & I \\
+    Validaci\'on funcional             & A     & I     & I     & R \\
+    Evaluaci\'on TRL                   & A     & R     & C     & C \\
+    Documentaci\'on t\'ecnica         & R     & C     & C     & I \\
+    Aprobaci\'on de entregables        & C     & A/R   & C     & C \\
+    \bottomrule
+  \end{tabularx}
+
+  \vspace{0.2cm}
+  \footnotesize{R: Responsible, A: Accountable, C: Consulted, I: Informed}
+\end{table}
+
+% =============================================================================
+% SECCION 17: PRESENTACION DE LA PROPUESTA
+% =============================================================================
+\section{Presentaci\'on de la propuesta}
+
+La propuesta se articula en torno al \agenteUno{} como componente de comunicaci\'on institucional de la arquitectura multiagente del \ac{P100}. El agente recibe insumos estructurados (datos de Google Sheets, documentos de Google Drive, contenido de otros agentes) y produce salidas en distintos canales (Google Docs, Gmail, posts para \ac{RRSS}), con validaci\'on humana obligatoria como capa intermedia. A continuaci\'on se presentan el flujo principal, las historias de usuario, el rol de hub de comunicaci\'on y el storyboard de uso.
+
+\subsection{Flujo principal del Agente~1}
+
+La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el ingreso de datos hasta la publicaci\'on final.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    bloque/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=1.1cm, align=center, font=\small},
+    validacion/.style={diamond, draw, fill=yellow!15, minimum width=2.2cm, minimum height=1.1cm, align=center, font=\small},
+    salida/.style={rectangle, draw, fill=green!10, rounded corners, minimum width=2.5cm, minimum height=0.9cm, align=center, font=\small},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick}
+  ]
+    % Fila 1: entrada y trigger
+    \node[bloque, fill=blue!10] (form) at (0, 0) {Formulario\\Google Forms};
+    \node[bloque, fill=yellow!15] (sheets) at (3.5, 0) {Google\\Sheets};
+    \node[bloque] (trigger) at (7, 0) {Trigger\\Apps Script};
+    \node[bloque, fill=blue!15] (a1) at (10.5, 0) {Agente~1\\(LangChain/LangGraph + LLM)};
+
+    % Fila 2: validacion y salidas
+    \node[validacion] (val) at (10.5, -2.5) {Validaci\'on\\humana\\(SEU)};
+    \node[salida] (gacetilla) at (3.5, -4.5) {Gacetilla\\(Google Docs)};
+    \node[salida] (post) at (7, -4.5) {Post\\(Instagram /\\LinkedIn)};
+    \node[salida] (mail) at (10.5, -4.5) {Correo\\(Gmail)};
+    \node[salida] (certif) at (14, -4.5) {Certificado\\(PDF)};
+
+    % Nodo de rechazo
+    \node[bloque, draw=red!60, text=red!80, fill=red!5] (ajuste) at (14.5, -2.5) {Ajuste\\y reenv\'io};
+
+    % Flechas principales
+    \draw[arrow] (form) -- (sheets);
+    \draw[arrow] (sheets) -- (trigger);
+    \draw[arrow] (trigger) -- (a1);
+    \draw[arrow] (a1) -- (val);
+
+    % Flechas aprobacion -> salidas
+    \draw[arrow] (val.south) ++(-2,0) -- (gacetilla.north) node[midway, left, font=\tiny] {aprobado};
+    \draw[arrow] (val) -- (post.north);
+    \draw[arrow] (val) -- (mail.north);
+    \draw[arrow] (val.south) ++(2,0) -- (certif.north);
+
+    % Flecha rechazo
+    \draw[arrow, red!60] (val.east) -- (ajuste.west) node[midway, above, font=\tiny, text=red!80] {rechazado};
+    \draw[arrow, red!60, dashed] (ajuste.north) -- ++(0,0.8) -| (a1.north);
+
+    % Labels adicionales
+    \node[font=\tiny\itshape, text=gray] at (10.5, 0.7) {Ollama: LLM local};
+    \node[font=\tiny\itshape, text=gray] at (10.5, -1.8) {\ac{SEU}};
+
+  \end{tikzpicture}
+  \caption{Flujo principal del Agente~1 (Extensi\'on Bot): desde el ingreso de datos hasta la publicaci\'on final, con validaci\'on humana obligatoria.}
+  \label{fig:flujo-a1}
+\end{figure}
+
+\subsection{Historias de usuario}
+
+La Tabla~\ref{tab:hu} presenta las cinco historias de usuario del \ac{EPIC}~E2 (Extensi\'on Bot), con su prioridad, estimaci\'on en \ac{SP} y \ac{DoD}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Historias de usuario del Agente~1 (EPIC E2)}
+  \label{tab:hu}
+  \begin{tabularx}{\textwidth}{l>{\centering\arraybackslash}c>{\centering\arraybackslash}c>{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{HU} & \textbf{Prioridad} & \textbf{SP} & \textbf{Definition of Done} \\
+    \midrule
+    HU-010: Generar gacetillas autom\'aticamente & P0 & 8 & Input desde Google Sheets. Output en Google Docs con plantilla institucional aplicada. Tiempo de generaci\'on $<$~30~s. Validaci\'on humana previa a entrega. \\
+    HU-011: Generar posts para redes sociales & P0 & 5 & Formato adaptable a Instagram (breve, hashtags) y LinkedIn (extendido, tono profesional). Longitud configurable. Texto limpio, sin alucinaciones verificadas por validador. \\
+    HU-012: Confirmaciones autom\'aticas de inscripci\'on & P1 & 5 & Trigger al registrarse nueva fila en Sheets. Correo autom\'atico enviado v\'ia Gmail. Registro de env\'io (timestamp, destinatario, estado). \\
+    HU-013: Interacci\'on en lenguaje natural (uso interno) & P1 & 3 & Interfaz simple accesible desde Google Sheets o Docs. Respuesta del agente en $<$~30~s. Respuesta usable por personal no t\'ecnico. \\
+    HU-014: Generar certificados autom\'aticos & P2 & 8 & Plantilla base definida con la SEU. Generaci\'on de PDF. Validaci\'on humana obligatoria antes de emisi\'on. Log de cada certificado emitido. \\
+    \midrule
+    \textbf{Total} & & \textbf{29} & \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{Distribuci\'on por semestre:} HU-010 y HU-011 (P0, 13~SP) se implementan en el Semestre~1 como \ac{MVP}. HU-012, HU-013 y HU-014 (P1--P2, 16~SP) se incorporan en el Semestre~2.
+
+\subsection{Agente~1 como hub de comunicaci\'on}
+
+El Agente~1 no es el orquestador del sistema multiagente ---ese rol corresponde a la capa de orquestaci\'on dise\~nada de forma conjunta por ambos desarrolladores--- sino el \textbf{hub de contenido}: el punto de convergencia donde la informaci\'on producida por otros agentes se transforma en comunicaciones institucionales. La Tabla~\ref{tab:interacciones} describe las interacciones entrantes al Agente~1.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Interacciones de otros agentes hacia el Agente~1 (hub de comunicaci\'on)}
+  \label{tab:interacciones}
+  \begin{tabularx}{\textwidth}{ll>{\raggedright\arraybackslash}X}
+    \toprule
+    \textbf{Origen} & \textbf{Tipo de insumo} & \textbf{Uso por el Agente~1} \\
+    \midrule
+    A2 --- Historia Viva      & Contenido hist\'orico institucional  & Generaci\'on de gacetillas de efem\'erides, posts alusivos a fechas institucionales \\
+    A3 --- Vinculaci\'on      & Datos de eventos y oportunidades     & Difusi\'on de congresos, jornadas, convenios detectados por A3 \\
+    A4 --- Atenci\'on         & Respuestas complejas a consultas     & Redacci\'on institucional de respuestas que requieren formato y tono oficial \\
+    A5 --- Anal\'iticas       & Enriquecimiento de texto de \ac{RRSS} & Mejora de calidad y consistencia de publicaciones antes de su difusi\'on \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+En el Semestre~1, el Agente~1 opera de forma aut\'onoma (sin integraci\'on con A2--A5), procesando exclusivamente insumos del personal de la \ac{SEU} via Google Sheets. La integraci\'on como hub de comunicaci\'on con los dem\'as agentes se produce progresivamente en el Semestre~2, a medida que la arquitectura multiagente dise\~nada de forma conjunta con Becerra Mas Roca habilita los canales de comunicaci\'on entre agentes.
+
+\subsection{Storyboard: coordinador de la SEU genera una gacetilla}
+
+A continuaci\'on se describe la secuencia t\'ipica de uso del Agente~1 por parte de un coordinador de la \ac{SEU}:
+
+\begin{enumerate}[label=\textbf{Paso \arabic*:}]
+  \item \textbf{Ingreso de datos:} el coordinador completa un formulario de Google Forms (o ingresa directamente en la hoja designada de Google Sheets) con los datos de la actividad: nombre, fecha, descripci\'on breve, docente responsable, p\'ublico objetivo, modalidad (presencial/virtual), duraci\'on e instituci\'on organizadora.
+
+  \item \textbf{Trigger autom\'atico:} al guardar la fila en Google Sheets, un trigger de Google Apps Script detecta la nueva entrada y env\'ia una solicitud al backend del Agente~1 (FastAPI).
+
+  \item \textbf{Generaci\'on de contenido:} el Agente~1 construye una cadena LangChain/LangGraph con el prompt correspondiente a la plantilla de gacetilla institucional, le pasa los datos como variables y solicita la generaci\'on al modelo de lenguaje de c\'odigo abierto ejecutado localmente v\'ia Ollama. El proceso tarda menos de 30 segundos.
+
+  \item \textbf{Salida inicial:} el sistema crea un Google Doc en la carpeta correspondiente de Google Drive con el borrador de la gacetilla y la plantilla institucional aplicada. Simult\'aneamente genera los borradores de posts para Instagram y LinkedIn.
+
+  \item \textbf{Notificaci\'on al validador:} el sistema env\'ia un correo autom\'atico al coordinador (y/o a quien tenga rol de validador) con un enlace al Google Doc generado y una descripci\'on del contenido.
+
+  \item \textbf{Revisi\'on y validaci\'on:} el validador abre el documento, lo revisa, lo ajusta si es necesario, y marca la validaci\'on como ``Aprobado'' en la hoja de seguimiento de Google Sheets. El sistema registra la acci\'on con timestamp y nombre del validador.
+
+  \item \textbf{Publicaci\'on:} una vez aprobado, el contenido est\'a listo para su publicaci\'on manual en los canales correspondientes (web institucional, \ac{RRSS}, lista de correos). En versiones futuras del sistema (S3, proyecci\'on P100), este paso podr\'ia automatizarse parcialmente.
+\end{enumerate}
+
+\subsection{Arquitectura t\'ecnica del Agente~1}
+
+La Figura~\ref{fig:arquitectura-a1} presenta la vista de componentes t\'ecnicos del Agente~1.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    capa/.style={rectangle, draw, rounded corners, minimum width=12cm, minimum height=1.4cm, align=center, font=\small},
+    comp/.style={rectangle, draw, fill=white, rounded corners, minimum width=3.2cm, minimum height=1cm, align=center, font=\small},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick}
+  ]
+    % Capa Google Workspace
+    \node[capa, fill=yellow!10] (gw) at (6, 5) {};
+    \node[font=\small\bfseries] at (0.9, 5) {Google Workspace};
+    \node[comp] at (3.5, 5) {Forms / Sheets\\(entrada)};
+    \node[comp] at (7, 5) {Drive / Docs\\(salida)};
+    \node[comp] at (10.5, 5) {Gmail\\(env\'ios)};
+
+    % Capa Apps Script
+    \node[capa, fill=orange!8, minimum height=1.0cm] (as) at (6, 3.5) {};
+    \node[font=\small\bfseries] at (0.9, 3.5) {Apps Script};
+    \node[comp, minimum width=5cm, minimum height=0.7cm] at (6, 3.5) {Triggers / Automatizaciones};
+
+    % Capa FastAPI
+    \node[capa, fill=blue!8, minimum height=1.0cm] (api) at (6, 2.3) {};
+    \node[font=\small\bfseries] at (0.9, 2.3) {Backend (FastAPI)};
+    \node[comp, minimum width=4cm, minimum height=0.7cm] at (6, 2.3) {API REST / Router de HU};
+
+    % Capa LangChain/LangGraph
+    \node[capa, fill=green!8, minimum height=1.0cm] (lc) at (6, 1.1) {};
+    \node[font=\small\bfseries] at (0.9, 1.1) {LangChain/LangGraph};
+    \node[comp, minimum width=2.5cm, minimum height=0.7cm] at (4, 1.1) {Cadenas de\\prompts};
+    \node[comp, minimum width=2.5cm, minimum height=0.7cm] at (7.5, 1.1) {Plantillas\\(templates)};
+    \node[comp, minimum width=2cm, minimum height=0.7cm] at (10.8, 1.1) {Memoria};
+
+    % Capa Ollama
+    \node[capa, fill=purple!8, minimum height=1.0cm] (llm) at (6, -0.1) {};
+    \node[font=\small\bfseries] at (0.9, -0.1) {Ollama (local)};
+    \node[comp, minimum width=4cm, minimum height=0.7cm] at (6, -0.1) {LLM de c\'odigo abierto};
+
+    % Capa Persistencia
+    \node[capa, fill=gray!8, minimum height=1.0cm] (db) at (6, -1.3) {};
+    \node[font=\small\bfseries] at (0.9, -1.3) {Persistencia};
+    \node[comp, minimum width=2.8cm, minimum height=0.7cm] at (4.5, -1.3) {PostgreSQL\\(logs, estado)};
+    \node[comp, minimum width=2.8cm, minimum height=0.7cm] at (8.5, -1.3) {Celery + Redis\\(tareas async)};
+
+    % Flechas entre capas
+    \draw[arrow] (gw.south) -- (as.north);
+    \draw[arrow] (as.south) -- (api.north);
+    \draw[arrow] (api.south) -- (lc.north);
+    \draw[arrow] (lc.south) -- (llm.north);
+    \draw[arrow] (api.south) ++(3,0) |- (db.east);
+
+  \end{tikzpicture}
+  \caption{Arquitectura de componentes del Agente~1 (Extensi\'on Bot)}
+  \label{fig:arquitectura-a1}
+\end{figure}
+
+% =============================================================================
+% SECCION 18: CRONOGRAMA DE ALTO NIVEL
+% =============================================================================
+\section{Cronograma de alto nivel}
+
+\subsection{Estructura de Descomposici\'on del Trabajo (EDT)}
+
+La Tabla~\ref{tab:edt} presenta las fases, actividades principales y semestres del Proyecto.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Estructura de Descomposici\'on del Trabajo (EDT)}
+  \label{tab:edt}
+  \begin{tabularx}{\textwidth}{clXl}
+    \toprule
+    \textbf{ID} & \textbf{Fase} & \textbf{Actividades principales} & \textbf{Semestres} \\
+    \midrule
+    F1 & Relevamiento & An\'alisis de procesos de comunicaci\'on de la SEU, identificaci\'on de plantillas existentes, relevamiento de infraestructura Google Workspace, definici\'on de requisitos, co-dise\~no de plantillas con personal SEU, configuraci\'on de HU-001 y HU-002 (compartidas con A2) & S1 \\
+    F2 & Dise\~no & Especificaci\'on funcional de HU-010 a HU-014, dise\~no de prompts y cadenas LangChain/LangGraph, dise\~no del flujo de validaci\'on humana, dise\~no del esquema de logs & S1 \\
+    F3 & Prototipado~S1 & Implementaci\'on de HU-010 (gacetillas) y HU-011 (posts), integraci\'on con Google Sheets y Google Docs, pruebas unitarias con PyTest & S1 \\
+    F4 & Prototipado~S2 & Implementaci\'on de HU-012 (confirmaciones), HU-013 (lenguaje natural) y HU-014 (certificados), incorporaci\'on de PostgreSQL y Celery, integraci\'on inicial con A2--A5 & S2 \\
+    F5 & Validaci\'on & Verificaci\'on funcional con usuarios reales de la SEU (checklist 1--4), evaluaci\'on TRL por semestre, ajustes de prompts y plantillas seg\'un retroalimentaci\'on & S1--S2 \\
+    F6 & Documentaci\'on & Anteproyecto, informes de avance semestrales, documentaci\'on t\'ecnica de la API y los prompts, informe final & S1--S2 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Entregables por semestre}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Entregables por semestre}
+  \label{tab:entregables}
+  \begin{tabularx}{\textwidth}{clXl}
+    \toprule
+    \textbf{Semestre} & \textbf{Per\'iodo} & \textbf{Entregables} & \textbf{TRL} \\
+    \midrule
+    S1 & Mar--Jul 2026 & Anteproyecto aprobado. Plantillas institucionales definidas con la SEU. HU-010 y HU-011 implementados y validados en entorno controlado. Informe de avance S1. & TRL 3 \\
+    S2 & Ago--Dic 2026 & HU-012, HU-013 y HU-014 implementados. Sistema validado con usuarios reales de la SEU (checklist $\geq$~3/4). Integraci\'on inicial con A2--A5. Logs operativos. Informe final del Proyecto. & TRL 4 \\
+    \midrule
+    \multicolumn{4}{l}{\textit{Proyecci\'on P100 (fuera del alcance de este Proyecto):}} \\
+    \midrule
+    S3 & Mar--Jul 2027 & Agente~1 en operaci\'on real con integraci\'on completa de agentes. M\'etricas de uso. & TRL 5 \\
+    S4 & Ago--Dic 2027 & Consolidaci\'on, m\'etricas de impacto, documentaci\'on final, cierre del P100. & TRL 6 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Cronograma de hitos}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Hitos principales del Proyecto}
+  \label{tab:hitos}
+  \begin{tabularx}{\textwidth}{lXl}
+    \toprule
+    \textbf{Hito} & \textbf{Descripci\'on} & \textbf{Fecha estimada} \\
+    \midrule
+    H1 & Entrega de anteproyecto aprobado & Mar 2026 \\
+    H2 & Plantillas institucionales definidas con SEU & Abr 2026 \\
+    H3 & MVP: HU-010 y HU-011 funcionando en entorno controlado & Jun 2026 \\
+    H4 & Gate TRL~3: evaluaci\'on semestral & Jul 2026 \\
+    H5 & HU-012 y HU-013 operativos & Oct 2026 \\
+    H6 & HU-014 operativo con flujo de validaci\'on & Nov 2026 \\
+    H7 & Gate TRL~4: validaci\'on con usuarios reales SEU ($\geq$~3/4) & Dic 2026 \\
+    H8 & Entrega de informe final del Proyecto & Dic 2026 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Planificaci\'on mensual}
+
+La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividades a nivel mensual para los dos semestres del Proyecto, complementando la vista de hitos de alto nivel.
+
+\begin{table}[H]
+  \centering
+  \caption{Planificaci\'on mensual detallada del Proyecto}
+  \label{tab:planificacion-mensual}
+  \begin{tabularx}{\textwidth}{lXl}
+    \toprule
+    \textbf{Mes} & \textbf{Actividades principales} & \textbf{Hito / Entregable} \\
+    \midrule
+    \multicolumn{3}{l}{\textit{Semestre~1 --- Mar--Jul 2026}} \\
+    \midrule
+    Mar 2026 & Entrega del anteproyecto. Primer contacto con la \ac{SEU}: relevamiento de procesos de comunicaci\'on, inventario de plantillas existentes, formaci\'on del equipo de validaci\'on. Configuraci\'on del entorno de desarrollo (Ollama, FastAPI, Google Workspace). & H1: Anteproyecto aprobado \\
+    Abr 2026 & Co-dise\~no de plantillas institucionales con la \ac{SEU}. Configuraci\'on de cuentas de servicio para Apps Script. Dise\~no de cadenas de prompts para HU-010 (gacetillas). & H2: Plantillas definidas \\
+    May 2026 & Implementaci\'on de HU-010 (generaci\'on de gacetillas) y comienzo de HU-011 (posts para \ac{RRSS}). Pruebas unitarias con PyTest. Primer ciclo de refinamiento de prompts con datos reales de la \ac{SEU}. & --- \\
+    Jun 2026 & Finalizaci\'on de HU-011. Integraci\'on completa con Google Sheets y Google Docs. Flujo de validaci\'on humana operativo. Pruebas de sistema en entorno controlado. & H3: \ac{MVP} funcional \\
+    Jul 2026 & Evaluaci\'on gate TRL~3. Consolidaci\'on de retroalimentaci\'on del validador. Elaboraci\'on del informe de avance S1. Definici\'on de ajustes de alcance para S2. & H4: Gate TRL~3 + Informe S1 \\
+    \midrule
+    \multicolumn{3}{l}{\textit{Semestre~2 --- Ago--Dic 2026}} \\
+    \midrule
+    Ago 2026 & Implementaci\'on de HU-012 (confirmaciones autom\'aticas de inscripci\'on). Incorporaci\'on de PostgreSQL para logs persistentes. Definici\'on de contratos de interfaz con A2--A5. & --- \\
+    Sep 2026 & Implementaci\'on de HU-013 (interacci\'on en lenguaje natural). Integraci\'on de Celery + Redis para tareas as\'incronas. Primera sincronizaci\'on de integraci\'on con Becerra Mas Roca. & H5: HU-012 y HU-013 operativos \\
+    Oct 2026 & Implementaci\'on de HU-014 (certificados PDF). Co-dise\~no de plantilla de certificado con la \ac{SEU}. Primera integraci\'on con A2--A5 en entorno de pruebas. & H6: HU-014 operativo \\
+    Nov 2026 & Pruebas con usuarios reales de la \ac{SEU}: checklist de cuatro dimensiones. Medici\'on de tasa de rechazo y tiempo de generaci\'on. Ajustes de prompts y plantillas seg\'un retroalimentaci\'on. & --- \\
+    Dic 2026 & Evaluaci\'on gate TRL~4. Integraci\'on final con A2--A5. Elaboraci\'on y entrega del informe final del Proyecto. Cierre acad\'emico. & H7--H8: Gate TRL~4 + Informe Final \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 19: METRICAS
+% =============================================================================
+\section{M\'etricas}
+
+Se seleccionan siete m\'etricas representativas que cubren las dimensiones de calidad t\'ecnica, valor funcional, seguridad y progreso del proyecto:
+
+\begin{enumerate}[label=M\arabic*.]
+  \item \textbf{Tiempo de generaci\'on de contenido:} tiempo transcurrido desde que el trigger activa el Agente~1 hasta que el borrador est\'a disponible para el validador. \textit{Criterio de aceptaci\'on:} $<$~30~segundos por pieza generada (gacetilla, post o correo).
+
+  \item \textbf{Tasa de validaci\'on humana:} proporci\'on de piezas de contenido generadas que pasan por el flujo de validaci\'on humana antes de su publicaci\'on o env\'io. \textit{Criterio de aceptaci\'on:} 100\%. Ninguna excepci\'on. Este indicador es binario y su incumplimiento es un defecto cr\'itico del sistema.
+
+  \item \textbf{Reducci\'on de tiempo en redacci\'on de comunicaciones:} comparaci\'on del tiempo promedio de producci\'on de una gacetilla o post con el proceso manual anterior (l\'inea de base medida en el relevamiento del Semestre~1). \textit{Criterio de aceptaci\'on:} reducci\'on $\geq$~50\% respecto al proceso manual.
+
+  \item \textbf{Satisfacci\'on del usuario SEU:} evaluaci\'on del personal de la Secretar\'ia mediante checklist de cuatro dimensiones (precisi\'on factual, tono institucional, aplicaci\'on de plantilla, adecuaci\'on al canal), con escala 1--4. \textit{Criterio de aceptaci\'on:} puntuaci\'on promedio $\geq$~3/4 al cierre del Semestre~2.
+
+  \item \textbf{Progresi\'on TRL:} cumplimiento del nivel \ac{TRL} objetivo al final de cada semestre. \textit{Criterio de aceptaci\'on:} binario (cumple / no cumple), seg\'un los criterios definidos en la Tabla~\ref{tab:trl-criterios}.
+
+  \item \textbf{Cobertura de canales:} cantidad de canales de comunicaci\'on institucional cubiertos por el Agente~1. \textit{Criterio de aceptaci\'on:} m\'inimo 3 canales al cierre del Semestre~1 (gacetillas en Google Docs, posts para \ac{RRSS}, correos de difusi\'on); m\'inimo 5 al cierre del Semestre~2 (agregar confirmaciones de inscripci\'on y certificados PDF).
+
+  \item \textbf{Tasa de rechazo en validaci\'on:} proporci\'on de borradores generados que son rechazados por el validador humano y requieren regeneraci\'on o ajuste. \textit{Criterio de aceptaci\'on:} tasa de rechazo $\leq$~20\% al cierre del Semestre~2 (indicador de madurez de los prompts y las plantillas).
+\end{enumerate}
+
+\subsection{Resumen de criterios de aceptaci\'on}
+
+La Tabla~\ref{tab:criterios-aceptacion} consolida los criterios de aceptaci\'on del Proyecto en formato tabular, facilitando su uso como checklist de evaluaci\'on al cierre de cada semestre.
+
+\begin{table}[H]
+  \centering
+  \caption{Criterios de aceptaci\'on por m\'etrica y semestre}
+  \label{tab:criterios-aceptacion}
+  \begin{tabularx}{\textwidth}{llXcc}
+    \toprule
+    \textbf{ID} & \textbf{Dimensi\'on} & \textbf{Criterio de aceptaci\'on} & \textbf{S1} & \textbf{S2} \\
+    \midrule
+    M1 & Rendimiento      & Generaci\'on de contenido en $<$~30~segundos por pieza & \checkmark & \checkmark \\
+    M2 & Seguridad funcional & Tasa de validaci\'on humana = 100\% (binario, sin excepciones) & \checkmark & \checkmark \\
+    M3 & Eficiencia       & Reducci\'on $\geq$~50\% en tiempo de redacci\'on vs.\ proceso manual & --- & \checkmark \\
+    M4 & Satisfacci\'on   & Puntuaci\'on promedio SEU $\geq$~3/4 en checklist de 4 dimensiones & --- & \checkmark \\
+    M5 & Madurez TRL      & TRL~3 alcanzado (HU-010, HU-011 funcionales en entorno controlado) & \checkmark & --- \\
+    M5 & Madurez TRL      & TRL~4 alcanzado (validaci\'on con usuarios reales, todos los HU funcionales) & --- & \checkmark \\
+    M6 & Cobertura        & M\'inimo 3 canales cubiertos (gacetillas, posts, correos de difusi\'on) & \checkmark & --- \\
+    M6 & Cobertura        & M\'inimo 5 canales cubiertos (agregar confirmaciones e inscripci\'on y certificados) & --- & \checkmark \\
+    M7 & Calidad de prompts & Tasa de rechazo en validaci\'on $\leq$~20\% & --- & \checkmark \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Factores cr\'iticos de \'exito}
+
+Los factores cr\'iticos de \'exito (FCE) son las condiciones cuya presencia es necesaria ---aunque no suficiente--- para que el Proyecto alcance sus objetivos. La Tabla~\ref{tab:factores-exito} los enuncia junto con la estrategia de aseguramiento correspondiente.
+
+\begin{table}[H]
+  \centering
+  \caption{Factores cr\'iticos de \'exito del Proyecto}
+  \label{tab:factores-exito}
+  \begin{tabularx}{\textwidth}{llXX}
+    \toprule
+    \textbf{ID} & \textbf{Factor} & \textbf{Descripci\'on} & \textbf{Estrategia de aseguramiento} \\
+    \midrule
+    FCE-1 & Participaci\'on de la \ac{SEU} & El personal de la Secretar\'ia debe involucrarse activamente en el relevamiento, el co-dise\~no de plantillas y la validaci\'on del contenido generado. Sin este involucramiento, el agente produce contenido desalineado con el tono institucional real. & Acuerdo formal de colaboraci\'on con la \ac{SEU} previo al inicio de F1. Sesiones de co-dise\~no incluidas en el cronograma mensual. \\
+    FCE-2 & Calidad iterativa de prompts & El rendimiento del \ac{LLM} depende del dise\~no y refinamiento continuo de los prompts. Prompts pobres generan contenido con alucinaciones o tono inapropiado, elevando la tasa de rechazo (M7). & Ciclo de refinamiento de prompts con retroalimentaci\'on del validador humano desde el mes de abril (S1) y a lo largo de todo S2. \\
+    FCE-3 & Coordinaci\'on entre desarrolladores & La capa de orquestaci\'on y las interfaces entre agentes son co-responsabilidad de ambos desarrolladores. Desalineaci\'on en la arquitectura puede bloquear la integraci\'on con A2--A5 en S2. & Reuniones peri\'odicas de sincronizaci\'on con \companeroNombre. Definici\'on de contratos de interfaz en agosto (inicio de S2), antes de implementar las integraciones. \\
+    FCE-4 & Soberan\'ia de datos & Ning\'un dato institucional puede enviarse a servicios de \ac{LLM} externos. El incumplimiento invalida el sistema en un contexto de defensa nacional y vulnera la Ley N\textsuperscript{o}~25.326. & Uso exclusivo de Ollama para inferencia. Auditor\'ia de flujos de datos en cada release. Sin alternativas externas admitidas. \\
+    FCE-5 & Estabilidad de Google Workspace & La integraci\'on con Forms, Sheets, Drive y Gmail es la columna vertebral del sistema en S1. Cambios de permisos, cuotas de Apps Script o pol\'iticas de Google pueden bloquear los triggers autom\'aticos. & Configuraci\'on de cuentas de servicio con permisos m\'inimos necesarios. Monitoreo de cuotas de Apps Script. Plan de contingencia con triggers manuales como fallback. \\
+    FCE-6 & Disponibilidad funcional de A2--A5 & El Agente~1 actua como hub de comunicaci\'on en S2: transforma el contenido producido por los dem\'as agentes en comunicaciones institucionales. Si A2--A5 no producen insumos utilizables al momento de la integraci\'on, la funci\'on de hub queda sin contenido que distribuir, reduciendo el alcance a la operaci\'on aut\'onoma de S1. & Definici\'on de contratos de interfaz con mocks est\'aticos que permiten desarrollar y probar la funci\'on de hub independientemente del avance de cada agente fuente. Integraci\'on real progresiva en S2 seg\'un disponibilidad confirmada de cada agente. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% =============================================================================
+% SECCION 20: REFERENCIAS Y BIBLIOGRAFIA
+% =============================================================================
+\printbibliography[title={Referencias y bibliograf\'ia}]
+
+\end{document}

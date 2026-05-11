@@ -145,7 +145,7 @@ Si Nacho pide una seccion especifica (ej: "haceme la seccion de viabilidad"):
 ## Formato de salida LaTeX
 
 ### Archivo principal
-- Nombre: `Anteproyecto-PPS-Ignacio-Becerra-Mas-Roca.tex`
+- Nombre vigente para el Agente 1: `Anteproyecto-PPS-Juan-Ignacio-Gone.tex`
 - Encoding: UTF-8
 - Compilador esperado: pdflatex o lualatex
 - Bibliografia: archivo separado `referencias.bib`
@@ -172,7 +172,7 @@ Si Nacho pide una seccion especifica (ej: "haceme la seccion de viabilidad"):
 
 ## Archivos que produce este agente
 Todos se escriben en `../Documentos/Anteproyecto/`:
-- `Anteproyecto-PPS-Ignacio-Becerra-Mas-Roca.tex` — documento principal
+- `Anteproyecto-PPS-Juan-Ignacio-Gone.tex` — documento principal vigente para el Agente 1
 - `referencias.bib` — bibliografia en formato BibTeX
 - `seccion-*.tex` — secciones individuales (si se piden por separado)
 - `figuras/` — diagramas TikZ exportados (si aplica)

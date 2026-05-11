@@ -15,6 +15,19 @@ Sos el asistente de Nacho para su proyecto final de ingeniería en la FIE. El pr
 ## Propósito de esta carpeta
 Centralizar todo lo relacionado al proyecto final: documentación, investigación, código, entregas, cronograma, y seguimiento de avance.
 
+## Alcance actual
+El foco vigente de este workspace es elaborar documentación para el **Proyecto Centenario (P100)**, particularmente el **Agente 1 — Extensión Bot** de Juan Ignacio Goñe. El Agente 1 es el agente de comunicación institucional de la SEU: genera gacetillas, posts, newsletters, mails, confirmaciones y certificados con validación humana. No es chatbot público, no hace analítica, no hace scraping y no orquesta el sistema multiagente.
+
+Este repo fue clonado originalmente desde el trabajo de Ignacio Becerra Mas Roca. Puede haber rastros, definiciones compartidas o archivos antiguos de Becerra, pero el foco vigente de esta copia es Juan Ignacio Goñe + Agente 1. La adaptación todavía puede estar sin commit.
+
+## Quick start para agentes
+1. Leer `AGENTS.md` para instrucciones Codex y rutas rápidas.
+2. Leer `.claude/persistence.md` para estado actual.
+3. Para Agente 1, leer `Agentes/extension_bot_experto.md`.
+4. Para arquitectura P100, leer `Agentes/arquitectura_multiagente_experto.md` y `Contenido/Definicion/arquitectura-multiagente.md`.
+5. Para evaluar rigor académico, leer `Agentes/evaluador_cicerchia.md` y `Contenido/Definicion/criterios-evaluacion-cicerchia.md`.
+6. Para material de campus, empezar siempre por `Contenido/Campus/INDEX.md` y recién después abrir PDFs específicos.
+
 ## Idioma
 **Siempre en español.** Términos técnicos en inglés cuando sea convención (ej: "agent", "RAG", "embedding").
 
@@ -24,6 +37,7 @@ Centralizar todo lo relacionado al proyecto final: documentación, investigació
 - `Contenido/` — material teórico y de cátedra organizado por tema.
   - `Contenido/bible/` — archivos del director de carrera que definen el proyecto: reglas generales, alcance, lineamientos. Son directivas institucionales, algunas debatibles pero todas deben considerarse. Leer siempre antes de tomar decisiones de diseño o alcance.
   - `Contenido/DocumentacionAnteproyecto/` — teoría y estructura del anteproyecto.
+  - `Contenido/Campus/` — material del campus virtual: PDFs de teoría, plantillas, manuales de defensa, metodologías ágiles, PMBOK, normativas NIST. **Usar `Contenido/Campus/INDEX.md` como punto de entrada**: contiene catálogo completo con título real, tipo, keywords, relevancia y tabla de recuperación por tipo de consulta.
 - `attachments/` — documentos de cátedra, consignas, reglamento de proyecto final (solo lectura)
 - `investigacion/` — papers, benchmarks, estado del arte
 - `entregas/` — documentos entregados (informes de avance, presentaciones)
@@ -38,12 +52,16 @@ Centralizar todo lo relacionado al proyecto final: documentación, investigació
 ## Convenciones de naming
 - **Carpetas**: siempre con Mayúscula inicial (ej: `Agentes/`, `Documentos/`, `Entregas/`).
 - **Archivos**: nombres descriptivos del contenido.
-- **Documentos finales** (entregables): Mayúscula inicial + sufijo `-PPS-Ignacio-Becerra-Mas-Roca` (ej: `Anteproyecto-PPS-Ignacio-Becerra-Mas-Roca.tex`).
+- **Documentos finales** (entregables): Mayúscula inicial + sufijo del autor del PPS. Para el Agente 1 vigente usar `-PPS-Juan-Ignacio-Gone` (ej: `Anteproyecto-PPS-Juan-Ignacio-Gone.tex`).
 
 ## Reglas locales
 - Los archivos en `attachments/` son material de cátedra — solo lectura.
 - Estado durable en `.claude/persistence.md`.
 - Correcciones en `.claude/learnings.md`.
+- Para búsquedas amplias, excluir PDFs/DOCX salvo que la tarea requiera revisar binarios: `rg -n --glob '!*.pdf' --glob '!*.docx' '<termino>'`.
+- El entregable principal vigente es `Documentos/Anteproyecto/Anteproyecto-PPS-Juan-Ignacio-Gone.tex`.
+- No borrar ni regenerar artefactos LaTeX existentes salvo pedido explícito.
+- No revertir cambios locales que parezcan migración de Becerra a Goñe sin confirmarlo: esos cambios pueden estar intencionalmente sin commit.
 
 ## Routing Rules
 - Acciones → `.claude/actions.md`
@@ -63,6 +81,7 @@ Hereda las leyes universales del `CLAUDE.md` raíz y las reglas de `FIE/CLAUDE.m
 - `Agentes/historia_viva_experto.md` — experto en el Agente 2 (Historia Viva / Centenario AI): repositorio histórico, indexación semántica, efemérides, recuperación de conocimiento institucional
 - `Agentes/arquitectura_multiagente_experto.md` — experto en la arquitectura multiagente del P100: modelo de orquestación, flujos entre agentes, stack tecnológico, infraestructura por semestre, requisitos no funcionales, costos
 - `Agentes/evaluador_cicerchia.md` — simulador del director de carrera (Cicerchia) como evaluador: cuestiona propuestas, valida contra la bible, marca inconsistencias con procesos BPM/CONEAU/TRL/exclusiones. No construye, solo evalúa. Modos: evaluación puntual, mesa de examen, pre-defensa
+- `Agentes/extension_bot_experto.md` — experto en el Agente 1 (Extensión Bot): agente de comunicación institucional, generación de gacetillas/posts/mails/confirmaciones, límites del alcance, backlog E2, infraestructura por semestre, interacciones con A2-A5
 
 ## Pointers
 - Estado: [[.claude/persistence]]
