@@ -1,0 +1,104 @@
+@startuml
+title Diagrama de secuencia - Agente 1 Extension Bot
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+skinparam ArrowColor #1F2937
+skinparam LifeLineBorderColor #6B7280
+skinparam LifeLineBackgroundColor #F9FAFB
+skinparam ParticipantBorderColor #374151
+skinparam ParticipantBackgroundColor #EFF6FF
+skinparam ActorBorderColor #374151
+skinparam ActorBackgroundColor #F3F4F6
+skinparam DatabaseBorderColor #374151
+skinparam DatabaseBackgroundColor #ECFDF5
+skinparam NoteBorderColor #92400E
+skinparam NoteBackgroundColor #FFFBEB
+
+legend right
+  Flujo nominal del A1 dentro del Proceso 4.
+  A1 genera borradores comunicacionales.
+  La aprobacion humana es condicion bloqueante.
+endlegend
+
+actor "Usuario interno SEU\nSecretaria / Coordinador / Docente" as Usuario
+participant "A2-A5\ninsumos opcionales" as Agentes
+participant "Google Forms / Sheets\nbus operativo" as Sheets
+participant "Apps Script\ntrigger tecnico" as AppsScript
+participant "Backend A1\nFastAPI" as FastAPI
+participant "Validador de alcance\ny datos minimos" as ValidadorDatos
+participant "LangChain\nprompts versionados" as LangChain
+participant "Ollama local\nLLM" as Ollama
+participant "Docs / Drive /\nGmail / PDF" as Salida
+actor "Validador humano SEU\nRGC / Coordinador / RRSS" as ValidadorHumano
+database "Registro de trazabilidad\nSheets o PostgreSQL" as Logs
+
+autonumber
+
+box "Ingreso y normalizacion" #F8FAFC
+  Usuario -> Sheets: Carga datos o solicita pieza\nactividad, inscripcion, certificado o contenido
+  opt Semestre 2 / integracion P100
+    Agentes -> Sheets: Aportan insumos normalizados\nA2 historia, A3 eventos, A4 respuesta compleja, A5 texto enriquecido
+  end
+  Sheets -> AppsScript: Evento listo\nfila nueva, formulario, email o solicitud marcada
+  AppsScript -> FastAPI: Envia solicitud normalizada\nid_solicitud, proceso_bpm, hu_destino, datos
+end box
+
+FastAPI -> ValidadorDatos: Validar alcance, permisos,\ncampos minimos, plantilla y estado
+
+alt Solicitud incompleta, no autorizada o fuera de alcance
+  ValidadorDatos --> FastAPI: Rechazar o marcar INCOMPLETA
+  FastAPI -> Logs: Registrar motivo, usuario,\nHU afectada y evidencia disponible
+  FastAPI --> Usuario: Solicitar correccion,\nderivar o cerrar sin generar salida oficial
+else Solicitud valida
+  ValidadorDatos --> FastAPI: OK para generacion
+  FastAPI -> Logs: Registrar RECIBIDA / EN_PROCESO\ncon version de plantilla y prompt
+
+  box "Generacion controlada" #F0F9FF
+    FastAPI -> LangChain: Construir cadena\nprompt versionado + datos fuente + plantilla
+    LangChain -> Ollama: Solicitar generacion local
+    Ollama --> LangChain: Devolver texto o salida preliminar
+    LangChain --> FastAPI: Borrador estructurado
+  end box
+
+  FastAPI -> Salida: Crear salida en estado BORRADOR\nDoc, post, email de prueba o PDF
+  FastAPI -> Logs: Registrar output, hash/version,\nestado PENDIENTE_VALIDACION
+  FastAPI -> ValidadorHumano: Notificar enlace y checklist\nemail o invitacion a chat para HU-013
+
+  ValidadorHumano -> Salida: Revisar exactitud, tono,\nformato, fuente y canal
+
+  alt APROBADA
+    ValidadorHumano -> FastAPI: Registrar aprobacion\nresponsable, fecha y observaciones
+    FastAPI -> Logs: Guardar estado APROBADA\nevidencia y validador
+    FastAPI -> Salida: Habilitar publicacion,\nenvio o emision controlada
+    Salida --> Usuario: Pieza aprobada o comunicacion emitida
+  else OBSERVADA
+    ValidadorHumano -> FastAPI: Registrar observacion\ncon cambios requeridos
+    FastAPI -> Logs: Guardar estado OBSERVADA\ny motivo
+    FastAPI --> Usuario: Solicitar edicion manual\no regeneracion controlada
+  else RECHAZADA
+    ValidadorHumano -> FastAPI: Registrar rechazo\npor dato, tono, alcance o seguridad
+    FastAPI -> Logs: Guardar estado RECHAZADA\ny bloquear salida oficial
+    FastAPI --> Usuario: Informar rechazo y pasos de correccion
+  end
+end
+
+note over FastAPI,Ollama
+El LLM no publica, envia, aprueba ni emite.
+Su salida es un borrador sujeto a control humano.
+end note
+
+note over Agentes,FastAPI
+A1 funciona como hub de comunicacion.
+Recibe insumos de A2-A5, pero no orquesta el sistema multiagente.
+end note
+
+note over Salida,Logs
+Para certificados, la generacion del PDF no equivale a emision.
+La emision requiere aprobacion humana y registro.
+end note
+
+@enduml
