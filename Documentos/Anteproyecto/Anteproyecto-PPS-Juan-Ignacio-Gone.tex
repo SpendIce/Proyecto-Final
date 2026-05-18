@@ -123,6 +123,8 @@ El alcance espec\'ifico de este Proyecto comprende la implementaci\'on completa 
 
 La propuesta se sustenta en tecnolog\'ias de c\'odigo abierto (Ollama, LangChain, FastAPI, Google Workspace), ejecuci\'on local de modelos de lenguaje que garantiza soberan\'ia de datos, ciberseguridad desde el principio y un esquema de maduraci\'on progresiva basado en niveles \ac{TRL}. Todo contenido generado autom\'aticamente requiere validaci\'on humana antes de su publicaci\'on o env\'io oficial, eliminando el riesgo de automatizar comunicaciones institucionales sin control profesional. La estimaci\'on de costos para el a\~no de alcance del Proyecto se ubica en el rango de \$~0 a \$~1.400~USD, seg\'un se utilicen o no componentes opcionales de infraestructura, respaldo o contingencia.
 
+La versi\'on refinada del anteproyecto incorpora los artefactos t\'ecnicos complementarios ya definidos para el Agente~1: casos de uso, diagrama de clases, plan de calidad, plan de riesgos, plan de comunicaciones, plan de estados, plan de integraci\'on, plan de despliegue, plan de auditor\'ia y cronograma iterativo no cascada. Estos documentos no ampl\'ian el alcance funcional; transforman el alcance existente en criterios operativos de ejecuci\'on, medici\'on y defensa acad\'emica. En particular, se incorporan m\'etricas con protocolo de medici\'on, factores cr\'iticos de \'exito, gates de calidad, reglas de go/no-go y evidencia exigible para demostrar \ac{TRL}~3 y \ac{TRL}~4.
+
 % =============================================================================
 % SECCION 2: PALABRAS CLAVE
 % =============================================================================
@@ -172,7 +174,7 @@ Agente de comunicaci\'on institucional, automatizaci\'on de contenido, gacetilla
 
 \begin{description}
   \item[Gacetilla institucional:] comunicado oficial de extensi\'on universitaria que describe una actividad, curso o evento de la \ac{SEU}. Formato estandarizado con plantilla institucional.
-  \item[Hub de comunicaci\'on:] rol del Agente~1 como receptor de contenido de otros agentes (A2--A5) para su adaptaci\'on y difusi\'on. No act\'ua como orquestador del sistema.
+  \item[Nodo de comunicaci\'on institucional:] rol del Agente~1 como receptor de contenido de otros agentes (A2--A5) para su adaptaci\'on y difusi\'on. No act\'ua como orquestador del sistema.
   \item[Validaci\'on humana:] revisi\'on obligatoria por parte del personal de la \ac{SEU} de todo contenido generado autom\'aticamente, antes de cualquier publicaci\'on o env\'io oficial.
   \item[Trigger:] evento autom\'atico que inicia un proceso en el sistema, generalmente una nueva fila en Google Sheets o la carga de un documento.
   \item[LangChain:] framework de c\'odigo abierto para orquestar cadenas de llamadas a modelos de lenguaje, incluyendo gesti\'on de prompts, memoria y herramientas.
@@ -271,7 +273,7 @@ El prop\'osito del presente Proyecto es implementar el \ac{A1} --- Extensi\'on B
 
   \item \textbf{Complemento, no reemplazo:} el sistema asiste al personal de la \ac{SEU} sin sustituirlo. Todo contenido generado autom\'aticamente requiere validaci\'on humana obligatoria antes de cualquier publicaci\'on o env\'io oficial. Esta premisa es estructural al dise\~no del agente.
 
-  \item \textbf{Integraci\'on modular:} el Agente~1 act\'ua como hub de comunicaci\'on del sistema multiagente: recibe contenido de los agentes A2 (historia institucional), A3 (eventos), A4 (respuestas complejas) y A5 (enriquecimiento de texto de \ac{RRSS}) para producir comunicaciones integradas y contextualizadas, sin absorber las responsabilidades funcionales de esos agentes.
+  \item \textbf{Integraci\'on modular:} el Agente~1 act\'ua como nodo de comunicaci\'on institucional del sistema multiagente: recibe contenido de los agentes A2 (historia institucional), A3 (eventos), A4 (respuestas complejas) y A5 (enriquecimiento de texto de \ac{RRSS}) para producir comunicaciones integradas y contextualizadas, sin absorber las responsabilidades funcionales de esos agentes.
 
   \item \textbf{Ciberseguridad desde el principio:} el proyecto incorpora controles de inventario, identidades no humanas, privilegio m\'inimo, protecci\'on contra inyecci\'on de prompts y auditor\'ia de acciones desde el dise\~no inicial, en coherencia con la pol\'itica de seguridad del \ac{P100}.
 \end{enumerate}
@@ -298,7 +300,7 @@ Un sistema en el que el personal de la \ac{SEU} ingresa datos de una actividad e
   \item Implementar la interfaz de interacci\'on en lenguaje natural para uso interno del personal de la \ac{SEU}, iniciada por correo electr\'onico con invitaci\'on a chat y registro operativo en Google Sheets.
   \item Implementar el m\'odulo de generaci\'on de certificados autom\'aticos con plantilla base y flujo obligatorio de validaci\'on humana antes de emisi\'on.
   \item Incorporar el procesamiento acotado de documentos PDF/DOCX como insumo para generar res\'umenes o piezas de comunicaci\'on, sin convertir al Agente~1 en herramienta de anal\'itica documental.
-  \item Integrar el Agente~1 como hub de comunicaci\'on del sistema multiagente, recibiendo insumos de los dem\'as agentes y produciendo comunicaciones institucionales integrales.
+  \item Integrar el Agente~1 como nodo de comunicaci\'on institucional del sistema multiagente, recibiendo insumos de los dem\'as agentes y produciendo comunicaciones institucionales integrales.
   \item Establecer un log de ejecuci\'on completo (acci\'on, fecha, usuario, estado de validaci\'on) que garantice trazabilidad auditable.
   \item Validar el sistema con usuarios reales de la \ac{SEU} mediante checklist de satisfacci\'on con escala 1--4, alcanzando una puntuaci\'on promedio $\geq 3/4$ al cierre del Semestre~2.
 \end{enumerate}
@@ -330,7 +332,7 @@ Las actividades de este Proyecto (primer a\~no del Proyecto Centenario) abarcan 
   \item \textbf{HU-012} (Semestre~2): env\'io autom\'atico de confirmaciones de inscripci\'on. Trigger al registrarse nueva inscripci\'on en Google Sheets. Registro de cada env\'io.
   \item \textbf{HU-013} (Semestre~2): interfaz de interacci\'on en lenguaje natural para uso interno, iniciada mediante correo electr\'onico con invitaci\'on a chat y registro de datos operativos en Google Sheets.
   \item \textbf{HU-014} (Semestre~2): generaci\'on de certificados autom\'aticos con plantilla base, generaci\'on PDF y validaci\'on humana obligatoria previa a emisi\'on.
-  \item Integraci\'on del Agente~1 como hub de comunicaci\'on: recepci\'on de insumos de A2 (contenido hist\'orico), A3 (datos de eventos), A4 (respuestas complejas) y A5 (enriquecimiento de texto de \ac{RRSS}).
+  \item Integraci\'on del Agente~1 como nodo de comunicaci\'on institucional: recepci\'on de insumos de A2 (contenido hist\'orico), A3 (datos de eventos), A4 (respuestas complejas) y A5 (enriquecimiento de texto de \ac{RRSS}).
   \item Procesamiento acotado de archivos PDF/DOCX provistos por usuarios internos para producir res\'umenes o reutilizar contenido en gacetillas, posts, newsletters o correos institucionales.
   \item Log de ejecuci\'on con trazabilidad completa de todas las acciones.
 \end{itemize}
@@ -396,7 +398,7 @@ La gesti\'on por procesos de negocio (\ac{BPM}) propone organizar las actividade
 
 \subsection{Sistemas multiagente}
 
-Un sistema multiagente es un sistema compuesto por m\'ultiples agentes que interact\'uan entre s\'i para alcanzar objetivos individuales o colectivos \parencite{wooldridge2009}. En el contexto del \ac{P100}, el Agente~1 se especializa en el Proceso~4 (Comunicaci\'on y Difusi\'on) y act\'ua como hub de contenido: recibe insumos de los dem\'as agentes y los transforma en comunicaciones institucionales. No existe un agente central como regla funcional; la orquestaci\'on se basa en eventos, procesos, Google Apps Script, Google Sheets como bus de datos y colas asincr\'onicas cuando corresponda. La capa de orquestaci\'on y la arquitectura multiagente son dise\~nadas e implementadas en forma conjunta por ambos desarrolladores, sobre la cual cada uno construye su agente especializado.
+Un sistema multiagente es un sistema compuesto por m\'ultiples agentes que interact\'uan entre s\'i para alcanzar objetivos individuales o colectivos \parencite{wooldridge2009}. En el contexto del \ac{P100}, el Agente~1 se especializa en el Proceso~4 (Comunicaci\'on y Difusi\'on) y act\'ua como nodo de contenido institucional: recibe insumos de los dem\'as agentes y los transforma en comunicaciones institucionales. No existe un agente central como regla funcional; la orquestaci\'on se basa en eventos, procesos, Google Apps Script, Google Sheets como bus de datos y colas asincr\'onicas cuando corresponda. La capa de orquestaci\'on y la arquitectura multiagente son dise\~nadas e implementadas en forma conjunta por ambos desarrolladores, sobre la cual cada uno construye su agente especializado.
 
 \subsection{LLMs locales y soberan\'ia de datos}
 
@@ -554,6 +556,8 @@ Se evaluaron tres modelos de proceso para el desarrollo del sistema. La Tabla~\r
 
 \textbf{Selecci\'on:} se adopta un enfoque \textbf{h\'ibrido iterativo con Kanban}. Esta decisi\'on se fundamenta en tres factores: (1)~el equipo consta de una sola persona, lo que hace innecesarias las ceremonias de Scrum; (2)~el tablero Kanban provee trazabilidad visual compatible con los requisitos de evidencia de \ac{CONEAU}; y (3)~la estructura iterativa por semestre permite alinear los entregables con los gates \ac{TRL} definidos \parencite{anderson2010, schwaber2020}. Las historias de usuario del backlog (HU-010 a HU-014) se organizan en columnas de estado: Pendiente~$\rightarrow$ En progreso~$\rightarrow$ En validaci\'on~$\rightarrow$ Completado.
 
+Para evitar una lectura en cascada, el cronograma operativo se gobierna por ciclos de historia de usuario y por estados verificables. Cada \ac{HU} atraviesa preparaci\'on, implementaci\'on, prueba controlada, validaci\'on \ac{SEU}, cierre por \ac{DoD} u observaci\'on con retrabajo. El cambio de estado no se declara por avance narrativo: requiere evidencia asociada, responsable, registro de validaci\'on y ausencia de bloqueantes cr\'iticos. La validaci\'on, la seguridad, la trazabilidad, la gesti\'on de defectos y el registro de evidencias son actividades transversales durante todo el a\~no, no fases finales.
+
 % =============================================================================
 % SECCION 13: PLATAFORMA REQUERIDA
 % =============================================================================
@@ -702,6 +706,10 @@ La Tabla~\ref{tab:riesgos} presenta los riesgos identificados para el alcance de
     R8 & Hardware insuficiente para inferencia local con Ollama & La ausencia de una m\'aquina con m\'inimo 8~GB de RAM impide ejecutar el \ac{LLM} localmente, comprometiendo la soberan\'ia de datos. Mitigaci\'on: relevamiento de infraestructura en marzo (F1). Alternativa: servidor GPU de la FIE (coordinaci\'on con \infraestructura) o ajuste del modelo a uno de menor tama\~no. \\
     R9 & Inyecci\'on de prompts o manipulaci\'on de datos de entrada & Sanitizaci\'on de entradas, separaci\'on estricta entre instrucciones del sistema y datos del usuario, validaci\'on de salidas antes de ejecutar acciones en Google Workspace. \\
     R10 & Expansi\'on indebida del alcance hacia anal\'itica, scraping, atenci\'on p\'ublica o soporte administrativo & Matriz de trazabilidad por proceso BPM, rechazo expl\'icito de HU ajenas al Agente~1 y revisi\'on del backlog contra exclusiones en cada gate \ac{TRL}. \\
+    R11 & Evidencia insuficiente para defender \ac{TRL}~3 o \ac{TRL}~4 & Definir desde S1 un \'indice de evidencias por \ac{HU}, con outputs, logs, checklist, defectos y decisi\'on de gate. Ning\'un gate se declara cerrado solo por documentaci\'on narrativa o demostraci\'on informal. \\
+    R12 & Responsables de validaci\'on no confirmados & Confirmar titular y suplente por tipo de pieza antes de iniciar cada \ac{HU}. Si falta responsable institucional, la historia queda bloqueada o se ejecuta solo como prueba interna sin salida oficial. \\
+    R13 & Concentraci\'on excesiva de implementaci\'on en S2 & Separar S2 en ciclos HU-012, HU-013 y HU-014, mantener refinamiento del \ac{MVP} como actividad expl\'icita, y usar contratos/mocks A2--A5 para no depender de integraciones completas al inicio del semestre. \\
+    R14 & Datos incompletos o sin esquema estable en Google Sheets & Definir campos m\'inimos, validaciones, identificador de solicitud y estados antes de ejecutar el flujo. Ante datos incompletos, registrar estado \texttt{INCOMPLETA} y solicitar correcci\'on sin generar comunicaci\'on oficial. \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -725,7 +733,7 @@ Se establecen los siguientes acuerdos preliminares de seguridad para el Agente~1
   \item \textbf{Ejecuci\'on local:} los modelos de lenguaje se ejecutan en infraestructura propia, sin env\'io de datos institucionales a servicios externos. Solo en caso de fallback expl\'icito, con aprobaci\'on del administrador y datos anonimizados, se puede utilizar una API externa.
   \item \textbf{Protecci\'on contra inyecci\'on de prompts:} las entradas de formularios, documentos y correos se sanitizan antes de llegar al \ac{LLM}; las instrucciones del sistema se separan de los datos de usuario mediante delimitadores; y las salidas se revisan antes de activar acciones sobre Google Workspace.
   \item \textbf{L\'imites de autonom\'ia:} las acciones se clasifican por riesgo. Las acciones de alto impacto ---publicar, enviar comunicaciones oficiales, emitir certificados, borrar o modificar registros--- exigen aprobaci\'on humana expl\'icita y registro de auditor\'ia.
-  \item \textbf{Trazabilidad y auditor\'ia:} registro de logs de ejecuci\'on con: acci\'on realizada, timestamp, usuario solicitante, estado de validaci\'on (pendiente/aprobado/rechazado), contenido generado. Los registros se almacenan en PostgreSQL (S2) o en Google Sheets (S1).
+  \item \textbf{Trazabilidad y auditor\'ia:} registro de logs de ejecuci\'on con: \texttt{id\_solicitud}, acci\'on realizada, timestamp, usuario solicitante, \ac{HU} asociada, versi\'on de plantilla/prompt, estado de validaci\'on, validador, enlace al output, evidencia asociada y resultado t\'ecnico. Los registros se almacenan en PostgreSQL (S2) o en Google Sheets (S1).
 \end{itemize}
 
 \subsection{Calidad}
@@ -741,6 +749,30 @@ La gesti\'on de calidad del Agente~1 se estructura en tres niveles:
 
   \item \textbf{DoD extendido para auditor\'ia:} cuando la historia involucre datos institucionales o comunicaciones oficiales, se exige evidencia de uso (logs y outputs), documentaci\'on funcional, trazabilidad de datos y validaci\'on formal registrada.
 \end{enumerate}
+
+\subsection{Gates de calidad, auditor\'ia y liberaci\'on}
+
+Los planes complementarios de calidad, estados, despliegue y auditor\'ia refinan los criterios anteriores en gates verificables. Cada gate debe producir un paquete de evidencia con matriz BPM--HU--DoD--responsable, outputs generados, logs, checklist de validaci\'on, registro de defectos y decisi\'on formal de avance. La Tabla~\ref{tab:gates-calidad} resume los gates operativos del Proyecto.
+
+\begin{table}[H]
+  \centering
+  \caption{Gates operativos de calidad y evidencia}
+  \label{tab:gates-calidad}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{lXlX}
+    \toprule
+    \textbf{Gate} & \textbf{Condici\'on de entrada} & \textbf{Salida esperada} & \textbf{Evidencia m\'inima} \\
+    \midrule
+    G0 -- Alcance & Fuentes institucionales y backlog disponibles & Agente~1 acotado a comunicaci\'on institucional; exclusiones registradas & Matriz BPM--HU--DoD, nota de alcance, riesgos iniciales \\
+    G1 -- Dise\~no validable & HU-010 a HU-014 especificadas y responsables preliminares identificados & Casos de uso, estados, flujo \ac{HITL}, seguridad y pruebas definidas & Casos de uso, diagrama de clases, checklist de seguridad, plan de pruebas \\
+    G2 -- \ac{TRL}~3 & HU-010 y HU-011 candidatas en entorno controlado & \ac{MVP} S1 validado sin defectos cr\'iticos & Gacetilla y post generados, logs, checklist \ac{SEU}, mediciones de tiempo, informe S1 \\
+    G3 -- Preparaci\'on S2 & \ac{MVP} S1 estabilizado y backlog S2 revalidado & HU-012, HU-013 y HU-014 preparadas para piloto interno & Contratos/mocks A2--A5, esquema de logs/estado, responsables y plantillas \\
+    G4 -- \ac{TRL}~4 & HU-010 a HU-014 en versi\'on candidata & Prototipo validado con usuarios internos reales & Acta o informe de gate, checklist $\geq$~3/4, defectos cr\'iticos en cero, paquete de evidencia \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Un gate queda bloqueado si existe publicaci\'on, env\'io o emisi\'on sin aprobaci\'on humana registrada; si falta evidencia esencial; si hay defectos cr\'iticos abiertos; si los responsables de validaci\'on no est\'an confirmados; o si se intenta declarar \ac{TRL} sin outputs, pruebas y logs recuperables.
 
 % =============================================================================
 % SECCION 16: PARTICIPANTES
@@ -814,7 +846,7 @@ La gesti\'on de calidad del Agente~1 se estructura en tres niveles:
 % =============================================================================
 \section{Presentaci\'on de la propuesta}
 
-La propuesta se articula en torno al \agenteUno{} como componente de comunicaci\'on institucional de la arquitectura multiagente del \ac{P100}. El agente recibe insumos estructurados (datos de Google Sheets, documentos de Google Drive, contenido de otros agentes) y produce salidas en distintos canales (Google Docs, Gmail, posts para \ac{RRSS}), con validaci\'on humana obligatoria como capa intermedia. Las salidas quedan como borradores, piezas listas para validaci\'on o comunicaciones enviables solo despu\'es de aprobaci\'on humana. A continuaci\'on se presentan el flujo principal, las historias de usuario, la trazabilidad funcional, el rol de hub de comunicaci\'on y el storyboard de uso.
+La propuesta se articula en torno al \agenteUno{} como componente de comunicaci\'on institucional de la arquitectura multiagente del \ac{P100}. El agente recibe insumos estructurados (datos de Google Sheets, documentos de Google Drive, contenido de otros agentes) y produce salidas en distintos canales (Google Docs, Gmail, posts para \ac{RRSS}), con validaci\'on humana obligatoria como capa intermedia. Las salidas quedan como borradores, piezas listas para validaci\'on o comunicaciones enviables solo despu\'es de aprobaci\'on humana. A continuaci\'on se presentan el flujo principal, las historias de usuario, la trazabilidad funcional, el rol como nodo de comunicaci\'on institucional y el storyboard de uso.
 
 \subsection{Flujo principal del Agente~1}
 
@@ -894,6 +926,8 @@ La Tabla~\ref{tab:hu} presenta las cinco historias de usuario del \ac{EPIC}~E2 (
 
 \textbf{Distribuci\'on por semestre:} HU-010 y HU-011 (P0, 13~SP) se implementan en el Semestre~1 como \ac{MVP}. HU-012, HU-013 y HU-014 (P1--P2, 16~SP) se incorporan en el Semestre~2.
 
+Los casos de uso t\'ecnicos derivados identifican cinco escenarios funcionales directos (CU-A1-01 a CU-A1-05) y dos controles transversales: CU-A1-06, validaci\'on humana de contenido generado, y CU-A1-07, registro de trazabilidad de ejecuci\'on y validaci\'on. Estos controles no agregan alcance nuevo; vuelven verificable el \ac{HITL}, el \ac{DoD}, la auditor\'ia y la progresi\'on \ac{TRL}.
+
 \subsection{Matriz de trazabilidad funcional}
 
 La Tabla~\ref{tab:trazabilidad-funcional} vincula cada elemento del alcance con proceso \ac{BPM}, historia de usuario, evidencia esperada y responsable institucional. Esta matriz se utilizar\'a como control de alcance durante los gates \ac{TRL}.
@@ -918,13 +952,13 @@ La Tabla~\ref{tab:trazabilidad-funcional} vincula cada elemento del alcance con 
   \end{tabularx}
 \end{table}
 
-\subsection{Agente~1 como hub de comunicaci\'on}
+\subsection{Agente~1 como nodo de comunicaci\'on institucional}
 
-El Agente~1 no es el orquestador del sistema multiagente ---ese rol corresponde a la capa de orquestaci\'on dise\~nada de forma conjunta por ambos desarrolladores--- sino el \textbf{hub de contenido}: el punto de convergencia donde la informaci\'on producida por otros agentes se transforma en comunicaciones institucionales. La Tabla~\ref{tab:interacciones} describe las interacciones entrantes al Agente~1.
+El Agente~1 no es el orquestador del sistema multiagente ---ese rol corresponde a la capa de orquestaci\'on dise\~nada de forma conjunta por ambos desarrolladores--- sino el \textbf{nodo de contenido institucional}: el punto de convergencia donde la informaci\'on producida por otros agentes se transforma en comunicaciones institucionales. La Tabla~\ref{tab:interacciones} describe las interacciones entrantes al Agente~1.
 
 \begin{table}[htbp]
   \centering
-  \caption{Interacciones de otros agentes hacia el Agente~1 (hub de comunicaci\'on)}
+  \caption{Interacciones de otros agentes hacia el Agente~1 (nodo de comunicaci\'on institucional)}
   \label{tab:interacciones}
   \begin{tabularx}{\textwidth}{ll>{\raggedright\arraybackslash}X}
     \toprule
@@ -938,7 +972,7 @@ El Agente~1 no es el orquestador del sistema multiagente ---ese rol corresponde 
   \end{tabularx}
 \end{table}
 
-En el Semestre~1, el Agente~1 opera de forma aut\'onoma (sin integraci\'on con A2--A5), procesando exclusivamente insumos del personal de la \ac{SEU} via Google Sheets. La integraci\'on como hub de comunicaci\'on con los dem\'as agentes se produce progresivamente en el Semestre~2, a medida que la arquitectura multiagente dise\~nada de forma conjunta con Becerra Mas Roca habilita los canales de comunicaci\'on entre agentes.
+En el Semestre~1, el Agente~1 opera de forma aut\'onoma (sin integraci\'on con A2--A5), procesando exclusivamente insumos del personal de la \ac{SEU} v\'ia Google Sheets. La integraci\'on como nodo de comunicaci\'on institucional con los dem\'as agentes se produce progresivamente en el Semestre~2, a medida que la arquitectura multiagente dise\~nada de forma conjunta con Becerra Mas Roca habilita los canales de comunicaci\'on entre agentes.
 
 \subsection{Storyboard: coordinador de la SEU genera una gacetilla}
 
@@ -1025,7 +1059,7 @@ La Figura~\ref{fig:arquitectura-a1} presenta la vista de componentes t\'ecnicos 
 
 \subsection{Estructura de Descomposici\'on del Trabajo (EDT)}
 
-La Tabla~\ref{tab:edt} presenta las fases, actividades principales y semestres del Proyecto.
+La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y guardarrailes transversales. Esta lectura evita tratar el proyecto como cascada: dise\~no, prototipado, validaci\'on, seguridad y evidencia se repiten dentro de cada historia de usuario.
 
 \begin{table}[htbp]
   \centering
@@ -1033,14 +1067,16 @@ La Tabla~\ref{tab:edt} presenta las fases, actividades principales y semestres d
   \label{tab:edt}
   \begin{tabularx}{\textwidth}{clXl}
     \toprule
-    \textbf{ID} & \textbf{Fase} & \textbf{Actividades principales} & \textbf{Semestres} \\
+    \textbf{ID} & \textbf{Ciclo / bloque} & \textbf{Actividades principales} & \textbf{Semestres} \\
     \midrule
-    F1 & Relevamiento & An\'alisis de procesos de comunicaci\'on de la SEU, identificaci\'on de plantillas existentes, relevamiento de infraestructura Google Workspace, definici\'on de requisitos, co-dise\~no de plantillas con personal SEU, configuraci\'on de HU-001 y HU-002 (compartidas con A2) & S1 \\
-    F2 & Dise\~no & Especificaci\'on funcional de HU-010 a HU-014, dise\~no de prompts y cadenas LangChain, dise\~no del flujo de validaci\'on humana, dise\~no del esquema de logs y controles de ciberseguridad desde el principio & S1 \\
-    F3 & Prototipado~S1 & Implementaci\'on de HU-010 (gacetillas) y HU-011 (posts), integraci\'on con Google Sheets y Google Docs, pruebas unitarias con PyTest & S1 \\
-    F4 & Prototipado~S2 & Implementaci\'on de HU-012 (confirmaciones), HU-013 (lenguaje natural) y HU-014 (certificados), incorporaci\'on de PostgreSQL y Celery, integraci\'on inicial con A2--A5 & S2 \\
-    F5 & Validaci\'on & Verificaci\'on funcional con usuarios reales de la SEU (checklist 1--4), evaluaci\'on TRL por semestre, ajustes de prompts y plantillas seg\'un retroalimentaci\'on & S1--S2 \\
-    F6 & Documentaci\'on & Anteproyecto, informes de avance semestrales, documentaci\'on t\'ecnica de la API y los prompts, informe final & S1--S2 \\
+    GT & Guardarrailes transversales & Tablero Kanban, matriz BPM--HU--DoD, validaci\'on humana, seguridad, logs, registro de defectos e \'indice de evidencia & S1--S2 \\
+    C0 & Alcance y plataforma m\'inima & Relevamiento P4, equipo validador \ac{SEU}, dependencias HU-001/HU-002, matriz de exclusiones y evidencia inicial & S1 \\
+    C1 & HU-010 Gacetillas & Co-dise\~no de plantilla, spike Sheets--Docs, prototipo, prueba, validaci\'on \ac{SEU} y ajuste & S1 \\
+    C2 & HU-011 Posts \ac{RRSS} & Criterios Instagram/LinkedIn, prototipo por canal, validaci\'on de tono/longitud y gate \ac{TRL}~3 & S1 \\
+    C3 & HU-012 Confirmaciones & Trigger Sheets--Gmail, registro de env\'io, logs persistentes y validaci\'on interna & S2 \\
+    C4 & HU-013 Lenguaje natural interno & Email de inicio, invitaci\'on a chat, registro en Sheets, validaci\'on de usabilidad y controles de alcance & S2 \\
+    C5 & HU-014 Certificados & Plantilla, generaci\'on PDF, aprobaci\'on manual, log de emisi\'on y prueba controlada & S2 \\
+    CI & Integraci\'on y cierre & Contratos/mocks A2--A5, integraci\'on progresiva, pruebas \ac{SEU}, informe final, transferencia y gate \ac{TRL}~4 & S2 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -1080,10 +1116,11 @@ La Tabla~\ref{tab:edt} presenta las fases, actividades principales y semestres d
     H2 & Plantillas institucionales definidas con SEU & Abr 2026 \\
     H3 & MVP: HU-010 y HU-011 funcionando en entorno controlado & Jun 2026 \\
     H4 & Gate TRL~3: evaluaci\'on semestral & Jul 2026 \\
-    H5 & HU-012 y HU-013 operativos & Oct 2026 \\
-    H6 & HU-014 operativo con flujo de validaci\'on & Nov 2026 \\
-    H7 & Gate TRL~4: validaci\'on con usuarios reales SEU ($\geq$~3/4) & Dic 2026 \\
-    H8 & Entrega de informe final del Proyecto & Dic 2026 \\
+    H5 & HU-012 operativa con registro de env\'io y logs persistentes & Sep 2026 \\
+    H6 & HU-013 operativa con email de inicio, invitaci\'on a chat y registro en Sheets & Oct 2026 \\
+    H7 & HU-014 operativa con PDF, aprobaci\'on manual y log de emisi\'on & Nov 2026 \\
+    H8 & Gate TRL~4: validaci\'on con usuarios reales SEU ($\geq$~3/4) & Dic 2026 \\
+    H9 & Entrega de informe final del Proyecto & Dic 2026 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -1104,17 +1141,17 @@ La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividad
     \midrule
     Mar 2026 & Entrega del anteproyecto. Primer contacto con la \ac{SEU}: relevamiento de procesos de comunicaci\'on, inventario de plantillas existentes, formaci\'on del equipo de validaci\'on. Configuraci\'on del entorno de desarrollo (Ollama, FastAPI, Google Workspace). & H1: Anteproyecto aprobado \\
     Abr 2026 & Co-dise\~no de plantillas institucionales con la \ac{SEU}. Configuraci\'on de cuentas de servicio para Apps Script. Dise\~no de cadenas de prompts para HU-010 (gacetillas). & H2: Plantillas definidas \\
-    May 2026 & Implementaci\'on de HU-010 (generaci\'on de gacetillas) y comienzo de HU-011 (posts para \ac{RRSS}). Pruebas unitarias con PyTest. Primer ciclo de refinamiento de prompts con datos reales de la \ac{SEU}. & --- \\
-    Jun 2026 & Finalizaci\'on de HU-011. Integraci\'on completa con Google Sheets y Google Docs. Flujo de validaci\'on humana operativo. Pruebas de sistema en entorno controlado. & H3: \ac{MVP} funcional \\
-    Jul 2026 & Evaluaci\'on gate TRL~3. Consolidaci\'on de retroalimentaci\'on del validador. Elaboraci\'on del informe de avance S1. Definici\'on de ajustes de alcance para S2. & H4: Gate TRL~3 + Informe S1 \\
+    May 2026 & Ciclo HU-010: spike Sheets--Docs, primer prototipo de gacetilla, pruebas unitarias y validaci\'on temprana. Inicio paralelo de criterios HU-011 para Instagram y LinkedIn. & --- \\
+    Jun 2026 & Ciclo HU-011: prototipo de posts por canal, refinamiento de prompts y validaci\'on \ac{SEU}. Consolidaci\'on de logs, checklist y evidencias de HU-010/HU-011. & H3: \ac{MVP} funcional \\
+    Jul 2026 & Evaluaci\'on gate TRL~3. Auditor\'ia parcial de evidencias, defectos, checklist y tiempos de generaci\'on. Elaboraci\'on del informe de avance S1 y replanificaci\'on incremental de S2. & H4: Gate TRL~3 + Informe S1 \\
     \midrule
     \multicolumn{3}{l}{\textit{Semestre~2 --- Ago--Dic 2026}} \\
     \midrule
-    Ago 2026 & Implementaci\'on de HU-012 (confirmaciones autom\'aticas de inscripci\'on). Incorporaci\'on de PostgreSQL para logs persistentes. Definici\'on de contratos de interfaz con A2--A5. & --- \\
-    Sep 2026 & Implementaci\'on de HU-013 (interacci\'on en lenguaje natural iniciada por email con invitaci\'on a chat). Integraci\'on de Celery + Redis para tareas as\'incronas. Primera sincronizaci\'on de integraci\'on con Becerra Mas Roca. & H5: HU-012 y HU-013 operativos \\
-    Oct 2026 & Implementaci\'on de HU-014 (certificados PDF). Co-dise\~no de plantilla de certificado con la \ac{SEU}. Primera integraci\'on con A2--A5 en entorno de pruebas. & H6: HU-014 operativo \\
-    Nov 2026 & Pruebas con usuarios reales de la \ac{SEU}: checklist de cuatro dimensiones. Medici\'on de tasa de rechazo y tiempo de generaci\'on. Ajustes de prompts y plantillas seg\'un retroalimentaci\'on. & --- \\
-    Dic 2026 & Evaluaci\'on gate TRL~4. Integraci\'on final con A2--A5. Elaboraci\'on y entrega del informe final del Proyecto. Cierre acad\'emico. & H7--H8: Gate TRL~4 + Informe Final \\
+    Ago 2026 & Ciclo HU-012: confirmaciones autom\'aticas de inscripci\'on, registro de env\'io y logs persistentes. Inicio de contratos/mocks A2--A5 para desacoplar la integraci\'on. & --- \\
+    Sep 2026 & Ciclo HU-013: interacci\'on interna iniciada por email con invitaci\'on a chat, registro operativo en Sheets y pruebas de usabilidad. Refinamiento del \ac{MVP} HU-010/HU-011 por feedback. & H5: HU-012 operativo \\
+    Oct 2026 & Ciclo HU-014: plantilla de certificado, generaci\'on PDF, aprobaci\'on manual y log de emisi\'on. Integraci\'on progresiva A2--A5 en entorno de pruebas. & H6: HU-013 operativo \\
+    Nov 2026 & Pruebas con usuarios reales de la \ac{SEU}: checklist de cuatro dimensiones, medici\'on de rechazo, trazabilidad, defectos cr\'iticos, seguridad y tiempo de generaci\'on. & H7: HU-014 operativo \\
+    Dic 2026 & Evaluaci\'on gate TRL~4. Integraci\'on final con A2--A5. Elaboraci\'on y entrega del informe final del Proyecto. Cierre acad\'emico. & H8--H9: Gate TRL~4 + Informe Final \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -1124,63 +1161,69 @@ La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividad
 % =============================================================================
 \section{M\'etricas}
 
-Se seleccionan nueve m\'etricas representativas que cubren las dimensiones de calidad t\'ecnica, valor funcional, seguridad, trazabilidad y progreso del proyecto:
+Las m\'etricas del Proyecto se organizan en cuatro dimensiones: valor funcional para la \ac{SEU}, calidad del contenido generado, seguridad/trazabilidad y gesti\'on del avance. Para evitar declaraciones no verificables, cada m\'etrica se vincula con una fuente de medici\'on, una frecuencia, un responsable y una evidencia recuperable.
 
-\begin{enumerate}[label=M\arabic*.]
-  \item \textbf{Tiempo de generaci\'on de contenido:} tiempo transcurrido desde que el trigger activa el Agente~1 hasta que el borrador est\'a disponible para el validador. \textit{Criterio de aceptaci\'on:} $<$~30~segundos por pieza generada (gacetilla, post o correo).
+\subsection{M\'etricas n\'ucleo y criterios de aceptaci\'on}
 
-  \item \textbf{Tasa de validaci\'on humana:} proporci\'on de piezas de contenido generadas que pasan por el flujo de validaci\'on humana antes de su publicaci\'on o env\'io. \textit{Criterio de aceptaci\'on:} 100\%. Ninguna excepci\'on. Este indicador es binario y su incumplimiento es un defecto cr\'itico del sistema.
-
-  \item \textbf{Reducci\'on de tiempo en redacci\'on de comunicaciones:} comparaci\'on del tiempo promedio de producci\'on de una gacetilla o post con el proceso manual anterior (l\'inea de base medida en el relevamiento del Semestre~1). \textit{Criterio de aceptaci\'on:} reducci\'on $\geq$~50\% respecto al proceso manual.
-
-  \item \textbf{Satisfacci\'on del usuario SEU:} evaluaci\'on del personal de la Secretar\'ia mediante checklist de cuatro dimensiones (precisi\'on factual, tono institucional, aplicaci\'on de plantilla, adecuaci\'on al canal), con escala 1--4. \textit{Criterio de aceptaci\'on:} puntuaci\'on promedio $\geq$~3/4 al cierre del Semestre~2.
-
-  \item \textbf{Progresi\'on TRL:} cumplimiento del nivel \ac{TRL} objetivo al final de cada semestre. \textit{Criterio de aceptaci\'on:} binario (cumple / no cumple), seg\'un los criterios definidos en la Tabla~\ref{tab:trl-criterios}.
-
-  \item \textbf{Cobertura de canales:} cantidad de canales de comunicaci\'on institucional cubiertos por el Agente~1. \textit{Criterio de aceptaci\'on:} m\'inimo 3 canales al cierre del Semestre~1 (gacetillas en Google Docs, posts para \ac{RRSS}, correos de difusi\'on); m\'inimo 5 al cierre del Semestre~2 (agregar confirmaciones de inscripci\'on y certificados PDF).
-
-  \item \textbf{Tasa de rechazo en validaci\'on:} proporci\'on de borradores generados que son rechazados por el validador humano y requieren regeneraci\'on o ajuste. \textit{Criterio de aceptaci\'on:} tasa de rechazo $\leq$~20\% al cierre del Semestre~2 (indicador de madurez de los prompts y las plantillas).
-
-  \item \textbf{Trazabilidad de validaciones:} proporci\'on de acciones del Agente~1 que cuentan con registro completo de fecha, usuario solicitante, tipo de pieza, estado de validaci\'on, validador y evidencia asociada. \textit{Criterio de aceptaci\'on:} 100\% de acciones registradas en S2.
-
-  \item \textbf{Cumplimiento de seguridad base:} proporci\'on de controles de ciberseguridad definidos para el Agente~1 que se verifican antes de cada release: inventario, credenciales fuera del c\'odigo, permisos m\'inimos, sanitizaci\'on de entradas, separaci\'on de prompts y logs. \textit{Criterio de aceptaci\'on:} 100\% de controles cr\'iticos cumplidos.
-\end{enumerate}
-
-\subsection{Resumen de criterios de aceptaci\'on}
-
-La Tabla~\ref{tab:criterios-aceptacion} consolida los criterios de aceptaci\'on del Proyecto en formato tabular, facilitando su uso como checklist de evaluaci\'on al cierre de cada semestre.
+La Tabla~\ref{tab:criterios-aceptacion} consolida las m\'etricas n\'ucleo que se utilizar\'an para evaluar el cierre de cada historia y de cada gate \ac{TRL}.
 
 \begin{table}[H]
   \centering
-  \caption{Criterios de aceptaci\'on por m\'etrica y semestre}
+  \caption{M\'etricas n\'ucleo y criterios de aceptaci\'on}
   \label{tab:criterios-aceptacion}
-  \begin{tabularx}{\textwidth}{llXcc}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{llXXc}
     \toprule
-    \textbf{ID} & \textbf{Dimensi\'on} & \textbf{Criterio de aceptaci\'on} & \textbf{S1} & \textbf{S2} \\
+    \textbf{ID} & \textbf{Dimensi\'on} & \textbf{Medici\'on} & \textbf{Criterio de aceptaci\'on} & \textbf{Aplic.} \\
     \midrule
-    M1 & Rendimiento      & Generaci\'on de contenido en $<$~30~segundos por pieza & \checkmark & \checkmark \\
-    M2 & Seguridad funcional & Tasa de validaci\'on humana = 100\% (binario, sin excepciones) & \checkmark & \checkmark \\
-    M3 & Eficiencia       & Reducci\'on $\geq$~50\% en tiempo de redacci\'on vs.\ proceso manual & --- & \checkmark \\
-    M4 & Satisfacci\'on   & Puntuaci\'on promedio SEU $\geq$~3/4 en checklist de 4 dimensiones & --- & \checkmark \\
-    M5 & Madurez TRL      & TRL~3 alcanzado (HU-010, HU-011 funcionales en entorno controlado) & \checkmark & --- \\
-    M5 & Madurez TRL      & TRL~4 alcanzado (validaci\'on con usuarios reales, todos los HU funcionales) & --- & \checkmark \\
-    M6 & Cobertura        & M\'inimo 3 canales cubiertos (gacetillas, posts, correos de difusi\'on) & \checkmark & --- \\
-    M6 & Cobertura        & M\'inimo 5 canales cubiertos (agregar confirmaciones e inscripci\'on y certificados) & --- & \checkmark \\
-    M7 & Calidad de prompts & Tasa de rechazo en validaci\'on $\leq$~20\% & --- & \checkmark \\
-    M8 & Trazabilidad     & 100\% de acciones con log completo y evidencia asociada & --- & \checkmark \\
-    M9 & Seguridad        & 100\% de controles cr\'iticos de seguridad base cumplidos antes de release & \checkmark & \checkmark \\
+    M1 & Rendimiento & Tiempo desde trigger hasta borrador disponible & $<$~30~segundos por pieza generada & S1--S2 \\
+    M2 & \ac{HITL} & Acciones oficiales con validaci\'on humana previa / acciones oficiales totales & 100\%, sin excepciones & S1--S2 \\
+    M3 & Eficiencia & Reducci\'on respecto de l\'inea base manual de redacci\'on & $\geq$~50\% al cierre de S2 & S2 \\
+    M4 & Satisfacci\'on \ac{SEU} & Checklist 1--4: precisi\'on factual, tono, plantilla y canal & Promedio $\geq$~3/4 & S2 \\
+    M5 & Madurez \ac{TRL} & Cumplimiento de criterios de gate & \ac{TRL}~3 en S1; \ac{TRL}~4 en S2 & Gates \\
+    M6 & Cobertura & Canales institucionales cubiertos por A1 & 3 canales en S1; 5 canales en S2 & S1--S2 \\
+    M7 & Calidad de prompts & Borradores rechazados / borradores evaluados & $\leq$~20\% al cierre de S2 & S2 \\
+    M8 & Trazabilidad & Acciones con ID, fecha, solicitante, output, estado, validador y evidencia / acciones auditadas & 100\% para muestra auditada y gates & S1--S2 \\
+    M9 & Seguridad base & Controles cr\'iticos cumplidos / controles cr\'iticos aplicables & 100\% antes de release o gate & S1--S2 \\
+    M10 & Cumplimiento \ac{DoD} & Checks \ac{DoD} cumplidos / checks aplicables por \ac{HU} & 100\% para declarar una \ac{HU} cerrada & Por \ac{HU} \\
+    M11 & Defectos cr\'iticos & Defectos cr\'iticos abiertos al momento de gate o release & 0 defectos cr\'iticos abiertos & Gates \\
+    M12 & Pruebas cr\'iticas & Pruebas cr\'iticas ejecutadas / pruebas cr\'iticas planificadas & 100\% para el gate correspondiente & Gates \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Protocolo de medici\'on}
+
+La Tabla~\ref{tab:protocolo-medicion} define c\'omo se capturan las m\'etricas. Los valores de l\'inea base, muestra final y responsables nominales quedan pendientes de confirmaci\'on con la \ac{SEU}; no obstante, el mecanismo de medici\'on se define desde S1 para evitar reconstrucciones tard\'ias.
+
+\begin{table}[H]
+  \centering
+  \caption{Protocolo de medici\'on y evidencia}
+  \label{tab:protocolo-medicion}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{lXlX}
+    \toprule
+    \textbf{M\'etricas} & \textbf{Fuente de medici\'on} & \textbf{Frecuencia} & \textbf{Responsable / evidencia} \\
+    \midrule
+    M1, M3 & Logs de ejecuci\'on, mediciones de proceso manual y registro de tiempos por pieza & Por muestra y por gate & Go\~ne + \ac{SEU}; log, baseline manual y reporte de comparaci\'on \\
+    M2, M8, M10 & Planilla de estados, checklist de validaci\'on, matriz \ac{DoD} y registro de evidencia & Por \ac{HU} y por gate & Go\~ne + validador institucional; Sheet, checklist, link a output y estado \\
+    M4, M7 & Checklist \ac{SEU} 1--4, observaciones y rechazos de borradores & Por validaci\'on y cierre de semestre & Responsable de validaci\'on; formulario/checklist, registro de observaciones \\
+    M5, M11, M12 & Paquete de gate \ac{TRL}, reporte de pruebas, defectos y acta/informe de cierre & G2 y G4 & Director/Tutor + Go\~ne; acta, reporte de pruebas, registro de defectos \\
+    M6 & Backlog, matriz de cobertura por canal y evidencias de salida & Cierre de S1 y S2 & Go\~ne + \ac{SEU}; matriz de canales y ejemplos generados \\
+    M9 & Checklist de seguridad: permisos, secretos, \ac{RBAC}, prompt injection, logs y acciones bloqueadas & Antes de release/gate & Responsable t\'ecnico; checklist, pruebas negativas y registro de configuraci\'on \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \subsection{Factores cr\'iticos de \'exito}
 
-Los factores cr\'iticos de \'exito (FCE) son las condiciones cuya presencia es necesaria ---aunque no suficiente--- para que el Proyecto alcance sus objetivos. La Tabla~\ref{tab:factores-exito} los enuncia junto con la estrategia de aseguramiento correspondiente.
+Los factores cr\'iticos de \'exito (FCE) son las condiciones cuya presencia es necesaria ---aunque no suficiente--- para que el Proyecto alcance sus objetivos. La Tabla~\ref{tab:factores-exito} los enuncia junto con la estrategia de aseguramiento correspondiente. Cada FCE se controla con las m\'etricas anteriores y con los gates de calidad definidos en la Secci\'on~15.
 
 \begin{table}[H]
   \centering
   \caption{Factores cr\'iticos de \'exito del Proyecto}
   \label{tab:factores-exito}
+  \footnotesize
   \begin{tabularx}{\textwidth}{llXX}
     \toprule
     \textbf{ID} & \textbf{Factor} & \textbf{Descripci\'on} & \textbf{Estrategia de aseguramiento} \\
@@ -1190,7 +1233,11 @@ Los factores cr\'iticos de \'exito (FCE) son las condiciones cuya presencia es n
     FCE-3 & Coordinaci\'on entre desarrolladores & La capa de orquestaci\'on y las interfaces entre agentes son co-responsabilidad de ambos desarrolladores. Desalineaci\'on en la arquitectura puede bloquear la integraci\'on con A2--A5 en S2. & Reuniones peri\'odicas de sincronizaci\'on con \companeroNombre. Definici\'on de contratos de interfaz en agosto (inicio de S2), antes de implementar las integraciones. \\
     FCE-4 & Soberan\'ia de datos & Ning\'un dato institucional sensible puede enviarse a servicios de \ac{LLM} externos. El incumplimiento invalida el sistema en un contexto de defensa nacional y vulnera la Ley N\textsuperscript{o}~25.326. & Uso de Ollama como inferencia base. Auditor\'ia de flujos de datos en cada release. Cualquier alternativa externa queda restringida a contingencia aprobada, datos anonimizados y registro expl\'icito. \\
     FCE-5 & Estabilidad de Google Workspace & La integraci\'on con Forms, Sheets, Drive y Gmail es la columna vertebral del sistema en S1. Cambios de permisos, cuotas de Apps Script o pol\'iticas de Google pueden bloquear los triggers autom\'aticos. & Configuraci\'on de cuentas de servicio con permisos m\'inimos necesarios. Monitoreo de cuotas de Apps Script. Plan de contingencia con triggers manuales como fallback. \\
-    FCE-6 & Disponibilidad funcional de A2--A5 & El Agente~1 act\'ua como hub de comunicaci\'on en S2: transforma el contenido producido por los dem\'as agentes en comunicaciones institucionales. Si A2--A5 no producen insumos utilizables al momento de la integraci\'on, la funci\'on de hub queda sin contenido que distribuir, reduciendo el alcance a la operaci\'on aut\'onoma de S1. & Definici\'on de contratos de interfaz con mocks est\'aticos que permiten desarrollar y probar la funci\'on de hub independientemente del avance de cada agente fuente. Integraci\'on real progresiva en S2 seg\'un disponibilidad confirmada de cada agente. \\
+    FCE-6 & Disponibilidad funcional de A2--A5 & El Agente~1 act\'ua como nodo de comunicaci\'on institucional en S2: transforma el contenido producido por los dem\'as agentes en comunicaciones institucionales. Si A2--A5 no producen insumos utilizables al momento de la integraci\'on, la funci\'on de comunicaci\'on integrada queda sin contenido que distribuir, reduciendo el alcance a la operaci\'on aut\'onoma de S1. & Definici\'on de contratos de interfaz con mocks est\'aticos que permiten desarrollar y probar la comunicaci\'on integrada independientemente del avance de cada agente fuente. Integraci\'on real progresiva en S2 seg\'un disponibilidad confirmada de cada agente. \\
+    FCE-7 & Evidencia y trazabilidad temprana & La defensa acad\'emica depende de demostrar qu\'e se gener\'o, desde qu\'e insumo, con qu\'e estado, qui\'en valid\'o y qu\'e evidencia queda disponible. & Definir desde S1 un esquema de log con \texttt{id\_solicitud}, estado, validador, output y evidencia. Mantener \'indice de evidencias por \ac{HU} y por gate. \\
+    FCE-8 & Gobierno por estados & El avance no debe declararse por porcentaje subjetivo, sino por estados verificables de \ac{HU}, defectos y gate. & Usar estados de \ac{HU}: preparada, en implementaci\'on, en prueba, en validaci\'on \ac{SEU}, cerrada por \ac{DoD}, observada o bloqueada. Ninguna \ac{HU} se cierra sin \ac{DoD} y evidencia. \\
+    FCE-9 & Validaci\'on formal y responsables confirmados & Sin titular y suplente de validaci\'on por tipo de pieza, el \ac{HITL} queda informal y no defendible. & Confirmar responsables por \ac{HU}; registrar aprobaciones, observaciones y rechazos en canal formal; bloquear salidas oficiales si no hay validador. \\
+    FCE-10 & Despliegue progresivo y controlado & Saltar de documentaci\'on a operaci\'on real aumenta riesgo institucional y t\'ecnico. & Desplegar por etapas: documental, local controlado, sandbox Workspace, piloto \ac{SEU} limitado y release candidata \ac{TRL}~4. Cada etapa exige go/no-go y rollback definidos. \\
     \bottomrule
   \end{tabularx}
 \end{table}
