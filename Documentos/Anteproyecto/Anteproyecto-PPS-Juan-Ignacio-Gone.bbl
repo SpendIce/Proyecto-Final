@@ -45,6 +45,56 @@
     \field{year}{2010}
   \endentry
 
+  \entry{cicerchia2026procesos}{misc}{}{}
+    \name{author}{1}{}{%
+      {{hash=CCD}{%
+         family={Cicerchia},
+         familyi={C\bibinitperiod},
+         given={C{\'e}sar\bibnamedelima Daniel},
+         giveni={C\bibinitperiod\bibinitdelim D\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{CCD1}
+    \strng{fullhash}{CCD1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2026}
+    \field{extradate}{1}
+    \field{labeldatesource}{}
+    \field{sortinit}{C}
+    \field{sortinithash}{C}
+    \field{howpublished}{Documento institucional interno de trabajo,
+  Secretar{\'i}a de Extensi{\'o}n Universitaria, Facultad de Ingenier{\'i}a del
+  Ej{\'e}rcito}
+    \field{title}{Procesos y Agentes {SEU}-{FIE} con Backlog T{\'e}cnico}
+    \field{year}{2026}
+  \endentry
+
+  \entry{cicerchia2026proyecto}{misc}{}{}
+    \name{author}{1}{}{%
+      {{hash=CCD}{%
+         family={Cicerchia},
+         familyi={C\bibinitperiod},
+         given={C{\'e}sar\bibnamedelima Daniel},
+         giveni={C\bibinitperiod\bibinitdelim D\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{CCD1}
+    \strng{fullhash}{CCD1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2026}
+    \field{extradate}{2}
+    \field{labeldatesource}{}
+    \field{sortinit}{C}
+    \field{sortinithash}{C}
+    \field{howpublished}{Documento institucional interno, Facultad de
+  Ingenier{\'i}a del Ej{\'e}rcito, Universidad de la Defensa Nacional}
+    \field{title}{Proyecto {CENTENARIO}: Sistema de Agentes Inteligentes para
+  Extensi{\'o}n Universitaria}
+    \field{year}{2026}
+  \endentry
+
   \entry{coneau2020}{misc}{}{}
     \name{author}{1}{}{%
       {{hash=C}{%
