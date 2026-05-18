@@ -18,16 +18,16 @@ El sistema se basa en una arquitectura modular de 5 agentes inteligentes especia
 |--------|--------|---------|------|-----------------|
 | A1 | Extension Bot | P4 — Comunicacion | E2 | Generar y automatizar contenido institucional |
 | A2 | Historia Viva | P7 — Conocimiento | E4 | Repositorio historico, indexacion semantica, efemerides |
-| A3 | Vinculacion y Congresos | P2 — Vinculacion | E5 | Monitoreo de oportunidades, reportes, contactos |
-| A4 | Atencion a Futuros Estudiantes | P9 — Atencion | E6 | Respuestas automaticas multicanal |
-| A5 | Analiticas de Extension | P8 — Monitoreo | E3 | Extraccion RRSS, KPIs, dashboards |
+| A3 | Vinculacion y Congresos | P2 — Vinculacion con el medio | E5 | Monitoreo de oportunidades, reportes, contactos, ceremonial y protocolo con control humano |
+| A4 | Atencion a la Comunidad y Aspirantes | P9 — Atencion | E6 | Respuestas automaticas multicanal, orientacion y ventanilla virtual |
+| A5 | Monitoreo, Evaluacion y Mejora Continua | P8 — Monitoreo | E3 | Extraccion RRSS, integridad de datos, KPIs, dashboards y mejora continua |
 
 ---
 
 ## 3. Modelo de orquestacion
 
 ### Principio
-No hay agente central. Orquestacion basada en eventos y procesos.
+No hay agente central como regla funcional. La orquestacion es basada en eventos y procesos; cualquier componente tecnico centralizado debe justificarse explicitamente como infraestructura, no como agente que absorba responsabilidades.
 
 ### Tipo: Event-driven + Batch hibrido
 
@@ -68,6 +68,9 @@ Consulta (mail/web) → A4 → Respuesta automatica → Registro
 ### Flujo 6 — KPIs integrados
 Datos (Sheets + RRSS) → A5 → Procesamiento → Looker Studio → Alertas
 
+### Flujo 7 — Gestion academica-administrativa
+A1 genera propuestas o piezas de comunicacion → validacion humana → coordinacion con Secretaria Academica / UNDEF / DGE cuando corresponda. Este flujo no habilita publicacion ni aprobacion automatica.
+
 ---
 
 ## 5. Interacciones entre agentes
@@ -80,6 +83,8 @@ Datos (Sheets + RRSS) → A5 → Procesamiento → Looker Studio → Alertas
 | A4 | A1 | Generacion de respuestas complejas |
 
 **Observacion:** A1 funciona como hub de comunicacion (recibe de A2, A3, A4, A5 para generar contenido), pero no es orquestador.
+
+**Capa de soporte inter-secretaria:** la bible nueva identifica interfaces administrativas como orden del dia, ceremonial/protocolo, adquisiciones, proveedores, presupuestos e inventarios. Son soporte operativo y no deben confundirse con el alcance sustantivo del P100 ni con el MVP del Agente 1.
 
 ---
 
@@ -199,6 +204,12 @@ Nextcloud / Google Drive, Google Sheets
 - E6 — Agente 4 (HU-050, 051)
 - Integracion total
 
+### Historias agregadas en la bible nueva
+- **HU-015:** gestion de ceremonial y protocolo con control humano, asociada a A3.
+- **HU-025:** registro e integridad CONEAU / SIU / repositorio, asociada a A5.
+- **HU-052:** ventanilla virtual de egresados, asociada a A4.
+- **HU-060:** optimizacion burocratica de soporte administrativo, canalizada como interfaz de soporte inter-secretaria.
+
 ### Dependencias clave
 - HU-001 → base de datos (prerequisito global)
 - HU-002 → todas las automatizaciones
@@ -229,5 +240,6 @@ Nextcloud / Google Drive, Google Sheets
 ## 14. Fuentes
 
 - `Contenido/bible/Procesos y Agentes.md`
+- `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`
 - `Contenido/bible/Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.pdf`
 - `Contenido/bible/mailinstitucional.pdf`

@@ -1,0 +1,378 @@
+@startuml
+title Diagrama de clases - Agente 1 Extension Bot
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+hide circle
+
+legend right
+  <<entity>>  Clase de dominio persistible o auditable
+  <<control>> Clase de coordinacion/logica de caso de uso
+  <<boundary>> Interfaz con usuario, Google Workspace u otros agentes
+endlegend
+
+package "Enumeraciones" {
+  enum TipoSolicitud {
+    GACETILLA
+    POST_RRSS
+    CONFIRMACION_INSCRIPCION
+    INTERACCION_LN
+    CERTIFICADO
+  }
+
+  enum EstadoSolicitud {
+    RECIBIDA
+    INCOMPLETA
+    EN_PROCESO
+    BORRADOR
+    PENDIENTE_VALIDACION
+    APROBADA
+    OBSERVADA
+    RECHAZADA
+    FALLIDA
+  }
+
+  enum TipoPieza {
+    GACETILLA
+    POST_RRSS
+    EMAIL_CONFIRMACION
+    RESPUESTA_INTERNA
+    CERTIFICADO_PDF
+  }
+
+  enum CanalComunicacion {
+    GOOGLE_DOCS
+    INSTAGRAM
+    LINKEDIN
+    GMAIL
+    PDF
+    CHAT_INTERNO
+  }
+
+  enum DecisionValidacion {
+    APROBADA
+    OBSERVADA
+    RECHAZADA
+  }
+}
+
+package "Actores y roles institucionales" {
+  class "Usuario interno" as UsuarioInterno <<entity>> {
+    +id: UUID
+    +nombre: String
+    +emailInstitucional: String
+    +rol: RolInstitucional
+    +estaHabilitado(): Boolean
+  }
+
+  enum RolInstitucional {
+    PERSONAL_SEU
+    COORDINADOR_EXTENSION
+    RESPONSABLE_GESTION_CONOCIMIENTO
+    RESPONSABLE_REDES_SOCIALES
+    ADMINISTRACION_SECRETARIA
+    DOCENTE_RESPONSABLE
+    RESPONSABLE_TECNICO_IA
+  }
+}
+
+package "Dominio del Agente 1" {
+  class "Solicitud de generacion" as SolicitudGeneracion <<entity>> {
+    +id: UUID
+    +tipo: TipoSolicitud
+    +estado: EstadoSolicitud
+    +canalSolicitado: CanalComunicacion
+    +fechaCreacion: DateTime
+    +fechaActualizacion: DateTime
+    +datosMinimosCompletos: Boolean
+    +marcarIncompleta(motivo: String)
+    +pasarAValidacion()
+    +cerrarConEstado(estado: EstadoSolicitud)
+  }
+
+  class "Actividad de extension" as ActividadExtension <<entity>> {
+    +id: UUID
+    +nombre: String
+    +descripcion: Text
+    +fecha: Date
+    +destinatarios: String
+    +responsable: String
+    +contacto: String
+    +fuenteInstitucional: String
+  }
+
+  class "Inscripcion" as Inscripcion <<entity>> {
+    +id: UUID
+    +nombreInscripto: String
+    +email: String
+    +fechaHoraActividad: DateTime
+    +estadoInscripcion: String
+    +esValida(): Boolean
+  }
+
+  class "Insumo de agente externo" as InsumoAgenteExterno <<entity>> {
+    +id: UUID
+    +agenteOrigen: String
+    +tipoInsumo: String
+    +contenido: Text
+    +referencia: URI
+    +fechaRecepcion: DateTime
+  }
+
+  class "Fuente institucional" as FuenteInstitucional <<entity>> {
+    +id: UUID
+    +tipo: String
+    +origen: String
+    +uri: URI
+    +descripcion: Text
+    +verificada: Boolean
+  }
+
+  abstract class "Pieza comunicacional" as PiezaComunicacional <<entity>> {
+    +id: UUID
+    +tipo: TipoPieza
+    +titulo: String
+    +contenido: Text
+    +canal: CanalComunicacion
+    +estado: EstadoSolicitud
+    +version: Integer
+    +urlSalida: URI
+    +requiereValidacionHumana(): Boolean
+    +marcarComoBorrador()
+  }
+
+  class "Gacetilla institucional" as GacetillaInstitucional <<entity>> {
+    +copete: Text
+    +cuerpo: Text
+    +contactoDifusion: String
+  }
+
+  class "Post para RRSS" as PostRRSS <<entity>> {
+    +canalDestino: CanalComunicacion
+    +longitudMaxima: Integer
+    +hashtagsSugeridos: String
+  }
+
+  class "Email de confirmacion" as EmailConfirmacion <<entity>> {
+    +destinatario: String
+    +asunto: String
+    +fechaEnvio: DateTime
+    +estadoEnvio: String
+  }
+
+  class "Respuesta interna" as RespuestaInterna <<entity>> {
+    +pedidoOriginal: Text
+    +datosFaltantes: Text
+  }
+
+  class "Certificado PDF" as CertificadoPDF <<entity>> {
+    +destinatario: String
+    +actividad: String
+    +condicion: String
+    +firmante: String
+    +hashDocumento: String
+  }
+
+  class "Plantilla institucional" as PlantillaInstitucional <<entity>> {
+    +id: UUID
+    +tipoPieza: TipoPieza
+    +nombre: String
+    +version: String
+    +ubicacionDrive: URI
+    +aprobada: Boolean
+  }
+
+  class "Validacion humana" as ValidacionHumana <<entity>> {
+    +id: UUID
+    +decision: DecisionValidacion
+    +observacion: Text
+    +fecha: DateTime
+    +responsable: String
+    +esAprobatoria(): Boolean
+  }
+
+  class "Registro de trazabilidad" as RegistroTrazabilidad <<entity>> {
+    +id: UUID
+    +timestamp: DateTime
+    +casoUso: String
+    +evento: String
+    +resultado: EstadoSolicitud
+    +detalleTecnico: Text
+    +sinDatosSensibles(): Boolean
+  }
+
+  class "Evidencia" as Evidencia <<entity>> {
+    +id: UUID
+    +tipo: String
+    +descripcion: Text
+    +uri: URI
+    +fechaRegistro: DateTime
+  }
+}
+
+package "Control de casos de uso" {
+  class "Agente Extension Bot" as AgenteExtensionBot <<control>> {
+    +procesarSolicitud(idSolicitud: UUID): ResultadoOperacion
+    +generarBorrador(solicitud: SolicitudGeneracion): PiezaComunicacional
+    +solicitarValidacion(pieza: PiezaComunicacional): ValidacionHumana
+    +registrarResultado(solicitud: SolicitudGeneracion)
+  }
+
+  class "Validador de datos" as ValidadorDatos <<control>> {
+    +validarDatosMinimos(solicitud: SolicitudGeneracion): ResultadoValidacion
+    +detectarDatosFaltantes(solicitud: SolicitudGeneracion): List<String>
+  }
+
+  class "Politica de alcance A1" as PoliticaAlcanceA1 <<control>> {
+    +esSolicitudPermitida(tipo: TipoSolicitud): Boolean
+    +requiereValidacion(pieza: PiezaComunicacional): Boolean
+    +rechazarFueraDeAlcance(motivo: String)
+  }
+
+  class "Generador de contenido" as GeneradorContenido <<control>> {
+    +construirPrompt(solicitud: SolicitudGeneracion): String
+    +generarTexto(solicitud: SolicitudGeneracion): Text
+    +controlarHallucinations(texto: Text): ResultadoValidacion
+  }
+
+  class "Gestor de plantillas" as GestorPlantillas <<control>> {
+    +obtenerPlantilla(tipo: TipoPieza): PlantillaInstitucional
+    +aplicarPlantilla(pieza: PiezaComunicacional)
+  }
+
+  class "Gestor de validacion" as GestorValidacion <<control>> {
+    +crearRevision(pieza: PiezaComunicacional, responsable: UsuarioInterno): ValidacionHumana
+    +registrarDecision(validacion: ValidacionHumana)
+    +bloquearSiNoAprobado(pieza: PiezaComunicacional)
+  }
+
+  class "Servicio de trazabilidad" as ServicioTrazabilidad <<control>> {
+    +registrarInicio(solicitud: SolicitudGeneracion)
+    +registrarSalida(pieza: PiezaComunicacional)
+    +registrarError(solicitud: SolicitudGeneracion, error: String)
+    +adjuntarEvidencia(registro: RegistroTrazabilidad, evidencia: Evidencia)
+  }
+
+  class "Servicio de confirmaciones" as ServicioConfirmaciones <<control>> {
+    +generarEmail(inscripcion: Inscripcion): EmailConfirmacion
+    +enviarSiDatosValidos(email: EmailConfirmacion)
+    +registrarEstadoEnvio(email: EmailConfirmacion)
+  }
+
+  class "Generador de PDF" as GeneradorPDF <<control>> {
+    +generarCertificado(certificado: CertificadoPDF): URI
+    +calcularHash(documento: URI): String
+  }
+}
+
+package "Interfaces externas y fronteras" {
+  class "Trigger Apps Script" as TriggerAppsScript <<boundary>> {
+    +onFormSubmit()
+    +onSheetUpdate()
+    +onMailRequest()
+  }
+
+  class "Google Workspace Gateway" as GoogleWorkspaceGateway <<boundary>> {
+    +leerFilaSheets(id: String): Map
+    +actualizarEstadoSheets(id: String, estado: String)
+    +crearGoogleDoc(pieza: PiezaComunicacional): URI
+    +guardarEnDrive(archivo: Binary): URI
+    +enviarGmail(email: EmailConfirmacion)
+  }
+
+  class "Interfaz lenguaje natural interna" as InterfazLenguajeNatural <<boundary>> {
+    +recibirPedido(email: String, mensaje: Text): SolicitudGeneracion
+    +responderConBorrador(pieza: PiezaComunicacional)
+    +solicitarDatosFaltantes(campos: List<String>)
+  }
+
+  class "Gateway agentes A2-A5" as GatewayAgentesExternos <<boundary>> {
+    +recibirInsumo(agente: String, contenido: Text): InsumoAgenteExterno
+    +registrarOrigen(insumo: InsumoAgenteExterno)
+  }
+}
+
+UsuarioInterno "1" --> "0..*" SolicitudGeneracion : crea / solicita
+UsuarioInterno "1" --> "0..*" ValidacionHumana : realiza
+RolInstitucional <-- UsuarioInterno
+
+SolicitudGeneracion "1" --> "0..1" ActividadExtension : usa datos de
+SolicitudGeneracion "1" --> "0..1" Inscripcion : usa datos de
+SolicitudGeneracion "1" o-- "0..*" FuenteInstitucional : referencia
+SolicitudGeneracion "1" o-- "0..*" InsumoAgenteExterno : incorpora
+SolicitudGeneracion "1" --> "0..*" PiezaComunicacional : produce
+TipoSolicitud <-- SolicitudGeneracion
+EstadoSolicitud <-- SolicitudGeneracion
+
+PiezaComunicacional <|-- GacetillaInstitucional
+PiezaComunicacional <|-- PostRRSS
+PiezaComunicacional <|-- EmailConfirmacion
+PiezaComunicacional <|-- RespuestaInterna
+PiezaComunicacional <|-- CertificadoPDF
+TipoPieza <-- PiezaComunicacional
+CanalComunicacion <-- PiezaComunicacional
+
+PiezaComunicacional "0..*" --> "0..1" PlantillaInstitucional : aplica
+PiezaComunicacional "1" --> "0..*" ValidacionHumana : controla
+PiezaComunicacional "1" --> "1..*" RegistroTrazabilidad : registra
+ValidacionHumana "1" --> "1" UsuarioInterno : responsable
+DecisionValidacion <-- ValidacionHumana
+RegistroTrazabilidad "1" --> "0..*" Evidencia : adjunta
+
+AgenteExtensionBot ..> SolicitudGeneracion : procesa
+AgenteExtensionBot ..> ValidadorDatos
+AgenteExtensionBot ..> PoliticaAlcanceA1
+AgenteExtensionBot ..> GeneradorContenido
+AgenteExtensionBot ..> GestorPlantillas
+AgenteExtensionBot ..> GestorValidacion
+AgenteExtensionBot ..> ServicioTrazabilidad
+AgenteExtensionBot ..> ServicioConfirmaciones
+AgenteExtensionBot ..> GeneradorPDF
+
+ValidadorDatos ..> SolicitudGeneracion
+PoliticaAlcanceA1 ..> PiezaComunicacional
+GeneradorContenido ..> FuenteInstitucional
+GeneradorContenido ..> InsumoAgenteExterno
+GestorPlantillas ..> PlantillaInstitucional
+GestorValidacion ..> ValidacionHumana
+ServicioTrazabilidad ..> RegistroTrazabilidad
+ServicioConfirmaciones ..> EmailConfirmacion
+GeneradorPDF ..> CertificadoPDF
+
+TriggerAppsScript ..> AgenteExtensionBot : dispara
+GoogleWorkspaceGateway ..> SolicitudGeneracion : lee / actualiza
+GoogleWorkspaceGateway ..> PiezaComunicacional : materializa salida
+GoogleWorkspaceGateway ..> RegistroTrazabilidad : persiste evidencia
+InterfazLenguajeNatural ..> SolicitudGeneracion : crea
+GatewayAgentesExternos ..> InsumoAgenteExterno : recibe
+GatewayAgentesExternos ..> SolicitudGeneracion : aporta insumo
+
+note right of PoliticaAlcanceA1
+  Reglas de alcance:
+  - A1 no hace scraping, analitica ni dashboards.
+  - A1 no atiende masivamente al publico general.
+  - A1 recibe insumos de A2-A5, pero no orquesta el sistema.
+end note
+
+note bottom of PiezaComunicacional
+  Toda pieza institucional queda como borrador o pendiente
+  hasta validacion humana cuando sea publica, critica
+  o documental. Las confirmaciones pueden enviarse si usan
+  plantilla ya aprobada y datos de inscripcion validos.
+end note
+
+note right of GoogleWorkspaceGateway
+  Google Sheets funciona como bus de datos.
+  Google Docs, Drive y Gmail materializan salidas
+  y evidencias del Proceso 4 / Proceso 5.
+end note
+
+note bottom of RegistroTrazabilidad
+  El registro debe permitir reconstruir:
+  solicitud, fuente, salida, estado, validador,
+  observaciones y evidencia, sin exponer credenciales
+  ni datos sensibles innecesarios.
+end note
+
+@enduml

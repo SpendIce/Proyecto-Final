@@ -1,6 +1,6 @@
 # Criterios de Evaluacion — Director de Carrera (Cicerchia)
 
-Documento de referencia que consolida los criterios con los que el CR(R) Ing Cesar Daniel Cicerchia evalua el Proyecto Centenario (P100). Extraido de la bible oficial del proyecto.
+Documento de referencia que consolida los criterios con los que el CR(R) Ing Cesar Daniel Cicerchia evalua el Proyecto Centenario (P100). Extraido de la bible oficial del proyecto, actualizada con el PDF `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`.
 
 ---
 
@@ -31,18 +31,22 @@ Toda funcionalidad del sistema debe trazar a uno de los 9 procesos definidos:
 | # | Proceso | Tipo | Agente asociado |
 |---|---------|------|-----------------|
 | 1 | Planificacion Estrategica de Extension | Estrategico — ciclico anual (PDCA) | A5 |
-| 2 | Vinculacion Institucional y Territorial | Relacional — continuo | A3 |
+| 2 | Vinculacion con el medio (Institucional y Jurisdiccional) | Relacional — continuo | A3 |
 | 3 | Diseno y Gestion de Actividades de Extension | Operativo — por proyectos | A1 |
 | 4 | Comunicacion y Difusion Institucional | Continuo — multicanal | A1 |
 | 5 | Gestion de Programas, Cursos y Diplomaturas | Ciclo completo | A1, A4 |
 | 6 | Gestion de Eventos Academicos | Por evento (tipo proyecto) | A3, A1 |
 | 7 | Gestion del Conocimiento y Memoria Institucional | Continuo — acumulativo | A2 |
-| 8 | Monitoreo, Evaluacion e Indicadores (KPIs) | Analitico — continuo | A5 |
-| 9 | Atencion a la Comunidad y Aspirantes | Servicio — multicanal | A4 |
+| 8 | Monitoreo, Evaluacion y Mejora Continua | Analitico — continuo | A5 |
+| 9 | Atencion a la Comunidad y Aspirantes / postulantes | Servicio — multicanal | A4 |
 
 **Regla:** si una funcionalidad no mapea a ningun proceso, no pertenece al alcance. Si mapea a un proceso pero se asigna al agente incorrecto, hay una inconsistencia.
 
 Cada proceso tiene su RACI definido. Las funcionalidades deben respetar la responsabilidad asignada en la tabla RACI del proceso correspondiente.
+
+### Capa transversal de soporte
+
+La version nueva de la bible agrega una capa de **Interfaces de Soporte Inter-secretaria** para canalizar tareas administrativas ajenas a la funcion sustantiva de extension hacia el Dpto. Apoyo. Incluye, entre otros, orden del dia, ceremonial y protocolo, planes de necesidades de adquisiciones, proveedores del Estado, presupuestos preliminares, aprovisionamiento e inventarios. No debe confundirse con el nucleo sustantivo del P100.
 
 ---
 
@@ -106,6 +110,7 @@ Toda historia de usuario, sin excepcion, debe cumplir:
 - Validacion por Secretaria
 - Tiempos de ejecucion aceptables
 - Calidad del output (contenido o datos)
+- Cuando involucra datos institucionales, integridad verificable entre CONEAU GLOBAL, SIU y/o repositorio de Memoria Institucional, segun corresponda
 
 ---
 
@@ -145,6 +150,13 @@ Cuando aplique, agregar:
 - Manual breve de usuario
 - Trazabilidad de datos
 - Validacion formal registrada
+
+### DoD transversal agregado
+
+La bible nueva explicita dos criterios transversales:
+
+- **Validacion de integridad institucional:** las historias que cruzan sistemas institucionales deben verificar consistencia y trazabilidad del dato.
+- **DoD de datos para Agente 5:** completitud, metadatos obligatorios, normalizacion y compatibilidad con dashboards/reportes son parte del cierre de historias de monitoreo.
 
 ---
 
@@ -193,6 +205,8 @@ Cada HU tiene definido: validacion (usuario), instrumento, evidencia y responsab
 - **HU-002** → base de todas las automatizaciones (Apps Script)
 - **HU-020** → requiere APIs habilitadas
 - **HU-024** → requiere datos previos
+- **HU-025** → integridad SIU / CONEAU GLOBAL / repositorio de Memoria Institucional, cuando se alcance esa integracion
+- **HU-015, HU-052, HU-060** → historias agregadas de ceremonial, ventanilla virtual de egresados y soporte administrativo; requieren validacion de alcance antes de incorporarlas al MVP
 
 ---
 
@@ -208,10 +222,17 @@ Cada HU tiene definido: validacion (usuario), instrumento, evidencia y responsab
 - E3 (dashboards + alertas)
 - E4 (inicio repositorio — Agente 2)
 
+### Historias agregadas fuera del MVP base
+- **HU-015:** Gestion de ceremonial y protocolo con control humano, asociada al Agente 3.
+- **HU-025:** Registro e integridad CONEAU, asociada al Agente 5.
+- **HU-052:** Ventanilla virtual de egresados, asociada al Agente 4.
+- **HU-060:** Optimizacion burocratica de soporte administrativo, dentro de la capa de soporte inter-secretaria.
+
 ---
 
 ## Fuentes
 
 - `Contenido/bible/Procesos y Agentes.md`
+- `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`
 - `Contenido/bible/Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.pdf`
 - `Contenido/bible/mailinstitucional.pdf`

@@ -20,15 +20,15 @@ Sos el experto absoluto en la arquitectura multiagente del Proyecto Centenario (
 |--------|--------|-----------------|-----------------|
 | A1 | Extension Bot | P4 — Comunicacion y Difusion | Generar, gestionar y automatizar contenido institucional |
 | A2 | Historia Viva / Centenario AI | P7 — Gestion del Conocimiento | Repositorio historico inteligente, indexacion semantica, efemerides |
-| A3 | Vinculacion y Congresos | P2 — Vinculacion Institucional | Monitoreo de oportunidades externas, reportes, contacto institucional |
-| A4 | Atencion a Futuros Estudiantes | P9 — Atencion a la Comunidad | Respuestas automaticas, orientacion multicanal |
-| A5 | Analiticas de Extension | P8 — Monitoreo e Indicadores | Extraccion RRSS, KPIs, dashboards, alertas |
+| A3 | Vinculacion y Congresos | P2 — Vinculacion con el medio | Monitoreo de oportunidades externas, reportes, contacto institucional, ceremonial y protocolo con control humano |
+| A4 | Atencion a la Comunidad y Aspirantes | P9 — Atencion a la Comunidad y Aspirantes / postulantes | Respuestas automaticas, orientacion multicanal y ventanilla virtual |
+| A5 | Monitoreo, Evaluacion y Mejora Continua | P8 — Monitoreo, Evaluacion y Mejora Continua | Extraccion RRSS, integridad CONEAU/SIU, KPIs, dashboards, alertas y mejora continua |
 
 ### Mapa de procesos completo
 
 **Procesos Estrategicos:**
 1. Planificacion Estrategica de Extension
-2. Vinculacion Institucional y Territorial
+2. Vinculacion con el medio (Institucional y Jurisdiccional)
 
 **Procesos Sustantivos (Core):**
 3. Diseno y Gestion de Actividades de Extension
@@ -38,29 +38,29 @@ Sos el experto absoluto en la arquitectura multiagente del Proyecto Centenario (
 
 **Procesos de Soporte:**
 7. Gestion del Conocimiento y Memoria Institucional
-8. Monitoreo, Evaluacion e Indicadores (KPIs)
-9. Atencion a la Comunidad y Aspirantes
+8. Monitoreo, Evaluacion y Mejora Continua
+9. Atencion a la Comunidad y Aspirantes / postulantes
 
 ### Mapeo Proceso → Agente
 
 | Proceso | Agente IA asociado |
 |---------|--------------------|
 | P1 — Planificacion Estrategica | A5 (reportes de base, sugerencias) |
-| P2 — Vinculacion Institucional | A3 (oportunidades, contactos, borradores) |
+| P2 — Vinculacion con el medio | A3 (oportunidades, contactos, borradores, ceremonial/protocolo) |
 | P3 — Diseno de Actividades | A1 (propuestas, resumenes, documentacion) |
 | P4 — Comunicacion y Difusion | A1 (gacetillas, posts, newsletters, programacion) |
 | P5 — Programas, Cursos y Diplomaturas | A1 (difusion) + A4 (consultas, orientacion) |
 | P6 — Eventos Academicos | A3 (identificacion, reportes) + A1 (difusion) |
 | P7 — Gestion del Conocimiento | A2 (organizacion, efemerides, contenido) |
-| P8 — Monitoreo e Indicadores | A5 (extraccion RRSS, dashboards, alertas) |
-| P9 — Atencion a Comunidad | A4 (respuestas automaticas, orientacion multicanal) |
+| P8 — Monitoreo, Evaluacion y Mejora Continua | A5 (extraccion RRSS, integridad de datos, dashboards, alertas) |
+| P9 — Atencion a Comunidad y Aspirantes | A4 (respuestas automaticas, orientacion multicanal, ventanilla virtual) |
 
 ---
 
 ## Modelo de orquestacion
 
 ### Principio de diseno
-No hay un "agente central". Se implementa una orquestacion basada en eventos y procesos.
+No hay un "agente central" como regla funcional. Se implementa una orquestacion basada en eventos y procesos; cualquier componente tecnico centralizado debe justificarse como infraestructura y no como agente que absorba responsabilidades.
 
 ### Tipo: Event-driven + Batch hibrido
 
@@ -122,6 +122,12 @@ No hay un "agente central". Se implementa una orquestacion basada en eventos y p
 4. → Looker Studio
 5. Alertas
 
+### Flujo 7 — Gestion academica-administrativa
+1. Agente 1 genera propuestas o piezas de comunicacion
+2. Validacion humana obligatoria
+3. Coordinacion con Secretaria Academica / UNDEF / DGE cuando corresponda
+4. Registro documental de aprobacion o rechazo
+
 ---
 
 ## Interacciones entre agentes
@@ -137,6 +143,9 @@ No hay un "agente central". Se implementa una orquestacion basada en eventos y p
 
 ### Observacion clave
 El Agente 1 (Extension Bot) funciona como **hub de comunicacion**: recibe datos de A2, A3, A4, A5 para generar contenido institucional. Pero NO es un orquestador — la orquestacion la manejan Apps Script, triggers y Celery.
+
+### Interfaces de soporte inter-secretaria
+La bible nueva agrega una capa de soporte para tareas administrativas ajenas a la funcion sustantiva de extension: orden del dia, ceremonial/protocolo, planes de necesidades, proveedores del Estado, presupuestos preliminares, aprovisionamiento e inventarios. Esta capa puede generar historias de soporte, pero no redefine el MVP del Agente 1 ni reemplaza los procesos sustantivos.
 
 ---
 
@@ -310,6 +319,12 @@ El Agente 1 (Extension Bot) funciona como **hub de comunicacion**: recibe datos 
 - E6 — Agente 4 (HU-050, 051)
 - Integracion total de agentes
 
+**Historias agregadas en la bible nueva:**
+- HU-015 — gestion de ceremonial y protocolo con control humano (A3)
+- HU-025 — registro e integridad CONEAU/SIU/repositorio (A5)
+- HU-052 — ventanilla virtual de egresados (A4)
+- HU-060 — optimizacion burocratica de soporte administrativo (interfaz de soporte)
+
 ### Dependencias clave
 - HU-001 → base de datos (prerequisito de todo)
 - HU-002 → todas las automatizaciones
@@ -400,6 +415,7 @@ Podes responder con precision sobre:
 
 Tu conocimiento proviene exclusivamente de:
 - `Contenido/bible/Procesos y Agentes.md` — procesos, mapeo, backlog, DoD, infraestructura, orquestacion, flujos
+- `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf` — PDF fuente vigente de la actualizacion de bible
 - `Contenido/bible/Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.pdf` — directivas del director
 - `Contenido/bible/mailinstitucional.pdf` — comunicacion institucional
 - `Contenido/Definicion/arquitectura-multiagente.md` — documentacion consolidada

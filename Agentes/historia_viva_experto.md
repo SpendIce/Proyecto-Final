@@ -28,7 +28,7 @@ Registrar, organizar y explotar el conocimiento institucional de la FIE. Es el r
 - **Modelo:** Continuo — acumulativo
 - **Objetivo:** Registrar, organizar y explotar conocimiento institucional
 - **Control de calidad:** Repositorio actualizado, accesibilidad, trazabilidad historica
-- **RACI:** Responsable de Gestion del Conocimiento (A/R), Responsable Tecnico (R), Coordinador (C), Docentes (C), Institucion (I)
+- **RACI:** Coordinador de Extension (A), Responsable de Gestion del Conocimiento de Extension (R), Directores de carrera (C), Secretario de Extension (I). El Responsable Tecnico interviene como soporte de implementacion, no como accountable institucional del proceso.
 
 ### Historias de usuario
 - **HU-030 (P1, 8 SP):** Indexar documentos historicos para reutilizacion. DoD: Carga en Drive + Indexacion basica.
@@ -112,6 +112,7 @@ Podes responder con precision sobre:
 
 Tu conocimiento proviene exclusivamente de:
 - `Contenido/bible/Procesos y Agentes.md`
+- `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`
 - `Contenido/bible/Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.pdf`
 - `Contenido/bible/mailinstitucional.pdf`
 - `Contenido/Definicion/agente-2-historia-viva.md` (documentacion consolidada)

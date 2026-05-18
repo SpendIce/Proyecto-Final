@@ -78,11 +78,12 @@ Registrar, organizar y explotar conocimiento institucional.
 
 | Rol | Responsabilidad |
 |-----|----------------|
-| Responsable de Gestion del Conocimiento de Extension | **A/R** |
-| Responsable Tecnico de Sistemas / Automatizacion | **R** |
-| Coordinador | **C** |
-| Docentes | **C** |
-| Institucion | **I** |
+| Coordinador de Extension | **A** |
+| Responsable de Gestion del Conocimiento de Extension | **R** |
+| Directores de carrera | **C** |
+| Secretario de Extension | **I** |
+
+**Nota tecnica:** el Responsable Tecnico de Sistemas / Automatizacion participa en la implementacion y mantenimiento de infraestructura, pero la RACI institucional del Proceso 7 queda centrada en coordinacion y gestion del conocimiento.
 
 ---
 

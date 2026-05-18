@@ -1,0 +1,174 @@
+@startuml
+title Diagrama de clases - Agente 1 Extension Bot (vista para pantalla)
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam nodesep 35
+skinparam ranksep 45
+hide circle
+
+legend right
+  Vista compacta para lectura en pantalla.
+  La version completa esta en diagrama-clases-agente-1.puml.
+endlegend
+
+package "Actores" {
+  class "Usuario interno" as UsuarioInterno <<entity>> {
+    +id
+    +nombre
+    +emailInstitucional
+    +rol
+  }
+
+  enum "Rol institucional" as RolInstitucional {
+    Personal SEU
+    Coordinador Extension
+    Resp. Gestion Conocimiento
+    Resp. Redes Sociales
+    Administracion
+    Resp. Tecnico IA
+  }
+}
+
+package "Dominio" {
+  class "Solicitud de generacion" as SolicitudGeneracion <<entity>> {
+    +id
+    +tipo
+    +estado
+    +canalSolicitado
+    +datosMinimosCompletos
+  }
+
+  class "Actividad de extension" as ActividadExtension <<entity>> {
+    +nombre
+    +descripcion
+    +fecha
+    +destinatarios
+    +fuenteInstitucional
+  }
+
+  class "Inscripcion" as Inscripcion <<entity>> {
+    +nombreInscripto
+    +email
+    +actividad
+    +estadoInscripcion
+  }
+
+  class "Insumo A2-A5" as InsumoAgenteExterno <<entity>> {
+    +agenteOrigen
+    +tipoInsumo
+    +contenido
+    +referencia
+  }
+
+  abstract class "Pieza comunicacional" as PiezaComunicacional <<entity>> {
+    +id
+    +tipo
+    +titulo
+    +contenido
+    +canal
+    +estado
+    +urlSalida
+  }
+
+  class "Gacetilla" as GacetillaInstitucional <<entity>>
+  class "Post RRSS" as PostRRSS <<entity>>
+  class "Email confirmacion" as EmailConfirmacion <<entity>>
+  class "Respuesta interna" as RespuestaInterna <<entity>>
+  class "Certificado PDF" as CertificadoPDF <<entity>>
+
+  class "Plantilla institucional" as PlantillaInstitucional <<entity>> {
+    +tipoPieza
+    +version
+    +ubicacionDrive
+    +aprobada
+  }
+
+  class "Validacion humana" as ValidacionHumana <<entity>> {
+    +decision
+    +observacion
+    +fecha
+    +responsable
+  }
+
+  class "Registro trazabilidad" as RegistroTrazabilidad <<entity>> {
+    +casoUso
+    +evento
+    +resultado
+    +detalleTecnico
+  }
+
+  class "Evidencia" as Evidencia <<entity>> {
+    +tipo
+    +uri
+    +fechaRegistro
+  }
+}
+
+package "Control" {
+  class "Agente Extension Bot" as AgenteExtensionBot <<control>>
+  class "Validador de datos" as ValidadorDatos <<control>>
+  class "Politica de alcance A1" as PoliticaAlcanceA1 <<control>>
+  class "Generador de contenido" as GeneradorContenido <<control>>
+  class "Gestor de plantillas" as GestorPlantillas <<control>>
+  class "Gestor de validacion" as GestorValidacion <<control>>
+  class "Servicio trazabilidad" as ServicioTrazabilidad <<control>>
+  class "Servicio confirmaciones" as ServicioConfirmaciones <<control>>
+  class "Generador PDF" as GeneradorPDF <<control>>
+}
+
+package "Fronteras" {
+  class "Trigger Apps Script" as TriggerAppsScript <<boundary>>
+  class "Google Workspace Gateway" as GoogleWorkspaceGateway <<boundary>>
+  class "Interfaz LN interna" as InterfazLenguajeNatural <<boundary>>
+  class "Gateway A2-A5" as GatewayAgentesExternos <<boundary>>
+}
+
+UsuarioInterno --> RolInstitucional
+UsuarioInterno "1" --> "0..*" SolicitudGeneracion : crea
+UsuarioInterno "1" --> "0..*" ValidacionHumana : valida
+
+SolicitudGeneracion "1" --> "0..1" ActividadExtension : usa
+SolicitudGeneracion "1" --> "0..1" Inscripcion : usa
+SolicitudGeneracion "1" o-- "0..*" InsumoAgenteExterno : incorpora
+SolicitudGeneracion "1" --> "0..*" PiezaComunicacional : produce
+
+PiezaComunicacional <|-- GacetillaInstitucional
+PiezaComunicacional <|-- PostRRSS
+PiezaComunicacional <|-- EmailConfirmacion
+PiezaComunicacional <|-- RespuestaInterna
+PiezaComunicacional <|-- CertificadoPDF
+
+PiezaComunicacional "0..*" --> "0..1" PlantillaInstitucional : aplica
+PiezaComunicacional "1" --> "0..*" ValidacionHumana : requiere
+PiezaComunicacional "1" --> "1..*" RegistroTrazabilidad : registra
+RegistroTrazabilidad "1" --> "0..*" Evidencia : adjunta
+
+AgenteExtensionBot ..> SolicitudGeneracion : procesa
+AgenteExtensionBot ..> ValidadorDatos
+AgenteExtensionBot ..> PoliticaAlcanceA1
+AgenteExtensionBot ..> GeneradorContenido
+AgenteExtensionBot ..> GestorPlantillas
+AgenteExtensionBot ..> GestorValidacion
+AgenteExtensionBot ..> ServicioTrazabilidad
+AgenteExtensionBot ..> ServicioConfirmaciones
+AgenteExtensionBot ..> GeneradorPDF
+
+TriggerAppsScript ..> AgenteExtensionBot : dispara
+GoogleWorkspaceGateway ..> SolicitudGeneracion : lee / actualiza
+GoogleWorkspaceGateway ..> PiezaComunicacional : materializa
+InterfazLenguajeNatural ..> SolicitudGeneracion : crea
+GatewayAgentesExternos ..> InsumoAgenteExterno : recibe
+
+note bottom of PoliticaAlcanceA1
+  A1 no hace scraping, analitica,
+  dashboards ni atencion publica masiva.
+end note
+
+note bottom of ValidacionHumana
+  La publicacion oficial, el envio critico
+  y los certificados requieren validacion humana.
+end note
+
+@enduml

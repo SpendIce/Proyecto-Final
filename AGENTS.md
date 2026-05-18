@@ -19,16 +19,17 @@ Leer en este orden segun la tarea:
 3. `Agentes/extension_bot_experto.md` para el alcance del Agente 1.
 4. `Agentes/arquitectura_multiagente_experto.md` y `Contenido/Definicion/arquitectura-multiagente.md` para arquitectura P100.
 5. `Agentes/evaluador_cicerchia.md` y `Contenido/Definicion/criterios-evaluacion-cicerchia.md` para validar decisiones.
-6. `Contenido/bible/Procesos y Agentes.md` para procesos, RACI, backlog, DoD, TRL, exclusiones y criterios institucionales.
-7. `Contenido/Campus/INDEX.md` antes de abrir PDFs del campus.
+6. `Contenido/bible/README.md` para ubicar fuentes institucionales en Markdown; en particular `Contenido/bible/PROYECTO-FIE 2026-2027 - Cicerchia Cesar.md`, `Contenido/bible/Procesos y Agentes.md` y `Contenido/bible/Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.md`.
+7. `Contenido/Campus/INDEX.md` antes de abrir PDFs del campus; usar primero los corpus Markdown `Contenido/Campus/_md/`, `Contenido/Campus/DSI1/_md/` y `Contenido/Campus/DSI2/_md/`.
 8. `Documentos/Anteproyecto/Anteproyecto-PPS-Juan-Ignacio-Gone.tex` para el entregable principal vigente.
+9. `Agentes/documentacion_sistemas_experto.md` para requisitos, casos de uso, UML, arquitectura, despliegue, planes de proyecto, riesgos, calidad, comunicaciones, metricas, pruebas y liberacion.
 
 ## Reglas de trabajo
 - Mantener al Agente 1 dentro del Proceso 4 como agente de comunicacion institucional. Puede recibir insumos de A2-A5, pero no es orquestador del sistema.
 - Respetar las exclusiones: no reemplazo de personal, no publicacion sin validacion humana, no infraestructura de alto costo, no integraciones externas complejas no definidas.
 - Al revisar o proponer contenido, mapear cada decision a proceso BPM, historia de usuario, DoD, TRL, evidencia y responsable cuando aplique.
 - Para tareas de anteproyecto, preservar la estructura oficial de 20 secciones y el formato LaTeX existente.
-- Antes de buscar en `Contenido/Campus/`, usar `Contenido/Campus/INDEX.md`; evitar busquedas amplias sobre PDFs binarios.
+- Antes de buscar en `Contenido/Campus/`, usar `Contenido/Campus/INDEX.md` y las contrapartes Markdown operativas; evitar busquedas amplias sobre PDFs binarios.
 - No borrar ni regenerar artefactos LaTeX existentes salvo pedido explicito.
 - La carpeta `Documentos/Anteproyecto/` contiene archivos generados por LaTeX; distinguir entre fuente `.tex`/`.bib` y artefactos `.aux`, `.bbl`, `.log`, `.out`, `.toc`, `.pdf`.
 - El worktree puede estar sucio porque la adaptacion desde Becerra hacia Gone todavia no fue commiteada. No revertir borrados, renombres ni agregados vinculados a esa migracion sin pedir confirmacion.
@@ -41,6 +42,7 @@ Leer en este orden segun la tarea:
 
 ## Setup de agentes
 - Los perfiles expertos versionados viven en `Agentes/`.
+- `Agentes/documentacion_sistemas_experto.md` es el perfil especializado para documentacion tecnica de sistemas y planes de gestion apoyados en DSI1/DSI2.
 - `.agents/` queda reservado para setup operativo de agentes o equipos.
 - `.codex/` queda reservado para notas y atajos especificos de Codex.
 - `.claude/` conserva estado durable y aprendizajes de sesiones.

@@ -10,3 +10,4 @@ Perfiles principales:
 - `Agentes/evaluador_cicerchia.md`: evaluacion critica contra bible, BPM, TRL, DoD y CONEAU.
 - `Agentes/anteproyecto_experto.md`: elaboracion del anteproyecto en LaTeX.
 - `Agentes/historia_viva_experto.md`: alcance del Agente 2.
+- `Agentes/documentacion_sistemas_experto.md`: documentacion tecnica de sistemas, diagramas y planes de gestion con apoyo en los corpus Markdown de Campus (`Contenido/Campus/_md/`, `DSI1/_md/`, `DSI2/_md/`).

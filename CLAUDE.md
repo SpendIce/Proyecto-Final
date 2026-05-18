@@ -26,7 +26,8 @@ Este repo fue clonado originalmente desde el trabajo de Ignacio Becerra Mas Roca
 3. Para Agente 1, leer `Agentes/extension_bot_experto.md`.
 4. Para arquitectura P100, leer `Agentes/arquitectura_multiagente_experto.md` y `Contenido/Definicion/arquitectura-multiagente.md`.
 5. Para evaluar rigor académico, leer `Agentes/evaluador_cicerchia.md` y `Contenido/Definicion/criterios-evaluacion-cicerchia.md`.
-6. Para material de campus, empezar siempre por `Contenido/Campus/INDEX.md` y recién después abrir PDFs específicos.
+6. Para fuentes institucionales, empezar por `Contenido/bible/README.md` y usar los Markdown operativos antes de abrir PDFs.
+7. Para material de campus, empezar siempre por `Contenido/Campus/INDEX.md` y los corpus Markdown (`Contenido/Campus/_md/`, `Contenido/Campus/DSI1/_md/`, `Contenido/Campus/DSI2/_md/`) antes de abrir PDFs específicos.
 
 ## Idioma
 **Siempre en español.** Términos técnicos en inglés cuando sea convención (ej: "agent", "RAG", "embedding").
@@ -35,9 +36,9 @@ Este repo fue clonado originalmente desde el trabajo de Ignacio Becerra Mas Roca
 - `Agentes/` — agentes especializados (un `.md` por agente). Cada agente tiene un dominio acotado (ej: anteproyecto, informe final, investigación).
 - `Documentos/` — documentos finales producidos por los agentes. Cada documento vive en su propia subcarpeta (ej: `Documentos/Anteproyecto/`) porque LaTeX genera múltiples archivos por documento.
 - `Contenido/` — material teórico y de cátedra organizado por tema.
-  - `Contenido/bible/` — archivos del director de carrera que definen el proyecto: reglas generales, alcance, lineamientos. Son directivas institucionales, algunas debatibles pero todas deben considerarse. Leer siempre antes de tomar decisiones de diseño o alcance.
+  - `Contenido/bible/` — archivos del director de carrera que definen el proyecto: reglas generales, alcance, lineamientos. Son directivas institucionales, algunas debatibles pero todas deben considerarse. `README.md` mapea PDFs a Markdown; `PROYECTO-FIE 2026-2027 - Cicerchia Cesar.md`, `Procesos y Agentes.md` y `Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.md` son working sources textuales. Leer siempre antes de tomar decisiones de diseño o alcance.
   - `Contenido/DocumentacionAnteproyecto/` — teoría y estructura del anteproyecto.
-  - `Contenido/Campus/` — material del campus virtual: PDFs de teoría, plantillas, manuales de defensa, metodologías ágiles, PMBOK, normativas NIST. **Usar `Contenido/Campus/INDEX.md` como punto de entrada**: contiene catálogo completo con título real, tipo, keywords, relevancia y tabla de recuperación por tipo de consulta.
+  - `Contenido/Campus/` — material del campus virtual: PDFs de teoría, plantillas, manuales de defensa, metodologías ágiles, PMBOK, normativas NIST. **Usar `Contenido/Campus/INDEX.md` como punto de entrada** y luego los Markdown operativos en `_md/`, `DSI1/_md/` o `DSI2/_md/`; abrir PDFs solo para figuras, tablas o evidencia visual exacta.
 - `attachments/` — documentos de cátedra, consignas, reglamento de proyecto final (solo lectura)
 - `investigacion/` — papers, benchmarks, estado del arte
 - `entregas/` — documentos entregados (informes de avance, presentaciones)
@@ -82,6 +83,7 @@ Hereda las leyes universales del `CLAUDE.md` raíz y las reglas de `FIE/CLAUDE.m
 - `Agentes/arquitectura_multiagente_experto.md` — experto en la arquitectura multiagente del P100: modelo de orquestación, flujos entre agentes, stack tecnológico, infraestructura por semestre, requisitos no funcionales, costos
 - `Agentes/evaluador_cicerchia.md` — simulador del director de carrera (Cicerchia) como evaluador: cuestiona propuestas, valida contra la bible, marca inconsistencias con procesos BPM/CONEAU/TRL/exclusiones. No construye, solo evalúa. Modos: evaluación puntual, mesa de examen, pre-defensa
 - `Agentes/extension_bot_experto.md` — experto en el Agente 1 (Extensión Bot): agente de comunicación institucional, generación de gacetillas/posts/mails/confirmaciones, límites del alcance, backlog E2, infraestructura por semestre, interacciones con A2-A5
+- `Agentes/documentacion_sistemas_experto.md` — experto en documentación técnica de sistemas: requisitos, casos de uso, UML, arquitectura, despliegue, planes de proyecto, riesgos, calidad, comunicaciones, métricas, pruebas y liberación usando material DSI1/DSI2
 
 ## Pointers
 - Estado: [[.claude/persistence]]

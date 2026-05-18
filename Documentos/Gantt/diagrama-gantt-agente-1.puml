@@ -1,0 +1,155 @@
+@startgantt
+title Proyecto Centenario P100 - Agente 1 Extension Bot
+caption Cronograma iterativo no cascada. Fechas estimadas derivadas del anteproyecto vigente; fechas oficiales pendientes de confirmacion.
+
+project starts 2026-03-01
+printscale monthly
+
+-- Guardarrailes transversales --
+[Tablero Kanban + matriz BPM/RACI/DoD] starts 2026-03-01
+[Tablero Kanban + matriz BPM/RACI/DoD] ends 2026-12-31
+[Tablero Kanban + matriz BPM/RACI/DoD] is colored in Thistle
+
+[Validacion humana y evidencia SEU] starts 2026-04-01
+[Validacion humana y evidencia SEU] ends 2026-12-15
+[Validacion humana y evidencia SEU] is colored in PaleGreen
+
+[Seguridad base y logs auditables] starts 2026-04-15
+[Seguridad base y logs auditables] ends 2026-12-15
+[Seguridad base y logs auditables] is colored in Wheat
+
+-- S1 Ciclo 0: Alcance y plataforma minima (TRL 3) --
+[Relevamiento P4 + equipo validador SEU] starts 2026-03-01
+[Relevamiento P4 + equipo validador SEU] ends 2026-03-31
+[Relevamiento P4 + equipo validador SEU] is colored in LightBlue
+
+[HU-001/HU-002 base Sheets Drive Apps Script] starts 2026-03-01
+[HU-001/HU-002 base Sheets Drive Apps Script] ends 2026-04-30
+[HU-001/HU-002 base Sheets Drive Apps Script] is colored in Wheat
+
+[Matriz alcance A1 exclusiones evidencia] starts 2026-03-15
+[Matriz alcance A1 exclusiones evidencia] ends 2026-04-15
+[Matriz alcance A1 exclusiones evidencia] is colored in LightBlue
+
+[H1 Anteproyecto y alcance base] happens 2026-03-31
+
+-- S1 Ciclo 1: HU-010 Gacetillas --
+[Co-diseno plantilla gacetilla SEU] starts 2026-04-01
+[Co-diseno plantilla gacetilla SEU] ends 2026-04-30
+[Co-diseno plantilla gacetilla SEU] is colored in LightGreen
+
+[Spike Sheets -> Docs + primer prompt] starts 2026-04-15
+[Spike Sheets -> Docs + primer prompt] ends 2026-05-15
+[Spike Sheets -> Docs + primer prompt] is colored in LightSkyBlue
+
+[Prototipo HU-010 + pruebas unitarias] starts 2026-05-01
+[Prototipo HU-010 + pruebas unitarias] ends 2026-06-01
+[Prototipo HU-010 + pruebas unitarias] is colored in LightSkyBlue
+
+[Validacion SEU y ajuste HU-010] starts 2026-05-20
+[Validacion SEU y ajuste HU-010] ends 2026-06-15
+[Validacion SEU y ajuste HU-010] is colored in PaleGreen
+
+[H2 HU-010 evidencia DoD] happens 2026-06-15
+
+-- S1 Ciclo 2: HU-011 Posts RRSS --
+[Co-diseno criterios IG LinkedIn] starts 2026-04-15
+[Co-diseno criterios IG LinkedIn] ends 2026-05-15
+[Co-diseno criterios IG LinkedIn] is colored in LightGreen
+
+[Prototipo HU-011 + longitudes/canales] starts 2026-05-15
+[Prototipo HU-011 + longitudes/canales] ends 2026-06-15
+[Prototipo HU-011 + longitudes/canales] is colored in LightSkyBlue
+
+[Validacion SEU y ajuste HU-011] starts 2026-06-01
+[Validacion SEU y ajuste HU-011] ends 2026-06-30
+[Validacion SEU y ajuste HU-011] is colored in PaleGreen
+
+[Gate TRL 3 MVP HU-010/HU-011] happens 2026-07-31
+
+[Informe avance + backlog S2] starts 2026-07-01
+[Informe avance + backlog S2] ends 2026-07-31
+[Informe avance + backlog S2] is colored in Thistle
+
+-- S2 Ciclo 3: HU-012 Confirmaciones --
+[Trigger Sheets + Gmail] starts 2026-08-01
+[Trigger Sheets + Gmail] ends 2026-08-31
+[Trigger Sheets + Gmail] is colored in LightSkyBlue
+
+[Registro envio y logs persistentes] starts 2026-08-15
+[Registro envio y logs persistentes] ends 2026-09-30
+[Registro envio y logs persistentes] is colored in Wheat
+
+[Validacion usuario interno HU-012] starts 2026-09-01
+[Validacion usuario interno HU-012] ends 2026-09-30
+[Validacion usuario interno HU-012] is colored in PaleGreen
+
+[H4 HU-012 DoD completo] happens 2026-09-30
+
+-- S2 Ciclo 4: HU-013 Lenguaje natural interno --
+[Email de inicio + invitacion a chat] starts 2026-08-15
+[Email de inicio + invitacion a chat] ends 2026-09-30
+[Email de inicio + invitacion a chat] is colored in LightSkyBlue
+
+[Registro datos requeridos en Sheets] starts 2026-09-01
+[Registro datos requeridos en Sheets] ends 2026-10-15
+[Registro datos requeridos en Sheets] is colored in Wheat
+
+[Validacion usabilidad interna] starts 2026-09-20
+[Validacion usabilidad interna] ends 2026-10-31
+[Validacion usabilidad interna] is colored in PaleGreen
+
+[H5 HU-013 DoD completo] happens 2026-10-31
+
+-- S2 Ciclo 5: HU-014 Certificados --
+[Plantilla certificado con validacion] starts 2026-09-15
+[Plantilla certificado con validacion] ends 2026-10-15
+[Plantilla certificado con validacion] is colored in LightGreen
+
+[Generacion PDF + aprobacion manual] starts 2026-10-01
+[Generacion PDF + aprobacion manual] ends 2026-11-15
+[Generacion PDF + aprobacion manual] is colored in LightSkyBlue
+
+[Log emision + prueba controlada] starts 2026-10-15
+[Log emision + prueba controlada] ends 2026-11-30
+[Log emision + prueba controlada] is colored in PaleGreen
+
+[H6 HU-014 DoD completo] happens 2026-11-30
+
+-- S2 Integracion y cierre TRL 4 --
+[Contratos y mocks A2-A5 sin orquestar] starts 2026-09-15
+[Contratos y mocks A2-A5 sin orquestar] ends 2026-10-31
+[Contratos y mocks A2-A5 sin orquestar] is colored in LightGoldenRodYellow
+
+[Refinamiento MVP HU-010/HU-011 por feedback] starts 2026-09-15
+[Refinamiento MVP HU-010/HU-011 por feedback] ends 2026-11-15
+[Refinamiento MVP HU-010/HU-011 por feedback] is colored in LightGreen
+
+[Integracion progresiva A2-A5] starts 2026-10-15
+[Integracion progresiva A2-A5] ends 2026-12-15
+[Integracion progresiva A2-A5] is colored in LightGoldenRodYellow
+
+[Pruebas SEU checklist 1-4] starts 2026-11-01
+[Pruebas SEU checklist 1-4] ends 2026-12-15
+[Pruebas SEU checklist 1-4] is colored in PaleGreen
+
+[Ajustes prompts plantillas UX] starts 2026-11-15
+[Ajustes prompts plantillas UX] ends 2026-12-20
+[Ajustes prompts plantillas UX] is colored in LightGreen
+
+[Informe final + transferencia] starts 2026-12-01
+[Informe final + transferencia] ends 2026-12-31
+[Informe final + transferencia] is colored in Thistle
+
+[Gate TRL 4 A1 validado] happens 2026-12-15
+[Informe final entregado] happens 2026-12-31
+
+-- Continuidad P100 fuera del Proyecto A1 --
+[S3 Validacion operativa P100] starts 2027-03-01
+[S3 Validacion operativa P100] ends 2027-07-31
+[S3 Validacion operativa P100] is colored in Gainsboro
+
+[S4 Operacion consolidada P100] starts 2027-08-01
+[S4 Operacion consolidada P100] ends 2027-12-31
+[S4 Operacion consolidada P100] is colored in Gainsboro
+@endgantt
