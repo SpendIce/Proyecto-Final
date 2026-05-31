@@ -208,6 +208,8 @@ La comunicaci\'on institucional de la \ac{SEU} de la \ac{FIE} se realiza actualm
 
 La carga operativa de redacci\'on recae sobre pocas personas, cuya disponibilidad var\'ia seg\'un la temporada acad\'emica. En per\'iodos de alta actividad (inicio de semestre, inscripciones, eventos), las comunicaciones se retrasan o simplifican, perdi\'endose oportunidades de difusi\'on. La ausencia de plantillas institucionales provoca variaciones en el tono, formato y contenido de los mensajes, da\~nando la consistencia de la imagen institucional. Los registros de env\'io son informales o inexistentes, dificultando la trazabilidad requerida por \ac{CONEAU}.
 
+El relevamiento consolidado en \textit{Procesos y Agentes.md} caracteriza a los usuarios principales como personal de la Secretar\'ia de Extensi\'on ---auxiliares, coordinadores y autoridad de la Secretar\'ia--- con manejo habitual de herramientas de ofim\'atica, correo electr\'onico, mensajer\'ia y aplicaciones administrativas. Tambi\'en registra una familiarizaci\'on tecnol\'ogica media a alta, pero un uso regular de herramientas de IA todav\'ia parcial y ocasional. Esta combinaci\'on explica el criterio de dise\~no adoptado: automatizar tareas repetitivas sin exigir competencias t\'ecnicas avanzadas y conservar validaci\'on humana en cada comunicaci\'on oficial.
+
 La Tabla~\ref{tab:causa-efecto} sintetiza las causas identificadas y sus efectos observables.
 
 \begin{table}[htbp]
@@ -225,6 +227,7 @@ La Tabla~\ref{tab:causa-efecto} sintetiza las causas identificadas y sus efectos
     5 & Ausencia de registro sistem\'atico de env\'ios y publicaciones & Imposibilidad de generar evidencia de actividad comunicacional para evaluaciones CONEAU \\
     6 & Dependencia de personas clave para adaptaci\'on a distintos canales (Instagram, LinkedIn, email) & Fragilidad ante ausencia de personal; conocimiento t\'acito no documentado \\
     7 & Sin mecanismo de generaci\'on de certificados autom\'aticos & Demoras en la emisi\'on, proceso manual propenso a errores, alta carga administrativa \\
+    8 & Uso heterog\'eneo y todav\'ia ocasional de herramientas de IA por parte del personal usuario & Necesidad de una interfaz simple, flujos guiados, capacitaci\'on m\'inima y validaci\'on humana expl\'icita \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -251,6 +254,8 @@ El paradigma de sistemas multiagente \parencite{wooldridge2009} proporciona el m
 El ecosistema actual ofrece herramientas maduras para construir el Agente~1 sin dependencia de servicios en la nube propietarios: Ollama \parencite{ollama2024} para la ejecuci\'on local de \ac{LLM}, LangChain \parencite{langchain2024} para la orquestaci\'on de cadenas de prompts y gesti\'on de memoria, FastAPI \parencite{fastapi2024} como framework de backend, y Google Workspace como bus de datos e interfaz primaria de usuario. Esta combinaci\'on provee un stack completo, libre de costos de licencia, compatible con la infraestructura institucional existente y alineado con la pol\'itica de soberan\'ia de datos requerida para una instituci\'on de defensa.
 
 El repositorio institucional incorporado para este anteproyecto agrega una fuente operativa viva del Proyecto Centenario: el documento de procesos y backlog t\'ecnico de la \ac{SEU}, el formulario general del \ac{P100}, el correo de asignaci\'on de agentes y los corpus Markdown de campus, DSI1 y DSI2. Estas fuentes consolidan el enfoque de gesti\'on por procesos, \ac{RACI}, \ac{DoD}, \ac{TRL}, validaci\'on \ac{SEU}, ciberseguridad desde el principio y trazabilidad documental exigible ante \ac{CONEAU} \parencite{cicerchia2026proyecto,cicerchia2026procesos}.
+
+En particular, la versi\'on vigente de \textit{Procesos y Agentes.md}, derivada de \textit{Procesos y Agentes SEU - FIE con Backlog t\'ecnico (Jira).pdf}, incorpora una nota de dise\~no espec\'ifica para el Agente~1. Esa nota precisa el problema operativo, el perfil de usuarios de la \ac{SEU}, los requisitos funcionales y no funcionales, las interacciones esperadas con otros agentes y los casos de uso base. Por lo tanto, se adopta como respaldo documental directo para el alcance del \agenteUno{} en este anteproyecto.
 
 % =============================================================================
 % SECCION 7: PROPOSITO Y JUSTIFICACION
@@ -739,14 +744,16 @@ Se establecen los siguientes acuerdos preliminares de seguridad para el Agente~1
 
 \subsection{Calidad}
 
-La gesti\'on de calidad del Agente~1 se estructura en tres niveles:
+La gesti\'on de calidad del Agente~1 se estructura en cinco niveles:
 
 \begin{enumerate}[label=\arabic*.]
   \item \textbf{Definition of Done por historia de usuario:} cada \ac{HU} tiene un \ac{DoD} espec\'ifico con criterios verificables. El \ac{DoD} global exige implementaci\'on completa, ausencia de errores cr\'iticos, logs registrados, integraci\'on con el sistema, documentaci\'on m\'inima, pruebas realizadas y validaci\'on por usuario de la \ac{SEU} cuando corresponda.
 
   \item \textbf{Calidad del contenido generado:} se eval\'ua con un checklist de cuatro dimensiones: precisi\'on factual, adecuaci\'on al tono institucional, correcta aplicaci\'on de plantilla y longitud adecuada al canal. La escala es 1--4 (1~=~no cumple, 4~=~cumple completamente). El criterio de aceptaci\'on es $\geq 3$ en todas las dimensiones.
 
-  \item \textbf{Alineaci\'on con ISO/IEC~25010 e ISO~9001:} se mantiene un backlog de calidad espec\'ifico alineado con las caracter\'isticas de funcionalidad, confiabilidad y usabilidad de la norma \parencite{iso25010, iso9001}. Los registros de validaci\'on se almacenan en Google Drive con nomenclatura estandarizada: \texttt{VAL-SX-YYYY-MM-DD-descripcion.pdf}, garantizando trazabilidad auditable para \ac{CONEAU}.
+  \item \textbf{Requisitos no funcionales operativos:} la versi\'on vigente de \textit{Procesos y Agentes.md} explicita como atributos esperados la seguridad de la informaci\'on, una interfaz amigable, uso directo de las tareas principales, operaci\'on en servidor local, mantenibilidad, tolerancia a fallos y disponibilidad objetivo del 99\%. En este anteproyecto esos atributos se verifican mediante controles de seguridad, pruebas de usabilidad, registro de fallos, plan de contingencia y monitoreo de ejecuci\'on.
+
+  \item \textbf{Alineaci\'on con ISO/IEC~25010 e ISO~9001:} se mantiene un backlog de calidad espec\'ifico alineado con las caracter\'isticas de funcionalidad, confiabilidad, mantenibilidad y usabilidad de la norma \parencite{iso25010, iso9001}. Los registros de validaci\'on se almacenan en Google Drive con nomenclatura estandarizada: \texttt{VAL-SX-YYYY-MM-DD-descripcion.pdf}, garantizando trazabilidad auditable para \ac{CONEAU}.
 
   \item \textbf{DoD extendido para auditor\'ia:} cuando la historia involucre datos institucionales o comunicaciones oficiales, se exige evidencia de uso (logs y outputs), documentaci\'on funcional, trazabilidad de datos y validaci\'on formal registrada.
 \end{enumerate}
@@ -1189,6 +1196,9 @@ La Tabla~\ref{tab:criterios-aceptacion} consolida las m\'etricas n\'ucleo que se
     M10 & Cumplimiento \ac{DoD} & Checks \ac{DoD} cumplidos / checks aplicables por \ac{HU} & 100\% para declarar una \ac{HU} cerrada & Por \ac{HU} \\
     M11 & Defectos cr\'iticos & Defectos cr\'iticos abiertos al momento de gate o release & 0 defectos cr\'iticos abiertos & Gates \\
     M12 & Pruebas cr\'iticas & Pruebas cr\'iticas ejecutadas / pruebas cr\'iticas planificadas & 100\% para el gate correspondiente & Gates \\
+    M13 & Disponibilidad funcional & Tiempo en que el flujo candidato permanece utilizable durante ventanas de prueba / tiempo total de ventana & $\geq$~99\% en piloto controlado; incidentes registrados y analizados & S2 \\
+    M14 & Usabilidad operativa & Usuarios que completan tareas guiadas sin asistencia t\'ecnica / usuarios participantes & $\geq$~80\% en muestra de validaci\'on \ac{SEU} & S2 \\
+    M15 & Mantenibilidad y tolerancia a fallos & Incidentes con log, causa, acci\'on correctiva y recuperaci\'on documentada / incidentes detectados & 100\% de incidentes relevantes registrados antes de gate & S1--S2 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -1212,6 +1222,8 @@ La Tabla~\ref{tab:protocolo-medicion} define c\'omo se capturan las m\'etricas. 
     M5, M11, M12 & Paquete de gate \ac{TRL}, reporte de pruebas, defectos y acta/informe de cierre & G2 y G4 & Director/Tutor + Go\~ne; acta, reporte de pruebas, registro de defectos \\
     M6 & Backlog, matriz de cobertura por canal y evidencias de salida & Cierre de S1 y S2 & Go\~ne + \ac{SEU}; matriz de canales y ejemplos generados \\
     M9 & Checklist de seguridad: permisos, secretos, \ac{RBAC}, prompt injection, logs y acciones bloqueadas & Antes de release/gate & Responsable t\'ecnico; checklist, pruebas negativas y registro de configuraci\'on \\
+    M13, M15 & Registro de disponibilidad, bit\'acora de incidentes, errores de ejecuci\'on y recuperaciones documentadas & Por ventana de prueba y por gate & Go\~ne + responsable t\'ecnico; log, incidente, causa y acci\'on correctiva \\
+    M14 & Prueba guiada de tareas principales y checklist de usabilidad con usuarios \ac{SEU} & Validaci\'on S2 & Go\~ne + usuarios \ac{SEU}; capturas, checklist y observaciones \\
     \bottomrule
   \end{tabularx}
 \end{table}
