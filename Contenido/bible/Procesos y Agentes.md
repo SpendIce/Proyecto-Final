@@ -2,7 +2,7 @@
 
 Fuente original vigente: `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`.
 
-Nota operativa: este Markdown fue regenerado desde la versión nueva del PDF de 154 páginas para mantener una fuente textual buscable por agentes. El PDF queda como evidencia original; este archivo queda como working source para búsqueda, diff y actualización documental.
+Nota operativa: este Markdown fue regenerado desde la versión nueva del PDF de 165 páginas para mantener una fuente textual buscable por agentes. El PDF queda como evidencia original; este archivo queda como working source para búsqueda, diff y actualización documental.
 
 ---
 
@@ -2045,7 +2045,274 @@ validación humana antes de proceder a la publicación oficial. Este control es 
 evitar riesgos reputacionales, como la publicación de errores o información inventada por la
 IA.
 Notas Diseño - AI 1
-Agente 2 - Notas
+Índice
+Índice......................................................................................................................................... 2
+Proyecto.....................................................................................................................................3
+Problema................................................................................................................................... 3
+Descripción de los Usuarios..................................................................................................... 3
+Modelo de Negocio................................................................................................................... 4
+Requisitos del sistema.............................................................................................................. 5
+   ● Funcionales...................................................................................................................... 5
+   ● No Funcionales................................................................................................................ 5
+Interacción con Demás Agentes.............................................................................................. 6
+Metodología de desarrollo de software...................................................................................6
+Cronograma.............................................................................................................................. 7
+Diagrama de Gantt...................................................................................................................8
+Diagrama de Clases.................................................................................................................. 9
+Casos de Uso............................................................................................................................. 9
+   1. Inicio de sesión (Actor: Operador de Extensión)........................................................ 9
+   2. Cargar Datos (Actor: Operador de Extensión)........................................................... 9
+   3. Generación de Contenido (Actor: Script).................................................................... 9
+   4. Validación Utilitaria (Actor: Coordinador de Extensión).......................................... 9
+   5. Validación Semántica (Actor: Responsable de Gestión del Conocimiento).............. 9
+   6. Mantenimiento del sistema (Actor: Responsable Técnico)........................................ 9
+   7. Publicación de Contenidos (Actor: Canales de Publicación)..................................... 9
+   8. Revisión de material para generación de contenido. (Actor: Script)........................ 9
+   Lista de Actores para los Casos de Uso:.........................................................................10
+   Diagrama de Casos de Uso.............................................................................................. 10
+Diagrama de Componentes................................................................................................... 10
+Diagrama de Despliegue........................................................................................................ 10
+Diagrama de Estados............................................................................................................. 10
+Diagrama de Actividades.......................................................................................................10
+Diagrama de Secuencia.......................................................................................................... 10
+Proyecto
+Proyecto CENTENARIO: Sistema de Agentes Inteligentes para Extensión Universitaria.
+Particularmente el agente “Extensión Bot”.
+
+
+Problema
+La Secretaría de Extensión Universitaria se encuentra con problemas de comunicación y
+coordinación con otras áreas que se suman a la existencia de tareas repetitivas y tediosas que
+podrían ser automatizadas, como el envío de certificados de inscripción, asistencia y
+aprobación; difusión de anuncios, extracción de información de las redes sociales para su
+posterior análisis, etc.
+Es por esto que surgió la necesidad de un sistema que automatice estas tareas y con el cual se
+pueda comunicar el personal de esta área.
+
+
+Descripción de los Usuarios
+   ●​ Pertenecen al área de extensión de la facultad, como auxiliares, coordinadores y el
+      Secretario de Extensión.
+   ●​ Salvo el secretario de extensión todos tienen más de 5 años de antigüedad.
+   ●​ Todos manejan software de ofimática y aplicaciones de mensajería/correo electrónico
+      además de organización (sean calendarios o herramientas administrativas) pero solo la
+      mitad utiliza regularmente herramientas de IA y de manera ocasional.
+   ●​ El uso de la IA actualmente se enfoca principalmente en la redacción de textos y la
+      búsqueda y resumen de información, mostrando que son las tareas que más se
+      desean automatizar.
+   ●​ Los usuarios afirman tener una familiarización de media a alta con la tecnología y
+      que consideran que hay múltiples tareas que automatizar.
+   ●​ Las principales dificultades que encuentran en su trabajo son:
+          ○​ Problemas de comunicación y coordinación con otras áreas.
+          ○​ Problemas con la gestión administrativa.
+          ○​ Existencia de tareas repetitivas y tediosas que podrían ser automatizadas
+             (chequeo y envío de certificados de inscripción, asistencia y aprobación;
+             difusión de anuncios, extracción de información de las redes sociales para su
+             posterior análisis, etc).
+      Modelo de Negocio
+                                                                             Relación con los       Segmento de
+ Socios Clave          Actividades Clave            Propuestas de Valor
+                                                                                 Clientes             Clientes
+
+●​ Equipo         ●​ Relevamiento de             ●​ Automatizar tareas    ●​ Relación             ●​ Personal del
+   académico e       necesidades y soporte a los    repetitivas              colaborativa y          área de
+   investigador      usuarios.                      relacionadas a la        comunicación/           Secretaría de
+   es             ●​ Diseño y desarrollo de         creación y extracción    feedback                Extensión
+●​ Facultad de       agentes inteligentes.          de información.          constante.              Universitaria
+   Ingeniería     ●​ Automatización de           ●​ Acelerar búsqueda y ●​ Capacitación y            de la
+   del Ejército      procesos.                      análisis de              acompañamient           Facultad de
+   (FIE).         ●​ Validación de avances.         información              o.                      Ingeniería
+●​ Proveedores                                                            ●​ Soporte                 del Ejército.
+   tecnológicos                                                              técnico.             ●​ Coordinador
+   .                                                                                                 es.
+                                                                               Canales de         ●​ Docentes.
+                         Recursos Clave
+                                                                              Comunicación
+
+                  ●​ Recursos humanos                                       ●​ Implementació
+                     (alumnos de 4° y 5°,                                      n directa del
+                     profesores)                                               sistema dentro
+                  ●​ Información acerca de las                                 de la
+                     necesidades de la                                         institución.
+                     Secretaría de Extensión                                ●​ Feedback a
+                     Universitaria.                                            través de
+                  ●​ Bibliografía                                              encuestas,
+                  ●​ Memorias RAM de hasta                                     correos y
+                     64GB para servidores                                      reuniones
+                     destinados a Desarrollo,                                  presenciales.
+                     Pruebas y Preproducción
+                     del Software.
+                  ●​ Microprocesador IA para
+                     servidor de
+                     Implementación y
+                     Despliegue de agentes
+                     inteligentes funcionales.
+
+
+             Estructuras de Costo                                       Fuentes de Ingresos
+
+●​ Infraestructura tecnológica mencionada en los
+   recursos                                        ●​ Inversión que realizará la FIE de acuerdo al presupuesto.
+●​ Mantenimiento del sistema
+●​ Documentación
+Requisitos del sistema
+  ●​ Funcionales
+        1.​ Generar gacetillas en base a plantillas institucionales o solicitudes de los
+            usuarios.
+        2.​ Generar post para redes sociales de formato adaptable.
+        3.​ Generar newsletters en base a la información recibida.
+        4.​ Generar certificados en formato PDF.
+        5.​ Ingreso mediante credenciales de usuarios con permisos particulares
+            dependientes de su rol.
+        6.​ Solicitar validación humana antes de la publicación de cualquier contenido
+            generado.
+        7.​ Permitir a los usuarios correspondientes validar contenidos pendientes de
+            aprobación.
+        8.​ Programar el envío de anuncios de actividades a medida que se crean estas.
+        9.​ Recibir e interpretar distintos tipos de archivos (PDF, docx, xlsx, etc), con el
+            objetivo de generar contenido.
+        10.​Almacenar resultados mediante hojas de Google Sheets
+        11.​Disparar la generación de contenido a partir de peticiones humanas, alertas de
+            cambios en una fuente de información sobre propuestas académicas o
+            solicitudes de otros agentes.
+
+  ●​ No Funcionales
+        1.​ Generar contenido en menos de 30 segundos.
+        2.​ Operar la información de forma segura.
+        3.​ Tener una interfaz amigable.
+        4.​ Ser fácil de utilizar, realizando las tareas principales de forma directa.
+        5.​ Funcionar en un servidor local.
+        6.​ Resultar mantenible.
+        7.​ Ser tolerante a fallos.
+        8.​ Tener una disponibilidad del 99%.
+Interacción con Demás Agentes
+
+   ●​ Agente 2:
+         ○​ Recibir datos históricos
+   ●​ Agente 3
+         ○​ Recibir información sobre eventos
+   ●​ Agente 4
+         ○​ Recibir consultas del agente 4 sobre propuestas institucionales.
+         ○​ Enviar material para resolver dichas consultas
+   ●​ Agente 5
+         ○​ Recibir analiticas de contenidos publicados para considerar
+
+
+Metodología de desarrollo de software
+Se propuso para el proyecto la metodología de desarrollo iterativa Scrum.
+Esto se debe a que el proyecto está conformado por varios grupos que deben ponerse de
+acuerdo, por lo que las reuniones frecuentes (característica de Scrum) son útiles para
+coordinar y conocer cómo avanzan todos los equipos.
+         Cronograma
+
+
+          Actividad /             Semestre 1    Semestre 2      Semestre 3      Semestre 4
+          Entregable             (Meses 1–6)   (Meses 7–12)   (Meses 13–18)   (Meses 19–24)
+
+Relevamiento de necesidades de
+                                     *
+   la Secretaría de Extensión
+
+Definición funcional y técnica
+                                     *
+   del sistema de agentes
+
+        Preparación de
+        infraestructura              *
+            mínima
+
+         Pilotos de
+       automatización                *              *
+       comunicacional
+
+       Integración con
+       redes sociales y              *              *
+       web institucional
+
+         Repositorio
+           histórico                 *              *
+         institucional
+
+        Evaluación de
+           impacto                                                                 *
+         institucional
+
+           Manual
+          operativo y                                                              *
+         capacitación
+
+            Plan de
+     escalabilidad hacia el                                                        *
+          Centenario
+Diagrama de Gantt
+Vista previa:
+
+
+
+
+Diagrama de Clases
+Diagrama de Casos de Uso
+
+   1.​ Iniciar sesión (Actores: Responsable de Gestión del Conocimiento,
+       Coordinador de Extensión)
+           1.​ Ingresar credenciales.
+           2.​ Corroborar credenciales ingresadas con la base de datos.
+           3.​ Si las credenciales se encuentran en la base de datos, otorgar acceso.
+           4.​ Si faltan credenciales o han sido ingresadas erróneamente, negar acceso.
+           5.​ Registrar ingreso en el log.
+   2.​ Recibir entradas (Actores: Trigger de Contenido)
+           1.​ Un script (el trigger de contenido) monitorea la aparición de nuevas entradas.
+           2.​ El script envía el contenido de las nuevas entradas.
+           3.​ Extensión Bot recibe el contenido y estructura los datos para generar
+               contenido.
+   3.​ Generar Contenido (Actores: Repositorio Institucional, Google
+       Workspace)
+           1.​ Extensión Bot recibe datos para generar contenido.
+           2.​ El agente consulta al repositorio de información y genera contenido en base a
+               los resultados. Si el contenido está incompleto, manda un mail al operador que
+               rellenó el formulario.
+           3.​ Se persiste el contenido generado como borrador pendiente de validación en
+               Google Drive.
+4.​ Realizar Validación Utilitaria (Actor: Coordinador de Extensión)
+      1.​ El Coordinador de Extensión realiza la validación utilitaria para evitar
+          alucinaciones de la IA.
+      2.​ Se marca el contenido como efectivamente validado utilitariamente o
+          pendiente de corrección.
+      3.​ El sistema almacena en el log los resultados de dicha validación.
+5.​ Realizar Validación Semántica (Actor: Responsable de Gestión del
+    Conocimiento)
+      1.​ El Responsable de Gestión del Conocimiento realiza la validación semántica.
+      2.​ Se marca el contenido como efectivamente validado semánticamente o
+          pendiente de corrección.
+      3.​ El sistema almacena en el log los resultados de dicha validación.
+6.​ Publicar Contenido (Actor: Canales de Publicación)
+      1.​ Al contenido validado se le asigna una fecha de publicación.
+      2.​ Se envía el contenido aprobado junto con su fecha de publicación a los canales
+          de publicación.
+7.​ Mantener el sistema (Actor: Responsable Técnico)
+
+Lista de Actores para los Casos de Uso:
+      ●​ Trigger de Contenido: Está pendiente de nuevas entradas de contenido y
+         dispara la generación de contenido por parte del Extensión Bot.
+      ●​ Repositorio Institucional: A donde accede el bot para obtener referencias del
+         contenido a generar.
+      ●​ Google Workspace: Recibe y almacena los borradores de contenido.
+      ●​ Responsable de Gestión del Conocimiento (RGC): Encargado de la
+         validación semántica.
+      ●​ Coordinador de Extensión: Encargado de la validación utilitaria.
+      ●​ Canales de Publicación: Encargados de recibir y publicar los contenidos que
+         genere el bot y hayan sido aprobados.
+      ●​ Responsable Técnico: Encargado del mantenimiento del sistema.
+Diagrama de Componentes
+
+
+
+
+Diagrama de Despliegue
+Diagrama de Estados
+Diagrama de Actividades
+Diagrama de Secuencia
+Agente 2 - Notas
 Como Diseñador del Sistema de Agentes Inteligentes, tras revisar las notas y especificaciones
 técnicas de los agentes del Proyecto Centenario, he identificado los siguientes aspectos clave
 que deben incorporarse para clarificar alcances, interacciones y datos de procesos en sus
