@@ -8,6 +8,8 @@ Este artefacto contiene la vista principal del cronograma del proyecto de Juan I
 
 Los PNG/SVG existentes son artefactos renderizados. No son fuente de verdad y no se regeneran automaticamente despues de cambios documentales.
 
+Los nombres visibles de tareas priorizan lectura humana para presentacion y revision con la SEU. La trazabilidad tecnica queda preservada en la estructura por secciones, fechas, hitos, README y fuentes documentales, no en prefijos largos dentro de cada barra.
+
 ## Enfoque del cronograma
 
 La vista principal cubre el proyecto del Agente 1 durante 2026 y deja febrero de 2027 solo como ventana maxima de entrega final, demostracion o transferencia si la catedra o la agenda institucional lo requieren. La continuidad P100 posterior queda fuera del alcance directo del proyecto de Gone.
@@ -17,6 +19,7 @@ La vista principal cubre el proyecto del Agente 1 durante 2026 y deja febrero de
 - El alcance corresponde al Agente 1 Extension Bot: agente de comunicacion institucional de la SEU dentro del Proceso 4.
 - El Agente 1 puede recibir insumos de A2-A5, pero no orquesta el sistema multiagente.
 - El primer semestre de 2026 se concentra en anteproyecto, alcance, diseno, trazabilidad, preparacion tecnica y MVP controlado de HU-010/HU-011.
+- La firma del anteproyecto por la SEU se incluye como hito al 30 de junio de 2026.
 - El segundo semestre de 2026 se concentra en implementacion, robustecimiento, integracion progresiva, pruebas, validacion SEU, release candidata TRL 4, informe final y cierre anual.
 - Febrero de 2027 se modela como cierre maximo: observaciones finales, paquete final, demo y transferencia operativa al P100.
 - Toda publicacion, envio oficial o emision de certificados requiere validacion humana previa.
@@ -27,7 +30,7 @@ La vista principal cubre el proyecto del Agente 1 durante 2026 y deja febrero de
 
 | Periodo | Foco | Resultado esperado |
 |---|---|---|
-| S1 Mar-Jul 2026 | Anteproyecto, diseno, gobierno, datos, arquitectura, plantillas y MVP controlado | Anteproyecto entregado, diseno validable, HU-010/HU-011 con evidencia y gate TRL 3 |
+| S1 Mar-Jul 2026 | Anteproyecto, diseno, gobierno, datos, arquitectura, plantillas y MVP controlado | Anteproyecto entregado, firma SEU a fin de junio, diseno validable, HU-010/HU-011 con evidencia y gate TRL 3 |
 | S2 Ago-Dic 2026 | Desarrollo, automatizacion, robustecimiento, integracion, pruebas y validacion | HU-012/HU-013/HU-014 operativas, pruebas ejecutadas, gate TRL 4 e informe final |
 | Feb 2027 | Cierre final maximo | Observaciones finales incorporadas, demo, paquete final y transferencia P100 |
 
@@ -35,7 +38,7 @@ La vista principal cubre el proyecto del Agente 1 durante 2026 y deja febrero de
 
 | Bloque Gantt | Proceso / alcance | Evidencia esperada |
 |---|---|---|
-| S1 Gobierno y anteproyecto | Alcance A1, Proceso 4, exclusiones, agenda academica | Anteproyecto, baseline documental, tablero Kanban, minutas, matriz de riesgos |
+| S1 Gobierno y anteproyecto | Alcance A1, Proceso 4, exclusiones, agenda academica | Anteproyecto, firma SEU, baseline documental, tablero Kanban, minutas, matriz de riesgos |
 | S1 Diseno funcional | HU-010 a HU-014, HITL, RACI, DoD | Casos de uso, estados, trazabilidad, arquitectura, planes complementarios |
 | S1 Preparacion tecnica | Plataforma base, Google Workspace, datos, logs | Entorno local, diccionario Sheets, plantillas SEU, correlation ID, indice de evidencias |
 | S1 MVP HU-010/HU-011 | Gacetillas y posts RRSS | Outputs controlados, pruebas de datos, validacion humana, logs y checklist |
