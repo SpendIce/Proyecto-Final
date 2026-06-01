@@ -21,6 +21,13 @@
 \usepackage{tabularx}
 \usepackage{longtable}
 \usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.18}
+\emergencystretch=2em
+\raggedbottom
 
 % --- Figuras y graficos ---
 \usepackage{graphicx}
@@ -61,6 +68,7 @@
 \fancyhead[C]{\small Anteproyecto 2026}
 \fancyhead[R]{\small Anteproyecto}
 \fancyfoot[C]{\thepage}
+\setlength{\headheight}{14pt}
 \renewcommand{\headrulewidth}{0.4pt}
 
 % --- Definiciones globales compartidas ---
@@ -351,14 +359,15 @@ El Agente~1 se ubica como soporte tecnol\'ogico principal del Proceso~4 (Comunic
   \centering
   \caption{Mapa de alcance del Agente~1 contra procesos BPM}
   \label{tab:mapa-procesos-a1}
-  \begin{tabularx}{\textwidth}{lXlX}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{L{0.22\textwidth}Y L{0.28\textwidth}}
     \toprule
-    \textbf{Proceso} & \textbf{Uso del Agente~1} & \textbf{Rol A1} & \textbf{Responsable institucional} \\
+    \textbf{Proceso} & \textbf{Uso del Agente~1} & \textbf{Rol y responsable} \\
     \midrule
-    P4 -- Comunicaci\'on y Difusi\'on Institucional & Generaci\'on de gacetillas, posts, newsletters, mails y borradores de publicaciones. & Principal & Coordinador de Extensi\'on (A); Responsable de Gesti\'on del Conocimiento y Responsable de Redes Sociales (R) \\
-    P3 -- Dise\~no y Gesti\'on de Actividades & Producci\'on de res\'umenes o textos de apoyo para difundir actividades ya definidas. & Soporte comunicacional & Secr./Coord. Extensi\'on (A); Responsable de proyectos y eventos (R) \\
-    P5 -- Programas, Cursos y Diplomaturas & Confirmaciones, difusi\'on y certificados generados como borrador con validaci\'on previa. & Soporte comunicacional/documental & Coordinador de Extensi\'on (A); Responsable de cursos (R) \\
-    P6 -- Eventos Acad\'emicos & Difusi\'on de eventos a partir de datos validados por el proceso correspondiente. & Soporte comunicacional & Coordinador de Extensi\'on (A); Responsable de proyectos especiales (R) \\
+    P4 -- Comunicaci\'on y Difusi\'on Institucional & Generaci\'on de gacetillas, posts, newsletters, mails y borradores de publicaciones. & Rol principal. Coordinador de Extensi\'on (A); Responsable de Gesti\'on del Conocimiento y Responsable de Redes Sociales (R). \\
+    P3 -- Dise\~no y Gesti\'on de Actividades & Producci\'on de res\'umenes o textos de apoyo para difundir actividades ya definidas. & Soporte comunicacional. Secr./Coord. Extensi\'on (A); Responsable de proyectos y eventos (R). \\
+    P5 -- Programas, Cursos y Diplomaturas & Confirmaciones, difusi\'on y certificados generados como borrador con validaci\'on previa. & Soporte comunicacional y documental. Coordinador de Extensi\'on (A); Responsable de cursos (R). \\
+    P6 -- Eventos Acad\'emicos & Difusi\'on de eventos a partir de datos validados por el proceso correspondiente. & Soporte comunicacional. Coordinador de Extensi\'on (A); Responsable de proyectos especiales (R). \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -449,6 +458,7 @@ La justificaci\'on de este enfoque radica en la naturaleza exploratoria del proy
 
 \begin{figure}[htbp]
   \centering
+  \resizebox{\textwidth}{!}{%
   \begin{tikzpicture}[
     fase/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=1.2cm, align=center, font=\small},
     trl/.style={fill=blue!10, font=\small\bfseries},
@@ -531,7 +541,8 @@ La justificaci\'on de este enfoque radica en la naturaleza exploratoria del proy
     \draw[arrow, dashed, gray] (trl4.south) -- ++(0,-0.3) -| (r3.north);
     \draw[arrow, dashed, gray] (trl5.south) -- ++(0,-0.3) -| (r4.north);
 
-  \end{tikzpicture}
+  \end{tikzpicture}%
+  }
   \caption{Ciclo de vida iterativo-incremental con gates TRL por semestre. S1--S2: alcance del Proyecto Go\~ne (1 a\~no). S3--S4: proyecci\'on del P100.}
   \label{fig:ciclo-vida}
 \end{figure}
@@ -547,7 +558,8 @@ Se evaluaron tres modelos de proceso para el desarrollo del sistema. La Tabla~\r
   \centering
   \caption{Comparaci\'on de metodolog\'ias candidatas}
   \label{tab:metodologias}
-  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{L{0.24\textwidth}Y Y Y}
     \toprule
     \textbf{Criterio} & \textbf{Scrum} & \textbf{Kanban} & \textbf{Iterativo convencional} \\
     \midrule
@@ -694,14 +706,18 @@ El proyecto reutiliza hardware institucional existente. Los modelos de lenguaje 
 
 La Tabla~\ref{tab:riesgos} presenta los riesgos identificados para el alcance de este Proyecto y sus estrategias de mitigaci\'on.
 
-\begin{table}[htbp]
-  \centering
+{\footnotesize
+\begin{longtable}{L{0.06\textwidth}L{0.42\textwidth}L{0.44\textwidth}}
   \caption{Riesgos y mitigaciones del Agente~1}
-  \label{tab:riesgos}
-  \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+  \label{tab:riesgos}\\
     \toprule
     \textbf{\#} & \textbf{Riesgo} & \textbf{Mitigaci\'on} \\
     \midrule
+    \endfirsthead
+    \toprule
+    \textbf{\#} & \textbf{Riesgo} & \textbf{Mitigaci\'on} \\
+    \midrule
+    \endhead
     R1 & Alucinaciones del LLM: generaci\'on de contenido incorrecto o inventado & Validaci\'on humana obligatoria antes de publicaci\'on. Prompts con restricciones expl\'icitas. Fallback a API externa si la calidad es insuficiente. \\
     R2 & Calidad insuficiente del contenido generado (tono, formato, longitud) & Ciclo iterativo de ajuste de prompts con retroalimentaci\'on del personal de la SEU. Evaluaci\'on con checklist de escala 1--4 en cada gate TRL. \\
     R3 & Plantillas institucionales no definidas antes del inicio del desarrollo & Definici\'on de plantillas como primera actividad del proyecto, en colaboraci\'on con la SEU, antes del Semestre~1. \\
@@ -717,8 +733,8 @@ La Tabla~\ref{tab:riesgos} presenta los riesgos identificados para el alcance de
     R13 & Concentraci\'on excesiva de implementaci\'on en S2 & Separar S2 en ciclos HU-012, HU-013 y HU-014, mantener refinamiento del \ac{MVP} como actividad expl\'icita, y usar contratos/mocks A2--A5 para no depender de integraciones completas al inicio del semestre. \\
     R14 & Datos incompletos o sin esquema estable en Google Sheets & Definir campos m\'inimos, validaciones, identificador de solicitud y estados antes de ejecutar el flujo. Ante datos incompletos, registrar estado \texttt{INCOMPLETA} y solicitar correcci\'on sin generar comunicaci\'on oficial. \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{longtable}
+}
 
 % =============================================================================
 % SECCION 15: ACUERDOS DE SEGURIDAD Y CALIDAD
@@ -767,7 +783,7 @@ Los planes complementarios de calidad, estados, despliegue y auditor\'ia refinan
   \caption{Gates operativos de calidad y evidencia}
   \label{tab:gates-calidad}
   \footnotesize
-  \begin{tabularx}{\textwidth}{lXlX}
+  \begin{tabularx}{\textwidth}{L{0.15\textwidth}Y L{0.23\textwidth}Y}
     \toprule
     \textbf{Gate} & \textbf{Condici\'on de entrada} & \textbf{Salida esperada} & \textbf{Evidencia m\'inima} \\
     \midrule
@@ -793,7 +809,8 @@ Un gate queda bloqueado si existe publicaci\'on, env\'io o emisi\'on sin aprobac
   \centering
   \caption{Integrantes del equipo de proyecto}
   \label{tab:equipo}
-  \begin{tabularx}{\textwidth}{lXl}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{L{0.25\textwidth}L{0.30\textwidth}Y}
     \toprule
     \textbf{Nombre} & \textbf{Rol} & \textbf{Alcance en P100} \\
     \midrule
@@ -862,6 +879,7 @@ La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el in
 
 \begin{figure}[htbp]
   \centering
+  \resizebox{\textwidth}{!}{%
   \begin{tikzpicture}[
     bloque/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=1.1cm, align=center, font=\small},
     validacion/.style={diamond, draw, fill=yellow!15, minimum width=2.2cm, minimum height=1.1cm, align=center, font=\small},
@@ -904,7 +922,8 @@ La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el in
     \node[font=\tiny\itshape, text=gray] at (10.5, 0.7) {Ollama: LLM local};
     \node[font=\tiny\itshape, text=gray] at (10.5, -1.8) {\ac{SEU}};
 
-  \end{tikzpicture}
+  \end{tikzpicture}%
+  }
   \caption{Flujo principal del Agente~1 (Extensi\'on Bot): desde el ingreso de datos hasta la publicaci\'on final, con validaci\'on humana obligatoria.}
   \label{fig:flujo-a1}
 \end{figure}
@@ -917,9 +936,10 @@ La Tabla~\ref{tab:hu} presenta las cinco historias de usuario del \ac{EPIC}~E2 (
   \centering
   \caption{Historias de usuario del Agente~1 (EPIC E2)}
   \label{tab:hu}
-  \begin{tabularx}{\textwidth}{l>{\centering\arraybackslash}c>{\centering\arraybackslash}c>{\raggedright\arraybackslash}X}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{L{0.22\textwidth}C{0.10\textwidth}C{0.05\textwidth}Y}
     \toprule
-    \textbf{HU} & \textbf{Prioridad} & \textbf{SP} & \textbf{Definition of Done} \\
+    \textbf{HU} & \textbf{Prior.} & \textbf{SP} & \textbf{Definition of Done} \\
     \midrule
     HU-010: Generar gacetillas autom\'aticamente & P0 & 8 & Input desde Google Sheets. Output en Google Docs con plantilla institucional aplicada. Tiempo de generaci\'on $<$~30~s. Validaci\'on humana previa a entrega. \\
     HU-011: Generar posts para redes sociales & P0 & 5 & Formato adaptable a Instagram (breve, hashtags) y LinkedIn (extendido, tono profesional). Longitud configurable. Texto limpio, sin alucinaciones verificadas por validador. \\
@@ -945,17 +965,17 @@ La Tabla~\ref{tab:trazabilidad-funcional} vincula cada elemento del alcance con 
   \caption{Trazabilidad del Agente~1: proceso, DoD, evidencia y responsable}
   \label{tab:trazabilidad-funcional}
   \footnotesize
-  \begin{tabularx}{\textwidth}{l l X X X l}
+  \begin{tabularx}{\textwidth}{L{0.20\textwidth}L{0.14\textwidth}Y L{0.20\textwidth}}
     \toprule
-    \textbf{Elemento} & \textbf{Proceso} & \textbf{HU / requisito} & \textbf{DoD clave} & \textbf{Evidencia} & \textbf{Resp.} \\
+    \textbf{Elemento / requisito} & \textbf{Proceso} & \textbf{DoD y evidencia} & \textbf{Responsable} \\
     \midrule
-    Gacetillas & P4 & HU-010 & Input desde Sheet; output en Google Docs; plantilla institucional aplicada; validaci\'on humana. & Documento generado, log, checklist de calidad. & COORD/RGC \\
-    Posts RRSS & P4 & HU-011 & Formato adaptable a Instagram y LinkedIn; texto limpio y coherente; longitud configurable; validaci\'on humana. & Borrador de post, log, checklist canal. & RGC/RRSS \\
-    Confirmaciones & P5/P4 & HU-012 & Trigger al registrar inscripci\'on; email generado autom\'aticamente; registro de env\'io. & Email recibido, log de env\'io. & Responsable de cursos \\
-    Lenguaje natural interno & P4/P3 & HU-013 & Email de inicio con invitaci\'on a chat; respuesta usable; datos requeridos registrados en Sheets. & Captura de interacci\'on, registro en Sheet. & COORD/RGC \\
-    Certificados & P5 & HU-014 & Plantilla base; PDF generado; validaci\'on previa obligatoria. & PDF generado, aprobaci\'on manual, log. & COORD/Administraci\'on \\
-    Seguridad y auditor\'ia & Transversal & RNF seguridad / CONEAU & Inventario, credenciales seguras, \ac{RBAC}, logs, validaci\'on formal registrada. & Registro de activos, checklist seguridad, logs. & Go\~ne + SEU \\
-    Exclusiones & P8/P9/soporte & HU-015, HU-025, HU-052, HU-060 fuera de alcance A1 & No implementar anal\'itica, scraping, atenci\'on p\'ublica ni soporte administrativo como parte de A1. & Revisi\'on de backlog y acta de alcance. & Cicerchia/SEU \\
+    Gacetillas (HU-010) & P4 & Input desde Sheet; output en Google Docs; plantilla institucional aplicada; validaci\'on humana. Evidencia: documento generado, log y checklist de calidad. & COORD/RGC \\
+    Posts \ac{RRSS} (HU-011) & P4 & Formato adaptable a Instagram y LinkedIn; texto limpio y coherente; longitud configurable; validaci\'on humana. Evidencia: borrador de post, log y checklist de canal. & RGC/RRSS \\
+    Confirmaciones (HU-012) & P5/P4 & Trigger al registrar inscripci\'on; email generado autom\'aticamente; registro de env\'io. Evidencia: email recibido y log de env\'io. & Responsable de cursos \\
+    Lenguaje natural interno (HU-013) & P4/P3 & Email de inicio con invitaci\'on a chat; respuesta usable; datos requeridos registrados en Sheets. Evidencia: captura de interacci\'on y registro en Sheet. & COORD/RGC \\
+    Certificados (HU-014) & P5 & Plantilla base; PDF generado; validaci\'on previa obligatoria. Evidencia: PDF generado, aprobaci\'on manual y log. & COORD/Admin. \\
+    Seguridad y auditor\'ia & Transversal & Inventario, credenciales seguras, \ac{RBAC}, logs y validaci\'on formal registrada. Evidencia: registro de activos, checklist de seguridad y logs. & Go\~ne + \ac{SEU} \\
+    Exclusiones & P8/P9; admin. & HU-015, HU-025, HU-052 y HU-060 quedan fuera de alcance A1: no implementar anal\'itica, scraping, atenci\'on p\'ublica ni soporte administrativo. Evidencia: revisi\'on de backlog y acta de alcance. & Cicerchia/\ac{SEU} \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -1073,7 +1093,8 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
   \centering
   \caption{Estructura de Descomposici\'on del Trabajo (EDT)}
   \label{tab:edt}
-  \begin{tabularx}{\textwidth}{clXl}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{L{0.07\textwidth}L{0.24\textwidth}Y L{0.12\textwidth}}
     \toprule
     \textbf{ID} & \textbf{Ciclo / bloque} & \textbf{Actividades principales} & \textbf{Semestres} \\
     \midrule
@@ -1095,7 +1116,8 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
   \centering
   \caption{Entregables por semestre}
   \label{tab:entregables}
-  \begin{tabularx}{\textwidth}{clXl}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{L{0.13\textwidth}L{0.15\textwidth}Y L{0.10\textwidth}}
     \toprule
     \textbf{Semestre} & \textbf{Per\'iodo} & \textbf{Entregables} & \textbf{TRL} \\
     \midrule
@@ -1137,14 +1159,18 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
 
 La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividades a nivel mensual para los dos semestres del Proyecto, complementando la vista de hitos de alto nivel.
 
-\begin{table}[H]
-  \centering
+{\footnotesize
+\begin{longtable}{L{0.11\textwidth}L{0.66\textwidth}L{0.17\textwidth}}
   \caption{Planificaci\'on mensual detallada del Proyecto}
-  \label{tab:planificacion-mensual}
-  \begin{tabularx}{\textwidth}{lXl}
+  \label{tab:planificacion-mensual}\\
     \toprule
     \textbf{Mes} & \textbf{Actividades principales} & \textbf{Hito / Entregable} \\
     \midrule
+    \endfirsthead
+    \toprule
+    \textbf{Mes} & \textbf{Actividades principales} & \textbf{Hito / Entregable} \\
+    \midrule
+    \endhead
     \multicolumn{3}{l}{\textit{Semestre~1 --- Mar--Jul 2026}} \\
     \midrule
     Mar 2026 & Entrega del anteproyecto. Primer contacto con la \ac{SEU}: relevamiento de procesos de comunicaci\'on, inventario de plantillas existentes, formaci\'on del equipo de validaci\'on. Configuraci\'on del entorno de desarrollo (Ollama, FastAPI, Google Workspace). & H1: Anteproyecto aprobado \\
@@ -1161,8 +1187,8 @@ La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividad
     Nov 2026 & Pruebas con usuarios reales de la \ac{SEU}: checklist de cuatro dimensiones, medici\'on de rechazo, trazabilidad, defectos cr\'iticos, seguridad y tiempo de generaci\'on. & H7: HU-014 operativo \\
     Dic 2026 & Evaluaci\'on gate TRL~4. Integraci\'on final con A2--A5. Elaboraci\'on y entrega del informe final del Proyecto. Cierre acad\'emico. & H8--H9: Gate TRL~4 + Informe Final \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{longtable}
+}
 
 % =============================================================================
 % SECCION 19: METRICAS
@@ -1175,15 +1201,18 @@ Las m\'etricas del Proyecto se organizan en cuatro dimensiones: valor funcional 
 
 La Tabla~\ref{tab:criterios-aceptacion} consolida las m\'etricas n\'ucleo que se utilizar\'an para evaluar el cierre de cada historia y de cada gate \ac{TRL}.
 
-\begin{table}[H]
-  \centering
+{\footnotesize
+\begin{longtable}{L{0.05\textwidth}L{0.16\textwidth}L{0.28\textwidth}L{0.29\textwidth}L{0.07\textwidth}}
   \caption{M\'etricas n\'ucleo y criterios de aceptaci\'on}
-  \label{tab:criterios-aceptacion}
-  \footnotesize
-  \begin{tabularx}{\textwidth}{llXXc}
+  \label{tab:criterios-aceptacion}\\
     \toprule
     \textbf{ID} & \textbf{Dimensi\'on} & \textbf{Medici\'on} & \textbf{Criterio de aceptaci\'on} & \textbf{Aplic.} \\
     \midrule
+    \endfirsthead
+    \toprule
+    \textbf{ID} & \textbf{Dimensi\'on} & \textbf{Medici\'on} & \textbf{Criterio de aceptaci\'on} & \textbf{Aplic.} \\
+    \midrule
+    \endhead
     M1 & Rendimiento & Tiempo desde trigger hasta borrador disponible & $<$~30~segundos por pieza generada & S1--S2 \\
     M2 & \ac{HITL} & Acciones oficiales con validaci\'on humana previa / acciones oficiales totales & 100\%, sin excepciones & S1--S2 \\
     M3 & Eficiencia & Reducci\'on respecto de l\'inea base manual de redacci\'on & $\geq$~50\% al cierre de S2 & S2 \\
@@ -1200,22 +1229,25 @@ La Tabla~\ref{tab:criterios-aceptacion} consolida las m\'etricas n\'ucleo que se
     M14 & Usabilidad operativa & Usuarios que completan tareas guiadas sin asistencia t\'ecnica / usuarios participantes & $\geq$~80\% en muestra de validaci\'on \ac{SEU} & S2 \\
     M15 & Mantenibilidad y tolerancia a fallos & Incidentes con log, causa, acci\'on correctiva y recuperaci\'on documentada / incidentes detectados & 100\% de incidentes relevantes registrados antes de gate & S1--S2 \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{longtable}
+}
 
 \subsection{Protocolo de medici\'on}
 
 La Tabla~\ref{tab:protocolo-medicion} define c\'omo se capturan las m\'etricas. Los valores de l\'inea base, muestra final y responsables nominales quedan pendientes de confirmaci\'on con la \ac{SEU}; no obstante, el mecanismo de medici\'on se define desde S1 para evitar reconstrucciones tard\'ias.
 
-\begin{table}[H]
-  \centering
+{\footnotesize
+\begin{longtable}{L{0.14\textwidth}L{0.32\textwidth}L{0.16\textwidth}L{0.30\textwidth}}
   \caption{Protocolo de medici\'on y evidencia}
-  \label{tab:protocolo-medicion}
-  \footnotesize
-  \begin{tabularx}{\textwidth}{lXlX}
+  \label{tab:protocolo-medicion}\\
     \toprule
     \textbf{M\'etricas} & \textbf{Fuente de medici\'on} & \textbf{Frecuencia} & \textbf{Responsable / evidencia} \\
     \midrule
+    \endfirsthead
+    \toprule
+    \textbf{M\'etricas} & \textbf{Fuente de medici\'on} & \textbf{Frecuencia} & \textbf{Responsable / evidencia} \\
+    \midrule
+    \endhead
     M1, M3 & Logs de ejecuci\'on, mediciones de proceso manual y registro de tiempos por pieza & Por muestra y por gate & Go\~ne + \ac{SEU}; log, baseline manual y reporte de comparaci\'on \\
     M2, M8, M10 & Planilla de estados, checklist de validaci\'on, matriz \ac{DoD} y registro de evidencia & Por \ac{HU} y por gate & Go\~ne + validador institucional; Sheet, checklist, link a output y estado \\
     M4, M7 & Checklist \ac{SEU} 1--4, observaciones y rechazos de borradores & Por validaci\'on y cierre de semestre & Responsable de validaci\'on; formulario/checklist, registro de observaciones \\
@@ -1225,35 +1257,38 @@ La Tabla~\ref{tab:protocolo-medicion} define c\'omo se capturan las m\'etricas. 
     M13, M15 & Registro de disponibilidad, bit\'acora de incidentes, errores de ejecuci\'on y recuperaciones documentadas & Por ventana de prueba y por gate & Go\~ne + responsable t\'ecnico; log, incidente, causa y acci\'on correctiva \\
     M14 & Prueba guiada de tareas principales y checklist de usabilidad con usuarios \ac{SEU} & Validaci\'on S2 & Go\~ne + usuarios \ac{SEU}; capturas, checklist y observaciones \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{longtable}
+}
 
 \subsection{Factores cr\'iticos de \'exito}
 
 Los factores cr\'iticos de \'exito (FCE) son las condiciones cuya presencia es necesaria ---aunque no suficiente--- para que el Proyecto alcance sus objetivos. La Tabla~\ref{tab:factores-exito} los enuncia junto con la estrategia de aseguramiento correspondiente. Cada FCE se controla con las m\'etricas anteriores y con los gates de calidad definidos en la Secci\'on~15.
 
-\begin{table}[H]
-  \centering
+{\footnotesize
+\begin{longtable}{L{0.22\textwidth}L{0.35\textwidth}L{0.35\textwidth}}
   \caption{Factores cr\'iticos de \'exito del Proyecto}
-  \label{tab:factores-exito}
-  \footnotesize
-  \begin{tabularx}{\textwidth}{llXX}
+  \label{tab:factores-exito}\\
     \toprule
-    \textbf{ID} & \textbf{Factor} & \textbf{Descripci\'on} & \textbf{Estrategia de aseguramiento} \\
+    \textbf{FCE / factor} & \textbf{Descripci\'on} & \textbf{Estrategia de aseguramiento} \\
     \midrule
-    FCE-1 & Participaci\'on de la \ac{SEU} & El personal de la Secretar\'ia debe involucrarse activamente en el relevamiento, el co-dise\~no de plantillas y la validaci\'on del contenido generado. Sin este involucramiento, el agente produce contenido desalineado con el tono institucional real. & Acuerdo formal de colaboraci\'on con la \ac{SEU} previo al inicio de F1. Sesiones de co-dise\~no incluidas en el cronograma mensual. \\
-    FCE-2 & Calidad iterativa de prompts & El rendimiento del \ac{LLM} depende del dise\~no y refinamiento continuo de los prompts. Prompts pobres generan contenido con alucinaciones o tono inapropiado, elevando la tasa de rechazo (M7). & Ciclo de refinamiento de prompts con retroalimentaci\'on del validador humano desde el mes de abril (S1) y a lo largo de todo S2. \\
-    FCE-3 & Coordinaci\'on entre desarrolladores & La capa de orquestaci\'on y las interfaces entre agentes son co-responsabilidad de ambos desarrolladores. Desalineaci\'on en la arquitectura puede bloquear la integraci\'on con A2--A5 en S2. & Reuniones peri\'odicas de sincronizaci\'on con \companeroNombre. Definici\'on de contratos de interfaz en agosto (inicio de S2), antes de implementar las integraciones. \\
-    FCE-4 & Soberan\'ia de datos & Ning\'un dato institucional sensible puede enviarse a servicios de \ac{LLM} externos. El incumplimiento invalida el sistema en un contexto de defensa nacional y vulnera la Ley N\textsuperscript{o}~25.326. & Uso de Ollama como inferencia base. Auditor\'ia de flujos de datos en cada release. Cualquier alternativa externa queda restringida a contingencia aprobada, datos anonimizados y registro expl\'icito. \\
-    FCE-5 & Estabilidad de Google Workspace & La integraci\'on con Forms, Sheets, Drive y Gmail es la columna vertebral del sistema en S1. Cambios de permisos, cuotas de Apps Script o pol\'iticas de Google pueden bloquear los triggers autom\'aticos. & Configuraci\'on de cuentas de servicio con permisos m\'inimos necesarios. Monitoreo de cuotas de Apps Script. Plan de contingencia con triggers manuales como fallback. \\
-    FCE-6 & Disponibilidad funcional de A2--A5 & El Agente~1 act\'ua como nodo de comunicaci\'on institucional en S2: transforma el contenido producido por los dem\'as agentes en comunicaciones institucionales. Si A2--A5 no producen insumos utilizables al momento de la integraci\'on, la funci\'on de comunicaci\'on integrada queda sin contenido que distribuir, reduciendo el alcance a la operaci\'on aut\'onoma de S1. & Definici\'on de contratos de interfaz con mocks est\'aticos que permiten desarrollar y probar la comunicaci\'on integrada independientemente del avance de cada agente fuente. Integraci\'on real progresiva en S2 seg\'un disponibilidad confirmada de cada agente. \\
-    FCE-7 & Evidencia y trazabilidad temprana & La defensa acad\'emica depende de demostrar qu\'e se gener\'o, desde qu\'e insumo, con qu\'e estado, qui\'en valid\'o y qu\'e evidencia queda disponible. & Definir desde S1 un esquema de log con \texttt{id\_solicitud}, estado, validador, output y evidencia. Mantener \'indice de evidencias por \ac{HU} y por gate. \\
-    FCE-8 & Gobierno por estados & El avance no debe declararse por porcentaje subjetivo, sino por estados verificables de \ac{HU}, defectos y gate. & Usar estados de \ac{HU}: preparada, en implementaci\'on, en prueba, en validaci\'on \ac{SEU}, cerrada por \ac{DoD}, observada o bloqueada. Ninguna \ac{HU} se cierra sin \ac{DoD} y evidencia. \\
-    FCE-9 & Validaci\'on formal y responsables confirmados & Sin titular y suplente de validaci\'on por tipo de pieza, el \ac{HITL} queda informal y no defendible. & Confirmar responsables por \ac{HU}; registrar aprobaciones, observaciones y rechazos en canal formal; bloquear salidas oficiales si no hay validador. \\
-    FCE-10 & Despliegue progresivo y controlado & Saltar de documentaci\'on a operaci\'on real aumenta riesgo institucional y t\'ecnico. & Desplegar por etapas: documental, local controlado, sandbox Workspace, piloto \ac{SEU} limitado y release candidata \ac{TRL}~4. Cada etapa exige go/no-go y rollback definidos. \\
+    \endfirsthead
+    \toprule
+    \textbf{FCE / factor} & \textbf{Descripci\'on} & \textbf{Estrategia de aseguramiento} \\
+    \midrule
+    \endhead
+    FCE-1: Participaci\'on de la \ac{SEU} & El personal de la Secretar\'ia debe involucrarse activamente en el relevamiento, el co-dise\~no de plantillas y la validaci\'on del contenido generado. Sin este involucramiento, el agente produce contenido desalineado con el tono institucional real. & Acuerdo formal de colaboraci\'on con la \ac{SEU} previo al inicio de F1. Sesiones de co-dise\~no incluidas en el cronograma mensual. \\
+    FCE-2: Calidad iterativa de prompts & El rendimiento del \ac{LLM} depende del dise\~no y refinamiento continuo de los prompts. Prompts pobres generan contenido con alucinaciones o tono inapropiado, elevando la tasa de rechazo (M7). & Ciclo de refinamiento de prompts con retroalimentaci\'on del validador humano desde el mes de abril (S1) y a lo largo de todo S2. \\
+    FCE-3: Coordinaci\'on entre desarrolladores & La capa de orquestaci\'on y las interfaces entre agentes son co-responsabilidad de ambos desarrolladores. Desalineaci\'on en la arquitectura puede bloquear la integraci\'on con A2--A5 en S2. & Reuniones peri\'odicas de sincronizaci\'on con \companeroNombre. Definici\'on de contratos de interfaz en agosto (inicio de S2), antes de implementar las integraciones. \\
+    FCE-4: Soberan\'ia de datos & Ning\'un dato institucional sensible puede enviarse a servicios de \ac{LLM} externos. El incumplimiento invalida el sistema en un contexto de defensa nacional y vulnera la Ley N\textsuperscript{o}~25.326. & Uso de Ollama como inferencia base. Auditor\'ia de flujos de datos en cada release. Cualquier alternativa externa queda restringida a contingencia aprobada, datos anonimizados y registro expl\'icito. \\
+    FCE-5: Estabilidad de Google Workspace & La integraci\'on con Forms, Sheets, Drive y Gmail es la columna vertebral del sistema en S1. Cambios de permisos, cuotas de Apps Script o pol\'iticas de Google pueden bloquear los triggers autom\'aticos. & Configuraci\'on de cuentas de servicio con permisos m\'inimos necesarios. Monitoreo de cuotas de Apps Script. Plan de contingencia con triggers manuales como fallback. \\
+    FCE-6: Disponibilidad funcional de A2--A5 & El Agente~1 act\'ua como nodo de comunicaci\'on institucional en S2: transforma el contenido producido por los dem\'as agentes en comunicaciones institucionales. Si A2--A5 no producen insumos utilizables al momento de la integraci\'on, la funci\'on de comunicaci\'on integrada queda sin contenido que distribuir, reduciendo el alcance a la operaci\'on aut\'onoma de S1. & Definici\'on de contratos de interfaz con mocks est\'aticos que permiten desarrollar y probar la comunicaci\'on integrada independientemente del avance de cada agente fuente. Integraci\'on real progresiva en S2 seg\'un disponibilidad confirmada de cada agente. \\
+    FCE-7: Evidencia y trazabilidad temprana & La defensa acad\'emica depende de demostrar qu\'e se gener\'o, desde qu\'e insumo, con qu\'e estado, qui\'en valid\'o y qu\'e evidencia queda disponible. & Definir desde S1 un esquema de log con \texttt{id\_solicitud}, estado, validador, output y evidencia. Mantener \'indice de evidencias por \ac{HU} y por gate. \\
+    FCE-8: Gobierno por estados & El avance no debe declararse por porcentaje subjetivo, sino por estados verificables de \ac{HU}, defectos y gate. & Usar estados de \ac{HU}: preparada, en implementaci\'on, en prueba, en validaci\'on \ac{SEU}, cerrada por \ac{DoD}, observada o bloqueada. Ninguna \ac{HU} se cierra sin \ac{DoD} y evidencia. \\
+    FCE-9: Validaci\'on formal y responsables confirmados & Sin titular y suplente de validaci\'on por tipo de pieza, el \ac{HITL} queda informal y no defendible. & Confirmar responsables por \ac{HU}; registrar aprobaciones, observaciones y rechazos en canal formal; bloquear salidas oficiales si no hay validador. \\
+    FCE-10: Despliegue progresivo y controlado & Saltar de documentaci\'on a operaci\'on real aumenta riesgo institucional y t\'ecnico. & Desplegar por etapas: documental, local controlado, sandbox Workspace, piloto \ac{SEU} limitado y release candidata \ac{TRL}~4. Cada etapa exige go/no-go y rollback definidos. \\
     \bottomrule
-  \end{tabularx}
-\end{table}
+\end{longtable}
+}
 
 % =============================================================================
 % SECCION 20: REFERENCIAS Y BIBLIOGRAFIA
