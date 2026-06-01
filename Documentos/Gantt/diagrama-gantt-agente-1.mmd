@@ -1,62 +1,88 @@
 gantt
-    title Proyecto Centenario P100 - Agente 1 Extension Bot - cronograma iterativo no cascada
+    title Agente 1 Extension Bot - cronograma anual 2026 por semestres
     dateFormat  YYYY-MM-DD
     axisFormat  %b %Y
     todayMarker stroke-width:2px,stroke:#0f766e,opacity:0.6
 
-    section Guardarrailes transversales
-    Tablero Kanban + matriz BPM/RACI/DoD              :guard1, 2026-03-01, 2026-12-31
-    Validacion humana y evidencia SEU                 :guard2, 2026-04-01, 2026-12-15
-    Seguridad base y logs auditables                  :guard3, 2026-04-15, 2026-12-15
+    section S1 - Anteproyecto, alcance y gobierno
+    S1-GOV-01 Revisar fuentes, bible, campus y anteproyecto        :s1gov01, 2026-03-01, 2026-03-18
+    S1-GOV-02 Acordar alcance A1, exclusiones y Proceso 4          :s1gov02, 2026-03-08, 2026-03-31
+    S1-GOV-03 Redactar y entregar anteproyecto                     :s1gov03, 2026-03-10, 2026-03-31
+    H1 Anteproyecto entregado                                      :milestone, h1, 2026-03-31, 0d
+    S1-GOV-04 Incorporar devoluciones y cerrar baseline documental :s1gov04, 2026-04-01, 2026-04-30
+    S1-GOV-05 Mantener tablero Kanban, riesgos, minutas y evidencias :s1gov05, 2026-04-01, 2026-07-31
 
-    section S1 Ciclo 0 - Alcance y plataforma minima (TRL 3)
-    Relevamiento P4 + equipo validador SEU            :c0a, 2026-03-01, 2026-03-31
-    HU-001/HU-002 base Sheets Drive Apps Script       :c0b, 2026-03-01, 2026-04-30
-    Matriz alcance A1 exclusiones evidencia           :c0c, 2026-03-15, 2026-04-15
-    H1 Anteproyecto y alcance base                    :milestone, h1, 2026-03-31, 0d
+    section S1 - Diseno funcional y trazabilidad
+    S1-DIS-01 Relevar comunicacion SEU y flujo BPM P4              :s1dis01, 2026-03-15, 2026-04-10
+    S1-DIS-02 Definir RACI, validadores HITL y responsables        :s1dis02, 2026-03-20, 2026-04-20
+    S1-DIS-03 Especificar HU-010 a HU-014 con DoD y evidencias     :s1dis03, 2026-04-01, 2026-04-30
+    S1-DIS-04 Disenar casos de uso, estados y trazabilidad         :s1dis04, 2026-04-10, 2026-05-15
+    S1-DIS-05 Disenar arquitectura A1, interfaces y seguridad base :s1dis05, 2026-04-15, 2026-05-31
+    S1-DIS-06 Cerrar planes de calidad, riesgos, comunicaciones, auditoria, despliegue e integracion :s1dis06, 2026-05-01, 2026-06-15
+    H2 Diseno validable cerrado                                    :milestone, h2, 2026-06-15, 0d
 
-    section S1 Ciclo 1 - HU-010 Gacetillas
-    Co-diseno plantilla gacetilla SEU                 :c1a, 2026-04-01, 2026-04-30
-    Spike Sheets -> Docs + primer prompt              :c1b, 2026-04-15, 2026-05-15
-    Prototipo HU-010 + pruebas unitarias              :c1c, 2026-05-01, 2026-06-01
-    Validacion SEU y ajuste HU-010                    :c1d, 2026-05-20, 2026-06-15
-    H2 HU-010 evidencia DoD                           :milestone, h2, 2026-06-15, 0d
+    section S1 - Preparacion tecnica y datos
+    S1-TEC-01 Preparar entorno local Docker, FastAPI, Ollama y LangChain :s1tec01, 2026-04-01, 2026-05-10
+    S1-TEC-02 Configurar Google Workspace, Sheets, Drive, Docs y Gmail   :s1tec02, 2026-04-10, 2026-05-20
+    S1-TEC-03 Definir diccionario Sheets, correlation ID y logs          :s1tec03, 2026-04-15, 2026-05-31
+    S1-TEC-04 Definir plantillas SEU para gacetillas y posts             :s1tec04, 2026-04-20, 2026-06-10
+    S1-TEC-05 Medir linea base manual y armar indice de evidencias       :s1tec05, 2026-05-15, 2026-06-30
 
-    section S1 Ciclo 2 - HU-011 Posts RRSS
-    Co-diseno criterios IG LinkedIn                   :c2a, 2026-04-15, 2026-05-15
-    Prototipo HU-011 + longitudes/canales             :c2b, 2026-05-15, 2026-06-15
-    Validacion SEU y ajuste HU-011                    :c2c, 2026-06-01, 2026-06-30
-    Gate TRL 3 MVP HU-010/HU-011                      :milestone, h3, 2026-07-31, 0d
-    Informe avance + backlog S2                       :c2d, 2026-07-01, 2026-07-31
+    section S1 - MVP controlado HU-010 y HU-011
+    HU010-01 Disenar prompt, plantilla y flujo Sheets a Docs       :hu01001, 2026-04-20, 2026-05-20
+    HU010-02 Implementar prototipo controlado de gacetilla         :hu01002, 2026-05-15, 2026-06-20
+    HU010-03 Probar datos completos, incompletos y rechazo humano  :hu01003, 2026-06-10, 2026-07-05
+    HU011-01 Disenar criterios de canal, tono, longitud y hashtags :hu01101, 2026-05-01, 2026-05-31
+    HU011-02 Implementar prototipos IG y LinkedIn                  :hu01102, 2026-06-01, 2026-06-30
+    HU011-03 Validar posts con SEU y ajustar prompts               :hu01103, 2026-06-20, 2026-07-15
+    H3 MVP HU-010/HU-011 con evidencia                             :milestone, h3, 2026-07-15, 0d
 
-    section S2 Ciclo 3 - HU-012 Confirmaciones
-    Trigger Sheets + Gmail                            :c3a, 2026-08-01, 2026-08-31
-    Registro envio y logs persistentes                :c3b, 2026-08-15, 2026-09-30
-    Validacion usuario interno HU-012                 :c3c, 2026-09-01, 2026-09-30
-    H4 HU-012 DoD completo                            :milestone, h4, 2026-09-30, 0d
+    section S1 - Gate TRL 3 y replanificacion
+    G2-01 Ejecutar auditoria parcial de alcance, DoD y trazabilidad :g201, 2026-07-01, 2026-07-15
+    G2-02 Consolidar outputs, logs, defectos y checklist SEU        :g202, 2026-07-10, 2026-07-25
+    G2-03 Entregar informe de avance y replanificar S2              :g203, 2026-07-15, 2026-07-31
+    H4 Gate TRL 3 cerrado                                           :milestone, h4, 2026-07-31, 0d
 
-    section S2 Ciclo 4 - HU-013 Lenguaje natural interno
-    Email de inicio + invitacion a chat               :c4a, 2026-08-15, 2026-09-30
-    Registro datos requeridos en Sheets               :c4b, 2026-09-01, 2026-10-15
-    Validacion usabilidad interna                     :c4c, 2026-09-20, 2026-10-31
-    H5 HU-013 DoD completo                            :milestone, h5, 2026-10-31, 0d
+    section S2 - Desarrollo base y robustecimiento
+    S2-CORE-01 Ajustar arquitectura por evidencias S1              :s2core01, 2026-08-01, 2026-08-15
+    S2-CORE-02 Implementar persistencia, colas, permisos y secretos :s2core02, 2026-08-01, 2026-09-15
+    S2-CORE-03 Fortalecer logging, auditoria y control de defectos :s2core03, 2026-08-15, 2026-09-30
+    S2-CORE-04 Refinar HU-010/HU-011 con feedback real             :s2core04, 2026-08-15, 2026-10-15
 
-    section S2 Ciclo 5 - HU-014 Certificados
-    Plantilla certificado con validacion              :c5a, 2026-09-15, 2026-10-15
-    Generacion PDF + aprobacion manual                :c5b, 2026-10-01, 2026-11-15
-    Log emision + prueba controlada                   :c5c, 2026-10-15, 2026-11-30
-    H6 HU-014 DoD completo                            :milestone, h6, 2026-11-30, 0d
+    section S2 - HU-012 Confirmaciones de inscripcion
+    HU012-01 Disenar contrato de datos, plantilla email e idempotencia :hu01201, 2026-08-01, 2026-08-20
+    HU012-02 Implementar trigger Sheets/Gmail y registro de envio      :hu01202, 2026-08-15, 2026-09-20
+    HU012-03 Probar duplicados, errores de destinatario y logs         :hu01203, 2026-09-10, 2026-09-30
+    H5 HU-012 operativa con DoD                                        :milestone, h5, 2026-09-30, 0d
 
-    section S2 Integracion y cierre TRL 4
-    Contratos y mocks A2-A5 sin orquestar             :int1, 2026-09-15, 2026-10-31
-    Refinamiento MVP HU-010/HU-011 por feedback       :int2, 2026-09-15, 2026-11-15
-    Integracion progresiva A2-A5                      :int3, 2026-10-15, 2026-12-15
-    Pruebas SEU checklist 1-4                         :int4, 2026-11-01, 2026-12-15
-    Ajustes prompts plantillas UX                     :int5, 2026-11-15, 2026-12-20
-    Informe final + transferencia                     :int6, 2026-12-01, 2026-12-31
-    Gate TRL 4 A1 validado                            :milestone, h7, 2026-12-15, 0d
-    Informe final entregado                           :milestone, h8, 2026-12-31, 0d
+    section S2 - HU-013 Lenguaje natural interno
+    HU013-01 Disenar email de inicio, invitacion a chat y fallback :hu01301, 2026-08-15, 2026-09-10
+    HU013-02 Implementar autenticacion, registro y transcript      :hu01302, 2026-09-01, 2026-10-10
+    HU013-03 Probar solicitudes validas, fuera de alcance y usabilidad :hu01303, 2026-10-01, 2026-10-31
+    H6 HU-013 operativa con DoD                                    :milestone, h6, 2026-10-31, 0d
 
-    section Continuidad P100 fuera del Proyecto A1
-    S3 Validacion operativa P100                      :post1, 2027-03-01, 2027-07-31
-    S4 Operacion consolidada P100                     :post2, 2027-08-01, 2027-12-31
+    section S2 - HU-014 Certificados con validacion humana
+    HU014-01 Disenar plantilla, aprobacion y datos academicos      :hu01401, 2026-09-15, 2026-10-15
+    HU014-02 Implementar generacion PDF, bloqueo sin aprobacion y logs :hu01402, 2026-10-01, 2026-11-15
+    HU014-03 Probar datos faltantes, emision controlada y rechazo  :hu01403, 2026-11-01, 2026-11-30
+    H7 HU-014 operativa con DoD                                    :milestone, h7, 2026-11-30, 0d
+
+    section S2 - Integracion, pruebas y validacion
+    INT-01 Definir contratos y mocks A2-A5 sin orquestar           :int01, 2026-08-15, 2026-09-30
+    INT-02 Integrar insumos A2-A5 disponibles de forma progresiva  :int02, 2026-10-01, 2026-12-10
+    TEST-01 Ejecutar pruebas unitarias, integracion y sistema      :test01, 2026-09-15, 2026-11-30
+    TEST-02 Ejecutar pruebas de seguridad, prompt injection y permisos :test02, 2026-10-01, 2026-12-10
+    VAL-01 Validar con usuarios SEU, checklist 1-4 y trazabilidad  :val01, 2026-11-01, 2026-12-15
+    VAL-02 Cerrar defectos criticos y regresion HU-010 a HU-014    :val02, 2026-11-15, 2026-12-20
+
+    section S2 - Release, informe final y cierre anual
+    REL-01 Preparar release candidata TRL 4 y paquete de evidencias :rel01, 2026-12-01, 2026-12-20
+    REL-02 Redactar informe final, manual operativo y anexos        :rel02, 2026-11-15, 2026-12-31
+    REL-03 Ejecutar auditoria final y decision go/no-go             :rel03, 2026-12-10, 2026-12-31
+    H8 Gate TRL 4 validado                                          :milestone, h8, 2026-12-20, 0d
+    H9 Informe final y cierre anual A1                              :milestone, h9, 2026-12-31, 0d
+
+    section Feb 2027 - Entrega final maxima del Agente 1
+    FEB-01 Incorporar observaciones finales de catedra y SEU         :feb01, 2027-02-01, 2027-02-14
+    FEB-02 Preparar paquete final, demo y transferencia P100         :feb02, 2027-02-08, 2027-02-20
+    H10 Entrega final del Agente 1                                   :milestone, h10, 2027-02-20, 0d

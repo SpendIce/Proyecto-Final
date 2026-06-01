@@ -1,67 +1,69 @@
 # Diagrama de Gantt - Agente 1 Extension Bot
 
-Este artefacto contiene un cronograma de referencia para el desarrollo e implementacion del Agente 1 del Proyecto Centenario, refinado como plan iterativo no cascada. La version principal esta en formato Mermaid, compatible con Mermaid Live Editor:
+Este artefacto contiene la vista principal del cronograma del proyecto de Juan Ignacio Gone para el Agente 1, Extension Bot. La fuente editable recomendada es Mermaid:
 
-- `diagrama-gantt-agente-1.mmd`: fuente Mermaid recomendada y canonica.
-- `mermaid-live-url.txt`: enlace codificado para abrir la version Mermaid en Mermaid Live Editor; regenerar si cambia la fuente Mermaid.
-- `diagrama-gantt-agente-1.puml`: version PlantUML sincronizada, conservada como respaldo local.
+- `diagrama-gantt-agente-1.mmd`: Gantt principal, enfocado en el ano 2026 y organizado por primer y segundo semestre.
+- `diagrama-gantt-agente-1.puml`: respaldo PlantUML sincronizado con la vista Mermaid.
+- `mermaid-live-url.txt`: enlace codificado para abrir la vista en Mermaid Live Editor; regenerar si cambia la fuente Mermaid.
+
+Los PNG/SVG existentes son artefactos renderizados. No son fuente de verdad y no se regeneran automaticamente despues de cambios documentales.
+
+## Enfoque del cronograma
+
+La vista principal cubre el proyecto del Agente 1 durante 2026 y deja febrero de 2027 solo como ventana maxima de entrega final, demostracion o transferencia si la catedra o la agenda institucional lo requieren. La continuidad P100 posterior queda fuera del alcance directo del proyecto de Gone.
 
 ## Supuestos usados
 
-- El alcance principal corresponde al Proyecto de Juan Ignacio Gone: Agente 1 Extension Bot durante el ano academico 2026, dividido en S1 y S2.
-- Las fechas se toman como referencia documental del anteproyecto vigente: S1 Mar-Jul 2026 y S2 Ago-Dic 2026. Las fechas oficiales de catedra siguen pendientes de confirmacion.
-- S3 y S4 de 2027 se muestran solo como proyeccion P100 fuera del alcance del Proyecto Gone, para mantener continuidad con la progresion TRL 5-6.
-- El Agente 1 se mantiene dentro del Proceso 4, Comunicacion y Difusion Institucional. Puede recibir insumos de A2-A5, pero no actua como orquestador.
-- La validacion humana es obligatoria antes de publicar, enviar o emitir comunicaciones institucionales o certificados.
-- La planificacion no se organiza como cascada. Cada HU relevante se expresa como ciclo con diseno acotado, prototipo, validacion, ajuste y evidencia.
-- El primer semestre mantiene el MVP acotado a HU-010 y HU-011, con ciclos separados de gacetillas y posts, y gate TRL 3.
-- El segundo semestre incorpora HU-012, HU-013 y HU-014 en ciclos incrementales, refina HU-010/HU-011 con feedback y separa contratos/mocks A2-A5 de la integracion progresiva real.
+- El alcance corresponde al Agente 1 Extension Bot: agente de comunicacion institucional de la SEU dentro del Proceso 4.
+- El Agente 1 puede recibir insumos de A2-A5, pero no orquesta el sistema multiagente.
+- El primer semestre de 2026 se concentra en anteproyecto, alcance, diseno, trazabilidad, preparacion tecnica y MVP controlado de HU-010/HU-011.
+- El segundo semestre de 2026 se concentra en implementacion, robustecimiento, integracion progresiva, pruebas, validacion SEU, release candidata TRL 4, informe final y cierre anual.
+- Febrero de 2027 se modela como cierre maximo: observaciones finales, paquete final, demo y transferencia operativa al P100.
+- Toda publicacion, envio oficial o emision de certificados requiere validacion humana previa.
+- Los gates TRL no se declaran por avance narrativo: requieren outputs, logs, checklist SEU, defectos gestionados y evidencia recuperable.
+- Las fechas oficiales de entrega, presentacion y disponibilidad de validadores siguen pendientes de confirmacion.
 
-## Evaluacion metodologica
+## Estructura del Gantt
 
-**Veredicto:** APROBADO CON OBSERVACIONES.
-
-El cronograma anterior era defendible como referencia de alto nivel, pero la agrupacion por `Ingenieria`, `Diseno`, `Prototipos`, `Implementacion` y `Validacion` podia leerse como un ciclo en cascada, aun cuando las fechas se solapaban. La version refinada mantiene los hitos y semestres del anteproyecto, pero organiza el trabajo por incrementos verificables:
-
-- S1 Ciclo 0: alcance, plataforma minima y equipo validador.
-- S1 Ciclo 1: HU-010 gacetillas.
-- S1 Ciclo 2: HU-011 posts RRSS.
-- S2 Ciclo 3: HU-012 confirmaciones.
-- S2 Ciclo 4: HU-013 lenguaje natural interno.
-- S2 Ciclo 5: HU-014 certificados.
-- S2 cierre: contratos/mocks A2-A5, integracion progresiva, pruebas SEU, ajustes e informe final.
-
-Los guardarrailes de Kanban, BPM/RACI/DoD, validacion humana, evidencia SEU, seguridad y logs quedan como actividades transversales para sostener trazabilidad CONEAU y evitar que la validacion aparezca solamente al final.
-
-## Fuentes consultadas
-
-- `CLAUDE.md` y `.claude/persistence.md`: alcance vigente del workspace y foco en Juan Ignacio Gone + Agente 1.
-- `Agentes/extension_bot_experto.md`: identidad, funciones, exclusiones, historias HU-010 a HU-014, DoD e infraestructura por semestre.
-- `Agentes/arquitectura_multiagente_experto.md` y `Contenido/Definicion/arquitectura-multiagente.md`: arquitectura P100, flujo Actividad -> Comunicacion, dependencias E1, integracion A2-A5 e infraestructura.
-- `Contenido/bible/Procesos y Agentes.md`: Proceso 4, RACI, backlog E2, DoD global, TRL, validacion humana y criterios transversales.
-- `Contenido/Definicion/criterios-evaluacion-cicerchia.md`: criterios de evaluacion, progresion TRL, restricciones tecnologicas y DoD.
-- `Contenido/Campus/INDEX.md` y `Contenido/Campus/DSI2/_md/03-planificacion.md`: uso de EDT/WBS, hitos, responsables, calendario y diagramas de Gantt como herramienta de planificacion.
-- `Documentos/Anteproyecto/Anteproyecto-PPS-Juan-Ignacio-Gone.tex`: EDT, entregables por semestre, hitos y planificacion mensual.
+| Periodo | Foco | Resultado esperado |
+|---|---|---|
+| S1 Mar-Jul 2026 | Anteproyecto, diseno, gobierno, datos, arquitectura, plantillas y MVP controlado | Anteproyecto entregado, diseno validable, HU-010/HU-011 con evidencia y gate TRL 3 |
+| S2 Ago-Dic 2026 | Desarrollo, automatizacion, robustecimiento, integracion, pruebas y validacion | HU-012/HU-013/HU-014 operativas, pruebas ejecutadas, gate TRL 4 e informe final |
+| Feb 2027 | Cierre final maximo | Observaciones finales incorporadas, demo, paquete final y transferencia P100 |
 
 ## Trazabilidad minima
 
-| Actividad Gantt | Proceso BPM | HU / requisito | DoD / evidencia esperada | Responsable institucional |
-|---|---|---|---|---|
-| Guardarrailes transversales | P4, apoyo P3/P5/P6 | Alcance A1, dependencias HU-001/HU-002 | Tablero Kanban, matriz BPM/RACI/DoD, validacion humana, logs y controles de seguridad | Coordinador de Extension / Responsable Gestion del Conocimiento / Responsable Tecnico |
-| S1 Ciclo 0 | P4 | Alcance, plataforma minima, equipo validador | Anteproyecto, matriz de alcance/exclusiones, base Sheets/Drive/Apps Script, evidencia inicial TRL 3 | Coordinador de Extension / Responsable Gestion del Conocimiento |
-| S1 Ciclo 1 | P4 | HU-010 | Plantilla de gacetilla, spike Sheets -> Docs, prototipo, prueba, validacion SEU y evidencia DoD | Responsable Gestion del Conocimiento |
-| S1 Ciclo 2 | P4 | HU-011 | Criterios IG/LinkedIn, prototipo de posts, validacion SEU, ajuste de prompts y gate TRL 3 | Responsable Gestion del Conocimiento / Responsable Redes Sociales |
-| S2 Ciclo 3 | P4/P5 | HU-012 | Trigger Sheets, email Gmail, registro de envio, logs persistentes y validacion interna | Responsable Tecnico / Personal SEU |
-| S2 Ciclo 4 | P4/P3 | HU-013 | Email de inicio, invitacion a chat, registro en Sheets y validacion de usabilidad interna | Responsable Tecnico / Personal SEU |
-| S2 Ciclo 5 | P5/P4 | HU-014 | Plantilla, generacion PDF, aprobacion manual, log de emision y prueba controlada | Coordinador de Extension / Administracion |
-| S2 integracion y cierre | P4/P5 | Gate TRL 4 | Contratos/mocks A2-A5, integracion progresiva, checklist SEU 1-4, ajustes, transferencia e informe final | Coordinador de Extension |
+| Bloque Gantt | Proceso / alcance | Evidencia esperada |
+|---|---|---|
+| S1 Gobierno y anteproyecto | Alcance A1, Proceso 4, exclusiones, agenda academica | Anteproyecto, baseline documental, tablero Kanban, minutas, matriz de riesgos |
+| S1 Diseno funcional | HU-010 a HU-014, HITL, RACI, DoD | Casos de uso, estados, trazabilidad, arquitectura, planes complementarios |
+| S1 Preparacion tecnica | Plataforma base, Google Workspace, datos, logs | Entorno local, diccionario Sheets, plantillas SEU, correlation ID, indice de evidencias |
+| S1 MVP HU-010/HU-011 | Gacetillas y posts RRSS | Outputs controlados, pruebas de datos, validacion humana, logs y checklist |
+| S1 Gate TRL 3 | Cierre de MVP controlado | Informe de avance, defectos, evidencias y decision de gate |
+| S2 Desarrollo base | Robustecimiento tecnico y refinamiento S1 | Persistencia, colas, permisos, secretos, logging y auditoria |
+| S2 HU-012/HU-013/HU-014 | Confirmaciones, lenguaje natural interno, certificados | Email de prueba, transcript/captura, PDF, aprobacion manual y logs |
+| S2 Integracion y pruebas | A2-A5 como fuentes, no como orquestacion | Contratos/mocks, integracion progresiva, pruebas unitarias/integracion/sistema/seguridad |
+| S2 Validacion y release | Usuarios SEU y gate TRL 4 | Checklist 1-4, defectos cerrados, regresion, paquete de evidencias, informe final |
+| Feb 2027 | Entrega final maxima A1 | Observaciones cerradas, demo, paquete final y transferencia operativa |
+
+## Fuentes consultadas
+
+- `CLAUDE.md` y `.claude/persistence.md`: foco vigente del workspace y reglas locales.
+- `Agentes/extension_bot_experto.md`: alcance, exclusiones, HU-010 a HU-014, DoD e infraestructura por semestre.
+- `Agentes/arquitectura_multiagente_experto.md` y `Contenido/Definicion/arquitectura-multiagente.md`: infraestructura por semestre, TRL e integracion con A2-A5.
+- `Contenido/bible/Procesos y Agentes.md`: Proceso 4, backlog, validacion humana, RACI, DoD y criterios transversales.
+- `Contenido/Definicion/criterios-evaluacion-cicerchia.md`: restricciones, progresion TRL y evidencia esperada.
+- `Documentos/Anteproyecto/Anteproyecto-PPS-Juan-Ignacio-Gone.tex`: EDT, entregables por semestre, hitos y planificacion mensual.
+- `Documentos/CasosUso/`, `Documentos/DiagramaClases/` y `Documentos/DiagramaSecuencia/`: comportamiento funcional, estados, actores y trazabilidad tecnica.
+- Planes complementarios del Agente 1: calidad, riesgos, comunicaciones, auditoria, estados, despliegue e integracion.
+- `Contenido/Campus/DSI1/_md/` y `Contenido/Campus/DSI2/_md/`: planificacion, control, riesgos, calidad, liberacion, comunicaciones y pruebas.
 
 ## Pendientes de confirmacion
 
-- Fechas oficiales de entrega y defensa.
-- Disponibilidad concreta del personal SEU para validaciones de S1 y S2.
-- Personas nominales asignadas a cada rol RACI.
-- Criterios de aceptacion finales acordados con usuario para cada HU.
+- Fechas oficiales de entrega, presentacion y cierre.
+- Responsables nominales y suplentes para validacion SEU por HU.
+- Plantillas institucionales definitivas, campos finales de Sheets y ubicacion formal de logs.
+- Disponibilidad concreta del entorno tecnico y de usuarios internos para pruebas TRL 4.
 
 ## Uso en Mermaid Live
 
@@ -74,8 +76,8 @@ Luego abrir `diagrama-gantt-agente-1.mmd` y usar su contenido como fuente del di
 ## Renderizado Mermaid local
 
 ```bash
-mmdc -p Documentos/Gantt/puppeteer-config.json -i Documentos/Gantt/diagrama-gantt-agente-1.mmd -o Documentos/Gantt/diagrama-gantt-agente-1-mermaid.svg -w 1800 -H 1400
-mmdc -p Documentos/Gantt/puppeteer-config.json -i Documentos/Gantt/diagrama-gantt-agente-1.mmd -o Documentos/Gantt/diagrama-gantt-agente-1-mermaid.png -w 1800 -H 1400
+mmdc -p Documentos/Gantt/puppeteer-config.json -i Documentos/Gantt/diagrama-gantt-agente-1.mmd -o Documentos/Gantt/diagrama-gantt-agente-1-mermaid.svg -w 3200 -H 2600
+mmdc -p Documentos/Gantt/puppeteer-config.json -i Documentos/Gantt/diagrama-gantt-agente-1.mmd -o Documentos/Gantt/diagrama-gantt-agente-1-mermaid.png -w 3200 -H 2600
 ```
 
 ## Renderizado PlantUML local
