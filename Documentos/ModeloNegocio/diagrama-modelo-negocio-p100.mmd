@@ -1,141 +1,117 @@
-flowchart LR
+flowchart TB
   %% Modelo de negocio institucional del Proyecto Centenario (P100).
-  %% Fuente: documentacion consolidada de Contenido/bible, Contenido/Definicion y perfiles de Agentes.
+  %% Vista visual por capas: valor institucional, procesos, agentes, plataforma y resultados.
 
-  subgraph contexto["Contexto institucional"]
-    seu["SEU / FIE<br/>Gestion de extension universitaria"]
-    necesidad["Necesidad de negocio<br/>mas demanda multicanal<br/>carga operativa manual<br/>informacion dispersa<br/>trazabilidad exigible"]
-    actores["Destinatarios y partes interesadas<br/>Comunidad FIE<br/>egresados y aspirantes<br/>sector productivo<br/>Defensa Nacional<br/>organismos de control"]
+  subgraph contexto["1. Contexto y necesidad institucional"]
+    seu["SEU / FIE<br/>gestion de extension universitaria"]
+    necesidad["Necesidad de negocio<br/>mas demanda multicanal<br/>alta carga manual<br/>informacion dispersa<br/>evidencia auditable"]
+    destinatarios["Destinatarios y partes interesadas<br/>Comunidad FIE, egresados, aspirantes,<br/>sector productivo, Defensa Nacional,<br/>organismos de control"]
   end
 
-  subgraph propuesta["Propuesta de valor del P100"]
-    sistema["Sistema modular de 5 agentes IA<br/>apoyo a gestion de extension<br/>incremental, sostenible y de bajo costo"]
-    enfoque["Modelo operativo<br/>BPM + PDCA<br/>event-driven + batch<br/>organizacion basada en procesos y datos"]
-    supervision["Control institucional<br/>human-in-the-loop<br/>validacion humana antes de publicar, enviar o certificar"]
+  subgraph valor["2. Propuesta de valor P100"]
+    propuesta["Sistema modular de 5 agentes IA<br/>amplia capacidad operativa sin aumentar proporcionalmente<br/>recursos humanos ni infraestructura"]
+    principios["Principios de negocio<br/>BPM + PDCA<br/>implementacion incremental<br/>bajo costo y soberania de datos<br/>human-in-the-loop"]
   end
 
-  subgraph plataforma["Plataforma compartida"]
-    workspace["Google Workspace<br/>Forms, Sheets, Docs, Drive, Gmail, Calendar"]
-    bus["Google Sheets<br/>bus de datos operativo"]
-    triggers["Apps Script + Scheduler<br/>triggers, automatizaciones y procesos batch"]
-    backend["Backend IA<br/>Python/FastAPI, Ollama, LangChain/LlamaIndex,<br/>Celery + Redis, PostgreSQL"]
-    evidencia["Trazabilidad<br/>logs, auditoria, DoD, evidencia CONEAU/SIU"]
+  subgraph procesos["3. Procesos SEU cubiertos"]
+    estrategicos["Procesos estrategicos<br/>P1 Planificacion estrategica -> A5<br/>P2 Vinculacion con el medio -> A3"]
+    sustantivos["Procesos sustantivos<br/>P3 Diseno de actividades -> A1<br/>P4 Comunicacion y difusion -> A1<br/>P5 Programas/cursos -> A1 + A4<br/>P6 Eventos academicos -> A3 + A1"]
+    soporte["Procesos de soporte<br/>P7 Conocimiento y memoria -> A2<br/>P8 Monitoreo y mejora -> A5<br/>P9 Atencion a comunidad -> A4"]
   end
 
-  subgraph procesos["Procesos de negocio SEU"]
-    p1["P1 Planificacion estrategica<br/>metas, prioridades, indicadores"]
-    p2["P2 Vinculacion con el medio<br/>convenios, oportunidades, contactos"]
-    p3["P3 Diseno de actividades<br/>propuestas, proyectos, aprobaciones"]
-    p4["P4 Comunicacion y difusion<br/>contenidos y canales institucionales"]
-    p5["P5 Programas, cursos y diplomaturas<br/>inscripciones, seguimiento, certificados"]
-    p6["P6 Eventos academicos<br/>jornadas, congresos, publicaciones asociadas"]
-    p7["P7 Gestion del conocimiento<br/>repositorio y memoria institucional"]
-    p8["P8 Monitoreo y mejora continua<br/>KPIs, dashboards, integridad de datos"]
-    p9["P9 Atencion a comunidad y aspirantes<br/>consultas, orientacion, conversion"]
+  subgraph plataforma["4. Plataforma compartida"]
+    workspace["Google Workspace<br/>Forms, Sheets, Docs, Drive, Gmail"]
+    orquestacion["Orquestacion<br/>Apps Script + Scheduler<br/>event-driven + batch<br/>Celery/Redis cuando aplica"]
+    backend["Backend IA<br/>Python/FastAPI<br/>Ollama + LangChain/LlamaIndex<br/>PostgreSQL"]
+    trazabilidad["Trazabilidad<br/>logs, auditoria, DoD,<br/>evidencia CONEAU/SIU"]
   end
 
-  subgraph agentes["Agentes del sistema general"]
+  subgraph agentes["5. Agentes especializados"]
     a1["A1 Extension Bot<br/>comunicacion institucional<br/>gacetillas, posts, newsletters,<br/>mails, confirmaciones, certificados"]
-    a2["A2 Historia Viva<br/>memoria institucional<br/>ingesta, indexacion semantica,<br/>efemerides y recuperacion"]
+    a2["A2 Historia Viva<br/>memoria institucional<br/>repositorio, indexacion semantica,<br/>efemerides y recuperacion"]
     a3["A3 Vinculacion y Congresos<br/>oportunidades externas<br/>eventos, reportes, ceremonial<br/>con control humano"]
-    a4["A4 Atencion a la Comunidad<br/>respuestas automaticas<br/>orientacion multicanal<br/>ventanilla virtual"]
+    a4["A4 Atencion a la Comunidad<br/>consultas y orientacion<br/>respuesta multicanal<br/>ventanilla virtual"]
     a5["A5 Monitoreo y Evaluacion<br/>RRSS, integridad CONEAU/SIU,<br/>KPIs, dashboards y alertas"]
   end
 
-  subgraph salidas["Productos y resultados de negocio"]
-    comunicaciones["Comunicaciones institucionales<br/>publicaciones, correos, piezas web,<br/>newsletters y difusion de eventos"]
-    conocimiento["Activo de conocimiento<br/>repositorio historico, efemerides,<br/>documentos recuperables"]
-    vinculacion["Vinculacion fortalecida<br/>oportunidades, convenios, eventos,<br/>contacto institucional"]
-    servicio["Servicio a usuarios<br/>consultas respondidas,<br/>orientacion e inscripciones"]
-    decision["Gestion basada en datos<br/>tableros, KPIs, alertas,<br/>rendicion de cuentas"]
-    beneficios["Beneficios esperados<br/>menor carga operativa<br/>mayor consistencia comunicacional<br/>trazabilidad auditable<br/>mayor presencia digital<br/>soberania y bajo costo"]
+  subgraph interacciones["6. Interaccion entre agentes"]
+    haciaA1["A1 como hub de comunicacion<br/>recibe insumos, no orquesta el sistema"]
+    ia21["A2 -> A1<br/>contenido historico y efemerides"]
+    ia31["A3 -> A1<br/>eventos y oportunidades para difusion"]
+    ia41["A4 -> A1<br/>respuestas complejas y materiales de orientacion"]
+    ia51["A5 -> A1<br/>datos normalizados y texto enriquecido"]
   end
 
-  seu --> necesidad --> sistema
-  actores --> necesidad
-  sistema --> enfoque
-  sistema --> supervision
-  sistema --> workspace
-  workspace --> bus
-  bus --> triggers
-  triggers --> backend
-  backend --> evidencia
+  subgraph resultados["7. Resultados de negocio"]
+    comunicacion["Comunicacion consistente<br/>mas piezas, mejor frecuencia,<br/>validacion antes de publicar"]
+    conocimiento["Conocimiento institucional<br/>repositorio historico reutilizable"]
+    vinculacion["Vinculacion fortalecida<br/>convenios, oportunidades y eventos"]
+    atencion["Atencion y conversion<br/>consultas, orientacion e inscripciones"]
+    decision["Gestion basada en datos<br/>KPIs, dashboards, alertas,<br/>rendicion de cuentas"]
+    beneficios["Beneficios esperados<br/>menor carga operativa<br/>mayor presencia digital<br/>trazabilidad auditable<br/>bajo costo y sostenibilidad"]
+  end
 
-  enfoque --> p1
-  enfoque --> p2
-  enfoque --> p3
-  enfoque --> p4
-  enfoque --> p5
-  enfoque --> p6
-  enfoque --> p7
-  enfoque --> p8
-  enfoque --> p9
-  p1 --> a5
-  p2 --> a3
-  p3 --> a1
-  p4 --> a1
-  p5 --> a1
-  p5 --> a4
-  p6 --> a3
-  p6 --> a1
-  p7 --> a2
-  p8 --> a5
-  p9 --> a4
+  seu --> necesidad
+  destinatarios --> necesidad
+  necesidad --> propuesta
+  propuesta --> principios
 
-  bus <--> a1
-  bus <--> a2
-  bus <--> a3
-  bus <--> a4
-  bus <--> a5
-  evidencia --> supervision
+  principios --> estrategicos
+  principios --> sustantivos
+  principios --> soporte
 
-  a2 -- "contenido historico" --> a1
-  a3 -- "eventos y oportunidades" --> a1
-  a4 -- "respuestas complejas" --> a1
-  a5 -- "datos normalizados y texto enriquecido" --> a1
-  a5 -- "KPIs y aprendizaje operativo" --> p1
-  a4 -- "consultas que derivan en inscripciones" --> p5
-  p2 -- "convenios disparan actividades/eventos" --> p3
-  p2 -- "convenios disparan eventos" --> p6
-  p3 -- "datos de actividad" --> p4
-  p5 -- "alta de curso / cierre certificado" --> p4
-  p6 -- "creacion de evento" --> p4
-  p2 -- "documentacion institucional" --> p7
-  p5 -- "certificados y memorias" --> p7
-  p6 -- "memorias de eventos" --> p7
-  p3 -- "datos operativos" --> p8
-  p5 -- "datos de inscripcion y satisfaccion" --> p8
-  p6 -- "datos de participacion" --> p8
+  estrategicos --> workspace
+  sustantivos --> workspace
+  soporte --> workspace
 
-  a1 --> comunicaciones
+  workspace --> orquestacion
+  orquestacion --> backend
+  backend --> trazabilidad
+  trazabilidad --> a1
+  trazabilidad --> a2
+  trazabilidad --> a3
+  trazabilidad --> a4
+  trazabilidad --> a5
+
+  estrategicos --> a3
+  estrategicos --> a5
+  sustantivos --> a1
+  sustantivos --> a3
+  sustantivos --> a4
+  soporte --> a2
+  soporte --> a4
+  soporte --> a5
+
+  a1 --> haciaA1
+  a2 --> ia21 --> haciaA1
+  a3 --> ia31 --> haciaA1
+  a4 --> ia41 --> haciaA1
+  a5 --> ia51 --> haciaA1
+
+  a1 --> comunicacion
   a2 --> conocimiento
   a3 --> vinculacion
-  a4 --> servicio
+  a4 --> atencion
   a5 --> decision
-  comunicaciones --> beneficios
+
+  comunicacion --> beneficios
   conocimiento --> beneficios
   vinculacion --> beneficios
-  servicio --> beneficios
+  atencion --> beneficios
   decision --> beneficios
 
-  supervision -. "aprueba o rechaza" .-> comunicaciones
-  supervision -. "aprueba o rechaza" .-> servicio
-  supervision -. "aprueba o rechaza" .-> conocimiento
-  supervision -. "calidad de datos" .-> decision
-  beneficios --> actores
-
-  classDef actor fill:#f5f7fb,stroke:#64748b,color:#0f172a;
+  classDef context fill:#f5f7fb,stroke:#64748b,color:#0f172a;
   classDef value fill:#eef6ff,stroke:#2563eb,color:#0f172a;
-  classDef platform fill:#f8fafc,stroke:#475569,color:#0f172a;
   classDef process fill:#fff7ed,stroke:#ea580c,color:#1f2937;
+  classDef platform fill:#f8fafc,stroke:#475569,color:#0f172a;
   classDef agent fill:#ecfdf5,stroke:#16a34a,color:#052e16;
+  classDef interaction fill:#fdf2f8,stroke:#db2777,color:#500724;
   classDef output fill:#fefce8,stroke:#ca8a04,color:#422006;
-  classDef control fill:#fdf2f8,stroke:#db2777,color:#500724;
 
-  class seu,necesidad,actores actor;
-  class sistema,enfoque value;
-  class supervision control;
-  class workspace,bus,triggers,backend,evidencia platform;
-  class p1,p2,p3,p4,p5,p6,p7,p8,p9 process;
+  class seu,necesidad,destinatarios context;
+  class propuesta,principios value;
+  class estrategicos,sustantivos,soporte process;
+  class workspace,orquestacion,backend,trazabilidad platform;
   class a1,a2,a3,a4,a5 agent;
-  class comunicaciones,conocimiento,vinculacion,servicio,decision,beneficios output;
+  class haciaA1,ia21,ia31,ia41,ia51 interaction;
+  class comunicacion,conocimiento,vinculacion,atencion,decision,beneficios output;
