@@ -10,6 +10,7 @@
 \usepackage{fontspec}
 \usepackage{polyglossia}
 \setdefaultlanguage{spanish}
+\gappto\captionsspanish{\renewcommand{\tablename}{Tabla}}
 \usepackage{geometry}
 \geometry{a4paper, margin=2.5cm}
 
@@ -220,7 +221,7 @@ El relevamiento consolidado en \textit{Procesos y Agentes.md} caracteriza a los 
 
 La Tabla~\ref{tab:causa-efecto} sintetiza las causas identificadas y sus efectos observables.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{An\'alisis Causa -- Efecto: problem\'atica de comunicaci\'on de la SEU}
   \label{tab:causa-efecto}
@@ -355,7 +356,7 @@ Las actividades de este Proyecto (primer a\~no del Proyecto Centenario) abarcan 
 
 El Agente~1 se ubica como soporte tecnol\'ogico principal del Proceso~4 (Comunicaci\'on y Difusi\'on Institucional). Puede asistir a los Procesos~3, 5 y~6 cuando esos procesos requieran piezas comunicacionales, pero no asume la responsabilidad institucional de dise\~nar actividades, gestionar cursos, organizar eventos, realizar anal\'itica ni atender masivamente al p\'ublico externo. La Tabla~\ref{tab:mapa-procesos-a1} resume esta delimitaci\'on.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Mapa de alcance del Agente~1 contra procesos BPM}
   \label{tab:mapa-procesos-a1}
@@ -429,7 +430,7 @@ El principio \ac{HITL} funciona como l\'imite de autonom\'ia: el agente puede ge
 
 Los niveles de madurez tecnol\'ogica (\ac{TRL}) fueron definidos por la NASA \parencite{mankins1995} como una escala de nueve niveles para evaluar el grado de madurez de una tecnolog\'ia. Este proyecto adopta los niveles TRL~3 a TRL~4 como framework de validaci\'on progresiva para el alcance del Proyecto. La Tabla~\ref{tab:trl-criterios} detalla los criterios de evidencia para cada nivel.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Criterios de evaluaci\'on por nivel TRL para el Agente~1}
   \label{tab:trl-criterios}
@@ -456,9 +457,9 @@ Se adopta un enfoque \textbf{iterativo-incremental} alineado con los cinco pasos
 
 La justificaci\'on de este enfoque radica en la naturaleza exploratoria del proyecto ---donde la calidad del contenido generado depende de la retroalimentaci\'on iterativa con los usuarios de la \ac{SEU}--- y en la necesidad de producir entregables tangibles al final de cada semestre para la evaluaci\'on acad\'emica \parencite{pressman2019}. La Figura~\ref{fig:ciclo-vida} ilustra la estructura del ciclo de vida.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
-  \resizebox{\textwidth}{!}{%
+  \resizebox{0.86\textwidth}{!}{%
   \begin{tikzpicture}[
     fase/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=1.2cm, align=center, font=\small},
     trl/.style={fill=blue!10, font=\small\bfseries},
@@ -554,7 +555,7 @@ La justificaci\'on de este enfoque radica en la naturaleza exploratoria del proy
 
 Se evaluaron tres modelos de proceso para el desarrollo del sistema. La Tabla~\ref{tab:metodologias} presenta la comparaci\'on seg\'un cinco criterios relevantes para el contexto del proyecto.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Comparaci\'on de metodolog\'ias candidatas}
   \label{tab:metodologias}
@@ -583,7 +584,7 @@ Para evitar una lectura en cascada, el cronograma operativo se gobierna por cicl
 
 La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico validado para el Agente~1. La selecci\'on de cada componente responde a tres criterios: (1)~licencia de c\'odigo abierto o gratuita para uso educativo/institucional, (2)~madurez y estabilidad de la tecnolog\'ia, y (3)~compatibilidad con la infraestructura de Google Workspace ya adoptada por la \ac{FIE}.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Plataforma tecnol\'ogica del Agente~1}
   \label{tab:plataforma}
@@ -625,10 +626,12 @@ El stack tecnol\'ogico seleccionado se compone de herramientas maduras con ampli
 
 La Tabla~\ref{tab:costos} presenta la estimaci\'on de costos para el a\~no de alcance del Proyecto (Semestres~1 y~2). La base de software libre tiene costo cero; las erogaciones son opcionales y controladas.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Estimaci\'on de costos del A\~no 1 del Proyecto Centenario (alcance del Proyecto)}
   \label{tab:costos}
+  \footnotesize
+  \renewcommand{\arraystretch}{1.05}
   \begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}Xrr}
     \toprule
     \textbf{Categor\'ia} & \textbf{Componente} & \textbf{Costo anual (USD)} & \textbf{Tipo} \\
@@ -653,7 +656,7 @@ El escenario base (sin erogaciones opcionales) tiene costo cero. El escenario m\
 
 La Tabla~\ref{tab:bmc} presenta el Business Model Canvas del Agente~1, adaptado al contexto de un proyecto acad\'emico con aplicaci\'on institucional.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Business Model Canvas --- Agente~1 (Extensi\'on Bot)}
   \label{tab:bmc}
@@ -877,7 +880,7 @@ La propuesta se articula en torno al \agenteUno{} como componente de comunicaci\
 
 La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el ingreso de datos hasta la publicaci\'on final.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \resizebox{\textwidth}{!}{%
   \begin{tikzpicture}[
@@ -932,7 +935,7 @@ La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el in
 
 La Tabla~\ref{tab:hu} presenta las cinco historias de usuario del \ac{EPIC}~E2 (Extensi\'on Bot), con su prioridad, estimaci\'on en \ac{SP} y \ac{DoD}.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Historias de usuario del Agente~1 (EPIC E2)}
   \label{tab:hu}
@@ -984,7 +987,7 @@ La Tabla~\ref{tab:trazabilidad-funcional} vincula cada elemento del alcance con 
 
 El Agente~1 no es el orquestador del sistema multiagente ---ese rol corresponde a la capa de orquestaci\'on dise\~nada de forma conjunta por ambos desarrolladores--- sino el \textbf{nodo de contenido institucional}: el punto de convergencia donde la informaci\'on producida por otros agentes se transforma en comunicaciones institucionales. La Tabla~\ref{tab:interacciones} describe las interacciones entrantes al Agente~1.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Interacciones de otros agentes hacia el Agente~1 (nodo de comunicaci\'on institucional)}
   \label{tab:interacciones}
@@ -1026,7 +1029,7 @@ A continuaci\'on se describe la secuencia t\'ipica de uso del Agente~1 por parte
 
 La Figura~\ref{fig:arquitectura-a1} presenta la vista de componentes t\'ecnicos del Agente~1.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \begin{tikzpicture}[
     capa/.style={rectangle, draw, rounded corners, minimum width=12cm, minimum height=1.4cm, align=center, font=\small},
@@ -1089,7 +1092,7 @@ La Figura~\ref{fig:arquitectura-a1} presenta la vista de componentes t\'ecnicos 
 
 La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y guardarrailes transversales. Esta lectura evita tratar el proyecto como cascada: dise\~no, prototipado, validaci\'on, seguridad y evidencia se repiten dentro de cada historia de usuario.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Estructura de Descomposici\'on del Trabajo (EDT)}
   \label{tab:edt}
@@ -1112,7 +1115,7 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
 
 \subsection{Entregables por semestre}
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Entregables por semestre}
   \label{tab:entregables}
@@ -1136,7 +1139,7 @@ La ventana de febrero de 2027 se reserva solamente como margen m\'aximo para obs
 
 \subsection{Cronograma de hitos}
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \caption{Hitos principales del Proyecto}
   \label{tab:hitos}
