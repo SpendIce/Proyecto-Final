@@ -1,0 +1,1520 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Visor editable del Gantt - Agente 1 Extension Bot</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f3ea;
+      --ink: #1f2933;
+      --muted: #64748b;
+      --line: #d7cdbb;
+      --surface: #fffaf0;
+      --surface-strong: #ffffff;
+      --navy: #18324a;
+      --teal: #087f8c;
+      --green: #2f7d32;
+      --amber: #b56b00;
+      --red: #b42318;
+      --blue: #2563a7;
+      --violet: #6d4c9f;
+      --shadow: 0 16px 40px rgba(31, 41, 51, 0.12);
+      --radius: 8px;
+      --timeline-width: 1320px;
+      --left-col: 340px;
+      font-family: "Aptos", "Segoe UI", "Helvetica Neue", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(90deg, rgba(24, 50, 74, 0.055) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(24, 50, 74, 0.045) 1px, transparent 1px),
+        var(--paper);
+      background-size: 32px 32px;
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(247, 243, 234, 0.94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar-inner {
+      width: min(1480px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .brand {
+      display: grid;
+      gap: 2px;
+    }
+
+    .eyebrow {
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 24px;
+      line-height: 1.15;
+      letter-spacing: 0;
+      color: var(--navy);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-strong);
+      color: var(--ink);
+      padding: 8px 12px;
+      font-weight: 700;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--teal);
+    }
+
+    .btn.primary {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: #fff;
+    }
+
+    .btn.danger {
+      border-color: rgba(180, 35, 24, 0.45);
+      color: var(--red);
+    }
+
+    .controls {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 250, 240, 0.88);
+    }
+
+    .controls-inner {
+      width: min(1480px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 12px 0;
+      display: grid;
+      grid-template-columns: minmax(260px, 1.2fr) repeat(3, minmax(160px, 0.6fr)) auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-strong);
+      color: var(--ink);
+      padding: 9px 10px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(8, 127, 140, 0.14);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(78px, 1fr));
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(24, 50, 74, 0.05);
+    }
+
+    .segment {
+      min-height: 32px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 800;
+      padding: 5px 8px;
+    }
+
+    .segment.active {
+      background: var(--surface-strong);
+      color: var(--navy);
+      box-shadow: 0 1px 6px rgba(31, 41, 51, 0.12);
+    }
+
+    .main {
+      width: min(1480px, calc(100vw - 32px));
+      margin: 18px auto 36px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-strong);
+      padding: 12px;
+      min-height: 84px;
+      display: grid;
+      gap: 4px;
+      box-shadow: 0 8px 20px rgba(31, 41, 51, 0.06);
+    }
+
+    .metric strong {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 28px;
+      line-height: 1;
+      color: var(--navy);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 240, 0.95);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-strong);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-header h2 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      color: var(--navy);
+    }
+
+    .status-pill {
+      border: 1px solid rgba(8, 127, 140, 0.32);
+      color: var(--teal);
+      background: rgba(8, 127, 140, 0.08);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .timeline-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 260px);
+      background:
+        linear-gradient(90deg, rgba(255, 250, 240, 0.96), rgba(255, 250, 240, 0.78)),
+        repeating-linear-gradient(90deg, transparent 0, transparent 110px, rgba(24, 50, 74, 0.04) 110px, rgba(24, 50, 74, 0.04) 111px);
+    }
+
+    .timeline {
+      min-width: calc(var(--left-col) + var(--timeline-width));
+      padding-bottom: 12px;
+    }
+
+    .months {
+      position: sticky;
+      top: 0;
+      z-index: 8;
+      display: grid;
+      grid-template-columns: var(--left-col) var(--timeline-width);
+      min-height: 46px;
+      background: rgba(255, 250, 240, 0.96);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .months-left {
+      padding: 13px 16px;
+      color: var(--muted);
+      font-weight: 800;
+      border-right: 1px solid var(--line);
+    }
+
+    .month-track {
+      position: relative;
+      min-height: 46px;
+    }
+
+    .month-label {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      border-left: 1px solid rgba(24, 50, 74, 0.12);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 13px 8px;
+      white-space: nowrap;
+    }
+
+    .today-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--red);
+      opacity: 0.62;
+      z-index: 3;
+    }
+
+    .section-block {
+      border-bottom: 1px solid rgba(215, 205, 187, 0.75);
+    }
+
+    .section-title {
+      display: grid;
+      grid-template-columns: var(--left-col) var(--timeline-width);
+      background: rgba(24, 50, 74, 0.08);
+    }
+
+    .section-title .name {
+      padding: 10px 16px;
+      font-weight: 900;
+      color: var(--navy);
+      border-right: 1px solid var(--line);
+    }
+
+    .section-title .section-span {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .task-row {
+      display: grid;
+      grid-template-columns: var(--left-col) var(--timeline-width);
+      min-height: 42px;
+      border-top: 1px solid rgba(215, 205, 187, 0.45);
+    }
+
+    .task-label {
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 250, 240, 0.72);
+      text-align: left;
+      padding: 7px 16px;
+      display: grid;
+      gap: 2px;
+      color: var(--ink);
+      min-width: 0;
+    }
+
+    .task-label:hover,
+    .task-label.active {
+      background: rgba(8, 127, 140, 0.1);
+    }
+
+    .task-label .title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 800;
+    }
+
+    .task-label .meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .task-track {
+      position: relative;
+      min-height: 42px;
+    }
+
+    .bar,
+    .milestone {
+      position: absolute;
+      top: 8px;
+      height: 26px;
+      border: 0;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: 0 7px 14px rgba(31, 41, 51, 0.14);
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    .bar:hover,
+    .milestone:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    .bar {
+      border-radius: 6px;
+      min-width: 8px;
+      padding: 3px 9px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+
+    .milestone {
+      width: 18px;
+      height: 18px;
+      top: 12px;
+      padding: 0;
+      transform: rotate(45deg);
+      border-radius: 3px;
+      background: var(--red);
+    }
+
+    .milestone:hover {
+      transform: rotate(45deg) translateY(-1px);
+    }
+
+    .milestone-label {
+      position: absolute;
+      top: 7px;
+      transform: translateX(18px);
+      min-width: 180px;
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 900;
+      pointer-events: none;
+      text-shadow: 0 1px 0 var(--surface);
+    }
+
+    .color-gov { background: var(--navy); }
+    .color-dis { background: var(--teal); }
+    .color-tec { background: var(--blue); }
+    .color-hu010,
+    .color-hu011 { background: var(--green); }
+    .color-gate { background: var(--amber); }
+    .color-core { background: #4b5563; }
+    .color-hu012 { background: #0e7490; }
+    .color-hu013 { background: var(--violet); }
+    .color-hu014 { background: #9f1239; }
+    .color-int,
+    .color-test,
+    .color-val { background: #7c5c2e; }
+    .color-rel,
+    .color-feb { background: #334155; }
+    .color-default { background: var(--blue); }
+
+    .sidebar {
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 146px;
+    }
+
+    .editor-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-strong);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .editor-panel .content {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .form-grid .wide {
+      grid-column: 1 / -1;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .check-row input {
+      width: 18px;
+      height: 18px;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .source-editor {
+      min-height: 310px;
+      resize: vertical;
+      font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre;
+      tab-size: 4;
+    }
+
+    .table-wrap {
+      max-height: 380px;
+      overflow: auto;
+      border-top: 1px solid var(--line);
+      background: var(--surface-strong);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(215, 205, 187, 0.7);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--navy);
+      color: #fff;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    tr:hover td {
+      background: rgba(8, 127, 140, 0.07);
+    }
+
+    .row-pick {
+      border: 0;
+      background: transparent;
+      color: var(--navy);
+      font-weight: 800;
+      text-align: left;
+      padding: 0;
+    }
+
+    .empty {
+      padding: 22px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 40;
+      max-width: min(420px, calc(100vw - 32px));
+      border: 1px solid rgba(8, 127, 140, 0.3);
+      border-radius: var(--radius);
+      background: var(--navy);
+      color: #fff;
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+      transform: translateY(120%);
+      transition: transform 0.2s ease;
+      font-weight: 800;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+    }
+
+    .invalid {
+      border-color: rgba(180, 35, 24, 0.5);
+      box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.1);
+    }
+
+    @media (max-width: 1180px) {
+      .controls-inner,
+      .workspace,
+      .topbar-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        justify-content: flex-start;
+      }
+
+      .controls-inner {
+        align-items: stretch;
+      }
+
+      .sidebar {
+        position: static;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(3, minmax(130px, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      :root {
+        --left-col: 260px;
+        --timeline-width: 1080px;
+      }
+
+      .topbar-inner,
+      .controls-inner,
+      .main {
+        width: min(100vw - 20px, 1480px);
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(130px, 1fr));
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 21px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="eyebrow">Proyecto Centenario P100</div>
+          <h1>Gantt editable del Agente 1 Extension Bot</h1>
+          <p class="subtitle" id="dateRange">Cronograma anual 2026 con cierre maximo febrero 2027</p>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="applySourceBtn" type="button">Aplicar Mermaid</button>
+          <button class="btn" id="copySourceBtn" type="button">Copiar fuente</button>
+          <button class="btn" id="downloadSourceBtn" type="button">Exportar .mmd</button>
+          <button class="btn" id="resetBtn" type="button">Restaurar base</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="controls">
+      <div class="controls-inner">
+        <div class="field">
+          <label for="searchInput">Buscar</label>
+          <input id="searchInput" type="search" placeholder="HU-014, validacion, TRL, SEU...">
+        </div>
+        <div class="field">
+          <label for="sectionFilter">Bloque</label>
+          <select id="sectionFilter"></select>
+        </div>
+        <div class="field">
+          <label for="typeFilter">Tipo</label>
+          <select id="typeFilter">
+            <option value="all">Tareas e hitos</option>
+            <option value="task">Solo tareas</option>
+            <option value="milestone">Solo hitos</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="windowFilter">Ventana</label>
+          <select id="windowFilter">
+            <option value="all">Todo el cronograma</option>
+            <option value="s1">S1 2026</option>
+            <option value="s2">S2 2026</option>
+            <option value="feb">Feb 2027</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Foco rapido</label>
+          <div class="segmented" id="focusSegments">
+            <button class="segment active" type="button" data-focus="all">Todo</button>
+            <button class="segment" type="button" data-focus="s1">S1</button>
+            <button class="segment" type="button" data-focus="s2">S2</button>
+            <button class="segment" type="button" data-focus="gates">Gates</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main class="main">
+      <section class="summary-grid" id="summaryGrid" aria-label="Resumen del cronograma"></section>
+
+      <section class="workspace">
+        <article class="panel">
+          <div class="panel-header">
+            <h2>Linea de tiempo</h2>
+            <span class="status-pill" id="renderStatus">Sincronizado</span>
+          </div>
+          <div class="timeline-wrap">
+            <div class="timeline" id="timeline"></div>
+          </div>
+          <div class="table-wrap" id="tableWrap"></div>
+        </article>
+
+        <aside class="sidebar">
+          <section class="editor-panel">
+            <div class="panel-header">
+              <h2>Editar tarea</h2>
+              <span class="status-pill" id="selectedStatus">Nada seleccionado</span>
+            </div>
+            <div class="content">
+              <div class="form-grid">
+                <div class="field wide">
+                  <label for="taskLabel">Nombre visible</label>
+                  <input id="taskLabel" type="text" placeholder="Selecciona una barra o una fila">
+                </div>
+                <div class="field">
+                  <label for="taskId">ID</label>
+                  <input id="taskId" type="text" placeholder="hu01001">
+                </div>
+                <div class="field">
+                  <label for="taskSection">Bloque</label>
+                  <select id="taskSection"></select>
+                </div>
+                <div class="field">
+                  <label for="taskStart">Inicio</label>
+                  <input id="taskStart" type="date">
+                </div>
+                <div class="field">
+                  <label for="taskEnd">Fin</label>
+                  <input id="taskEnd" type="date">
+                </div>
+                <label class="check-row wide">
+                  <input id="taskMilestone" type="checkbox">
+                  Hito de duracion cero
+                </label>
+              </div>
+              <div class="button-row">
+                <button class="btn primary" id="saveTaskBtn" type="button">Guardar</button>
+                <button class="btn" id="newTaskBtn" type="button">Nueva tarea</button>
+                <button class="btn" id="duplicateTaskBtn" type="button">Duplicar</button>
+                <button class="btn danger" id="deleteTaskBtn" type="button">Eliminar</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="editor-panel">
+            <div class="panel-header">
+              <h2>Fuente Mermaid</h2>
+              <span class="status-pill">Editable</span>
+            </div>
+            <div class="content">
+              <textarea class="source-editor" id="sourceInput" spellcheck="false"></textarea>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="text/plain" id="defaultMermaid">gantt
+    title Agente 1 Extension Bot - cronograma anual 2026 por semestres
+    dateFormat  YYYY-MM-DD
+    axisFormat  %b %Y
+    todayMarker stroke-width:2px,stroke:#0f766e,opacity:0.6
+
+    section S1 - Anteproyecto, alcance y gobierno
+    Revisar fuentes del proyecto, campus y anteproyecto             :s1gov01, 2026-03-01, 2026-03-18
+    Acordar alcance del Agente 1 y exclusiones                     :s1gov02, 2026-03-08, 2026-03-31
+    Redactar y entregar el anteproyecto                            :s1gov03, 2026-03-10, 2026-03-31
+    Anteproyecto entregado                                         :milestone, h1, 2026-03-31, 0d
+    Incorporar devoluciones y cerrar baseline documental           :s1gov04, 2026-04-01, 2026-04-30
+    Mantener tablero, riesgos, minutas y evidencias                :s1gov05, 2026-04-01, 2026-07-31
+    Firma SEU del anteproyecto                                     :milestone, h2seu, 2026-06-30, 0d
+
+    section S1 - Diseno funcional y trazabilidad
+    Relevar comunicacion SEU y flujo del Proceso 4                 :s1dis01, 2026-03-15, 2026-04-10
+    Definir responsables, validadores y circuito HITL              :s1dis02, 2026-03-20, 2026-04-20
+    Especificar historias, DoD y evidencias esperadas              :s1dis03, 2026-04-01, 2026-04-30
+    Disenar casos de uso, estados y matriz de trazabilidad         :s1dis04, 2026-04-10, 2026-05-15
+    Disenar arquitectura del agente, interfaces y seguridad base   :s1dis05, 2026-04-15, 2026-05-31
+    Cerrar planes de calidad, riesgos, comunicaciones y despliegue :s1dis06, 2026-05-01, 2026-06-15
+    Diseno validable cerrado                                       :milestone, h2, 2026-06-15, 0d
+
+    section S1 - Preparacion tecnica y datos
+    Preparar entorno local con backend e IA local                  :s1tec01, 2026-04-01, 2026-05-10
+    Configurar Google Workspace para entradas y salidas            :s1tec02, 2026-04-10, 2026-05-20
+    Definir planillas, identificadores y formato de logs           :s1tec03, 2026-04-15, 2026-05-31
+    Definir plantillas SEU para gacetillas y posts                 :s1tec04, 2026-04-20, 2026-06-10
+    Medir linea base manual y armar indice de evidencias           :s1tec05, 2026-05-15, 2026-06-30
+
+    section S1 - MVP controlado de gacetillas y posts
+    Disenar prompt y flujo para gacetillas                         :hu01001, 2026-04-20, 2026-05-20
+    Implementar prototipo controlado de gacetilla                  :hu01002, 2026-05-15, 2026-06-20
+    Probar gacetillas con datos completos e incompletos            :hu01003, 2026-06-10, 2026-07-05
+    Disenar criterios de canal, tono, longitud y hashtags          :hu01101, 2026-05-01, 2026-05-31
+    Implementar prototipos de posts para Instagram y LinkedIn      :hu01102, 2026-06-01, 2026-06-30
+    Validar posts con SEU y ajustar prompts                        :hu01103, 2026-06-20, 2026-07-15
+    MVP de gacetillas y posts con evidencia                        :milestone, h3, 2026-07-15, 0d
+
+    section S1 - Gate TRL 3 y replanificacion
+    Auditar alcance, DoD y trazabilidad del primer semestre        :g201, 2026-07-01, 2026-07-15
+    Consolidar outputs, logs, defectos y checklist SEU             :g202, 2026-07-10, 2026-07-25
+    Entregar informe de avance y replanificar S2                   :g203, 2026-07-15, 2026-07-31
+    Gate TRL 3 cerrado                                             :milestone, h4, 2026-07-31, 0d
+
+    section S2 - Desarrollo base y robustecimiento
+    Ajustar arquitectura segun evidencias de S1                    :s2core01, 2026-08-01, 2026-08-15
+    Implementar persistencia, colas, permisos y secretos           :s2core02, 2026-08-01, 2026-09-15
+    Fortalecer logging, auditoria y control de defectos            :s2core03, 2026-08-15, 2026-09-30
+    Refinar gacetillas y posts con feedback real                   :s2core04, 2026-08-15, 2026-10-15
+
+    section S2 - Confirmaciones de inscripcion
+    Disenar datos, plantilla de email y control de duplicados      :hu01201, 2026-08-01, 2026-08-20
+    Implementar envio de confirmaciones y registro                 :hu01202, 2026-08-15, 2026-09-20
+    Probar duplicados, errores de destinatario y logs              :hu01203, 2026-09-10, 2026-09-30
+    Confirmaciones operativas con DoD                              :milestone, h5, 2026-09-30, 0d
+
+    section S2 - Lenguaje natural interno
+    Disenar email de inicio, invitacion a chat y fallback          :hu01301, 2026-08-15, 2026-09-10
+    Implementar autenticacion, registro y transcript               :hu01302, 2026-09-01, 2026-10-10
+    Probar solicitudes validas, fuera de alcance y usabilidad      :hu01303, 2026-10-01, 2026-10-31
+    Lenguaje natural interno operativo con DoD                     :milestone, h6, 2026-10-31, 0d
+
+    section S2 - Certificados con validacion humana
+    Disenar plantilla, aprobacion y datos academicos               :hu01401, 2026-09-15, 2026-10-15
+    Implementar generacion PDF, bloqueo sin aprobacion y logs      :hu01402, 2026-10-01, 2026-11-15
+    Probar datos faltantes, emision controlada y rechazo           :hu01403, 2026-11-01, 2026-11-30
+    Certificados operativos con DoD                                :milestone, h7, 2026-11-30, 0d
+
+    section S2 - Integracion, pruebas y validacion
+    Definir contratos y mocks con A2-A5 sin orquestar              :int01, 2026-08-15, 2026-09-30
+    Integrar insumos disponibles de A2-A5 de forma progresiva      :int02, 2026-10-01, 2026-12-10
+    Ejecutar pruebas unitarias, integracion y sistema              :test01, 2026-09-15, 2026-11-30
+    Ejecutar pruebas de seguridad, permisos y prompt injection     :test02, 2026-10-01, 2026-12-10
+    Validar con usuarios SEU, checklist y trazabilidad             :val01, 2026-11-01, 2026-12-15
+    Cerrar defectos criticos y regresion completa                  :val02, 2026-11-15, 2026-12-20
+
+    section S2 - Release, informe final y cierre anual
+    Preparar release candidata y paquete de evidencias             :rel01, 2026-12-01, 2026-12-20
+    Redactar informe final, manual operativo y anexos              :rel02, 2026-11-15, 2026-12-31
+    Ejecutar auditoria final y decision go/no-go                   :rel03, 2026-12-10, 2026-12-31
+    Gate TRL 4 validado                                            :milestone, h8, 2026-12-20, 0d
+    Informe final y cierre anual del Agente 1                      :milestone, h9, 2026-12-31, 0d
+
+    section Feb 2027 - Entrega final maxima del Agente 1
+    Incorporar observaciones finales de catedra y SEU              :feb01, 2027-02-01, 2027-02-14
+    Preparar paquete final, demo y transferencia P100              :feb02, 2027-02-08, 2027-02-20
+    Entrega final del Agente 1                                     :milestone, h10, 2027-02-20, 0d</script>
+
+  <script>
+    const state = {
+      meta: {},
+      sections: [],
+      tasks: [],
+      selectedId: null,
+      focus: "all",
+      dirty: false
+    };
+
+    const els = {
+      source: document.getElementById("sourceInput"),
+      timeline: document.getElementById("timeline"),
+      table: document.getElementById("tableWrap"),
+      summary: document.getElementById("summaryGrid"),
+      dateRange: document.getElementById("dateRange"),
+      renderStatus: document.getElementById("renderStatus"),
+      selectedStatus: document.getElementById("selectedStatus"),
+      search: document.getElementById("searchInput"),
+      sectionFilter: document.getElementById("sectionFilter"),
+      typeFilter: document.getElementById("typeFilter"),
+      windowFilter: document.getElementById("windowFilter"),
+      taskLabel: document.getElementById("taskLabel"),
+      taskId: document.getElementById("taskId"),
+      taskSection: document.getElementById("taskSection"),
+      taskStart: document.getElementById("taskStart"),
+      taskEnd: document.getElementById("taskEnd"),
+      taskMilestone: document.getElementById("taskMilestone"),
+      toast: document.getElementById("toast")
+    };
+
+    const defaultSource = document.getElementById("defaultMermaid").textContent.trim();
+    els.source.value = defaultSource;
+
+    function parseMermaid(source) {
+      const lines = source.replace(/\r\n/g, "\n").split("\n");
+      const meta = { title: "", dateFormat: "YYYY-MM-DD", axisFormat: "%b %Y", todayMarker: "" };
+      const sections = [];
+      const tasks = [];
+      let currentSection = "Sin bloque";
+
+      for (const rawLine of lines) {
+        const trimmed = rawLine.trim();
+        if (!trimmed || trimmed === "gantt") continue;
+        if (trimmed.startsWith("title ")) {
+          meta.title = trimmed.slice(6).trim();
+          continue;
+        }
+        if (trimmed.startsWith("dateFormat")) {
+          meta.dateFormat = trimmed.replace("dateFormat", "").trim();
+          continue;
+        }
+        if (trimmed.startsWith("axisFormat")) {
+          meta.axisFormat = trimmed.replace("axisFormat", "").trim();
+          continue;
+        }
+        if (trimmed.startsWith("todayMarker")) {
+          meta.todayMarker = trimmed.replace("todayMarker", "").trim();
+          continue;
+        }
+        if (trimmed.startsWith("section ")) {
+          currentSection = trimmed.slice(8).trim();
+          if (!sections.includes(currentSection)) sections.push(currentSection);
+          continue;
+        }
+        if (!trimmed.includes(":")) continue;
+
+        const [labelPart, attrsPart] = splitOnce(trimmed, ":");
+        const attrs = attrsPart.split(",").map((item) => item.trim()).filter(Boolean);
+        const isMilestone = attrs[0] === "milestone";
+        const id = isMilestone ? attrs[1] : attrs[0];
+        const start = isMilestone ? attrs[2] : attrs[1];
+        const end = isMilestone ? start : attrs[2];
+
+        if (!id || !isIsoDate(start) || !isIsoDate(end)) continue;
+
+        tasks.push({
+          key: `${id}-${tasks.length}`,
+          id,
+          label: labelPart.trim(),
+          section: currentSection,
+          start,
+          end,
+          milestone: isMilestone,
+          order: tasks.length
+        });
+
+        if (!sections.includes(currentSection)) sections.push(currentSection);
+      }
+
+      return { meta, sections, tasks };
+    }
+
+    function splitOnce(value, token) {
+      const index = value.indexOf(token);
+      return [value.slice(0, index), value.slice(index + token.length)];
+    }
+
+    function isIsoDate(value) {
+      return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(toDate(value).getTime());
+    }
+
+    function toDate(iso) {
+      const [year, month, day] = iso.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function toIso(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function addDays(date, days) {
+      const copy = new Date(date);
+      copy.setDate(copy.getDate() + days);
+      return copy;
+    }
+
+    function dayDiff(start, end) {
+      const ms = toDate(end) - toDate(start);
+      return Math.max(0, Math.round(ms / 86400000));
+    }
+
+    function formatShort(iso) {
+      return toDate(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+    }
+
+    function formatMonth(date) {
+      return date.toLocaleDateString("es-AR", { month: "short", year: "numeric" }).replace(".", "");
+    }
+
+    function getWindow(task) {
+      if (task.start.startsWith("2027-02") || task.end.startsWith("2027-02")) return "feb";
+      if (task.start >= "2026-08-01") return "s2";
+      return "s1";
+    }
+
+    function getColorClass(task) {
+      const id = task.id.toLowerCase();
+      const section = task.section.toLowerCase();
+      if (task.milestone || id.startsWith("g2") || id.startsWith("h")) return "color-gate";
+      if (id.includes("gov")) return "color-gov";
+      if (id.includes("dis")) return "color-dis";
+      if (id.includes("tec")) return "color-tec";
+      if (id.startsWith("hu010") || id.startsWith("hu011")) return "color-hu010";
+      if (id.includes("core")) return "color-core";
+      if (id.startsWith("hu012")) return "color-hu012";
+      if (id.startsWith("hu013")) return "color-hu013";
+      if (id.startsWith("hu014")) return "color-hu014";
+      if (id.startsWith("int") || id.startsWith("test") || id.startsWith("val")) return "color-int";
+      if (id.startsWith("rel") || id.startsWith("feb")) return "color-rel";
+      if (section.includes("gacetillas")) return "color-hu010";
+      return "color-default";
+    }
+
+    function applySource() {
+      const parsed = parseMermaid(els.source.value);
+      if (!parsed.tasks.length) {
+        els.source.classList.add("invalid");
+        showToast("No pude leer tareas validas en la fuente Mermaid.");
+        return;
+      }
+
+      els.source.classList.remove("invalid");
+      state.meta = parsed.meta;
+      state.sections = parsed.sections;
+      state.tasks = parsed.tasks;
+      state.selectedId = state.tasks[0]?.key ?? null;
+      state.dirty = false;
+      syncSelectors();
+      render();
+      selectTask(state.selectedId);
+      showToast("Fuente aplicada.");
+    }
+
+    function syncSelectors() {
+      const sectionOptions = ['<option value="all">Todos los bloques</option>']
+        .concat(state.sections.map((section) => `<option value="${escapeAttr(section)}">${escapeHtml(section)}</option>`));
+      els.sectionFilter.innerHTML = sectionOptions.join("");
+      els.taskSection.innerHTML = state.sections.map((section) => `<option value="${escapeAttr(section)}">${escapeHtml(section)}</option>`).join("");
+    }
+
+    function getFilteredTasks() {
+      const search = els.search.value.trim().toLowerCase();
+      const section = els.sectionFilter.value;
+      const type = els.typeFilter.value;
+      const win = els.windowFilter.value;
+
+      return state.tasks.filter((task) => {
+        const haystack = `${task.label} ${task.id} ${task.section} ${task.start} ${task.end}`.toLowerCase();
+        const matchesSearch = !search || haystack.includes(search);
+        const matchesSection = section === "all" || task.section === section;
+        const matchesType = type === "all" || (type === "milestone" ? task.milestone : !task.milestone);
+        const matchesWindow = win === "all" || getWindow(task) === win;
+        const matchesFocus =
+          state.focus === "all" ||
+          (state.focus === "s1" && getWindow(task) === "s1") ||
+          (state.focus === "s2" && getWindow(task) === "s2") ||
+          (state.focus === "gates" && (task.milestone || /gate|trl|firma|entrega|cierre/i.test(task.label)));
+
+        return matchesSearch && matchesSection && matchesType && matchesWindow && matchesFocus;
+      });
+    }
+
+    function render() {
+      const tasks = getFilteredTasks();
+      const bounds = getBounds(state.tasks);
+      renderSummary(tasks, bounds);
+      renderTimeline(tasks, bounds);
+      renderTable(tasks);
+      els.renderStatus.textContent = state.dirty ? "Cambios sin exportar" : "Sincronizado";
+    }
+
+    function getBounds(tasks) {
+      const starts = tasks.map((task) => task.start).sort();
+      const ends = tasks.map((task) => task.end).sort();
+      const min = starts[0] ?? toIso(new Date());
+      const max = ends[ends.length - 1] ?? min;
+      return { min, max, days: Math.max(1, dayDiff(min, max) + 1) };
+    }
+
+    function renderSummary(tasks, bounds) {
+      const milestones = tasks.filter((task) => task.milestone).length;
+      const taskCount = tasks.length - milestones;
+      const s1 = tasks.filter((task) => getWindow(task) === "s1").length;
+      const s2 = tasks.filter((task) => getWindow(task) === "s2").length;
+      const feb = tasks.filter((task) => getWindow(task) === "feb").length;
+      const maxDuration = tasks
+        .filter((task) => !task.milestone)
+        .reduce((max, task) => Math.max(max, dayDiff(task.start, task.end) + 1), 0);
+
+      els.summary.innerHTML = [
+        metric(taskCount, "tareas visibles"),
+        metric(milestones, "hitos visibles"),
+        metric(state.sections.length, "bloques"),
+        metric(s1, "items S1"),
+        metric(s2, "items S2"),
+        metric(`${maxDuration}d`, "tarea mas larga")
+      ].join("");
+
+      els.dateRange.textContent = `${formatShort(bounds.min)} -> ${formatShort(bounds.max)} | Feb 2027: ${feb} items`;
+    }
+
+    function metric(value, label) {
+      return `<div class="metric"><strong>${escapeHtml(String(value))}</strong><span>${escapeHtml(label)}</span></div>`;
+    }
+
+    function renderTimeline(tasks, bounds) {
+      const monthLabels = getMonths(bounds.min, bounds.max).map((month) => {
+        const left = positionFor(toIso(month), bounds);
+        return `<div class="month-label" style="left:${left}%">${escapeHtml(formatMonth(month))}</div>`;
+      }).join("");
+
+      const today = toIso(new Date());
+      const todayLine = today >= bounds.min && today <= bounds.max
+        ? `<div class="today-line" style="left:${positionFor(today, bounds)}%" title="Hoy"></div>`
+        : "";
+
+      const blocks = state.sections.map((section) => {
+        const sectionTasks = tasks.filter((task) => task.section === section);
+        if (!sectionTasks.length) return "";
+        const sectionBounds = getBounds(sectionTasks);
+        const rows = sectionTasks.map((task) => taskRow(task, bounds)).join("");
+        return `
+          <section class="section-block">
+            <div class="section-title">
+              <div class="name">${escapeHtml(section)}</div>
+              <div class="section-span">${escapeHtml(formatShort(sectionBounds.min))} -> ${escapeHtml(formatShort(sectionBounds.max))}</div>
+            </div>
+            ${rows}
+          </section>`;
+      }).join("");
+
+      els.timeline.innerHTML = `
+        <div class="months">
+          <div class="months-left">Bloques y tareas</div>
+          <div class="month-track">${monthLabels}${todayLine}</div>
+        </div>
+        ${blocks || '<div class="empty">No hay tareas para los filtros activos.</div>'}
+      `;
+    }
+
+    function getMonths(minIso, maxIso) {
+      const cursor = toDate(minIso);
+      cursor.setDate(1);
+      const max = toDate(maxIso);
+      const months = [];
+      while (cursor <= max) {
+        months.push(new Date(cursor));
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+      return months;
+    }
+
+    function positionFor(iso, bounds) {
+      return (dayDiff(bounds.min, iso) / bounds.days) * 100;
+    }
+
+    function widthFor(task, bounds) {
+      return Math.max(0.65, ((dayDiff(task.start, task.end) + 1) / bounds.days) * 100);
+    }
+
+    function taskRow(task, bounds) {
+      const left = positionFor(task.start, bounds);
+      const width = widthFor(task, bounds);
+      const active = task.key === state.selectedId ? " active" : "";
+      const dateLabel = task.milestone
+        ? `${formatShort(task.start)}`
+        : `${formatShort(task.start)} - ${formatShort(task.end)}`;
+      const taskBody = task.milestone
+        ? `<button class="milestone" style="left:${left}%" data-key="${escapeAttr(task.key)}" title="${escapeAttr(task.label)}"></button><span class="milestone-label" style="left:${left}%">${escapeHtml(task.label)}</span>`
+        : `<button class="bar ${getColorClass(task)}" style="left:${left}%;width:${width}%" data-key="${escapeAttr(task.key)}" title="${escapeAttr(task.label)}">${escapeHtml(task.id)}</button>`;
+
+      return `
+        <div class="task-row">
+          <button class="task-label${active}" data-key="${escapeAttr(task.key)}" type="button">
+            <span class="title">${escapeHtml(task.label)}</span>
+            <span class="meta">${escapeHtml(task.id)} | ${escapeHtml(dateLabel)}</span>
+          </button>
+          <div class="task-track">${taskBody}</div>
+        </div>`;
+    }
+
+    function renderTable(tasks) {
+      if (!tasks.length) {
+        els.table.innerHTML = '<div class="empty">La tabla no tiene filas para los filtros activos.</div>';
+        return;
+      }
+
+      const rows = tasks.map((task) => `
+        <tr>
+          <td><button class="row-pick" data-key="${escapeAttr(task.key)}" type="button">${escapeHtml(task.label)}</button></td>
+          <td>${escapeHtml(task.id)}</td>
+          <td>${escapeHtml(task.section)}</td>
+          <td>${escapeHtml(task.start)}</td>
+          <td>${escapeHtml(task.milestone ? "hito" : task.end)}</td>
+        </tr>`).join("");
+
+      els.table.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Tarea</th>
+              <th>ID</th>
+              <th>Bloque</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    function selectTask(key) {
+      const task = state.tasks.find((item) => item.key === key);
+      state.selectedId = task?.key ?? null;
+      if (!task) {
+        els.selectedStatus.textContent = "Nada seleccionado";
+        clearTaskForm();
+        render();
+        return;
+      }
+
+      els.selectedStatus.textContent = task.id;
+      els.taskLabel.value = task.label;
+      els.taskId.value = task.id;
+      els.taskSection.value = task.section;
+      els.taskStart.value = task.start;
+      els.taskEnd.value = task.end;
+      els.taskMilestone.checked = task.milestone;
+      els.taskEnd.disabled = task.milestone;
+      render();
+    }
+
+    function clearTaskForm() {
+      els.taskLabel.value = "";
+      els.taskId.value = "";
+      els.taskSection.value = state.sections[0] ?? "";
+      els.taskStart.value = "";
+      els.taskEnd.value = "";
+      els.taskMilestone.checked = false;
+      els.taskEnd.disabled = false;
+    }
+
+    function saveTask() {
+      const payload = readTaskForm();
+      if (!payload) return;
+
+      const index = state.tasks.findIndex((task) => task.key === state.selectedId);
+      if (index === -1) {
+        const task = { ...payload, key: `${payload.id}-${Date.now()}`, order: state.tasks.length };
+        state.tasks.push(task);
+        if (!state.sections.includes(task.section)) state.sections.push(task.section);
+        state.selectedId = task.key;
+      } else {
+        state.tasks[index] = { ...state.tasks[index], ...payload };
+      }
+
+      markDirtyAndSyncSource();
+      syncSelectors();
+      selectTask(state.selectedId);
+      showToast("Tarea guardada.");
+    }
+
+    function readTaskForm() {
+      const label = els.taskLabel.value.trim();
+      const id = els.taskId.value.trim();
+      const section = els.taskSection.value.trim();
+      const start = els.taskStart.value;
+      const milestone = els.taskMilestone.checked;
+      const end = milestone ? start : els.taskEnd.value;
+
+      for (const input of [els.taskLabel, els.taskId, els.taskStart, els.taskEnd]) input.classList.remove("invalid");
+
+      const invalid = [];
+      if (!label) invalid.push(els.taskLabel);
+      if (!id) invalid.push(els.taskId);
+      if (!isIsoDate(start)) invalid.push(els.taskStart);
+      if (!milestone && !isIsoDate(end)) invalid.push(els.taskEnd);
+      if (!milestone && start > end) invalid.push(els.taskEnd);
+
+      if (invalid.length) {
+        invalid.forEach((input) => input.classList.add("invalid"));
+        showToast("Revisa nombre, ID y fechas antes de guardar.");
+        return null;
+      }
+
+      return { label, id, section, start, end, milestone };
+    }
+
+    function newTask() {
+      const section = els.sectionFilter.value !== "all" ? els.sectionFilter.value : state.sections[0];
+      clearTaskForm();
+      els.taskSection.value = section;
+      els.taskStart.value = "2026-08-01";
+      els.taskEnd.value = "2026-08-15";
+      state.selectedId = null;
+      els.selectedStatus.textContent = "Nueva tarea";
+      render();
+      els.taskLabel.focus();
+    }
+
+    function duplicateTask() {
+      const task = state.tasks.find((item) => item.key === state.selectedId);
+      if (!task) {
+        showToast("Selecciona una tarea para duplicar.");
+        return;
+      }
+      const copy = {
+        ...task,
+        key: `${task.id}-copy-${Date.now()}`,
+        id: uniqueId(`${task.id}c`),
+        label: `${task.label} copia`,
+        order: state.tasks.length
+      };
+      state.tasks.splice(state.tasks.indexOf(task) + 1, 0, copy);
+      state.selectedId = copy.key;
+      markDirtyAndSyncSource();
+      selectTask(copy.key);
+      showToast("Tarea duplicada.");
+    }
+
+    function deleteTask() {
+      const task = state.tasks.find((item) => item.key === state.selectedId);
+      if (!task) {
+        showToast("Selecciona una tarea para eliminar.");
+        return;
+      }
+      state.tasks = state.tasks.filter((item) => item.key !== task.key);
+      state.selectedId = state.tasks[0]?.key ?? null;
+      markDirtyAndSyncSource();
+      syncSelectors();
+      selectTask(state.selectedId);
+      showToast("Tarea eliminada del visor.");
+    }
+
+    function uniqueId(base) {
+      let candidate = base;
+      let count = 2;
+      const ids = new Set(state.tasks.map((task) => task.id));
+      while (ids.has(candidate)) {
+        candidate = `${base}${count}`;
+        count += 1;
+      }
+      return candidate;
+    }
+
+    function markDirtyAndSyncSource() {
+      state.dirty = true;
+      els.source.value = toMermaid();
+      render();
+    }
+
+    function toMermaid() {
+      const lines = [
+        "gantt",
+        `    title ${state.meta.title || "Agente 1 Extension Bot - cronograma anual 2026 por semestres"}`,
+        `    dateFormat  ${state.meta.dateFormat || "YYYY-MM-DD"}`,
+        `    axisFormat  ${state.meta.axisFormat || "%b %Y"}`,
+        `    todayMarker ${state.meta.todayMarker || "stroke-width:2px,stroke:#0f766e,opacity:0.6"}`,
+        ""
+      ];
+
+      for (const section of state.sections) {
+        const tasks = state.tasks.filter((task) => task.section === section);
+        if (!tasks.length) continue;
+        lines.push(`    section ${section}`);
+        for (const task of tasks) {
+          const label = task.label.padEnd(64, " ");
+          const attrs = task.milestone
+            ? `milestone, ${task.id}, ${task.start}, 0d`
+            : `${task.id}, ${task.start}, ${task.end}`;
+          lines.push(`    ${label}:${attrs}`);
+        }
+        lines.push("");
+      }
+
+      return lines.join("\n").trimEnd();
+    }
+
+    async function copySource() {
+      try {
+        await navigator.clipboard.writeText(els.source.value);
+        showToast("Fuente Mermaid copiada.");
+      } catch {
+        els.source.select();
+        document.execCommand("copy");
+        showToast("Fuente Mermaid copiada.");
+      }
+    }
+
+    function downloadSource() {
+      const blob = new Blob([els.source.value + "\n"], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "diagrama-gantt-agente-1.mmd";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      showToast("Archivo .mmd exportado.");
+    }
+
+    function resetSource() {
+      els.source.value = defaultSource;
+      applySource();
+      showToast("Base restaurada.");
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 2200);
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(String(value));
+    }
+
+    document.getElementById("applySourceBtn").addEventListener("click", applySource);
+    document.getElementById("copySourceBtn").addEventListener("click", copySource);
+    document.getElementById("downloadSourceBtn").addEventListener("click", downloadSource);
+    document.getElementById("resetBtn").addEventListener("click", resetSource);
+    document.getElementById("saveTaskBtn").addEventListener("click", saveTask);
+    document.getElementById("newTaskBtn").addEventListener("click", newTask);
+    document.getElementById("duplicateTaskBtn").addEventListener("click", duplicateTask);
+    document.getElementById("deleteTaskBtn").addEventListener("click", deleteTask);
+
+    for (const control of [els.search, els.sectionFilter, els.typeFilter, els.windowFilter]) {
+      control.addEventListener("input", render);
+    }
+
+    els.taskMilestone.addEventListener("change", () => {
+      els.taskEnd.disabled = els.taskMilestone.checked;
+      if (els.taskMilestone.checked) els.taskEnd.value = els.taskStart.value;
+    });
+
+    document.getElementById("focusSegments").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-focus]");
+      if (!button) return;
+      state.focus = button.dataset.focus;
+      document.querySelectorAll(".segment").forEach((segment) => segment.classList.toggle("active", segment === button));
+      render();
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-key]");
+      if (!target) return;
+      selectTask(target.dataset.key);
+    });
+
+    els.source.addEventListener("input", () => {
+      state.dirty = true;
+      els.renderStatus.textContent = "Fuente sin aplicar";
+    });
+
+    applySource();
+  </script>
+</body>
+</html>

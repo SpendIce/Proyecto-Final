@@ -4,6 +4,7 @@ Este artefacto contiene la vista principal del cronograma del proyecto de Juan I
 
 - `diagrama-gantt-agente-1.mmd`: Gantt principal, enfocado en el ano 2026 y organizado por primer y segundo semestre.
 - `diagrama-gantt-agente-1.puml`: respaldo PlantUML sincronizado con la vista Mermaid.
+- `visor-gantt-agente-1.html`: visor didactico y editable en navegador; permite filtrar, editar tareas y exportar nuevamente la fuente Mermaid.
 - `mermaid-live-url.txt`: enlace codificado para abrir la vista en Mermaid Live Editor; regenerar si cambia la fuente Mermaid.
 
 Los PNG/SVG existentes son artefactos renderizados. No son fuente de verdad y no se regeneran automaticamente despues de cambios documentales.
@@ -75,6 +76,12 @@ xdg-open https://mermaid.live/
 ```
 
 Luego abrir `diagrama-gantt-agente-1.mmd` y usar su contenido como fuente del diagrama.
+
+## Uso del visor editable
+
+Abrir `visor-gantt-agente-1.html` en el navegador. El visor funciona sin servidor local y sin dependencias externas: renderiza la fuente Mermaid embebida, permite buscar por tarea, filtrar por semestre/bloque/hito, editar campos desde el panel lateral y exportar un nuevo `diagrama-gantt-agente-1.mmd`.
+
+El navegador no puede guardar directamente sobre el repo por seguridad. Si se hacen cambios en el visor, exportar el `.mmd` y reemplazar la fuente editable solo despues de revisar que el contenido siga respetando el alcance, los hitos y las fechas confirmadas.
 
 ## Renderizado Mermaid local
 
