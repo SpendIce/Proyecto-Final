@@ -884,28 +884,36 @@ La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el in
 
 \begin{figure}[H]
   \centering
-  \resizebox{\textwidth}{!}{%
+  \resizebox{0.98\textwidth}{!}{%
   \begin{tikzpicture}[
-    bloque/.style={rectangle, draw, rounded corners, minimum width=2.8cm, minimum height=1.1cm, align=center, font=\small},
-    validacion/.style={diamond, draw, fill=yellow!15, minimum width=2.2cm, minimum height=1.1cm, align=center, font=\small},
-    salida/.style={rectangle, draw, fill=green!10, rounded corners, minimum width=2.5cm, minimum height=0.9cm, align=center, font=\small},
+    bloque/.style={rectangle, draw, rounded corners=2pt, text width=2.45cm, minimum height=1.05cm, align=center, font=\small, inner sep=4pt},
+    validacion/.style={diamond, draw, aspect=1.75, fill=yellow!15, text width=2.35cm, align=center, font=\small, inner sep=1pt},
+    barra/.style={rectangle, draw, fill=green!8, rounded corners=2pt, text width=11.2cm, minimum height=0.62cm, align=center, font=\small, inner sep=3pt},
+    salida/.style={rectangle, draw, fill=green!10, rounded corners=2pt, text width=2.55cm, minimum height=0.95cm, align=center, font=\small, inner sep=4pt},
     arrow/.style={-{Stealth[length=2.5mm]}, thick}
   ]
     % Fila 1: entrada y trigger
     \node[bloque, fill=blue!10] (form) at (0, 0) {Formulario\\Google Forms};
-    \node[bloque, fill=yellow!15] (sheets) at (3.5, 0) {Google\\Sheets};
-    \node[bloque] (trigger) at (7, 0) {Trigger\\Apps Script};
-    \node[bloque, fill=blue!15] (a1) at (10.5, 0) {Agente~1\\(LangGraph + LLM)};
+    \node[bloque, fill=yellow!15] (sheets) at (3.2, 0) {Google\\Sheets};
+    \node[bloque] (trigger) at (6.4, 0) {Trigger\\Apps Script};
+    \node[bloque, fill=blue!15] (a1) at (9.6, 0) {Agente~1\\LangGraph + LLM\\(Ollama local)};
 
-    % Fila 2: validacion y salidas
-    \node[validacion] (val) at (10.5, -2.5) {Validaci\'on\\humana\\(SEU)};
-    \node[salida] (gacetilla) at (3.5, -4.5) {Gacetilla\\(Google Docs)};
-    \node[salida] (post) at (7, -4.5) {Post\\(Instagram /\\LinkedIn)};
-    \node[salida] (mail) at (10.5, -4.5) {Correo\\(Gmail)};
-    \node[salida] (certif) at (14, -4.5) {Certificado\\(PDF)};
+    % Validacion y retrabajo
+    \node[validacion] (val) at (9.6, -2.35) {Validaci\'on\\humana\\SEU};
+    \node[bloque, draw=red!60, text=red!80, fill=red!5] (ajuste) at (12.9, -2.35) {Ajuste\\de borrador\\y reenv\'io};
 
-    % Nodo de rechazo
-    \node[bloque, draw=red!60, text=red!80, fill=red!5] (ajuste) at (14.5, -2.5) {Ajuste\\y reenv\'io};
+    % Distribucion de salidas aprobadas
+    \node[barra] (aprobadas) at (6.3, -3.95) {Salidas aprobadas};
+    \node[salida] (gacetilla) at (1.2, -5.25) {Gacetilla\\Google Docs};
+    \node[salida] (post) at (4.6, -5.25) {Post\\Instagram\\LinkedIn};
+    \node[salida] (mail) at (8.0, -5.25) {Correo\\Gmail};
+    \node[salida] (certif) at (11.4, -5.25) {Certificado\\PDF};
+
+    \coordinate (out-gacetilla) at (gacetilla.north |- aprobadas.south);
+    \coordinate (out-post) at (post.north |- aprobadas.south);
+    \coordinate (out-mail) at (mail.north |- aprobadas.south);
+    \coordinate (out-certif) at (certif.north |- aprobadas.south);
+    \coordinate (in-aprobadas) at (val.south |- aprobadas.north);
 
     % Flechas principales
     \draw[arrow] (form) -- (sheets);
@@ -913,19 +921,16 @@ La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el in
     \draw[arrow] (trigger) -- (a1);
     \draw[arrow] (a1) -- (val);
 
-    % Flechas aprobacion -> salidas
-    \draw[arrow] (val.south) ++(-2,0) -- (gacetilla.north) node[midway, left, font=\tiny] {aprobado};
-    \draw[arrow] (val) -- (post.north);
-    \draw[arrow] (val) -- (mail.north);
-    \draw[arrow] (val.south) ++(2,0) -- (certif.north);
+    % Aprobacion -> salidas, sin diagonales cruzadas
+    \draw[arrow] (val.south) -- (in-aprobadas);
+    \draw[arrow] (out-gacetilla) -- (gacetilla.north);
+    \draw[arrow] (out-post) -- (post.north);
+    \draw[arrow] (out-mail) -- (mail.north);
+    \draw[arrow] (out-certif) -- (certif.north);
 
     % Flecha rechazo
-    \draw[arrow, red!60] (val.east) -- (ajuste.west) node[midway, above, font=\tiny, text=red!80] {rechazado};
-    \draw[arrow, red!60, dashed] (ajuste.north) -- ++(0,0.8) -| (a1.north);
-
-    % Labels adicionales
-    \node[font=\tiny\itshape, text=gray] at (10.5, 0.7) {Ollama: LLM local};
-    \node[font=\tiny\itshape, text=gray] at (10.5, -1.8) {\ac{SEU}};
+    \draw[arrow, red!60] (val.east) -- (ajuste.west);
+    \draw[arrow, red!60, dashed] (ajuste.north) -- ++(0,2.55) -| (a1.north east);
 
   \end{tikzpicture}%
   }
@@ -1033,54 +1038,62 @@ La Figura~\ref{fig:arquitectura-a1} presenta la vista de componentes t\'ecnicos 
 
 \begin{figure}[H]
   \centering
+  \resizebox{0.98\textwidth}{!}{%
   \begin{tikzpicture}[
-    capa/.style={rectangle, draw, rounded corners, minimum width=12cm, minimum height=1.4cm, align=center, font=\small},
-    comp/.style={rectangle, draw, fill=white, rounded corners, minimum width=3.2cm, minimum height=1cm, align=center, font=\small},
+    capa/.style={rectangle, draw, rounded corners=2pt, minimum width=9.4cm, minimum height=1.12cm, align=center, font=\small, inner sep=4pt},
+    soporte/.style={rectangle, draw, rounded corners=2pt, minimum width=3.1cm, minimum height=3.55cm, align=center, font=\small, inner sep=4pt},
+    comp/.style={rectangle, draw, fill=white, rounded corners=2pt, text width=1.85cm, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=3pt},
+    compsmall/.style={rectangle, draw, fill=white, rounded corners=2pt, text width=1.55cm, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=3pt},
+    compwide/.style={rectangle, draw, fill=white, rounded corners=2pt, text width=4.1cm, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=3pt},
+    labelcapa/.style={font=\scriptsize\bfseries, text width=1.9cm, align=center},
     arrow/.style={-{Stealth[length=2.5mm]}, thick}
   ]
     % Capa Google Workspace
-    \node[capa, fill=yellow!10] (gw) at (6, 5) {};
-    \node[font=\small\bfseries] at (0.9, 5) {Google Workspace};
-    \node[comp] at (3.5, 5) {Forms / Sheets\\(entrada)};
-    \node[comp] at (7, 5) {Drive / Docs\\(salida)};
-    \node[comp] at (10.5, 5) {Gmail\\(env\'ios)};
+    \node[capa, fill=yellow!10] (gw) at (5, 5) {};
+    \node[labelcapa] at (1.1, 5) {Google\\Workspace};
+    \node[comp] at (3, 5) {Forms / Sheets\\(entrada)};
+    \node[comp] at (5.4, 5) {Drive / Docs\\(salida)};
+    \node[comp] at (7.8, 5) {Gmail\\(env\'ios)};
 
     % Capa Apps Script
-    \node[capa, fill=orange!8, minimum height=1.0cm] (as) at (6, 3.5) {};
-    \node[font=\small\bfseries] at (0.9, 3.5) {Apps Script};
-    \node[comp, minimum width=5cm, minimum height=0.7cm] at (6, 3.5) {Triggers / Automatizaciones};
+    \node[capa, fill=orange!8, minimum height=1.0cm] (as) at (5, 3.5) {};
+    \node[labelcapa] at (1.1, 3.5) {Apps\\Script};
+    \node[compwide] (apps) at (5, 3.5) {Triggers y automatizaciones};
 
     % Capa FastAPI
-    \node[capa, fill=blue!8, minimum height=1.0cm] (api) at (6, 2.3) {};
-    \node[font=\small\bfseries] at (0.9, 2.3) {Backend (FastAPI)};
-    \node[comp, minimum width=4cm, minimum height=0.7cm] at (6, 2.3) {API REST / Router de HU};
+    \node[capa, fill=blue!8, minimum height=1.0cm] (api) at (5, 2.3) {};
+    \node[labelcapa] at (1.1, 2.3) {Backend\\FastAPI};
+    \node[compwide] (router) at (5, 2.3) {API REST y router de historias de usuario};
 
     % Capa LangGraph
-    \node[capa, fill=green!8, minimum height=1.0cm] (lc) at (6, 1.1) {};
-    \node[font=\small\bfseries] at (0.9, 1.1) {LangGraph};
-    \node[comp, minimum width=2.5cm, minimum height=0.7cm] at (4, 1.1) {Grafos de\\estado};
-    \node[comp, minimum width=2.5cm, minimum height=0.7cm] at (7.5, 1.1) {Prompts y\\templates};
-    \node[comp, minimum width=2cm, minimum height=0.7cm] at (10.8, 1.1) {Memoria};
+    \node[capa, fill=green!8, minimum height=1.0cm] (lc) at (5, 1.1) {};
+    \node[labelcapa] at (1.1, 1.1) {LangGraph};
+    \node[compsmall] at (3, 1.1) {Grafos de\\estado};
+    \node[compsmall] at (4.9, 1.1) {Prompts y\\templates};
+    \node[compsmall] at (6.8, 1.1) {Memoria\\de trabajo};
+    \node[compsmall, dashed, fill=green!3] at (8.55, 1.1) {\texttt{deepagents}\\desarrollo};
 
     % Capa Ollama
-    \node[capa, fill=purple!8, minimum height=1.0cm] (llm) at (6, -0.1) {};
-    \node[font=\small\bfseries] at (0.9, -0.1) {Ollama (local)};
-    \node[comp, minimum width=4cm, minimum height=0.7cm] at (6, -0.1) {LLM de c\'odigo abierto};
+    \node[capa, fill=purple!8, minimum height=1.0cm] (llm) at (5, -0.1) {};
+    \node[labelcapa] at (1.1, -0.1) {Ollama\\local};
+    \node[compwide] (modelo) at (5, -0.1) {LLM de c\'odigo abierto};
 
-    % Capa Persistencia
-    \node[capa, fill=gray!8, minimum height=1.0cm] (db) at (6, -1.3) {};
-    \node[font=\small\bfseries] at (0.9, -1.3) {Persistencia};
-    \node[comp, minimum width=2.8cm, minimum height=0.7cm] at (4.5, -1.3) {PostgreSQL\\(logs, estado)};
-    \node[comp, minimum width=2.8cm, minimum height=0.7cm] at (8.5, -1.3) {Celery + Redis\\(tareas async)};
+    % Soporte operativo
+    \node[soporte, fill=gray!8] (ops) at (11.2, 1.65) {};
+    \node[font=\scriptsize\bfseries, text width=2.6cm, align=center] at (11.2, 3.05) {Persistencia\\y tareas};
+    \node[comp, text width=2.25cm] (postgres) at (11.2, 2.3) {PostgreSQL\\logs y estado};
+    \node[comp, text width=2.25cm] (celery) at (11.2, 1.1) {Celery + Redis\\tareas async};
 
     % Flechas entre capas
     \draw[arrow] (gw.south) -- (as.north);
     \draw[arrow] (as.south) -- (api.north);
     \draw[arrow] (api.south) -- (lc.north);
     \draw[arrow] (lc.south) -- (llm.north);
-    \draw[arrow] (api.south) ++(3,0) |- (db.east);
+    \draw[arrow] (router.east) -- (postgres.west);
+    \draw[arrow] (lc.east) -- (celery.west);
 
   \end{tikzpicture}
+  }
   \caption{Arquitectura de componentes del Agente~1 (Extensi\'on Bot)}
   \label{fig:arquitectura-a1}
 \end{figure}
