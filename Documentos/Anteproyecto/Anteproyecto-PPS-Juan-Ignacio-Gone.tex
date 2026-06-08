@@ -1099,13 +1099,13 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
     \textbf{ID} & \textbf{Ciclo / bloque} & \textbf{Actividades principales} & \textbf{Semestres} \\
     \midrule
     GT & Guardarrailes transversales & Tablero Kanban, matriz BPM--HU--DoD, validaci\'on humana, seguridad, logs, registro de defectos e \'indice de evidencia & S1--S2 \\
-    C0 & Alcance y plataforma m\'inima & Relevamiento P4, equipo validador \ac{SEU}, dependencias HU-001/HU-002, matriz de exclusiones y evidencia inicial & S1 \\
+    C0 & Alcance, gobierno y baseline documental & Relevamiento P4, equipo validador \ac{SEU}, exclusiones, devoluciones, firma institucional del anteproyecto y evidencia inicial & S1 \\
     C1 & HU-010 Gacetillas & Co-dise\~no de plantilla, spike Sheets--Docs, prototipo, prueba, validaci\'on \ac{SEU} y ajuste & S1 \\
     C2 & HU-011 Posts \ac{RRSS} & Criterios Instagram/LinkedIn, prototipo por canal, validaci\'on de tono/longitud y gate \ac{TRL}~3 & S1 \\
     C3 & HU-012 Confirmaciones & Trigger Sheets--Gmail, registro de env\'io, logs persistentes y validaci\'on interna & S2 \\
     C4 & HU-013 Lenguaje natural interno & Email de inicio, invitaci\'on a chat, registro en Sheets, validaci\'on de usabilidad y controles de alcance & S2 \\
     C5 & HU-014 Certificados & Plantilla, generaci\'on PDF, aprobaci\'on manual, log de emisi\'on y prueba controlada & S2 \\
-    CI & Integraci\'on y cierre & Contratos/mocks A2--A5, integraci\'on progresiva, pruebas \ac{SEU}, informe final, transferencia y gate \ac{TRL}~4 & S2 \\
+    CI & Integraci\'on, release y cierre & Contratos/mocks A2--A5, integraci\'on progresiva, pruebas \ac{SEU}, release candidata, paquete de evidencias, informe final, transferencia y gate \ac{TRL}~4 & S2 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -1121,8 +1121,8 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
     \toprule
     \textbf{Semestre} & \textbf{Per\'iodo} & \textbf{Entregables} & \textbf{TRL} \\
     \midrule
-    S1 & Mar--Jul 2026 & Anteproyecto aprobado. Plantillas institucionales definidas con la SEU. HU-010 y HU-011 implementados y validados en entorno controlado. Informe de avance S1. & TRL 3 \\
-    S2 & Ago--Dic 2026 & HU-012, HU-013 y HU-014 implementados. Sistema validado con usuarios reales de la SEU (checklist $\geq$~3/4). Integraci\'on inicial con A2--A5. Logs operativos. Informe final del Proyecto. & TRL 4 \\
+    S1 & Mar--Jul 2026 & Anteproyecto entregado y firmado por la \ac{SEU}. Dise\~no validable cerrado. HU-010 y HU-011 implementados y validados como \ac{MVP} controlado con evidencia. Informe de avance S1 y gate \ac{TRL}~3. & TRL 3 \\
+    S2 & Ago--Dic 2026 & HU-012, HU-013 y HU-014 implementados. Integraci\'on progresiva con A2--A5 mediante contratos/mocks. Sistema validado con usuarios reales de la \ac{SEU} (checklist $\geq$~3/4), logs operativos, release candidata, informe final y cierre anual. & TRL 4 \\
     \midrule
     \multicolumn{4}{l}{\textit{Proyecci\'on P100 (fuera del alcance de este Proyecto):}} \\
     \midrule
@@ -1132,36 +1132,41 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
   \end{tabularx}
 \end{table}
 
+La ventana de febrero de 2027 se reserva solamente como margen m\'aximo para observaciones finales de c\'atedra o de la \ac{SEU}, preparaci\'on de demo y transferencia al \ac{P100}. No agrega funcionalidades nuevas ni extiende el alcance de implementaci\'on del Proyecto, que permanece concentrado en S1--S2 de 2026.
+
 \subsection{Cronograma de hitos}
 
 \begin{table}[htbp]
   \centering
   \caption{Hitos principales del Proyecto}
   \label{tab:hitos}
+  \footnotesize
   \begin{tabularx}{\textwidth}{lXl}
     \toprule
     \textbf{Hito} & \textbf{Descripci\'on} & \textbf{Fecha estimada} \\
     \midrule
-    H1 & Entrega de anteproyecto aprobado & Mar 2026 \\
-    H2 & Plantillas institucionales definidas con SEU & Abr 2026 \\
-    H3 & MVP: HU-010 y HU-011 funcionando en entorno controlado & Jun 2026 \\
-    H4 & Gate TRL~3: evaluaci\'on semestral & Jul 2026 \\
-    H5 & HU-012 operativa con registro de env\'io y logs persistentes & Sep 2026 \\
-    H6 & HU-013 operativa con email de inicio, invitaci\'on a chat y registro en Sheets & Oct 2026 \\
-    H7 & HU-014 operativa con PDF, aprobaci\'on manual y log de emisi\'on & Nov 2026 \\
-    H8 & Gate TRL~4: validaci\'on con usuarios reales SEU ($\geq$~3/4) & Dic 2026 \\
-    H9 & Entrega de informe final del Proyecto & Dic 2026 \\
+    H1 & Anteproyecto entregado & 31 Mar 2026 \\
+    H2 & Dise\~no validable cerrado & 15 Jun 2026 \\
+    H3 & Firma \ac{SEU} del anteproyecto & 30 Jun 2026 \\
+    H4 & \ac{MVP} de gacetillas y posts con evidencia & 15 Jul 2026 \\
+    H5 & Gate \ac{TRL}~3 cerrado e informe de avance S1 & 31 Jul 2026 \\
+    H6 & Confirmaciones de inscripci\'on operativas con \ac{DoD} & 30 Sep 2026 \\
+    H7 & Lenguaje natural interno operativo con \ac{DoD} & 31 Oct 2026 \\
+    H8 & Certificados con validaci\'on humana operativos con \ac{DoD} & 30 Nov 2026 \\
+    H9 & Gate \ac{TRL}~4 validado & 20 Dic 2026 \\
+    H10 & Informe final y cierre anual del Agente~1 & 31 Dic 2026 \\
+    H11 & Entrega final m\'axima del Agente~1, demo y transferencia \ac{P100} & 20 Feb 2027 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \subsection{Planificaci\'on mensual}
 
-La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividades a nivel mensual para los dos semestres del Proyecto, complementando la vista de hitos de alto nivel.
+La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividades a nivel mensual para los dos semestres del Proyecto, complementando la vista de hitos de alto nivel sin reproducir la granularidad operativa completa del diagrama de Gantt.
 
 {\footnotesize
 \begin{longtable}{L{0.11\textwidth}L{0.66\textwidth}L{0.17\textwidth}}
-  \caption{Planificaci\'on mensual detallada del Proyecto}
+  \caption{Planificaci\'on mensual de alto nivel del Proyecto}
   \label{tab:planificacion-mensual}\\
     \toprule
     \textbf{Mes} & \textbf{Actividades principales} & \textbf{Hito / Entregable} \\
@@ -1173,19 +1178,23 @@ La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividad
     \endhead
     \multicolumn{3}{l}{\textit{Semestre~1 --- Mar--Jul 2026}} \\
     \midrule
-    Mar 2026 & Entrega del anteproyecto. Primer contacto con la \ac{SEU}: relevamiento de procesos de comunicaci\'on, inventario de plantillas existentes, formaci\'on del equipo de validaci\'on. Configuraci\'on del entorno de desarrollo (Ollama, FastAPI, Google Workspace). & H1: Anteproyecto aprobado \\
-    Abr 2026 & Co-dise\~no de plantillas institucionales con la \ac{SEU}. Configuraci\'on de cuentas de servicio para Apps Script. Dise\~no de cadenas de prompts para HU-010 (gacetillas). & H2: Plantillas definidas \\
-    May 2026 & Ciclo HU-010: spike Sheets--Docs, primer prototipo de gacetilla, pruebas unitarias y validaci\'on temprana. Inicio paralelo de criterios HU-011 para Instagram y LinkedIn. & --- \\
-    Jun 2026 & Ciclo HU-011: prototipo de posts por canal, refinamiento de prompts y validaci\'on \ac{SEU}. Consolidaci\'on de logs, checklist y evidencias de HU-010/HU-011. & H3: \ac{MVP} funcional \\
-    Jul 2026 & Evaluaci\'on gate TRL~3. Auditor\'ia parcial de evidencias, defectos, checklist y tiempos de generaci\'on. Elaboraci\'on del informe de avance S1 y replanificaci\'on incremental de S2. & H4: Gate TRL~3 + Informe S1 \\
+    Mar 2026 & Entrega del anteproyecto. Relevamiento inicial del Proceso~4, alcance, exclusiones, responsables \ac{SEU} y configuraci\'on base del entorno de trabajo. & H1: Anteproyecto entregado \\
+    Abr 2026 & Incorporaci\'on de devoluciones, cierre de baseline documental, definici\'on de validadores \ac{SEU}, historias, \ac{DoD}, evidencias y arquitectura base. & Baseline documental \\
+    May 2026 & Dise\~no funcional y t\'ecnico del Agente~1: casos de uso, estados, trazabilidad, seguridad, datos, logs y plantillas institucionales. Inicio del prototipo HU-010/HU-011. & --- \\
+    Jun 2026 & Cierre del dise\~no validable, medici\'on de l\'inea base, consolidaci\'on de evidencias iniciales y firma \ac{SEU} del anteproyecto. & H2--H3: Dise\~no + firma \ac{SEU} \\
+    Jul 2026 & Cierre del \ac{MVP} de gacetillas y posts, auditor\'ia de evidencias, defectos, checklist \ac{SEU}, informe de avance S1 y replanificaci\'on incremental de S2. & H4--H5: \ac{MVP} + Gate \ac{TRL}~3 \\
     \midrule
     \multicolumn{3}{l}{\textit{Semestre~2 --- Ago--Dic 2026}} \\
     \midrule
-    Ago 2026 & Ciclo HU-012: confirmaciones autom\'aticas de inscripci\'on, registro de env\'io y logs persistentes. Inicio de contratos/mocks A2--A5 para desacoplar la integraci\'on. & --- \\
-    Sep 2026 & Ciclo HU-013: interacci\'on interna iniciada por email con invitaci\'on a chat, registro operativo en Sheets y pruebas de usabilidad. Refinamiento del \ac{MVP} HU-010/HU-011 por feedback. & H5: HU-012 operativo \\
-    Oct 2026 & Ciclo HU-014: plantilla de certificado, generaci\'on PDF, aprobaci\'on manual y log de emisi\'on. Integraci\'on progresiva A2--A5 en entorno de pruebas. & H6: HU-013 operativo \\
-    Nov 2026 & Pruebas con usuarios reales de la \ac{SEU}: checklist de cuatro dimensiones, medici\'on de rechazo, trazabilidad, defectos cr\'iticos, seguridad y tiempo de generaci\'on. & H7: HU-014 operativo \\
-    Dic 2026 & Evaluaci\'on gate TRL~4. Integraci\'on final con A2--A5. Elaboraci\'on y entrega del informe final del Proyecto. Cierre acad\'emico. & H8--H9: Gate TRL~4 + Informe Final \\
+    Ago 2026 & Ajustes de arquitectura seg\'un evidencias S1, robustecimiento de persistencia, colas, permisos y secretos. Inicio de HU-012 y contratos/mocks A2--A5. & Inicio S2 \\
+    Sep 2026 & Cierre de confirmaciones de inscripci\'on con registro, logs persistentes y pruebas de errores. Avance de lenguaje natural interno y control de defectos. & H6: HU-012 operativo \\
+    Oct 2026 & Cierre de lenguaje natural interno con registro operativo y pruebas de usabilidad. Inicio de certificados, seguridad e integraci\'on progresiva A2--A5. & H7: HU-013 operativo \\
+    Nov 2026 & Cierre de certificados con aprobaci\'on manual, pruebas de sistema, seguridad, validaci\'on con usuarios \ac{SEU} y regresi\'on sobre defectos cr\'iticos. & H8: HU-014 operativo \\
+    Dic 2026 & Release candidata, paquete de evidencias, auditor\'ia final, decisi\'on go/no-go, gate \ac{TRL}~4, informe final y cierre anual del Agente~1. & H9--H10: Gate \ac{TRL}~4 + cierre \\
+    \midrule
+    \multicolumn{3}{l}{\textit{Ventana m\'axima posterior --- Feb 2027}} \\
+    \midrule
+    Feb 2027 & Incorporaci\'on de observaciones finales de c\'atedra y \ac{SEU}, preparaci\'on de demo, paquete final y transferencia al \ac{P100}. No agrega alcance funcional. & H11: Entrega final m\'axima \\
     \bottomrule
 \end{longtable}
 }
