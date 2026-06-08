@@ -130,7 +130,7 @@ El presente anteproyecto describe el dise\~no e implementaci\'on del \agenteUno{
 
 El alcance espec\'ifico de este Proyecto comprende la implementaci\'on completa del Agente~1 a lo largo de \textbf{un a\~no acad\'emico} (dos semestres: Semestre~1 y Semestre~2, 2026): en el Semestre~1 se desarrollan las historias de usuario de mayor prioridad (generaci\'on de gacetillas y posts para redes sociales, \ac{TRL}~3), y en el Semestre~2 se incorporan las funcionalidades de confirmaciones autom\'aticas, interacci\'on en lenguaje natural y generaci\'on de certificados (\ac{TRL}~4). Nota: el Proyecto Centenario (\ac{P100}) en su totalidad abarca \textbf{dos a\~nos} (cuatro semestres, 2026--2027), pero este Proyecto cubre \'unicamente el primer a\~no. La arquitectura multiagente global ---en la que este agente se integra--- es dise\~nada e implementada de forma conjunta con el Proyecto de Ignacio Becerra Mas Roca, quien se especializa posteriormente en el Agente~2.
 
-La propuesta se sustenta en tecnolog\'ias de c\'odigo abierto (Ollama, LangChain, FastAPI, Google Workspace), ejecuci\'on local de modelos de lenguaje que garantiza soberan\'ia de datos, ciberseguridad desde el principio y un esquema de maduraci\'on progresiva basado en niveles \ac{TRL}. Todo contenido generado autom\'aticamente requiere validaci\'on humana antes de su publicaci\'on o env\'io oficial, eliminando el riesgo de automatizar comunicaciones institucionales sin control profesional. La estimaci\'on de costos para el a\~no de alcance del Proyecto se ubica en el rango de \$~0 a \$~1.400~USD, seg\'un se utilicen o no componentes opcionales de infraestructura, respaldo o contingencia.
+La propuesta se sustenta en tecnolog\'ias de c\'odigo abierto (Ollama, LangGraph, FastAPI, Google Workspace y \texttt{deepagents} como apoyo de desarrollo), ejecuci\'on local de modelos de lenguaje que garantiza soberan\'ia de datos, ciberseguridad desde el principio y un esquema de maduraci\'on progresiva basado en niveles \ac{TRL}. Todo contenido generado autom\'aticamente requiere validaci\'on humana antes de su publicaci\'on o env\'io oficial, eliminando el riesgo de automatizar comunicaciones institucionales sin control profesional. La estimaci\'on de costos para el a\~no de alcance del Proyecto se ubica en el rango de \$~0 a \$~1.400~USD, seg\'un se utilicen o no componentes opcionales de infraestructura, respaldo o contingencia.
 
 La versi\'on refinada del anteproyecto incorpora los artefactos t\'ecnicos complementarios ya definidos para el Agente~1: casos de uso, diagrama de clases, plan de calidad, plan de riesgos, plan de comunicaciones, plan de estados, plan de integraci\'on, plan de despliegue, plan de auditor\'ia y cronograma iterativo no cascada. Estos documentos no ampl\'ian el alcance funcional; transforman el alcance existente en criterios operativos de ejecuci\'on, medici\'on, entrega y transferencia del agente. En particular, se incorporan m\'etricas con protocolo de medici\'on, factores cr\'iticos de \'exito, gates de calidad, reglas de go/no-go y evidencia exigible para demostrar \ac{TRL}~3 y \ac{TRL}~4.
 
@@ -139,7 +139,7 @@ La versi\'on refinada del anteproyecto incorpora los artefactos t\'ecnicos compl
 % =============================================================================
 \section{Palabras clave}
 
-Agente de comunicaci\'on institucional, automatizaci\'on de contenido, gacetillas universitarias, redes sociales, Large Language Models (LLM), LangChain, Ollama, Google Workspace, extensi\'on universitaria, Business Process Management (BPM), Technology Readiness Level (TRL), CONEAU, c\'odigo abierto, soberan\'ia de datos, arquitectura multiagente, human-in-the-loop, ciberseguridad desde el principio.
+Agente de comunicaci\'on institucional, automatizaci\'on de contenido, gacetillas universitarias, redes sociales, Large Language Models (LLM), LangGraph, \texttt{deepagents}, Ollama, Google Workspace, extensi\'on universitaria, Business Process Management (BPM), Technology Readiness Level (TRL), CONEAU, c\'odigo abierto, soberan\'ia de datos, arquitectura multiagente, human-in-the-loop, ciberseguridad desde el principio.
 
 % =============================================================================
 % SECCION 3: GLOSARIO
@@ -187,7 +187,8 @@ Agente de comunicaci\'on institucional, automatizaci\'on de contenido, gacetilla
   \item[Nodo de comunicaci\'on institucional:] rol del Agente~1 como receptor de contenido de otros agentes (A2--A5) para su adaptaci\'on y difusi\'on. No act\'ua como orquestador del sistema.
   \item[Validaci\'on humana:] revisi\'on obligatoria por parte del personal de la \ac{SEU} de todo contenido generado autom\'aticamente, antes de cualquier publicaci\'on o env\'io oficial.
   \item[Trigger:] evento autom\'atico que inicia un proceso en el sistema, generalmente una nueva fila en Google Sheets o la carga de un documento.
-  \item[LangChain:] framework de c\'odigo abierto para orquestar cadenas de llamadas a modelos de lenguaje, incluyendo gesti\'on de prompts, memoria y herramientas.
+  \item[LangGraph:] motor de orquestaci\'on de c\'odigo abierto para definir flujos de agentes como grafos con estado, nodos, transiciones, persistencia e intervenci\'on humana.
+  \item[\texttt{deepagents}:] entorno auxiliar de desarrollo sobre LangGraph para prototipar agentes con planificaci\'on, subagentes, herramientas, sistema de archivos, gesti\'on de contexto y validaci\'on humana durante pruebas controladas.
   \item[Ollama:] plataforma de c\'odigo abierto para ejecutar modelos de lenguaje de gran escala de forma local, sin dependencia de servicios en la nube.
   \item[Google Apps Script:] plataforma de automatizaci\'on nativa de Google Workspace para crear triggers, flujos y conexiones entre servicios (Sheets, Drive, Gmail, Docs).
   \item[Ciberseguridad desde el principio:] criterio de dise\~no que incorpora controles de seguridad, trazabilidad, privilegio m\'inimo y validaci\'on humana desde la definici\'on funcional, no como agregado posterior.
@@ -256,11 +257,11 @@ La \ac{FIE} no cuenta con un sistema previo de automatizaci\'on de comunicacione
 
 Los sistemas de generaci\'on autom\'atica de contenido basados en \ac{LLM} han alcanzado madurez suficiente para aplicaciones de dominio espec\'ifico \parencite{russell2021}. Los \ac{LLM} tanto de c\'odigo abierto como propietarios demuestran capacidad para generar textos institucionales de calidad aceptable a partir de insumos estructurados. Sin embargo, su adopci\'on en instituciones universitarias argentinas es incipiente, y no se conocen implementaciones locales que integren generaci\'on de contenido con flujos automatizados sobre Google Workspace.
 
-El paradigma de sistemas multiagente \parencite{wooldridge2009} proporciona el marco te\'orico para organizar el Agente~1 como componente especializado dentro de un sistema mayor, con interfaces bien definidas hacia los dem\'as agentes. La orquestaci\'on de cadenas de llamadas a \ac{LLM} mediante frameworks como LangChain \parencite{langchain2024} permite construir flujos de generaci\'on de contenido complejos, reutilizables y testeables.
+El paradigma de sistemas multiagente \parencite{wooldridge2009} proporciona el marco te\'orico para organizar el Agente~1 como componente especializado dentro de un sistema mayor, con interfaces bien definidas hacia los dem\'as agentes. La orquestaci\'on de llamadas a \ac{LLM} mediante grafos con estado en LangGraph \parencite{langgraph2026} permite construir flujos de generaci\'on de contenido complejos, reutilizables, trazables y testeables.
 
 \subsection{Tecnolog\'ias de c\'odigo abierto}
 
-El ecosistema actual ofrece herramientas maduras para construir el Agente~1 sin dependencia de servicios en la nube propietarios: Ollama \parencite{ollama2024} para la ejecuci\'on local de \ac{LLM}, LangChain \parencite{langchain2024} para la orquestaci\'on de cadenas de prompts y gesti\'on de memoria, FastAPI \parencite{fastapi2024} como framework de backend, y Google Workspace como bus de datos e interfaz primaria de usuario. Esta combinaci\'on provee un stack completo, libre de costos de licencia, compatible con la infraestructura institucional existente y alineado con la pol\'itica de soberan\'ia de datos requerida para una instituci\'on de defensa.
+El ecosistema actual ofrece herramientas maduras para construir el Agente~1 sin dependencia de servicios en la nube propietarios: Ollama \parencite{ollama2024} para la ejecuci\'on local de \ac{LLM}, LangGraph \parencite{langgraph2026} para la orquestaci\'on de grafos de ejecuci\'on con estado, FastAPI \parencite{fastapi2024} como framework de backend, Google Workspace como bus de datos e interfaz primaria de usuario, y \texttt{deepagents} \parencite{deepagents2026} como entorno auxiliar de desarrollo para prototipar y probar flujos ag\'enticos con subagentes, herramientas y gesti\'on de contexto. Esta combinaci\'on provee un stack completo, libre de costos de licencia, compatible con la infraestructura institucional existente y alineado con la pol\'itica de soberan\'ia de datos requerida para una instituci\'on de defensa.
 
 El repositorio institucional incorporado para este anteproyecto agrega una fuente operativa viva del Proyecto Centenario: el documento de procesos y backlog t\'ecnico de la \ac{SEU}, el formulario general del \ac{P100}, el correo de asignaci\'on de agentes y los corpus Markdown de campus, DSI1 y DSI2. Estas fuentes consolidan el enfoque de gesti\'on por procesos, \ac{RACI}, \ac{DoD}, \ac{TRL}, validaci\'on \ac{SEU}, ciberseguridad desde el principio y trazabilidad documental exigible ante \ac{CONEAU} \parencite{cicerchia2026proyecto,cicerchia2026procesos}.
 
@@ -331,7 +332,7 @@ Las actividades de este Proyecto (primer a\~no del Proyecto Centenario) abarcan 
 
 \begin{enumerate}[label=\arabic*.]
   \item \textbf{Relevamiento:} an\'alisis de los procesos de comunicaci\'on actuales de la \ac{SEU}, identificaci\'on de plantillas existentes, relevamiento de la infraestructura de Google Workspace disponible y definici\'on de requisitos junto al personal de la Secretar\'ia.
-  \item \textbf{Dise\~no:} especificaci\'on funcional del Agente~1, dise\~no de prompts y cadenas LangChain, definici\'on de plantillas institucionales con la \ac{SEU}, dise\~no de flujos de validaci\'on humana.
+  \item \textbf{Dise\~no:} especificaci\'on funcional del Agente~1, dise\~no de prompts y grafos LangGraph, definici\'on de plantillas institucionales con la \ac{SEU}, dise\~no de flujos de validaci\'on humana y uso de \texttt{deepagents} para prototipos controlados.
   \item \textbf{Prototipado:} implementaci\'on del \ac{MVP} del Agente~1 (HU-010 y HU-011), incluyendo la integraci\'on con Google Sheets y Google Docs.
   \item \textbf{Validaci\'on:} verificaci\'on funcional con usuarios reales de la \ac{SEU}, evaluaci\'on \ac{TRL}, ajuste de prompts seg\'un retroalimentaci\'on, incorporaci\'on de funcionalidades de Semestre~2.
   \item \textbf{Documentaci\'on:} producci\'on de todos los entregables acad\'emicos y t\'ecnicos.
@@ -418,7 +419,7 @@ Un sistema multiagente es un sistema compuesto por m\'ultiples agentes que inter
 
 \subsection{LLMs locales y soberan\'ia de datos}
 
-Los Large Language Models de c\'odigo abierto pueden ejecutarse localmente mediante Ollama \parencite{ollama2024}, eliminando la necesidad de enviar datos institucionales a servicios externos. Esta caracter\'istica es fundamental para cumplir con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326} y con los requisitos de soberan\'ia de datos de una instituci\'on de defensa. LangChain \parencite{langchain2024} provee la capa de orquestaci\'on de prompts, permitiendo construir cadenas de generaci\'on de contenido complejas y reutilizables sobre estos modelos.
+Los Large Language Models de c\'odigo abierto pueden ejecutarse localmente mediante Ollama \parencite{ollama2024}, eliminando la necesidad de enviar datos institucionales a servicios externos. Esta caracter\'istica es fundamental para cumplir con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326} y con los requisitos de soberan\'ia de datos de una instituci\'on de defensa. LangGraph \parencite{langgraph2026} provee la capa de orquestaci\'on de grafos con estado, permitiendo construir flujos de generaci\'on de contenido complejos, persistentes, auditables y reutilizables sobre estos modelos.
 
 \subsection{Ciberseguridad desde el principio}
 
@@ -594,7 +595,8 @@ La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico validado para el Ag
     \midrule
     Lenguaje principal      & Python 3.x                                & MIT \\
     Framework backend       & FastAPI                                   & MIT \\
-    Orquestaci\'on LLM      & LangChain                                 & MIT \\
+    Orquestaci\'on ag\'entica & LangGraph                                & MIT \\
+    Entorno de desarrollo   & \texttt{deepagents}                       & MIT \\
     Motor IA local          & Ollama                                    & MIT \\
     Modelos de lenguaje     & LLM de c\'odigo abierto (configurable)     & Variada \\
     Tareas asincr\'onicas   & Celery + Redis (S2)                       & BSD / BSD \\
@@ -610,7 +612,7 @@ La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico validado para el Ag
   \end{tabularx}
 \end{table}
 
-\noindent\textbf{Nota sobre evoluci\'on de infraestructura:} en el Semestre~1 (TRL~3) se opera con un stack m\'inimo: servidor local, Docker/Compose, Ollama, LangChain, FastAPI y Google Workspace. En el Semestre~2 (TRL~4) se incorporan Google Apps Script para triggers autom\'aticos, PostgreSQL para persistencia de logs y estado, y Celery~+~Redis para tareas asincr\'onicas. Esta evoluci\'on progresiva minimiza la complejidad inicial y permite validar el n\'ucleo de generaci\'on de contenido antes de agregar capas de automatizaci\'on.
+\noindent\textbf{Nota sobre evoluci\'on de infraestructura:} en el Semestre~1 (TRL~3) se opera con un stack m\'inimo: servidor local, Docker/Compose, Ollama, LangGraph, FastAPI, Google Workspace y \texttt{deepagents} para desarrollo y pruebas controladas de flujos. En el Semestre~2 (TRL~4) se incorporan Google Apps Script para triggers autom\'aticos, PostgreSQL para persistencia de logs y estado, y Celery~+~Redis para tareas asincr\'onicas. Esta evoluci\'on progresiva minimiza la complejidad inicial y permite validar el n\'ucleo de generaci\'on de contenido antes de agregar capas de automatizaci\'on.
 
 % =============================================================================
 % SECCION 14: ENUNCIADO DE FACTIBILIDAD
@@ -620,7 +622,7 @@ La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico validado para el Ag
 
 \subsection{Viabilidad t\'ecnica}
 
-El stack tecnol\'ogico seleccionado se compone de herramientas maduras con amplia adopci\'on en la industria. Los modelos de lenguaje de c\'odigo abierto pueden ejecutarse en hardware de consumo sin GPU dedicada, lo que los hace compatibles con los servidores institucionales existentes. LangChain provee abstracciones probadas para la construcci\'on de cadenas de generaci\'on de contenido, con soporte nativo para prompts con variables, memoria de contexto y salidas estructuradas. La integraci\'on con Google Workspace a trav\'es de su API y Apps Script es un patr\'on bien documentado y ampliamente utilizado. Los mayores riesgos t\'ecnicos son la calidad del contenido generado (mitigado con validaci\'on humana obligatoria), la inyecci\'on de prompts sobre datos no confiables (mitigada con sanitizaci\'on, separaci\'on de instrucciones y revisi\'on de salidas) y la latencia de generaci\'on (objetivo: $<$~30 segundos por pieza).
+El stack tecnol\'ogico seleccionado se compone de herramientas maduras con amplia adopci\'on en la industria. Los modelos de lenguaje de c\'odigo abierto pueden ejecutarse en hardware de consumo sin GPU dedicada, lo que los hace compatibles con los servidores institucionales existentes. LangGraph provee una base probada para modelar flujos ag\'enticos como grafos con estado, con soporte para persistencia, transmisi\'on de eventos, memoria, subgrafos e intervenci\'on humana; \texttt{deepagents} se incorpora como entorno auxiliar de desarrollo para acelerar prototipos con planificaci\'on, subagentes, herramientas y gesti\'on de contexto, sin modificar la validaci\'on humana obligatoria ni el alcance funcional del Agente~1. La integraci\'on con Google Workspace a trav\'es de su API y Apps Script es un patr\'on bien documentado y ampliamente utilizado. Los mayores riesgos t\'ecnicos son la calidad del contenido generado (mitigado con validaci\'on humana obligatoria), la inyecci\'on de prompts sobre datos no confiables (mitigada con sanitizaci\'on, separaci\'on de instrucciones y revisi\'on de salidas) y la latencia de generaci\'on (objetivo: $<$~30 segundos por pieza).
 
 \subsection{Viabilidad econ\'omica}
 
@@ -637,7 +639,7 @@ La Tabla~\ref{tab:costos} presenta la estimaci\'on de costos para el a\~no de al
     \textbf{Categor\'ia} & \textbf{Componente} & \textbf{Costo anual (USD)} & \textbf{Tipo} \\
     \midrule
     Hardware        & Servidor institucional existente (reutilizaci\'on) & 0 & Existente \\
-    Software base   & Stack open-source (Python, FastAPI, LangChain, Ollama, Docker, PostgreSQL, Git) & 0 & Gratuito \\
+    Software base   & Stack open-source (Python, FastAPI, LangGraph, \texttt{deepagents}, Ollama, Docker, PostgreSQL, Git) & 0 & Gratuito \\
     Google Workspace & Suite institucional (Sheets, Drive, Docs, Gmail, Apps Script) & 0 & Institucional \\
     Modelos LLM     & LLM de c\'odigo abierto (ejecuci\'on local) & 0 & Open-source \\
     Cloud low-cost  & Contingencia de despliegue externo controlado (Render, Railway, Fly.io o equivalente) & 0--180 & Opcional \\
@@ -679,7 +681,7 @@ La Tabla~\ref{tab:bmc} presenta el Business Model Canvas del Agente~1, adaptado 
     No aplica (proyecto acad\'emico sin fines de lucro). El valor se mide en reducci\'on de tiempo operativo, consistencia comunicacional y cumplimiento de indicadores CONEAU. \\
     \hline
     \textbf{Recursos clave} &
-    Servidor institucional existente. Google Workspace institucional. Stack open-source (LangChain, Ollama, FastAPI). Plantillas institucionales definidas con la SEU. Conocimiento del equipo de desarrollo. \\
+    Servidor institucional existente. Google Workspace institucional. Stack open-source (LangGraph, \texttt{deepagents}, Ollama, FastAPI). Plantillas institucionales definidas con la SEU. Conocimiento del equipo de desarrollo. \\
     \hline
     \textbf{Actividades clave} &
     Desarrollo de m\'odulos de generaci\'on de contenido (HU-010 a HU-014). Dise\~no y ajuste iterativo de prompts. Validaci\'on con usuarios reales. Documentaci\'on acad\'emica y t\'ecnica. \\
@@ -893,7 +895,7 @@ La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el in
     \node[bloque, fill=blue!10] (form) at (0, 0) {Formulario\\Google Forms};
     \node[bloque, fill=yellow!15] (sheets) at (3.5, 0) {Google\\Sheets};
     \node[bloque] (trigger) at (7, 0) {Trigger\\Apps Script};
-    \node[bloque, fill=blue!15] (a1) at (10.5, 0) {Agente~1\\(LangChain + LLM)};
+    \node[bloque, fill=blue!15] (a1) at (10.5, 0) {Agente~1\\(LangGraph + LLM)};
 
     % Fila 2: validacion y salidas
     \node[validacion] (val) at (10.5, -2.5) {Validaci\'on\\humana\\(SEU)};
@@ -1014,7 +1016,7 @@ A continuaci\'on se describe la secuencia t\'ipica de uso del Agente~1 por parte
 
   \item \textbf{Trigger autom\'atico:} al guardar la fila en Google Sheets, un trigger de Google Apps Script detecta la nueva entrada y env\'ia una solicitud al backend del Agente~1 (FastAPI).
 
-  \item \textbf{Generaci\'on de contenido:} el Agente~1 construye una cadena LangChain con el prompt correspondiente a la plantilla de gacetilla institucional, le pasa los datos como variables y solicita la generaci\'on al modelo de lenguaje de c\'odigo abierto ejecutado localmente v\'ia Ollama. El proceso tarda menos de 30 segundos.
+  \item \textbf{Generaci\'on de contenido:} el Agente~1 ejecuta un grafo LangGraph con el prompt correspondiente a la plantilla de gacetilla institucional, pasa los datos como estado de entrada y solicita la generaci\'on al modelo de lenguaje de c\'odigo abierto ejecutado localmente v\'ia Ollama. El proceso tarda menos de 30 segundos.
 
   \item \textbf{Salida inicial:} el sistema crea un Google Doc en la carpeta correspondiente de Google Drive con el borrador de la gacetilla y la plantilla institucional aplicada. Simult\'aneamente genera los borradores de posts para Instagram y LinkedIn.
 
@@ -1053,11 +1055,11 @@ La Figura~\ref{fig:arquitectura-a1} presenta la vista de componentes t\'ecnicos 
     \node[font=\small\bfseries] at (0.9, 2.3) {Backend (FastAPI)};
     \node[comp, minimum width=4cm, minimum height=0.7cm] at (6, 2.3) {API REST / Router de HU};
 
-    % Capa LangChain
+    % Capa LangGraph
     \node[capa, fill=green!8, minimum height=1.0cm] (lc) at (6, 1.1) {};
-    \node[font=\small\bfseries] at (0.9, 1.1) {LangChain};
-    \node[comp, minimum width=2.5cm, minimum height=0.7cm] at (4, 1.1) {Cadenas de\\prompts};
-    \node[comp, minimum width=2.5cm, minimum height=0.7cm] at (7.5, 1.1) {Plantillas\\(templates)};
+    \node[font=\small\bfseries] at (0.9, 1.1) {LangGraph};
+    \node[comp, minimum width=2.5cm, minimum height=0.7cm] at (4, 1.1) {Grafos de\\estado};
+    \node[comp, minimum width=2.5cm, minimum height=0.7cm] at (7.5, 1.1) {Prompts y\\templates};
     \node[comp, minimum width=2cm, minimum height=0.7cm] at (10.8, 1.1) {Memoria};
 
     % Capa Ollama
