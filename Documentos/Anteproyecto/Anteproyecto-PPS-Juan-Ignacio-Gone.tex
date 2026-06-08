@@ -919,10 +919,10 @@ La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el in
     \draw[arrow] (form) -- (sheets);
     \draw[arrow] (sheets) -- (trigger);
     \draw[arrow] (trigger) -- (a1);
-    \draw[arrow] (a1) -- (val);
+    \draw[arrow] (a1.south) -- (val.north);
 
     % Aprobacion -> salidas, sin diagonales cruzadas
-    \draw[arrow] (val.south) -- (in-aprobadas);
+    \draw[arrow] (val.south) -- ($(in-aprobadas)+(0,0.16)$) -- (in-aprobadas);
     \draw[arrow] (out-gacetilla) -- (gacetilla.north);
     \draw[arrow] (out-post) -- (post.north);
     \draw[arrow] (out-mail) -- (mail.north);
@@ -930,7 +930,9 @@ La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el in
 
     % Flecha rechazo
     \draw[arrow, red!60] (val.east) -- (ajuste.west);
-    \draw[arrow, red!60, dashed] (ajuste.north) -- ++(0,2.55) -| (a1.north east);
+    \coordinate (retry-top) at ($(a1.north)+(0,0.34)$);
+    \coordinate (retry-right) at ($(ajuste.north)+(0,0.90)$);
+    \draw[arrow, red!60, dashed] (ajuste.north) -- (retry-right) -- ($(retry-top)+(1.10,0)$) -- (retry-top) -- (a1.north);
 
   \end{tikzpicture}%
   }
@@ -1040,49 +1042,49 @@ La Figura~\ref{fig:arquitectura-a1} presenta la vista de componentes t\'ecnicos 
   \centering
   \resizebox{0.98\textwidth}{!}{%
   \begin{tikzpicture}[
-    capa/.style={rectangle, draw, rounded corners=2pt, minimum width=9.4cm, minimum height=1.12cm, align=center, font=\small, inner sep=4pt},
-    soporte/.style={rectangle, draw, rounded corners=2pt, minimum width=3.1cm, minimum height=3.55cm, align=center, font=\small, inner sep=4pt},
+    capa/.style={rectangle, draw, rounded corners=2pt, minimum width=10.4cm, minimum height=1.12cm, align=center, font=\small, inner sep=4pt},
+    soporte/.style={rectangle, draw, rounded corners=2pt, minimum width=3.2cm, minimum height=3.55cm, align=center, font=\small, inner sep=4pt},
     comp/.style={rectangle, draw, fill=white, rounded corners=2pt, text width=1.85cm, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=3pt},
-    compsmall/.style={rectangle, draw, fill=white, rounded corners=2pt, text width=1.55cm, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=3pt},
+    compsmall/.style={rectangle, draw, fill=white, rounded corners=2pt, text width=1.55cm, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=2pt},
     compwide/.style={rectangle, draw, fill=white, rounded corners=2pt, text width=4.1cm, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=3pt},
-    labelcapa/.style={font=\scriptsize\bfseries, text width=1.9cm, align=center},
+    labelcapa/.style={font=\scriptsize\bfseries, text width=2.1cm, align=center},
     arrow/.style={-{Stealth[length=2.5mm]}, thick}
   ]
     % Capa Google Workspace
-    \node[capa, fill=yellow!10] (gw) at (5, 5) {};
-    \node[labelcapa] at (1.1, 5) {Google\\Workspace};
-    \node[comp] at (3, 5) {Forms / Sheets\\(entrada)};
-    \node[comp] at (5.4, 5) {Drive / Docs\\(salida)};
-    \node[comp] at (7.8, 5) {Gmail\\(env\'ios)};
+    \node[capa, fill=yellow!10] (gw) at (5.2, 5) {};
+    \node[labelcapa] at (1.2, 5) {Google\\Workspace};
+    \node[comp] at (3.55, 5) {Forms / Sheets\\(entrada)};
+    \node[comp] at (6.05, 5) {Drive / Docs\\(salida)};
+    \node[comp] at (8.45, 5) {Gmail\\(env\'ios)};
 
     % Capa Apps Script
-    \node[capa, fill=orange!8, minimum height=1.0cm] (as) at (5, 3.5) {};
-    \node[labelcapa] at (1.1, 3.5) {Apps\\Script};
-    \node[compwide] (apps) at (5, 3.5) {Triggers y automatizaciones};
+    \node[capa, fill=orange!8, minimum height=1.0cm] (as) at (5.2, 3.5) {};
+    \node[labelcapa] at (1.2, 3.5) {Apps\\Script};
+    \node[compwide] (apps) at (5.2, 3.5) {Triggers y automatizaciones};
 
     % Capa FastAPI
-    \node[capa, fill=blue!8, minimum height=1.0cm] (api) at (5, 2.3) {};
-    \node[labelcapa] at (1.1, 2.3) {Backend\\FastAPI};
-    \node[compwide] (router) at (5, 2.3) {API REST y router de historias de usuario};
+    \node[capa, fill=blue!8, minimum height=1.0cm] (api) at (5.2, 2.3) {};
+    \node[labelcapa] at (1.2, 2.3) {Backend\\FastAPI};
+    \node[compwide] (router) at (5.2, 2.3) {API REST y router de historias de usuario};
 
     % Capa LangGraph
-    \node[capa, fill=green!8, minimum height=1.0cm] (lc) at (5, 1.1) {};
-    \node[labelcapa] at (1.1, 1.1) {LangGraph};
-    \node[compsmall] at (3, 1.1) {Grafos de\\estado};
-    \node[compsmall] at (4.9, 1.1) {Prompts y\\templates};
-    \node[compsmall] at (6.8, 1.1) {Memoria\\de trabajo};
-    \node[compsmall, dashed, fill=green!3] at (8.55, 1.1) {\texttt{deepagents}\\desarrollo};
+    \node[capa, fill=green!8, minimum height=1.0cm] (lc) at (5.2, 1.1) {};
+    \node[labelcapa] at (1.2, 1.1) {LangGraph};
+    \node[compsmall] at (3.2, 1.1) {Grafos de\\estado};
+    \node[compsmall] at (5.15, 1.1) {Prompts y\\templates};
+    \node[compsmall] at (7.15, 1.1) {Memoria\\de trabajo};
+    \node[compsmall, dashed, fill=green!3] at (9.15, 1.1) {\texttt{deepagents}\\desarrollo};
 
     % Capa Ollama
-    \node[capa, fill=purple!8, minimum height=1.0cm] (llm) at (5, -0.1) {};
-    \node[labelcapa] at (1.1, -0.1) {Ollama\\local};
-    \node[compwide] (modelo) at (5, -0.1) {LLM de c\'odigo abierto};
+    \node[capa, fill=purple!8, minimum height=1.0cm] (llm) at (5.2, -0.1) {};
+    \node[labelcapa] at (1.2, -0.1) {Ollama\\local};
+    \node[compwide] (modelo) at (5.2, -0.1) {LLM de c\'odigo abierto};
 
     % Soporte operativo
-    \node[soporte, fill=gray!8] (ops) at (11.2, 1.65) {};
-    \node[font=\scriptsize\bfseries, text width=2.6cm, align=center] at (11.2, 3.05) {Persistencia\\y tareas};
-    \node[comp, text width=2.25cm] (postgres) at (11.2, 2.3) {PostgreSQL\\logs y estado};
-    \node[comp, text width=2.25cm] (celery) at (11.2, 1.1) {Celery + Redis\\tareas async};
+    \node[soporte, fill=gray!8] (ops) at (12.65, 1.65) {};
+    \node[font=\scriptsize\bfseries, text width=2.6cm, align=center] at (12.65, 3.05) {Persistencia\\y tareas};
+    \node[comp, text width=2.25cm] (postgres) at (12.65, 2.3) {PostgreSQL\\logs y estado};
+    \node[comp, text width=2.25cm] (celery) at (12.65, 1.1) {Celery + Redis\\tareas async};
 
     % Flechas entre capas
     \draw[arrow] (gw.south) -- (as.north);
