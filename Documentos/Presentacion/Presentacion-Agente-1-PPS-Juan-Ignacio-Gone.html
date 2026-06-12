@@ -1,0 +1,1093 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agente 1 - Extension Bot</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23126b55'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-family='Georgia,serif' font-size='24' font-weight='700' fill='white'%3EA1%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f8faf7;
+      --surface: #ffffff;
+      --ink: #17201b;
+      --muted: #687269;
+      --line: #d9e1d8;
+      --green: #126b55;
+      --green-dark: #0b4338;
+      --gold: #c18b2d;
+      --blue: #256985;
+      --red: #a53b31;
+      --shadow: 0 22px 60px rgba(23, 32, 27, .14);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        linear-gradient(90deg, rgba(18, 107, 85, .07) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(18, 107, 85, .05) 1px, transparent 1px),
+        radial-gradient(circle at 15% 10%, rgba(193, 139, 45, .16), transparent 24rem),
+        radial-gradient(circle at 85% 90%, rgba(37, 105, 133, .12), transparent 28rem),
+        var(--paper);
+      background-size: 34px 34px, 34px 34px, auto, auto, auto;
+      color: var(--ink);
+      font-family: "Aptos", "Segoe UI", "Helvetica Neue", sans-serif;
+      overflow: hidden;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(72px, 10vw) 1fr minmax(260px, 22vw);
+      grid-template-rows: 64px minmax(0, 1fr) 54px;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(248, 250, 247, .92);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .crest {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(from 180deg, var(--green), var(--gold), var(--blue), var(--green));
+      color: white;
+      border: 2px solid rgba(255, 255, 255, .8);
+      border-radius: 50%;
+      box-shadow: 0 8px 20px rgba(18, 107, 85, .2);
+      font-family: Georgia, serif;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .brand-title {
+      min-width: 0;
+    }
+
+    .brand-title strong,
+    .slide h1,
+    .metric strong {
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .brand-title strong {
+      display: block;
+      font-size: 16px;
+      line-height: 1.1;
+    }
+
+    .brand-title span {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .tool {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      min-height: 34px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 3px 12px rgba(23, 32, 27, .06);
+    }
+
+    .tool:hover,
+    .tool:focus-visible {
+      outline: 2px solid rgba(193, 139, 45, .35);
+      border-color: var(--gold);
+    }
+
+    .rail {
+      grid-column: 1 / 2;
+      grid-row: 2 / 4;
+      padding: 16px 10px;
+      border-right: 1px solid var(--line);
+      overflow-y: auto;
+      min-height: 0;
+      background: rgba(255, 255, 255, .36);
+    }
+
+    .thumb {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      margin-bottom: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .84);
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease;
+    }
+
+    .thumb:hover {
+      transform: translateY(-1px);
+      border-color: var(--gold);
+    }
+
+    .thumb.active {
+      color: white;
+      border-color: var(--green);
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+    }
+
+    main {
+      grid-column: 2 / 3;
+      grid-row: 2 / 3;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .stage {
+      width: min(100%, 1180px);
+      aspect-ratio: 16 / 9;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      grid-template-columns: 1.05fr .95fr;
+      grid-template-rows: auto 1fr;
+      gap: clamp(16px, 2.4vw, 30px);
+      padding: clamp(28px, 3.5vw, 46px);
+      border: 1px solid rgba(18, 107, 85, .22);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .88)),
+        repeating-linear-gradient(90deg, transparent 0 24px, rgba(18, 107, 85, .035) 24px 25px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .slide.active {
+      display: grid;
+      animation: enter .28s ease-out both;
+    }
+
+    @keyframes enter {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      width: 34%;
+      height: 100%;
+      right: 0;
+      top: 0;
+      background:
+        linear-gradient(180deg, rgba(18, 107, 85, .08), rgba(193, 139, 45, .10)),
+        linear-gradient(135deg, transparent 0 42%, rgba(18, 107, 85, .13) 42% 43%, transparent 43%);
+      pointer-events: none;
+    }
+
+    .slide-number {
+      position: absolute;
+      right: 28px;
+      bottom: 22px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .eyebrow {
+      grid-column: 1 / -1;
+      color: var(--green);
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+
+    .slide h1 {
+      margin: 0;
+      font-size: clamp(40px, 5vw, 66px);
+      line-height: .96;
+      letter-spacing: 0;
+    }
+
+    .slide h2 {
+      margin: 14px 0 0;
+      color: var(--green-dark);
+      font-size: clamp(20px, 2.4vw, 32px);
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      align-self: center;
+    }
+
+    .visual {
+      position: relative;
+      z-index: 1;
+      align-self: center;
+      display: grid;
+      gap: 14px;
+    }
+
+    .lead {
+      margin: 18px 0 0;
+      color: #2f3b34;
+      font-size: clamp(18px, 2vw, 25px);
+      line-height: 1.35;
+      max-width: 760px;
+    }
+
+    .quote {
+      margin-top: 24px;
+      padding: 18px 22px;
+      border-left: 5px solid var(--gold);
+      background: rgba(193, 139, 45, .11);
+      font-weight: 750;
+      font-size: clamp(18px, 2vw, 24px);
+      line-height: 1.3;
+    }
+
+    ul,
+    ol {
+      margin: 18px 0 0;
+      padding-left: 1.2rem;
+      color: #27322c;
+      font-size: clamp(17px, 1.7vw, 23px);
+      line-height: 1.42;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    .two-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .panel,
+    .metric,
+    .step,
+    .risk,
+    .ask,
+    .source-list {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .82);
+      box-shadow: 0 12px 30px rgba(23, 32, 27, .08);
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .panel h3,
+    .risk strong,
+    .ask strong {
+      margin: 0 0 8px;
+      color: var(--green-dark);
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .panel ul {
+      margin: 0;
+      font-size: clamp(15px, 1.35vw, 18px);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .metric {
+      padding: 14px;
+      min-height: 80px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .metric strong {
+      color: var(--green);
+      font-size: clamp(22px, 2.5vw, 32px);
+      line-height: 1;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: clamp(14px, 1.2vw, 17px);
+      line-height: 1.35;
+    }
+
+    .flow {
+      display: grid;
+      gap: 10px;
+    }
+
+    .step {
+      padding: 13px 14px;
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: center;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .badge {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--green);
+      color: white;
+      font-size: 14px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 14px;
+    }
+
+    .milestone {
+      padding: 16px;
+      border-left: 5px solid var(--green);
+      background: rgba(255, 255, 255, .84);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+
+    .milestone:nth-child(2) {
+      border-color: var(--gold);
+    }
+
+    .milestone:nth-child(3) {
+      border-color: var(--blue);
+    }
+
+    .milestone b {
+      display: block;
+      color: var(--green-dark);
+      margin-bottom: 4px;
+      font-size: 18px;
+    }
+
+    .milestone span {
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .risk {
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+      border-left: 5px solid var(--red);
+    }
+
+    .risk em {
+      color: var(--muted);
+      font-style: normal;
+      line-height: 1.35;
+    }
+
+    .ask {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .ask .badge {
+      width: 28px;
+      height: 28px;
+      background: var(--gold);
+    }
+
+    .source-list {
+      padding: 20px;
+    }
+
+    .source-list code {
+      display: block;
+      margin: 8px 0;
+      color: #26332d;
+      font-size: clamp(12px, 1.05vw, 15px);
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    aside {
+      grid-column: 3 / 4;
+      grid-row: 2 / 4;
+      border-left: 1px solid var(--line);
+      background: rgba(255, 255, 255, .58);
+      padding: 18px;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    aside h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--green-dark);
+    }
+
+    .notes {
+      color: #354139;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+
+    footer {
+      grid-column: 2 / 3;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      padding: 0 28px 18px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav button {
+      width: 42px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 18px;
+      box-shadow: 0 5px 14px rgba(23, 32, 27, .07);
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(18, 107, 85, .13);
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--green), var(--gold));
+      transition: width .18s ease;
+    }
+
+    .counter {
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .overview .stage {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(220px, 1fr));
+      gap: 18px;
+      width: min(100%, 1320px);
+      aspect-ratio: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 150px);
+      padding-right: 8px;
+    }
+
+    .overview .slide {
+      position: relative;
+      display: grid;
+      aspect-ratio: 16 / 9;
+      padding: 24px;
+      cursor: pointer;
+      transform: none;
+      animation: none;
+    }
+
+    .overview .slide h1 {
+      font-size: 28px;
+    }
+
+    .overview .slide h2,
+    .overview .lead,
+    .overview ul,
+    .overview ol,
+    .overview .quote {
+      font-size: 13px;
+    }
+
+    .overview aside,
+    .overview footer,
+    .overview .rail {
+      display: none;
+    }
+
+    .overview main {
+      grid-column: 1 / -1;
+      grid-row: 2 / 4;
+      overflow-y: auto;
+    }
+
+    .notes-hidden aside {
+      display: none;
+    }
+
+    .notes-hidden {
+      grid-template-columns: minmax(72px, 10vw) 1fr;
+    }
+
+    @media (max-width: 980px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
+      }
+
+      header,
+      main,
+      footer {
+        grid-column: 1;
+      }
+
+      .rail,
+      aside {
+        display: none;
+      }
+
+      main {
+        padding: 16px;
+      }
+
+      .stage {
+        width: 100%;
+        aspect-ratio: auto;
+        min-height: 78vh;
+      }
+
+      .slide,
+      .slide.active {
+        position: relative;
+        min-height: 78vh;
+        grid-template-columns: 1fr;
+        padding: 30px;
+      }
+
+      .visual {
+        align-self: start;
+      }
+
+      .two-list,
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+
+      footer {
+        grid-template-columns: auto 1fr auto;
+        padding: 0 16px 16px;
+      }
+    }
+
+    @media print {
+      html,
+      body {
+        background: white;
+        overflow: visible;
+      }
+
+      .app {
+        display: block;
+      }
+
+      header,
+      .rail,
+      aside,
+      footer {
+        display: none;
+      }
+
+      main {
+        display: block;
+        padding: 0;
+      }
+
+      .stage {
+        width: 100%;
+        aspect-ratio: auto;
+      }
+
+      .slide,
+      .slide.active {
+        position: relative;
+        display: grid;
+        width: 100vw;
+        height: 56.25vw;
+        page-break-after: always;
+        box-shadow: none;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app notes-hidden" id="app">
+    <header>
+      <div class="brand">
+        <div class="crest">A1</div>
+        <div class="brand-title">
+          <strong>Extension Bot</strong>
+          <span>Proyecto Centenario P100 - FIE / UNDEF</span>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="tool" id="overviewButton" type="button">Vista</button>
+        <button class="tool" id="notesButton" type="button">Notas</button>
+        <button class="tool" id="printButton" type="button">Imprimir</button>
+      </div>
+    </header>
+
+    <nav class="rail" aria-label="Miniaturas de slides" id="rail"></nav>
+
+    <main>
+      <section class="stage" id="stage" aria-live="polite">
+        <article class="slide active" data-title="Portada" data-notes="Abrir con una idea simple: este proyecto no intenta reemplazar a la Secretaria ni publicar solo. El objetivo es sacar trabajo repetitivo del medio, ordenar la comunicacion y dejar evidencia auditable.">
+          <div class="eyebrow">Agente 1 - Proyecto Centenario</div>
+          <div class="content">
+            <h1>Extension Bot</h1>
+            <h2>Comunicacion institucional asistida por IA para la SEU</h2>
+            <p class="lead">Una linea de produccion comunicacional con control humano, bajo costo y evidencia academica.</p>
+          </div>
+          <div class="visual">
+            <div class="metric"><strong>P4</strong><span>Comunicacion y Difusion Institucional</span></div>
+            <div class="metric"><strong>2026</strong><span>Alcance PPS: Semestre 1 y Semestre 2</span></div>
+            <div class="metric"><strong>HITL</strong><span>Validacion humana antes de publicar, enviar o emitir</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Problema" data-notes="No vender IA como magia. Vender reduccion de friccion: menos redaccion repetitiva, mas control, mas consistencia y mas evidencia.">
+          <div class="eyebrow">Dolor operativo</div>
+          <div class="content">
+            <h1>El problema</h1>
+            <p class="lead">La comunicacion de Extension depende demasiado del trabajo manual.</p>
+            <ul>
+              <li>Cada gacetilla, post o mail se arma desde cero.</li>
+              <li>El tono y el formato cambian segun quien redacte.</li>
+              <li>Las inscripciones y certificados generan tareas repetitivas.</li>
+              <li>Falta trazabilidad sistematica de que se genero, quien valido y cuando.</li>
+            </ul>
+          </div>
+          <div class="visual">
+            <div class="metric"><strong>Tiempo</strong><span>Redaccion manual repetida para cada pieza</span></div>
+            <div class="metric"><strong>Tono</strong><span>Consistencia dependiente del redactor</span></div>
+            <div class="metric"><strong>Evidencia</strong><span>Validaciones y salidas dificiles de reconstruir</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Oportunidad" data-notes="Remarcar bajo costo y adopcion: no se pide cambiar toda la forma de trabajar, sino conectar mejor lo que ya existe.">
+          <div class="eyebrow">Base institucional existente</div>
+          <div class="content">
+            <h1>La oportunidad</h1>
+            <p class="lead">La SEU ya trabaja con Google Sheets, Docs, Drive, Gmail y formularios. A1 conecta esa base con generacion asistida y controlada.</p>
+            <div class="quote">Entrada: datos operativos. Proceso: IA con reglas. Salida: piezas pendientes de validacion.</div>
+          </div>
+          <div class="visual flow">
+            <div class="step"><span class="badge">1</span><span>Datos de actividad, inscripcion o documento institucional</span></div>
+            <div class="step"><span class="badge">2</span><span>Generacion asistida con tono, canal y plantilla</span></div>
+            <div class="step"><span class="badge">3</span><span>Borradores, mails, posts o certificados para revisar</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Solucion" data-notes="Esta slide tiene que despejar alcance. Si alguien pregunta si tambien podria hacer X, responder: si X es comunicacion institucional, puede evaluarse; si es analitica, scraping o atencion publica, corresponde a otros agentes.">
+          <div class="eyebrow">Alcance defendible</div>
+          <div class="content">
+            <h1>La solucion</h1>
+            <p class="lead"><strong>Extension Bot</strong> es el agente de comunicacion institucional del P100.</p>
+            <div class="two-list">
+              <div class="panel">
+                <h3>Hace</h3>
+                <ul>
+                  <li>gacetillas;</li>
+                  <li>posts IG y LinkedIn;</li>
+                  <li>newsletters y mails;</li>
+                  <li>confirmaciones;</li>
+                  <li>certificados con validacion;</li>
+                  <li>lenguaje natural interno.</li>
+                </ul>
+              </div>
+              <div class="panel">
+                <h3>No hace</h3>
+                <ul>
+                  <li>scraping;</li>
+                  <li>analitica o dashboards;</li>
+                  <li>atencion masiva al publico;</li>
+                  <li>publicacion sin aprobacion humana.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="visual">
+            <div class="metric"><strong>A1</strong><span>Hub de comunicacion, no orquestador del sistema</span></div>
+            <div class="metric"><strong>A4/A5</strong><span>Atencion publica, analitica y scraping quedan fuera de A1</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Valor" data-notes="Esto es lo que se vende: tiempo, consistencia, control y evidencia. La IA es el medio, no el argumento central.">
+          <div class="eyebrow">Propuesta de valor</div>
+          <div class="content">
+            <h1>Valor para la SEU</h1>
+            <p class="lead">Menos friccion operativa sin resignar responsabilidad institucional.</p>
+          </div>
+          <div class="visual card-grid">
+            <div class="metric"><strong>Menos carga</strong><span>Borradores generados desde datos ya cargados.</span></div>
+            <div class="metric"><strong>Mas consistencia</strong><span>Plantillas, tono institucional y reglas por canal.</span></div>
+            <div class="metric"><strong>Mas control</strong><span>Human-in-the-loop antes de publicar, enviar o emitir.</span></div>
+            <div class="metric"><strong>Mas evidencia</strong><span>Logs, estados, validadores y outputs recuperables.</span></div>
+            <div class="metric"><strong>Menor costo</strong><span>Stack open source y Google Workspace institucional.</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Flujo" data-notes="Decirlo fuerte: esta regla reduce riesgo reputacional y hace defendible el proyecto. No es una limitacion, es una garantia institucional.">
+          <div class="eyebrow">Actividad a comunicacion</div>
+          <div class="content">
+            <h1>Flujo principal</h1>
+            <p class="lead">La salida oficial no depende de la IA: depende de la validacion institucional.</p>
+            <div class="quote">Regla no negociable: ningun contenido oficial sale sin aprobacion humana registrada.</div>
+          </div>
+          <div class="visual flow">
+            <div class="step"><span class="badge">1</span><span>SEU carga actividad en Sheets o Forms</span></div>
+            <div class="step"><span class="badge">2</span><span>Trigger detecta la solicitud</span></div>
+            <div class="step"><span class="badge">3</span><span>A1 genera gacetilla y posts por canal</span></div>
+            <div class="step"><span class="badge">4</span><span>El contenido queda como borrador</span></div>
+            <div class="step"><span class="badge">5</span><span>Responsable humano revisa, observa o aprueba</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Demo" data-notes="La demo tiene que mostrar antes/despues. Si se muestra solo tecnologia, se pierde la venta. La audiencia necesita ver una tarea real resuelta.">
+          <div class="eyebrow">Caso mostrable</div>
+          <div class="content">
+            <h1>Demo sugerida</h1>
+            <p class="lead">Una nueva actividad de Extension convertida en comunicacion lista para revisar.</p>
+            <ol>
+              <li>Datos minimos en una planilla.</li>
+              <li>Click o trigger de generacion.</li>
+              <li>Google Doc con gacetilla institucional.</li>
+              <li>Dos versiones de post: Instagram y LinkedIn.</li>
+              <li>Estado pendiente de validacion.</li>
+              <li>Registro con fecha, solicitud, output y validador.</li>
+            </ol>
+          </div>
+          <div class="visual">
+            <div class="metric"><strong>Antes</strong><span>Redaccion manual y evidencia dispersa.</span></div>
+            <div class="metric"><strong>Despues</strong><span>Borrador revisable, trazable y adaptado por canal.</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Roadmap" data-notes="No prometer operacion total multiagente desde el primer dia. La madurez TRL es el argumento de seriedad: primero prototipo controlado, despues validacion real.">
+          <div class="eyebrow">Roadmap 2026</div>
+          <div class="content">
+            <h1>Maduracion por evidencia</h1>
+            <p class="lead">El PPS cubre Agente 1 durante el primer año. El P100 completo continua luego con integracion multiagente.</p>
+          </div>
+          <div class="visual timeline">
+            <div class="milestone"><b>S1 2026 - TRL 3</b><span>MVP de gacetillas y posts con outputs, logs y checklist SEU.</span></div>
+            <div class="milestone"><b>S2 2026 - TRL 4</b><span>Confirmaciones, lenguaje natural interno y certificados con usuarios reales internos.</span></div>
+            <div class="milestone"><b>Feb 2027</b><span>Demo, cierre, paquete final y transferencia hacia P100.</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Por que A1" data-notes="Esta frase ayuda a evitar una confusion comun: A1 es hub de comunicacion, no cerebro central. Es una pieza visible y defendible para arrancar.">
+          <div class="eyebrow">Primer valor visible</div>
+          <div class="content">
+            <h1>Por que empezar por A1</h1>
+            <ul>
+              <li>Convierte actividades en difusion.</li>
+              <li>Recibe insumos de A2, A3, A4 y A5 sin orquestarlos.</li>
+              <li>Mejora el Proceso 4, que da visibilidad a cursos, eventos y programas.</li>
+              <li>Permite demostrar IA con bajo riesgo: borradores, validacion y evidencia.</li>
+            </ul>
+            <div class="quote">A1 no centraliza el P100: lo hace comunicable.</div>
+          </div>
+          <div class="visual">
+            <div class="metric"><strong>A2</strong><span>Contenido historico para difusion</span></div>
+            <div class="metric"><strong>A3</strong><span>Eventos detectados para comunicar</span></div>
+            <div class="metric"><strong>A4</strong><span>Respuestas complejas como insumo</span></div>
+            <div class="metric"><strong>A5</strong><span>Texto enriquecido para publicar</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Riesgos" data-notes="Si alguien objeta que la IA se equivoca, la respuesta es: exactamente por eso el diseño no publica solo. La herramienta asiste; la institucion decide.">
+          <div class="eyebrow">Gobierno del riesgo</div>
+          <div class="content">
+            <h1>Riesgos y controles</h1>
+            <p class="lead">El proyecto no se defiende prometiendo autonomia total; se defiende demostrando control.</p>
+          </div>
+          <div class="visual">
+            <div class="risk"><strong>Informacion inventada</strong><em>Fuentes visibles, prompts restrictivos y revision humana.</em></div>
+            <div class="risk"><strong>Tono no institucional</strong><em>Plantillas y checklist SEU.</em></div>
+            <div class="risk"><strong>Publicacion indebida</strong><em>Estados bloqueantes: borrador, pendiente, aprobado, rechazado.</em></div>
+            <div class="risk"><strong>Falta de evidencia TRL</strong><em>Logs, outputs, defectos, actas y checklist.</em></div>
+            <div class="risk"><strong>Expansion de alcance</strong><em>Matriz BPM-HU-DoD y exclusiones A4/A5.</em></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Decision" data-notes="Esta slide convierte la presentacion en accion. No pedir aprobacion general; pedir insumos concretos para una demo real.">
+          <div class="eyebrow">Proximo paso institucional</div>
+          <div class="content">
+            <h1>Decision que se necesita</h1>
+            <p class="lead">Para avanzar con una demostracion convincente, la SEU debe confirmar cinco insumos.</p>
+          </div>
+          <div class="visual">
+            <div class="ask"><span class="badge">1</span><span>Plantilla inicial de gacetilla.</span></div>
+            <div class="ask"><span class="badge">2</span><span>Reglas de tono para Instagram y LinkedIn.</span></div>
+            <div class="ask"><span class="badge">3</span><span>Campos minimos de la planilla de actividades.</span></div>
+            <div class="ask"><span class="badge">4</span><span>Responsables de validacion por tipo de pieza.</span></div>
+            <div class="ask"><span class="badge">5</span><span>Muestra real o semirreal para probar el MVP.</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Cierre" data-notes="Cerrar con una frase ejecutiva: No estamos vendiendo un chatbot; estamos proponiendo una capacidad institucional repetible, auditable y gobernada.">
+          <div class="eyebrow">Cierre ejecutivo</div>
+          <div class="content">
+            <h1>Extension Bot no reemplaza a la SEU</h1>
+            <p class="lead">Le da una linea de produccion comunicacional con control humano, bajo costo y evidencia academica.</p>
+            <ul>
+              <li>automatizar gacetillas y posts;</li>
+              <li>incorporar confirmaciones, interaccion interna y certificados;</li>
+              <li>demostrar TRL 3 y TRL 4 con evidencia;</li>
+              <li>dejar una base transferible al Proyecto Centenario.</li>
+            </ul>
+          </div>
+          <div class="visual">
+            <div class="metric"><strong>Asiste</strong><span>El agente genera borradores y acelera tareas repetitivas.</span></div>
+            <div class="metric"><strong>Controla</strong><span>La institucion valida, aprueba y conserva responsabilidad.</span></div>
+            <div class="metric"><strong>Demuestra</strong><span>El avance se cierra con evidencia, no con relato.</span></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Objeciones" data-notes="Usar esta slide solo si hay preguntas. No hace falta mostrarla en una presentacion corta.">
+          <div class="eyebrow">Preguntas dificiles</div>
+          <div class="content">
+            <h1>Respuestas a objeciones</h1>
+            <p class="lead">La venta mejora cuando los limites estan claros.</p>
+          </div>
+          <div class="visual">
+            <div class="risk"><strong>La IA puede equivocarse.</strong><em>Si. Por eso el agente no publica ni emite sin validacion humana registrada.</em></div>
+            <div class="risk"><strong>Esto reemplaza personal?</strong><em>No. Automatiza borradores y tareas repetitivas; la responsabilidad institucional sigue en la SEU.</em></div>
+            <div class="risk"><strong>No es demasiado grande?</strong><em>El alcance esta acotado a HU-010 a HU-014 durante 2026. S3-S4 son continuidad P100.</em></div>
+            <div class="risk"><strong>Que pasa si no hay datos completos?</strong><em>El sistema marca la solicitud como incompleta y no genera comunicacion oficial.</em></div>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+
+        <article class="slide" data-title="Fuentes" data-notes="Esta slide sostiene trazabilidad. No hace falta mostrarla salvo en contexto academico o si preguntan de donde sale el alcance.">
+          <div class="eyebrow">Trazabilidad documental</div>
+          <div class="content">
+            <h1>Fuentes del deck</h1>
+            <p class="lead">El discurso sale del corpus vigente del proyecto, no de claims inventados.</p>
+          </div>
+          <div class="visual source-list">
+            <code>Agentes/extension_bot_experto.md</code>
+            <code>Contenido/Definicion/arquitectura-multiagente.md</code>
+            <code>Contenido/bible/Procesos y Agentes.md</code>
+            <code>Documentos/Anteproyecto/Anteproyecto-PPS-Juan-Ignacio-Gone.tex</code>
+            <code>Documentos/CasosUso/Casos-de-Uso-Agente-1-PPS-Juan-Ignacio-Gone.md</code>
+            <code>Documentos/PlanCalidad/Plan-Calidad-Agente-1-PPS-Juan-Ignacio-Gone.md</code>
+            <code>Documentos/PlanRiesgos/Plan-Riesgos-Agente-1-PPS-Juan-Ignacio-Gone.md</code>
+            <code>Documentos/Gantt/README.md</code>
+          </div>
+          <span class="slide-number"></span>
+        </article>
+      </section>
+    </main>
+
+    <aside id="notesPane">
+      <h2>Notas de orador</h2>
+      <div class="notes" id="notes"></div>
+    </aside>
+
+    <footer>
+      <div class="nav">
+        <button id="prevButton" type="button" aria-label="Slide anterior">‹</button>
+        <button id="nextButton" type="button" aria-label="Slide siguiente">›</button>
+      </div>
+      <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+      <div class="counter" id="counter"></div>
+    </footer>
+  </div>
+
+  <script>
+    const app = document.getElementById("app");
+    const stage = document.getElementById("stage");
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const rail = document.getElementById("rail");
+    const notes = document.getElementById("notes");
+    const progress = document.getElementById("progress");
+    const counter = document.getElementById("counter");
+    const prevButton = document.getElementById("prevButton");
+    const nextButton = document.getElementById("nextButton");
+    const overviewButton = document.getElementById("overviewButton");
+    const notesButton = document.getElementById("notesButton");
+    const printButton = document.getElementById("printButton");
+    let current = 0;
+
+    slides.forEach((slide, index) => {
+      slide.querySelector(".slide-number").textContent = `${index + 1}/${slides.length}`;
+      const thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = "thumb";
+      thumb.textContent = index + 1;
+      thumb.title = slide.dataset.title || `Slide ${index + 1}`;
+      thumb.addEventListener("click", () => show(index));
+      rail.appendChild(thumb);
+    });
+
+    function show(index) {
+      current = Math.max(0, Math.min(index, slides.length - 1));
+      slides.forEach((slide, idx) => {
+        slide.classList.toggle("active", idx === current);
+      });
+      Array.from(rail.children).forEach((thumb, idx) => {
+        thumb.classList.toggle("active", idx === current);
+      });
+      notes.textContent = slides[current].dataset.notes || "";
+      progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+      counter.textContent = `${current + 1} / ${slides.length}`;
+      prevButton.disabled = current === 0;
+      nextButton.disabled = current === slides.length - 1;
+      location.hash = `slide-${current + 1}`;
+    }
+
+    function move(delta) {
+      if (app.classList.contains("overview")) return;
+      show(current + delta);
+    }
+
+    prevButton.addEventListener("click", () => move(-1));
+    nextButton.addEventListener("click", () => move(1));
+    notesButton.addEventListener("click", () => app.classList.toggle("notes-hidden"));
+    printButton.addEventListener("click", () => window.print());
+    overviewButton.addEventListener("click", () => {
+      app.classList.toggle("overview");
+      overviewButton.textContent = app.classList.contains("overview") ? "Slides" : "Vista";
+    });
+
+    stage.addEventListener("click", (event) => {
+      const slide = event.target.closest(".slide");
+      if (!slide || !app.classList.contains("overview")) return;
+      const index = slides.indexOf(slide);
+      app.classList.remove("overview");
+      overviewButton.textContent = "Vista";
+      show(index);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        move(1);
+      }
+      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        move(-1);
+      }
+      if (event.key.toLowerCase() === "o") {
+        app.classList.toggle("overview");
+        overviewButton.textContent = app.classList.contains("overview") ? "Slides" : "Vista";
+      }
+      if (event.key.toLowerCase() === "n") {
+        app.classList.toggle("notes-hidden");
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        show(0);
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        show(slides.length - 1);
+      }
+    });
+
+    const hashMatch = location.hash.match(/slide-(\d+)/);
+    show(hashMatch ? Number(hashMatch[1]) - 1 : 0);
+  </script>
+</body>
+</html>
