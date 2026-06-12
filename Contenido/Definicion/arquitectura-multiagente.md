@@ -84,7 +84,7 @@ A1 genera propuestas o piezas de comunicacion → validacion humana → coordina
 
 **Observacion:** A1 funciona como hub de comunicacion (recibe de A2, A3, A4, A5 para generar contenido), pero no es orquestador.
 
-**Capa de soporte inter-secretaria:** la version ampliada previa de la bible identificaba interfaces administrativas como orden del dia, ceremonial/protocolo, adquisiciones, proveedores, presupuestos e inventarios. Esas definiciones quedan como contexto historico de arquitectura, pero no aparecen en el PDF vigente de 16 paginas enfocado en Agente 1. Si se reactivan, son soporte operativo y no deben confundirse con el alcance sustantivo del P100 ni con el MVP del Agente 1.
+**Capa de soporte inter-secretaria:** la bible vigente identifica interfaces administrativas como orden del dia, ceremonial/protocolo, adquisiciones, proveedores, presupuestos e inventarios. Son soporte operativo y no deben confundirse con el alcance sustantivo del P100 ni con el MVP del Agente 1.
 
 ---
 
@@ -204,13 +204,11 @@ Nextcloud / Google Drive, Google Sheets
 - E6 — Agente 4 (HU-050, 051)
 - Integracion total
 
-### Historias agregadas en la version ampliada previa
+### Historias agregadas en la bible vigente
 - **HU-015:** gestion de ceremonial y protocolo con control humano, asociada a A3.
 - **HU-025:** registro e integridad CONEAU / SIU / repositorio, asociada a A5.
 - **HU-052:** ventanilla virtual de egresados, asociada a A4.
 - **HU-060:** optimizacion burocratica de soporte administrativo, canalizada como interfaz de soporte inter-secretaria.
-
-Estas historias no aparecen en la version vigente de 16 paginas de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`; tratarlas como backlog historico/ampliado hasta nueva confirmacion institucional.
 
 ### Dependencias clave
 - HU-001 → base de datos (prerequisito global)

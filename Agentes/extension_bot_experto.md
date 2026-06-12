@@ -23,7 +23,7 @@ Generar, gestionar y automatizar contenido institucional de la Secretaria de Ext
 
 ### Fuente vigente del diseno A1
 
-La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf` esta enfocada en Extension Bot y consolida:
+La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf` es la bible completa del proyecto. Dentro de esa fuente, la seccion `Notas Diseño - AI 1` consolida para Extension Bot:
 
 - Problema operativo de la SEU: comunicacion/coordinacion con otras areas y tareas repetitivas automatizables.
 - Usuarios internos: auxiliares, coordinadores y Secretario de Extension; uso frecuente de ofimatica/correo y uso ocasional de IA.

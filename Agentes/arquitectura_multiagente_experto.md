@@ -145,7 +145,7 @@ No hay un "agente central" como regla funcional. Se implementa una orquestacion 
 El Agente 1 (Extension Bot) funciona como **hub de comunicacion**: recibe datos de A2, A3, A4, A5 para generar contenido institucional. Pero NO es un orquestador — la orquestacion la manejan Apps Script, triggers y Celery.
 
 ### Interfaces de soporte inter-secretaria
-La version ampliada previa de la bible agregaba una capa de soporte para tareas administrativas ajenas a la funcion sustantiva de extension: orden del dia, ceremonial/protocolo, planes de necesidades, proveedores del Estado, presupuestos preliminares, aprovisionamiento e inventarios. Esa capa queda como contexto historico/ampliado; no aparece en el PDF vigente de 16 paginas enfocado en Agente 1. Si se reactivara, puede generar historias de soporte, pero no redefine el MVP del Agente 1 ni reemplaza los procesos sustantivos.
+La bible vigente agrega una capa de soporte para tareas administrativas ajenas a la funcion sustantiva de extension: orden del dia, ceremonial/protocolo, planes de necesidades, proveedores del Estado, presupuestos preliminares, aprovisionamiento e inventarios. Esta capa puede generar historias de soporte, pero no redefine el MVP del Agente 1 ni reemplaza los procesos sustantivos.
 
 ---
 
@@ -319,13 +319,11 @@ La version ampliada previa de la bible agregaba una capa de soporte para tareas 
 - E6 — Agente 4 (HU-050, 051)
 - Integracion total de agentes
 
-**Historias agregadas en la version ampliada previa:**
+**Historias agregadas en la bible vigente:**
 - HU-015 — gestion de ceremonial y protocolo con control humano (A3)
 - HU-025 — registro e integridad CONEAU/SIU/repositorio (A5)
 - HU-052 — ventanilla virtual de egresados (A4)
 - HU-060 — optimizacion burocratica de soporte administrativo (interfaz de soporte)
-
-Estas historias no aparecen en la version vigente de 16 paginas de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`; tratarlas como backlog historico/ampliado hasta nueva confirmacion institucional.
 
 ### Dependencias clave
 - HU-001 → base de datos (prerequisito de todo)
