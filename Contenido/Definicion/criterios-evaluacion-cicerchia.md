@@ -46,7 +46,7 @@ Cada proceso tiene su RACI definido. Las funcionalidades deben respetar la respo
 
 ### Capa transversal de soporte
 
-La version nueva de la bible agrega una capa de **Interfaces de Soporte Inter-secretaria** para canalizar tareas administrativas ajenas a la funcion sustantiva de extension hacia el Dpto. Apoyo. Incluye, entre otros, orden del dia, ceremonial y protocolo, planes de necesidades de adquisiciones, proveedores del Estado, presupuestos preliminares, aprovisionamiento e inventarios. No debe confundirse con el nucleo sustantivo del P100.
+La version ampliada previa de la bible agregaba una capa de **Interfaces de Soporte Inter-secretaria** para canalizar tareas administrativas ajenas a la funcion sustantiva de extension hacia el Dpto. Apoyo. Incluye, entre otros, orden del dia, ceremonial y protocolo, planes de necesidades de adquisiciones, proveedores del Estado, presupuestos preliminares, aprovisionamiento e inventarios. Esa capa no aparece en el PDF vigente de 16 paginas enfocado en Agente 1; si se reactivara, no debe confundirse con el nucleo sustantivo del P100.
 
 ---
 
@@ -153,7 +153,7 @@ Cuando aplique, agregar:
 
 ### DoD transversal agregado
 
-La bible nueva explicita dos criterios transversales:
+La version ampliada previa de la bible explicita dos criterios transversales:
 
 - **Validacion de integridad institucional:** las historias que cruzan sistemas institucionales deben verificar consistencia y trazabilidad del dato.
 - **DoD de datos para Agente 5:** completitud, metadatos obligatorios, normalizacion y compatibilidad con dashboards/reportes son parte del cierre de historias de monitoreo.
@@ -206,7 +206,7 @@ Cada HU tiene definido: validacion (usuario), instrumento, evidencia y responsab
 - **HU-020** → requiere APIs habilitadas
 - **HU-024** → requiere datos previos
 - **HU-025** → integridad SIU / CONEAU GLOBAL / repositorio de Memoria Institucional, cuando se alcance esa integracion
-- **HU-015, HU-052, HU-060** → historias agregadas de ceremonial, ventanilla virtual de egresados y soporte administrativo; requieren validacion de alcance antes de incorporarlas al MVP
+- **HU-015, HU-052, HU-060** → historias agregadas en version ampliada previa sobre ceremonial, ventanilla virtual de egresados y soporte administrativo; requieren validacion de alcance antes de incorporarlas al MVP
 
 ---
 
@@ -222,11 +222,13 @@ Cada HU tiene definido: validacion (usuario), instrumento, evidencia y responsab
 - E3 (dashboards + alertas)
 - E4 (inicio repositorio — Agente 2)
 
-### Historias agregadas fuera del MVP base
+### Historias agregadas fuera del MVP base en version ampliada previa
 - **HU-015:** Gestion de ceremonial y protocolo con control humano, asociada al Agente 3.
 - **HU-025:** Registro e integridad CONEAU, asociada al Agente 5.
 - **HU-052:** Ventanilla virtual de egresados, asociada al Agente 4.
 - **HU-060:** Optimizacion burocratica de soporte administrativo, dentro de la capa de soporte inter-secretaria.
+
+Estas historias no aparecen en la version vigente de 16 paginas de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`; tratarlas como backlog historico/ampliado hasta nueva confirmacion institucional.
 
 ---
 

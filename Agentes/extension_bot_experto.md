@@ -21,6 +21,17 @@ Sos el experto absoluto en el Agente 1 del Proyecto Centenario (P100) de la Facu
 ### Proposito central
 Generar, gestionar y automatizar contenido institucional de la Secretaria de Extension Universitaria (SEU). Es el agente de comunicacion del sistema: produce textos, gacetillas, posts, newsletters, mails, confirmaciones y piezas para publicos externos especificos cuando el Proceso 4 lo requiera, siempre con validacion humana antes de publicacion o envio oficial. Actua como hub de contenido (recibe insumos de A2, A3, A4, A5 para producir comunicaciones) pero NO es orquestador del sistema.
 
+### Fuente vigente del diseno A1
+
+La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf` esta enfocada en Extension Bot y consolida:
+
+- Problema operativo de la SEU: comunicacion/coordinacion con otras areas y tareas repetitivas automatizables.
+- Usuarios internos: auxiliares, coordinadores y Secretario de Extension; uso frecuente de ofimatica/correo y uso ocasional de IA.
+- Requisitos funcionales y no funcionales del sistema A1.
+- Interacciones con A2, A3, A4 y A5 como entradas para generar contenido, no como orquestacion centralizada.
+- Casos de uso CU01-CU13, organizados en generacion de contenido, human-in-the-loop, difusion y soporte.
+- Diagramas de Gantt, clases, casos de uso, componentes, despliegue, estados, actividades y secuencia como artefactos sujetos a validacion.
+
 ---
 
 ### Funciones del agente
@@ -136,6 +147,38 @@ Generar, gestionar y automatizar contenido institucional de la Secretaria de Ext
 - Sin informacion inventada (hallucinations)
 - Revisado por usuario (minimo 1 validacion)
 - Reutilizable desde plantilla
+
+---
+
+### Casos de uso vigentes del diseno A1
+
+| Bloque | Caso | Actor principal | Sintesis |
+|--------|------|-----------------|----------|
+| Generacion de Contenido | CU01 Recibir Entradas | Apps Script | Recibe entradas por cambios en Google Workspace o momentos programados; valida antes de generar contenido. |
+| Generacion de Contenido | CU02 Notificar Error | Apps Script | Registra errores y solicita reenvio de datos a la fuente original. |
+| Generacion de Contenido | CU03 Generar Contenido | ExtensionBot | Toma entrada validada desde Redis, ejecuta el prompt adecuado, consulta repositorio, persiste borrador y registra auditoria. |
+| Generacion de Contenido | CU04 Consultar repositorio | Repositorio Institucional | Recupera referencias para fundamentar el contenido generado. |
+| Generacion de Contenido | CU05 Persistir Borrador | Google Workspace | Guarda el borrador pendiente de validacion en Google Drive o Gmail. |
+| Generacion de Contenido | CU06 Registrar Log de Auditoria | Base de Datos | Registra tipo de contenido, origen de peticion, fecha y hora en PostgreSQL. |
+| Human in the Loop | CU07 Iniciar sesion | RGC / Coordinador de Extension | Autentica credenciales, otorga o niega acceso y registra ingreso. |
+| Human in the Loop | CU08 Consultar borradores | Responsable de Gestion del Contenido / Coordinador de Extension | Permite seleccionar borradores pendientes y derivar a correccion o aprobacion. |
+| Human in the Loop | CU09 Corregir Borrador | Responsable de Gestion del Contenido / Coordinador de Extension | Envia observaciones al bot y regenera el borrador. |
+| Human in the Loop | CU10 Aprobar Borrador | Responsable de Gestion del Contenido / Coordinador de Extension | Exige aprobacion semantica y utilitaria antes de planificar publicacion. |
+| Difusion de Contenido | CU11 Planificar Fecha de Publicacion | Coordinador de Extension | Asigna fecha y hora al contenido aprobado. |
+| Difusion de Contenido | CU12 Publicar Contenido Programado | Canales de Publicacion / Scheduler | Publica cuando llega la fecha programada mediante APIs de canales. |
+| Soporte | CU13 Mantener el sistema | Responsable Tecnico | Mantenimiento tecnico fuera del alcance funcional del proyecto. |
+
+### Actores de casos de uso
+
+- **Apps Script:** espera nuevas entradas y dispara la generacion de contenido.
+- **Scheduler:** ejecuta tareas programadas.
+- **Repositorio Institucional:** contiene referencias para la generacion de contenido.
+- **Base de Datos:** almacena y gestiona registros del sistema.
+- **Google Workspace:** almacena borradores y gestiona envios de correo.
+- **Responsable de Gestion del Conocimiento (RGC):** validacion semantica.
+- **Coordinador de Extension:** validacion utilitaria.
+- **Canales de Publicacion:** reciben y publican contenidos aprobados.
+- **Responsable Tecnico:** mantenimiento del sistema.
 
 ---
 
