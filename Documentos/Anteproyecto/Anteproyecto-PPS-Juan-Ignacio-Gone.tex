@@ -366,7 +366,7 @@ El Agente~1 se ubica como soporte tecnol\'ogico principal del Proceso~4 (Comunic
     \toprule
     \textbf{Proceso} & \textbf{Uso del Agente~1} & \textbf{Rol y responsable} \\
     \midrule
-    P4 -- Comunicaci\'on y Difusi\'on Institucional & Generaci\'on de gacetillas, posts, newsletters, mails y borradores de publicaciones. & Rol principal. Coordinador de Extensi\'on (A); Responsable de Gesti\'on del Conocimiento y Responsable de Redes Sociales (R). \\
+    P4 -- Comunicaci\'on y Difusi\'on Institucional (FIE Informa) & Generaci\'on de gacetillas, posts, newsletters, mails y borradores de publicaciones para la comunidad FIE y \ac{RRSS} institucionales (Instagram, LinkedIn, Facebook). & Rol principal. Coordinador de Extensi\'on (A); Responsable de Gesti\'on del Conocimiento y Responsable de Redes Sociales (R); Responsable T\'ecnico -- automatizaci\'on del flujo (R). \\
     P3 -- Dise\~no y Gesti\'on de Actividades & Producci\'on de res\'umenes o textos de apoyo para difundir actividades ya definidas. & Soporte comunicacional. Secr./Coord. Extensi\'on (A); Responsable de proyectos y eventos (R). \\
     P5 -- Programas, Cursos y Diplomaturas & Confirmaciones, difusi\'on y certificados generados como borrador con validaci\'on previa. & Soporte comunicacional y documental. Coordinador de Extensi\'on (A); Responsable de cursos (R). \\
     P6 -- Eventos Acad\'emicos & Difusi\'on de eventos a partir de datos validados por el proceso correspondiente. & Soporte comunicacional. Coordinador de Extensi\'on (A); Responsable de proyectos especiales (R). \\
@@ -394,6 +394,7 @@ El Agente~1 se ubica como soporte tecnol\'ogico principal del Proceso~4 (Comunic
   \item Scraping o consumo de APIs externas complejas no definidas en la etapa actual.
   \item Automatizaci\'on sin validaci\'on humana en contenidos destinados a publicaci\'on oficial.
   \item Infraestructura de alto costo (servidores GPU, servicios cloud premium).
+  \item Comunicaci\'on con organismos militares y dependencias de la \ac{UNDEF}: el alcance comunicacional del Agente~1 se limita a la comunidad \ac{FIE} (FIE Informa), organismos institucionales y canales de redes sociales definidos. Toda comunicaci\'on oficial con la \ac{UNDEF} o dependencias castrenses queda fuera de alcance.
 \end{itemize}
 
 % =============================================================================
@@ -1006,7 +1007,7 @@ El Agente~1 no es el orquestador del sistema multiagente ---ese rol corresponde 
     \midrule
     A2 --- Historia Viva      & Contenido hist\'orico institucional  & Generaci\'on de gacetillas de efem\'erides, posts alusivos a fechas institucionales \\
     A3 --- Vinculaci\'on      & Datos de eventos y oportunidades     & Difusi\'on de congresos, jornadas, convenios detectados por A3 \\
-    A4 --- Atenci\'on         & Respuestas complejas a consultas     & Redacci\'on institucional de respuestas que requieren formato y tono oficial \\
+    A4 --- Atenci\'on         & Consultas complejas derivadas (bidireccional: A4 env\'ia consulta a A1; A1 genera texto y env\'ia material de vuelta a A4) & Generaci\'on de texto institucional y provisi\'on de material de respuesta para que A4 resuelva con formato y tono oficial \\
     A5 --- Anal\'iticas       & Enriquecimiento de texto de \ac{RRSS} & Mejora de calidad y consistencia de publicaciones antes de su difusi\'on \\
     \bottomrule
   \end{tabularx}
@@ -1141,7 +1142,7 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
     \toprule
     \textbf{Semestre} & \textbf{Per\'iodo} & \textbf{Entregables} & \textbf{TRL} \\
     \midrule
-    S1 & Mar--Jul 2026 & Anteproyecto entregado y firmado por la \ac{SEU}. Dise\~no validable cerrado. HU-010 y HU-011 implementados y validados como \ac{MVP} controlado con evidencia. Informe de avance S1 y gate \ac{TRL}~3. & TRL 3 \\
+    S1 & Mar--Jul 2026 & Anteproyecto (primera entrega Mar; versi\'on final firmada \ac{SEU} Jul). Dise\~no validable cerrado (Jun). HU-010 y HU-011 implementados y validados como \ac{MVP} controlado con evidencia (Jul). Gate \ac{TRL}~3 e informe de avance S1 (Ago, post-S1). & TRL 3 \\
     S2 & Ago--Dic 2026 & HU-012, HU-013 y HU-014 implementados. Integraci\'on progresiva con A2--A5 mediante contratos/mocks. Sistema validado con usuarios reales de la \ac{SEU} (checklist $\geq$~3/4), logs operativos, release candidata, informe final y cierre anual. & TRL 4 \\
     \midrule
     \multicolumn{4}{l}{\textit{Proyecci\'on P100 (fuera del alcance de este Proyecto):}} \\
@@ -1165,11 +1166,11 @@ La ventana de febrero de 2027 se reserva solamente como margen m\'aximo para obs
     \toprule
     \textbf{Hito} & \textbf{Descripci\'on} & \textbf{Fecha estimada} \\
     \midrule
-    H1 & Anteproyecto entregado & 31 Mar 2026 \\
-    H2 & Dise\~no validable cerrado & 15 Jun 2026 \\
-    H3 & Firma \ac{SEU} del anteproyecto & 30 Jun 2026 \\
-    H4 & \ac{MVP} de gacetillas y posts con evidencia & 15 Jul 2026 \\
-    H5 & Gate \ac{TRL}~3 cerrado e informe de avance S1 & 31 Jul 2026 \\
+    H1 & Anteproyecto: primera entrega y relevamiento & Mar 2026 \\
+    H2 & Dise\~no validable cerrado & 30 Jun 2026 \\
+    H3 & Firma \ac{SEU} del anteproyecto (versi\'on final) & 15 Jul 2026 \\
+    H4 & \ac{MVP} de gacetillas y posts con evidencia & 31 Jul 2026 \\
+    H5 & Gate \ac{TRL}~3 cerrado e informe de avance S1 & 15 Ago 2026 \\
     H6 & Confirmaciones de inscripci\'on operativas con \ac{DoD} & 30 Sep 2026 \\
     H7 & Lenguaje natural interno operativo con \ac{DoD} & 31 Oct 2026 \\
     H8 & Certificados con validaci\'on humana operativos con \ac{DoD} & 30 Nov 2026 \\
@@ -1198,15 +1199,15 @@ La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividad
     \endhead
     \multicolumn{3}{l}{\textit{Semestre~1 --- Mar--Jul 2026}} \\
     \midrule
-    Mar 2026 & Entrega del anteproyecto. Relevamiento inicial del Proceso~4, alcance, exclusiones, responsables \ac{SEU} y configuraci\'on base del entorno de trabajo. & H1: Anteproyecto entregado \\
+    Mar 2026 & Primera entrega del anteproyecto. Relevamiento inicial del Proceso~4, alcance, exclusiones, responsables \ac{SEU} y configuraci\'on base del entorno de trabajo. & H1: Primera entrega \\
     Abr 2026 & Incorporaci\'on de devoluciones, cierre de baseline documental, definici\'on de validadores \ac{SEU}, historias, \ac{DoD}, evidencias y arquitectura base. & Baseline documental \\
-    May 2026 & Dise\~no funcional y t\'ecnico del Agente~1: casos de uso, estados, trazabilidad, seguridad, datos, logs y plantillas institucionales. Inicio del prototipo HU-010/HU-011. & --- \\
-    Jun 2026 & Cierre del dise\~no validable, medici\'on de l\'inea base, consolidaci\'on de evidencias iniciales y firma \ac{SEU} del anteproyecto. & H2--H3: Dise\~no + firma \ac{SEU} \\
-    Jul 2026 & Cierre del \ac{MVP} de gacetillas y posts, auditor\'ia de evidencias, defectos, checklist \ac{SEU}, informe de avance S1 y replanificaci\'on incremental de S2. & H4--H5: \ac{MVP} + Gate \ac{TRL}~3 \\
+    May 2026 & Dise\~no funcional y t\'ecnico del Agente~1: casos de uso, estados, trazabilidad, seguridad, datos, logs y plantillas institucionales. & --- \\
+    Jun 2026 & Cierre del dise\~no validable, medici\'on de l\'inea base, consolidaci\'on de evidencias iniciales y firma \ac{SEU} del anteproyecto. Inicio del entorno de desarrollo e infraestructura base. & H2: Dise\~no cerrado \\
+    Jul 2026 & Implementaci\'on de HU-010 (gacetillas) y HU-011 (posts): prototipo, pruebas, validaci\'on interna y auditor\'ia de evidencias. Cierre del \ac{MVP} S1 y firma \ac{SEU}. Replanificaci\'on incremental de S2. & H3--H4: Firma \ac{SEU} + \ac{MVP} \\
     \midrule
     \multicolumn{3}{l}{\textit{Semestre~2 --- Ago--Dic 2026}} \\
     \midrule
-    Ago 2026 & Ajustes de arquitectura seg\'un evidencias S1, robustecimiento de persistencia, colas, permisos y secretos. Inicio de HU-012 y contratos/mocks A2--A5. & Inicio S2 \\
+    Ago 2026 & Gate \ac{TRL}~3 e informe de avance S1. Ajustes de arquitectura seg\'un evidencias, robustecimiento de persistencia, colas, permisos y secretos. Inicio de HU-012 y contratos/mocks A2--A5. & H5: Gate \ac{TRL}~3 \\
     Sep 2026 & Cierre de confirmaciones de inscripci\'on con registro, logs persistentes y pruebas de errores. Avance de lenguaje natural interno y control de defectos. & H6: HU-012 operativo \\
     Oct 2026 & Cierre de lenguaje natural interno con registro operativo y pruebas de usabilidad. Inicio de certificados, seguridad e integraci\'on progresiva A2--A5. & H7: HU-013 operativo \\
     Nov 2026 & Cierre de certificados con aprobaci\'on manual, pruebas de sistema, seguridad, validaci\'on con usuarios \ac{SEU} y regresi\'on sobre defectos cr\'iticos. & H8: HU-014 operativo \\
