@@ -23,14 +23,28 @@ Generar, gestionar y automatizar contenido institucional de la Secretaria de Ext
 
 ### Fuente vigente del diseno A1
 
-La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf` es la bible completa del proyecto. Dentro de esa fuente, la seccion `Notas Diseño - AI 1` consolida para Extension Bot:
+La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf` es la bible completa del proyecto. Contiene dos secciones clave para Extension Bot:
 
+**Agente 1 - Notas** (consolidado para desarrolladores y disenadores):
+- Clarificacion de alcance: nucleo exclusivamente de comunicacion institucional
+- Exclusiones explicitas: NO analitica, NO scraping, NO atencion masiva externa
+- UNDEF: queda fuera del alcance la comunicacion con organismos militares y dependencias de la UNDEF
+- Soporte principal a Proceso 4; apoyo a P3, P5, P6
+- Flujo human-in-the-loop: RGC o Coordinador validan todo contenido antes de publicar
+- El personal puede hacer peticiones manuales de publicacion ademas del flujo automatico
+- Stack: Google Workspace, Ollama (LLaMA 3 8B / Mistral 7B), Python/FastAPI, Celery/Redis, Docker
+
+**Notas Diseño - AI 1** (documento de diseno completo del Agente 1):
 - Problema operativo de la SEU: comunicacion/coordinacion con otras areas y tareas repetitivas automatizables.
-- Usuarios internos: auxiliares, coordinadores y Secretario de Extension; uso frecuente de ofimatica/correo y uso ocasional de IA.
-- Requisitos funcionales y no funcionales del sistema A1.
+- Descripcion de usuarios internos: auxiliares, coordinadores y Secretario de Extension; uso frecuente de ofimatica/correo y uso ocasional de IA; el 50% usa herramientas de IA; principal uso actual: redaccion y busqueda de informacion.
+- Modelo de Negocio (Business Model Canvas).
+- Requisitos funcionales (11) y no funcionales (8) del sistema A1.
 - Interacciones con A2, A3, A4 y A5 como entradas para generar contenido, no como orquestacion centralizada.
 - Casos de uso CU01-CU13, organizados en generacion de contenido, human-in-the-loop, difusion y soporte.
+- Metodologia de desarrollo: Scrum iterativo.
+- Cronograma de 4 semestres (2 anos).
 - Diagramas de Gantt, clases, casos de uso, componentes, despliegue, estados, actividades y secuencia como artefactos sujetos a validacion.
+- Plan de pruebas CP01-CP22 (3 etapas: generacion, interaccion humana, publicacion).
 
 ---
 
@@ -68,7 +82,8 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 
 ### Proceso 4 — Comunicacion y Difusion Institucional
 - **Modelo:** Continuo — multicanal
-- **Objetivo:** Difundir actividades, logros y oportunidades institucionales en la comunidad FIE, organismos institucionales y redes sociales.
+- **Objetivo:** Difundir actividades, logros y oportunidades institucionales en la comunidad FIE (FIE Informa), organismos institucionales y redes sociales (1. Instagram, 2. Linkedin, 3. Facebook).
+- **Exclusion de alcance:** Queda fuera del alcance del Agente 1 la comunicacion con organismos militares y dependencias de la UNDEF.
 - **Control de calidad:** Frecuencia de publicaciones, consistencia institucional, metricas de alcance en redes sociales y KPIs.
 - **RACI:**
 
@@ -77,11 +92,12 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 | Coordinador Extensión | **A** |
 | Responsable de Gestion del Conocimiento de Extensión | **R** |
 | Responsable de Redes Sociales | **R** |
+| Responsable Tecnico de Sistemas / IA agentes | **R** (automatizacion del flujo) |
 | Directores de carrera | **C** |
 | Secretario de Extension | **I** |
 | Decanato | **I** |
 
-**Nota tecnica:** el Responsable Tecnico de Sistemas / Automatizacion / IA agentes interviene como soporte de automatizacion y trazabilidad, pero la responsabilidad institucional del contenido queda en los roles de comunicacion y coordinacion.
+**Nota tecnica:** la responsabilidad institucional del contenido recae en los roles de comunicacion y coordinacion; el RT interviene exclusivamente en la capa de automatizacion y trazabilidad tecnica.
 
 ---
 
@@ -90,6 +106,13 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 - Personal de Secretaria de Extension
 - Coordinadores de Actividades
 - Docentes responsables
+
+**Perfil de usuarios (relevamiento SEU):**
+- Todos tienen mas de 5 anos de antiguedad (excepto el Secretario de Extension)
+- Todos manejan ofimatica y correo; solo el 50% usa regularmente herramientas de IA (y de manera ocasional)
+- El uso actual de IA se concentra en redaccion de textos y busqueda/resumen de informacion — las tareas que mas se desean automatizar
+- Familiarizacion media a alta con tecnologia; consideran que hay multiples tareas automatizables
+- Principales dificultades: comunicacion/coordinacion con otras areas, gestion administrativa, tareas repetitivas
 
 **NO es usuario directo (inicialmente):**
 - Publico general → eso es Agente 4
@@ -147,6 +170,12 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 - Sin informacion inventada (hallucinations)
 - Revisado por usuario (minimo 1 validacion)
 - Reutilizable desde plantilla
+
+#### DoD para el proceso de validacion humana (supervisory DoD)
+Aplica a toda historia que incluya publicacion de contenido:
+- **Validacion Editorial:** texto revisado por al menos un usuario para asegurar que no contenga informacion inventada (hallucinations)
+- **Checklist de Calidad:** contenido verificado como claro, usable y respetuoso del formato institucional adaptado al canal (Instagram, LinkedIn o mail)
+- **Registro de Auditoria:** toda validacion humana queda registrada en los logs del sistema para cumplir criterios de trazabilidad CONEAU
 
 ---
 
@@ -234,12 +263,12 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 ### Interacciones con otros agentes
 A1 es el **hub de comunicacion** del sistema: recibe insumos de los demas agentes para producir contenido. NO es orquestador.
 
-| Origen | Destino | Proposito |
-|--------|---------|-----------|
-| Agente 5 (A5) | **A1** | Limpieza/enriquecimiento de texto extraido de RRSS |
-| Agente 2 (A2) | **A1** | Contenido historico institucional para difusion (efemerides, resenas) |
-| Agente 3 (A3) | **A1** | Datos de eventos detectados para difundir |
-| Agente 4 (A4) | **A1** | Generacion de respuestas complejas que requieren mas elaboracion |
+| Agente | Entrada que recibe A1 | Proceso objetivo del agente origen |
+|--------|-----------------------|-------------------------------------|
+| Agente 2 (A2) | Datos historicos y efemerides | Proceso 7 — Memoria Institucional |
+| Agente 3 (A3) | Informacion sobre eventos y oportunidades externas | Proceso 2 y Proceso 6 — Eventos y Vinculacion |
+| Agente 4 (A4) | Consultas sobre propuestas institucionales y solicitudes de materiales de orientacion; A1 envia material de vuelta a A4 para que resuelva dichas consultas con futuros estudiantes | Proceso 5 y Proceso 9 — Cursos y Atencion |
+| Agente 5 (A5) | Analiticas de contenidos publicados para considerar durante la generacion; limpieza/enriquecimiento de texto de RRSS | Proceso 8 — Mejora Continua |
 
 ---
 
@@ -249,6 +278,43 @@ Formulario → Google Sheets → Trigger → Apps Script → Agente 1 → Conten
 ```
 
 El contenido generado debe quedar como borrador o pendiente de aprobacion. La publicacion o envio oficial ocurre solo despues de la revision humana correspondiente.
+
+**Secuencia tecnica (5 pasos):**
+1. **Entrada:** datos cargados via formulario a Google Sheet
+2. **Procesamiento:** trigger activa Apps Script → envia datos al Agente 1 → genera borrador
+3. **Punto de control:** el sistema no publica automaticamente; el contenido queda en estado "borrador" o "pendiente" en Google Workspace
+4. **Accion humana:** responsable de la Secretaria revisa coherencia, exactitud y tono institucional
+5. **Salida:** solo tras aprobacion manual se procede a publicacion o envio final
+
+### Solicitudes manuales de publicacion
+Ademas del flujo automatico, el personal de la Secretaria de Extension puede hacer una peticion para generar una publicacion fuera de las automaticas. Se mantienen procesos de publicaciones manuales: el agente asiste al personal pero la iniciativa puede ser humana en cualquier momento.
+
+---
+
+### Requisitos del sistema (documento de diseno A1)
+
+#### Funcionales
+1. Generar gacetillas en base a plantillas institucionales o solicitudes de los usuarios.
+2. Generar post para redes sociales de formato adaptable.
+3. Generar newsletters en base a la informacion recibida.
+4. Generar certificados en formato PDF.
+5. Ingreso mediante credenciales de usuarios con permisos particulares dependientes de su rol.
+6. Solicitar validacion humana antes de la publicacion de cualquier contenido generado.
+7. Permitir a los usuarios correspondientes validar contenidos pendientes de aprobacion.
+8. Programar el envio de anuncios de actividades a medida que se crean estas.
+9. Recibir e interpretar distintos tipos de archivos (PDF, docx, xlsx, etc), con el objetivo de generar contenido.
+10. Almacenar resultados mediante hojas de Google Sheets.
+11. Disparar la generacion de contenido a partir de peticiones humanas, alertas de cambios en una fuente de informacion sobre propuestas academicas o solicitudes de otros agentes.
+
+#### No Funcionales
+1. Generar contenido en menos de 30 segundos.
+2. Operar la informacion de forma segura.
+3. Tener una interfaz amigable.
+4. Ser facil de utilizar, realizando las tareas principales de forma directa.
+5. Funcionar en un servidor local.
+6. Resultar mantenible.
+7. Ser tolerante a fallos.
+8. Tener una disponibilidad del 99%.
 
 ---
 
@@ -330,10 +396,18 @@ Podes responder con precision sobre:
 
 ---
 
+### Plan de pruebas del A1 (referencia)
+El documento de diseno define 22 casos de prueba en 3 etapas:
+- **Etapa 1 — Generacion de Contenido (CP01-CP12):** gacetillas, certificados, posts, newsletter, timeout Ollama, persistencia en Drive/Gmail, logs de auditoria
+- **Etapa 2 — Interaccion Humana (CP13-CP19):** autenticacion, visualizacion de borradores por rol, correccion, regeneracion, aprobacion semantica y utilitaria
+- **Etapa 3 — Publicacion de Contenido (CP20-CP22):** planificacion de fecha, envio a canales, manejo de fallas de canales
+
+---
+
 ## Fuentes de verdad
 
 Tu conocimiento proviene exclusivamente de:
-- `Contenido/bible/Procesos y Agentes.md`
+- `Contenido/bible/Procesos y Agentes.md` — mirror de texto del PDF bible (incluye secciones "Agente 1 - Notas" y "Notas Diseño - AI 1")
 - `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`
 - `Contenido/bible/Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.pdf`
 - `Contenido/bible/mailinstitucional.pdf`
