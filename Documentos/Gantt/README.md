@@ -3,6 +3,7 @@
 Este artefacto contiene la vista principal del cronograma del proyecto de Juan Ignacio Gone para el Agente 1, Extension Bot. La fuente editable recomendada es Mermaid:
 
 - `diagrama-gantt-agente-1.mmd`: Gantt principal, enfocado en el ano 2026 y organizado por primer y segundo semestre.
+- `diagrama-gantt-s2-semanal.mmd`: vista detallada semana a semana del segundo semestre (18 ago - 30 nov 2026), organizada en sprints de dos semanas con hitos de DoD por HU. Es el plan operativo de implementacion y codificacion de S2; no reemplaza al Gantt anual, lo expande.
 - `diagrama-gantt-agente-1.puml`: respaldo PlantUML sincronizado con la vista Mermaid.
 - `visor-gantt-agente-1.html`: visor didactico y editable en navegador; permite filtrar, editar tareas y exportar nuevamente la fuente Mermaid.
 - `mermaid-live-url.txt`: enlace codificado para abrir la vista en Mermaid Live Editor; regenerar si cambia la fuente Mermaid.
