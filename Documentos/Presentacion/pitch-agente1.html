@@ -194,6 +194,11 @@
   .tag-num { position: fixed; top: 18px; left: 22px; z-index:50; font-size:.75rem; color: var(--muted); letter-spacing:.2em; text-transform:uppercase; }
   .hint { position: fixed; bottom: 60px; right: 22px; z-index:50; font-size:.7rem; color: var(--muted); opacity:.7; }
 
+  /* Autoplay / recording mode: hide all chrome, keep only the progress bar */
+  body.playing .nav, body.playing .dots, body.playing .hint,
+  body.playing .counter, body.playing .tag-num { display: none !important; }
+  body.playing { cursor: none; }
+
   @media (max-width: 760px) {
     .cards, .cost-grid, .kpis, .timeline, .three { grid-template-columns: 1fr 1fr; }
     .close .ask, .ba { grid-template-columns: 1fr; }
@@ -496,7 +501,43 @@ Inscripciones: [enlace]</div>
     x0 = null;
   });
 
+  /* ---------- Autoplay mode (for screen-recording the video track) ----------
+     Per-slide seconds, aligned 1:1 with the narration in guion-video-agente1.md.
+     Total ≈ 105s. Start: open with ?play (or #play), or press "P". Esc/click to stop. */
+  const durations = [5, 6, 7, 7, 7, 8, 7, 8, 9, 7, 7, 6, 6, 7, 8];
+  let playTimer = null, playing = false;
+
+  function schedule() {
+    clearTimeout(playTimer);
+    if (!playing) return;
+    playTimer = setTimeout(() => {
+      if (i < total - 1) { next(); schedule(); }
+      else stopPlay();
+    }, durations[i] * 1000);
+  }
+  function startPlay() {
+    playing = true;
+    document.body.classList.add('playing');
+    go(0);
+    schedule();
+  }
+  function stopPlay() {
+    playing = false;
+    clearTimeout(playTimer);
+    document.body.classList.remove('playing');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'p') { e.preventDefault(); playing ? stopPlay() : startPlay(); }
+    else if (e.key === 'Escape') stopPlay();
+    else if (playing) stopPlay(); // any other navigation key stops autoplay
+  });
+  document.addEventListener('click', () => { if (playing) stopPlay(); });
+
   go(0);
+  if (location.search.includes('play') || location.hash.includes('play')) {
+    // small delay so fullscreen/recording can start first
+    setTimeout(startPlay, 800);
+  }
 </script>
 </body>
 </html>
