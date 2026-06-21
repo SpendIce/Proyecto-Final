@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visor del cronograma semanal S2 - Agente 1 Extension Bot</title>
+  <style>
+    :root{
+      --bg:#f8fafc; --panel:#ffffff; --ink:#0f172a; --muted:#64748b;
+      --line:#e2e8f0; --grid:#eef2f7; --teal:#0f766e;
+      --s0:#475569; --s1:#2563eb; --s2:#7c3aed; --s3:#db2777;
+      --s4:#ea580c; --s5:#0891b2; --s6:#16a34a; --sc:#854d0e;
+      --label-w:300px; --track-min:1180px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      color:var(--ink);background:var(--bg);font-size:14px;line-height:1.45}
+    header{padding:20px 24px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+    h1{margin:0 0 4px;font-size:20px}
+    .sub{color:var(--muted);font-size:13px}
+    .wrap{padding:18px 24px 40px}
+
+    /* leyenda / como leer */
+    .legend{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:14px 0 18px;
+      padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+    .legend b{font-size:13px}
+    .key{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#334155}
+    .swatch{width:14px;height:14px;border-radius:3px;display:inline-block}
+    .dia{width:12px;height:12px;transform:rotate(45deg);background:#0f172a;display:inline-block}
+    .help{font-size:12.5px;color:var(--muted);margin-left:auto;max-width:430px}
+
+    /* contenedor scroll */
+    .chart{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:auto}
+    .inner{min-width:calc(var(--label-w) + var(--track-min))}
+
+    /* ejes */
+    .axis-month,.axis-week,.row{display:grid;grid-template-columns:var(--label-w) 1fr}
+    .axis-month .corner,.axis-week .corner,.row .row-label{
+      position:sticky;left:0;z-index:3;background:var(--panel);
+      border-right:2px solid var(--line);padding:0 14px;display:flex;align-items:center}
+    .axis-month{border-bottom:1px solid var(--line)}
+    .axis-month .corner{font-weight:600;font-size:13px}
+    .months{position:relative;height:32px}
+    .month{position:absolute;top:0;height:32px;display:flex;align-items:center;justify-content:center;
+      font-weight:600;font-size:12.5px;color:#334155;border-left:1px solid var(--line)}
+    .axis-week{border-bottom:1px solid var(--line);background:#fcfdfe}
+    .axis-week .corner{font-size:11.5px;color:var(--muted)}
+    .weeks{position:relative;height:30px}
+    .week{position:absolute;top:0;height:30px;border-left:1px solid var(--grid);
+      font-size:10.5px;color:var(--muted);padding:3px 0 0 4px;overflow:hidden;white-space:nowrap}
+    .week.first{border-left:none}
+
+    /* grupos de sprint */
+    .group-head{display:grid;grid-template-columns:var(--label-w) 1fr;
+      background:#f1f5f9;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .group-head .gh-label{position:sticky;left:0;z-index:2;background:#f1f5f9;
+      border-right:2px solid var(--line);padding:7px 14px;font-weight:700;font-size:12.5px;
+      display:flex;align-items:center;gap:8px}
+    .gh-goal{padding:7px 14px;font-size:12px;color:#475569;display:flex;align-items:center}
+    .tag{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+
+    /* filas */
+    .row{border-bottom:1px solid var(--grid)}
+    .row:hover .row-label{background:#f8fafc}
+    .row-label{font-size:12.5px;color:#1e293b;min-height:34px}
+    .track{position:relative;min-height:34px}
+    .bar{position:absolute;top:7px;height:20px;border-radius:5px;cursor:default;
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);transition:filter .12s}
+    .bar:hover{filter:brightness(1.08)}
+    .ms{position:absolute;top:7px;width:20px;height:20px;transform:translateX(-10px) rotate(45deg);
+      background:#0f172a;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:default}
+    .ms-label{position:absolute;top:9px;font-size:11px;font-weight:600;color:#0f172a;white-space:nowrap}
+    .today{position:absolute;top:0;bottom:0;width:2px;background:var(--teal);opacity:.6;z-index:1}
+
+    /* tooltip */
+    #tip{position:fixed;z-index:10;background:#0f172a;color:#fff;padding:7px 10px;border-radius:7px;
+      font-size:12px;pointer-events:none;opacity:0;transition:opacity .1s;max-width:260px;
+      box-shadow:0 6px 20px rgba(0,0,0,.25)}
+    #tip b{display:block;margin-bottom:2px}
+    #tip span{color:#94a3b8}
+    footer{color:var(--muted);font-size:12px;padding:0 24px 30px}
+    code{background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:12px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Agente 1 — Extensión Bot · Cronograma semanal del 2.º semestre</h1>
+    <div class="sub">Implementación y codificación · 18 ago → 30 nov 2026 · 8 sprints de 2 semanas · meta TRL 4</div>
+  </header>
+
+  <div class="wrap">
+    <div class="legend" id="legend">
+      <b>Sprints:</b>
+      <span class="help">
+        <b style="color:#0f172a">Cómo leer:</b> cada barra es una tarea técnica; los
+        <span class="dia" style="width:9px;height:9px;vertical-align:middle"></span> diamantes son hitos (DoD).
+        Dentro de cada sprint las barras bajan en cascada = <i>slice vertical</i> (diseño → código → prueba → validación en la misma ventana).
+      </span>
+    </div>
+
+    <div class="chart">
+      <div class="inner" id="inner"></div>
+    </div>
+
+    <footer>
+      Fuente de verdad: <code>Documentos/Gantt/diagrama-gantt-s2-semanal.mmd</code>.
+      Este visor es solo lectura y se renderiza sin servidor ni dependencias externas.
+      Pasá el cursor sobre cada barra o hito para ver fechas y duración.
+    </footer>
+  </div>
+
+  <div id="tip"></div>
+
+  <script>
+  // ---- modelo de datos (espejo del .mmd) ----
+  const COLORS = {S0:'--s0',S1:'--s1',S2:'--s2',S3:'--s3',S4:'--s4',S5:'--s5',S6:'--s6',SC:'--sc'};
+  const SPRINTS = [
+    {key:'S0', name:'Sprint 0 · Infra y robustecimiento', win:'18–31 ago',
+     goal:'Plataforma reproducible: Docker, PostgreSQL, Celery/Redis, logging',
+     tasks:[
+       {t:'Dockerfile y compose (FastAPI, Postgres, Redis, worker)', s:'2026-08-18', e:'2026-08-22'},
+       {t:'Esquema PostgreSQL y migración de la persistencia', s:'2026-08-19', e:'2026-08-26'},
+       {t:'Cola Celery y Redis para generación asíncrona', s:'2026-08-24', e:'2026-08-28'},
+       {t:'Capa de secretos y logging con correlation ID', s:'2026-08-24', e:'2026-08-29'},
+       {t:'Refinar prompts de gacetillas y posts con feedback real', s:'2026-08-18', e:'2026-08-31'},
+       {m:'Base S2 lista y entorno reproducible', d:'2026-08-31'}]},
+    {key:'S1', name:'Sprint 1 · HU-012 Confirmaciones', win:'1–14 sep',
+     goal:'Confirmaciones de inscripción automáticas con deduplicación',
+     tasks:[
+       {t:'Modelar datos y endpoint de confirmación', s:'2026-09-01', e:'2026-09-04'},
+       {t:'Lógica de deduplicación con clave única en base', s:'2026-09-03', e:'2026-09-07'},
+       {t:'Plantilla de email y envío vía Google Workspace', s:'2026-09-05', e:'2026-09-10'},
+       {t:'Tarea Celery de envío y registro en base', s:'2026-09-08', e:'2026-09-11'},
+       {t:'Probar duplicados, destinatario inválido y payload', s:'2026-09-10', e:'2026-09-13'},
+       {t:'Validar confirmaciones con la SEU', s:'2026-09-12', e:'2026-09-14'},
+       {m:'HU-012 operativa con DoD', d:'2026-09-14'}]},
+    {key:'S2', name:'Sprint 2 · HU-013 Lenguaje natural interno', win:'15–28 sep',
+     goal:'Chat interno SEU que interpreta solicitudes sin inventar',
+     tasks:[
+       {t:'Chat interno con autenticación de personal SEU', s:'2026-09-15', e:'2026-09-19'},
+       {t:'Nodo LangGraph de interpretación con LLM local', s:'2026-09-17', e:'2026-09-23'},
+       {t:'Fallback fuera de alcance sin inventar respuestas', s:'2026-09-21', e:'2026-09-25'},
+       {t:'Persistir transcript y trazabilidad de la conversación', s:'2026-09-22', e:'2026-09-26'},
+       {t:'Probar solicitudes válidas, fuera de alcance y usabilidad', s:'2026-09-24', e:'2026-09-28'},
+       {m:'HU-013 operativa con DoD', d:'2026-09-28'}]},
+    {key:'S3', name:'Sprint 3 · HU-014 Certificados (parte 1)', win:'29 sep–12 oct',
+     goal:'Generación de PDF con bloqueo HITL antes de emitir',
+     tasks:[
+       {t:'Plantilla de certificado y máquina de estados HITL', s:'2026-09-29', e:'2026-10-03'},
+       {t:'Generación de PDF con datos académicos', s:'2026-10-01', e:'2026-10-07'},
+       {t:'Bloqueo de emisión sin aprobación humana previa', s:'2026-10-06', e:'2026-10-10'},
+       {t:'Cola de aprobación para el validador', s:'2026-10-08', e:'2026-10-12'},
+       {m:'Certificado generable en borrador controlado', d:'2026-10-12'}]},
+    {key:'S4', name:'Sprint 4 · HU-014 cierre e integración', win:'13–26 oct',
+     goal:'Cerrar certificados y abrir contratos con A2-A5',
+     tasks:[
+       {t:'Probar datos faltantes, rechazo y emisión controlada', s:'2026-10-13', e:'2026-10-17'},
+       {t:'Registro de emisión, logs y evidencia', s:'2026-10-15', e:'2026-10-20'},
+       {t:'Definir contratos y mocks con A2-A5 sin orquestar', s:'2026-10-19', e:'2026-10-26'},
+       {m:'HU-014 operativa con DoD', d:'2026-10-26'}]},
+    {key:'S5', name:'Sprint 5 · Integración y pruebas de sistema', win:'27 oct–9 nov',
+     goal:'Integrar insumos de A2-A5 y dejar la suite en verde',
+     tasks:[
+       {t:'Integrar insumos disponibles de A2-A5 (progresivo)', s:'2026-10-27', e:'2026-11-03'},
+       {t:'Pruebas unitarias y de integración', s:'2026-10-27', e:'2026-11-04'},
+       {t:'Pruebas E2E de extremo a extremo', s:'2026-11-02', e:'2026-11-06'},
+       {t:'Probar seguridad, permisos y prompt injection', s:'2026-11-04', e:'2026-11-09'},
+       {m:'Suite de pruebas en verde y cobertura registrada', d:'2026-11-09'}]},
+    {key:'S6', name:'Sprint 6 · Validación SEU y release candidata', win:'10–23 nov',
+     goal:'Validar con usuarios reales y dejar la RC TRL 4 lista',
+     tasks:[
+       {t:'Validar con usuarios SEU, checklist 1-4 y trazabilidad', s:'2026-11-10', e:'2026-11-16'},
+       {t:'Cerrar defectos críticos detectados', s:'2026-11-13', e:'2026-11-18'},
+       {t:'Ejecutar regresión completa', s:'2026-11-17', e:'2026-11-21'},
+       {t:'Preparar release candidata y paquete de evidencias', s:'2026-11-19', e:'2026-11-23'},
+       {m:'Release candidata TRL 4 lista', d:'2026-11-23'}]},
+    {key:'SC', name:'Cierre · Gate TRL 4 e informe S2', win:'24–30 nov',
+     goal:'Auditoría go/no-go e informe de avance del semestre',
+     tasks:[
+       {t:'Ejecutar auditoría final y decisión go/no-go', s:'2026-11-24', e:'2026-11-27'},
+       {t:'Redactar informe de avance S2 y manual operativo', s:'2026-11-24', e:'2026-11-30'},
+       {m:'Gate TRL 4 validado y cierre del semestre', d:'2026-11-30'}]},
+  ];
+
+  // ---- escala temporal ----
+  const MIN = new Date('2026-08-18'), MAX = new Date('2026-11-30');
+  const DAY = 86400000;
+  const span = (MAX - MIN)/DAY + 1;            // dias inclusivos
+  const pct  = d => ((new Date(d) - MIN)/DAY) / span * 100;
+  const wpct = (s,e) => ((new Date(e) - new Date(s))/DAY + 1) / span * 100;
+  const fmt  = d => new Date(d).toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
+  const days = (s,e) => Math.round((new Date(e)-new Date(s))/DAY)+1;
+
+  // ---- leyenda de sprints ----
+  const legend = document.getElementById('legend');
+  SPRINTS.forEach(sp=>{
+    const k=document.createElement('span'); k.className='key';
+    k.innerHTML=`<span class="swatch" style="background:var(${COLORS[sp.key]})"></span>${sp.key}`;
+    legend.insertBefore(k, legend.querySelector('.help'));
+  });
+
+  // ---- ejes ----
+  const inner = document.getElementById('inner');
+  // meses
+  const monthDefs=[['Agosto','2026-08-18','2026-08-31'],['Septiembre','2026-09-01','2026-09-30'],
+                   ['Octubre','2026-10-01','2026-10-31'],['Noviembre','2026-11-01','2026-11-30']];
+  let months='';
+  monthDefs.forEach(([n,s,e])=>{ months+=`<div class="month" style="left:${pct(s)}%;width:${wpct(s,e)}%">${n}</div>`; });
+  inner.insertAdjacentHTML('beforeend',
+    `<div class="axis-month"><div class="corner">Tarea · Sprint</div><div class="months">${months}</div></div>`);
+  // semanas
+  let weeks='', wi=0;
+  for(let t=new Date(MIN); t<=MAX; t=new Date(+t+7*DAY)){
+    const e=new Date(Math.min(+t+6*DAY,+MAX));
+    weeks+=`<div class="week${wi===0?' first':''}" style="left:${pct(t)}%;width:${wpct(t,e)}%">S${++wi} · ${fmt(t)}</div>`;
+  }
+  inner.insertAdjacentHTML('beforeend',
+    `<div class="axis-week"><div class="corner">${wi} semanas</div><div class="weeks">${weeks}</div></div>`);
+
+  // gridlines semanales (fondo de cada track)
+  const weekFrac = 7/span*100;
+  const gridBg = `repeating-linear-gradient(to right, transparent 0, transparent calc(${weekFrac}% - 1px), var(--grid) calc(${weekFrac}% - 1px), var(--grid) ${weekFrac}%)`;
+
+  // hoy (solo si cae en ventana)
+  const now=new Date(); const showToday = now>=MIN && now<=MAX;
+
+  // ---- filas por sprint ----
+  SPRINTS.forEach(sp=>{
+    const col=`var(${COLORS[sp.key]})`;
+    inner.insertAdjacentHTML('beforeend',
+      `<div class="group-head"><div class="gh-label"><span class="tag" style="background:${col}"></span>${sp.name}</div>`+
+      `<div class="gh-goal">${sp.goal} · <span style="color:#94a3b8">${sp.win}</span></div></div>`);
+    sp.tasks.forEach(item=>{
+      const row=document.createElement('div'); row.className='row';
+      const label=document.createElement('div'); label.className='row-label';
+      const track=document.createElement('div'); track.className='track';
+      track.style.background=gridBg;
+      if(showToday) track.insertAdjacentHTML('beforeend',`<div class="today" style="left:${pct(now)}%"></div>`);
+      if(item.m){
+        label.innerHTML=`<span class="dia" style="width:11px;height:11px;margin-right:7px;vertical-align:-1px"></span><b>${item.m}</b>`;
+        const el=document.createElement('div'); el.className='ms'; el.style.left=pct(item.d)+'%';
+        track.appendChild(el);
+        const lab=document.createElement('div'); lab.className='ms-label';
+        lab.style.left=`calc(${pct(item.d)}% + 14px)`; lab.textContent=fmt(item.d);
+        track.appendChild(lab);
+        attachTip(el,`<b>Hito · ${item.m}</b><span>${fmt(item.d)}</span>`);
+      } else {
+        label.textContent=item.t;
+        const bar=document.createElement('div'); bar.className='bar';
+        bar.style.left=pct(item.s)+'%'; bar.style.width=wpct(item.s,item.e)+'%';
+        bar.style.background=col;
+        track.appendChild(bar);
+        attachTip(bar,`<b>${item.t}</b><span>${fmt(item.s)} → ${fmt(item.e)} · ${days(item.s,item.e)} días</span>`);
+      }
+      row.appendChild(label); row.appendChild(track); inner.appendChild(row);
+    });
+  });
+
+  // ---- tooltip ----
+  const tip=document.getElementById('tip');
+  function attachTip(el,html){
+    el.addEventListener('mousemove',ev=>{
+      tip.innerHTML=html; tip.style.opacity=1;
+      let x=ev.clientX+14, y=ev.clientY+14;
+      if(x+270>innerWidth) x=ev.clientX-270;
+      tip.style.left=x+'px'; tip.style.top=y+'px';
+    });
+    el.addEventListener('mouseleave',()=>tip.style.opacity=0);
+  }
+  </script>
+</body>
+</html>
