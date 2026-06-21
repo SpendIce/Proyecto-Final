@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente 1 — Extensión Bot · Pitch P100</title>
+<style>
+  :root {
+    --navy: #0d2340;
+    --navy-2: #14315a;
+    --gold: #c9a227;
+    --gold-soft: #e6c95a;
+    --ink: #1a2433;
+    --paper: #f4f1ea;
+    --paper-2: #fbfaf6;
+    --muted: #5d6b80;
+    --red: #b3402f;
+    --green: #2e7d52;
+    --line: rgba(13,35,64,.12);
+    --shadow: 0 18px 50px rgba(13,35,64,.18);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: #07101f;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  /* ---------- Deck / slides ---------- */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    padding: 6vh 8vw;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--paper);
+    background-image: radial-gradient(circle at 88% 8%, rgba(201,162,39,.10), transparent 40%);
+    animation: fade .45s ease;
+  }
+  .slide.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(12px);} to { opacity: 1; transform: none; } }
+
+  .kicker {
+    font-size: .85rem; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--gold); font-weight: 700; margin-bottom: 1.2rem;
+    display: flex; align-items: center; gap: .8rem;
+  }
+  .kicker::before { content: ""; width: 36px; height: 3px; background: var(--gold); display: inline-block; }
+  h1 { font-size: clamp(2rem, 5vw, 4rem); line-height: 1.05; color: var(--navy); font-weight: 800; letter-spacing: -.02em; }
+  h2 { font-size: clamp(1.6rem, 3.6vw, 2.9rem); line-height: 1.1; color: var(--navy); font-weight: 800; letter-spacing: -.01em; margin-bottom: 1.6rem; }
+  .sub { font-size: clamp(1rem, 1.8vw, 1.5rem); color: var(--muted); margin-top: 1.2rem; font-weight: 500; }
+  p.lead { font-size: clamp(1rem, 1.7vw, 1.35rem); color: var(--ink); line-height: 1.5; max-width: 50ch; }
+
+  ul.bullets { list-style: none; margin-top: .5rem; }
+  ul.bullets li {
+    font-size: clamp(1rem, 1.7vw, 1.45rem); color: var(--ink); line-height: 1.4;
+    padding: .55rem 0 .55rem 2.2rem; position: relative; max-width: 60ch;
+  }
+  ul.bullets li::before {
+    content: ""; position: absolute; left: 0; top: 1.15rem;
+    width: 12px; height: 12px; background: var(--gold); border-radius: 2px; transform: rotate(45deg);
+  }
+  ul.bullets li b { color: var(--navy); }
+
+  /* ---------- Cover ---------- */
+  .cover { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 60%, #0a1c33 100%); }
+  .cover, .cover h1, .cover .kicker { color: #fff; }
+  .cover h1 { color: #fff; }
+  .cover .kicker { color: var(--gold-soft); }
+  .cover .kicker::before { background: var(--gold-soft); }
+  .cover .sub { color: #c4d2e6; }
+  .cover .meta { margin-top: 2.4rem; color: #8ea4c2; font-size: 1rem; letter-spacing: .04em; }
+  .cover .seal {
+    position: absolute; right: 7vw; top: 50%; transform: translateY(-50%);
+    width: clamp(120px, 18vw, 260px); height: clamp(120px, 18vw, 260px);
+    border: 3px solid rgba(230,201,90,.4); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    color: var(--gold-soft); font-weight: 800; letter-spacing: .12em; font-size: clamp(.7rem,1.2vw,1rem);
+  }
+  .cover .seal span { line-height: 1.5; }
+
+  /* ---------- Big stat ---------- */
+  .stat-hero { font-size: clamp(3.5rem, 11vw, 9rem); color: var(--red); font-weight: 800; line-height: .9; letter-spacing: -.03em; }
+  .stat-hero small { display: block; font-size: clamp(1rem,2vw,1.6rem); color: var(--muted); font-weight: 600; letter-spacing: 0; margin-top: 1rem; }
+  .cost-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 2.4rem; }
+  .cost-grid .item { background: var(--paper-2); border: 1px solid var(--line); border-left: 4px solid var(--red); border-radius: 10px; padding: 1.1rem 1.3rem; font-size: clamp(.85rem,1.3vw,1.05rem); color: var(--ink); }
+
+  .three { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.6rem; margin-top: 1rem; }
+  .three .big { font-size: clamp(2rem,4vw,3.4rem); color: var(--navy); font-weight: 800; }
+  .three .lbl { color: var(--muted); font-size: clamp(.85rem,1.3vw,1.05rem); margin-top: .4rem; }
+
+  /* ---------- Cards grid ---------- */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: .5rem; }
+  .card {
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: 14px;
+    padding: 1.4rem 1.4rem; box-shadow: 0 6px 18px rgba(13,35,64,.06);
+  }
+  .card .ico { width: 46px; height: 46px; border-radius: 10px; background: rgba(201,162,39,.15); color: var(--navy);
+    display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: .9rem; }
+  .card h3 { font-size: clamp(1rem,1.5vw,1.25rem); color: var(--navy); margin-bottom: .35rem; }
+  .card p { font-size: clamp(.82rem,1.2vw,1rem); color: var(--muted); line-height: 1.35; }
+
+  /* ---------- NO list ---------- */
+  .nolist { list-style: none; margin-top: .5rem; }
+  .nolist li { font-size: clamp(1rem,1.8vw,1.5rem); padding: .6rem 0; display: flex; align-items: center; gap: 1rem; color: var(--ink); }
+  .nolist li .x { color: var(--red); font-weight: 800; font-size: 1.4rem; width: 1.4rem; }
+  .nolist li.yes { margin-top: 1.2rem; padding: 1rem 1.2rem; background: rgba(46,125,82,.1); border-radius: 10px; border-left: 4px solid var(--green); font-weight: 600; }
+  .nolist li.yes .x { color: var(--green); }
+
+  /* ---------- Flow ---------- */
+  .flow { display: flex; align-items: stretch; gap: 0; margin-top: 1rem; flex-wrap: wrap; }
+  .node {
+    flex: 1; min-width: 120px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 1.2rem .9rem; text-align: center; font-size: clamp(.78rem,1.1vw,1rem); color: var(--ink); position: relative; font-weight: 600;
+  }
+  .node.hot { background: var(--navy); color: #fff; border-color: var(--navy); box-shadow: var(--shadow); transform: scale(1.05); }
+  .node .n { display:block; font-size:.7rem; color: var(--gold); letter-spacing:.1em; margin-bottom:.4rem; }
+  .node.hot .n { color: var(--gold-soft); }
+  .arrow { display:flex; align-items:center; color: var(--gold); font-size: 1.6rem; padding: 0 .35rem; }
+  .flow-note { margin-top: 1.6rem; font-size: clamp(.9rem,1.4vw,1.2rem); color: var(--muted); }
+  .flow-note b { color: var(--navy); }
+
+  /* ---------- Before/After ---------- */
+  .ba { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.4rem; align-items: center; margin-top: 1rem; }
+  .ba .panel { background: var(--paper-2); border: 1px solid var(--line); border-radius: 14px; padding: 1.6rem; min-height: 38vh; }
+  .ba .panel.before { border-top: 5px solid var(--red); }
+  .ba .panel.after { border-top: 5px solid var(--green); }
+  .ba .panel .tag { font-size: .8rem; letter-spacing: .15em; text-transform: uppercase; font-weight: 700; margin-bottom: 1rem; }
+  .ba .before .tag { color: var(--red); }
+  .ba .after .tag { color: var(--green); }
+  .ba .panel p { color: var(--ink); font-size: clamp(.9rem,1.3vw,1.1rem); line-height: 1.5; }
+  .ba .mock { margin-top: 1rem; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .8rem; color: var(--muted); background: #fff; border: 1px dashed var(--line); border-radius: 8px; padding: .9rem; white-space: pre-wrap; }
+  .ba .mid { color: var(--gold); font-size: 2.4rem; text-align: center; }
+
+  /* ---------- Stack ---------- */
+  .stack-chips { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: .5rem; }
+  .chip { background: var(--paper-2); border: 1px solid var(--line); border-radius: 999px; padding: .5rem 1.1rem; font-size: clamp(.82rem,1.2vw,1.05rem); color: var(--navy); font-weight: 600; }
+  .seals { display: flex; gap: 1.2rem; margin-top: 2rem; flex-wrap: wrap; }
+  .badge { flex: 1; min-width: 220px; background: var(--navy); color: #fff; border-radius: 14px; padding: 1.4rem 1.6rem; }
+  .badge .big { font-size: clamp(1.4rem,2.6vw,2.2rem); color: var(--gold-soft); font-weight: 800; }
+  .badge .lbl { color: #c4d2e6; margin-top: .3rem; font-size: clamp(.85rem,1.2vw,1rem); }
+
+  /* ---------- Timeline ---------- */
+  .timeline { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; margin-top: 2rem; position: relative; }
+  .timeline::before { content:""; position:absolute; top: 22px; left: 6%; right: 6%; height: 3px; background: var(--gold); opacity:.4; }
+  .tl { text-align: center; padding: 0 .6rem; position: relative; }
+  .tl .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--gold); border: 4px solid var(--paper); margin: 14px auto 1rem; position: relative; z-index:1; }
+  .tl .trl { font-weight: 800; color: var(--navy); font-size: clamp(1rem,1.5vw,1.3rem); }
+  .tl .ph { color: var(--muted); font-size: clamp(.8rem,1.15vw,1rem); margin-top: .4rem; line-height: 1.3; }
+
+  /* ---------- Tables ---------- */
+  table { width: 100%; border-collapse: collapse; margin-top: .8rem; font-size: clamp(.85rem,1.35vw,1.15rem); }
+  thead th { background: var(--navy); color: #fff; text-align: left; padding: .85rem 1.1rem; font-weight: 700; }
+  thead th:first-child { border-radius: 8px 0 0 0; }
+  thead th:last-child { border-radius: 0 8px 0 0; }
+  tbody td { padding: .8rem 1.1rem; border-bottom: 1px solid var(--line); color: var(--ink); }
+  tbody tr:nth-child(even) { background: var(--paper-2); }
+  .pill { display:inline-block; padding:.15rem .7rem; border-radius:999px; font-size:.8rem; font-weight:700; }
+  .p0 { background: rgba(179,64,47,.15); color: var(--red); }
+  .p1 { background: rgba(201,162,39,.2); color: #8a6d10; }
+  .p2 { background: rgba(46,125,82,.15); color: var(--green); }
+
+  /* ---------- KPIs ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 1.2rem; margin-top: 1rem; }
+  .kpi { background: var(--navy); color:#fff; border-radius: 14px; padding: 1.6rem 1.2rem; text-align: center; }
+  .kpi .num { font-size: clamp(1.6rem,3.4vw,2.8rem); font-weight: 800; color: var(--gold-soft); line-height: 1; }
+  .kpi .lbl { margin-top: .7rem; font-size: clamp(.78rem,1.1vw,.95rem); color: #c4d2e6; line-height: 1.3; }
+
+  /* ---------- Close ---------- */
+  .close { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 70%); color:#fff; }
+  .close h2, .close h1 { color:#fff; }
+  .close .ask { display:grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin: 1.6rem 0; }
+  .close .box { background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:1.3rem 1.5rem; }
+  .close .box h3 { color: var(--gold-soft); font-size: clamp(1rem,1.5vw,1.25rem); margin-bottom:.7rem; }
+  .close .box ul { list-style:none; }
+  .close .box li { color:#dbe6f5; padding:.3rem 0 .3rem 1.4rem; position:relative; font-size: clamp(.85rem,1.2vw,1.05rem); }
+  .close .box li::before { content:"›"; position:absolute; left:0; color: var(--gold-soft); font-weight:800; }
+  .close .punch { font-size: clamp(1.2rem,2.4vw,2rem); font-weight:800; color:#fff; margin-top:1rem; line-height:1.2; }
+  .close .punch span { color: var(--gold-soft); }
+
+  /* ---------- Chrome: nav, progress, counter ---------- */
+  .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--gold); z-index: 50; transition: width .3s ease; }
+  .counter { position: fixed; bottom: 18px; right: 22px; z-index: 50; font-size: .8rem; color: var(--navy); background: rgba(255,255,255,.7); padding: .3rem .8rem; border-radius: 999px; letter-spacing: .05em; font-weight: 600; }
+  .slide.cover ~ .counter { color:#fff; }
+  .nav { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 50; display:flex; gap:.5rem; }
+  .nav button { background: rgba(13,35,64,.85); color:#fff; border:none; width: 38px; height: 38px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; transition: background .2s; }
+  .nav button:hover { background: var(--gold); color: var(--navy); }
+  .dots { position: fixed; bottom: 20px; left: 22px; z-index:50; display:flex; gap:6px; max-width: 40vw; flex-wrap: wrap; }
+  .dots i { width: 9px; height: 9px; border-radius:50%; background: rgba(13,35,64,.25); cursor:pointer; transition: all .2s; }
+  .dots i.on { background: var(--gold); transform: scale(1.3); }
+  .tag-num { position: fixed; top: 18px; left: 22px; z-index:50; font-size:.75rem; color: var(--muted); letter-spacing:.2em; text-transform:uppercase; }
+  .hint { position: fixed; bottom: 60px; right: 22px; z-index:50; font-size:.7rem; color: var(--muted); opacity:.7; }
+
+  @media (max-width: 760px) {
+    .cards, .cost-grid, .kpis, .timeline, .three { grid-template-columns: 1fr 1fr; }
+    .close .ask, .ba { grid-template-columns: 1fr; }
+    .ba .mid { display:none; }
+    .cover .seal { display:none; }
+    .slide { padding: 5vh 6vw; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="tag-num">Agente 1 · P100</div>
+<div class="deck" id="deck">
+
+  <!-- 1 — Portada -->
+  <section class="slide cover active">
+    <div class="kicker">Proyecto Centenario · P100</div>
+    <h1>Agente 1<br>Extensión Bot</h1>
+    <div class="sub">El agente de comunicación institucional de la SEU — FIE</div>
+    <div class="meta">Proyecto de PPS · Juan Ignacio Goñe · 2026</div>
+    <div class="seal"><span>FIE<br>100<br>AÑOS</span></div>
+  </section>
+
+  <!-- 2 — El momento -->
+  <section class="slide">
+    <div class="kicker">El momento</div>
+    <h2>El Centenario es la oportunidad</h2>
+    <div class="three">
+      <div><div class="big">100</div><div class="lbl">años de la FIE — hito institucional</div></div>
+      <div><div class="big">9</div><div class="lbl">procesos sustantivos de la SEU, hoy manuales</div></div>
+      <div><div class="big">IA</div><div class="lbl">la palanca para modernizar, con una pieza concreta</div></div>
+    </div>
+    <p class="lead" style="margin-top:2.4rem">La FIE llega a sus 100 años. La Secretaría de Extensión maneja nueve procesos sustantivos, casi todos a mano. Es el momento de modernizar — sin humo.</p>
+  </section>
+
+  <!-- 3 — El problema -->
+  <section class="slide">
+    <div class="kicker">El problema</div>
+    <h2>Cada comunicación se escribe desde cero, a mano</h2>
+    <ul class="bullets">
+      <li>Cada gacetilla, post, mail y confirmación se redacta <b>manualmente</b>.</li>
+      <li>Sin plantillas. Sin flujos de aprobación. Sin integración con los registros que ya existen.</li>
+      <li>Resultado: <b>cuello de botella</b>, mensaje inconsistente y cero trazabilidad.</li>
+    </ul>
+  </section>
+
+  <!-- 4 — El costo -->
+  <section class="slide">
+    <div class="kicker">El costo de no resolverlo</div>
+    <div class="stat-hero">+30 min<small>de redacción manual por cada pieza de comunicación</small></div>
+    <div class="cost-grid">
+      <div class="item">Carga sobre pocas personas → se retrasa o se simplifica en alta demanda.</div>
+      <div class="item">Inconsistencia de la marca institucional entre comunicaciones.</div>
+      <div class="item">Sin evidencia de actividad comunicacional para <b>CONEAU</b>.</div>
+    </div>
+  </section>
+
+  <!-- 5 — La solución -->
+  <section class="slide">
+    <div class="kicker">La solución</div>
+    <h2>Extensión Bot: contenido institucional con control humano</h2>
+    <ul class="bullets">
+      <li>Genera gacetillas, posts, newsletters, mails, confirmaciones y certificados.</li>
+      <li><b>Siempre con validación humana</b> antes de publicar o enviar.</li>
+      <li>Asiste al personal de la SEU. <b>No lo reemplaza.</b></li>
+    </ul>
+    <div class="sub">El agente produce; el humano decide.</div>
+  </section>
+
+  <!-- 6 — Qué hace -->
+  <section class="slide">
+    <div class="kicker">Qué hace</div>
+    <h2>Cinco tareas repetitivas, automatizadas</h2>
+    <div class="cards">
+      <div class="card"><div class="ico">📰</div><h3>Gacetillas</h3><p>De Google Sheets a Google Docs con plantilla institucional.</p></div>
+      <div class="card"><div class="ico">📱</div><h3>Posts para redes</h3><p>Adaptados a Instagram y LinkedIn: tono, formato y longitud por canal.</p></div>
+      <div class="card"><div class="ico">✉️</div><h3>Newsletters y mails</h3><p>Boletines y correos institucionales formales.</p></div>
+      <div class="card"><div class="ico">✅</div><h3>Confirmaciones</h3><p>Email automático al registrarse una inscripción.</p></div>
+      <div class="card"><div class="ico">🎓</div><h3>Certificados</h3><p>PDF desde plantilla, con validación humana obligatoria.</p></div>
+      <div class="card" style="background:rgba(201,162,39,.1);border-style:dashed"><div class="ico">⚙️</div><h3>Lo repetitivo, automático</h3><p>Lo importante, supervisado.</p></div>
+    </div>
+  </section>
+
+  <!-- 7 — Qué NO hace -->
+  <section class="slide">
+    <div class="kicker">El blindaje</div>
+    <h2>Qué NO hace (y por qué eso es una virtud)</h2>
+    <ul class="nolist">
+      <li><span class="x">✕</span> No es chatbot público.</li>
+      <li><span class="x">✕</span> No hace scraping ni APIs externas complejas.</li>
+      <li><span class="x">✕</span> No produce analítica, KPIs ni dashboards.</li>
+      <li><span class="x">✕</span> No orquesta el sistema ni atiende al público general.</li>
+      <li class="yes"><span class="x">✓</span> Alcance acotado = proyecto entregable y defendible.</li>
+    </ul>
+  </section>
+
+  <!-- 8 — Cómo funciona -->
+  <section class="slide">
+    <div class="kicker">Cómo funciona</div>
+    <h2>El humano está en el centro, siempre</h2>
+    <div class="flow">
+      <div class="node"><span class="n">01</span>Formulario / Sheets</div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="n">02</span>Trigger</div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="n">03</span>Agente 1 genera borrador</div>
+      <div class="arrow">→</div>
+      <div class="node hot"><span class="n">04</span>Validación humana</div>
+      <div class="arrow">→</div>
+      <div class="node"><span class="n">05</span>Publicación</div>
+    </div>
+    <div class="flow-note">El sistema <b>nunca publica solo</b>. RGC y Coordinador validan: corrigen, regeneran y aprueban antes de cualquier salida oficial.</div>
+  </section>
+
+  <!-- 9 — Demo antes/después -->
+  <section class="slide">
+    <div class="kicker">Demo</div>
+    <h2>De datos crudos a gacetilla lista, en segundos</h2>
+    <div class="ba">
+      <div class="panel before">
+        <div class="tag">Antes</div>
+        <p>Datos sueltos en una planilla + 30 minutos de redacción manual.</p>
+        <div class="mock">Actividad: Taller de Robótica
+Fecha: 14/08
+Lugar: Aula Magna
+Cupo: 40
+Destinatario: comunidad FIE</div>
+      </div>
+      <div class="mid">→</div>
+      <div class="panel after">
+        <div class="tag">Después</div>
+        <p>Gacetilla institucional con plantilla aplicada, lista para revisar.</p>
+        <div class="mock">La FIE invita al Taller de Robótica,
+el 14 de agosto en el Aula Magna.
+Una propuesta de extensión abierta
+a toda la comunidad — cupos limitados (40).
+Inscripciones: [enlace]</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 — Stack -->
+  <section class="slide">
+    <div class="kicker">Viabilidad y soberanía</div>
+    <h2>Software libre, sobre lo que la SEU ya usa</h2>
+    <div class="stack-chips">
+      <span class="chip">Ollama (LLM local)</span>
+      <span class="chip">LLaMA 3 8B / Mistral 7B</span>
+      <span class="chip">Python + FastAPI</span>
+      <span class="chip">LangGraph</span>
+      <span class="chip">PostgreSQL</span>
+      <span class="chip">Celery / Redis</span>
+      <span class="chip">Docker</span>
+      <span class="chip">Google Workspace</span>
+    </div>
+    <div class="seals">
+      <div class="badge"><div class="big">$0</div><div class="lbl">en licencias — base íntegramente de código abierto</div></div>
+      <div class="badge"><div class="big">Datos locales</div><div class="lbl">la información no sale de la FIE — soberanía de datos (Ley 25.326)</div></div>
+    </div>
+  </section>
+
+  <!-- 11 — Alcance y TRL -->
+  <section class="slide">
+    <div class="kicker">Alcance y madurez</div>
+    <h2>Maduración por niveles, no todo de golpe</h2>
+    <div class="timeline">
+      <div class="tl"><div class="dot"></div><div class="trl">TRL 3 · S1</div><div class="ph">Prototipo funcional: gacetillas + posts</div></div>
+      <div class="tl"><div class="dot"></div><div class="trl">TRL 4 · S2</div><div class="ph">Automatización completa: confirmaciones, lenguaje natural, certificados</div></div>
+      <div class="tl"><div class="dot"></div><div class="trl">TRL 5 · S3</div><div class="ph">Integración progresiva en el sistema multiagente</div></div>
+      <div class="tl"><div class="dot"></div><div class="trl">TRL 6 · S4</div><div class="ph">Integración total con los 5 agentes del P100</div></div>
+    </div>
+    <div class="sub" style="margin-top:2.4rem">Mi alcance de PPS es 2026 (Semestres 1–2), dentro del horizonte P100 2026–2027.</div>
+  </section>
+
+  <!-- 12 — Backlog HU -->
+  <section class="slide">
+    <div class="kicker">El backlog</div>
+    <h2>No es una idea suelta: es un backlog ejecutable</h2>
+    <table>
+      <thead><tr><th>HU</th><th>Qué resuelve</th><th>Prioridad</th></tr></thead>
+      <tbody>
+        <tr><td>HU-010</td><td>Gacetillas automáticas</td><td><span class="pill p0">P0</span></td></tr>
+        <tr><td>HU-011</td><td>Posts para redes sociales</td><td><span class="pill p0">P0</span></td></tr>
+        <tr><td>HU-012</td><td>Confirmaciones de inscripción</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>HU-013</td><td>Interacción en lenguaje natural</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>HU-014</td><td>Certificados automáticos</td><td><span class="pill p2">P2</span></td></tr>
+      </tbody>
+    </table>
+    <div class="sub" style="margin-top:1.6rem">Metodología Scrum iterativa, con prioridades y criterios de aceptación definidos.</div>
+  </section>
+
+  <!-- 13 — Riesgos -->
+  <section class="slide">
+    <div class="kicker">Lo pensamos</div>
+    <h2>Riesgos y mitigación</h2>
+    <table>
+      <thead><tr><th>Riesgo</th><th>Mitigación</th></tr></thead>
+      <tbody>
+        <tr><td>Alucinaciones del LLM</td><td>Validación humana obligatoria antes de publicar</td></tr>
+        <tr><td>Calidad insuficiente del texto</td><td>Ajuste de prompts + fallback a API externa</td></tr>
+        <tr><td>Dependencia de plantillas</td><td>Definirlas con la SEU antes de implementar</td></tr>
+        <tr><td>Falta de aceptación del personal</td><td>Involucrarlos temprano en las validaciones (TRL 4)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 14 — Métricas -->
+  <section class="slide">
+    <div class="kicker">Cómo sabemos que funcionó</div>
+    <h2>Esto se mide</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="num">&lt;30s</div><div class="lbl">generación de contenido por pieza</div></div>
+      <div class="kpi"><div class="num">99%</div><div class="lbl">disponibilidad del sistema</div></div>
+      <div class="kpi"><div class="num">100%</div><div class="lbl">trazabilidad: acción, fecha, usuario, validación (CONEAU)</div></div>
+      <div class="kpi"><div class="num">≥3/4</div><div class="lbl">satisfacción de usuarios SEU al cierre del S2</div></div>
+    </div>
+  </section>
+
+  <!-- 15 — Cierre -->
+  <section class="slide close">
+    <div class="kicker">El pedido</div>
+    <h2>Qué necesito — y qué gana la SEU</h2>
+    <div class="ask">
+      <div class="box">
+        <h3>De la SEU necesito</h3>
+        <ul>
+          <li>Validar juntos las plantillas institucionales</li>
+          <li>Acceso a los datos de actividades</li>
+          <li>Acompañar las pruebas con usuarios reales</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>La SEU gana</h3>
+        <ul>
+          <li>Menos tiempo en tareas repetitivas</li>
+          <li>Comunicación institucional consistente</li>
+          <li>Trazabilidad lista para CONEAU</li>
+        </ul>
+      </div>
+    </div>
+    <div class="punch">Extensión Bot: la comunicación de la SEU, <span>automatizada y bajo control humano.</span></div>
+    <div class="meta" style="margin-top:1.6rem;color:#8ea4c2">Juan Ignacio Goñe · jgone@fie.undef.edu.ar · Gracias — quedo para las preguntas.</div>
+  </section>
+
+</div>
+
+<div class="counter" id="counter">1 / 15</div>
+<div class="dots" id="dots"></div>
+<div class="nav"><button id="prev" aria-label="Anterior">‹</button><button id="next" aria-label="Siguiente">›</button></div>
+<div class="hint">← → para navegar · F pantalla completa</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let i = 0;
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  const dotsWrap = document.getElementById('dots');
+
+  slides.forEach((_, idx) => {
+    const d = document.createElement('i');
+    d.addEventListener('click', () => go(idx));
+    dotsWrap.appendChild(d);
+  });
+  const dots = Array.from(dotsWrap.children);
+
+  function go(n) {
+    i = Math.max(0, Math.min(total - 1, n));
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+    dots.forEach((d, idx) => d.classList.toggle('on', idx === i));
+    counter.textContent = (i + 1) + ' / ' + total;
+    progress.style.width = ((i + 1) / total * 100) + '%';
+    // counter color contrast on cover/close
+    const dark = slides[i].classList.contains('cover') || slides[i].classList.contains('close');
+    counter.style.color = dark ? '#fff' : 'var(--navy)';
+    counter.style.background = dark ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.7)';
+  }
+  const next = () => go(i + 1);
+  const prev = () => go(i - 1);
+
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(total - 1);
+    else if (e.key.toLowerCase() === 'f') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+  // swipe
+  let x0 = null;
+  document.addEventListener('touchstart', e => x0 = e.touches[0].clientX);
+  document.addEventListener('touchend', e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 50) (dx < 0 ? next : prev)();
+    x0 = null;
+  });
+
+  go(0);
+</script>
+</body>
+</html>
