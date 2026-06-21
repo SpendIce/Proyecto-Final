@@ -150,11 +150,11 @@
 
 **En pantalla:**
 - Año 2026 (Semestres 1–2), dentro del P100 (2026–2027).
-- S1 → TRL 3: prototipo (gacetillas + posts).
+- S1 → TRL 3: diseño de arquitectura y estructura base del agente.
 - S2 → TRL 4: automatización completa (confirmaciones, lenguaje natural, certificados).
 - S3–S4 → TRL 5–6: integración con los 5 agentes.
 
-**🎤 Narración:** "El proyecto tiene un horizonte realista. Mi alcance es 2026: arranco con un prototipo funcional —gacetillas y posts— y lo llevo a automatización completa. Después se integra con los otros cuatro agentes del sistema. Maduración por niveles TRL, no todo de golpe."
+**🎤 Narración:** "El proyecto tiene un horizonte realista. El Agente 1 abarca 2026: arranca con el diseño de la arquitectura y la estructura base, y de ahí avanza a la automatización completa. Después se integra con los otros cuatro agentes del sistema. Maduración por niveles TRL, no todo de golpe."
 
 **🎨 Gamma:** timeline horizontal con los 4 hitos TRL. Si querés, enganchás el Gantt que ya tenés.
 
