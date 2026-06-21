@@ -25,7 +25,7 @@
 | 8 | Cómo funciona | 8 s | "Entra un dato, el agente genera un borrador, un responsable lo aprueba, recién ahí se publica. El humano, siempre en el centro." |
 | 9 | Demo | 9 s | "De datos sueltos en una planilla, a una gacetilla institucional lista para revisar. De media hora, a segundos." |
 | 10 | Stack | 7 s | "Todo software libre, modelos que corren localmente. Costo de licencias cero, y los datos nunca salen de la FIE." |
-| 11 | Alcance y TRL | 7 s | "Maduración por niveles: del diseño de la arquitectura base a la integración total con los cinco agentes del Proyecto Centenario." |
+| 11 | Alcance y TRL | 7 s | "Maduración por niveles: del MVP de generación a la integración total con los cinco agentes del Proyecto Centenario." |
 | 12 | Backlog | 6 s | "No es una idea suelta: es un backlog priorizado, con metodología Scrum." |
 | 13 | Riesgos | 6 s | "Los riesgos están previstos: validación humana obligatoria, ajuste de modelos y participación temprana del personal." |
 | 14 | Métricas | 7 s | "Y se mide: menos de treinta segundos por pieza, noventa y nueve por ciento de disponibilidad, trazabilidad completa." |
