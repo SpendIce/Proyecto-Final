@@ -9,7 +9,7 @@ Este artefacto contiene la vista principal del cronograma del proyecto de Juan I
 - `visor-gantt-implementacion-semanal.html`: visor de solo lectura para la vista semanal de implementacion (1 jul - 30 nov 2026). Self-contained (sin servidor ni dependencias externas), con eje por mes y por semana, grupos de sprint con su objetivo, barras coloreadas por sprint, hitos de DoD/gate como diamantes y tooltip con fechas y duracion. Incluye filtros: chips por sprint (toggle), botones Todos/Ninguno, casilla "Solo hitos" y buscador de tareas por texto. Pensado para lectura rapida en presentacion; la fuente de verdad sigue siendo `diagrama-gantt-implementacion-semanal.mmd`.
 - `mermaid-live-url.txt`: enlace codificado para abrir la vista en Mermaid Live Editor; regenerar si cambia la fuente Mermaid.
 
-Los PNG/SVG existentes son artefactos renderizados. No son fuente de verdad y no se regeneran automaticamente despues de cambios documentales.
+Los PNG/SVG/PDF existentes son artefactos renderizados. No son fuente de verdad y no se regeneran automaticamente despues de cambios documentales. El PDF de la vista de implementacion (`diagrama-gantt-implementacion-semanal.pdf`) es vectorial, pensado para imprimir y compartir; se regenera con `rsvg-convert -f pdf -o diagrama-gantt-implementacion-semanal.pdf diagrama-gantt-implementacion-semanal.svg`.
 
 Los nombres visibles de tareas priorizan lectura humana para presentacion y revision con la SEU. La trazabilidad tecnica queda preservada en la estructura por secciones, fechas, hitos, README y fuentes documentales, no en prefijos largos dentro de cada barra.
 
