@@ -3,10 +3,10 @@
 Este artefacto contiene la vista principal del cronograma del proyecto de Juan Ignacio Gone para el Agente 1, Extension Bot. La fuente editable recomendada es Mermaid:
 
 - `diagrama-gantt-agente-1.mmd`: Gantt principal, enfocado en el ano 2026 y organizado por primer y segundo semestre.
-- `diagrama-gantt-s2-semanal.mmd`: vista detallada semana a semana del segundo semestre (18 ago - 30 nov 2026), organizada en sprints de dos semanas con hitos de DoD por HU. Es el plan operativo de implementacion y codificacion de S2; no reemplaza al Gantt anual, lo expande.
+- `diagrama-gantt-implementacion-semanal.mmd`: vista detallada semana a semana del plan de implementacion (1 jul - 30 nov 2026). Arranca con un bootstrap minimo y el MVP (HU-010/HU-011, Gate TRL 3) y sigue con robustecimiento, HU-012/HU-013/HU-014, integracion A2-A5, pruebas y Gate TRL 4. Es el plan operativo de implementacion y codificacion; no reemplaza al Gantt anual, lo expande.
 - `diagrama-gantt-agente-1.puml`: respaldo PlantUML sincronizado con la vista Mermaid.
 - `visor-gantt-agente-1.html`: visor didactico y editable en navegador; permite filtrar, editar tareas y exportar nuevamente la fuente Mermaid.
-- `visor-gantt-s2-semanal.html`: visor de solo lectura para la vista semanal de S2. Self-contained (sin servidor ni dependencias externas), con eje por mes y por semana, grupos de sprint con su objetivo, barras coloreadas por sprint, hitos de DoD como diamantes y tooltip con fechas y duracion. Incluye filtros: chips por sprint (toggle), botones Todos/Ninguno, casilla "Solo hitos" y buscador de tareas por texto. Pensado para lectura rapida en presentacion; la fuente de verdad sigue siendo `diagrama-gantt-s2-semanal.mmd`.
+- `visor-gantt-implementacion-semanal.html`: visor de solo lectura para la vista semanal de implementacion (1 jul - 30 nov 2026). Self-contained (sin servidor ni dependencias externas), con eje por mes y por semana, grupos de sprint con su objetivo, barras coloreadas por sprint, hitos de DoD/gate como diamantes y tooltip con fechas y duracion. Incluye filtros: chips por sprint (toggle), botones Todos/Ninguno, casilla "Solo hitos" y buscador de tareas por texto. Pensado para lectura rapida en presentacion; la fuente de verdad sigue siendo `diagrama-gantt-implementacion-semanal.mmd`.
 - `mermaid-live-url.txt`: enlace codificado para abrir la vista en Mermaid Live Editor; regenerar si cambia la fuente Mermaid.
 
 Los PNG/SVG existentes son artefactos renderizados. No son fuente de verdad y no se regeneran automaticamente despues de cambios documentales.

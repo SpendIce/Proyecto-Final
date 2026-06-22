@@ -1,0 +1,70 @@
+gantt
+    title Agente 1 Extension Bot - cronograma semanal de implementacion 2026 (1 jul - 30 nov)
+    dateFormat  YYYY-MM-DD
+    axisFormat  %d %b
+    tickInterval 1week
+    todayMarker stroke-width:2px,stroke:#0f766e,opacity:0.6
+
+    section Sprint 0 - Bootstrap minimo (1-10 jul)
+    Docker y compose minimo con FastAPI y Ollama local      :s0a, 2026-07-01, 2026-07-06
+    Conectar Google Workspace y credenciales OAuth2          :s0b, 2026-07-02, 2026-07-08
+    Esqueleto FastAPI, repo y logging basico                 :s0c, 2026-07-06, 2026-07-10
+    Entorno minimo listo para construir el MVP               :milestone, m0, 2026-07-10, 0d
+
+    section Sprint 1 - HU-010 Gacetillas (8-31 jul)
+    Disenar prompt y grafo LangGraph de gacetilla            :s1a, 2026-07-08, 2026-07-15
+    Integrar lectura de datos desde Google Sheets            :s1b, 2026-07-13, 2026-07-20
+    Aplicar plantilla institucional y salida en Google Docs  :s1c, 2026-07-17, 2026-07-24
+    Probar gacetillas con datos completos e incompletos      :s1d, 2026-07-22, 2026-07-28
+    Validar gacetillas con la SEU                            :s1e, 2026-07-27, 2026-07-31
+    HU-010 operativa con DoD                                 :milestone, m1, 2026-07-31, 0d
+
+    section Sprint 2 - HU-011 Posts RRSS y cierre MVP (3-17 ago)
+    Criterios de canal por tono, longitud y hashtags         :s2a, 2026-08-03, 2026-08-07
+    Prototipo de post para Instagram y LinkedIn              :s2b, 2026-08-06, 2026-08-12
+    Control de longitud y limpieza de la salida              :s2c, 2026-08-11, 2026-08-14
+    Validar posts con SEU y ajustar prompts                 :s2d, 2026-08-13, 2026-08-17
+    MVP HU-010 y HU-011 con evidencia - Gate TRL 3          :milestone, m2, 2026-08-17, 0d
+
+    section Sprint 3 - Robustecimiento (18-28 ago)
+    Esquema PostgreSQL y migracion de la persistencia        :s3a, 2026-08-18, 2026-08-24
+    Cola Celery y Redis para generacion asincrona           :s3b, 2026-08-20, 2026-08-26
+    Capa de secretos y logging con correlation ID           :s3c, 2026-08-24, 2026-08-28
+    Base robustecida lista para las HU de S2                 :milestone, m3, 2026-08-28, 0d
+
+    section Sprint 4 - HU-012 Confirmaciones (31 ago - 14 sep)
+    Modelar datos y endpoint de confirmacion                 :s4a, 2026-08-31, 2026-09-04
+    Logica de deduplicacion con clave unica en base          :s4b, 2026-09-03, 2026-09-08
+    Plantilla de email y envio via Google Workspace          :s4c, 2026-09-07, 2026-09-11
+    Tarea Celery de envio y registro en base                 :s4d, 2026-09-09, 2026-09-12
+    Probar duplicados, destinatario invalido y validar SEU   :s4e, 2026-09-11, 2026-09-14
+    HU-012 operativa con DoD                                 :milestone, m4, 2026-09-14, 0d
+
+    section Sprint 5 - HU-013 Lenguaje natural interno (15-25 sep)
+    Chat interno con autenticacion de personal SEU           :s5a, 2026-09-15, 2026-09-18
+    Nodo LangGraph de interpretacion con LLM local           :s5b, 2026-09-17, 2026-09-22
+    Fallback fuera de alcance y persistir transcript         :s5c, 2026-09-21, 2026-09-24
+    Probar solicitudes validas, fuera de alcance y usabilidad :s5d, 2026-09-23, 2026-09-25
+    HU-013 operativa con DoD                                 :milestone, m5, 2026-09-25, 0d
+
+    section Sprint 6 - HU-014 Certificados (28 sep - 23 oct)
+    Plantilla de certificado y maquina de estados HITL       :s6a, 2026-09-28, 2026-10-03
+    Generacion de PDF con datos academicos                   :s6b, 2026-10-01, 2026-10-09
+    Bloqueo sin aprobacion y cola de aprobacion al validador :s6c, 2026-10-08, 2026-10-15
+    Probar datos faltantes, rechazo y emision controlada     :s6d, 2026-10-14, 2026-10-20
+    Registro de emision, logs y evidencia                    :s6e, 2026-10-19, 2026-10-23
+    HU-014 operativa con DoD                                 :milestone, m6, 2026-10-23, 0d
+
+    section Sprint 7 - Integracion y pruebas de sistema (26 oct - 13 nov)
+    Definir contratos y mocks con A2-A5 sin orquestar        :s7a, 2026-10-26, 2026-10-30
+    Integrar insumos disponibles de A2-A5 progresivo         :s7b, 2026-10-30, 2026-11-06
+    Pruebas unitarias, integracion y E2E                     :s7c, 2026-11-02, 2026-11-10
+    Probar seguridad, permisos y prompt injection            :s7d, 2026-11-09, 2026-11-13
+    Suite de pruebas en verde y cobertura registrada         :milestone, m7, 2026-11-13, 0d
+
+    section Cierre - Validacion SEU y Gate TRL 4 (16-30 nov)
+    Validar con usuarios SEU, checklist 1-4 y trazabilidad   :c1, 2026-11-16, 2026-11-20
+    Cerrar defectos criticos y regresion completa            :c2, 2026-11-18, 2026-11-24
+    Release candidata y paquete de evidencias                :c3, 2026-11-23, 2026-11-27
+    Auditoria go/no-go e informe de avance final             :c4, 2026-11-25, 2026-11-30
+    Gate TRL 4 validado y cierre del ano                     :milestone, m8, 2026-11-30, 0d

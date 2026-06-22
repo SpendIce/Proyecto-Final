@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Visor del cronograma semanal S2 - Agente 1 Extension Bot</title>
+  <title>Visor del cronograma de implementación - Agente 1 Extension Bot</title>
   <style>
     :root{
       --bg:#f8fafc; --panel:#ffffff; --ink:#0f172a; --muted:#64748b;
       --line:#e2e8f0; --grid:#eef2f7; --teal:#0f766e;
       --s0:#475569; --s1:#2563eb; --s2:#7c3aed; --s3:#db2777;
-      --s4:#ea580c; --s5:#0891b2; --s6:#16a34a; --sc:#854d0e;
-      --label-w:300px; --track-min:1180px;
+      --s4:#ea580c; --s5:#0891b2; --s6:#16a34a; --s7:#e11d48; --sc:#854d0e;
+      --label-w:300px; --track-min:1280px;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -102,8 +102,8 @@
 </head>
 <body>
   <header>
-    <h1>Agente 1 — Extensión Bot · Cronograma semanal del 2.º semestre</h1>
-    <div class="sub">Implementación y codificación · 18 ago → 30 nov 2026 · 8 sprints de 2 semanas · meta TRL 4</div>
+    <h1>Agente 1 — Extensión Bot · Cronograma de implementación</h1>
+    <div class="sub">Implementación y codificación · 1 jul → 30 nov 2026 · MVP primero (HU-010/011, Gate TRL 3) → HU-012/013/014 → integración → Gate TRL 4</div>
   </header>
 
   <div class="wrap">
@@ -111,7 +111,7 @@
       <b>Sprints:</b>
       <span class="help">
         <b style="color:#0f172a">Cómo leer:</b> cada barra es una tarea técnica; los
-        <span class="dia" style="width:9px;height:9px;vertical-align:middle"></span> diamantes son hitos (DoD).
+        <span class="dia" style="width:9px;height:9px;vertical-align:middle"></span> diamantes son hitos (DoD / gate).
         Dentro de cada sprint las barras bajan en cascada = <i>slice vertical</i> (diseño → código → prueba → validación en la misma ventana).
       </span>
     </div>
@@ -131,7 +131,7 @@
     </div>
 
     <footer>
-      Fuente de verdad: <code>Documentos/Gantt/diagrama-gantt-s2-semanal.mmd</code>.
+      Fuente de verdad: <code>Documentos/Gantt/diagrama-gantt-implementacion-semanal.mmd</code>.
       Este visor es solo lectura y se renderiza sin servidor ni dependencias externas.
       Pasá el cursor sobre cada barra o hito para ver fechas y duración.
     </footer>
@@ -141,77 +141,85 @@
 
   <script>
   // ---- modelo de datos (espejo del .mmd) ----
-  const COLORS = {S0:'--s0',S1:'--s1',S2:'--s2',S3:'--s3',S4:'--s4',S5:'--s5',S6:'--s6',SC:'--sc'};
+  const COLORS = {S0:'--s0',S1:'--s1',S2:'--s2',S3:'--s3',S4:'--s4',S5:'--s5',S6:'--s6',S7:'--s7',SC:'--sc'};
   const SPRINTS = [
-    {key:'S0', name:'Sprint 0 · Infra y robustecimiento', win:'18–31 ago',
-     goal:'Plataforma reproducible: Docker, PostgreSQL, Celery/Redis, logging',
+    {key:'S0', name:'Sprint 0 · Bootstrap mínimo', win:'1–10 jul',
+     goal:'Entorno mínimo para codear el MVP: Docker, Ollama, FastAPI, Workspace',
      tasks:[
-       {t:'Dockerfile y compose (FastAPI, Postgres, Redis, worker)', s:'2026-08-18', e:'2026-08-22'},
-       {t:'Esquema PostgreSQL y migración de la persistencia', s:'2026-08-19', e:'2026-08-26'},
-       {t:'Cola Celery y Redis para generación asíncrona', s:'2026-08-24', e:'2026-08-28'},
-       {t:'Capa de secretos y logging con correlation ID', s:'2026-08-24', e:'2026-08-29'},
-       {t:'Refinar prompts de gacetillas y posts con feedback real', s:'2026-08-18', e:'2026-08-31'},
-       {m:'Base S2 lista y entorno reproducible', d:'2026-08-31'}]},
-    {key:'S1', name:'Sprint 1 · HU-012 Confirmaciones', win:'1–14 sep',
-     goal:'Confirmaciones de inscripción automáticas con deduplicación',
+       {t:'Docker y compose mínimo con FastAPI y Ollama local', s:'2026-07-01', e:'2026-07-06'},
+       {t:'Conectar Google Workspace y credenciales OAuth2', s:'2026-07-02', e:'2026-07-08'},
+       {t:'Esqueleto FastAPI, repo y logging básico', s:'2026-07-06', e:'2026-07-10'},
+       {m:'Entorno mínimo listo para construir el MVP', d:'2026-07-10'}]},
+    {key:'S1', name:'Sprint 1 · HU-010 Gacetillas', win:'8–31 jul',
+     goal:'Gacetilla institucional desde Sheets a Docs con plantilla (8 SP)',
      tasks:[
-       {t:'Modelar datos y endpoint de confirmación', s:'2026-09-01', e:'2026-09-04'},
-       {t:'Lógica de deduplicación con clave única en base', s:'2026-09-03', e:'2026-09-07'},
-       {t:'Plantilla de email y envío vía Google Workspace', s:'2026-09-05', e:'2026-09-10'},
-       {t:'Tarea Celery de envío y registro en base', s:'2026-09-08', e:'2026-09-11'},
-       {t:'Probar duplicados, destinatario inválido y payload', s:'2026-09-10', e:'2026-09-13'},
-       {t:'Validar confirmaciones con la SEU', s:'2026-09-12', e:'2026-09-14'},
+       {t:'Diseñar prompt y grafo LangGraph de gacetilla', s:'2026-07-08', e:'2026-07-15'},
+       {t:'Integrar lectura de datos desde Google Sheets', s:'2026-07-13', e:'2026-07-20'},
+       {t:'Aplicar plantilla institucional y salida en Google Docs', s:'2026-07-17', e:'2026-07-24'},
+       {t:'Probar gacetillas con datos completos e incompletos', s:'2026-07-22', e:'2026-07-28'},
+       {t:'Validar gacetillas con la SEU', s:'2026-07-27', e:'2026-07-31'},
+       {m:'HU-010 operativa con DoD', d:'2026-07-31'}]},
+    {key:'S2', name:'Sprint 2 · HU-011 Posts RRSS y cierre MVP', win:'3–17 ago',
+     goal:'Posts Instagram/LinkedIn por canal; cierra MVP y Gate TRL 3 (5 SP)',
+     tasks:[
+       {t:'Criterios de canal por tono, longitud y hashtags', s:'2026-08-03', e:'2026-08-07'},
+       {t:'Prototipo de post para Instagram y LinkedIn', s:'2026-08-06', e:'2026-08-12'},
+       {t:'Control de longitud y limpieza de la salida', s:'2026-08-11', e:'2026-08-14'},
+       {t:'Validar posts con SEU y ajustar prompts', s:'2026-08-13', e:'2026-08-17'},
+       {m:'MVP HU-010/011 con evidencia · Gate TRL 3', d:'2026-08-17'}]},
+    {key:'S3', name:'Sprint 3 · Robustecimiento', win:'18–28 ago',
+     goal:'Persistencia y colas antes de las HU del 2.º bloque',
+     tasks:[
+       {t:'Esquema PostgreSQL y migración de la persistencia', s:'2026-08-18', e:'2026-08-24'},
+       {t:'Cola Celery y Redis para generación asíncrona', s:'2026-08-20', e:'2026-08-26'},
+       {t:'Capa de secretos y logging con correlation ID', s:'2026-08-24', e:'2026-08-28'},
+       {m:'Base robustecida lista para las HU de S2', d:'2026-08-28'}]},
+    {key:'S4', name:'Sprint 4 · HU-012 Confirmaciones', win:'31 ago–14 sep',
+     goal:'Confirmaciones de inscripción automáticas con deduplicación (5 SP)',
+     tasks:[
+       {t:'Modelar datos y endpoint de confirmación', s:'2026-08-31', e:'2026-09-04'},
+       {t:'Lógica de deduplicación con clave única en base', s:'2026-09-03', e:'2026-09-08'},
+       {t:'Plantilla de email y envío vía Google Workspace', s:'2026-09-07', e:'2026-09-11'},
+       {t:'Tarea Celery de envío y registro en base', s:'2026-09-09', e:'2026-09-12'},
+       {t:'Probar duplicados, destinatario inválido y validar SEU', s:'2026-09-11', e:'2026-09-14'},
        {m:'HU-012 operativa con DoD', d:'2026-09-14'}]},
-    {key:'S2', name:'Sprint 2 · HU-013 Lenguaje natural interno', win:'15–28 sep',
-     goal:'Chat interno SEU que interpreta solicitudes sin inventar',
+    {key:'S5', name:'Sprint 5 · HU-013 Lenguaje natural interno', win:'15–25 sep',
+     goal:'Chat interno SEU que interpreta solicitudes sin inventar (3 SP)',
      tasks:[
-       {t:'Chat interno con autenticación de personal SEU', s:'2026-09-15', e:'2026-09-19'},
-       {t:'Nodo LangGraph de interpretación con LLM local', s:'2026-09-17', e:'2026-09-23'},
-       {t:'Fallback fuera de alcance sin inventar respuestas', s:'2026-09-21', e:'2026-09-25'},
-       {t:'Persistir transcript y trazabilidad de la conversación', s:'2026-09-22', e:'2026-09-26'},
-       {t:'Probar solicitudes válidas, fuera de alcance y usabilidad', s:'2026-09-24', e:'2026-09-28'},
-       {m:'HU-013 operativa con DoD', d:'2026-09-28'}]},
-    {key:'S3', name:'Sprint 3 · HU-014 Certificados (parte 1)', win:'29 sep–12 oct',
-     goal:'Generación de PDF con bloqueo HITL antes de emitir',
+       {t:'Chat interno con autenticación de personal SEU', s:'2026-09-15', e:'2026-09-18'},
+       {t:'Nodo LangGraph de interpretación con LLM local', s:'2026-09-17', e:'2026-09-22'},
+       {t:'Fallback fuera de alcance y persistir transcript', s:'2026-09-21', e:'2026-09-24'},
+       {t:'Probar solicitudes válidas, fuera de alcance y usabilidad', s:'2026-09-23', e:'2026-09-25'},
+       {m:'HU-013 operativa con DoD', d:'2026-09-25'}]},
+    {key:'S6', name:'Sprint 6 · HU-014 Certificados', win:'28 sep–23 oct',
+     goal:'Certificados PDF con bloqueo HITL antes de emitir (8 SP)',
      tasks:[
-       {t:'Plantilla de certificado y máquina de estados HITL', s:'2026-09-29', e:'2026-10-03'},
-       {t:'Generación de PDF con datos académicos', s:'2026-10-01', e:'2026-10-07'},
-       {t:'Bloqueo de emisión sin aprobación humana previa', s:'2026-10-06', e:'2026-10-10'},
-       {t:'Cola de aprobación para el validador', s:'2026-10-08', e:'2026-10-12'},
-       {m:'Certificado generable en borrador controlado', d:'2026-10-12'}]},
-    {key:'S4', name:'Sprint 4 · HU-014 cierre e integración', win:'13–26 oct',
-     goal:'Cerrar certificados y abrir contratos con A2-A5',
-     tasks:[
-       {t:'Probar datos faltantes, rechazo y emisión controlada', s:'2026-10-13', e:'2026-10-17'},
-       {t:'Registro de emisión, logs y evidencia', s:'2026-10-15', e:'2026-10-20'},
-       {t:'Definir contratos y mocks con A2-A5 sin orquestar', s:'2026-10-19', e:'2026-10-26'},
-       {m:'HU-014 operativa con DoD', d:'2026-10-26'}]},
-    {key:'S5', name:'Sprint 5 · Integración y pruebas de sistema', win:'27 oct–9 nov',
+       {t:'Plantilla de certificado y máquina de estados HITL', s:'2026-09-28', e:'2026-10-03'},
+       {t:'Generación de PDF con datos académicos', s:'2026-10-01', e:'2026-10-09'},
+       {t:'Bloqueo sin aprobación y cola de aprobación al validador', s:'2026-10-08', e:'2026-10-15'},
+       {t:'Probar datos faltantes, rechazo y emisión controlada', s:'2026-10-14', e:'2026-10-20'},
+       {t:'Registro de emisión, logs y evidencia', s:'2026-10-19', e:'2026-10-23'},
+       {m:'HU-014 operativa con DoD', d:'2026-10-23'}]},
+    {key:'S7', name:'Sprint 7 · Integración y pruebas de sistema', win:'26 oct–13 nov',
      goal:'Integrar insumos de A2-A5 y dejar la suite en verde',
      tasks:[
-       {t:'Integrar insumos disponibles de A2-A5 (progresivo)', s:'2026-10-27', e:'2026-11-03'},
-       {t:'Pruebas unitarias y de integración', s:'2026-10-27', e:'2026-11-04'},
-       {t:'Pruebas E2E de extremo a extremo', s:'2026-11-02', e:'2026-11-06'},
-       {t:'Probar seguridad, permisos y prompt injection', s:'2026-11-04', e:'2026-11-09'},
-       {m:'Suite de pruebas en verde y cobertura registrada', d:'2026-11-09'}]},
-    {key:'S6', name:'Sprint 6 · Validación SEU y release candidata', win:'10–23 nov',
-     goal:'Validar con usuarios reales y dejar la RC TRL 4 lista',
+       {t:'Definir contratos y mocks con A2-A5 sin orquestar', s:'2026-10-26', e:'2026-10-30'},
+       {t:'Integrar insumos disponibles de A2-A5 (progresivo)', s:'2026-10-30', e:'2026-11-06'},
+       {t:'Pruebas unitarias, integración y E2E', s:'2026-11-02', e:'2026-11-10'},
+       {t:'Probar seguridad, permisos y prompt injection', s:'2026-11-09', e:'2026-11-13'},
+       {m:'Suite en verde y cobertura registrada', d:'2026-11-13'}]},
+    {key:'SC', name:'Cierre · Validación SEU y Gate TRL 4', win:'16–30 nov',
+     goal:'Validar con usuarios reales, release candidata y go/no-go TRL 4',
      tasks:[
-       {t:'Validar con usuarios SEU, checklist 1-4 y trazabilidad', s:'2026-11-10', e:'2026-11-16'},
-       {t:'Cerrar defectos críticos detectados', s:'2026-11-13', e:'2026-11-18'},
-       {t:'Ejecutar regresión completa', s:'2026-11-17', e:'2026-11-21'},
-       {t:'Preparar release candidata y paquete de evidencias', s:'2026-11-19', e:'2026-11-23'},
-       {m:'Release candidata TRL 4 lista', d:'2026-11-23'}]},
-    {key:'SC', name:'Cierre · Gate TRL 4 e informe S2', win:'24–30 nov',
-     goal:'Auditoría go/no-go e informe de avance del semestre',
-     tasks:[
-       {t:'Ejecutar auditoría final y decisión go/no-go', s:'2026-11-24', e:'2026-11-27'},
-       {t:'Redactar informe de avance S2 y manual operativo', s:'2026-11-24', e:'2026-11-30'},
-       {m:'Gate TRL 4 validado y cierre del semestre', d:'2026-11-30'}]},
+       {t:'Validar con usuarios SEU, checklist 1-4 y trazabilidad', s:'2026-11-16', e:'2026-11-20'},
+       {t:'Cerrar defectos críticos y regresión completa', s:'2026-11-18', e:'2026-11-24'},
+       {t:'Release candidata y paquete de evidencias', s:'2026-11-23', e:'2026-11-27'},
+       {t:'Auditoría go/no-go e informe de avance final', s:'2026-11-25', e:'2026-11-30'},
+       {m:'Gate TRL 4 validado y cierre del año', d:'2026-11-30'}]},
   ];
 
   // ---- escala temporal ----
-  const MIN = new Date('2026-08-18'), MAX = new Date('2026-11-30');
+  const MIN = new Date('2026-07-01'), MAX = new Date('2026-11-30');
   const DAY = 86400000;
   const span = (MAX - MIN)/DAY + 1;            // dias inclusivos
   const pct  = d => ((new Date(d) - MIN)/DAY) / span * 100;
@@ -230,8 +238,9 @@
   // ---- ejes ----
   const inner = document.getElementById('inner');
   // meses
-  const monthDefs=[['Agosto','2026-08-18','2026-08-31'],['Septiembre','2026-09-01','2026-09-30'],
-                   ['Octubre','2026-10-01','2026-10-31'],['Noviembre','2026-11-01','2026-11-30']];
+  const monthDefs=[['Julio','2026-07-01','2026-07-31'],['Agosto','2026-08-01','2026-08-31'],
+                   ['Septiembre','2026-09-01','2026-09-30'],['Octubre','2026-10-01','2026-10-31'],
+                   ['Noviembre','2026-11-01','2026-11-30']];
   let months='';
   monthDefs.forEach(([n,s,e])=>{ months+=`<div class="month" style="left:${pct(s)}%;width:${wpct(s,e)}%">${n}</div>`; });
   inner.insertAdjacentHTML('beforeend',
