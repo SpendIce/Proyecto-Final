@@ -90,6 +90,23 @@
     .row.hide,.group-head.hide{display:none}
     #empty{display:none;padding:22px 16px;color:#94a3b8;font-size:13px;text-align:center}
 
+    /* checkbox y estado hecho */
+    .cbx{flex:0 0 auto;width:15px;height:15px;cursor:pointer;accent-color:var(--s6)}
+    .row.done .row-label{color:#94a3b8;text-decoration:line-through;text-decoration-color:#cbd5e1}
+    .row.done .bar{opacity:.36;filter:grayscale(.45)}
+    .row.done .ms,.row.done .dia{background:var(--s6)}
+
+    /* marcador de hoy en el eje */
+    .todaymark{position:absolute;top:0;height:30px;z-index:2;border-left:2px solid var(--teal);
+      padding-left:4px;font-size:10.5px;font-weight:700;color:var(--teal);white-space:nowrap}
+
+    /* pill de fecha y barra de progreso */
+    .pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:5px 12px;border-radius:999px;
+      background:#ecfeff;border:1px solid #a5f3fc;color:#0e7490;font-weight:600}
+    .prog{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#334155;font-weight:600}
+    .prog .barwrap{width:130px;height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden}
+    .prog .fill{height:100%;background:var(--s6);width:0;transition:width .15s}
+
     /* tooltip */
     #tip{position:fixed;z-index:10;background:#0f172a;color:#fff;padding:7px 10px;border-radius:7px;
       font-size:12px;pointer-events:none;opacity:0;transition:opacity .1s;max-width:260px;
@@ -116,12 +133,19 @@
       </span>
     </div>
 
+    <div class="controls" id="status">
+      <span class="pill" id="todaypill"></span>
+      <span class="prog"><span id="progtext"></span><span class="barwrap"><span class="fill" id="progfill"></span></span></span>
+      <button id="clear" style="margin-left:auto">Limpiar marcas</button>
+    </div>
+
     <div class="controls" id="controls">
       <span class="lbl">Filtrar:</span>
       <span id="chips"></span>
       <button id="all">Todos</button>
       <button id="none">Ninguno</button>
       <label class="toggle"><input type="checkbox" id="onlyMs"> Solo hitos</label>
+      <label class="toggle"><input type="checkbox" id="hideDone"> Ocultar hechas</label>
       <input type="search" id="search" placeholder="Buscar tarea…">
     </div>
 
@@ -132,8 +156,8 @@
 
     <footer>
       Fuente de verdad: <code>Documentos/Gantt/diagrama-gantt-implementacion-semanal.mmd</code>.
-      Este visor es solo lectura y se renderiza sin servidor ni dependencias externas.
-      Pasá el cursor sobre cada barra o hito para ver fechas y duración.
+      Se renderiza sin servidor ni dependencias externas. Pasá el cursor sobre cada barra o hito para ver fechas y duración.
+      Las marcas de tareas hechas se guardan solo en este navegador (no modifican la fuente).
     </footer>
   </div>
 
@@ -227,6 +251,21 @@
   const fmt  = d => new Date(d).toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
   const days = (s,e) => Math.round((new Date(e)-new Date(s))/DAY)+1;
 
+  // ---- estado 'hecho' persistente (localStorage) ----
+  const LS='gantt-impl-done-v1';
+  let doneSet;
+  try{ doneSet=new Set(JSON.parse(localStorage.getItem(LS)||'[]')); }catch(e){ doneSet=new Set(); }
+  const slug=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  const saveDone=()=>{ try{ localStorage.setItem(LS, JSON.stringify([...doneSet])); }catch(e){} };
+  function updateProgress(){
+    const tot=document.querySelectorAll('.row').length;
+    const done=document.querySelectorAll('.row.done').length;
+    const pc=tot?Math.round(done/tot*100):0;
+    document.getElementById('progtext').textContent=`Hechas: ${done} / ${tot} (${pc}%)`;
+    document.getElementById('progfill').style.width=pc+'%';
+  }
+
   // ---- leyenda de sprints ----
   const legend = document.getElementById('legend');
   SPRINTS.forEach(sp=>{
@@ -260,6 +299,17 @@
 
   // hoy (solo si cae en ventana)
   const now=new Date(); const showToday = now>=MIN && now<=MAX;
+  // pill con la fecha de hoy
+  (()=>{
+    const tp=document.getElementById('todaypill');
+    const ph = now<MIN ? '· el cronograma arranca el 1 jul' : now>MAX ? '· cronograma cerrado' : '· en curso';
+    tp.textContent = 'Hoy: '+fmt(now)+' '+now.getFullYear()+' '+ph;
+  })();
+  // marcador de hoy en el eje de semanas
+  if(showToday){
+    const wk=inner.querySelector('.weeks');
+    if(wk) wk.insertAdjacentHTML('beforeend', `<div class="todaymark" style="left:${pct(now)}%">Hoy ▸ ${fmt(now)}</div>`);
+  }
 
   // ---- filas por sprint ----
   SPRINTS.forEach(sp=>{
@@ -272,6 +322,9 @@
       row.dataset.sprint=sp.key;
       row.dataset.type=item.m?'ms':'task';
       row.dataset.text=(item.m||item.t).toLowerCase();
+      const key=slug(item.m||item.t);
+      row.dataset.key=key;
+      if(doneSet.has(key)) row.classList.add('done');
       const label=document.createElement('div'); label.className='row-label';
       const track=document.createElement('div'); track.className='track';
       track.style.background=gridBg;
@@ -292,9 +345,17 @@
         track.appendChild(bar);
         attachTip(bar,`<b>${item.t}</b><span>${fmt(item.s)} → ${fmt(item.e)} · ${days(item.s,item.e)} días</span>`);
       }
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.className='cbx';
+      cb.checked=doneSet.has(key); cb.title='Marcar como hecha';
+      cb.addEventListener('change',()=>{
+        if(cb.checked) doneSet.add(key); else doneSet.delete(key);
+        row.classList.toggle('done', cb.checked); saveDone(); updateProgress(); applyFilters();
+      });
+      label.prepend(cb);
       row.appendChild(label); row.appendChild(track); inner.appendChild(row);
     });
   });
+  updateProgress();
 
   // ---- tooltip ----
   const tip=document.getElementById('tip');
@@ -313,6 +374,7 @@
   const chipsBox=document.getElementById('chips');
   const search=document.getElementById('search');
   const onlyMs=document.getElementById('onlyMs');
+  const hideDone=document.getElementById('hideDone');
   const empty=document.getElementById('empty');
 
   SPRINTS.forEach(sp=>{
@@ -332,6 +394,7 @@
     document.querySelectorAll('.row').forEach(r=>{
       const ok = active.has(r.dataset.sprint)
         && (!onlyMs.checked || r.dataset.type==='ms')
+        && (!hideDone.checked || !r.classList.contains('done'))
         && (!q || r.dataset.text.includes(q));
       r.classList.toggle('hide', !ok);
       if(ok) shown++;
@@ -353,6 +416,14 @@
   };
   search.addEventListener('input', applyFilters);
   onlyMs.addEventListener('change', applyFilters);
+  hideDone.addEventListener('change', applyFilters);
+  document.getElementById('clear').onclick=()=>{
+    if(!confirm('¿Borrar todas las marcas de hechas?')) return;
+    doneSet.clear(); saveDone();
+    document.querySelectorAll('.row.done').forEach(r=>r.classList.remove('done'));
+    document.querySelectorAll('.cbx').forEach(c=>c.checked=false);
+    updateProgress(); applyFilters();
+  };
   </script>
 </body>
 </html>
