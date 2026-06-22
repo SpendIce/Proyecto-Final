@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leccion 0001 - Ensayo sin leer Agente 1</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5c667a;
+      --line: #d9dfeb;
+      --paper: #fbfcff;
+      --band: #eef4fb;
+      --accent: #176b87;
+      --accent-2: #7b2d26;
+      --ok: #1d6b45;
+      --bad: #9d2f2f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.58;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 24px 72px;
+    }
+    header {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 22px;
+      margin-bottom: 30px;
+    }
+    h1, h2, h3 { line-height: 1.12; margin: 0; }
+    h1 { font-size: clamp(2rem, 4vw, 3.25rem); letter-spacing: 0; }
+    h2 { font-size: 1.45rem; margin-top: 36px; margin-bottom: 12px; }
+    h3 { font-size: 1rem; margin-top: 18px; margin-bottom: 8px; }
+    p { margin: 0 0 12px; }
+    a { color: var(--accent); }
+    .kicker {
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: .78rem;
+      margin-bottom: 10px;
+    }
+    .subtitle { color: var(--muted); max-width: 760px; font-size: 1.08rem; margin-top: 12px; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      padding: 18px;
+      margin: 14px 0;
+    }
+    .goal {
+      background: var(--band);
+      border-left: 5px solid var(--accent);
+      padding: 16px 18px;
+      margin: 20px 0;
+      font-weight: 720;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .step {
+      border-top: 4px solid var(--accent);
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 100%;
+      box-shadow: 0 10px 30px rgba(23, 32, 51, .06);
+    }
+    .step strong { display: block; margin-bottom: 6px; }
+    .prompt {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background: white;
+      margin: 14px 0;
+    }
+    .prompt label { display: block; font-weight: 800; margin-bottom: 8px; }
+    textarea {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      padding: 10px 14px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    button.secondary { background: var(--accent-2); }
+    .feedback {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 6px;
+      background: var(--band);
+      color: var(--ink);
+      display: none;
+    }
+    .feedback.ok { border-left: 5px solid var(--ok); display: block; }
+    .feedback.bad { border-left: 5px solid var(--bad); display: block; }
+    .checklist {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .check {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: white;
+    }
+    .small { color: var(--muted); font-size: .95rem; }
+    code {
+      background: var(--band);
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    @media print {
+      body { background: white; }
+      main { padding: 20px; }
+      button, textarea, .feedback { display: none !important; }
+      .card, .prompt, .step { break-inside: avoid; box-shadow: none; }
+    }
+    @media (max-width: 760px) {
+      main { padding: 30px 18px 48px; }
+      .steps, .checklist { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">Leccion 0001</div>
+    <h1>Ensayar el Agente 1 sin leer la pantalla</h1>
+    <p class="subtitle">Objetivo: transformar el HTML y el guion en una exposicion oral defendible. La pantalla acompaña; vos tenes que conducir el relato.</p>
+  </header>
+
+  <section>
+    <h2>Victoria de esta leccion</h2>
+    <p class="goal">Al terminar, vas a poder explicar el proyecto en 90 segundos, abrir cada bloque de la presentacion con una idea propia y responder tres objeciones previsibles sin buscar el guion.</p>
+    <p>Fuente primaria para esta practica: <a href="../../guion-pitch-agente1.md">guion de pitch</a>. Apoyo visual: <a href="../../Presentacion-Agente-1-PPS-Juan-Ignacio-Gone.html">HTML principal</a>. Referencia de repaso: <a href="../reference/0001-mapa-de-exposicion-agente1.html">mapa de exposicion</a>.</p>
+  </section>
+
+  <section>
+    <h2>La regla tecnica</h2>
+    <div class="card">
+      <p><strong>No leas el slide.</strong> Si lees, la audiencia procesa dos veces lo mismo y vos quedas como operador de pantalla. El slide tiene que dispararte una idea; tu voz tiene que aportar criterio: por que importa, que riesgo controla, que decision habilita.</p>
+      <p>En esta exposicion, el criterio central es simple: <strong>Agente 1 automatiza comunicacion institucional, pero no reemplaza responsabilidad humana.</strong> Todo lo demas cuelga de ahi.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>El metodo de ensayo en tres pasadas</h2>
+    <div class="steps">
+      <div class="step">
+        <strong>1. Pasada con notas</strong>
+        <p>Abris el HTML, activas notas y recorres el deck. Tu unico objetivo es entender que funcion cumple cada slide.</p>
+      </div>
+      <div class="step">
+        <strong>2. Pasada sin notas</strong>
+        <p>Volves a recorrer el deck, pero decis la idea de cada slide sin mirar el guion. Si no sale, no memorizaste estructura: volve al mapa.</p>
+      </div>
+      <div class="step">
+        <strong>3. Pasada con objeciones</strong>
+        <p>Despues de slides clave, pausas y contestas: "que me podrian cuestionar aca?". Ahi se entrena defensa, no recitado.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Practica 1: tesis en 90 segundos</h2>
+    <div class="prompt">
+      <label for="pitch">Escribi de memoria una version de 90 segundos. Tiene que incluir problema, solucion, control humano y pedido.</label>
+      <textarea id="pitch" placeholder="Ejemplo de arranque: La SEU hoy pierde tiempo en..."></textarea>
+      <button type="button" onclick="checkPitch()">Revisar estructura</button>
+      <div class="feedback" id="pitchFeedback"></div>
+    </div>
+    <p class="small">No busques que salga literario. Buscamos estructura. Primero cimientos, despues pintura, hermano.</p>
+  </section>
+
+  <section>
+    <h2>Practica 2: transiciones por bloque</h2>
+    <p>Deci en voz alta una frase para pasar de un bloque al siguiente. Despues marcala.</p>
+    <div class="checklist">
+      <label class="check"><input type="checkbox"> Problema -> solucion: "Con este dolor claro, la pregunta es que automatizar sin perder control."</label>
+      <label class="check"><input type="checkbox"> Solucion -> flujo: "Ahora lo bajo a operacion: que entra, que genera y quien valida."</label>
+      <label class="check"><input type="checkbox"> Demo -> stack: "Si esto resuelve una tarea real, falta mostrar por que es viable."</label>
+      <label class="check"><input type="checkbox"> Riesgos -> cierre: "Los riesgos no se niegan: se gobiernan con controles y evidencia."</label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Practica 3: objeciones sin escaparte del alcance</h2>
+    <div class="prompt">
+      <label for="objection">Contesta: "La IA puede inventar informacion, entonces no sirve para comunicacion institucional".</label>
+      <textarea id="objection" placeholder="Tu respuesta..."></textarea>
+      <button class="secondary" type="button" onclick="checkObjection()">Revisar defensa</button>
+      <div class="feedback" id="objectionFeedback"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Guia de ensayo con el HTML</h2>
+    <ol>
+      <li>Abrir <code>Presentacion-Agente-1-PPS-Juan-Ignacio-Gone.html</code>.</li>
+      <li>Primera vuelta: activar notas y ubicar la funcion de cada slide.</li>
+      <li>Segunda vuelta: ocultar notas y explicar cada slide en una frase.</li>
+      <li>Tercera vuelta: cronometrar 12 minutos. Si no llegas al cierre, recortar detalle tecnico.</li>
+      <li>Ultima vuelta: abrir la referencia rapida y practicar solo objeciones.</li>
+    </ol>
+    <p>Si algo no cierra, preguntame por esa slide puntual y lo trabajamos como profesor: que queres decir, que evidencia tenes y que riesgo estas controlando.</p>
+  </section>
+</main>
+
+<script>
+  const pitchNeedles = [
+    ["problema", "manual", "tiempo", "trazabilidad"],
+    ["agente", "extension", "bot", "comunicacion"],
+    ["validacion", "humana", "aprobar", "control"],
+    ["plantilla", "datos", "seu", "muestra"]
+  ];
+
+  const objectionNeedles = [
+    ["validacion", "humana", "revision", "responsable"],
+    ["borrador", "pendiente", "aprueba", "publica"],
+    ["trazabilidad", "registro", "log", "evidencia"],
+    ["riesgo", "control", "mitigacion", "gobierno"]
+  ];
+
+  function normalize(value) {
+    return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function score(value, groups) {
+    const text = normalize(value);
+    return groups.reduce((total, group) => total + (group.some(word => text.includes(word)) ? 1 : 0), 0);
+  }
+
+  function showFeedback(id, points, max, goodText, fixText) {
+    const node = document.getElementById(id);
+    node.className = "feedback " + (points >= Math.ceil(max * .75) ? "ok" : "bad");
+    node.textContent = points >= Math.ceil(max * .75) ? goodText : fixText;
+  }
+
+  function checkPitch() {
+    const value = document.getElementById("pitch").value;
+    const points = score(value, pitchNeedles);
+    showFeedback(
+      "pitchFeedback",
+      points,
+      pitchNeedles.length,
+      "Bien: aparece la columna vertebral. Ahora ensayalo en voz alta y recorta lo que suene a lectura.",
+      "Todavia falta estructura. Asegurate de nombrar dolor manual, Extension Bot, validacion humana y pedido concreto a la SEU."
+    );
+  }
+
+  function checkObjection() {
+    const value = document.getElementById("objection").value;
+    const points = score(value, objectionNeedles);
+    showFeedback(
+      "objectionFeedback",
+      points,
+      objectionNeedles.length,
+      "Bien defendido: no negas el riesgo, explicas el control. Esa es la forma madura de responder.",
+      "Ojo: no alcanza con decir 'anda bien'. Tenes que mencionar borrador, validacion humana y trazabilidad como controles."
+    );
+  }
+</script>
+</body>
+</html>

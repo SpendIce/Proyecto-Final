@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mapa de exposicion - Agente 1</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5c667a;
+      --line: #d9dfeb;
+      --paper: #fbfcff;
+      --band: #eef4fb;
+      --accent: #176b87;
+      --warn: #8a4b0f;
+      --ok: #1d6b45;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 48px 28px 72px;
+    }
+    header {
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    h1, h2, h3 { line-height: 1.12; margin: 0; }
+    h1 { font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: 0; }
+    h2 { font-size: 1.35rem; margin-top: 34px; margin-bottom: 12px; }
+    h3 { font-size: 1rem; margin-bottom: 8px; color: var(--accent); }
+    p { margin: 0 0 12px; }
+    .subtitle { color: var(--muted); max-width: 760px; font-size: 1.05rem; margin-top: 12px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      padding: 16px;
+      min-height: 100%;
+    }
+    .phase {
+      display: grid;
+      grid-template-columns: 110px 1fr 1.1fr;
+      gap: 14px;
+      align-items: start;
+      border-top: 1px solid var(--line);
+      padding: 14px 0;
+    }
+    .time {
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .tag {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: .8rem;
+      color: var(--muted);
+      background: var(--band);
+      margin-bottom: 8px;
+    }
+    ul { margin: 0; padding-left: 1.2rem; }
+    li + li { margin-top: 6px; }
+    .quote {
+      border-left: 5px solid var(--accent);
+      background: var(--band);
+      padding: 14px 16px;
+      font-weight: 750;
+      margin: 16px 0;
+    }
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .warn { color: var(--warn); font-weight: 750; }
+    .ok { color: var(--ok); font-weight: 750; }
+    a { color: var(--accent); }
+    @media print {
+      body { background: white; }
+      main { padding: 20px; }
+      .card { break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+    }
+    @media (max-width: 780px) {
+      .grid, .two, .phase { grid-template-columns: 1fr; }
+      main { padding: 30px 18px 48px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="tag">Referencia rapida</div>
+    <h1>Mapa de exposicion - Agente 1</h1>
+    <p class="subtitle">Usalo antes de ensayar con el HTML. La pantalla muestra el camino; vos tenes que sostener la idea, el criterio tecnico y el pedido concreto.</p>
+  </header>
+
+  <section>
+    <h2>La tesis en una frase</h2>
+    <p class="quote">Extension Bot no es un chatbot ni una IA autonoma: es una linea de produccion comunicacional para la SEU, con validacion humana, bajo costo y evidencia auditable.</p>
+  </section>
+
+  <section>
+    <h2>Arco de 12 a 15 minutos</h2>
+    <div class="phase">
+      <div class="time">0:00-2:00</div>
+      <div><strong>Dolor institucional</strong><br>Slides 1-3</div>
+      <div>Centenario, procesos manuales, comunicacion redactada desde cero. No arranques con tecnologia; arranca con una tarea real que hoy duele.</div>
+    </div>
+    <div class="phase">
+      <div class="time">2:00-4:00</div>
+      <div><strong>Costo y oportunidad</strong><br>Slides 4-5</div>
+      <div>Tiempo, consistencia, trazabilidad CONEAU. La solucion aparece cuando el problema ya quedo claro.</div>
+    </div>
+    <div class="phase">
+      <div class="time">4:00-7:00</div>
+      <div><strong>Funcionamiento</strong><br>Slides 6-9</div>
+      <div>Que hace, que no hace, flujo human-in-the-loop y demo antes/despues. Este tramo vende porque muestra una tarea resuelta.</div>
+    </div>
+    <div class="phase">
+      <div class="time">7:00-10:30</div>
+      <div><strong>Defensa tecnica</strong><br>Slides 10-13</div>
+      <div>Stack, roadmap, backlog, riesgos y mitigaciones. Aca el profesor ve alcance, factibilidad y gobierno del riesgo.</div>
+    </div>
+    <div class="phase">
+      <div class="time">10:30-12:30</div>
+      <div><strong>Medicion y pedido</strong><br>Slides 14-15</div>
+      <div>Cerrar con metricas y con insumos concretos: plantillas, datos, responsables y muestra para probar.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Frases pivote</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Problema</h3>
+        <p>"No estamos ante falta de voluntad: estamos ante un flujo manual que no escala."</p>
+      </div>
+      <div class="card">
+        <h3>Solucion</h3>
+        <p>"El agente propone contenido; la institucion decide que se publica."</p>
+      </div>
+      <div class="card">
+        <h3>Alcance</h3>
+        <p>"Decir que no tambien es diseno: evita prometer un sistema que despues no se puede entregar."</p>
+      </div>
+      <div class="card">
+        <h3>Riesgo</h3>
+        <p>"La validacion humana no es un parche: es el control que vuelve defendible el uso de IA."</p>
+      </div>
+      <div class="card">
+        <h3>Viabilidad</h3>
+        <p>"Se apoya en herramientas que la SEU ya conoce, por eso la adopcion no depende de cambiar todo el proceso."</p>
+      </div>
+      <div class="card">
+        <h3>Cierre</h3>
+        <p>"No vendemos autonomia total; proponemos una capacidad institucional repetible, auditable y gobernada."</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Objeciones que tenes que dominar</h2>
+    <div class="two">
+      <div class="card">
+        <h3>"La IA puede equivocarse"</h3>
+        <p><span class="ok">Respuesta:</span> Exactamente por eso el flujo no publica solo. El output queda como borrador, se valida y queda registro.</p>
+      </div>
+      <div class="card">
+        <h3>"Esto reemplaza personal"</h3>
+        <p><span class="ok">Respuesta:</span> No reemplaza responsabilidad institucional. Reduce redaccion repetitiva y deja mas tiempo para control de calidad.</p>
+      </div>
+      <div class="card">
+        <h3>"No es demasiado grande"</h3>
+        <p><span class="ok">Respuesta:</span> El PPS se acota al Agente 1 y a 2026. La integracion completa queda como continuidad del P100.</p>
+      </div>
+      <div class="card">
+        <h3>"Por que no hace analitica"</h3>
+        <p><span class="ok">Respuesta:</span> Porque el Agente 1 es comunicacional. Analitica, scraping u orquestacion son otros dominios del sistema.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Regla de ensayo</h2>
+    <ul>
+      <li><span class="warn">No leas bullets.</span> Mira la slide, recupera la idea y explicala con tus palabras.</li>
+      <li>Si te trabas, volve a la tesis: comunicacion institucional, control humano, evidencia.</li>
+      <li>Ensaya una vez con notas visibles y otra vez sin notas. La segunda es la que importa.</li>
+      <li>Grabate una pasada de 8 minutos. Si no llegas al cierre, estas describiendo demasiado y argumentando poco.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Enlaces de practica</h2>
+    <ul>
+      <li><a href="../../Presentacion-Agente-1-PPS-Juan-Ignacio-Gone.html">Abrir HTML principal</a></li>
+      <li><a href="../../guion-pitch-agente1.md">Abrir guion de pitch</a></li>
+      <li><a href="../../guion-video-agente1.md">Abrir guion de video</a></li>
+      <li><a href="../lessons/0001-ensayo-sin-leer-agente1.html">Volver a la leccion de ensayo</a></li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
