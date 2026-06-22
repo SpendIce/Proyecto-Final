@@ -4,13 +4,13 @@
 \contentsline {section}{\numberline {3}Glosario}{4}{section.3}%
 \contentsline {section}{\numberline {4}Introducci\'on}{5}{section.4}%
 \contentsline {section}{\numberline {5}Formulaci\'on del problema}{6}{section.5}%
-\contentsline {section}{\numberline {6}Antecedentes}{6}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Contexto institucional}{6}{subsection.6.1}%
+\contentsline {section}{\numberline {6}Antecedentes}{7}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Contexto institucional}{7}{subsection.6.1}%
 \contentsline {subsection}{\numberline {6.2}Estado del arte}{8}{subsection.6.2}%
 \contentsline {subsection}{\numberline {6.3}Tecnolog\'ias de c\'odigo abierto}{8}{subsection.6.3}%
-\contentsline {section}{\numberline {7}Prop\'osito y justificaci\'on}{8}{section.7}%
-\contentsline {section}{\numberline {8}Objetivos globales y espec\'ificos}{9}{section.8}%
-\contentsline {subsection}{\numberline {8.1}Situaci\'on actual (As Is)}{9}{subsection.8.1}%
+\contentsline {section}{\numberline {7}Prop\'osito y justificaci\'on}{9}{section.7}%
+\contentsline {section}{\numberline {8}Objetivos globales y espec\'ificos}{10}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Situaci\'on actual (As Is)}{10}{subsection.8.1}%
 \contentsline {subsection}{\numberline {8.2}Situaci\'on deseada (To Be)}{10}{subsection.8.2}%
 \contentsline {subsection}{\numberline {8.3}Objetivos espec\'ificos}{10}{subsection.8.3}%
 \contentsline {section}{\numberline {9}Alcances}{11}{section.9}%
@@ -19,47 +19,47 @@
 \contentsline {subsubsection}{\numberline {9.2.1}Incluido en este Proyecto}{11}{subsubsection.9.2.1}%
 \contentsline {subsubsection}{\numberline {9.2.2}Mapa de procesos y responsabilidades}{12}{subsubsection.9.2.2}%
 \contentsline {subsubsection}{\numberline {9.2.3}Dependencias compartidas con el Proyecto de Becerra Mas Roca}{12}{subsubsection.9.2.3}%
-\contentsline {subsubsection}{\numberline {9.2.4}Excluido de este Proyecto}{12}{subsubsection.9.2.4}%
-\contentsline {section}{\numberline {10}Marco referencial}{14}{section.10}%
-\contentsline {subsection}{\numberline {10.1}Extensi\'on universitaria en Argentina}{14}{subsection.10.1}%
+\contentsline {subsubsection}{\numberline {9.2.4}Excluido de este Proyecto}{13}{subsubsection.9.2.4}%
+\contentsline {section}{\numberline {10}Marco referencial}{13}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Extensi\'on universitaria en Argentina}{13}{subsection.10.1}%
 \contentsline {subsection}{\numberline {10.2}Comunicaci\'on institucional y automatizaci\'on}{14}{subsection.10.2}%
 \contentsline {subsection}{\numberline {10.3}Gesti\'on por procesos (BPM)}{14}{subsection.10.3}%
 \contentsline {subsection}{\numberline {10.4}Sistemas multiagente}{14}{subsection.10.4}%
 \contentsline {subsection}{\numberline {10.5}LLMs locales y soberan\'ia de datos}{14}{subsection.10.5}%
-\contentsline {subsection}{\numberline {10.6}Ciberseguridad desde el principio}{15}{subsection.10.6}%
+\contentsline {subsection}{\numberline {10.6}Ciberseguridad desde el principio}{14}{subsection.10.6}%
 \contentsline {subsection}{\numberline {10.7}Technology Readiness Level (TRL)}{15}{subsection.10.7}%
 \contentsline {section}{\numberline {11}Ciclo de vida}{15}{section.11}%
 \contentsline {section}{\numberline {12}Metodolog\'ia(s) candidata(s)}{16}{section.12}%
 \contentsline {section}{\numberline {13}Plataforma requerida}{17}{section.13}%
-\contentsline {section}{\numberline {14}Enunciado de factibilidad}{17}{section.14}%
-\contentsline {subsection}{\numberline {14.1}Viabilidad t\'ecnica}{17}{subsection.14.1}%
+\contentsline {section}{\numberline {14}Enunciado de factibilidad}{18}{section.14}%
+\contentsline {subsection}{\numberline {14.1}Viabilidad t\'ecnica}{18}{subsection.14.1}%
 \contentsline {subsection}{\numberline {14.2}Viabilidad econ\'omica}{18}{subsection.14.2}%
-\contentsline {subsection}{\numberline {14.3}Business Model Canvas}{18}{subsection.14.3}%
-\contentsline {subsection}{\numberline {14.4}Viabilidad operativa}{21}{subsection.14.4}%
-\contentsline {subsection}{\numberline {14.5}Viabilidad legal}{21}{subsection.14.5}%
-\contentsline {subsection}{\numberline {14.6}Viabilidad medioambiental}{21}{subsection.14.6}%
-\contentsline {subsection}{\numberline {14.7}Riesgos identificados y mitigaciones}{21}{subsection.14.7}%
+\contentsline {subsection}{\numberline {14.3}Business Model Canvas}{19}{subsection.14.3}%
+\contentsline {subsection}{\numberline {14.4}Viabilidad operativa}{19}{subsection.14.4}%
+\contentsline {subsection}{\numberline {14.5}Viabilidad legal}{20}{subsection.14.5}%
+\contentsline {subsection}{\numberline {14.6}Viabilidad medioambiental}{20}{subsection.14.6}%
+\contentsline {subsection}{\numberline {14.7}Riesgos identificados y mitigaciones}{20}{subsection.14.7}%
 \contentsline {section}{\numberline {15}Acuerdos preliminares de nivel de seguridad y de calidad}{21}{section.15}%
 \contentsline {subsection}{\numberline {15.1}Seguridad}{21}{subsection.15.1}%
 \contentsline {subsection}{\numberline {15.2}Calidad}{23}{subsection.15.2}%
-\contentsline {subsection}{\numberline {15.3}Gates de calidad, auditor\'ia y liberaci\'on}{24}{subsection.15.3}%
-\contentsline {section}{\numberline {16}Participantes}{26}{section.16}%
-\contentsline {subsection}{\numberline {16.1}Equipo de proyecto}{26}{subsection.16.1}%
-\contentsline {subsection}{\numberline {16.2}Interesados}{26}{subsection.16.2}%
-\contentsline {subsection}{\numberline {16.3}Matriz RACI}{27}{subsection.16.3}%
-\contentsline {section}{\numberline {17}Presentaci\'on de la propuesta}{27}{section.17}%
-\contentsline {subsection}{\numberline {17.1}Flujo principal del Agente~1}{27}{subsection.17.1}%
-\contentsline {subsection}{\numberline {17.2}Historias de usuario}{28}{subsection.17.2}%
-\contentsline {subsection}{\numberline {17.3}Matriz de trazabilidad funcional}{28}{subsection.17.3}%
-\contentsline {subsection}{\numberline {17.4}Agente~1 como nodo de comunicaci\'on institucional}{31}{subsection.17.4}%
-\contentsline {subsection}{\numberline {17.5}Storyboard: coordinador de la SEU genera una gacetilla}{31}{subsection.17.5}%
-\contentsline {subsection}{\numberline {17.6}Arquitectura t\'ecnica del Agente~1}{32}{subsection.17.6}%
-\contentsline {section}{\numberline {18}Cronograma de alto nivel}{32}{section.18}%
-\contentsline {subsection}{\numberline {18.1}Estructura de Descomposici\'on del Trabajo (EDT)}{32}{subsection.18.1}%
-\contentsline {subsection}{\numberline {18.2}Entregables por semestre}{34}{subsection.18.2}%
-\contentsline {subsection}{\numberline {18.3}Cronograma de hitos}{34}{subsection.18.3}%
-\contentsline {subsection}{\numberline {18.4}Planificaci\'on mensual}{34}{subsection.18.4}%
-\contentsline {section}{\numberline {19}M\'etricas}{36}{section.19}%
-\contentsline {subsection}{\numberline {19.1}M\'etricas n\'ucleo y criterios de aceptaci\'on}{36}{subsection.19.1}%
-\contentsline {subsection}{\numberline {19.2}Protocolo de medici\'on}{36}{subsection.19.2}%
-\contentsline {subsection}{\numberline {19.3}Factores cr\'iticos de \'exito}{37}{subsection.19.3}%
+\contentsline {subsection}{\numberline {15.3}Gates de calidad, auditor\'ia y liberaci\'on}{23}{subsection.15.3}%
+\contentsline {section}{\numberline {16}Participantes}{24}{section.16}%
+\contentsline {subsection}{\numberline {16.1}Equipo de proyecto}{24}{subsection.16.1}%
+\contentsline {subsection}{\numberline {16.2}Interesados}{25}{subsection.16.2}%
+\contentsline {subsection}{\numberline {16.3}Matriz RACI}{25}{subsection.16.3}%
+\contentsline {section}{\numberline {17}Presentaci\'on de la propuesta}{25}{section.17}%
+\contentsline {subsection}{\numberline {17.1}Flujo principal del Agente~1}{26}{subsection.17.1}%
+\contentsline {subsection}{\numberline {17.2}Historias de usuario}{26}{subsection.17.2}%
+\contentsline {subsection}{\numberline {17.3}Matriz de trazabilidad funcional}{27}{subsection.17.3}%
+\contentsline {subsection}{\numberline {17.4}Agente~1 como nodo de comunicaci\'on institucional}{28}{subsection.17.4}%
+\contentsline {subsection}{\numberline {17.5}Storyboard: coordinador de la SEU genera una gacetilla}{29}{subsection.17.5}%
+\contentsline {subsection}{\numberline {17.6}Arquitectura t\'ecnica del Agente~1}{30}{subsection.17.6}%
+\contentsline {section}{\numberline {18}Cronograma de alto nivel}{30}{section.18}%
+\contentsline {subsection}{\numberline {18.1}Estructura de Descomposici\'on del Trabajo (EDT)}{30}{subsection.18.1}%
+\contentsline {subsection}{\numberline {18.2}Entregables por semestre}{31}{subsection.18.2}%
+\contentsline {subsection}{\numberline {18.3}Cronograma de hitos}{32}{subsection.18.3}%
+\contentsline {subsection}{\numberline {18.4}Planificaci\'on mensual}{32}{subsection.18.4}%
+\contentsline {section}{\numberline {19}M\'etricas}{33}{section.19}%
+\contentsline {subsection}{\numberline {19.1}M\'etricas n\'ucleo y criterios de aceptaci\'on}{33}{subsection.19.1}%
+\contentsline {subsection}{\numberline {19.2}Protocolo de medici\'on}{34}{subsection.19.2}%
+\contentsline {subsection}{\numberline {19.3}Factores cr\'iticos de \'exito}{35}{subsection.19.3}%

@@ -45,6 +45,28 @@
     \field{year}{2010}
   \endentry
 
+  \entry{ciscontrols2024}{manual}{}{}
+    \name{author}{1}{}{%
+      {{hash=C}{%
+         family={{Center for Internet Security}},
+         familyi={C\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{C1}
+    \strng{fullhash}{C1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2024}
+    \field{labeldatesource}{}
+    \field{sortinit}{C}
+    \field{sortinithash}{C}
+    \field{title}{{CIS} Critical Security Controls}
+    \verb{url}
+    \verb https://www.cisecurity.org/controls
+    \endverb
+    \field{year}{2024}
+  \endentry
+
   \entry{cicerchia2026procesos}{misc}{}{}
     \name{author}{1}{}{%
       {{hash=CCD}{%
@@ -106,8 +128,8 @@
     \list{publisher}{1}{%
       {CONEAU}%
     }
-    \strng{namehash}{C1}
-    \strng{fullhash}{C1}
+    \strng{namehash}{C2}
+    \strng{fullhash}{C2}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{labelyear}{2020}
@@ -131,8 +153,8 @@
          familyi={C\bibinitperiod},
       }}%
     }
-    \strng{namehash}{C2}
-    \strng{fullhash}{C2}
+    \strng{namehash}{C3}
+    \strng{fullhash}{C3}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{labelyear}{1995}
@@ -154,8 +176,8 @@
          familyi={C\bibinitperiod},
       }}%
     }
-    \strng{namehash}{C2}
-    \strng{fullhash}{C2}
+    \strng{namehash}{C3}
+    \strng{fullhash}{C3}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{labelyear}{2000}
@@ -169,6 +191,28 @@
     \verb https://www.argentina.gob.ar/normativa/nacional/ley-25326
     \endverb
     \field{year}{2000}
+  \endentry
+
+  \entry{deepagents2026}{manual}{}{}
+    \name{author}{1}{}{%
+      {{hash=d}{%
+         family={{deepagents}},
+         familyi={d\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{d1}
+    \strng{fullhash}{d1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2026}
+    \field{labeldatesource}{}
+    \field{sortinit}{D}
+    \field{sortinithash}{D}
+    \field{title}{{Deep Agents} Documentation}
+    \verb{url}
+    \verb https://docs.langchain.com/oss/python/deepagents/overview
+    \endverb
+    \field{year}{2026}
   \endentry
 
   \entry{iso25010}{misc}{}{}
@@ -224,10 +268,10 @@
     \field{year}{2015}
   \endentry
 
-  \entry{langchain2024}{manual}{}{}
+  \entry{langgraph2026}{manual}{}{}
     \name{author}{1}{}{%
       {{hash=L}{%
-         family={{LangChain}},
+         family={{LangGraph}},
          familyi={L\bibinitperiod},
       }}%
     }
@@ -235,15 +279,15 @@
     \strng{fullhash}{L1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \field{labelyear}{2024}
+    \field{labelyear}{2026}
     \field{labeldatesource}{}
     \field{sortinit}{L}
     \field{sortinithash}{L}
-    \field{title}{{LangChain} Documentation}
+    \field{title}{{LangGraph} Documentation}
     \verb{url}
-    \verb https://docs.langchain.com/
+    \verb https://docs.langchain.com/oss/python/langgraph/overview
     \endverb
-    \field{year}{2024}
+    \field{year}{2026}
   \endentry
 
   \entry{mankins1995}{report}{}{}
@@ -295,6 +339,28 @@
     \verb https://ollama.com/
     \endverb
     \field{year}{2024}
+  \endentry
+
+  \entry{owaspagentic2026}{manual}{}{}
+    \name{author}{1}{}{%
+      {{hash=O}{%
+         family={{Open Worldwide Application Security Project}},
+         familyi={O\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{O2}
+    \strng{fullhash}{O2}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{labelyear}{2026}
+    \field{labeldatesource}{}
+    \field{sortinit}{O}
+    \field{sortinithash}{O}
+    \field{title}{{OWASP} Top 10 for Agentic {AI} Applications}
+    \verb{url}
+    \verb https://genai.owasp.org/
+    \endverb
+    \field{year}{2026}
   \endentry
 
   \entry{pressman2019}{book}{}{}

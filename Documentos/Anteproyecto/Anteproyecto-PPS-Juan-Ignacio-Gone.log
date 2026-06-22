@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.24.0 (TeX Live 2026/Arch Linux)  (format=lualatex 2026.4.26)  18 MAY 2026 10:32
+This is LuaHBTeX, Version 1.24.0 (TeX Live 2026/Arch Linux)  (format=lualatex 2026.5.31)  22 JUN 2026 09:25
  restricted system commands enabled.
 **Anteproyecto-PPS-Juan-Ignacio-Gone.tex
 (./Anteproyecto-PPS-Juan-Ignacio-Gone.tex
@@ -6,7 +6,7 @@ LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
 Lua module: luaotfload 2024-12-03 v3.29 Lua based OpenType font support
 Lua module: lualibs 2023-07-13 v2.76 ConTeXt Lua standard libraries.
-Lua module: lualibs-extended 2023-07-13 v2.76 ConTeXt Lua libraries -- extended
+Lua module: lualibs-extended 2023-07-13 v2.76 ConTeXt Lua libraries -- extended 
 collection.
 luaotfload | conf : Root cache directory is "/home/spendice/.texlive/texmf-var/l
 uatex-cache/generic/names".
@@ -61,7 +61,7 @@ var/luatex-cache/generic/names/luaotfload-names.luc.gz)
 (/usr/share/texmf-dist/tex/latex/fontspec/fontspec.sty
 (/usr/share/texmf-dist/tex/latex/l3packages/xparse/xparse.sty
 (/usr/share/texmf-dist/tex/latex/l3kernel/expl3.sty
-Package: expl3 2026-01-19 L3 programming layer (loader)
+Package: expl3 2026-01-19 L3 programming layer (loader) 
 
 (/usr/share/texmf-dist/tex/latex/l3backend/l3backend-luatex.def
 File: l3backend-luatex.def 2025-10-09 L3 backend support: PDF output (LuaTeX)
@@ -125,7 +125,7 @@ put line 17
 Package polyglossia Warning: No hyphenation patterns were loaded for `spanish'
 (polyglossia)                I will use \language=\l@nohyphenation instead.
 
-\l@spanish = a dialect from \language\l@nohyphenation
+\l@spanish = a dialect from \language\l@nohyphenation 
 )
 
 Package polyglossia Info: Default language is spanish
@@ -1056,13 +1056,13 @@ Package biblatex Info: Trying to load configuration file...
 Package biblatex Info: ... file 'biblatex.cfg' found.
 
 (/usr/share/texmf-dist/tex/latex/biblatex/biblatex.cfg
-File: biblatex.cfg
+File: biblatex.cfg 
 )
 Package biblatex Info: LuaTeX detected.
 (biblatex)             Assuming input encoding 'utf8'.
 Package biblatex Info: Document encoding is UTF8 ....
 Package biblatex Info: ... and expl3
-(biblatex)             2026-01-19 L3 programming layer (loader)
+(biblatex)             2026-01-19 L3 programming layer (loader) 
 (biblatex)             is new enough (at least 2020/04/06),
 (biblatex)             setting 'casechanger=expl3'.
 
@@ -1109,84 +1109,84 @@ Package: fancyhdr 2025/02/07 v5.2 Extensive control of page headers and footers
  (./Anteproyecto-PPS-Juan-Ignacio-Gone.aux)
 \openout1 = Anteproyecto-PPS-Juan-Ignacio-Gone.aux
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 77.
-LaTeX Font Info:    ... okay on input line 77.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 86.
+LaTeX Font Info:    ... okay on input line 86.
 
-Package fontspec Info:
+Package fontspec Info: 
 (fontspec)             Adjusting the maths setup (use [no-math] to avoid
 (fontspec)             this).
 
 \symlegacymaths=\mathgroup6
 LaTeX Font Info:    Overwriting symbol font `legacymaths' in version `bold'
-(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 77.
-LaTeX Font Info:    Redeclaring math accent \acute on input line 77.
-LaTeX Font Info:    Redeclaring math accent \grave on input line 77.
-LaTeX Font Info:    Redeclaring math accent \ddot on input line 77.
-LaTeX Font Info:    Redeclaring math accent \tilde on input line 77.
-LaTeX Font Info:    Redeclaring math accent \bar on input line 77.
-LaTeX Font Info:    Redeclaring math accent \breve on input line 77.
-LaTeX Font Info:    Redeclaring math accent \check on input line 77.
-LaTeX Font Info:    Redeclaring math accent \hat on input line 77.
-LaTeX Font Info:    Redeclaring math accent \dot on input line 77.
-LaTeX Font Info:    Redeclaring math accent \mathring on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \colon on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Delta on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Theta on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Xi on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Pi on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Phi on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Psi on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \Omega on input line 77.
-LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 77.
-LaTeX Font Info:    Redeclaring symbol font `operators' on input line 77.
+(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 86.
+LaTeX Font Info:    Redeclaring math accent \acute on input line 86.
+LaTeX Font Info:    Redeclaring math accent \grave on input line 86.
+LaTeX Font Info:    Redeclaring math accent \ddot on input line 86.
+LaTeX Font Info:    Redeclaring math accent \tilde on input line 86.
+LaTeX Font Info:    Redeclaring math accent \bar on input line 86.
+LaTeX Font Info:    Redeclaring math accent \breve on input line 86.
+LaTeX Font Info:    Redeclaring math accent \check on input line 86.
+LaTeX Font Info:    Redeclaring math accent \hat on input line 86.
+LaTeX Font Info:    Redeclaring math accent \dot on input line 86.
+LaTeX Font Info:    Redeclaring math accent \mathring on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \colon on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Delta on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Theta on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Xi on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Pi on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Phi on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Psi on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \Omega on input line 86.
+LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 86.
+LaTeX Font Info:    Redeclaring symbol font `operators' on input line 86.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `normal' on input line 77.
+(Font)              `operators' in the math version `normal' on input line 86.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
-(Font)                  OT1/cmr/m/n --> TU/lmr/m/n on input line 77.
+(Font)                  OT1/cmr/m/n --> TU/lmr/m/n on input line 86.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `bold' on input line 77.
+(Font)              `operators' in the math version `bold' on input line 86.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  OT1/cmr/bx/n --> TU/lmr/m/n on input line 77.
+(Font)                  OT1/cmr/bx/n --> TU/lmr/m/n on input line 86.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
-(Font)                  TU/lmr/m/n --> TU/lmr/m/n on input line 77.
+(Font)                  TU/lmr/m/n --> TU/lmr/m/n on input line 86.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
-(Font)                  OT1/cmr/m/it --> TU/lmr/m/it on input line 77.
+(Font)                  OT1/cmr/m/it --> TU/lmr/m/it on input line 86.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
-(Font)                  OT1/cmr/bx/n --> TU/lmr/b/n on input line 77.
+(Font)                  OT1/cmr/bx/n --> TU/lmr/b/n on input line 86.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 77.
+(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 86.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 77.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 86.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  TU/lmr/m/n --> TU/lmr/b/n on input line 77.
+(Font)                  TU/lmr/m/n --> TU/lmr/b/n on input line 86.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
-(Font)                  OT1/cmr/bx/it --> TU/lmr/b/it on input line 77.
+(Font)                  OT1/cmr/bx/it --> TU/lmr/b/it on input line 86.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 77.
+(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 86.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 77.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 86.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: luatex
@@ -1195,7 +1195,7 @@ LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
 * paper: a4paper
 * layout: <same size as paper>
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
-* modes:
+* modes: 
 * h-part:(L,W,R)=(71.13188pt, 455.24411pt, 71.13188pt)
 * v-part:(T,H,B)=(71.13188pt, 702.78308pt, 71.13188pt)
 * \paperwidth=597.50787pt
@@ -1205,7 +1205,7 @@ LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
 * \oddsidemargin=-1.1381pt
 * \evensidemargin=-1.1381pt
 * \topmargin=-38.1381pt
-* \headheight=12.0pt
+* \headheight=14.0pt
 * \headsep=25.0pt
 * \topskip=12.0pt
 * \footskip=30.0pt
@@ -1222,13 +1222,13 @@ LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Info: Redefining \microtypecontext on input line 77.
-Package microtype Info: Applying patch `item' on input line 77.
-Package microtype Info: Applying patch `toc' on input line 77.
-Package microtype Info: Applying patch `eqnum' on input line 77.
-Package microtype Info: Applying patch `footnote' on input line 77.
-Package microtype Info: Applying patch `verbatim' on input line 77.
-LaTeX Info: Redefining \microtypesetup on input line 77.
+LaTeX Info: Redefining \microtypecontext on input line 86.
+Package microtype Info: Applying patch `item' on input line 86.
+Package microtype Info: Applying patch `toc' on input line 86.
+Package microtype Info: Applying patch `eqnum' on input line 86.
+Package microtype Info: Applying patch `footnote' on input line 86.
+Package microtype Info: Applying patch `verbatim' on input line 86.
+LaTeX Info: Redefining \microtypesetup on input line 86.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
@@ -1266,7 +1266,7 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
 \c@lstlisting=\count490
-Package hyperref Info: Link coloring ON on input line 77.
+Package hyperref Info: Link coloring ON on input line 86.
 
 (./Anteproyecto-PPS-Juan-Ignacio-Gone.out)
 (./Anteproyecto-PPS-Juan-Ignacio-Gone.out)
@@ -1294,13 +1294,13 @@ Package biblatex Info: ... file 'Anteproyecto-PPS-Juan-Ignacio-Gone.bbl' found.
 
 
 (./Anteproyecto-PPS-Juan-Ignacio-Gone.bbl)
-Package biblatex Info: Reference section=0 on input line 77.
-Package biblatex Info: Reference segment=0 on input line 77.
+Package biblatex Info: Reference section=0 on input line 86.
+Package biblatex Info: Reference segment=0 on input line 86.
 
 Package polyglossia Info: totalhyphenmin:'5'
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 99.
-
+LaTeX Font Info:    Trying to load font information for U+msa on input line 108
+.
 
 (/usr/share/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
@@ -1308,8 +1308,8 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (/usr/share/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 99.
-
+LaTeX Font Info:    Trying to load font information for U+msb on input line 108
+.
 
 (/usr/share/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
@@ -1318,7 +1318,7 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
 (/usr/share/texmf-dist/tex/latex/microtype/mt-cmr.cfg
-File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman
+File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman 
 (RS)
 ) [1
 
@@ -1328,3112 +1328,154 @@ gnacio-Gone.toc
 Package polyglossia Info: totalhyphenmin:'5'
 
 
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-
 warning  (pdf backend): ignoring duplicate destination with the name 'page.1'
 [1])
 \tf@toc=\write6
 
 \openout6 = Anteproyecto-PPS-Juan-Ignacio-Gone.toc
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[2]
+ [2]
 Package acronym Info: Label `acro:A1' newly defined as it shall be overridden
-although it is yet undefined on input line 120.
+although it is yet undefined on input line 129.
 Package acronym Info: Label `acro:P100' newly defined as it shall be overridden
 
-although it is yet undefined on input line 120.
+although it is yet undefined on input line 129.
 Package acronym Info: Label `acro:FIE' newly defined as it shall be overridden
-although it is yet undefined on input line 120.
+although it is yet undefined on input line 129.
 Package acronym Info: Label `acro:SEU' newly defined as it shall be overridden
-although it is yet undefined on input line 120.
+although it is yet undefined on input line 129.
 Package acronym Info: Label `acro:TRL' newly defined as it shall be overridden
-although it is yet undefined on input line 122.
-
-Overfull \hbox (17.92667pt too wide) in paragraph at lines 133--134
-[]\TU/lmr/m/n/12 Agente de comunicación institucional, automatización de conte
-nido, gacetillas universitarias,
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[3]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[4]
-Overfull \hbox (20.19507pt too wide) in paragraph at lines 184--185
-[]\TU/lmr/m/n/12 criterio de diseño que incorpora controles de seguridad,
- []
-
+although it is yet undefined on input line 131.
+Package microtype Info: Loading generic protrusion settings for font family
+(microtype)             `lmtt' (encoding: TU).
+(microtype)             For optimal results, create family-specific settings.
+(microtype)             See the microtype manual for details.
+ [3] [4]
+LaTeX Font Info:    Font shape `TU/lmtt/bx/n' in size <12> not available
+(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 194.
 Package acronym Info: Label `acro:BPM' newly defined as it shall be overridden
-although it is yet undefined on input line 194.
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[5]
+although it is yet undefined on input line 207.
+ [5]
 Package acronym Info: Label `acro:CONEAU' newly defined as it shall be overridd
 en
-although it is yet undefined on input line 209.
+although it is yet undefined on input line 222.
 
-Overfull \hbox (14.47328pt too wide) in paragraph at lines 209--210
+Underfull \hbox (badness 1005) in paragraph at lines 222--223
 \TU/lmr/m/n/12 inscripciones, eventos), las comunicaciones se retrasan o simplif
-ican, perdiéndose oportunidades
+ican, perdiéndose
  []
 
 
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
+Underfull \hbox (badness 1762) in paragraph at lines 222--223
+\TU/lmr/m/n/12 la trazabilidad requerida por [][]Comisión Nacional de Evaluaci
+ón y Acreditación
+ []
 
-[6]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[7]
+[6] [7]
 Package acronym Info: Label `acro:LLM' newly defined as it shall be overridden
-although it is yet undefined on input line 245.
+although it is yet undefined on input line 261.
 Package acronym Info: Label `acro:RACI' newly defined as it shall be overridden
 
-although it is yet undefined on input line 253.
+although it is yet undefined on input line 269.
 Package acronym Info: Label `acro:DoD' newly defined as it shall be overridden
-although it is yet undefined on input line 253.
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[8]
+although it is yet undefined on input line 269.
+ [8]
 Package acronym Info: Label `acro:RRSS' newly defined as it shall be overridden
 
-although it is yet undefined on input line 277.
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[9]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[10]
-Overfull \hbox (4.82738pt too wide) in paragraph at lines 320--321
-[]\TU/lmr/bx/n/12 Diseño: \TU/lmr/m/n/12 especificación funcional del Agente
-1, diseño de prompts y cadenas LangChain,
- []
-
+although it is yet undefined on input line 295.
+ [9] [10]
 Package acronym Info: Label `acro:MVP' newly defined as it shall be overridden
-although it is yet undefined on input line 321.
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[11]
-
-Package tabularx Warning: X Columns too narrow (table too wide)
-(tabularx)                 on input line 358.
-
-
-Overfull \hbox (10.01472pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/bx/n/12 Uso
- []
-
-
-Overfull \hbox (5.06377pt too wide) in paragraph at lines 358--358
-\TU/lmr/bx/n/12 del
- []
-
-
-Overfull \hbox (37.92097pt too wide) in paragraph at lines 358--358
-\TU/lmr/bx/n/12 Agente 1|
- []
-
-
-Overfull \hbox (59.5392pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/bx/n/12 Responsable
- []
-
-
-Overfull \hbox (59.23032pt too wide) in paragraph at lines 358--358
-\TU/lmr/bx/n/12 institucional|
- []
-
-
-Overfull \hbox (44.37747pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/m/n/12 Generación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (35.70126pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 gacetillas,
- []
-
-
-Overfull \hbox (15.61636pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 posts,
- []
-
-
-Overfull \hbox (45.34444pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 newsletters,
- []
-
-
-Overfull \hbox (14.2954pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 mails
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 y
- []
-
-
-Overfull \hbox (41.50925pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 borradores
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (57.79568pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 publicaciones.|
- []
-
-
-Overfull \hbox (50.81862pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/m/n/12 Coordinador
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (37.80363pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Extensión
- []
-
-
-Overfull \hbox (5.79169pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 (A);
- []
-
-
-Overfull \hbox (50.03526pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Responsable
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (26.52579pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Gestión
- []
-
-
-Overfull \hbox (2.71178pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 del
- []
-
-
-Overfull \hbox (57.1018pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Conocimiento
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 y
- []
-
-
-Overfull \hbox (50.03526pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Responsable
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (17.64697pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Redes
- []
-
-
-Overfull \hbox (27.42078pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Sociales
- []
-
-
-Overfull \hbox (4.07208pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 (R)|
- []
-
-
-Overfull \hbox (44.7903pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/m/n/12 Producción
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (39.29715pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 resúmenes
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 o
- []
-
-
-Overfull \hbox (18.4584pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 textos
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (17.43408pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 apoyo
- []
-
-
-Overfull \hbox (10.40282pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 para
- []
-
-
-Overfull \hbox (27.75604pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 difundir
- []
-
-
-Overfull \hbox (44.0482pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 actividades
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 ya
- []
-
-
-Overfull \hbox (35.40462pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 definidas.|
- []
-
-
-Overfull \hbox (50.0367pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/m/n/12 Secr./Coord.
- []
-
-
-Overfull \hbox (37.80363pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Extensión
- []
-
-
-Overfull \hbox (5.79169pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 (A);
- []
-
-
-Overfull \hbox (50.03526pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Responsable
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (35.07288pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 proyectos
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 y
- []
-
-
-Overfull \hbox (24.82991pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 eventos
- []
-
-
-Overfull \hbox (4.07208pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 (R)|
- []
-
-
-Overfull \hbox (66.40662pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/m/n/12 Confirmaciones,
- []
-
-
-Overfull \hbox (27.4078pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 difusión
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 y
- []
-
-
-Overfull \hbox (44.36572pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 certificados
- []
-
-
-Overfull \hbox (37.33324pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 generados
- []
-
-
-Overfull \hbox (14.23657pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 como
- []
-
-
-Overfull \hbox (31.62628pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 borrador
- []
-
-
-Overfull \hbox (5.27545pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 con
- []
-
-
-Overfull \hbox (37.90086pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 validación
- []
-
-
-Overfull \hbox (22.23338pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 previa.|
- []
-
-
-Overfull \hbox (50.81862pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/m/n/12 Coordinador
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (37.80363pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Extensión
- []
-
-
-Overfull \hbox (5.79169pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 (A);
- []
-
-
-Overfull \hbox (50.03526pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Responsable
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (18.83475pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 cursos
- []
-
-
-Overfull \hbox (4.07208pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 (R)|
- []
-
-
-Overfull \hbox (29.80684pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/m/n/12 Difusión
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (24.82991pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 eventos
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 a
- []
-
-
-Overfull \hbox (16.57227pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 partir
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (14.94218pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 datos
- []
-
-
-Overfull \hbox (34.1259pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 validados
- []
-
-
-Overfull \hbox (4.7429pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 por
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 el
- []
-
-
-Overfull \hbox (25.50388pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 proceso
- []
-
-
-Overfull \hbox (69.9555pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 correspondiente.|
- []
-
-
-Overfull \hbox (50.81862pt too wide) in paragraph at lines 358--358
-[]|\TU/lmr/m/n/12 Coordinador
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (37.80363pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Extensión
- []
-
-
-Overfull \hbox (5.79169pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 (A);
- []
-
-
-Overfull \hbox (50.03526pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 Responsable
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 358--358
-\TU/lmr/m/n/12 de
- []
-
-
-Overfull \hbox (35.07288pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 proyectos
- []
-
-
-Overfull \hbox (36.42894pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 especiales
- []
-
-
-Overfull \hbox (4.07208pt too wide) in paragraph at lines 358--358
-\TU/lmr/m/n/12 (R)|
- []
-
-
-Overfull \hbox (28.17615pt too wide) in alignment at lines 358--358
-[][][][]
- []
-
-
-LaTeX Warning: Float too large for page by 86.62595pt on input line 359.
-
+although it is yet undefined on input line 339.
+ [11] [12]
 Package acronym Info: Label `acro:KPI' newly defined as it shall be overridden
-although it is yet undefined on input line 374.
-
-Overfull \hbox (4.89355pt too wide) in paragraph at lines 376--377
-\TU/lmr/m/n/12 Agente 3), HU-025 (registro e integridad CONEAU/SIU, Agente 5),
-HU-052 (ventanilla
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[12]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[13]
+although it is yet undefined on input line 393.
+Package acronym Info: Label `acro:UNDEF' newly defined as it shall be overridde
+n
+although it is yet undefined on input line 400.
+ [13]
 Package acronym Info: Label `acro:PDCA' newly defined as it shall be overridden
 
-although it is yet undefined on input line 398.
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[14]
+although it is yet undefined on input line 418.
 Package acronym Info: Label `acro:CMDB' newly defined as it shall be overridden
 
-although it is yet undefined on input line 410.
+although it is yet undefined on input line 430.
 Package acronym Info: Label `acro:NHI' newly defined as it shall be overridden
-although it is yet undefined on input line 410.
+although it is yet undefined on input line 430.
+ [14]
 Package acronym Info: Label `acro:HITL' newly defined as it shall be overridden
 
-although it is yet undefined on input line 412.
+although it is yet undefined on input line 432.
 
-Overfull \hbox (2.99603pt too wide) in paragraph at lines 439--440
-[]\TU/lmr/m/n/12 Se adopta un enfoque \TU/lmr/bx/n/12 iterativo-incremental \TU
-/lmr/m/n/12 alineado con los cinco pasos metodológicos
+Underfull \hbox (badness 2452) in paragraph at lines 451--451
+[]|\TU/lmr/m/n/12 Operación real con integración completa de agentes A2--A5.
  []
 
 
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
+Underfull \hbox (badness 1622) in paragraph at lines 459--460
+[]\TU/lmr/m/n/12 Se adopta un enfoque \TU/lmr/bx/n/12 iterativo-incremental \TU
+/lmr/m/n/12 alineado con los cinco pasos
+ []
 
 [15]
-Overfull \hbox (49.02866pt too wide) in paragraph at lines 529--530
- [][]
- []
-
-
-Overfull \hbox (0.59369pt too wide) in paragraph at lines 555--555
-\TU/lmr/bx/n/12 convencional|
- []
-
-
-Overfull \hbox (6.24477pt too wide) in paragraph at lines 555--555
-\TU/lmr/m/n/12 documentables)|
- []
-
 Package acronym Info: Label `acro:HU' newly defined as it shall be overridden
-although it is yet undefined on input line 560.
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[16]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[17]
-Underfull \hbox (badness 1210) in paragraph at lines 673--673
-[]|\TU/lmr/m/n/10 Automatización de la generación de comunicaciones institucio
-nales
+although it is yet undefined on input line 583.
+ [16] [17] [18]
+Underfull \hbox (badness 1087) in paragraph at lines 699--699
+\TU/lmr/m/n/10 posts, correos, certificados); consistencia en el mensaje institu
+cional;
  []
-
-
-Underfull \hbox (badness 1360) in paragraph at lines 673--673
-\TU/lmr/m/n/10 (gacetillas, posts, correos, certificados); consistencia en el me
-nsaje
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[18]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
 
 [19]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[20]
-
-LaTeX Warning: Float too large for page by 333.1258pt on input line 716.
-
-
-Overfull \hbox (18.81825pt too wide) in paragraph at lines 730--731
-[]\TU/lmr/bx/n/12 Identidades no humanas: \TU/lmr/m/n/12 cada cuenta de servicio
-, token o credencial de automatización
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[21]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[22]
+ignored: Infinite glue shrinkage found in box being split [20]
+Package acronym Info: Label `acro:CIS' newly defined as it shall be overridden
+although it is yet undefined on input line 755.
+Package acronym Info: Label `acro:OWASP' newly defined as it shall be overridde
+n
+although it is yet undefined on input line 755.
+ [21]
 Package acronym Info: Label `acro:RBAC' newly defined as it shall be overridden
 
-although it is yet undefined on input line 732.
+although it is yet undefined on input line 762.
+Package acronym Info: Label `acro:PoLP' newly defined as it shall be overridden
 
-Overfull \hbox (6.33623pt too wide) in paragraph at lines 732--733
-\TU/lmr/m/n/12 visualizador (consulta logs). Solo el validador puede aprobar con
-tenido para publicación.
+although it is yet undefined on input line 766.
+ [22]
+Underfull \hbox (badness 2662) in paragraph at lines 782--783
+\TU/lmr/m/n/12 mantenibilidad y usabilidad de la norma ([]International Organiza
+tion for
  []
 
-
-Overfull \hbox (2.57611pt too wide) in paragraph at lines 735--736
-[]\TU/lmr/bx/n/12 Protección contra inyección de prompts: \TU/lmr/m/n/12 las
-entradas de formularios, documentos
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[23]
-Overfull \hbox (48.07358pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/bx/n/10 Condición
- []
-
-
-Overfull \hbox (10.03978pt too wide) in paragraph at lines 773--773
-\TU/lmr/bx/n/10 de
- []
-
-
-Overfull \hbox (35.95778pt too wide) in paragraph at lines 773--773
-\TU/lmr/bx/n/10 entrada|
- []
-
-
-Overfull \hbox (46.3978pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/bx/n/10 Evidencia
- []
-
-
-Overfull \hbox (35.38257pt too wide) in paragraph at lines 773--773
-\TU/lmr/bx/n/10 mínima|
- []
-
-
-Overfull \hbox (31.15353pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/m/n/10 Fuentes
- []
-
-
-Overfull \hbox (59.7061pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 institucionales
- []
-
-
-Overfull \hbox (3.15736pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 y
- []
-
-
-Overfull \hbox (30.72612pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 backlog
- []
-
-
-Overfull \hbox (45.84052pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 disponibles|
- []
-
-
-Overfull \hbox (27.22894pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/m/n/10 Matriz
- []
-
-
-Overfull \hbox (24.61176pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 BPM--
- []
-
-
-Overfull \hbox (39.42175pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 HU--DoD,
- []
-
-
-Overfull \hbox (17.67393pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 nota
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (30.97412pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 alcance,
- []
-
-
-Overfull \hbox (27.05255pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 riesgos
- []
-
-
-Overfull \hbox (32.42293pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 iniciales|
- []
-
-
-Overfull \hbox (14.90637pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/m/n/10 HU-
- []
-
-
-Overfull \hbox (13.06294pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 010
- []
-
-
-Overfull \hbox (3.51295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 a
- []
-
-
-Overfull \hbox (14.90637pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 HU-
- []
-
-
-Overfull \hbox (12.96294pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 014
- []
-
-
-Overfull \hbox (52.89651pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 especificadas
- []
-
-
-Overfull \hbox (3.15736pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 y
- []
-
-
-Overfull \hbox (51.89693pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 responsables
- []
-
-
-Overfull \hbox (50.99393pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 preliminares
- []
-
-
-Overfull \hbox (51.7471pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 identificados|
- []
-
-
-Overfull \hbox (23.21097pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/m/n/10 Casos
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (14.15735pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 uso,
- []
-
-
-Overfull \hbox (38.39113pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 diagrama
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (23.99655pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 clases,
- []
-
-
-Overfull \hbox (34.57072pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 checklist
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (40.87212pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 seguridad,
- []
-
-
-Overfull \hbox (17.13493pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 plan
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (31.91333pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 pruebas|
- []
-
-
-Overfull \hbox (14.90637pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/m/n/10 HU-
- []
-
-
-Overfull \hbox (13.06294pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 010
- []
-
-
-Overfull \hbox (3.15736pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 y
- []
-
-
-Overfull \hbox (14.90637pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 HU-
- []
-
-
-Overfull \hbox (12.31294pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 011
- []
-
-
-Overfull \hbox (44.40831pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 candidatas
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 en
- []
-
-
-Overfull \hbox (31.02992pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 entorno
- []
-
-
-Overfull \hbox (43.5543pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 controlado|
- []
-
-
-Overfull \hbox (36.79373pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/m/n/10 Gacetilla
- []
-
-
-Overfull \hbox (3.15736pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 y
- []
-
-
-Overfull \hbox (16.65074pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 post
- []
-
-
-Overfull \hbox (41.95012pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 generados,
- []
-
-
-Overfull \hbox (16.33295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 logs,
- []
-
-
-Overfull \hbox (34.57072pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 checklist
- []
-
-
-Overfull \hbox (19.81735pt too wide) in paragraph at lines 773--773
-[][]\TU/lmr/m/n/10 ,
- []
-
-
-Overfull \hbox (44.93753pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 mediciones
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (29.63293pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 tiempo,
- []
-
-
-Overfull \hbox (31.04114pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 informe
- []
-
-
-Overfull \hbox (8.96175pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 S1|
- []
-
-
-Overfull \hbox (22.09296pt too wide) in paragraph at lines 773--773
-[]|[][]
- []
-
-
-Overfull \hbox (7.96175pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 S1
- []
-
-
-Overfull \hbox (48.7595pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 estabilizado
- []
-
-
-Overfull \hbox (3.15736pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 y
- []
-
-
-Overfull \hbox (30.72612pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 backlog
- []
-
-
-Overfull \hbox (8.71175pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 S2
- []
-
-
-Overfull \hbox (42.4553pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 revalidado|
- []
-
-
-Overfull \hbox (72.22913pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/m/n/10 Contratos/mocks
- []
-
-
-Overfull \hbox (28.96735pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 A2--A5,
- []
-
-
-Overfull \hbox (34.86314pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 esquema
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (48.50632pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 logs/estado,
- []
-
-
-Overfull \hbox (51.89693pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 responsables
- []
-
-
-Overfull \hbox (3.15736pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 y
- []
-
-
-Overfull \hbox (37.59592pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 plantillas|
- []
-
-
-Overfull \hbox (14.90637pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/m/n/10 HU-
- []
-
-
-Overfull \hbox (13.06294pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 010
- []
-
-
-Overfull \hbox (3.51295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 a
- []
-
-
-Overfull \hbox (14.90637pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 HU-
- []
-
-
-Overfull \hbox (12.96294pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 014
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 en
- []
-
-
-Overfull \hbox (28.36894pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 versión
- []
-
-
-Overfull \hbox (40.5471pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 candidata|
- []
-
-
-Overfull \hbox (18.74075pt too wide) in paragraph at lines 773--773
-[]|\TU/lmr/m/n/10 Acta
- []
-
-
-Overfull \hbox (3.51295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 o
- []
-
-
-Overfull \hbox (31.04114pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 informe
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (17.91074pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 gate,
- []
-
-
-Overfull \hbox (34.57072pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 checklist
- []
-
-
-Overfull \hbox (24.64514pt too wide) in paragraph at lines 773--773
-\OMS/cmsy/m/n/10 $ \TU/lmr/m/n/10 3/4,
- []
-
-
-Overfull \hbox (32.68753pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 defectos
- []
-
-
-Overfull \hbox (29.17914pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 críticos
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 en
- []
-
-
-Overfull \hbox (17.39134pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 cero,
- []
-
-
-Overfull \hbox (32.09952pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 paquete
- []
-
-
-Overfull \hbox (8.41295pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (38.08731pt too wide) in paragraph at lines 773--773
-\TU/lmr/m/n/10 evidencia|
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[24]
-Overfull \vbox (16.49402pt too high) has occurred while \output is active []
-
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[25]
-Overfull \hbox (36.42976pt too wide) in paragraph at lines 796--796
-[]|\TU/lmr/m/n/12 Desarrollador
- []
-
-
-Overfull \hbox (13.0672pt too wide) in paragraph at lines 796--796
-\TU/lmr/m/n/12 principal
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 796--796
-\TU/lmr/m/n/12 (este
- []
-
-
-Overfull \hbox (17.3689pt too wide) in paragraph at lines 796--796
-\TU/lmr/m/n/12 Proyecto)|
- []
-
-
-Overfull \hbox (36.42976pt too wide) in paragraph at lines 796--796
-[]|\TU/lmr/m/n/12 Desarrollador
- []
-
-
-Overfull \hbox (13.0672pt too wide) in paragraph at lines 796--796
-\TU/lmr/m/n/12 principal
- []
-
-
-Overfull \hbox (16.0009pt too wide) in paragraph at lines 796--796
-\TU/lmr/m/n/12 (Proyecto
- []
-
-
-Overfull \hbox (43.12576pt too wide) in paragraph at lines 796--796
-\TU/lmr/m/n/12 independiente)|
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[26]
-Overfull \hbox (37.38844pt too wide) in paragraph at lines 900--901
- [][]
- []
-
+[23] [24] [25]
 Package acronym Info: Label `acro:EPIC' newly defined as it shall be overridden
 
-although it is yet undefined on input line 907.
+although it is yet undefined on input line 950.
 Package acronym Info: Label `acro:SP' newly defined as it shall be overridden
-although it is yet undefined on input line 907.
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[27]
-Overfull \hbox (4.24023pt too wide) in paragraph at lines 925--925
-\TU/lmr/m/n/12 institucional
- []
-
-
-Overfull \hbox (1.6427pt too wide) in paragraph at lines 925--925
-\TU/lmr/m/n/12 profesional).
- []
-
-
-Overfull \hbox (3.8183pt too wide) in paragraph at lines 925--925
-\TU/lmr/m/n/12 configurable.
- []
-
-
-Overfull \hbox (8.07399pt too wide) in paragraph at lines 925--925
-\TU/lmr/m/n/12 alucinaciones
- []
-
-
-Overfull \hbox (3.25502pt too wide) in paragraph at lines 925--925
-\TU/lmr/m/n/12 destinatario,
- []
-
-
-LaTeX Warning: Float too large for page by 572.14046pt on input line 926.
-
-
-Underfull \hbox (badness 4686) in paragraph at lines 953--953
-[]|\TU/lmr/bx/n/10 HU /
- []
-
-
-Overfull \hbox (9.66312pt too wide) in paragraph at lines 953--953
-\TU/lmr/bx/n/10 requisito|
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[]|\TU/lmr/bx/n/10 DoD
- []
-
-
-Overfull \hbox (14.71013pt too wide) in paragraph at lines 953--953
-[]|\TU/lmr/bx/n/10 Evidencia|
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Input
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 desde
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 Sheet;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 output
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 en
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 Google
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 Docs;
- []
-
-
-Overfull \hbox (2.04704pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 plantilla
- []
-
-
-Overfull \hbox (19.80603pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 institucional
- []
-
-
-Overfull \hbox (3.65724pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 aplicada;
- []
-
-
-Overfull \hbox (9.39044pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 validación
- []
-
-
-Overfull \hbox (3.67386pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 humana.|
- []
-
-
-Overfull \hbox (15.78806pt too wide) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Documento
- []
-
-
-Overfull \hbox (6.40125pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 generado,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 log,
- []
-
-
-Overfull \hbox (2.88306pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 checklist
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (2.99527pt too wide) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Formato
- []
-
-
-Overfull \hbox (8.85944pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 adaptable
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 a
- []
-
-
-Overfull \hbox (10.29027pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 Instagram
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 y
- []
-
-
-Overfull \hbox (6.23325pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 LinkedIn;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 texto
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 limpio
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 y
- []
-
-
-Overfull \hbox (8.83025pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 coherente;
- []
-
-
-Overfull \hbox (2.33264pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 longitud
- []
-
-
-Overfull \hbox (20.02322pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 configurable;
- []
-
-
-Overfull \hbox (9.39044pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 validación
- []
-
-
-Overfull \hbox (3.67386pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 humana.|
- []
-
-
-Overfull \hbox (5.33727pt too wide) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Borrador
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 log,
- []
-
-
-Overfull \hbox (2.88306pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 checklist
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Trigger
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 al
- []
-
-
-Overfull \hbox (2.79907pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 registrar
- []
-
-
-Overfull \hbox (14.37004pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 inscripción;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 email
- []
-
-
-Overfull \hbox (5.06685pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 generado
- []
-
-
-Overfull \hbox (42.01303pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 automáticamente;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Email
- []
-
-
-Overfull \hbox (2.05005pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 recibido,
- []
-
-
-Underfull \hbox (badness 5970) in paragraph at lines 953--953
-\TU/lmr/m/n/10 log de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Email
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 inicio
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 con
- []
-
-
-Overfull \hbox (8.84824pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 invitación
- []
-
-
-Underfull \hbox (badness 1622) in paragraph at lines 953--953
-\TU/lmr/m/n/10 a chat;
- []
-
-
-Overfull \hbox (6.80147pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 respuesta
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 usable;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 datos
- []
-
-
-Overfull \hbox (10.86845pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 requeridos
- []
-
-
-Overfull \hbox (13.36746pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 registrados
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 en
- []
-
-
-Overfull \hbox (2.35226pt too wide) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Captura
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 de
- []
-
-
-Overfull \hbox (14.82784pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 interacción,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 en
- []
-
-
-Overfull \hbox (3.27205pt too wide) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Plantilla
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 base;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 PDF
- []
-
-
-Overfull \hbox (6.40125pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 generado;
- []
-
-
-Overfull \hbox (9.39044pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 validación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 previa
- []
-
-
-Overfull \hbox (15.42543pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 obligatoria.|
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 PDF
- []
-
-
-Overfull \hbox (6.40125pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 generado,
- []
-
-
-Overfull \hbox (13.78883pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 aprobación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 manual,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 RNF
- []
-
-
-Overfull \hbox (7.85005pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 seguridad
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 /
- []
-
-
-Overfull \hbox (10.06352pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 CONEAU|
- []
-
-
-Overfull \hbox (11.54204pt too wide) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Inventario,
- []
-
-
-Overfull \hbox (17.63045pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 credenciales
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[][]\TU/lmr/m/n/10 ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 logs,
- []
-
-
-Overfull \hbox (9.39044pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 validación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 formal
- []
-
-
-Overfull \hbox (12.23065pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 registrada.|
- []
-
-
-Overfull \hbox (2.52867pt too wide) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Registro
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 activos,
- []
-
-
-Overfull \hbox (2.88306pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 checklist
- []
-
-
-Overfull \hbox (9.18445pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 seguridad,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 HU-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 015,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 HU-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 025,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 HU-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 052,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 fuera
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 alcance
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 No
- []
-
-
-Overfull \hbox (20.36906pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 implementar
- []
-
-
-Overfull \hbox (4.74504pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 analítica,
- []
-
-
-Overfull \hbox (3.73566pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 scraping,
- []
-
-
-Overfull \hbox (2.86185pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 atención
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 pública
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 ni
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 soporte
- []
-
-
-Overfull \hbox (29.07544pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 administrativo
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 como
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 parte
- []
-
-
-Overfull \hbox (3.32246pt too wide) in paragraph at lines 953--953
-[]|\TU/lmr/m/n/10 Revisión
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 backlog
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 953--953
-\TU/lmr/m/n/10 y
- []
-
-
-Overfull \hbox (0.67645pt too wide) in paragraph at lines 953--953
-\TU/lmr/m/n/10 alcance.|
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[28]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[29]
-Overfull \vbox (268.62602pt too high) has occurred while \output is active []
-
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[30]
-Overfull \hbox (1.79448pt too wide) in paragraph at lines 976--977
-\TU/lmr/m/n/12 procesando exclusivamente insumos del personal de la [][] vía Go
-ogle Sheets. La integración
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[31]
+although it is yet undefined on input line 950.
+ [26] [27] [28] [29]
 Package acronym Info: Label `acro:EDT' newly defined as it shall be overridden
-although it is yet undefined on input line 1063.
-
-Underfull \hbox (badness 4072) in paragraph at lines 1082--1082
-\TU/lmr/m/n/12 seguridad, logs, registro de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1082--1082
-[]|\TU/lmr/m/n/12 Relevamiento P4, equipo
- []
-
-
-Underfull \hbox (badness 1048) in paragraph at lines 1082--1082
-\TU/lmr/m/n/12 validador [][], dependencias
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1082--1082
-\TU/lmr/m/n/12 HU-001/HU-002, matriz de
- []
-
-
-Underfull \hbox (badness 5939) in paragraph at lines 1082--1082
-[]|\TU/lmr/m/n/12 Email de inicio, invitación
- []
-
-
-Underfull \hbox (badness 3803) in paragraph at lines 1082--1082
-\TU/lmr/m/n/12 a chat, registro en Sheets,
- []
-
-
-Underfull \hbox (badness 7796) in paragraph at lines 1082--1082
-\TU/lmr/m/n/12 validación de usabilidad y
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1082--1082
-[]|\TU/lmr/m/n/12 Plantilla, generación PDF,
- []
-
-
-Underfull \hbox (badness 5302) in paragraph at lines 1082--1082
-\TU/lmr/m/n/12 aprobación manual, log de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1082--1082
-[]|\TU/lmr/m/n/12 Contratos/mocks A2--A5,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1082--1082
-\TU/lmr/m/n/12 integración progresiva,
- []
-
-
-Underfull \hbox (badness 2409) in paragraph at lines 1082--1082
-\TU/lmr/m/n/12 pruebas [][], informe final,
- []
-
-
-Underfull \hbox (badness 3758) in paragraph at lines 1103--1103
-\TU/lmr/m/n/12 definidas con la SEU. HU-010 y HU-011
- []
-
-
-Underfull \hbox (badness 2799) in paragraph at lines 1103--1103
-[]|\TU/lmr/m/n/12 HU-012, HU-013 y HU-014 implementados.
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1103--1103
-[]|\TU/lmr/m/n/12 Consolidación, métricas de impacto,
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[32]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[33]
-Underfull \hbox (badness 7796) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 de procesos de comunicación,
- []
-
-
-Underfull \hbox (badness 7925) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 Configuración del entorno de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 desarrollo (Ollama, FastAPI,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-[]|\TU/lmr/m/n/12 Co-diseño de plantillas
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 institucionales con la [][].
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 Configuración de cuentas de
- []
-
-
-Underfull \hbox (badness 5359) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 de cadenas de prompts para
- []
-
-
-Underfull \hbox (badness 6995) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 primer prototipo de gacetilla,
- []
-
-
-Underfull \hbox (badness 3623) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 pruebas unitarias y validación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 temprana. Inicio paralelo de
- []
-
-
-Underfull \hbox (badness 2762) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 parcial de evidencias, defectos,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-[]|\TU/lmr/m/n/12 Ciclo HU-012: confirmaciones
- []
-
-
-Underfull \hbox (badness 5022) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 a chat, registro operativo en
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 Refinamiento del [][] HU-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-[]|\TU/lmr/m/n/12 Ciclo HU-014: plantilla de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 certificado, generación PDF,
- []
-
-
-Underfull \hbox (badness 6592) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 aprobación manual y log de
- []
-
-
-Underfull \hbox (badness 4927) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 emisión. Integración progresiva
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-[]|\TU/lmr/m/n/12 Pruebas con usuarios reales
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 trazabilidad, defectos críticos,
- []
-
-
-Underfull \hbox (badness 5431) in paragraph at lines 1157--1157
-\TU/lmr/m/n/12 entrega del informe final del
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[34]
-Overfull \vbox (206.08546pt too high) has occurred while \output is active []
-
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[35]
-Underfull \hbox (badness 2302) in paragraph at lines 1193--1193
-[]|$\OML/cmm/m/it/10 <$ \TU/lmr/m/n/10 30 segundos por pieza
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1193--1193
-[]|\TU/lmr/m/n/10 Acciones oficiales con
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1193--1193
-[]|\TU/lmr/m/n/10 Checklist 1--4: precisión
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1193--1193
-[]|\TU/lmr/m/n/10 Canales institucionales
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1193--1193
-[]|\TU/lmr/m/n/10 Borradores rechazados /
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1193--1193
-[]|\TU/lmr/m/n/10 Acciones con ID, fecha,
- []
-
-
-Underfull \hbox (badness 3088) in paragraph at lines 1193--1193
-\TU/lmr/m/n/10 solicitante, output, estado,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1193--1193
-\TU/lmr/m/n/10 validador y evidencia /
- []
-
-
-Underfull \hbox (badness 4556) in paragraph at lines 1193--1193
-[]|\TU/lmr/m/n/10 Checks [][] cumplidos /
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1193--1193
-[]|\TU/lmr/m/n/10 100% para el gate
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-[]|\TU/lmr/bx/n/10 Responsable /
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Logs de ejecución,
- []
-
-
-Underfull \hbox (badness 3724) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Goñe + [][]; log,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 baseline manual
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 y reporte de
- []
-
-
-Underfull \hbox (badness 2903) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Planilla de estados,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Goñe + validador
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 institucional; Sheet,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 checklist, link a
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Checklist [][]
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 1--4, observaciones
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 y rechazos de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Responsable
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 de validación;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 formulario/checklist,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 registro de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Paquete de gate
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-[][]\TU/lmr/m/n/10 , reporte de
- []
-
-
-Underfull \hbox (badness 3108) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 pruebas, defectos y
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Director/Tutor +
- []
-
-
-Underfull \hbox (badness 1783) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 Goñe; acta, reporte
- []
-
-
-Underfull \hbox (badness 1014) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 de pruebas, registro
- []
-
-
-Underfull \hbox (badness 4120) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Backlog, matriz de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Checklist de
- []
-
-
-Underfull \hbox (badness 4569) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 seguridad: permisos,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 secretos, [][],
- []
-
-
-Underfull \hbox (badness 1648) in paragraph at lines 1216--1216
-[]|\TU/lmr/m/n/10 Responsable técnico;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 checklist, pruebas
- []
-
-
-Underfull \hbox (badness 1596) in paragraph at lines 1216--1216
-\TU/lmr/m/n/10 negativas y registro
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[36]
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/bx/n/10 Estrategia de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 El personal de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 la Secretaría
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 debe involucrarse
- []
-
-
-Underfull \hbox (badness 2600) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 activamente en el
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 y la validación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 del contenido
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 agente produce
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 contenido
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 desalineado con
- []
-
-
-Underfull \hbox (badness 1389) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 co-diseño incluidas
- []
-
-
-Underfull \hbox (badness 3536) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 en el cronograma
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[][] \TU/lmr/m/n/10 depende
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 del diseño y
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 refinamiento
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 continuo de los
- []
-
-
-Underfull \hbox (badness 4819) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 prompts. Prompts
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 pobres generan
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 contenido con
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 alucinaciones o
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 tono inapropiado,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Ciclo de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 refinamiento
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 de prompts con
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 retroalimentación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 del validador
- []
-
-
-Underfull \hbox (badness 6625) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 humano desde el
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 La capa de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 orquestación y
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 agentes son co-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 responsabilidad
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 de ambos
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 desarrolladores.
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 Desalineación en
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 la arquitectura
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 puede bloquear
- []
-
-
-Underfull \hbox (badness 1603) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 la integración con
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Reuniones
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 periódicas de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 sincronización
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 con Goñe, Juan
- []
-
-
-Underfull \hbox (badness 2012) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 Ignacio. Definición
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 de contratos de
- []
-
-
-Underfull \hbox (badness 1742) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 interfaz en agosto
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Ningún dato
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 institucional
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 sensible puede
- []
-
-
-Underfull \hbox (badness 3343) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 de [][] externos.
- []
-
-
-Underfull \hbox (badness 3364) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 El incumplimiento
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 defensa nacional
- []
-
-
-Underfull \hbox (badness 2809) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 y vulnera la Ley
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 inferencia base.
- []
-
-
-Underfull \hbox (badness 1642) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 de datos en cada
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 release. Cualquier
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 queda restringida
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 a contingencia
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 aprobada, datos
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 anonimizados y
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 La integración
- []
-
-
-Underfull \hbox (badness 7064) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 columna vertebral
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 del sistema en
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 S1. Cambios de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 permisos, cuotas
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 de Apps Script
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 o políticas de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 Google pueden
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Configuración de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 con permisos
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 triggers manuales
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 como nodo de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 comunicación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 institucional en
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 S2: transforma
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 el contenido
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 producido por
- []
-
-
-Underfull \hbox (badness 1540) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 los demás agentes
- []
-
-
-Underfull \hbox (badness 3579) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 en comunicaciones
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 institucionales. Si
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 al momento de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 la integración,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 la función de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 comunicación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 integrada queda
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 sin contenido
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 que distribuir,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 reduciendo el
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 alcance a la
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Definición de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 que permiten
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 la comunicación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 integrada
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 del avance de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 Integración real
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 progresiva en S2
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 La defensa
- []
-
-
-Underfull \hbox (badness 1917) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 generó, desde qué
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 insumo, con qué
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 y qué evidencia
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Definir desde S1
- []
-
-
-Underfull \hbox (badness 1688) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 con \TU/lmtt/m/n/10 id_solicitud\TU/lmr/m/n/10 ,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 estado, validador,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 El avance no
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 sino por estados
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Usar estados de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 implementación,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 en prueba, en
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 validación [][],
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 cerrada por
- []
-
-
-Underfull \hbox (badness 1642) in paragraph at lines 1243--1243
-[][]\TU/lmr/m/n/10 , observada o
- []
-
-
-Underfull \hbox (badness 3471) in paragraph at lines 1243--1243
-[][] \TU/lmr/m/n/10 se cierra sin
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Sin titular y
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 suplente de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Confirmar
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 responsables por
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[][]\TU/lmr/m/n/10 ; registrar
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 aprobaciones,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 observaciones y
- []
-
-
-Underfull \hbox (badness 2753) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 rechazos en canal
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 formal; bloquear
- []
-
-
-Underfull \hbox (badness 2418) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 salidas oficiales si
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Saltar de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 documentación
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 a operación real
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 aumenta riesgo
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 institucional y
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-[]|\TU/lmr/m/n/10 Desplegar por
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 local controlado,
- []
-
-
-Underfull \hbox (badness 6842) in paragraph at lines 1243--1243
-\TU/lmr/m/n/10 exige go/no-go y
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[37]
-Overfull \vbox (808.49402pt too high) has occurred while \output is active []
-
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[38]
-Overfull \hbox (9.28214pt too wide) in paragraph at lines 1249--1249
+although it is yet undefined on input line 1115.
+ [30] [31]
+ignored: Infinite glue shrinkage found in box being split [32]
+ignored: Infinite glue shrinkage found in box being split [33]
+ignored: Infinite glue shrinkage found in box being split [34] [35]
+Underfull \hbox (badness 1383) in paragraph at lines 1323--1323
 [][]\TU/lmr/m/n/12 Comisión Nacional de Evaluación y Acreditación Universitar
-ia (2020). \TU/lmr/m/it/12 Guía de Autoevaluación
+ia (2020). \TU/lmr/m/it/12 Guía de
  []
 
 Module polyglossia Warning: Language spanish not found in language.dat.lua on in
-put line 1249
+put line 1323
 Module polyglossia Warning: Language spanish not found in language.dat.lua on in
-put line 1249
+put line 1323
 Module polyglossia Warning: Language spanish not found in language.dat.lua on in
-put line 1249
+put line 1323
 Module polyglossia Warning: Language spanish not found in language.dat.lua on in
-put line 1249
-
-Package fancyhdr Warning: \headheight is too small (12.0pt):
-(fancyhdr)                Make it at least 13.59999pt, for example:
-(fancyhdr)                \setlength{\headheight}{13.59999pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-1.59999pt}.
-
-[39] (./Anteproyecto-PPS-Juan-Ignacio-Gone.aux)
+put line 1323
+[36] (./Anteproyecto-PPS-Juan-Ignacio-Gone.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
-Package rerunfilecheck Info: File `Anteproyecto-PPS-Juan-Ignacio-Gone.out' has
+Package rerunfilecheck Info: File `Anteproyecto-PPS-Juan-Ignacio-Gone.out' has 
 not changed.
 (rerunfilecheck)             Checksum: DE0EE9B7D0EEC59DE9B25FE51C3185D0;12053.
 Package logreq Info: Writing requests to 'Anteproyecto-PPS-Juan-Ignacio-Gone.ru
@@ -4443,37 +1485,37 @@ n.xml'.
 )
 
 Here is how much of LuaTeX's memory you used:
- 39385 strings out of 476076
- 125007,1648299 words of node,token memory allocated
- 615 words of node memory still in use:
-   4 hlist, 1 vlist, 1 rule, 1 local_par, 4 glue, 4 kern, 1 penalty, 3 glyph, 12
- attribute, 69 glue_spec, 12 attribute_list, 2 write, 3 pdf_action nodes
-   avail lists: 1:7,2:3389,3:1914,4:262,5:475,6:121,7:10508,8:57,9:966,10:17,11:
-52
- 60762 multiletter control sequences out of 65536+600000
- 73 fonts using 5841415 bytes
- 84i,14n,100p,1911b,2110s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 39541 strings out of 476076
+ 100000,1648299 words of node,token memory allocated
+ 645 words of node memory still in use:
+   4 hlist, 1 vlist, 1 rule, 1 local_par, 4 glue, 4 kern, 1 penalty, 3 glyph, 15
+ attribute, 69 glue_spec, 15 attribute_list, 2 write, 6 pdf_action nodes
+   avail lists: 1:2,2:3381,3:1943,4:250,5:395,6:178,7:8707,8:57,9:1422,10:18,11:
+51
+ 60917 multiletter control sequences out of 65536+600000
+ 75 fonts using 6093911 bytes
+ 84i,13n,100p,1911b,2110s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf-dist/fonts/opentype/public/lm/lmroman8-italic.otf></usr/share/
 texmf-dist/fonts/opentype/public/lm/lmromancaps10-regular.otf></usr/share/texmf-
-dist/fonts/opentype/public/lm/lmmono10-regular.otf></usr/share/texmf-dist/fonts/
-opentype/public/lm/lmroman7-regular.otf></usr/share/texmf-dist/fonts/opentype/pu
-blic/lm/lmroman12-italic.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmr
-oman7-italic.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman6-regula
-r.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmmono12-regular.otf></usr
-/share/texmf-dist/fonts/opentype/public/lm/lmroman10-italic.otf></usr/share/texm
-f-dist/fonts/opentype/public/lm/lmroman10-bold.otf></usr/share/texmf-dist/fonts/
-opentype/public/lm/lmroman8-regular.otf></usr/share/texmf-dist/fonts/opentype/pu
-blic/lm/lmroman10-regular.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lm
-roman12-regular.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman12-bo
-ld.otf></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/sh
-are/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texmf-dist/
-fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmsy10.pfb>
-Output written on Anteproyecto-PPS-Juan-Ignacio-Gone.pdf (40 pages, 232146 bytes
+dist/fonts/opentype/public/lm/lmmono8-regular.otf></usr/share/texmf-dist/fonts/o
+pentype/public/lm/lmroman8-bold.otf></usr/share/texmf-dist/fonts/opentype/public
+/lm/lmmono10-regular.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman
+10-italic.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman10-bold.otf
+></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman8-regular.otf></usr/shar
+e/texmf-dist/fonts/opentype/public/lm/lmroman12-italic.otf></usr/share/texmf-dis
+t/fonts/opentype/public/lm/lmmonolt10-bold.otf></usr/share/texmf-dist/fonts/open
+type/public/lm/lmmono12-regular.otf></usr/share/texmf-dist/fonts/opentype/public
+/lm/lmroman10-regular.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroma
+n12-regular.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman12-bold.o
+tf></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texmf-dist/font
+s/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texmf-dist/fonts/type1/public/a
+msfonts/cm/cmsy10.pfb>
+Output written on Anteproyecto-PPS-Juan-Ignacio-Gone.pdf (37 pages, 243623 bytes
 ).
 
-PDF statistics: 776 PDF objects out of 1000 (max. 8388607)
- 681 compressed objects within 7 object streams
- 181 named destinations out of 1000 (max. 1048576)
+PDF statistics: 781 PDF objects out of 1000 (max. 8388607)
+ 689 compressed objects within 7 object streams
+ 182 named destinations out of 1000 (max. 1048576)
  528 words of extra memory for PDF output out of 10000 (max. 100000000)
 

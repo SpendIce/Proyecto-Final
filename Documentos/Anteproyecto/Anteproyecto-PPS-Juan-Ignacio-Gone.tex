@@ -178,6 +178,9 @@ Agente de comunicaci\'on institucional, automatizaci\'on de contenido, gacetilla
   \acro{RAG}{Retrieval-Augmented Generation}
   \acro{RGC}{Responsable de Gesti\'on del Conocimiento de Extensi\'on}
   \acro{COORD}{Coordinador de Extensi\'on}
+  \acro{OWASP}{Open Worldwide Application Security Project}
+  \acro{CIS}{Center for Internet Security}
+  \acro{PoLP}{Principle of Least Privilege}
 \end{acronym}
 
 \noindent\textbf{Glosario de t\'erminos espec\'ificos:}
@@ -749,7 +752,7 @@ La Tabla~\ref{tab:riesgos} presenta los riesgos identificados para el alcance de
 
 \subsection{Seguridad}
 
-Se establecen los siguientes acuerdos preliminares de seguridad para el Agente~1:
+La condici\'on de agente aut\'onomo del Agente~1 introduce una superficie de ataque espec\'ifica que los controles tradicionales no cubren por completo. Por ello se adopta una pol\'itica de ciberseguridad ``desde el principio'' que combina tres marcos de referencia: los controles de higiene digital del \ac{CIS} ---con su gu\'ia de acompa\~namiento para agentes de inteligencia artificial---, el \ac{OWASP} Top~10 para Aplicaciones Ag\'enticas 2026 y la pol\'itica de seguridad para agentes inteligentes de la documentaci\'on vigente del \ac{P100} \parencite{ciscontrols2024, owaspagentic2026, cicerchia2026procesos}. Esta combinaci\'on alinea el dise\~no con est\'andares de industria reconocidos y con la directiva institucional. Sobre esa base se establecen los siguientes acuerdos preliminares de seguridad para el Agente~1:
 
 \begin{itemize}
   \item \textbf{Inventario de activos de IA:} el Agente~1, sus versiones de modelo, cadenas de prompts, repositorios de c\'odigo, fuentes de datos, cuentas de servicio y propietarios funcionales se registran en una \ac{CMDB} o planilla de configuraci\'on equivalente.
@@ -760,7 +763,8 @@ Se establecen los siguientes acuerdos preliminares de seguridad para el Agente~1
   \item \textbf{Validaci\'on humana obligatoria:} ning\'un contenido generado por el Agente~1 puede publicarse ni enviarse sin la aprobaci\'on expl\'icita de un validador humano. Este mecanismo es estructural y no puede deshabilitarse sin modificar el c\'odigo fuente.
   \item \textbf{Ejecuci\'on local:} los modelos de lenguaje se ejecutan en infraestructura propia, sin env\'io de datos institucionales a servicios externos. Solo en caso de fallback expl\'icito, con aprobaci\'on del administrador y datos anonimizados, se puede utilizar una API externa.
   \item \textbf{Protecci\'on contra inyecci\'on de prompts:} las entradas de formularios, documentos y correos se sanitizan antes de llegar al \ac{LLM}; las instrucciones del sistema se separan de los datos de usuario mediante delimitadores; y las salidas se revisan antes de activar acciones sobre Google Workspace.
-  \item \textbf{L\'imites de autonom\'ia:} las acciones se clasifican por riesgo. Las acciones de alto impacto ---publicar, enviar comunicaciones oficiales, emitir certificados, borrar o modificar registros--- exigen aprobaci\'on humana expl\'icita y registro de auditor\'ia.
+  \item \textbf{Privilegio m\'inimo (\ac{PoLP}):} ejecuci\'on en contenedores ef\'imeros y aislados, control de acceso \ac{RBAC} sobre PostgreSQL y Google Drive, y segmentaci\'on de red para impedir el movimiento lateral en caso de compromiso de un componente.
+  \item \textbf{L\'imites de autonom\'ia:} las acciones se clasifican por riesgo. Las acciones de alto impacto ---publicar, enviar comunicaciones oficiales, emitir certificados, borrar o modificar registros--- exigen aprobaci\'on humana expl\'icita, l\'imites de tiempo, registro de auditor\'ia y un interruptor de emergencia (\textit{kill switch}) que permite detener al agente ante comportamiento an\'omalo.
   \item \textbf{Trazabilidad y auditor\'ia:} registro de logs de ejecuci\'on con: \texttt{id\_solicitud}, acci\'on realizada, timestamp, usuario solicitante, \ac{HU} asociada, versi\'on de plantilla/prompt, estado de validaci\'on, validador, enlace al output, evidencia asociada y resultado t\'ecnico. Los registros se almacenan en PostgreSQL (S2) o en Google Sheets (S1).
 \end{itemize}
 
