@@ -616,6 +616,91 @@
       background: rgba(248, 250, 247, .96);
     }
 
+    .app:fullscreen,
+    .app.is-fullscreen {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr;
+      background: #07101f;
+    }
+
+    .app:fullscreen header,
+    .app:fullscreen .rail,
+    .app:fullscreen aside,
+    .app:fullscreen footer,
+    .app.is-fullscreen header,
+    .app.is-fullscreen .rail,
+    .app.is-fullscreen aside,
+    .app.is-fullscreen footer {
+      display: none;
+    }
+
+    .app:fullscreen main,
+    .app.is-fullscreen main {
+      grid-column: 1;
+      grid-row: 1;
+      padding: 0;
+      background: #07101f;
+    }
+
+    .app:fullscreen .stage,
+    .app.is-fullscreen .stage {
+      width: min(100vw, 177.7778vh);
+      height: min(100vh, 56.25vw);
+      aspect-ratio: 16 / 9;
+    }
+
+    .app:fullscreen .slide,
+    .app.is-fullscreen .slide {
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
+    }
+
+    .app:fullscreen .slide h1,
+    .app.is-fullscreen .slide h1 {
+      font-size: clamp(38px, 5.4cqw, 62px);
+    }
+
+    .app:fullscreen .slide h2,
+    .app.is-fullscreen .slide h2 {
+      font-size: clamp(23px, 3cqw, 34px);
+    }
+
+    .app:fullscreen .lead,
+    .app.is-fullscreen .lead {
+      font-size: clamp(20px, 2.35cqw, 26px);
+      line-height: 1.32;
+    }
+
+    .app:fullscreen ul,
+    .app:fullscreen ol,
+    .app.is-fullscreen ul,
+    .app.is-fullscreen ol {
+      font-size: clamp(17px, 1.95cqw, 21px);
+      line-height: 1.34;
+    }
+
+    .app:fullscreen .quote,
+    .app.is-fullscreen .quote {
+      font-size: clamp(18px, 2.1cqw, 24px);
+    }
+
+    .app:fullscreen .metric strong,
+    .app.is-fullscreen .metric strong {
+      font-size: clamp(24px, 2.75cqw, 34px);
+    }
+
+    .app:fullscreen .metric span,
+    .app.is-fullscreen .metric span,
+    .app:fullscreen .milestone span,
+    .app.is-fullscreen .milestone span,
+    .app:fullscreen .risk em,
+    .app.is-fullscreen .risk em,
+    .app:fullscreen .ask,
+    .app.is-fullscreen .ask {
+      font-size: clamp(15px, 1.5cqw, 18px);
+    }
+
     @media (max-width: 980px) {
       body {
         overflow: auto;
