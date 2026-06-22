@@ -139,6 +139,12 @@
       border-color: var(--gold);
     }
 
+    .tool[aria-pressed="true"] {
+      background: var(--green);
+      color: white;
+      border-color: var(--green);
+    }
+
     .rail {
       grid-column: 1 / 2;
       grid-row: 2 / 4;
@@ -602,6 +608,10 @@
       grid-template-columns: minmax(72px, 10vw) 1fr;
     }
 
+    .is-fullscreen header {
+      background: rgba(248, 250, 247, .96);
+    }
+
     @media (max-width: 980px) {
       body {
         overflow: auto;
@@ -710,6 +720,7 @@
       <div class="toolbar">
         <button class="tool" id="overviewButton" type="button">Vista</button>
         <button class="tool" id="notesButton" type="button">Notas</button>
+        <button class="tool" id="fullscreenButton" type="button" aria-pressed="false">Pantalla</button>
         <button class="tool" id="printButton" type="button">Imprimir</button>
       </div>
     </header>
@@ -1007,6 +1018,7 @@
     const nextButton = document.getElementById("nextButton");
     const overviewButton = document.getElementById("overviewButton");
     const notesButton = document.getElementById("notesButton");
+    const fullscreenButton = document.getElementById("fullscreenButton");
     const printButton = document.getElementById("printButton");
     let current = 0;
 
@@ -1042,9 +1054,31 @@
       show(current + delta);
     }
 
+    function updateFullscreenButton() {
+      const active = Boolean(document.fullscreenElement);
+      app.classList.toggle("is-fullscreen", active);
+      fullscreenButton.setAttribute("aria-pressed", String(active));
+      fullscreenButton.textContent = active ? "Salir" : "Pantalla";
+    }
+
+    async function toggleFullscreen() {
+      try {
+        if (!document.fullscreenElement) {
+          await app.requestFullscreen();
+        } else {
+          await document.exitFullscreen();
+        }
+        updateFullscreenButton();
+      } catch {
+        updateFullscreenButton();
+      }
+    }
+
     prevButton.addEventListener("click", () => move(-1));
     nextButton.addEventListener("click", () => move(1));
     notesButton.addEventListener("click", () => app.classList.toggle("notes-hidden"));
+    fullscreenButton.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", updateFullscreenButton);
     printButton.addEventListener("click", () => window.print());
     overviewButton.addEventListener("click", () => {
       app.classList.toggle("overview");
@@ -1075,6 +1109,10 @@
       }
       if (event.key.toLowerCase() === "n") {
         app.classList.toggle("notes-hidden");
+      }
+      if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        toggleFullscreen();
       }
       if (event.key === "Home") {
         event.preventDefault();
