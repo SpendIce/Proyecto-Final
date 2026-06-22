@@ -218,13 +218,13 @@
 
     .slide.active {
       display: grid;
-      animation: enter .28s ease-out both;
+      animation: enter .12s ease-out both;
     }
 
     @keyframes enter {
       from {
         opacity: 0;
-        transform: translateY(12px) scale(.99);
+        transform: translateY(4px) scale(.995);
       }
       to {
         opacity: 1;
@@ -656,19 +656,24 @@
       box-shadow: none;
     }
 
+    .app:fullscreen .slide.active,
+    .app.is-fullscreen .slide.active {
+      animation: none;
+    }
+
     .app:fullscreen .slide h1,
     .app.is-fullscreen .slide h1 {
-      font-size: clamp(38px, 5.4cqw, 62px);
+      font-size: clamp(42px, 5.8cqw, 68px);
     }
 
     .app:fullscreen .slide h2,
     .app.is-fullscreen .slide h2 {
-      font-size: clamp(23px, 3cqw, 34px);
+      font-size: clamp(25px, 3.3cqw, 38px);
     }
 
     .app:fullscreen .lead,
     .app.is-fullscreen .lead {
-      font-size: clamp(20px, 2.35cqw, 26px);
+      font-size: clamp(22px, 2.6cqw, 30px);
       line-height: 1.32;
     }
 
@@ -676,18 +681,18 @@
     .app:fullscreen ol,
     .app.is-fullscreen ul,
     .app.is-fullscreen ol {
-      font-size: clamp(17px, 1.95cqw, 21px);
+      font-size: clamp(18px, 2.15cqw, 24px);
       line-height: 1.34;
     }
 
     .app:fullscreen .quote,
     .app.is-fullscreen .quote {
-      font-size: clamp(18px, 2.1cqw, 24px);
+      font-size: clamp(20px, 2.35cqw, 28px);
     }
 
     .app:fullscreen .metric strong,
     .app.is-fullscreen .metric strong {
-      font-size: clamp(24px, 2.75cqw, 34px);
+      font-size: clamp(28px, 3cqw, 38px);
     }
 
     .app:fullscreen .metric span,
@@ -698,7 +703,7 @@
     .app.is-fullscreen .risk em,
     .app:fullscreen .ask,
     .app.is-fullscreen .ask {
-      font-size: clamp(15px, 1.5cqw, 18px);
+      font-size: clamp(16px, 1.7cqw, 20px);
     }
 
     @media (max-width: 980px) {
