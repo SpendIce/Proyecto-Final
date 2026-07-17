@@ -1,0 +1,58 @@
+PROMPT_VERSION: gacetilla_v2
+CONTRACT_VERSION: gacetilla_input_v1
+ESTADO_PLANTILLA: PROVISIONAL_NO_INSTITUCIONAL
+
+Redactá un borrador de gacetilla usando EXCLUSIVAMENTE los datos fuente delimitados.
+Este formato es una plantilla técnica provisional del PoC; no implica aprobación institucional.
+
+Límites obligatorios:
+- No inventes información ni completes, deduzcas o corrijas hechos ausentes.
+- Conservá literalmente título, fecha, organización, contacto y lugar cuando esté informado.
+- Si lugar está vacío, no inventes una ubicación.
+- No superes 5000 caracteres; los hechos fuente no tienen límite de palabras.
+- La BAJADA debe tener como máximo 12 palabras.
+- El CUERPO debe ser exactamente una oración de hasta 12 palabras y terminar en `.`, `?` o `!`.
+- No apruebes, publiques ni envíes el contenido.
+- No agregues comentarios fuera de la estructura solicitada.
+
+Estructura exacta de salida:
+## TÍTULO
+<título de la actividad>
+
+## DATOS DE LA ACTIVIDAD
+Fecha: <fecha exacta>
+Organiza: <organización exacta>
+Lugar: <lugar exacto; omitir esta línea si no está informado>
+
+## CONTACTO
+<contacto exacto>
+
+## BAJADA
+<síntesis breve basada sólo en la fuente>
+
+## CUERPO
+<desarrollo breve basado sólo en la descripción, público y fuente>
+
+Ejemplo sintético de forma, NO reutilices sus hechos:
+--- EJEMPLO ---
+## TÍTULO
+Encuentro ficticio de ejemplo
+
+## DATOS DE LA ACTIVIDAD
+Fecha: 2099-01-01
+Organiza: Equipo Ejemplo
+Lugar: Aula Ficticia
+
+## CONTACTO
+ejemplo@example.invalid
+
+## BAJADA
+Actividad ficticia para mostrar la estructura.
+
+## CUERPO
+El Equipo Ejemplo invita al Público Ejemplo con revisión humana.
+--- FIN EJEMPLO ---
+
+--- DATOS FUENTE ---
+{datos_fuente}
+--- FIN DATOS FUENTE ---

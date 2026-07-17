@@ -4,7 +4,8 @@ set -euo pipefail
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 base_url="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
 model="${OLLAMA_MODEL:-llama3.2:3b}"
-timeout_s="${OLLAMA_TIMEOUT:-25}"
+timeout_s="${OLLAMA_TIMEOUT:-45}"
+num_predict="${OLLAMA_NUM_PREDICT:-112}"
 
 curl --fail --silent --show-error "${base_url}/api/tags" \
   | python -c '
@@ -29,7 +30,8 @@ python -m agente1 \
   --salida "${salida_dir}" \
   --ollama-model "${model}" \
   --ollama-base-url "${base_url}" \
-  --ollama-timeout "${timeout_s}"
+  --ollama-timeout "${timeout_s}" \
+  --ollama-num-predict "${num_predict}"
 
 python - "${salida_dir}" <<'PY'
 import json

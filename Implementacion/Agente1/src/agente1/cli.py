@@ -7,7 +7,9 @@ from typing import Sequence
 
 from .ollama import (
     DEFAULT_OLLAMA_BASE_URL,
+    DEFAULT_OLLAMA_NUM_PREDICT,
     DEFAULT_OLLAMA_TIMEOUT_S,
+    MAX_OLLAMA_TIMEOUT_S,
     OllamaGenerator,
 )
 from .procesamiento import FakeGenerator, procesar_fila_csv
@@ -30,6 +32,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=_timeout_ollama,
         metavar="SEGUNDOS",
     )
+    parser.add_argument(
+        "--ollama-num-predict",
+        default=DEFAULT_OLLAMA_NUM_PREDICT,
+        type=int,
+        metavar="TOKENS",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -40,6 +48,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 modelo=args.ollama_model,
                 base_url=args.ollama_base_url,
                 timeout_s=args.ollama_timeout,
+                num_predict=args.ollama_num_predict,
             )
         )
         resultado = procesar_fila_csv(
@@ -84,6 +93,6 @@ def _timeout_ollama(value: str) -> float:
         timeout_s = float(value)
     except ValueError:
         raise argparse.ArgumentTypeError("debe ser un número") from None
-    if not 0 < timeout_s <= 30:
-        raise argparse.ArgumentTypeError("debe ser mayor que 0 y menor o igual a 30")
+    if not 0 < timeout_s <= MAX_OLLAMA_TIMEOUT_S:
+        raise argparse.ArgumentTypeError("debe ser mayor que 0 y menor o igual a 120")
     return timeout_s

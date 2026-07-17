@@ -9,6 +9,7 @@ import time
 import pytest
 
 from agente1 import OllamaGenerator
+from agente1.ollama import DEFAULT_OLLAMA_TIMEOUT_S
 
 
 @contextmanager
@@ -95,17 +96,46 @@ def test_ollama_envia_generate_no_streaming_y_devuelve_respuesta():
     assert solicitudes[0]["content_type"] == "application/json"
     assert json.loads(solicitudes[0]["body"]) == {
         "model": "llama3.2:3b",
-        "options": {"temperature": 0},
+        "options": {"num_predict": 112, "temperature": 0},
         "prompt": "PROMPT SECRETO",
         "stream": False,
     }
     assert generator.modelo == "llama3.2:3b"
 
 
-@pytest.mark.parametrize("timeout_s", [0, -1, 30.01])
+@pytest.mark.parametrize("timeout_s", [0, -1, 120.01])
 def test_ollama_rechaza_timeout_fuera_del_limite(timeout_s):
     with pytest.raises(ValueError, match="timeout"):
         OllamaGenerator(modelo="llama3.2:3b", timeout_s=timeout_s)
+
+
+def test_ollama_timeout_default_y_maximo_operativo():
+    assert DEFAULT_OLLAMA_TIMEOUT_S == 45
+    generator = OllamaGenerator(modelo="llama3.2:3b", timeout_s=120)
+
+    assert generator.modelo == "llama3.2:3b"
+
+
+@pytest.mark.parametrize("num_predict", [31, 513])
+def test_ollama_rechaza_num_predict_fuera_del_rango(num_predict):
+    with pytest.raises(ValueError, match="num_predict"):
+        OllamaGenerator(modelo="llama3.2:3b", num_predict=num_predict)
+
+
+def test_ollama_permite_configurar_num_predict():
+    cuerpo = json.dumps({"response": "Respuesta válida.", "done": True}).encode()
+    with servidor_ollama(cuerpo=cuerpo) as (base_url, solicitudes):
+        generator = OllamaGenerator(
+            modelo="llama3.2:3b",
+            base_url=base_url,
+            timeout_s=5,
+            num_predict=128,
+        )
+
+        generator.generar("Prompt")
+
+    payload = json.loads(solicitudes[0]["body"])
+    assert payload["options"] == {"num_predict": 128, "temperature": 0}
 
 
 @pytest.mark.parametrize(

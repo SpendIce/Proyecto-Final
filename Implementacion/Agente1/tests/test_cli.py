@@ -12,12 +12,30 @@ from threading import Thread
 ROOT = Path(__file__).parents[1]
 
 
+def contenido_golden_syn001() -> str:
+    documento = (ROOT / "golden" / "SYN-001.md").read_text(encoding="utf-8")
+    return documento.removeprefix("# BORRADOR — NO PUBLICAR\n\n").strip()
+
+
+def salida_conforme_cli() -> str:
+    return (
+        "## TÍTULO\nActividad sintética CLI\n\n"
+        "## DATOS DE LA ACTIVIDAD\nFecha: 2026-08-08\n"
+        "Organiza: Equipo de prueba\nLugar: Aula ficticia\n\n"
+        "## CONTACTO\npruebas@example.invalid\n\n"
+        "## BAJADA\nBorrador sintético para validar la CLI.\n\n"
+        "## CUERPO\nEsta actividad requiere revisión humana antes de publicarse."
+    )
+
+
 @contextmanager
 def servidor_ollama(*, cuerpo: bytes, status: int = 200):
+    solicitudes: list[dict[str, object]] = []
+
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
             longitud = int(self.headers["Content-Length"])
-            self.rfile.read(longitud)
+            solicitudes.append(json.loads(self.rfile.read(longitud)))
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -31,7 +49,7 @@ def servidor_ollama(*, cuerpo: bytes, status: int = 200):
     thread.start()
     try:
         host, puerto = servidor.server_address
-        yield f"http://{host}:{puerto}"
+        yield f"http://{host}:{puerto}", solicitudes
     finally:
         servidor.shutdown()
         thread.join()
@@ -77,7 +95,7 @@ def test_cli_fake_procesa_una_fila_de_forma_reproducible(tmp_path):
             "--salida",
             str(tmp_path / "salida"),
             "--fake-output",
-            "Borrador fijo para smoke.",
+            salida_conforme_cli(),
         ],
         check=False,
         capture_output=True,
@@ -90,7 +108,7 @@ def test_cli_fake_procesa_una_fila_de_forma_reproducible(tmp_path):
     assert respuesta["estado"] == "PENDIENTE_VALIDACION"
     assert (tmp_path / "salida" / "borradores" / "SYN-CLI-001.md").read_text(
         encoding="utf-8"
-    ).endswith("Borrador fijo para smoke.\n")
+    ).endswith("publicarse.\n")
 
 
 def test_dataset_versionado_produce_el_golden_por_cli(tmp_path):
@@ -109,7 +127,7 @@ def test_dataset_versionado_produce_el_golden_por_cli(tmp_path):
             "--salida",
             str(tmp_path / "salida"),
             "--fake-output",
-            "La Secretaría de Extensión Universitaria invita a la comunidad universitaria ficticia al Taller sintético de vinculación.",
+            contenido_golden_syn001(),
         ],
         check=False,
         capture_output=True,
@@ -207,9 +225,9 @@ def test_cli_reporta_solicitud_inexistente_con_el_mismo_json_seguro(tmp_path):
 def test_cli_ollama_procesa_con_el_adapter_local(tmp_path):
     entorno = os.environ.copy()
     entorno["PYTHONPATH"] = str(ROOT / "src")
-    cuerpo = json.dumps({"response": "Borrador desde Ollama.", "done": True}).encode()
+    cuerpo = json.dumps({"response": contenido_golden_syn001(), "done": True}).encode()
 
-    with servidor_ollama(cuerpo=cuerpo) as base_url:
+    with servidor_ollama(cuerpo=cuerpo) as (base_url, solicitudes):
         proceso = subprocess.run(
             [
                 sys.executable,
@@ -227,6 +245,8 @@ def test_cli_ollama_procesa_con_el_adapter_local(tmp_path):
                 base_url,
                 "--ollama-timeout",
                 "5",
+                "--ollama-num-predict",
+                "144",
             ],
             check=False,
             capture_output=True,
@@ -237,11 +257,13 @@ def test_cli_ollama_procesa_con_el_adapter_local(tmp_path):
     assert proceso.returncode == 0, proceso.stderr
     respuesta = json.loads(proceso.stdout)
     assert respuesta["estado"] == "PENDIENTE_VALIDACION"
-    assert Path(respuesta["borrador"]).read_text(encoding="utf-8").endswith(
-        "Borrador desde Ollama.\n"
-    )
+    assert Path(respuesta["borrador"]).read_text(encoding="utf-8") == (
+        ROOT / "golden" / "SYN-001.md"
+    ).read_text(encoding="utf-8")
     registro = json.loads(Path(respuesta["log"]).read_text(encoding="utf-8"))
     assert registro["modelo"] == "llama3.2:3b"
+    assert registro["num_predict"] == 144
+    assert solicitudes[0]["options"] == {"num_predict": 144, "temperature": 0}
 
 
 def test_cli_ollama_fallida_no_filtra_error_remoto_ni_crea_borrador(tmp_path):
@@ -249,7 +271,7 @@ def test_cli_ollama_fallida_no_filtra_error_remoto_ni_crea_borrador(tmp_path):
     entorno["PYTHONPATH"] = str(ROOT / "src")
     cuerpo = b'{"error":"secreto@example.invalid"}'
 
-    with servidor_ollama(cuerpo=cuerpo, status=500) as base_url:
+    with servidor_ollama(cuerpo=cuerpo, status=500) as (base_url, _):
         proceso = subprocess.run(
             [
                 sys.executable,
@@ -284,3 +306,35 @@ def test_cli_ollama_fallida_no_filtra_error_remoto_ni_crea_borrador(tmp_path):
     log_serializado = Path(respuesta["log"]).read_text(encoding="utf-8")
     assert "secreto@example.invalid" not in log_serializado
     assert base_url not in log_serializado
+
+
+def test_cli_ollama_rechaza_num_predict_fuera_de_rango(tmp_path):
+    entorno = os.environ.copy()
+    entorno["PYTHONPATH"] = str(ROOT / "src")
+
+    proceso = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "agente1",
+            "--csv",
+            str(ROOT / "data" / "actividades_sinteticas.csv"),
+            "--id-solicitud",
+            "SYN-001",
+            "--salida",
+            str(tmp_path / "salida"),
+            "--ollama-model",
+            "llama3.2:3b",
+            "--ollama-num-predict",
+            "513",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=entorno,
+    )
+
+    assert proceso.returncode == 2
+    assert proceso.stderr == ""
+    assert json.loads(proceso.stdout)["estado"] == "INVALIDA"
+    assert not (tmp_path / "salida").exists()

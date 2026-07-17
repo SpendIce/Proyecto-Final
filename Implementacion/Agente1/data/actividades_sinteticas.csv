@@ -2,3 +2,5 @@ id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar
 SYN-001,Taller sintético de vinculación,Actividad ficticia para probar el flujo.,2026-08-05,Comunidad universitaria ficticia,Equipo de prueba,pruebas@example.invalid,Dataset sintético versionado,Aula de prueba
 SYN-002,Actividad sintética incompleta,Caso ficticio sin contacto.,2026-08-06,Público ficticio,Equipo de prueba,,Dataset sintético versionado,
 SYN-003,Jornada sintética,Datos exclusivamente ficticios.,2026-08-07,Público ficticio,Equipo de prueba,pruebas@example.invalid,Dataset sintético versionado,
+SYN-004,Encuentro sintético incompleto,Caso ficticio sin fecha.,,Público ficticio,Equipo de prueba,pruebas@example.invalid,Dataset sintético versionado,Aula ficticia
+SYN-005,Seminario sintético remoto,Actividad ficticia con lugar opcional ausente.,2026-08-09,Comunidad universitaria ficticia,Área de prueba,contacto@example.invalid,Dataset sintético versionado,

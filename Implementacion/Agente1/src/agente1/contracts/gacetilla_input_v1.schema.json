@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:gacetilla-input:v1",
+  "title": "Contrato provisional de entrada para gacetillas",
+  "description": "Contrato técnico del PoC. No representa una plantilla institucional aprobada por la SEU.",
+  "x-contract-version": "gacetilla_input_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "type": "object",
+  "required": [
+    "id_solicitud",
+    "titulo",
+    "descripcion",
+    "fecha",
+    "publico",
+    "organiza",
+    "contacto",
+    "fuente"
+  ],
+  "properties": {
+    "id_solicitud": {"type": "string", "minLength": 1},
+    "titulo": {"type": "string", "minLength": 1},
+    "descripcion": {"type": "string", "minLength": 1},
+    "fecha": {"type": "string", "minLength": 1},
+    "publico": {"type": "string", "minLength": 1},
+    "organiza": {"type": "string", "minLength": 1},
+    "contacto": {"type": "string", "minLength": 1},
+    "fuente": {"type": "string", "minLength": 1},
+    "lugar": {
+      "type": "string",
+      "description": "Campo opcional; vacío significa no informado.",
+      "x-required": false
+    }
+  },
+  "additionalProperties": true
+}

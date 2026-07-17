@@ -9,7 +9,11 @@ from urllib.parse import urlsplit
 
 
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
-DEFAULT_OLLAMA_TIMEOUT_S = 25.0
+DEFAULT_OLLAMA_TIMEOUT_S = 45.0
+MAX_OLLAMA_TIMEOUT_S = 120.0
+DEFAULT_OLLAMA_NUM_PREDICT = 112
+MIN_OLLAMA_NUM_PREDICT = 32
+MAX_OLLAMA_NUM_PREDICT = 512
 MAX_RESPONSE_BYTES = 1_048_576
 
 
@@ -20,14 +24,22 @@ class OllamaGenerator:
         modelo: str,
         base_url: str = DEFAULT_OLLAMA_BASE_URL,
         timeout_s: float = DEFAULT_OLLAMA_TIMEOUT_S,
+        num_predict: int = DEFAULT_OLLAMA_NUM_PREDICT,
     ) -> None:
         if not modelo.strip():
             raise ValueError("modelo inválido")
-        if not math.isfinite(timeout_s) or not 0 < timeout_s <= 30:
-            raise ValueError("timeout debe ser mayor que 0 y menor o igual a 30 segundos")
+        if not math.isfinite(timeout_s) or not 0 < timeout_s <= MAX_OLLAMA_TIMEOUT_S:
+            raise ValueError("timeout debe ser mayor que 0 y menor o igual a 120 segundos")
+        if (
+            isinstance(num_predict, bool)
+            or not isinstance(num_predict, int)
+            or not MIN_OLLAMA_NUM_PREDICT <= num_predict <= MAX_OLLAMA_NUM_PREDICT
+        ):
+            raise ValueError("num_predict debe estar entre 32 y 512")
         self._host, self._port = _validar_base_url(base_url)
         self.modelo = modelo.strip()
         self._timeout_s = timeout_s
+        self.num_predict = num_predict
 
     def generar(self, prompt: str) -> str:
         deadline = time.monotonic() + self._timeout_s
@@ -36,7 +48,10 @@ class OllamaGenerator:
                 "model": self.modelo,
                 "prompt": prompt,
                 "stream": False,
-                "options": {"temperature": 0},
+                "options": {
+                    "temperature": 0,
+                    "num_predict": self.num_predict,
+                },
             },
             ensure_ascii=False,
         ).encode("utf-8")
