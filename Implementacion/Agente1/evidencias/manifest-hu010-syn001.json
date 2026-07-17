@@ -1,0 +1,114 @@
+{
+  "schema_version": "evidencia_hu010_v1",
+  "evidence_id": "HU010-SYN001-20260717-001",
+  "hu": "HU-010",
+  "generated_at": "2026-07-17T16:34:39.879632Z",
+  "status": "PENDIENTE_VALIDACION",
+  "validation": {
+    "data_origin": "SIMULADA",
+    "intended_authority": "SEU",
+    "authority_review_status": "PENDIENTE",
+    "trl3_claimed": false
+  },
+  "repository": {
+    "commit": "3de9a9cb78b4571fe61879b9ddb221437f6ce823",
+    "pipeline_files_match_commit": true,
+    "tracked_implementation_scope_clean_after_execution": true,
+    "evidence_package_untracked_after_execution": true,
+    "global_worktree_clean": false,
+    "traceability_note": "El pipeline corresponde al commit indicado. El worktree global contenia cambios fuera del scope y este paquete de evidencias aun no estaba commiteado."
+  },
+  "runtime": {
+    "name": "ollama",
+    "version": "0.32.0-1",
+    "installation": "user-local-isolated",
+    "backend": "cpu",
+    "host": {
+      "cpu": "Intel Core i7-1180G7",
+      "cores": 4,
+      "threads": 8,
+      "ram_gib": 15,
+      "gpu_available": "Intel Iris Xe integrada",
+      "gpu_used_for_this_evidence": false
+    }
+  },
+  "model": {
+    "tag": "llama3.2:3b",
+    "format": "GGUF",
+    "quantization": "Q4_K_M",
+    "config_digest": "sha256:34bb5ab01051a11372a91f95f3fbbc51173eed8e7f13ec395b9ae9b8bd0e242b",
+    "weights_digest": "sha256:dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff",
+    "manifest_sha256": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72"
+  },
+  "pipeline": {
+    "prompt": {
+      "version": "gacetilla_v2",
+      "path": "src/agente1/prompts/gacetilla_v2.txt",
+      "sha256": "04c71756e59b3263c4eced6976120c32feccf07b740130833aaf2f5126dbff5d"
+    },
+    "contract": {
+      "version": "gacetilla_input_v1",
+      "path": "src/agente1/contracts/gacetilla_input_v1.schema.json",
+      "sha256": "530f383933d7fe1738526108faa3eef24a31e30fa50fcea4d6e5940ed48d8cd5"
+    },
+    "input_dataset": {
+      "path": "data/actividades_sinteticas.csv",
+      "sha256": "fe5d712f5f41e777b5daa02ac1de0b23bfde64e0cc61433d9a89d3c0977d98f4",
+      "record_id": "SYN-001",
+      "record_sha256": "d4971497e1f6db200ba6005e562b42313dab9637ae6ec8476a6f9c10b115e38e"
+    },
+    "smoke_script": {
+      "path": "scripts/smoke_ollama.sh",
+      "sha256": "f5344287a01f15b29e487e12d2774ed4b91163d0ebb5b93b0e08a5c961ffca78"
+    }
+  },
+  "execution": {
+    "cache_condition": "same-prompt-warm",
+    "stability_scope": "green only under same-prompt warm cache; prompt-cold attempts timed out through 45 seconds",
+    "num_predict": 112,
+    "timeout_seconds": 45,
+    "correlation_id": "5b55d6ef-f4df-4058-b20b-987d2a32aa43",
+    "result": "borrador_generado",
+    "latency_seconds": 20.172128,
+    "validation_errors": null,
+    "output_path": "salida/smoke-ollama.Y4aZl7/borradores/SYN-001.md",
+    "output_sha256": "4e5d756603ecc246ca7613c225ce62b15bfaa58613cbb5a7034af7737dd7d764",
+    "log_path": "salida/smoke-ollama.Y4aZl7/logs/ejecuciones.jsonl",
+    "log_sha256": "aaafaa873fb78644f9e0ed065e4742e7b5ccbf7067a9a10f9f3f6acd3a7c2425"
+  },
+  "comparison_runs": [
+    {
+      "condition": "model-resident-prompt-cold",
+      "num_predict": 96,
+      "timeout_seconds": 45,
+      "correlation_id": "0030a174-754b-41b5-ac50-c398f832bd84",
+      "latency_seconds": 45.045538,
+      "result": "error_generacion",
+      "validation_errors": null
+    },
+    {
+      "condition": "same-prompt-warm",
+      "num_predict": 96,
+      "timeout_seconds": 45,
+      "correlation_id": "93ff9b64-3bec-457c-9105-3da5470fb7dc",
+      "latency_seconds": 21.58522,
+      "result": "salida_no_conforme",
+      "validation_errors": [
+        "cuerpo_sentence_invalid"
+      ]
+    }
+  ],
+  "human_review": {
+    "checklist_path": "evidencias/checklist-validacion-humana-hu010.md",
+    "status": "PENDIENTE",
+    "decision": null
+  },
+  "limitations": [
+    "Caso basado en datos simulados.",
+    "Conformidad tecnica no equivale a calidad institucional validada.",
+    "No existe validacion SEU registrada.",
+    "No se declara TRL 3.",
+    "La corrida verde depende de cache warm del mismo prompt.",
+    "La latencia observada no constituye un SLA."
+  ]
+}
