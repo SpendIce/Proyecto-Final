@@ -1,4 +1,5 @@
 /.pytest_cache/
+/.runtime/
 /salida/
 __pycache__/
 *.py[cod]

@@ -1,12 +1,41 @@
 import csv
+from contextlib import contextmanager
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
+from threading import Thread
 
 
 ROOT = Path(__file__).parents[1]
+
+
+@contextmanager
+def servidor_ollama(*, cuerpo: bytes, status: int = 200):
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            longitud = int(self.headers["Content-Length"])
+            self.rfile.read(longitud)
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(cuerpo)
+
+        def log_message(self, format: str, *args: object) -> None:
+            return
+
+    servidor = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=servidor.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, puerto = servidor.server_address
+        yield f"http://{host}:{puerto}"
+    finally:
+        servidor.shutdown()
+        thread.join()
+        servidor.server_close()
 
 
 def test_cli_fake_procesa_una_fila_de_forma_reproducible(tmp_path):
@@ -173,3 +202,85 @@ def test_cli_reporta_solicitud_inexistente_con_el_mismo_json_seguro(tmp_path):
     assert respuesta["log"] is None
     assert "SYN-NO-EXISTE" not in proceso.stdout
     assert not (tmp_path / "salida").exists()
+
+
+def test_cli_ollama_procesa_con_el_adapter_local(tmp_path):
+    entorno = os.environ.copy()
+    entorno["PYTHONPATH"] = str(ROOT / "src")
+    cuerpo = json.dumps({"response": "Borrador desde Ollama.", "done": True}).encode()
+
+    with servidor_ollama(cuerpo=cuerpo) as base_url:
+        proceso = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "agente1",
+                "--csv",
+                str(ROOT / "data" / "actividades_sinteticas.csv"),
+                "--id-solicitud",
+                "SYN-001",
+                "--salida",
+                str(tmp_path / "salida"),
+                "--ollama-model",
+                "llama3.2:3b",
+                "--ollama-base-url",
+                base_url,
+                "--ollama-timeout",
+                "5",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=entorno,
+        )
+
+    assert proceso.returncode == 0, proceso.stderr
+    respuesta = json.loads(proceso.stdout)
+    assert respuesta["estado"] == "PENDIENTE_VALIDACION"
+    assert Path(respuesta["borrador"]).read_text(encoding="utf-8").endswith(
+        "Borrador desde Ollama.\n"
+    )
+    registro = json.loads(Path(respuesta["log"]).read_text(encoding="utf-8"))
+    assert registro["modelo"] == "llama3.2:3b"
+
+
+def test_cli_ollama_fallida_no_filtra_error_remoto_ni_crea_borrador(tmp_path):
+    entorno = os.environ.copy()
+    entorno["PYTHONPATH"] = str(ROOT / "src")
+    cuerpo = b'{"error":"secreto@example.invalid"}'
+
+    with servidor_ollama(cuerpo=cuerpo, status=500) as base_url:
+        proceso = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "agente1",
+                "--csv",
+                str(ROOT / "data" / "actividades_sinteticas.csv"),
+                "--id-solicitud",
+                "SYN-001",
+                "--salida",
+                str(tmp_path / "salida"),
+                "--ollama-model",
+                "llama3.2:3b",
+                "--ollama-base-url",
+                base_url,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=entorno,
+        )
+
+    assert proceso.returncode == 2
+    assert proceso.stderr == ""
+    assert "secreto@example.invalid" not in proceso.stdout
+    assert base_url not in proceso.stdout
+    respuesta = json.loads(proceso.stdout)
+    assert respuesta["estado"] == "FALLIDA"
+    assert respuesta["borrador"] is None
+    assert respuesta["error"] == "Falló la generación del borrador"
+    assert not (tmp_path / "salida" / "borradores").exists()
+    log_serializado = Path(respuesta["log"]).read_text(encoding="utf-8")
+    assert "secreto@example.invalid" not in log_serializado
+    assert base_url not in log_serializado
