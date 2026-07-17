@@ -1,0 +1,10 @@
+PROMPT_VERSION: gacetilla_v1
+
+Redactá una gacetilla institucional usando exclusivamente los datos fuente delimitados.
+No inventes información ni completes datos ausentes.
+Generá solamente un borrador para revisión humana.
+No apruebes, publiques ni envíes el contenido.
+
+--- DATOS FUENTE ---
+{datos_fuente}
+--- FIN DATOS FUENTE ---

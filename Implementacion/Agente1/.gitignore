@@ -1,0 +1,4 @@
+/.pytest_cache/
+/salida/
+__pycache__/
+*.py[cod]
