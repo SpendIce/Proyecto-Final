@@ -229,15 +229,17 @@ def test_id_solicitud_no_permite_salir_del_directorio_de_borradores(tmp_path):
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="id_solicitud inválido"):
-        procesar_fila_csv(
-            csv_path=csv_path,
-            id_solicitud="../escape",
-            directorio_salida=tmp_path / "salida",
-            generator=FakeGenerator("No debe generarse."),
-        )
+    resultado = procesar_fila_csv(
+        csv_path=csv_path,
+        id_solicitud="../escape",
+        directorio_salida=tmp_path / "salida",
+        generator=FakeGenerator("No debe generarse."),
+    )
 
-    assert not (tmp_path / "salida").exists()
+    assert resultado.estado == "INVALIDA"
+    assert resultado.borrador_path is None
+    registro = resultado.log_path.read_text(encoding="utf-8")
+    assert "../escape" not in registro
     assert not (tmp_path / "escape.md").exists()
 
 

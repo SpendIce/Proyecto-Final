@@ -176,15 +176,14 @@ def test_cli_rechaza_id_invalido_con_json_seguro_sin_traceback(tmp_path):
     assert proceso.returncode == 2
     assert proceso.stderr == ""
     respuesta = json.loads(proceso.stdout)
-    assert respuesta == {
-        "borrador": None,
-        "correlation_id": None,
-        "error": "Solicitud inválida o inexistente",
-        "estado": "INVALIDA",
-        "log": None,
-    }
+    assert respuesta["borrador"] is None
+    assert respuesta["correlation_id"]
+    assert respuesta["error"] == "Solicitud inválida o inexistente"
+    assert respuesta["estado"] == "INVALIDA"
+    assert respuesta["log"]
     assert "secreto" not in proceso.stdout
-    assert not (tmp_path / "salida").exists()
+    registro = Path(respuesta["log"]).read_text(encoding="utf-8")
+    assert "../secreto" not in registro
 
 
 def test_cli_reporta_solicitud_inexistente_con_el_mismo_json_seguro(tmp_path):
@@ -216,10 +215,11 @@ def test_cli_reporta_solicitud_inexistente_con_el_mismo_json_seguro(tmp_path):
     respuesta = json.loads(proceso.stdout)
     assert respuesta["estado"] == "INVALIDA"
     assert respuesta["error"] == "Solicitud inválida o inexistente"
-    assert respuesta["correlation_id"] is None
-    assert respuesta["log"] is None
+    assert respuesta["correlation_id"]
+    assert respuesta["log"]
     assert "SYN-NO-EXISTE" not in proceso.stdout
-    assert not (tmp_path / "salida").exists()
+    registro = Path(respuesta["log"]).read_text(encoding="utf-8")
+    assert "SYN-NO-EXISTE" not in registro
 
 
 def test_cli_ollama_procesa_con_el_adapter_local(tmp_path):

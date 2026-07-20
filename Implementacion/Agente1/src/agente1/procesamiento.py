@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import csv
 import hashlib
 import json
 import re
@@ -12,6 +11,13 @@ from datetime import datetime, timezone
 from importlib.resources import files
 from pathlib import Path
 from typing import Protocol
+
+from .fuentes import (
+    COLUMNAS_GACETILLA,
+    CsvFuenteSolicitudes,
+    FuenteSolicitudes,
+    FuenteSolicitudesError,
+)
 
 
 HU = "HU-010"
@@ -47,6 +53,25 @@ PATRON_DATOS = re.compile(
     r"(?:\nLugar: (?P<lugar>[^\n]+))?\Z"
 )
 ID_SOLICITUD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
+SOURCE_ERROR_CODES = frozenset(
+    {
+        "sheets_headers_invalid",
+        "sheets_row_invalid",
+        "source_contract_invalid",
+        "source_duplicate_id",
+        "source_id_mismatch",
+        "source_request_invalid",
+        "source_request_not_found",
+        "source_unavailable",
+        "workspace_auth_denied",
+        "workspace_auth_unavailable",
+        "workspace_rate_limited",
+        "workspace_response_invalid",
+        "workspace_response_too_large",
+        "workspace_source_not_found",
+        "workspace_unavailable",
+    }
+)
 
 
 class Generator(Protocol):
@@ -83,9 +108,64 @@ def procesar_fila_csv(
     directorio_salida: Path,
     generator: Generator,
 ) -> ResultadoProceso:
-    _validar_id_solicitud(id_solicitud)
-    fila = _buscar_fila(csv_path, id_solicitud)
+    return procesar_solicitud(
+        fuente=CsvFuenteSolicitudes(csv_path),
+        id_solicitud=id_solicitud,
+        directorio_salida=directorio_salida,
+        generator=generator,
+    )
+
+
+def procesar_solicitud(
+    *,
+    fuente: FuenteSolicitudes,
+    id_solicitud: str,
+    directorio_salida: Path,
+    generator: Generator,
+) -> ResultadoProceso:
     correlation_id = str(uuid.uuid4())
+    inicio_fuente = time.perf_counter()
+    try:
+        _validar_id_solicitud(id_solicitud)
+    except (TypeError, ValueError):
+        return _resultado_fuente_fallida(
+            id_solicitud=id_solicitud,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=round(time.perf_counter() - inicio_fuente, 6),
+            source_error_code="source_request_invalid",
+        )
+    try:
+        fila = fuente.obtener(id_solicitud)
+    except FuenteSolicitudesError as error_fuente:
+        return _resultado_fuente_fallida(
+            id_solicitud=id_solicitud,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=round(time.perf_counter() - inicio_fuente, 6),
+            source_error_code=error_fuente.code,
+        )
+    except Exception:
+        return _resultado_fuente_fallida(
+            id_solicitud=id_solicitud,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=round(time.perf_counter() - inicio_fuente, 6),
+            source_error_code="source_unavailable",
+        )
+    fila, source_error_code = _normalizar_fila_fuente(fila, id_solicitud)
+    if source_error_code is not None:
+        return _resultado_fuente_fallida(
+            id_solicitud=id_solicitud,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=round(time.perf_counter() - inicio_fuente, 6),
+            source_error_code=source_error_code,
+        )
     faltantes = [campo for campo in CAMPOS_OBLIGATORIOS if not fila.get(campo, "").strip()]
     if faltantes:
         error = f"Campos obligatorios faltantes: {', '.join(faltantes)}"
@@ -193,20 +273,8 @@ def procesar_fila_csv(
     )
 
 
-def _buscar_fila(csv_path: Path, id_solicitud: str) -> dict[str, str]:
-    with csv_path.open(encoding="utf-8", newline="") as archivo:
-        for fila in csv.DictReader(archivo):
-            if fila.get("id_solicitud") == id_solicitud:
-                return {
-                    clave: valor or ""
-                    for clave, valor in fila.items()
-                    if clave is not None
-                }
-    raise ValueError(f"No existe la solicitud {id_solicitud!r} en {csv_path}")
-
-
 def _validar_id_solicitud(id_solicitud: str) -> None:
-    if not ID_SOLICITUD_RE.fullmatch(id_solicitud):
+    if not isinstance(id_solicitud, str) or not ID_SOLICITUD_RE.fullmatch(id_solicitud):
         raise ValueError(
             "id_solicitud inválido: use entre 1 y 128 caracteres alfanuméricos, "
             "guion o guion bajo"
@@ -260,6 +328,79 @@ def _resultado_fallido(
         correlation_id=correlation_id,
         error=error,
     )
+
+
+def _resultado_fuente_fallida(
+    *,
+    id_solicitud: object,
+    directorio_salida: Path,
+    generator: Generator,
+    correlation_id: str,
+    latencia_s: float,
+    source_error_code: str,
+) -> ResultadoProceso:
+    if source_error_code not in SOURCE_ERROR_CODES:
+        source_error_code = "source_unavailable"
+    invalida = source_error_code in {
+        "source_request_invalid",
+        "source_request_not_found",
+    }
+    estado = "INVALIDA" if invalida else "FALLIDA"
+    resultado = "source_invalid" if invalida else "source_failure"
+    error = (
+        "Solicitud inválida o inexistente"
+        if invalida
+        else "Falló la lectura de la fuente"
+    )
+    log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
+    _registrar(
+        log_path,
+        {
+            "correlation_id": correlation_id,
+            "id_solicitud": None,
+            "id_solicitud_hash": (
+                _hash_texto(id_solicitud) if isinstance(id_solicitud, str) else None
+            ),
+            "HU": HU,
+            "contract_version": CONTRACT_VERSION,
+            "modelo": generator.modelo,
+            "num_predict": _num_predict(generator),
+            "prompt_version": PROMPT_VERSION,
+            "latencia_s": latencia_s,
+            "estado": estado,
+            "resultado": resultado,
+            "error": error,
+            "source_error_code": source_error_code,
+            "input_hash": None,
+            "output_hash": None,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+    return ResultadoProceso(
+        estado=estado,
+        borrador_path=None,
+        log_path=log_path,
+        correlation_id=correlation_id,
+        error=error,
+    )
+
+
+def _normalizar_fila_fuente(
+    fila: object, id_solicitud: str
+) -> tuple[dict[str, str], str | None]:
+    if not isinstance(fila, dict) or any(
+        campo not in fila for campo in CAMPOS_OBLIGATORIOS
+    ):
+        return {}, "source_contract_invalid"
+    fila_canonica: dict[str, str] = {}
+    for campo in COLUMNAS_GACETILLA:
+        valor = fila.get(campo, "")
+        if not isinstance(valor, str):
+            return {}, "source_contract_invalid"
+        fila_canonica[campo] = valor
+    if fila_canonica["id_solicitud"] != id_solicitud:
+        return {}, "source_id_mismatch"
+    return fila_canonica, None
 
 
 def _construir_prompt(fila: dict[str, str]) -> str:

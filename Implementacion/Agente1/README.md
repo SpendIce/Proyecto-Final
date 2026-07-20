@@ -4,7 +4,7 @@ Este directorio inicia la implementación del Agente 1 con el primer tracer bull
 
 El alcance actual es deliberadamente local y reproducible:
 
-- CSV sintético como adapter temporal del futuro ingreso desde Google Sheets.
+- Puerto de entrada con adapter CSV y adapter contractual de Google Sheets probado offline.
 - Generador fake determinista para regresión y adapter HTTP para Ollama local.
 - Markdown como evidencia temporal de la futura salida en Google Docs.
 - Estado `PENDIENTE_VALIDACION` y encabezado `BORRADOR — NO PUBLICAR` en toda salida exitosa.
@@ -13,16 +13,19 @@ El alcance actual es deliberadamente local y reproducible:
 - Estado `FALLIDA` sin borrador cuando el generador falla, devuelve contenido vacío o no cumple el contrato mecánico mínimo.
 - Auditoría JSONL con correlation ID, hashes, versiones de contrato/prompt, modelo y latencia, sin copiar datos fuente ni contenido generado.
 
-Esto valida el flujo y sus controles, pero **no completa el DoD institucional de HU-010**: todavía faltan los adapters de Google Sheets/Docs, la plantilla institucional definitiva y la validación de la SEU prevista en el Gantt.
+Esto valida el flujo y sus controles, pero **no completa el DoD institucional de HU-010**: el adapter de Sheets todavía no tiene OAuth, configuración institucional ni prueba live; además faltan el adapter de Google Docs, la plantilla institucional definitiva y la validación de la SEU prevista en el Gantt.
 
 ## Estructura
 
 - `data/actividades_sinteticas.csv`: dataset ficticio de cinco filas; incluye tres casos completos, dos incompletos y lugares opcionales ausentes.
 - `src/agente1/contracts/gacetilla_input_v1.schema.json`: contrato técnico versionado de los campos actuales, marcado `PROVISIONAL_NO_INSTITUCIONAL`.
 - `src/agente1/prompts/gacetilla_v2.txt`: prompt versionado con estructura fija, límites y ejemplo sintético; también está marcado como provisional.
-- `golden/SYN-001.md`: salida esperada del generador fake para regresión.
+- `src/agente1/fuentes.py`: puerto `FuenteSolicitudes` y adapter CSV compatible con el flujo local.
+- `src/agente1/google_workspace.py`: contrato HTTP del adapter de lectura Google Sheets; sólo está verificado offline con token y transporte fake.
+- `golden/SYN-001.md`, `SYN-003.md` y `SYN-005.md`: salidas esperadas del generador fake para las tres filas completas.
 - `tests/`: contrato público del procesador y de la CLI.
 - `scripts/smoke.sh`: ejecución end-to-end local contra dataset y golden.
+- `scripts/matriz_hu010.py`: matriz reproducible de los cinco casos contractuales sin depender de un LLM.
 - `scripts/smoke_ollama.sh`: smoke opt-in contra un Ollama ya iniciado y con el modelo descargado.
 - `salida/`: evidencia runtime local ignorada por Git.
 
@@ -42,7 +45,35 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache bash scripts/smoke.sh
 
 La CLI imprime un JSON con estado, correlation ID y paths de evidencia. Un caso válido debe finalizar en `PENDIENTE_VALIDACION`; uno incompleto finaliza en `INCOMPLETA`, retorna código 2, no invoca al generador y no crea un borrador. Una falla, salida vacía o salida no conforme finaliza en `FALLIDA`, retorna código 2 y tampoco crea borrador.
 
-Un identificador rechazado o una solicitud inexistente finaliza en `INVALIDA` con un error genérico y código 2, sin traceback. Esos casos no generan audit log: el sistema todavía no aceptó una solicitud ni asignó correlation ID, y el mensaje evita copiar el identificador o el path consultado.
+Un identificador rechazado o una solicitud inexistente finaliza en `INVALIDA` con un error genérico y código 2, sin traceback. Esos casos asignan correlation ID y generan un audit log con código cerrado y hash del identificador, sin copiar el identificador ni el path consultado. Fallas operativas o contractuales de una fuente terminan en `FALLIDA`, no invocan al generador ni crean borrador, y registran `source_error_code` sin token, cuerpo remoto ni fila de entrada.
+
+## Adapter contractual de Google Sheets
+
+El seam `FuenteSolicitudes` permite que el core procese la misma forma contractual desde CSV o Sheets. El adapter Sheets implementa y prueba offline una solicitud `spreadsheets.values.get` hacia el host oficial fijo, con rango A1 percent-encoded, `majorDimension=ROWS`, `valueRenderOption=FORMATTED_VALUE`, deadline total y respuesta limitada a 1 MiB. Exige las columnas exactas de `gacetilla_input_v1`, valores string e identificadores únicos; completa únicamente las celdas finales vacías que la API puede omitir.
+
+Las pruebas usan un token provider y un transporte fake inyectados. **No existe todavía un flujo OAuth real, credenciales, spreadsheet ID/rango institucional, permisos ni ejecución live contra Google Workspace.** El token no se acepta como flag de CLI y nunca debe persistirse en logs o mensajes de error. Por lo tanto, este incremento demuestra el contrato y el aislamiento técnico, no una integración institucional operativa.
+
+## Ejecutar la matriz contractual simulada
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python scripts/matriz_hu010.py --salida salida/matriz-manual
+```
+
+El runner ejecuta las cinco filas versionadas. `SYN-001`, `SYN-003` y
+`SYN-005` deben producir borradores idénticos a sus goldens y quedar en
+`PENDIENTE_VALIDACION`; `SYN-002` y `SYN-004` deben quedar `INCOMPLETA` sin
+invocar al generador ni crear borradores. `matriz.json` conserva IDs de
+correlación, estados y hashes, pero no copia datos fuente, contactos, prompts o
+borradores.
+
+La matriz usa origen `SIMULADA` y un fake determinista: prueba conformidad
+contractual, controles y reproducibilidad. **No prueba calidad del LLM, tono
+institucional, precisión semántica, performance, validación SEU ni TRL 3.** Los
+tres borradores conservan revisión humana `PENDIENTE` y requieren un checklist
+individual. La corrida recuperable del 20 de julio está documentada en
+`evidencias/matriz-conformidad-hu010-2026-07-20.md`; no reutiliza el manifest
+del experimento Ollama.
 
 ## Gate mecánico provisional de salida
 
@@ -97,4 +128,4 @@ El smoke real deja sus resultados en un subdirectorio temporal de `salida/`, ign
 
 ## Próximo incremento según el Gantt
 
-Manteniendo este contrato y sus pruebas, el siguiente slice debe reemplazar un límite por vez: primero el adapter de lectura desde Google Sheets, después la plantilla/salida controlada en Google Docs. La validación humana y el registro de esa decisión siguen siendo obligatorios antes de considerar cumplido el DoD. HU-011 debe reutilizar el mismo seam de generación, no adelantarse a esos límites pendientes del Gantt.
+Manteniendo este contrato y sus pruebas, el siguiente slice debe implementar la salida controlada en Google Docs sin publicar ni compartir automáticamente. En paralelo sigue pendiente definir y probar el OAuth/config institucional para ejecutar el adapter Sheets live. La plantilla oficial, la validación humana y el registro de esa decisión siguen siendo obligatorios antes de considerar cumplido el DoD. HU-011 debe reutilizar el mismo seam de generación, no adelantarse a esos límites pendientes del Gantt.
