@@ -12,6 +12,13 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Protocol
 
+from .destinos import (
+    BORRADOR_MARKER,
+    DestinoBorradores,
+    DestinoBorradoresError,
+    MarkdownDestinoBorradores,
+    ReferenciaBorrador,
+)
 from .fuentes import (
     COLUMNAS_GACETILLA,
     CsvFuenteSolicitudes,
@@ -72,6 +79,19 @@ SOURCE_ERROR_CODES = frozenset(
         "workspace_unavailable",
     }
 )
+DESTINATION_ERROR_CODES = frozenset(
+    {
+        "destination_contract_invalid",
+        "destination_unavailable",
+        "docs_auth_denied",
+        "docs_rate_limited",
+        "docs_response_invalid",
+        "docs_response_too_large",
+        "docs_unavailable",
+        "docs_update_failed_orphaned",
+        "workspace_auth_unavailable",
+    }
+)
 
 
 class Generator(Protocol):
@@ -99,6 +119,7 @@ class ResultadoProceso:
     log_path: Path
     correlation_id: str
     error: str | None = None
+    referencia_borrador: ReferenciaBorrador | None = None
 
 
 def procesar_fila_csv(
@@ -122,6 +143,7 @@ def procesar_solicitud(
     id_solicitud: str,
     directorio_salida: Path,
     generator: Generator,
+    destino: DestinoBorradores | None = None,
 ) -> ResultadoProceso:
     correlation_id = str(uuid.uuid4())
     inicio_fuente = time.perf_counter()
@@ -240,10 +262,34 @@ def procesar_solicitud(
             validation_errors=validation_errors,
         )
 
-    borrador_path = _ruta_borrador_segura(directorio_salida, id_solicitud)
-    borrador_path.parent.mkdir(parents=True, exist_ok=True)
-    borrador = f"# BORRADOR — NO PUBLICAR\n\n{contenido}\n"
-    borrador_path.write_text(borrador, encoding="utf-8")
+    borrador = f"{BORRADOR_MARKER}{contenido}\n"
+    destino_efectivo = destino or MarkdownDestinoBorradores(directorio_salida)
+    try:
+        referencia_borrador = destino_efectivo.guardar(id_solicitud, borrador)
+        if not isinstance(referencia_borrador, ReferenciaBorrador):
+            raise DestinoBorradoresError("destination_contract_invalid")
+    except DestinoBorradoresError as error_destino:
+        return _resultado_destino_fallido(
+            fila=fila,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=latencia_s,
+            borrador=borrador,
+            destination_error_code=error_destino.code,
+            reconciliation_ref_hash=error_destino.reconciliation_ref_hash,
+        )
+    except Exception:
+        return _resultado_destino_fallido(
+            fila=fila,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=latencia_s,
+            borrador=borrador,
+            destination_error_code="destination_unavailable",
+            reconciliation_ref_hash=None,
+        )
 
     log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
     _registrar(
@@ -262,14 +308,17 @@ def procesar_solicitud(
             "error": None,
             "input_hash": _hash_json(fila),
             "output_hash": _hash_texto(borrador),
+            "destination_type": referencia_borrador.tipo,
+            "borrador_ref_hash": _hash_texto(referencia_borrador.referencia),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
     )
     return ResultadoProceso(
         estado="PENDIENTE_VALIDACION",
-        borrador_path=borrador_path,
+        borrador_path=referencia_borrador.path,
         log_path=log_path,
         correlation_id=correlation_id,
+        referencia_borrador=referencia_borrador,
     )
 
 
@@ -279,14 +328,6 @@ def _validar_id_solicitud(id_solicitud: str) -> None:
             "id_solicitud inválido: use entre 1 y 128 caracteres alfanuméricos, "
             "guion o guion bajo"
         )
-
-
-def _ruta_borrador_segura(directorio_salida: Path, id_solicitud: str) -> Path:
-    directorio_borradores = (directorio_salida / "borradores").resolve()
-    candidato = (directorio_borradores / f"{id_solicitud}.md").resolve()
-    if not candidato.is_relative_to(directorio_borradores):
-        raise ValueError("id_solicitud inválido: la ruta resultante queda fuera de borradores")
-    return candidato
 
 
 def _resultado_fallido(
@@ -382,6 +423,51 @@ def _resultado_fuente_fallida(
         log_path=log_path,
         correlation_id=correlation_id,
         error=error,
+    )
+
+
+def _resultado_destino_fallido(
+    *,
+    fila: dict[str, str],
+    directorio_salida: Path,
+    generator: Generator,
+    correlation_id: str,
+    latencia_s: float,
+    borrador: str,
+    destination_error_code: str,
+    reconciliation_ref_hash: str | None,
+) -> ResultadoProceso:
+    if destination_error_code not in DESTINATION_ERROR_CODES:
+        destination_error_code = "destination_unavailable"
+        reconciliation_ref_hash = None
+    log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
+    registro: dict[str, object] = {
+        "correlation_id": correlation_id,
+        "id_solicitud": None,
+        "id_solicitud_hash": _hash_texto(fila["id_solicitud"]),
+        "HU": HU,
+        "contract_version": CONTRACT_VERSION,
+        "modelo": generator.modelo,
+        "num_predict": _num_predict(generator),
+        "prompt_version": PROMPT_VERSION,
+        "latencia_s": latencia_s,
+        "estado": "FALLIDA",
+        "resultado": "destination_failure",
+        "error": "Falló la persistencia del borrador",
+        "destination_error_code": destination_error_code,
+        "input_hash": _hash_json(fila),
+        "output_hash": _hash_texto(borrador),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    if reconciliation_ref_hash is not None:
+        registro["reconciliation_ref_hash"] = reconciliation_ref_hash
+    _registrar(log_path, registro)
+    return ResultadoProceso(
+        estado="FALLIDA",
+        borrador_path=None,
+        log_path=log_path,
+        correlation_id=correlation_id,
+        error="Falló la persistencia del borrador",
     )
 
 

@@ -6,14 +6,14 @@ El alcance actual es deliberadamente local y reproducible:
 
 - Puerto de entrada con adapter CSV y adapter contractual de Google Sheets probado offline.
 - Generador fake determinista para regresión y adapter HTTP para Ollama local.
-- Markdown como evidencia temporal de la futura salida en Google Docs.
+- Puerto de salida con adapter Markdown y adapter contractual de Google Docs probado offline.
 - Estado `PENDIENTE_VALIDACION` y encabezado `BORRADOR — NO PUBLICAR` en toda salida exitosa.
 - Rechazo previo a la generación cuando falta un campo obligatorio.
 - Rechazo de identificadores fuera de la allowlist antes de resolver paths de salida.
 - Estado `FALLIDA` sin borrador cuando el generador falla, devuelve contenido vacío o no cumple el contrato mecánico mínimo.
 - Auditoría JSONL con correlation ID, hashes, versiones de contrato/prompt, modelo y latencia, sin copiar datos fuente ni contenido generado.
 
-Esto valida el flujo y sus controles, pero **no completa el DoD institucional de HU-010**: el adapter de Sheets todavía no tiene OAuth, configuración institucional ni prueba live; además faltan el adapter de Google Docs, la plantilla institucional definitiva y la validación de la SEU prevista en el Gantt.
+Esto valida el flujo y sus controles, pero **no completa el DoD institucional de HU-010**: los adapters de Sheets y Docs todavía no tienen OAuth, configuración institucional ni prueba live; además faltan la plantilla institucional definitiva y la validación de la SEU prevista en el Gantt.
 
 ## Estructura
 
@@ -21,7 +21,8 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `src/agente1/contracts/gacetilla_input_v1.schema.json`: contrato técnico versionado de los campos actuales, marcado `PROVISIONAL_NO_INSTITUCIONAL`.
 - `src/agente1/prompts/gacetilla_v2.txt`: prompt versionado con estructura fija, límites y ejemplo sintético; también está marcado como provisional.
 - `src/agente1/fuentes.py`: puerto `FuenteSolicitudes` y adapter CSV compatible con el flujo local.
-- `src/agente1/google_workspace.py`: contrato HTTP del adapter de lectura Google Sheets; sólo está verificado offline con token y transporte fake.
+- `src/agente1/destinos.py`: puerto `DestinoBorradores` y adapter Markdown que preserva la salida local.
+- `src/agente1/google_workspace.py`: contratos HTTP de lectura Google Sheets y creación de borradores Google Docs; sólo están verificados offline con token y transporte fake.
 - `golden/SYN-001.md`, `SYN-003.md` y `SYN-005.md`: salidas esperadas del generador fake para las tres filas completas.
 - `tests/`: contrato público del procesador y de la CLI.
 - `scripts/smoke.sh`: ejecución end-to-end local contra dataset y golden.
@@ -52,6 +53,12 @@ Un identificador rechazado o una solicitud inexistente finaliza en `INVALIDA` co
 El seam `FuenteSolicitudes` permite que el core procese la misma forma contractual desde CSV o Sheets. El adapter Sheets implementa y prueba offline una solicitud `spreadsheets.values.get` hacia el host oficial fijo, con rango A1 percent-encoded, `majorDimension=ROWS`, `valueRenderOption=FORMATTED_VALUE`, deadline total y respuesta limitada a 1 MiB. Exige las columnas exactas de `gacetilla_input_v1`, valores string e identificadores únicos; completa únicamente las celdas finales vacías que la API puede omitir.
 
 Las pruebas usan un token provider y un transporte fake inyectados. **No existe todavía un flujo OAuth real, credenciales, spreadsheet ID/rango institucional, permisos ni ejecución live contra Google Workspace.** El token no se acepta como flag de CLI y nunca debe persistirse en logs o mensajes de error. Por lo tanto, este incremento demuestra el contrato y el aislamiento técnico, no una integración institucional operativa.
+
+## Adapter contractual de Google Docs
+
+El seam `DestinoBorradores` mantiene el adapter Markdown local y permite inyectar el adapter Docs después del gate mecánico. El adapter contractual hace exactamente dos operaciones sobre el host oficial fijo: crea un documento con título `BORRADOR — NO PUBLICAR — <id>` y luego inserta el borrador validado en el índice 1 mediante `documents.batchUpdate`. No ejecuta operaciones de compartir, enviar, publicar ni aplicar una plantilla institucional.
+
+Las dos solicitudes comparten una deadline total, limitan las respuestas a 1 MiB y no se reintentan. `documents.create` y `batchUpdate` no forman una transacción única: si la segunda operación falla, puede quedar un documento vacío. Ese caso termina en `FALLIDA` y registra sólo un hash de reconciliación opaco, nunca el document ID, token, contenido, cuerpo remoto o URL completa. El adapter sigue siendo **exclusivamente contractual/offline**: no hay OAuth, credenciales, permisos, carpeta institucional, template ID ni ejecución live.
 
 ## Ejecutar la matriz contractual simulada
 
@@ -128,4 +135,4 @@ El smoke real deja sus resultados en un subdirectorio temporal de `salida/`, ign
 
 ## Próximo incremento según el Gantt
 
-Manteniendo este contrato y sus pruebas, el siguiente slice debe implementar la salida controlada en Google Docs sin publicar ni compartir automáticamente. En paralelo sigue pendiente definir y probar el OAuth/config institucional para ejecutar el adapter Sheets live. La plantilla oficial, la validación humana y el registro de esa decisión siguen siendo obligatorios antes de considerar cumplido el DoD. HU-011 debe reutilizar el mismo seam de generación, no adelantarse a esos límites pendientes del Gantt.
+Manteniendo estos contratos y sus pruebas, el siguiente slice debe definir y probar OAuth/config/permisos institucionales para ejecutar Sheets y Docs live, sin publicar ni compartir automáticamente. La carpeta y plantilla oficial, la validación humana y el registro de esa decisión siguen siendo obligatorios antes de considerar cumplido el DoD. HU-011 debe reutilizar los mismos seams, no adelantarse a esos límites pendientes del Gantt.

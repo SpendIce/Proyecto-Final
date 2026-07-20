@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 from http.client import HTTPException, HTTPSConnection
 import json
 import math
@@ -9,6 +10,12 @@ import time
 from typing import Protocol
 from urllib.parse import quote
 
+from .destinos import (
+    DestinoBorradores,
+    DestinoBorradoresError,
+    ReferenciaBorrador,
+    validar_entrada_borrador,
+)
 from .fuentes import (
     COLUMNAS_GACETILLA,
     FuenteSolicitudes,
@@ -17,6 +24,7 @@ from .fuentes import (
 
 
 SHEETS_HOST = "sheets.googleapis.com"
+DOCS_HOST = "docs.googleapis.com"
 MAX_WORKSPACE_RESPONSE_BYTES = 1_048_576
 MAX_WORKSPACE_TIMEOUT_S = 120.0
 ID_RE = re.compile(r"[A-Za-z0-9_-]{1,256}\Z")
@@ -134,6 +142,107 @@ class GoogleSheetsFuenteSolicitudes(FuenteSolicitudes):
         return token
 
 
+class GoogleDocsDestinoBorradores(DestinoBorradores):
+    def __init__(
+        self,
+        *,
+        token_provider: AccessTokenProvider,
+        transport: TransporteHttp | None = None,
+        timeout_s: float = 10.0,
+    ) -> None:
+        if (
+            isinstance(timeout_s, bool)
+            or not isinstance(timeout_s, (int, float))
+            or not math.isfinite(timeout_s)
+            or not 0 < timeout_s <= MAX_WORKSPACE_TIMEOUT_S
+        ):
+            raise ValueError("configuración de Google Docs inválida")
+        self._token_provider = token_provider
+        self._transport = transport or HttpsWorkspaceTransport()
+        self._timeout_s = float(timeout_s)
+
+    def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador:
+        validar_entrada_borrador(id_solicitud, contenido)
+        token = self._obtener_token()
+        deadline = time.monotonic() + self._timeout_s
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json; charset=utf-8",
+        }
+        create_body = json.dumps(
+            {"title": f"BORRADOR — NO PUBLICAR — {id_solicitud}"},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        try:
+            create_response = self._transport.request(
+                method="POST",
+                host=DOCS_HOST,
+                target="/v1/documents",
+                headers=headers,
+                body=create_body,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+        except _RespuestaDemasiadoGrande:
+            raise DestinoBorradoresError("docs_response_too_large") from None
+        except Exception:
+            raise DestinoBorradoresError("docs_unavailable") from None
+        documento = _validar_create_docs(create_response)
+        document_id = documento["documentId"]
+        reconciliation_ref_hash = hashlib.sha256(document_id.encode("utf-8")).hexdigest()
+        update_body = json.dumps(
+            {
+                "requests": [
+                    {
+                        "insertText": {
+                            "location": {"index": 1},
+                            "text": contenido,
+                        }
+                    }
+                ]
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        try:
+            update_response = self._transport.request(
+                method="POST",
+                host=DOCS_HOST,
+                target=f"/v1/documents/{document_id}:batchUpdate",
+                headers=headers,
+                body=update_body,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+            _validar_update_docs(update_response)
+        except Exception:
+            raise DestinoBorradoresError(
+                "docs_update_failed_orphaned",
+                reconciliation_ref_hash=reconciliation_ref_hash,
+            ) from None
+        return ReferenciaBorrador(
+            tipo="google_docs",
+            referencia=document_id,
+        )
+
+    def _obtener_token(self) -> str:
+        try:
+            token = self._token_provider.obtener_access_token()
+        except Exception:
+            raise DestinoBorradoresError("workspace_auth_unavailable") from None
+        if (
+            not isinstance(token, str)
+            or not token.strip()
+            or token != token.strip()
+            or "\r" in token
+            or "\n" in token
+        ):
+            raise DestinoBorradoresError("workspace_auth_unavailable")
+        return token
+
+
 class HttpsWorkspaceTransport:
     def request(
         self,
@@ -207,6 +316,45 @@ def _buscar_fila(values: list[object], id_solicitud: str) -> dict[str, str]:
         return filas_por_id[id_solicitud]
     except KeyError:
         raise FuenteSolicitudesError("source_request_not_found") from None
+
+
+def _validar_create_docs(respuesta: RespuestaHttp) -> dict[str, str]:
+    if len(respuesta.body) > MAX_WORKSPACE_RESPONSE_BYTES:
+        raise DestinoBorradoresError("docs_response_too_large")
+    if not 200 <= respuesta.status < 300:
+        raise DestinoBorradoresError(_codigo_docs_create(respuesta.status))
+    try:
+        documento = json.loads(respuesta.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise DestinoBorradoresError("docs_response_invalid") from None
+    if (
+        not isinstance(documento, dict)
+        or not isinstance(documento.get("documentId"), str)
+        or ID_RE.fullmatch(documento["documentId"]) is None
+    ):
+        raise DestinoBorradoresError("docs_response_invalid")
+    return documento
+
+
+def _validar_update_docs(respuesta: RespuestaHttp) -> None:
+    if len(respuesta.body) > MAX_WORKSPACE_RESPONSE_BYTES:
+        raise DestinoBorradoresError("docs_response_too_large")
+    if not 200 <= respuesta.status < 300:
+        raise DestinoBorradoresError("docs_update_failed_orphaned")
+    try:
+        documento = json.loads(respuesta.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise DestinoBorradoresError("docs_update_failed_orphaned") from None
+    if not isinstance(documento, dict):
+        raise DestinoBorradoresError("docs_update_failed_orphaned")
+
+
+def _codigo_docs_create(status: int) -> str:
+    if status in {401, 403}:
+        return "docs_auth_denied"
+    if status == 429:
+        return "docs_rate_limited"
+    return "docs_unavailable"
 
 
 def _codigo_http(status: int) -> str:
