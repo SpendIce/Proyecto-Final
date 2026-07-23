@@ -16,7 +16,7 @@ Esta especificación detalla las necesidades para habilitar dos ambientes separa
 1. un **entorno de pruebas**, destinado a verificar la integración técnica con Google Workspace usando exclusivamente datos sintéticos o anonimizados; y
 2. un **entorno de preproducción**, destinado a validar un flujo institucional limitado con personal designado por la Secretaría de Extensión Universitaria (SEU), sin publicación ni envío automático.
 
-El documento permite que el DSI, con coordinación de Vera Batista, determine la infraestructura y el mecanismo de identidad definitivos. No solicita contraseñas ni credenciales por correo y no presupone nombres de dominio, IDs, cuentas, capacidad instalada o acuerdos de nivel de servicio que todavía no fueron informados.
+El documento permite que el DSI, con coordinación de Vera Batista, determine la infraestructura y el mecanismo de identidad definitivos. El dominio institucional confirmado es `fie.undef.edu.ar` y utiliza Google Workspace. No se solicitan contraseñas ni credenciales por correo y no se presuponen direcciones de cuenta concretas, IDs, capacidad instalada o acuerdos de nivel de servicio que todavía no fueron informados.
 
 ## 2. Decisiones y dependencias institucionales confirmadas
 
@@ -24,7 +24,7 @@ De acuerdo con la respuesta de César Cicerchia:
 
 | Tema | Definición confirmada | Consecuencia técnica |
 |---|---|---|
-| Modalidad referida para el acceso del primer release | “Email institucional” | Se registra literalmente la respuesta recibida. Falta aclarar si refiere a la cuenta que autoriza, al inicio de sesión, al canal de interacción o a otro mecanismo. En ningún caso una dirección de email, por sí sola, autentica llamadas a APIs privadas de Google Workspace. |
+| Modalidad referida para el acceso del primer release | Email institucional del dominio `@fie.undef.edu.ar`, provisto mediante Google Workspace | Queda confirmada la plataforma y el tenant institucional. Falta aclarar si esa cuenta será el principal que autoriza mediante OAuth, el inicio de sesión, el canal de interacción o si se utilizará una service account separada. En ningún caso una dirección de email, por sí sola, autentica llamadas a APIs privadas. |
 | Evolución | Arquitectura escalable a OAuth durante 2027 | El primer release debe preservar puertos desacoplados y evitar dependencias que impidan incorporar OAuth de usuario posteriormente. |
 | Administración | Administrador designado por el DSI | El DSI será propietario operativo de proyectos, identidades técnicas, secretos, permisos y revocación, una vez designada la persona. |
 | Planilla, carpeta y plantilla | Se solicitarán en agosto a Josefina Carullo, Coordinadora de Extensión | Hasta recibirlos se usarán artefactos de prueba claramente identificados y un contrato provisional. |
@@ -33,11 +33,11 @@ De acuerdo con la respuesta de César Cicerchia:
 
 ## 3. Aclaración sobre email, OAuth e identidad técnica
 
-César Cicerchia indicó “email institucional” como modalidad para el acceso del primer release. Esta especificación no reinterpreta esa respuesta como canal, login ni identidad técnica: su significado operativo queda pendiente de aclaración. Una dirección de email institucional **identifica un buzón o una cuenta**, pero por sí sola no autentica una aplicación ante las APIs de Google Sheets, Docs o Drive. Esas APIs requieren credenciales y tokens emitidos mediante los mecanismos de Google Cloud/Workspace.
+César Cicerchia indicó “email institucional” como modalidad para el acceso del primer release. Se confirmó posteriormente que pertenece al dominio `@fie.undef.edu.ar` y que la institución utiliza Google Workspace. Esto identifica el tenant y la plataforma, pero no define todavía el principal técnico ni el flujo de autorización: falta aclarar si la cuenta institucional autorizará a la aplicación, si tendrá otra función operativa o si se usará una service account separada. Una dirección de email, por sí sola, no autentica una aplicación ante las APIs de Google Sheets, Docs o Drive; esas APIs requieren credenciales y tokens emitidos mediante los mecanismos de Google Cloud/Workspace.
 
 Aunque se difiera una experiencia OAuth multiusuario para 2027, **toda llamada privada a las APIs de Workspace necesita OAuth 2.0 por debajo**. Una service account también obtiene access tokens mediante un flujo OAuth 2.0 server-to-server; no es una alternativa “sin OAuth”. Para el primer release, Vera Batista/DSI deberá elegir entre:
 
-- **Alternativa A — cuenta institucional y consentimiento OAuth:** una cuenta Workspace designada autoriza a la aplicación. Si el archivo se crea en su My Drive, esa cuenta es propietaria; si se crea en un Shared Drive, el archivo pertenece a la organización asociada al Shared Drive. Esta alternativa introduce consentimiento, refresh token, custodia y dependencia de una identidad humana o funcional.
+- **Alternativa A — cuenta institucional y consentimiento OAuth:** una cuenta designada del dominio `@fie.undef.edu.ar` autoriza a la aplicación. Si el archivo se crea en su My Drive, esa cuenta es propietaria; si se crea en un Shared Drive, el archivo pertenece a la organización asociada al Shared Drive. Esta alternativa introduce consentimiento, refresh token, custodia y dependencia de una identidad humana o funcional.
 - **Alternativa B — service account y recursos compartidos:** una identidad no humana administrada por el DSI accede sólo a archivos concretos y, para crear nuevos documentos sin impersonar usuarios, opera sobre un Shared Drive u otra modalidad que el DSI compruebe compatible. Reduce dependencia de una persona, pero requiere resolver explícitamente la ubicación/propiedad de los Docs y probablemente incorporar Drive API.
 
 Una service account no posee cuota de almacenamiento y no debe asumirse que puede crear documentos nuevos en un My Drive propio. La implementación actual usa `documents.create` y todavía no resuelve Shared Drive, plantilla ni movimiento a carpeta. Por lo tanto, la alternativa B exige un cambio técnico y una prueba de integración antes de declararse viable. Google sí documenta que una service account puede acceder a archivos específicos compartidos con su dirección técnica sin recibir roles administrativos ni delegación sobre todo el dominio. La decisión final corresponde a Vera Batista y al administrador designado por el DSI. Véanse la [guía oficial para crear y elegir credenciales de Google Workspace](https://developers.google.com/workspace/guides/create-credentials) y la [descripción oficial de Shared Drives](https://developers.google.com/workspace/drive/api/guides/about-shareddrives).
@@ -380,7 +380,7 @@ La tabla es provisional hasta que el DSI designe al administrador y la SEU desig
 
 ### 16.1 Para Vera Batista / DSI
 
-1. ¿Se elige la alternativa A —cuenta institucional con consentimiento OAuth— o la alternativa B —service account con Shared Drive/recursos compartidos— para cada ambiente?
+1. ¿Se elige la alternativa A —cuenta `@fie.undef.edu.ar` con consentimiento OAuth— o la alternativa B —service account con Shared Drive/recursos compartidos— para cada ambiente?
 2. Si se elige A, ¿quién custodia el refresh token y los archivos se crearán en My Drive —con propiedad de la cuenta— o en un Shared Drive —con pertenencia institucional—?
 3. Si se elige B, ¿qué Shared Drive institucional alojará los Docs y qué rol mínimo tendrá la service account?
 4. ¿Se habilitará Drive API para crear/ubicar/copiar documentos o la carpeta se administrará manualmente?
