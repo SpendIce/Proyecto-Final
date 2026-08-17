@@ -1,0 +1,177 @@
+{
+  "schema_version": "evidencia_hu011_ollama_v1",
+  "evidence_id": "HU011-OLLAMA-20260817-001",
+  "hu": "HU-011",
+  "generated_at": "2026-08-17T16:11:31.106754Z",
+  "status": "NO_CONFORME",
+  "validation": {
+    "data_origin": "SIMULADA",
+    "intended_authority": "SEU",
+    "authority_review_status": "PENDIENTE",
+    "trl3_claimed": false
+  },
+  "repository": {
+    "base_commit_at_capture": "22b54740ea11facf3308268b50bb4b0a36253935",
+    "pipeline_matched_base_commit_at_capture": true,
+    "current_worktree_match_claimed": false,
+    "post_capture_change_observed": "SECURITY_ALLOWLIST_DRIVE_ERROR_CODES",
+    "post_capture_rerun_performed": false,
+    "global_worktree_clean": false,
+    "traceability_note": "Los componentes evaluados coincidian con el base commit al capturar la evidencia. Luego se modifico el procesador para una allowlist de errores Drive; no se repitio Ollama y no se afirma coincidencia con el worktree actual."
+  },
+  "runtime": {
+    "name": "ollama",
+    "version": "0.32.14-1",
+    "installation": "user-local-isolated",
+    "package_source_id": "ARCH_EXTRA_OLLAMA_X86_64",
+    "package_sha256": "b7de7e88ebb19e982c616dc83f9274e2b974a4ab9f6078d3d05a1222809fd230",
+    "package_signature_verified": true,
+    "package_signing_key": "8FC15A064950A99DD1BD14DD39E4B877E62EB915",
+    "backend": "cpu",
+    "host": {
+      "cpu": "Intel Core i7-1180G7",
+      "cores": 4,
+      "threads": 8,
+      "ram_gib": 15,
+      "gpu_used_for_this_evidence": false
+    }
+  },
+  "model": {
+    "tag": "llama3.2:3b",
+    "format": "GGUF",
+    "quantization": "Q4_K_M",
+    "config_digest": "sha256:34bb5ab01051a11372a91f95f3fbbc51173eed8e7f13ec395b9ae9b8bd0e242b",
+    "weights_digest": "sha256:dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff",
+    "manifest_sha256": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72"
+  },
+  "pipeline": {
+    "components": [
+      {
+        "component_id": "HU011_POST_PROCESSOR_AT_CAPTURE",
+        "sha256": "81f907305cca4d2a8a6622d4c674eded8eab782b5b9c952ac8d13d781fbefef9"
+      },
+      {
+        "component_id": "OLLAMA_LOOPBACK_ADAPTER_AT_CAPTURE",
+        "sha256": "27624f992ad5cafb7ea798637bc71fac9fe930ca662110e29557b3228122e3b6"
+      },
+      {
+        "component_id": "AGENTE1_CLI_AT_CAPTURE",
+        "sha256": "a518adf043d566c2e3021a0e811f361dd4ac8a73a341d7a2febe4421489f6674"
+      }
+    ],
+    "prompts": [
+      {
+        "version": "post_instagram_v1",
+        "sha256": "54745a92cd47a3f9e0d565c6f197642c5b92e26398151824f62649e6472e54a8"
+      },
+      {
+        "version": "post_linkedin_v1",
+        "sha256": "15e9064557dd4c083d51fbf64c1b53c961fce8ec7e61e0ecf39451c2781e30da"
+      }
+    ],
+    "contract": {
+      "version": "post_input_v1",
+      "sha256": "f6090dd82a37a363fc6364cc0bd56fb7c9286ff3306c4e623bb49615f4431b4a"
+    },
+    "input_dataset": {
+      "dataset_id": "ACTIVIDADES_SINTETICAS_V1",
+      "sha256": "fe5d712f5f41e777b5daa02ac1de0b23bfde64e0cc61433d9a89d3c0977d98f4",
+      "record_ids": [
+        "SYN-001",
+        "SYN-003"
+      ],
+      "record_hashes": {
+        "SYN-001": "d4971497e1f6db200ba6005e562b42313dab9637ae6ec8476a6f9c10b115e38e",
+        "SYN-003": "73889a1521c41d473749b7e6e5e26f893113295887e9ce4cee91acae666974d0"
+      }
+    },
+    "effective_caps": {
+      "max_chars": 1000,
+      "min_hashtags": 1,
+      "max_hashtags": 10,
+      "num_predict": 112,
+      "timeout_seconds": 120
+    }
+  },
+  "execution": {
+    "attempt_limit": 6,
+    "attempts_executed": 6,
+    "automatic_retries": 0,
+    "accepted_outputs": 0,
+    "rejected_outputs": 6,
+    "attempts": [
+      {
+        "channel": "instagram",
+        "condition": "model-cold-prompt-cold",
+        "record_id": "SYN-001",
+        "correlation_id": "0d123ad2-2a9a-407b-beb9-0399e0b99276",
+        "latency_seconds": 29.232839,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["title_missing", "date_missing", "organizer_missing", "contact_missing", "place_missing"]
+      },
+      {
+        "channel": "instagram",
+        "condition": "model-resident-prompt-cold",
+        "record_id": "SYN-003",
+        "correlation_id": "832127d0-4bec-47e0-adff-26a0aa7790c5",
+        "latency_seconds": 14.441819,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["date_missing", "contact_missing", "unauthorized_number"]
+      },
+      {
+        "channel": "instagram",
+        "condition": "same-prompt-warm",
+        "record_id": "SYN-003",
+        "correlation_id": "aceb9a95-da17-4742-ab7a-9f6deef1c448",
+        "latency_seconds": 5.667962,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["date_missing", "organizer_missing", "contact_missing"]
+      },
+      {
+        "channel": "linkedin",
+        "condition": "model-cold-prompt-cold",
+        "record_id": "SYN-001",
+        "correlation_id": "9a42ca4a-7b32-42f2-a007-444070750874",
+        "latency_seconds": 29.62909,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["date_missing", "contact_missing", "unauthorized_number"]
+      },
+      {
+        "channel": "linkedin",
+        "condition": "model-resident-prompt-cold",
+        "record_id": "SYN-003",
+        "correlation_id": "b6b01681-ba82-48f8-9840-24a83f38adb5",
+        "latency_seconds": 13.133735,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["date_missing", "contact_missing", "unauthorized_number"]
+      },
+      {
+        "channel": "linkedin",
+        "condition": "same-prompt-warm",
+        "record_id": "SYN-003",
+        "correlation_id": "d73dea7a-c9b2-44db-a161-899a0f4f5877",
+        "latency_seconds": 15.35818,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["date_missing", "contact_missing", "unauthorized_number"]
+      }
+    ]
+  },
+  "human_review": {
+    "checklist_id": "CHECKLIST_VALIDACION_HUMANA_HU011_V1",
+    "status": "NO_APLICA_SIN_BORRADOR_ACEPTADO",
+    "decision": null
+  },
+  "limitations": [
+    "Todos los casos utilizaron datos sinteticos.",
+    "Ninguna salida supero el contrato tecnico; no se conservaron cuerpos rechazados en la evidencia versionable.",
+    "La menor latencia no implica conformidad ni constituye un SLA.",
+    "No existe validacion SEU registrada.",
+    "No se declara TRL 3."
+  ]
+}
