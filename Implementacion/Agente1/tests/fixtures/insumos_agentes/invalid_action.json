@@ -1,0 +1,18 @@
+{
+  "schema": "agente1.insumo.v1",
+  "schema_version": "1.0.0",
+  "channel": "a1.communication_input",
+  "producer": "A5",
+  "producer_schema_version": "a5_candidate_v1",
+  "correlation_id": "corr-a5-invalid-001",
+  "timestamp": "2026-08-17T12:04:00-03:00",
+  "data_origin": "synthetic_test",
+  "provenance": {
+    "sources": [{"ref": "opaque:A5:synthetic-invalid", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}]
+  },
+  "payload": {
+    "type": "texto_rrss_enriquecido",
+    "content": {"texto": "Contenido sintético"}
+  },
+  "action": "publicar"
+}

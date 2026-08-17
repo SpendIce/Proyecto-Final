@@ -1,0 +1,17 @@
+{
+  "schema": "agente1.insumo.v1",
+  "schema_version": "1.0.0",
+  "channel": "a1.communication_input",
+  "producer": "A4",
+  "producer_schema_version": "a4_candidate_v1",
+  "correlation_id": "corr-a4-synthetic-001",
+  "timestamp": "2026-08-17T12:02:00-03:00",
+  "data_origin": "synthetic_test",
+  "provenance": {
+    "sources": [{"ref": "opaque:A4:synthetic-001", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}]
+  },
+  "payload": {
+    "type": "solicitud_material_orientacion",
+    "content": {"consulta": "Consulta sintética", "publico": "Público de prueba"}
+  }
+}

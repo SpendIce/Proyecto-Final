@@ -12,7 +12,7 @@ dependencies = []
 where = ["src"]
 
 [tool.setuptools.package-data]
-agente1 = ["contracts/*.json", "prompts/*.txt"]
+agente1 = ["contracts/*.json", "contracts/insumos/*.json", "prompts/*.txt"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

@@ -1,0 +1,17 @@
+{
+  "schema": "agente1.insumo.v1",
+  "schema_version": "1.0.0",
+  "channel": "a1.communication_input",
+  "producer": "A5",
+  "producer_schema_version": "a5_candidate_v1",
+  "correlation_id": "corr-a5-synthetic-001",
+  "timestamp": "2026-08-17T12:03:00-03:00",
+  "data_origin": "synthetic_test",
+  "provenance": {
+    "sources": [{"ref": "opaque:A5:synthetic-001", "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}]
+  },
+  "payload": {
+    "type": "analitica_contenido",
+    "content": {"canal": "synthetic", "observacion": "Analítica ficticia sin métricas institucionales."}
+  }
+}

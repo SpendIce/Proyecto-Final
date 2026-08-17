@@ -1,0 +1,17 @@
+{
+  "schema": "agente1.insumo.v1",
+  "schema_version": "1.0.0",
+  "channel": "a1.communication_input",
+  "producer": "A2",
+  "producer_schema_version": "a2_candidate_v1",
+  "correlation_id": "corr-a2-synthetic-001",
+  "timestamp": "2026-08-17T12:00:00-03:00",
+  "data_origin": "synthetic_test",
+  "provenance": {
+    "sources": [{"ref": "opaque:A2:synthetic-001", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]
+  },
+  "payload": {
+    "type": "efemeride",
+    "content": {"titulo": "Efeméride sintética", "detalle": "Contenido ficticio para prueba contractual."}
+  }
+}

@@ -73,6 +73,19 @@ def test_recursos_hu011_versionados_son_empaquetables_y_provisionales():
         assert "POLICY_STATUS: PROVISIONAL_NO_INSTITUCIONAL" in prompt
 
 
+def test_schema_candidato_a2_a5_esta_declarado_como_recurso_importable():
+    configuracion = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    recursos = configuracion["tool"]["setuptools"]["package-data"]["agente1"]
+
+    assert "contracts/insumos/*.json" in recursos
+    contrato = json.loads(
+        files("agente1")
+        .joinpath("contracts", "insumos", "agente1_insumo_candidate_v1.schema.json")
+        .read_text(encoding="utf-8")
+    )
+    assert contrato["properties"]["schema"]["const"] == "agente1.insumo.v1"
+
+
 def test_dataset_versionado_tiene_cinco_casos_y_dos_invalidos():
     with (ROOT / "data" / "actividades_sinteticas.csv").open(
         encoding="utf-8", newline=""

@@ -1,0 +1,17 @@
+{
+  "schema": "agente1.insumo.v1",
+  "schema_version": "1.0.0",
+  "channel": "a1.communication_input",
+  "producer": "A3",
+  "producer_schema_version": "a3_candidate_v1",
+  "correlation_id": "corr-a3-synthetic-001",
+  "timestamp": "2026-08-17T12:01:00-03:00",
+  "data_origin": "synthetic_test",
+  "provenance": {
+    "sources": [{"ref": "opaque:A3:synthetic-001", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}]
+  },
+  "payload": {
+    "type": "evento",
+    "content": {"titulo": "Evento sintético", "detalle": "Dato ficticio para prueba contractual."}
+  }
+}
