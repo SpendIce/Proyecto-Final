@@ -25,6 +25,7 @@ from .fuentes import (
 
 SHEETS_HOST = "sheets.googleapis.com"
 DOCS_HOST = "docs.googleapis.com"
+DRIVE_HOST = "www.googleapis.com"
 MAX_WORKSPACE_RESPONSE_BYTES = 1_048_576
 MAX_WORKSPACE_TIMEOUT_S = 120.0
 ID_RE = re.compile(r"[A-Za-z0-9_-]{1,256}\Z")
@@ -243,6 +244,125 @@ class GoogleDocsDestinoBorradores(DestinoBorradores):
         return token
 
 
+class GoogleDrivePlantillaDestinoBorradores(DestinoBorradores):
+    """Copia una plantilla allowlisted y antepone un borrador en la copia."""
+
+    def __init__(
+        self,
+        *,
+        plantilla_id: str,
+        carpeta_id: str,
+        token_provider: AccessTokenProvider,
+        transport: TransporteHttp | None = None,
+        timeout_s: float = 10.0,
+    ) -> None:
+        if (
+            not isinstance(plantilla_id, str)
+            or ID_RE.fullmatch(plantilla_id) is None
+            or not isinstance(carpeta_id, str)
+            or ID_RE.fullmatch(carpeta_id) is None
+            or isinstance(timeout_s, bool)
+            or not isinstance(timeout_s, (int, float))
+            or not math.isfinite(timeout_s)
+            or not 0 < timeout_s <= MAX_WORKSPACE_TIMEOUT_S
+        ):
+            raise ValueError("configuración de Google Drive inválida")
+        self._plantilla_id = plantilla_id
+        self._carpeta_id = carpeta_id
+        self._token_provider = token_provider
+        self._transport = transport or HttpsWorkspaceTransport()
+        self._timeout_s = float(timeout_s)
+
+    def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador:
+        validar_entrada_borrador(id_solicitud, contenido)
+        update_body = json.dumps(
+            {
+                "requests": [
+                    {
+                        "insertText": {
+                            "location": {"index": 1},
+                            "text": contenido,
+                        }
+                    }
+                ]
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        if len(update_body) > MAX_WORKSPACE_RESPONSE_BYTES:
+            raise DestinoBorradoresError("drive_request_too_large")
+        token = self._obtener_token()
+        deadline = time.monotonic() + self._timeout_s
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json; charset=utf-8",
+        }
+        copy_body = json.dumps(
+            {
+                "name": f"BORRADOR — NO PUBLICAR — {id_solicitud}",
+                "parents": [self._carpeta_id],
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        try:
+            copy_response = self._transport.request(
+                method="POST",
+                host=DRIVE_HOST,
+                target=(
+                    f"/drive/v3/files/{self._plantilla_id}/copy"
+                    "?supportsAllDrives=true&ignoreDefaultVisibility=true&fields=id"
+                ),
+                headers=headers,
+                body=copy_body,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+        except _RespuestaDemasiadoGrande:
+            raise DestinoBorradoresError("drive_response_too_large") from None
+        except Exception:
+            raise DestinoBorradoresError("drive_unavailable") from None
+        copia = _validar_copy_drive(copy_response)
+        document_id = copia["id"]
+        reconciliation_ref_hash = hashlib.sha256(document_id.encode("utf-8")).hexdigest()
+        try:
+            update_response = self._transport.request(
+                method="POST",
+                host=DOCS_HOST,
+                target=f"/v1/documents/{document_id}:batchUpdate",
+                headers=headers,
+                body=update_body,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+            _validar_update_docs(update_response)
+        except Exception:
+            raise DestinoBorradoresError(
+                "docs_update_failed_orphaned",
+                reconciliation_ref_hash=reconciliation_ref_hash,
+            ) from None
+        return ReferenciaBorrador(
+            tipo="google_drive_template",
+            referencia=document_id,
+        )
+
+    def _obtener_token(self) -> str:
+        try:
+            token = self._token_provider.obtener_access_token()
+        except Exception:
+            raise DestinoBorradoresError("workspace_auth_unavailable") from None
+        if (
+            not isinstance(token, str)
+            or not token.strip()
+            or token != token.strip()
+            or "\r" in token
+            or "\n" in token
+        ):
+            raise DestinoBorradoresError("workspace_auth_unavailable")
+        return token
+
+
 class HttpsWorkspaceTransport:
     def request(
         self,
@@ -333,6 +453,32 @@ def _validar_create_docs(respuesta: RespuestaHttp) -> dict[str, str]:
         or ID_RE.fullmatch(documento["documentId"]) is None
     ):
         raise DestinoBorradoresError("docs_response_invalid")
+    return documento
+
+
+def _validar_copy_drive(respuesta: RespuestaHttp) -> dict[str, str]:
+    if len(respuesta.body) > MAX_WORKSPACE_RESPONSE_BYTES:
+        raise DestinoBorradoresError("drive_response_too_large")
+    if not 200 <= respuesta.status < 300:
+        if respuesta.status in {401, 403}:
+            codigo = "drive_auth_denied"
+        elif respuesta.status == 404:
+            codigo = "drive_resource_not_found"
+        elif respuesta.status == 429:
+            codigo = "drive_rate_limited"
+        else:
+            codigo = "drive_unavailable"
+        raise DestinoBorradoresError(codigo)
+    try:
+        documento = json.loads(respuesta.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise DestinoBorradoresError("drive_response_invalid") from None
+    if (
+        not isinstance(documento, dict)
+        or not isinstance(documento.get("id"), str)
+        or ID_RE.fullmatch(documento["id"]) is None
+    ):
+        raise DestinoBorradoresError("drive_response_invalid")
     return documento
 
 

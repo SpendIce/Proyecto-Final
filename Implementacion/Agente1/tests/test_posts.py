@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from agente1 import FakeGenerator
 from agente1.destinos import DestinoBorradoresError
 from agente1.fuentes import FuenteSolicitudesError
@@ -257,10 +259,13 @@ def test_error_de_fuente_se_mapea_a_codigo_cerrado_sin_datos(tmp_path: Path):
     assert json.loads(serializado)["source_error_code"] == "source_unavailable"
 
 
-def test_error_de_destino_se_audita_sin_filtrar_contenido(tmp_path: Path):
+@pytest.mark.parametrize("codigo", ["docs_auth_denied", "drive_auth_denied"])
+def test_error_de_destino_se_audita_sin_filtrar_contenido(
+    tmp_path: Path, codigo: str
+):
     class DestinoFallido:
         def guardar(self, id_solicitud: str, contenido: str):
-            raise DestinoBorradoresError("docs_auth_denied")
+            raise DestinoBorradoresError(codigo)
 
     resultado = procesar_post(
         fuente=FuenteFake(actividad()),
@@ -275,7 +280,7 @@ def test_error_de_destino_se_audita_sin_filtrar_contenido(tmp_path: Path):
     serializado = resultado.log_path.read_text(encoding="utf-8")
     assert "Taller sintético" not in serializado
     registro = json.loads(serializado)
-    assert registro["destination_error_code"] == "docs_auth_denied"
+    assert registro["destination_error_code"] == codigo
     assert registro["output_hash"]
 
 

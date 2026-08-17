@@ -100,6 +100,13 @@ DESTINATION_ERROR_CODES = frozenset(
         "docs_response_too_large",
         "docs_unavailable",
         "docs_update_failed_orphaned",
+        "drive_auth_denied",
+        "drive_rate_limited",
+        "drive_request_too_large",
+        "drive_resource_not_found",
+        "drive_response_invalid",
+        "drive_response_too_large",
+        "drive_unavailable",
         "workspace_auth_unavailable",
     }
 )

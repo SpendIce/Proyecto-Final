@@ -1,0 +1,38 @@
+{
+  "checks": [
+    {
+      "id": "logs_redacted",
+      "passed": true,
+      "result_code": "ok"
+    },
+    {
+      "id": "resources_allowlisted",
+      "passed": true,
+      "result_code": "ok"
+    },
+    {
+      "id": "remote_errors_redacted",
+      "passed": true,
+      "result_code": "ok"
+    },
+    {
+      "id": "no_distribution_endpoints",
+      "passed": true,
+      "result_code": "ok"
+    },
+    {
+      "id": "revocation_blocks",
+      "passed": true,
+      "result_code": "ok"
+    },
+    {
+      "id": "outputs_are_drafts",
+      "passed": true,
+      "result_code": "ok"
+    }
+  ],
+  "error_code": null,
+  "run_id_hash": "d25200564ca2c5f4db2cfe1cdf0342469553059d7411ea4f9be0fd4395537f03",
+  "schema_version": "security-d2-report-v1",
+  "status": "PASS"
+}

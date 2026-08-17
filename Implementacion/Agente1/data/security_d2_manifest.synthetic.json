@@ -1,0 +1,63 @@
+{
+  "schema_version": "security-d2-manifest-v1",
+  "run_id": "SEC-D2-SYN-001",
+  "mode": "offline_fake",
+  "allowlist": {
+    "spreadsheet": ["SHEET_SYNTHETIC_ALLOWED"],
+    "folder": ["FOLDER_SYNTHETIC_ALLOWED"],
+    "template": ["TEMPLATE_SYNTHETIC_ALLOWED"]
+  },
+  "sensitive": {
+    "tokens": ["SYNTHETIC_TOKEN_DO_NOT_USE"],
+    "prompts": ["SYNTHETIC_PRIVATE_PROMPT"],
+    "contacts": ["contacto.synthetic@example.invalid"],
+    "bodies": ["SYNTHETIC_REMOTE_BODY"]
+  },
+  "resources": [
+    {"kind": "spreadsheet", "id": "SHEET_SYNTHETIC_ALLOWED"},
+    {"kind": "folder", "id": "FOLDER_SYNTHETIC_ALLOWED"},
+    {"kind": "template", "id": "TEMPLATE_SYNTHETIC_ALLOWED"}
+  ],
+  "http_calls": [
+    {
+      "method": "GET",
+      "host": "sheets.googleapis.com",
+      "target": "/v4/spreadsheets/SHEET_SYNTHETIC_ALLOWED/values/solicitudes"
+    },
+    {
+      "method": "POST",
+      "host": "www.googleapis.com",
+      "target": "/drive/v3/files/TEMPLATE_SYNTHETIC_ALLOWED/copy"
+    },
+    {
+      "method": "POST",
+      "host": "docs.googleapis.com",
+      "target": "/v1/documents/DOC_SYNTHETIC:batchUpdate"
+    }
+  ],
+  "logs": [
+    {
+      "event": "source_read",
+      "resource_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "event": "draft_saved",
+      "reference_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "remote_errors": [
+    {"code": "workspace_auth_denied"}
+  ],
+  "outputs": [
+    {
+      "status": "PENDIENTE_VALIDACION",
+      "content": "# BORRADOR — NO PUBLICAR\n\nContenido completamente sintético."
+    }
+  ],
+  "revocation_probe": {
+    "simulated": true,
+    "result": "BLOCKED",
+    "error_code": "workspace_auth_denied",
+    "draft_created": false
+  }
+}
