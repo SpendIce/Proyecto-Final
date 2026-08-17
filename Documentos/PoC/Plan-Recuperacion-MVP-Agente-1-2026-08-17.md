@@ -2,7 +2,7 @@
 
 - **Ventana de recuperación:** 17 al 28 de agosto de 2026
 - **Alcance:** HU-010 + HU-011, Proceso 4
-- **Estado actualizado:** HU-010 `PARCIAL`; HU-011 `PARCIAL / IMPLEMENTADA_OFFLINE`; Gate G2 / TRL 3 `PENDIENTE`
+- **Estado actualizado:** HU-010 `PARCIAL`; HU-011 `PARCIAL / NO_CONFORME_CON_OLLAMA`; Gate G2 / TRL 3 `PENDIENTE`
 
 ## 1. Objetivo
 
@@ -25,10 +25,11 @@ Recuperar el camino de valor del MVP sin adelantar infraestructura que no resuel
 | 17–20/08 | Gestión institucional | Pedido consolidado de recursos, validadores y criterio G2 | Juan Ignacio Gone | Josefina, SEU, Vera/DSI y César | Solicitud enviada y responsables/fechas registrados; no basta para cerrar |
 | 21–24/08 | HU-011 — pipeline | Procesador, CLI, longitud configurable, limpieza y deduplicación de hashtags | Juan Ignacio Gone | Contrato técnico provisional | **Completado offline en `537402a`:** suite integral de 151 pruebas y smoke fake verdes |
 | 21–24/08 | HU-011 — matriz | Casos sintéticos completos/incompletos para ambos canales | Juan Ignacio Gone | Pipeline HU-011 | **Completado offline:** diez ejecuciones, hashes, correlation IDs, seis pendientes y cuatro incompletas |
-| 25–26/08 | HU-011 — LLM/evidencia | Smoke Ollama y manifest; checklist por canal | Juan Ignacio Gone | Runtime local disponible | Resultado y limitaciones registrados; no inferir estabilidad ni SEU |
-| 25–27/08 | Seguridad y regresión | Prompt injection, acciones no autorizadas, redacción de secretos, suite HU-010/HU-011 | Juan Ignacio Gone | Implementación técnica cerrada | **Avance parcial:** suite integral, smokes/matrices y review `CLEAN`; falta consolidación live D2/D3 |
-| 25–28/08 | HU-010 — integración D2 | Smoke Sheets → generación → Docs con permisos mínimos | Juan Ignacio + Vera/DSI | Identidad, APIs, Sheet, Doc/Drive | Evidencia live recuperable y pruebas negativas; si no se provisiona, queda bloqueado |
-| 25–28/08 | Validación | Muestra HU-010/HU-011 revisada con escala 1–4 | Validadores SEU | Designación, plantilla y guía de canal | Checklists con persona, fecha, observaciones y decisión |
+| 25–26/08 | HU-011 — LLM/evidencia | Smoke Ollama y manifest; checklist por canal | Juan Ignacio Gone | Runtime user-local `0.32.14-1` restaurado e ignorado | **Ejecutado, resultado `NO_CONFORME`:** 6/6 transportes, 0 timeouts, 0/6 conformes y 0 borradores (`aa4765e`) |
+| 25–27/08 | HU-011 — experimento 2 | Salida estructurada y render determinista bajo el mismo gate | Juan Ignacio Gone | Hipótesis y límite de intentos fijados antes de ejecutar | Obtener muestra conforme reproducible o registrar nuevo no-go; no repetir el baseline a ciegas |
+| 25–27/08 | Seguridad y regresión | Prompt injection, acciones no autorizadas, redacción de secretos, suite HU-010/HU-011 | Juan Ignacio Gone | Implementación técnica cerrada | **Completado offline en `5484684`:** harness PASS; validación live D2/D3 pendiente |
+| 25–28/08 | HU-010 — integración D2 | Smoke Sheets → generación → Docs/Drive con permisos mínimos | Juan Ignacio + Vera/DSI | Identidad, APIs, Sheet, Doc/Drive | **Preparado, no ejecutado live:** config/smoke opt-in y plantilla/carpeta offline listos; evidencia live sigue bloqueada |
+| 25–28/08 | Validación | Muestra HU-010/HU-011 revisada con escala 1–4 | Validadores SEU | Designación, plantilla y guía de canal | **Paquete listo en `1264d59`:** nueve muestras/17 referencias; acta y decisiones continúan `PENDIENTE` |
 | 28/08 | Gate | Auditoría del paquete y decisión go/no-go | César Cicerchia + SEU | Evidencia completa | Acta o informe; sin declaración automática de TRL |
 
 Las fechas institucionales son objetivos de coordinación, no compromisos confirmados. Si una dependencia externa no llega, se registra como bloqueante y no se falsea el cierre.
@@ -38,10 +39,14 @@ Las fechas institucionales son objetivos de coordinación, no compromisos confir
 ### Avance técnico confirmado
 
 - HU-011 multicanal fue incorporada en `537402a`.
-- La suite integral registró 151 pruebas verdes.
 - Los smokes fake y matrices contractuales de HU-010/HU-011 finalizaron verdes.
-- La revisión técnica del incremento fue `CLEAN`.
-- Continúan pendientes el smoke HU-011 con Ollama real, la integración Workspace live y la validación SEU; por lo tanto, este avance no cierra el DoD ni el Gate G2.
+- `5484684` agregó preparación D2/Drive y seguridad offline, pero ninguna corrida Workspace live.
+- La suite conjunta al cierre del paquete completo registró 265 pruebas.
+- `b187960` agregó un contrato candidato A2–A5 inbound: A1 valida insumos, no orquesta agentes y aún no integra esos envelopes a HU-010/HU-011.
+- `1264d59` preparó nueve muestras y 17 referencias para SEU; el acta sigue `PENDIENTE` y no existe validación real.
+- `aa4765e` registró el smoke HU-011 con Ollama: transporte operativo, 0/6 conformes y cero borradores.
+- El runtime user-local Ollama `0.32.14-1` quedó restaurado e ignorado por Git.
+- Continúan pendientes Workspace live, un baseline Ollama HU-011 conforme, la validación SEU y la decisión G2.
 
 ### Josefina Carullo / Coordinación de Extensión
 
@@ -92,6 +97,7 @@ Se puede solicitar la evaluación únicamente si:
 Corresponde `NO-GO` si ocurre cualquiera de estas condiciones:
 
 - falta HU-010 o HU-011 en el paquete;
+- HU-011 no produce ninguna salida conforme con el LLM local real;
 - sólo existen fakes/adapters offline cuando el DoD exige integración controlada;
 - no hay validación humana identificable;
 - existe contenido que inventa hechos o evade el estado de borrador;
@@ -108,6 +114,6 @@ Durante esta ventana no se priorizan PostgreSQL, Celery, Redis, FastAPI ni LangG
 
 ## 7. Estado esperado al 28/08
 
-- **Mejor caso:** HU-010 y HU-011 técnicamente completas, D2 operativo, validación SEU registrada y paquete listo para decisión G2.
-- **Caso probable si persisten dependencias externas:** prototipo controlado HU-010/HU-011 y evidencia técnica completos; G2 continúa `PENDIENTE` con bloqueantes nominales y fecha de resolución.
+- **Mejor caso:** experimento HU-011 conforme, D2 operativo, validación SEU registrada y paquete listo para decisión G2.
+- **Caso probable si persisten bloqueantes:** preparación offline y evidencia completas, pero HU-011 real/D2/SEU continúan abiertos; G2 permanece `PENDIENTE` con responsables y próxima hipótesis registrados.
 - **Condición prohibida:** declarar TRL 3 por calendario, commits o cantidad de pruebas sin evidencia institucional exigida.

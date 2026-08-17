@@ -171,11 +171,96 @@ TRL 3**. El checklist y el
 informe de corte viven en `evidencias/checklist-validacion-humana-hu011.md` y
 `evidencias/matriz-conformidad-hu011-2026-08-17.md`.
 
+## Preparación Workspace D2 y seguridad offline
+
+La configuración cerrada de `workspace_config.py` y el smoke
+`workspace_smoke.py` preparan una lectura opt-in de Sheets para D2. Las
+operaciones de copia de plantilla y ubicación en carpeta Drive están probadas
+offline con transporte fake. **No hubo una ejecución Workspace live:** no hay
+OAuth, token, IDs ni permisos institucionales aportados al repositorio, y el
+smoke live sólo leerá Sheets; no prueba Docs, Drive ni publicación.
+
+Después de cargar por un mecanismo seguro las siete variables **no sensibles**
+definidas en
+`Documentos/PlanDespliegue/Runbook-Workspace-D2-D3-Agente-1.md`, validar la
+configuración sin red:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache PYTHONPATH=src \
+  python scripts/workspace_smoke.py
+```
+
+No se debe pasar el token por CLI, escribirlo en `.env` versionado ni copiarlo
+al historial. `--live` queda reservado para una sesión autorizada por DSI y
+requiere un token efímero en `AGENTE1_WORKSPACE_ACCESS_TOKEN`.
+
+El harness de seguridad es deliberadamente offline y no acepta credenciales:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python scripts/auditar_seguridad_d2.py \
+  --manifest data/security_d2_manifest.synthetic.json \
+  --reporte /tmp/reporte-seguridad-d2.json
+```
+
+El reporte versionado obtuvo `PASS` sobre redacción, allowlists, errores
+remotos, ausencia de endpoints de distribución, revocación simulada y estado
+de borrador. Esto no demuestra permisos, revocación, aislamiento ni tráfico
+reales.
+
+La suite conjunta al cierre del paquete completo registró 265 pruebas. Ese
+total no es evidencia de integración institucional ni se atribuye al incremento
+Workspace/security de forma aislada.
+
+## Contrato candidato de insumos A2–A5
+
+`insumos_agentes.py` y
+`contracts/insumos/agente1_insumo_candidate_v1.schema.json` validan un envelope
+inbound provisional. A1 acepta o rechaza datos no confiables de A2–A5: **no los
+invoca, coordina ni orquesta**, no interpreta `payload.content` como control y
+no publica contenido. El contrato permanece `CANDIDATO_NO_INSTITUCIONAL` y los
+pipelines HU-010/HU-011 todavía no consumen esos envelopes.
+
+Prueba focalizada:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python -m pytest -q tests/test_insumos_agentes.py
+```
+
+## Paquete pendiente de validación SEU
+
+`Documentos/PoC/Validacion-SEU/` contiene nueve muestras y un manifest de 17
+referencias para una sesión humana. El acta está `PENDIENTE`: no identifica
+persona revisora, no contiene puntajes ni decisión y no acredita validación.
+
+Desde la raíz del repositorio se puede verificar o regenerar únicamente el
+manifest de hashes, sin copiar contenido ni PII:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python Implementacion/Agente1/scripts/preparar_validacion_seu.py
+```
+
+## Resultado Ollama de HU-011
+
+El runtime user-local Ollama `0.32.14-1` fue restaurado en el directorio
+ignorado por Git. Con `llama3.2:3b`, el smoke de HU-011 respondió en 6/6
+intentos y no tuvo timeouts, pero produjo **0/6 salidas conformes**. El gate
+fail-closed rechazó las seis respuestas y creó cero borradores. La evidencia
+está en `evidencias/benchmark-hu011-ollama-2026-08-17.md` y
+`evidencias/manifest-hu011-ollama-2026-08-17.json`.
+
+El resultado correcto es `NO_CONFORME`, no un éxito de HU-011. El próximo
+experimento debe introducir una hipótesis única y medible —preferentemente
+salida estructurada y render determinista—, fijar el número de intentos y
+mantener el mismo gate. No corresponde aumentar tokens o repetir hasta obtener
+un verde.
+
 ## Próximo incremento según el Gantt
 
-HU-011 ya reutiliza los mismos seams de fuente, generador y destino que HU-010.
-El próximo incremento técnico es ejecutar un smoke HU-011 con Ollama y preparar
-OAuth, configuración y permisos institucionales para probar Sheets y Docs
-live, sin publicar ni compartir automáticamente. La carpeta y plantilla
-oficiales, la validación humana de la SEU y el registro recuperable de esa
-decisión siguen siendo obligatorios antes de considerar cumplido el DoD.
+El próximo incremento técnico es resolver la conformidad HU-011 con un
+experimento controlado de salida estructurada y render determinista. En
+paralelo, DSI/SEU deben provisionar identidad, recursos y permisos para ejecutar
+D2 live, y la SEU debe completar el paquete de validación. Hasta entonces,
+HU-010 y HU-011 continúan parciales y el Gate G2 / TRL 3 permanece pendiente.
