@@ -1,0 +1,99 @@
+{
+  "schema_version": "manifest_validacion_seu_v1",
+  "estado": "PENDIENTE",
+  "decision": "PENDIENTE",
+  "trl3_acreditado": false,
+  "publicacion_o_envio_ejecutado": false,
+  "acta": {
+    "id": "ACTA-VALIDACION-SEU",
+    "sha256": "b00029ebc5632de9cb13049f0f6228ffe0ddf071cc16af3de1e014be81c11780",
+    "bytes": 1287
+  },
+  "referencias": [
+    {
+      "id": "REF-001",
+      "sha256": "fe5d712f5f41e777b5daa02ac1de0b23bfde64e0cc61433d9a89d3c0977d98f4",
+      "bytes": 964
+    },
+    {
+      "id": "REF-002",
+      "sha256": "87507e0af268cd529850e5140b825b5c432f8757753af8c4f6183932b265bd16",
+      "bytes": 333
+    },
+    {
+      "id": "REF-003",
+      "sha256": "e833630acf3ecd9731d29dc5515e5a256511def6168584e71118186ac8603e2b",
+      "bytes": 291
+    },
+    {
+      "id": "REF-004",
+      "sha256": "fae2dfb3beccc52262ad178b245e660aade5420b4a0f62b9287b30b644463a0f",
+      "bytes": 311
+    },
+    {
+      "id": "REF-005",
+      "sha256": "9610548ba08312a578805840ce4f67ddadee9354030901e72dd9303b952e1f86",
+      "bytes": 240
+    },
+    {
+      "id": "REF-006",
+      "sha256": "5d84bec25563a4af1c4f58d260843de571d0f8e44a8ae8699e831ff3a500fa22",
+      "bytes": 219
+    },
+    {
+      "id": "REF-007",
+      "sha256": "46ff820135fee392817e9bb042223ad28d6c3849d3e8ecdeb106d660087987eb",
+      "bytes": 196
+    },
+    {
+      "id": "REF-008",
+      "sha256": "4431801724490f33b12f2d3ff9cd31aca14abf16178f3a22d53f34ef9634a8b5",
+      "bytes": 181
+    },
+    {
+      "id": "REF-009",
+      "sha256": "8918a5b04011c887a8f939d6a38eaa8338d3e1dd4bcadc27c725aa592bb76480",
+      "bytes": 214
+    },
+    {
+      "id": "REF-010",
+      "sha256": "7208b7f6935d6ac70426a7af70412f48b5617fd8fd8f0400077634acbbe3dac6",
+      "bytes": 192
+    },
+    {
+      "id": "REF-011",
+      "sha256": "053e763eefad38f3704d54e8d7b79afa1f6986c9493ed34e1f2a567b28e14514",
+      "bytes": 3459
+    },
+    {
+      "id": "REF-012",
+      "sha256": "934bae955ef83fd4691664d506e1ee3ba521600a7817b4d30f4c963299b5bace",
+      "bytes": 2828
+    },
+    {
+      "id": "REF-013",
+      "sha256": "5d26ae50a45ee63925e0a1ba644e758e8a2707d6dfbf2067020bc82493d85ac9",
+      "bytes": 3442
+    },
+    {
+      "id": "REF-014",
+      "sha256": "aa51fed1b5db3c0c5a140eb6287537bcab74ebea738e7b0553fa60c32f6fe46c",
+      "bytes": 3370
+    },
+    {
+      "id": "REF-015",
+      "sha256": "1288d36db6387201afe2b256fac2126c6a350bc67f19cb82b495ccab12ddec0b",
+      "bytes": 1086
+    },
+    {
+      "id": "REF-016",
+      "sha256": "3e413bbaeffc36c768c71cc5374650b1b9f48fdbbfacd1221fc810d43f7cc0b3",
+      "bytes": 2256
+    },
+    {
+      "id": "REF-017",
+      "sha256": "bc07d0211ded02f94a775be15fed2605cf09d9a1f68ae307dcb605bc0b530d69",
+      "bytes": 3070
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+id_muestra,id_actividad,historia,canal,artefacto,origen_datos,estado_revision,decision
+M-001,SYN-001,HU-010,gacetilla,Implementacion/Agente1/golden/SYN-001.md,SIMULADA,PENDIENTE,PENDIENTE
+M-002,SYN-001,HU-011,instagram,Implementacion/Agente1/golden/posts/SYN-001-instagram.md,SIMULADA,PENDIENTE,PENDIENTE
+M-003,SYN-001,HU-011,linkedin,Implementacion/Agente1/golden/posts/SYN-001-linkedin.md,SIMULADA,PENDIENTE,PENDIENTE
+M-004,SYN-003,HU-010,gacetilla,Implementacion/Agente1/golden/SYN-003.md,SIMULADA,PENDIENTE,PENDIENTE
+M-005,SYN-003,HU-011,instagram,Implementacion/Agente1/golden/posts/SYN-003-instagram.md,SIMULADA,PENDIENTE,PENDIENTE
+M-006,SYN-003,HU-011,linkedin,Implementacion/Agente1/golden/posts/SYN-003-linkedin.md,SIMULADA,PENDIENTE,PENDIENTE
+M-007,SYN-005,HU-010,gacetilla,Implementacion/Agente1/golden/SYN-005.md,SIMULADA,PENDIENTE,PENDIENTE
+M-008,SYN-005,HU-011,instagram,Implementacion/Agente1/golden/posts/SYN-005-instagram.md,SIMULADA,PENDIENTE,PENDIENTE
+M-009,SYN-005,HU-011,linkedin,Implementacion/Agente1/golden/posts/SYN-005-linkedin.md,SIMULADA,PENDIENTE,PENDIENTE

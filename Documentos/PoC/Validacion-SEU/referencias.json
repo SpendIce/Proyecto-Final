@@ -1,0 +1,23 @@
+{
+  "schema_version": "catalogo_validacion_seu_v1",
+  "estado": "PENDIENTE",
+  "referencias": [
+    {"id": "REF-001", "path": "Implementacion/Agente1/data/actividades_sinteticas.csv"},
+    {"id": "REF-002", "path": "Implementacion/Agente1/golden/SYN-001.md"},
+    {"id": "REF-003", "path": "Implementacion/Agente1/golden/SYN-003.md"},
+    {"id": "REF-004", "path": "Implementacion/Agente1/golden/SYN-005.md"},
+    {"id": "REF-005", "path": "Implementacion/Agente1/golden/posts/SYN-001-instagram.md"},
+    {"id": "REF-006", "path": "Implementacion/Agente1/golden/posts/SYN-001-linkedin.md"},
+    {"id": "REF-007", "path": "Implementacion/Agente1/golden/posts/SYN-003-instagram.md"},
+    {"id": "REF-008", "path": "Implementacion/Agente1/golden/posts/SYN-003-linkedin.md"},
+    {"id": "REF-009", "path": "Implementacion/Agente1/golden/posts/SYN-005-instagram.md"},
+    {"id": "REF-010", "path": "Implementacion/Agente1/golden/posts/SYN-005-linkedin.md"},
+    {"id": "REF-011", "path": "Implementacion/Agente1/evidencias/matriz-conformidad-hu010-2026-07-20.md"},
+    {"id": "REF-012", "path": "Implementacion/Agente1/evidencias/matriz-conformidad-hu011-2026-08-17.md"},
+    {"id": "REF-013", "path": "Implementacion/Agente1/evidencias/checklist-validacion-humana-hu010.md"},
+    {"id": "REF-014", "path": "Implementacion/Agente1/evidencias/checklist-validacion-humana-hu011.md"},
+    {"id": "REF-015", "path": "Documentos/PoC/Validacion-SEU/muestra-validacion.csv"},
+    {"id": "REF-016", "path": "Documentos/PoC/Validacion-SEU/checklist-consolidado.md"},
+    {"id": "REF-017", "path": "Documentos/PoC/Validacion-SEU/protocolo-sesion.md"}
+  ]
+}
