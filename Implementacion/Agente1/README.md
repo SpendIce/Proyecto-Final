@@ -133,6 +133,49 @@ El timeout conserva semántica de deadline total para conexión, envío, headers
 
 El smoke real deja sus resultados en un subdirectorio temporal de `salida/`, ignorado por Git. Verifica controles técnicos; no reemplaza la revisión humana, la validación SEU ni permite declarar cumplido el Gate TRL 3.
 
+## HU-011 — matriz contractual provisional
+
+HU-011 reutiliza los puertos de fuente y destino para producir borradores
+separados de Instagram y LinkedIn. El contrato `post_input_v1`, las políticas
+de canal y los prompts están marcados como `PROVISIONAL_NO_INSTITUCIONAL`.
+Toda salida exitosa conserva `BORRADOR — NO PUBLICAR` y
+`PENDIENTE_VALIDACION`; el agente no comparte, envía ni publica contenido y no
+invoca APIs de redes sociales.
+
+La matriz reproducible ejecuta las cinco actividades sintéticas en ambos
+canales: las tres completas producen seis borradores idénticos a
+`golden/posts/`; las dos incompletas producen cuatro resultados `INCOMPLETA`
+sin invocar al generador ni crear borradores.
+
+El gate aplica un **grounding mecánico conservador**: exige que el texto
+preserve literalmente la fecha y los hechos críticos de la fuente —título,
+organización, contacto y lugar cuando fue informado— y rechaza ciertos hechos
+o afirmaciones no autorizados. Este control no constituye una evaluación
+semántica integral ni garantiza por sí solo la ausencia de alucinaciones;
+precisión, contexto y sentido institucional requieren revisión humana
+obligatoria de la SEU.
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python scripts/matriz_hu011.py --salida salida/matriz-hu011
+
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  bash scripts/smoke_posts.sh salida/smoke-hu011
+```
+
+El resumen JSON conserva IDs de correlación, estados, versiones y hashes sin
+copiar textos, contactos, datos fuente o prompts. Este circuito utiliza un fake
+determinista: verifica conformidad contractual y reproducibilidad, **no calidad
+de Ollama, grounding semántico integral, tono institucional, validación SEU o
+TRL 3**. El checklist y el
+informe de corte viven en `evidencias/checklist-validacion-humana-hu011.md` y
+`evidencias/matriz-conformidad-hu011-2026-08-17.md`.
+
 ## Próximo incremento según el Gantt
 
-Manteniendo estos contratos y sus pruebas, el siguiente slice debe definir y probar OAuth/config/permisos institucionales para ejecutar Sheets y Docs live, sin publicar ni compartir automáticamente. La carpeta y plantilla oficial, la validación humana y el registro de esa decisión siguen siendo obligatorios antes de considerar cumplido el DoD. HU-011 debe reutilizar los mismos seams, no adelantarse a esos límites pendientes del Gantt.
+HU-011 ya reutiliza los mismos seams de fuente, generador y destino que HU-010.
+El próximo incremento técnico es ejecutar un smoke HU-011 con Ollama y preparar
+OAuth, configuración y permisos institucionales para probar Sheets y Docs
+live, sin publicar ni compartir automáticamente. La carpeta y plantilla
+oficiales, la validación humana de la SEU y el registro recuperable de esa
+decisión siguen siendo obligatorios antes de considerar cumplido el DoD.

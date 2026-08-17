@@ -44,6 +44,35 @@ def test_contrato_versionado_es_explicito_y_provisional():
     assert contrato["properties"]["lugar"]["x-required"] is False
 
 
+def test_recursos_hu011_versionados_son_empaquetables_y_provisionales():
+    contrato = json.loads(
+        files("agente1")
+        .joinpath("contracts", "post_input_v1.schema.json")
+        .read_text(encoding="utf-8")
+    )
+
+    assert contrato["x-contract-version"] == "post_input_v1"
+    assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+    assert contrato["required"] == [
+        "id_solicitud",
+        "titulo",
+        "descripcion",
+        "fecha",
+        "publico",
+        "organiza",
+        "contacto",
+        "fuente",
+    ]
+    for canal in ("instagram", "linkedin"):
+        prompt = (
+            files("agente1")
+            .joinpath("prompts", f"post_{canal}_v1.txt")
+            .read_text(encoding="utf-8")
+        )
+        assert f"PROMPT_VERSION: post_{canal}_v1" in prompt
+        assert "POLICY_STATUS: PROVISIONAL_NO_INSTITUCIONAL" in prompt
+
+
 def test_dataset_versionado_tiene_cinco_casos_y_dos_invalidos():
     with (ROOT / "data" / "actividades_sinteticas.csv").open(
         encoding="utf-8", newline=""

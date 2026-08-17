@@ -13,12 +13,16 @@ from .ollama import (
     OllamaGenerator,
 )
 from .procesamiento import FakeGenerator, procesar_fila_csv
+from .fuentes import CsvFuenteSolicitudes
+from .posts import POLITICAS_DEFAULT, PoliticaPost, procesar_post
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Genera un borrador local HU-010 desde una fila CSV sintética."
+        description="Genera un borrador local HU-010/HU-011 desde una fila CSV sintética."
     )
+    parser.add_argument("--tipo", choices=("gacetilla", "post"), default="gacetilla")
+    parser.add_argument("--canal", choices=("instagram", "linkedin"))
     parser.add_argument("--csv", required=True, type=Path)
     parser.add_argument("--id-solicitud", required=True)
     parser.add_argument("--salida", required=True, type=Path)
@@ -38,9 +42,38 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=int,
         metavar="TOKENS",
     )
+    parser.add_argument(
+        "--post-max-chars",
+        default=None,
+        type=_entero_positivo,
+        metavar="CARACTERES",
+        help="Límite técnico provisional HU-011; sólo válido con --tipo post.",
+    )
+    parser.add_argument(
+        "--post-min-hashtags",
+        default=None,
+        type=_entero_no_negativo,
+        metavar="CANTIDAD",
+        help="Mínimo técnico provisional HU-011 (default 1); sólo para posts.",
+    )
+    parser.add_argument(
+        "--post-max-hashtags",
+        default=None,
+        type=_entero_positivo,
+        metavar="CANTIDAD",
+        help="Máximo técnico provisional HU-011; sólo válido con --tipo post.",
+    )
     args = parser.parse_args(argv)
 
     try:
+        post_flags = (
+            args.canal,
+            args.post_max_chars,
+            args.post_min_hashtags,
+            args.post_max_hashtags,
+        )
+        if args.tipo == "gacetilla" and any(valor is not None for valor in post_flags):
+            raise ValueError("flags exclusivos de post")
         generator = (
             FakeGenerator(args.fake_output)
             if args.fake_output is not None
@@ -51,12 +84,35 @@ def main(argv: Sequence[str] | None = None) -> int:
                 num_predict=args.ollama_num_predict,
             )
         )
-        resultado = procesar_fila_csv(
-            csv_path=args.csv,
-            id_solicitud=args.id_solicitud,
-            directorio_salida=args.salida,
-            generator=generator,
-        )
+        if args.tipo == "post":
+            if args.canal is None:
+                raise ValueError("canal requerido")
+            politica_base = POLITICAS_DEFAULT[args.canal]
+            resultado = procesar_post(
+                fuente=CsvFuenteSolicitudes(args.csv),
+                id_solicitud=args.id_solicitud,
+                canal=args.canal,
+                directorio_salida=args.salida,
+                generator=generator,
+                politica=PoliticaPost(
+                    version=politica_base.version,
+                    status=politica_base.status,
+                    max_chars=args.post_max_chars or politica_base.max_chars,
+                    min_hashtags=(
+                        args.post_min_hashtags
+                        if args.post_min_hashtags is not None
+                        else politica_base.min_hashtags
+                    ),
+                    max_hashtags=args.post_max_hashtags or politica_base.max_hashtags,
+                ),
+            )
+        else:
+            resultado = procesar_fila_csv(
+                csv_path=args.csv,
+                id_solicitud=args.id_solicitud,
+                directorio_salida=args.salida,
+                generator=generator,
+            )
     except ValueError:
         print(
             json.dumps(
@@ -96,3 +152,23 @@ def _timeout_ollama(value: str) -> float:
     if not 0 < timeout_s <= MAX_OLLAMA_TIMEOUT_S:
         raise argparse.ArgumentTypeError("debe ser mayor que 0 y menor o igual a 120")
     return timeout_s
+
+
+def _entero_positivo(value: str) -> int:
+    try:
+        entero = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("debe ser un entero") from None
+    if entero <= 0:
+        raise argparse.ArgumentTypeError("debe ser mayor que 0")
+    return entero
+
+
+def _entero_no_negativo(value: str) -> int:
+    try:
+        entero = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("debe ser un entero") from None
+    if entero < 0:
+        raise argparse.ArgumentTypeError("debe ser mayor o igual que 0")
+    return entero

@@ -338,3 +338,107 @@ def test_cli_ollama_rechaza_num_predict_fuera_de_rango(tmp_path):
     assert proceso.stderr == ""
     assert json.loads(proceso.stdout)["estado"] == "INVALIDA"
     assert not (tmp_path / "salida").exists()
+
+
+def test_cli_post_mantiene_gacetilla_default_y_exige_canal(tmp_path):
+    entorno = os.environ.copy()
+    entorno["PYTHONPATH"] = str(ROOT / "src")
+
+    proceso = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "agente1",
+            "--tipo",
+            "post",
+            "--canal",
+            "linkedin",
+            "--csv",
+            str(ROOT / "data" / "actividades_sinteticas.csv"),
+            "--id-solicitud",
+            "SYN-001",
+            "--salida",
+            str(tmp_path / "salida"),
+            "--fake-output",
+            (
+                "CANAL: linkedin\nTEXTO:\nTaller sintético de vinculación, 2026-08-05, "
+                "Equipo de prueba, pruebas@example.invalid, Aula de prueba.\n"
+                "HASHTAGS:\n#Actividad #Extension"
+            ),
+            "--post-max-chars",
+            "200",
+            "--post-max-hashtags",
+            "2",
+            "--post-min-hashtags",
+            "1",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=entorno,
+    )
+
+    assert proceso.returncode == 0, proceso.stderr
+    respuesta = json.loads(proceso.stdout)
+    assert respuesta["estado"] == "PENDIENTE_VALIDACION"
+    assert Path(respuesta["borrador"]).name == "SYN-001-linkedin.md"
+
+    sin_canal = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "agente1",
+            "--tipo",
+            "post",
+            "--csv",
+            str(ROOT / "data" / "actividades_sinteticas.csv"),
+            "--id-solicitud",
+            "SYN-001",
+            "--salida",
+            str(tmp_path / "sin-canal"),
+            "--fake-output",
+            "no debe usarse",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=entorno,
+    )
+    assert sin_canal.returncode == 2
+    assert json.loads(sin_canal.stdout)["estado"] == "INVALIDA"
+
+
+def test_cli_gacetilla_rechaza_flags_exclusivos_de_post(tmp_path):
+    entorno = os.environ.copy()
+    entorno["PYTHONPATH"] = str(ROOT / "src")
+    flags = (
+        ("--canal", "instagram"),
+        ("--post-max-chars", "1000"),
+        ("--post-min-hashtags", "1"),
+        ("--post-max-hashtags", "10"),
+    )
+
+    for indice, flag in enumerate(flags):
+        proceso = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "agente1",
+                "--csv",
+                str(ROOT / "data" / "actividades_sinteticas.csv"),
+                "--id-solicitud",
+                "SYN-001",
+                "--salida",
+                str(tmp_path / str(indice)),
+                "--fake-output",
+                contenido_golden_syn001(),
+                *flag,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=entorno,
+        )
+        assert proceso.returncode == 2
+        assert json.loads(proceso.stdout)["estado"] == "INVALIDA"
+        assert not (tmp_path / str(indice)).exists()
