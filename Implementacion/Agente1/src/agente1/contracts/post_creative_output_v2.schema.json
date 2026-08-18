@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:post-creative-output:v2",
+  "title": "Salida creativa acotada para HU-011",
+  "description": "Contrato técnico provisional. Los hechos institucionales no son generados por el LLM y se agregan mediante un renderer determinista.",
+  "x-contract-version": "post_creative_output_v2",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-provisional-creative-catalog-version": "post_creative_catalog_v2",
+  "x-provisional-safety-hashtags": [
+    "#Aprender",
+    "#Comunidad",
+    "#Conocimiento",
+    "#Participación"
+  ],
+  "x-provisional-creative-catalog-by-channel": {
+    "instagram": {
+      "gancho": [
+        "Una propuesta para aprender y compartir.",
+        "Un espacio para encontrarnos y participar."
+      ],
+      "prosa": [
+        "Sumate a una experiencia pensada para la comunidad.",
+        "Te invitamos a compartir una nueva experiencia."
+      ],
+      "cta": [
+        "Consultá los datos y participá.",
+        "Conocé los datos y sumate."
+      ]
+    },
+    "linkedin": {
+      "gancho": [
+        "Una oportunidad para conectar conocimientos.",
+        "Una propuesta para aprender y compartir."
+      ],
+      "prosa": [
+        "Te invitamos a ser parte de una experiencia de intercambio.",
+        "Sumate a una experiencia pensada para la comunidad."
+      ],
+      "cta": [
+        "Conocé los datos y sumate.",
+        "Consultá los datos y participá."
+      ]
+    }
+  },
+  "type": "object",
+  "required": ["gancho", "prosa", "cta", "hashtags"],
+  "properties": {
+    "gancho": {
+      "type": "string",
+      "enum": [
+        "Una propuesta para aprender y compartir.",
+        "Un espacio para encontrarnos y participar.",
+        "Una oportunidad para conectar conocimientos."
+      ],
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "prosa": {
+      "type": "string",
+      "enum": [
+        "Sumate a una experiencia pensada para la comunidad.",
+        "Te invitamos a compartir una nueva experiencia.",
+        "Te invitamos a ser parte de una experiencia de intercambio."
+      ],
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "cta": {
+      "type": "string",
+      "enum": [
+        "Consultá los datos y participá.",
+        "Conocé los datos y sumate."
+      ],
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "hashtags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "#Aprender",
+          "#Comunidad",
+          "#Conocimiento",
+          "#Participación"
+        ]
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

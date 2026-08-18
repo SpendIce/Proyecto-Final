@@ -14,7 +14,13 @@ from .ollama import (
 )
 from .procesamiento import FakeGenerator, procesar_fila_csv
 from .fuentes import CsvFuenteSolicitudes
-from .posts import POLITICAS_DEFAULT, PoliticaPost, procesar_post
+from .posts import (
+    CONTRATO_SALIDA_ESTRUCTURADA,
+    POLITICAS_DEFAULT,
+    PoliticaPost,
+    procesar_post,
+    procesar_post_estructurado,
+)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -23,6 +29,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--tipo", choices=("gacetilla", "post"), default="gacetilla")
     parser.add_argument("--canal", choices=("instagram", "linkedin"))
+    parser.add_argument(
+        "--post-version",
+        choices=("structured-v2", "text-v1"),
+        default=None,
+        help=(
+            "Contrato de salida HU-011; structured-v2 es el default seguro. "
+            "text-v1 requiere selección explícita."
+        ),
+    )
     parser.add_argument("--csv", required=True, type=Path)
     parser.add_argument("--id-solicitud", required=True)
     parser.add_argument("--salida", required=True, type=Path)
@@ -68,6 +83,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         post_flags = (
             args.canal,
+            args.post_version,
             args.post_max_chars,
             args.post_min_hashtags,
             args.post_max_hashtags,
@@ -82,13 +98,21 @@ def main(argv: Sequence[str] | None = None) -> int:
                 base_url=args.ollama_base_url,
                 timeout_s=args.ollama_timeout,
                 num_predict=args.ollama_num_predict,
+                format_schema=(
+                    CONTRATO_SALIDA_ESTRUCTURADA
+                    if args.tipo == "post" and args.post_version != "text-v1"
+                    else None
+                ),
             )
         )
         if args.tipo == "post":
             if args.canal is None:
                 raise ValueError("canal requerido")
             politica_base = POLITICAS_DEFAULT[args.canal]
-            resultado = procesar_post(
+            procesador_post = (
+                procesar_post if args.post_version == "text-v1" else procesar_post_estructurado
+            )
+            resultado = procesador_post(
                 fuente=CsvFuenteSolicitudes(args.csv),
                 id_solicitud=args.id_solicitud,
                 canal=args.canal,

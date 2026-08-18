@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:post-creative-output:v3",
+  "title": "Salida creativa redactada para HU-011",
+  "description": "Contrato técnico provisional. A diferencia de v2, el modelo redacta gancho, prosa y CTA en lugar de seleccionarlos de un catálogo cerrado. Los hechos institucionales siguen sin ser generados por el LLM: los agrega un renderer determinista y el gate de validación rechaza fechas, dígitos, correos, URLs, importes, lugares, atribuciones factuales y ecos de inyección en el texto creativo.",
+  "x-contract-version": "post_creative_output_v3",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-supersedes": "post_creative_output_v2",
+  "x-rationale": "El enum de v2 se introdujo para resolver el HTTP 400 de compilación de grammar observado en v3-experimental, es decir un problema de transporte. Como efecto colateral redujo el espacio de salida a ocho combinaciones por canal, de las cuales la corrida live del 2026-08-17 utilizó una sola. Ver DEF-A1-011.",
+  "x-provisional-safety-hashtags": [
+    "#Aprender",
+    "#Comunidad",
+    "#Conocimiento",
+    "#Participación"
+  ],
+  "type": "object",
+  "required": ["gancho", "prosa", "cta", "hashtags"],
+  "properties": {
+    "gancho": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 160
+    },
+    "prosa": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 500
+    },
+    "cta": {
+      "type": "string",
+      "minLength": 15,
+      "maxLength": 160
+    },
+    "hashtags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "#Aprender",
+          "#Comunidad",
+          "#Conocimiento",
+          "#Participación"
+        ]
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

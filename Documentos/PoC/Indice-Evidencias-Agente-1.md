@@ -13,6 +13,7 @@ Estados utilizados:
 - `DISPONIBLE`: el artefacto está versionado y es recuperable.
 - `PARCIAL`: existe evidencia técnica, pero no satisface por sí sola el DoD institucional.
 - `IMPLEMENTADA_OFFLINE`: el incremento está versionado y verificado sin servicios institucionales live.
+- `CANDIDATA_SIN_COMMIT`: código y evidencia presentes en el worktree, todavía sin hash Git de cierre.
 - `PENDIENTE_TECNICO`: falta una ejecución o artefacto técnico específico.
 - `PENDIENTE_EXTERNO`: depende de una definición, recurso o validación institucional.
 
@@ -33,8 +34,19 @@ Estados utilizados:
 | `1264d59` | Paquete ejecutable de validación SEU | Nueve muestras y 17 referencias preparadas; acta y decisión `PENDIENTE` |
 | `aa4765e` | Benchmark y manifest Ollama HU-011 | Transporte 6/6 sin timeout; conformidad 0/6 y cero borradores |
 
-La suite conjunta al cierre del paquete completo registró 265 pruebas. Ese total
-no se atribuye a un incremento individual ni demuestra integración institucional.
+La suite conjunta del paquete versionado anterior registró 265 pruebas. Ese
+total no se atribuye a un incremento individual ni describe la candidata actual.
+
+## 2.1 Candidata de cierre todavía sin commit
+
+El cierre actual agrega HU-011 structured v2/v4, runner Workspace E2E offline,
+spike de persistencia, tooling operativo y HU-012 offline. Estos cambios y sus
+evidencias están en el worktree **sin commit**: no se inventa un hash. El commit
+atómico quedó pendiente por un bloqueo externo de límite de uso de Codex. Antes
+de versionar debe repetirse la suite completa fuera del sandbox: la corrida
+disponible obtuvo 417 pruebas verdes y 16 fallas `EPERM` de loopback atribuibles
+al entorno; los bloques focalizados de 114 y 105 pruebas tuvieron review
+`CLEAN`.
 
 ## 3. Evidencia disponible — HU-010
 
@@ -65,7 +77,10 @@ HU-011 quedó implementada y aceptada en alcance técnico/offline en `537402a`. 
 | `EVID-A1-S1-HU-011-PROMPTS-GOLDENS` | `src/agente1/prompts/post_instagram_v1.txt`, `post_linkedin_v1.txt` y seis archivos en `golden/posts/`, commit `537402a` | Formato y regresión determinista por canal; no calidad institucional | `IMPLEMENTADA_OFFLINE` |
 | `EVID-A1-S1-HU-011-MATRIZ-SINTETICA` | [`Implementacion/Agente1/evidencias/matriz-conformidad-hu011-2026-08-17.md`](../../Implementacion/Agente1/evidencias/matriz-conformidad-hu011-2026-08-17.md) | Diez ejecuciones: seis borradores idénticos a golden y cuatro incompletas sin generador ni borrador | `IMPLEMENTADA_OFFLINE` |
 | `EVID-A1-S1-HU-011-SMOKE-FAKE` | `Implementacion/Agente1/scripts/smoke_posts.sh`, commit `537402a` | Flujo acotado de una actividad completa en ambos canales | `IMPLEMENTADA_OFFLINE` |
-| `EVID-A1-S1-HU-011-SMOKE-OLLAMA` | [`benchmark-hu011-ollama-2026-08-17.md`](../../Implementacion/Agente1/evidencias/benchmark-hu011-ollama-2026-08-17.md) y [`manifest-hu011-ollama-2026-08-17.json`](../../Implementacion/Agente1/evidencias/manifest-hu011-ollama-2026-08-17.json), commit `aa4765e` | 6/6 respuestas de transporte, 0 timeouts, 0/6 conformes y 0 borradores; resultado `NO_CONFORME` | `PARCIAL`; defecto alto abierto |
+| `EVID-A1-S1-HU-011-SMOKE-OLLAMA-V1` | [`benchmark-hu011-ollama-2026-08-17.md`](../../Implementacion/Agente1/evidencias/benchmark-hu011-ollama-2026-08-17.md) y manifest, commit `aa4765e` | 6/6 respuestas de transporte, 0 timeouts, 0/6 conformes y 0 borradores | `NO_CONFORME` histórico |
+| `EVID-A1-S1-HU-011-STRUCTURED-V2` | [`benchmark-hu011-ollama-structured-v2-2026-08-17.md`](../../Implementacion/Agente1/evidencias/benchmark-hu011-ollama-structured-v2-2026-08-17.md) y manifest | 0/6 aceptadas por `json_invalid`; cero borradores | `CANDIDATA_SIN_COMMIT` |
+| `EVID-A1-S1-HU-011-JSON-SCHEMA-V3` | [`benchmark-hu011-ollama-json-schema-v3-2026-08-17.md`](../../Implementacion/Agente1/evidencias/benchmark-hu011-ollama-json-schema-v3-2026-08-17.md) y manifest | 0/6; HTTP 400 por grammar incompatible antes de inferencia | `CANDIDATA_SIN_COMMIT` |
+| `EVID-A1-S1-HU-011-JSON-SCHEMA-V4` | [`benchmark-hu011-ollama-json-schema-v4-2026-08-17.md`](../../Implementacion/Agente1/evidencias/benchmark-hu011-ollama-json-schema-v4-2026-08-17.md) y manifest | 6/6 aceptaciones técnicas, 7,035854–29,485820 s, estado `PENDIENTE_VALIDACION` | `CANDIDATA_SIN_COMMIT`; regresión completa pendiente |
 | `EVID-A1-S1-HU-011-CHECKLIST` | [`Implementacion/Agente1/evidencias/checklist-validacion-humana-hu011.md`](../../Implementacion/Agente1/evidencias/checklist-validacion-humana-hu011.md) | Instrumento por canal disponible; todos sus campos de revisión siguen pendientes | `DISPONIBLE` como instrumento; `PENDIENTE_EXTERNO` como registro |
 | `VAL-S1-HU-011-SEU` | [`Documentos/PoC/Validacion-SEU/`](Validacion-SEU/) | Paquete listo con nueve muestras y 17 referencias; persona, puntajes, observaciones, decisión y acta permanecen pendientes | `DISPONIBLE` como paquete; `PENDIENTE_EXTERNO` como validación |
 
@@ -81,10 +96,14 @@ HU-011 quedó implementada y aceptada en alcance técnico/offline en `537402a`. 
 | `EVID-A1-G2-PRUEBAS-SEGURIDAD` | [`auditoria-seguridad-d2-d3.md`](../../Implementacion/Agente1/evidencias/auditoria-seguridad-d2-d3.md) y reporte offline PASS, commit `5484684` | `IMPLEMENTADA_OFFLINE`; permisos, revocación y aislamiento live pendientes |
 | `EVID-A1-G2-VALIDACION-SEU` | Paquete de nueve muestras y manifest de 17 referencias, commit `1264d59` | `DISPONIBLE`; acta `PENDIENTE`, sin validación real |
 | `EVID-A1-G2-CONTRATO-A2-A5` | [`Contrato-Candidato-Insumos-A2-A5-Agente-1.md`](Contrato-Candidato-Insumos-A2-A5-Agente-1.md), commit `b187960` | `CANDIDATO_NO_INSTITUCIONAL`; sin integración ni orquestación |
+| `EVID-A1-G2-WORKSPACE-E2E-OFFLINE` | [`runbook-workspace-e2e.md`](../../Implementacion/Agente1/evidencias/runbook-workspace-e2e.md) | Runner Sheets → HU → Drive/Docs → manifest verificado con fakes; no live | `CANDIDATA_SIN_COMMIT` |
+| `EVID-A1-S3-PERSISTENCIA-SPIKE` | [`spike-persistencia-postgresql-2026-08-17.md`](../../Implementacion/Agente1/evidencias/spike-persistencia-postgresql-2026-08-17.md) | Puerto, adapter memoria y SQL contractual; PostgreSQL no instalado ni ejecutado | `CANDIDATA_SIN_COMMIT` |
+| `EVID-A1-S3-OPS-OFFLINE` | [`runbook-operaciones-seguras-d2-d3.md`](../../Implementacion/Agente1/evidencias/runbook-operaciones-seguras-d2-d3.md) | Health, reconciliación, consolidación y retención dry-run sobre manifests sanitizados | `CANDIDATA_SIN_COMMIT`; probes live pendientes |
+| `EVID-A1-S2-HU-012-OFFLINE` | [`matriz-conformidad-hu012-2026-08-17.md`](../../Implementacion/Agente1/evidencias/matriz-conformidad-hu012-2026-08-17.md) | Contrato y entrega fake en memoria; no Gmail/SMTP, email real ni aprobación SEU | `CANDIDATA_SIN_COMMIT` |
 | `EVID-A1-G2-INFORME` | Informe de go/no-go firmado o aceptado según criterio de César Cicerchia | `PENDIENTE_EXTERNO` |
 
 ## 6. Veredicto al corte
 
 - **HU-010:** `PARCIAL`; existe flujo técnico controlado y evidencia reproducible, pero faltan Workspace live, plantilla institucional y validación SEU.
-- **HU-011:** `PARCIAL / NO_CONFORME_CON_OLLAMA`; el flujo offline determinista está implementado, pero el baseline generativo real produjo 0/6 salidas conformes.
+- **HU-011:** `PARCIAL / V4_ACEPTADA_PENDIENTE_REGRESION`; v4 produjo 6/6 borradores técnicamente aceptados, pero el código/evidencia no están commiteados, falta la regresión completa fuera del sandbox y no existe validación SEU ni SLA.
 - **Gate G2 / TRL 3:** `PENDIENTE`; faltan ambos DoD, validación humana registrada, cierre de defectos altos y decisión formal.

@@ -1,0 +1,19 @@
+TEMPLATE_VERSION: confirmacion_inscripcion_provisional_v1
+POLICY_STATUS: PROVISIONAL_NO_INSTITUCIONAL
+
+BORRADOR — NO ENVIAR
+
+Hola {{nombre_destinatario}},
+
+Registramos tu inscripción a: {{actividad}}.
+Fecha: {{fecha}}
+Lugar: {{lugar_o_pendiente}}
+Organiza: {{organiza}}
+
+Este texto es una plantilla provisional y requiere validación humana antes de cualquier envío.
+Contacto: {{contacto}}
+
+LÍMITES:
+- El render es determinista; no se entrega este contenido a un LLM.
+- No existe adapter de correo real en HU-012 offline.
+- Sólo un fake explícito puede simular entrega y requiere aprobación humana válida.

@@ -2,7 +2,7 @@
 
 - **Ventana de recuperación:** 17 al 28 de agosto de 2026
 - **Alcance:** HU-010 + HU-011, Proceso 4
-- **Estado actualizado:** HU-010 `PARCIAL`; HU-011 `PARCIAL / NO_CONFORME_CON_OLLAMA`; Gate G2 / TRL 3 `PENDIENTE`
+- **Estado actualizado:** HU-010 `PARCIAL`; HU-011 `PARCIAL / V4_ACEPTADA_PENDIENTE_REGRESION`; Gate G2 / TRL 3 `PENDIENTE`
 
 ## 1. Objetivo
 
@@ -26,10 +26,14 @@ Recuperar el camino de valor del MVP sin adelantar infraestructura que no resuel
 | 21–24/08 | HU-011 — pipeline | Procesador, CLI, longitud configurable, limpieza y deduplicación de hashtags | Juan Ignacio Gone | Contrato técnico provisional | **Completado offline en `537402a`:** suite integral de 151 pruebas y smoke fake verdes |
 | 21–24/08 | HU-011 — matriz | Casos sintéticos completos/incompletos para ambos canales | Juan Ignacio Gone | Pipeline HU-011 | **Completado offline:** diez ejecuciones, hashes, correlation IDs, seis pendientes y cuatro incompletas |
 | 25–26/08 | HU-011 — LLM/evidencia | Smoke Ollama y manifest; checklist por canal | Juan Ignacio Gone | Runtime user-local `0.32.14-1` restaurado e ignorado | **Ejecutado, resultado `NO_CONFORME`:** 6/6 transportes, 0 timeouts, 0/6 conformes y 0 borradores (`aa4765e`) |
-| 25–27/08 | HU-011 — experimento 2 | Salida estructurada y render determinista bajo el mismo gate | Juan Ignacio Gone | Hipótesis y límite de intentos fijados antes de ejecutar | Obtener muestra conforme reproducible o registrar nuevo no-go; no repetir el baseline a ciegas |
+| 25–27/08 | HU-011 — experimentos v2/v3/v4 | Salida estructurada, constrained decoding y render determinista | Juan Ignacio Gone | Runtime `0.32.14-1`; seis intentos por corte | **Candidata sin commit:** v2 0/6 `json_invalid`; v3 0/6 HTTP 400 grammar; v4 6/6 técnicas, 7,035854–29,485820 s |
 | 25–27/08 | Seguridad y regresión | Prompt injection, acciones no autorizadas, redacción de secretos, suite HU-010/HU-011 | Juan Ignacio Gone | Implementación técnica cerrada | **Completado offline en `5484684`:** harness PASS; validación live D2/D3 pendiente |
-| 25–28/08 | HU-010 — integración D2 | Smoke Sheets → generación → Docs/Drive con permisos mínimos | Juan Ignacio + Vera/DSI | Identidad, APIs, Sheet, Doc/Drive | **Preparado, no ejecutado live:** config/smoke opt-in y plantilla/carpeta offline listos; evidencia live sigue bloqueada |
+| 25–28/08 | Workspace E2E | Sheets → HU-010/HU-011 → Drive/Docs → manifest e idempotencia | Juan Ignacio + Vera/DSI | Identidad, APIs, Sheet, Doc/Drive | **Completado offline con fakes; sin commit:** live D2/D3 sigue bloqueado |
 | 25–28/08 | Validación | Muestra HU-010/HU-011 revisada con escala 1–4 | Validadores SEU | Designación, plantilla y guía de canal | **Paquete listo en `1264d59`:** nueve muestras/17 referencias; acta y decisiones continúan `PENDIENTE` |
+| 25–28/08 | Persistencia Sprint 3 | Puerto, adapter memoria, SQL y migraciones contractuales | Juan Ignacio + DSI | PostgreSQL/driver/entorno efímero | **Spike preparado, no ejecutado:** no existe PostgreSQL operativo ni reemplazo de JSONL |
+| 25–28/08 | Operaciones | Health, reconciliación, consolidación y retención | Juan Ignacio + DSI | Manifests sanitizados; probes DSI | **Tooling offline candidato:** sin escritura/borrado y sin probes live |
+| 25–28/08 | HU-012 | Confirmación contractual con HITL e idempotencia | Juan Ignacio + SEU/DSI | Plantilla, validadores y transporte autorizados | **Fake/offline candidato:** no Gmail/SMTP, email real ni aprobación SEU |
+| Próximo cierre | Verificación y commit | Suite completa fuera del sandbox y commit atómico | Juan Ignacio Gone | Restablecer capacidad tras límite externo de uso de Codex | Resolver 16 `EPERM` ambientales; inspeccionar scope; crear commit sin inventar hash |
 | 28/08 | Gate | Auditoría del paquete y decisión go/no-go | César Cicerchia + SEU | Evidencia completa | Acta o informe; sin declaración automática de TRL |
 
 Las fechas institucionales son objetivos de coordinación, no compromisos confirmados. Si una dependencia externa no llega, se registra como bloqueante y no se falsea el cierre.
@@ -41,12 +45,16 @@ Las fechas institucionales son objetivos de coordinación, no compromisos confir
 - HU-011 multicanal fue incorporada en `537402a`.
 - Los smokes fake y matrices contractuales de HU-010/HU-011 finalizaron verdes.
 - `5484684` agregó preparación D2/Drive y seguridad offline, pero ninguna corrida Workspace live.
-- La suite conjunta al cierre del paquete completo registró 265 pruebas.
+- La suite conjunta del paquete versionado anterior registró 265 pruebas; no describe la candidata actual.
 - `b187960` agregó un contrato candidato A2–A5 inbound: A1 valida insumos, no orquesta agentes y aún no integra esos envelopes a HU-010/HU-011.
 - `1264d59` preparó nueve muestras y 17 referencias para SEU; el acta sigue `PENDIENTE` y no existe validación real.
-- `aa4765e` registró el smoke HU-011 con Ollama: transporte operativo, 0/6 conformes y cero borradores.
+- `aa4765e` registró el baseline HU-011 v1: transporte operativo, 0/6 conformes y cero borradores.
 - El runtime user-local Ollama `0.32.14-1` quedó restaurado e ignorado por Git.
-- Continúan pendientes Workspace live, un baseline Ollama HU-011 conforme, la validación SEU y la decisión G2.
+- La candidata structured v2 no commiteada falló 0/6 por `json_invalid`; v3 falló 0/6 por HTTP 400 de grammar; v4 corrigió la incompatibilidad y obtuvo 6/6 aceptaciones técnicas.
+- Workspace E2E, persistencia, operaciones y HU-012 están preparados sólo offline en el worktree: no demuestran servicios institucionales operativos.
+- La verificación integral disponible terminó con 417 pruebas verdes y 16 fallas de loopback `EPERM` bajo sandbox. Dos bloques focalizados de 114 y 105 pruebas tuvieron review `CLEAN`.
+- El commit atómico está pendiente, sin hash asignado, por el bloqueo externo de límite de uso de Codex. Debe realizarse sólo después de reejecutar la suite fuera del sandbox.
+- Continúan pendientes Workspace live, regresión integral, validación SEU, SLA y decisión G2.
 
 ### Josefina Carullo / Coordinación de Extensión
 
@@ -97,7 +105,7 @@ Se puede solicitar la evaluación únicamente si:
 Corresponde `NO-GO` si ocurre cualquiera de estas condiciones:
 
 - falta HU-010 o HU-011 en el paquete;
-- HU-011 no produce ninguna salida conforme con el LLM local real;
+- HU-011 no conserva una salida conforme después de la regresión integral fuera del sandbox;
 - sólo existen fakes/adapters offline cuando el DoD exige integración controlada;
 - no hay validación humana identificable;
 - existe contenido que inventa hechos o evade el estado de borrador;
@@ -108,12 +116,13 @@ Corresponde `NO-GO` si ocurre cualquiera de estas condiciones:
 
 Un `NO-GO` no invalida el proyecto: preserva la frontera entre prototipo técnico y nivel de madurez demostrado.
 
-## 6. Alcance diferido
+## 6. Alcance diferido y spikes
 
-Durante esta ventana no se priorizan PostgreSQL, Celery, Redis, FastAPI ni LangGraph. Pueden diseñarse más adelante, después del gate, cuando existan volumen, concurrencia, persistencia o integración que justifiquen su costo. Tampoco se implementan APIs de Instagram o LinkedIn: HU-011 produce borradores, no publica.
+PostgreSQL fue abordado únicamente como spike contractual: puerto, adapter memoria y migraciones sin driver, conexión ni ejecución SQL. No debe presentarse como persistencia operativa ni como reemplazo de JSONL. Celery, Redis, FastAPI y LangGraph continúan diferidos hasta que volumen, concurrencia o integración justifiquen su costo. Tampoco se implementan APIs de Instagram o LinkedIn: HU-011 produce borradores, no publica.
 
 ## 7. Estado esperado al 28/08
 
-- **Mejor caso:** experimento HU-011 conforme, D2 operativo, validación SEU registrada y paquete listo para decisión G2.
-- **Caso probable si persisten bloqueantes:** preparación offline y evidencia completas, pero HU-011 real/D2/SEU continúan abiertos; G2 permanece `PENDIENTE` con responsables y próxima hipótesis registrados.
+- **Próximo cierre técnico:** suite completa fuera del sandbox, cero fallas no ambientales, revisión de scope y commit atómico de la candidata.
+- **Mejor caso institucional posterior:** D2 operativo, validación SEU registrada, SLA acordado y paquete listo para decisión G2.
+- **Caso vigente:** v4 aceptada técnicamente pero sin commit/regresión integral; D2 y SEU abiertos; G2 `PENDIENTE`.
 - **Condición prohibida:** declarar TRL 3 por calendario, commits o cantidad de pruebas sin evidencia institucional exigida.

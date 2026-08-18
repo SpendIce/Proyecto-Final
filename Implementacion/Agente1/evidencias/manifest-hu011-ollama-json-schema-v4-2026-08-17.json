@@ -1,0 +1,247 @@
+{
+  "schema_version": "evidencia_hu011_ollama_json_schema_v4",
+  "evidence_id": "HU011-OLLAMA-JSON-SCHEMA-V4-20260817-001",
+  "hu": "HU-011",
+  "generated_at": "2026-08-17T17:29:50.250045Z",
+  "status": "PENDIENTE_VALIDACION",
+  "validation": {
+    "data_origin": "SIMULADA",
+    "intended_authority": "SEU",
+    "authority_review_status": "PENDIENTE",
+    "trl3_claimed": false
+  },
+  "repository": {
+    "base_commit_at_capture": "8a62ae63b5bd5a53c096c402ca943841b69ba06f",
+    "pipeline_state_at_capture": "WORKTREE_UNCOMMITTED_REVIEWED",
+    "pipeline_base_commit_match_claimed": false,
+    "component_hashes_unchanged_during_capture": true,
+    "global_worktree_clean": false,
+    "traceability_note": "El schema compatible estaba revisado pero aun no integrado al base commit. Los componentes se identifican por hashes capturados antes y verificados despues de las seis ejecuciones."
+  },
+  "controlled_change": {
+    "baseline_evidence_id": "HU011-OLLAMA-JSON-SCHEMA-V3-20260817-001",
+    "change_id": "REPLACE_INCOMPATIBLE_PATTERN_WITH_EXACT_ENUM",
+    "intended_single_variable": "FORMAT_SCHEMA_COMPATIBILITY",
+    "model_unchanged": true,
+    "prompts_unchanged": true,
+    "dataset_unchanged": true,
+    "transport_mode_unchanged": true,
+    "temperature_unchanged": true,
+    "timeout_unchanged": true,
+    "num_predict_unchanged": true,
+    "attempt_plan_unchanged": true
+  },
+  "runtime": {
+    "name": "ollama",
+    "version": "0.32.14-1",
+    "installation": "user-local-isolated",
+    "binary_sha256": "624dcb2d103cf4196aca181c967cdf97e8b62479775e57704f7e300386e22f2f",
+    "backend": "cpu",
+    "bind_scope": "LOOPBACK_ONLY",
+    "host": {
+      "cpu": "Intel Core i7-1180G7",
+      "cores": 4,
+      "threads": 8,
+      "ram_gib": 15,
+      "gpu_used_for_this_evidence": false
+    }
+  },
+  "model": {
+    "tag": "llama3.2:3b",
+    "format": "GGUF",
+    "quantization": "Q4_K_M",
+    "config_digest": "sha256:34bb5ab01051a11372a91f95f3fbbc51173eed8e7f13ec395b9ae9b8bd0e242b",
+    "weights_digest": "sha256:dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff",
+    "manifest_sha256": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72"
+  },
+  "pipeline": {
+    "components": [
+      {
+        "component_id": "HU011_POST_PROCESSOR_V2_AT_CAPTURE",
+        "sha256": "5c0199403a7b9d554d042e4550a2bfa16c175e7f56f5e4e83061e2f69213d6f3"
+      },
+      {
+        "component_id": "OLLAMA_JSON_SCHEMA_ADAPTER_AT_CAPTURE",
+        "sha256": "3c0c2a36982025dd7fc6390c7a85d27d57e21d9891ca479eca8fa5c4fd71c683"
+      },
+      {
+        "component_id": "AGENTE1_CLI_JSON_SCHEMA_AT_CAPTURE",
+        "sha256": "42342393084664f987e77d25ebf9516002d359c36fb25f3f92d0e4d0e525a800"
+      },
+      {
+        "component_id": "POST_INSTAGRAM_STRUCTURED_V2_AT_CAPTURE",
+        "sha256": "4992f29ab25738596cfbf636d6b99cd32bfe88ae28fa6987f388432d658d5f89"
+      },
+      {
+        "component_id": "POST_LINKEDIN_STRUCTURED_V2_AT_CAPTURE",
+        "sha256": "5acb3e1a6dcb492d9b9dd7849fe7e0b6048ea98238cea5adc0d61b7134fcfbc6"
+      },
+      {
+        "component_id": "POST_INPUT_V1_AT_CAPTURE",
+        "sha256": "f6090dd82a37a363fc6364cc0bd56fb7c9286ff3306c4e623bb49615f4431b4a"
+      },
+      {
+        "component_id": "POST_CREATIVE_OUTPUT_V2_AT_CAPTURE",
+        "sha256": "841aa535ce5bacdcb863cae418e58076e413d04d10226088855ce351bca06a97"
+      },
+      {
+        "component_id": "ACTIVIDADES_SINTETICAS_V1_AT_CAPTURE",
+        "sha256": "fe5d712f5f41e777b5daa02ac1de0b23bfde64e0cc61433d9a89d3c0977d98f4"
+      }
+    ],
+    "versions": {
+      "input_contract": "post_input_v1",
+      "output_contract": "post_creative_output_v2",
+      "renderer": "post_deterministic_renderer_v2",
+      "creative_catalog": "post_creative_catalog_v2",
+      "instagram_prompt": "post_instagram_structured_v2",
+      "linkedin_prompt": "post_linkedin_structured_v2"
+    },
+    "generation_transport": {
+      "format_mode": "json_schema",
+      "format_schema_sha256": "87db650e883b7b2d2f30f210c052d53b9d30d78b87539ceb7b9b314a3fd8bc7f",
+      "temperature": 0
+    },
+    "dataset_id": "ACTIVIDADES_SINTETICAS_V1",
+    "record_ids": ["SYN-001", "SYN-003"],
+    "record_hashes": {
+      "SYN-001": "d4971497e1f6db200ba6005e562b42313dab9637ae6ec8476a6f9c10b115e38e",
+      "SYN-003": "73889a1521c41d473749b7e6e5e26f893113295887e9ce4cee91acae666974d0"
+    },
+    "effective_caps": {
+      "max_chars": 1000,
+      "min_hashtags": 1,
+      "max_hashtags": 10,
+      "num_predict": 112,
+      "timeout_seconds": 120
+    }
+  },
+  "execution": {
+    "attempt_limit": 6,
+    "attempts_executed": 6,
+    "automatic_retries": 0,
+    "accepted_outputs": 6,
+    "rejected_outputs": 0,
+    "api_rejections": 0,
+    "timeouts": 0,
+    "network_transport_errors": 0,
+    "drafts_created": 6,
+    "invalid_drafts_created": 0,
+    "attempts": [
+      {
+        "channel": "instagram",
+        "condition": "model-cold-prompt-cold",
+        "record_id": "SYN-001",
+        "correlation_id": "f4b42d62-83c9-446d-99d1-1c142214b6ea",
+        "latency_seconds": 23.209642,
+        "result": "borrador_generado",
+        "state": "PENDIENTE_VALIDACION",
+        "validation_errors": null,
+        "output_hash": "7e817974165a499717425bd90db233a3e0288fa505d2facea5749080c1086bb2",
+        "draft_files_created": 1
+      },
+      {
+        "channel": "instagram",
+        "condition": "model-resident-prompt-cold",
+        "record_id": "SYN-003",
+        "correlation_id": "12a31b39-9224-422b-85c8-67eff2f498f3",
+        "latency_seconds": 9.544299,
+        "result": "borrador_generado",
+        "state": "PENDIENTE_VALIDACION",
+        "validation_errors": null,
+        "output_hash": "de60df5b08b9cf625bd8501f20d9b85933dec9cfce7733f04904bd32fc685b37",
+        "draft_files_created": 1
+      },
+      {
+        "channel": "instagram",
+        "condition": "same-prompt-warm",
+        "record_id": "SYN-003",
+        "correlation_id": "62a545d0-392f-4d8b-9408-f1343d1d7342",
+        "latency_seconds": 7.035854,
+        "result": "borrador_generado",
+        "state": "PENDIENTE_VALIDACION",
+        "validation_errors": null,
+        "output_hash": "de60df5b08b9cf625bd8501f20d9b85933dec9cfce7733f04904bd32fc685b37",
+        "draft_files_created": 1
+      },
+      {
+        "channel": "linkedin",
+        "condition": "model-cold-prompt-cold",
+        "record_id": "SYN-001",
+        "correlation_id": "bc79d5db-8475-4f03-aa45-b5c29e6b68b3",
+        "latency_seconds": 29.48582,
+        "result": "borrador_generado",
+        "state": "PENDIENTE_VALIDACION",
+        "validation_errors": null,
+        "output_hash": "b2d13f1827a767df10f6d6e984f24f47772da111c9f24a3ed2ae453ac68c0bd0",
+        "draft_files_created": 1
+      },
+      {
+        "channel": "linkedin",
+        "condition": "model-resident-prompt-cold",
+        "record_id": "SYN-003",
+        "correlation_id": "d56a73d5-61d1-49d9-84eb-4d14316e5e8c",
+        "latency_seconds": 9.953283,
+        "result": "borrador_generado",
+        "state": "PENDIENTE_VALIDACION",
+        "validation_errors": null,
+        "output_hash": "8731ef8a2e88470f7ad73133bc12d7af39aeff69eee4cb637bf6148ef88a0c0b",
+        "draft_files_created": 1
+      },
+      {
+        "channel": "linkedin",
+        "condition": "same-prompt-warm",
+        "record_id": "SYN-003",
+        "correlation_id": "9b46c487-728a-4568-b2e8-a78a67b4e800",
+        "latency_seconds": 7.715143,
+        "result": "borrador_generado",
+        "state": "PENDIENTE_VALIDACION",
+        "validation_errors": null,
+        "output_hash": "8731ef8a2e88470f7ad73133bc12d7af39aeff69eee4cb637bf6148ef88a0c0b",
+        "draft_files_created": 1
+      }
+    ]
+  },
+  "comparison": {
+    "v2": {
+      "evidence_id": "HU011-OLLAMA-STRUCTURED-V2-20260817-001",
+      "accepted_outputs": 0,
+      "rejected_outputs": 6,
+      "dominant_code": "json_invalid",
+      "inference_started": true,
+      "latency_range_seconds": [13.932053, 42.836248]
+    },
+    "v3": {
+      "evidence_id": "HU011-OLLAMA-JSON-SCHEMA-V3-20260817-001",
+      "accepted_outputs": 0,
+      "rejected_outputs": 6,
+      "dominant_code": "error_generacion",
+      "inference_started": false,
+      "latency_range_seconds": [0.230939, 6.410774]
+    },
+    "v4": {
+      "evidence_id": "HU011-OLLAMA-JSON-SCHEMA-V4-20260817-001",
+      "accepted_outputs": 6,
+      "rejected_outputs": 0,
+      "dominant_code": "borrador_generado",
+      "inference_started": true,
+      "latency_range_seconds": [7.035854, 29.48582],
+      "same_prompt_output_hash_stable_per_channel": true
+    },
+    "interpretation": "El schema compatible habilito constrained decoding y seis aceptaciones tecnicas en este corte. La muestra incluye dos registros y una repeticion same-prompt por canal; no demuestra estabilidad amplia, calidad institucional ni SLA."
+  },
+  "human_review": {
+    "checklist_id": "CHECKLIST_VALIDACION_HUMANA_HU011_V1",
+    "status": "PENDIENTE",
+    "decision": null
+  },
+  "limitations": [
+    "Todos los casos utilizaron datos sinteticos.",
+    "Se evaluaron dos registros y una sola repeticion same-prompt por canal.",
+    "La aceptacion tecnica no evalua tono, oportunidad ni calidad institucional.",
+    "No existe validacion SEU registrada.",
+    "Las politicas y el catalogo creativo son provisionales.",
+    "Las latencias no constituyen un SLA.",
+    "No se declara TRL 3."
+  ]
+}

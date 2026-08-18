@@ -1,0 +1,25 @@
+{
+  "schema_version": "agente1-health-input-v1",
+  "ambiente": "D2",
+  "config": {
+    "status": "VALID",
+    "resources_configured": true,
+    "config_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "runtime": {
+    "status": "READY",
+    "runtime_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "artifacts": [
+    {
+      "kind": "contract",
+      "ref_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "status": "AVAILABLE"
+    },
+    {
+      "kind": "prompt",
+      "ref_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "status": "AVAILABLE"
+    }
+  ]
+}

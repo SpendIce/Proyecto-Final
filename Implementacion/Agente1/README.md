@@ -1,6 +1,10 @@
-# Agente 1 — slice controlado de HU-010
+# Agente 1 — MVP técnico controlado
 
-Este directorio inicia la implementación del Agente 1 con el primer tracer bullet del Sprint 1 del Gantt semanal: generar una gacetilla a partir de datos estructurados, sin publicar ni enviar contenido.
+Este directorio reúne la implementación incremental del Agente 1: HU-010 para
+gacetillas, HU-011 para borradores de redes sociales y el slice offline de
+HU-012 para confirmaciones. También contiene preparación contractual de
+Workspace, persistencia y operaciones. Ningún flujo publica o envía contenido
+real sin una autorización humana e institucional externa al repositorio.
 
 El alcance actual es deliberadamente local y reproducible:
 
@@ -28,6 +32,11 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/smoke.sh`: ejecución end-to-end local contra dataset y golden.
 - `scripts/matriz_hu010.py`: matriz reproducible de los cinco casos contractuales sin depender de un LLM.
 - `scripts/smoke_ollama.sh`: smoke opt-in contra un Ollama ya iniciado y con el modelo descargado.
+- `scripts/matriz_hu011_v2.py`: matriz fake de creatividad JSON y render determinista para HU-011 v2.
+- `scripts/workspace_e2e.py`: runner Sheets→procesamiento→Drive, offline por defecto y live con doble opt-in.
+- `src/agente1/persistencia.py` y `migrations/`: puerto en memoria y SQL del spike PostgreSQL, ya ejecutado contra un contenedor efímero.
+- `src/agente1/confirmaciones.py`: lifecycle offline de HU-012 con entrega únicamente fake.
+- `scripts/operaciones_seguras.py`: health, reconciliación, consolidación y retención en dry-run.
 - `salida/`: evidencia runtime local ignorada por Git.
 
 ## Ejecutar las pruebas
@@ -171,6 +180,33 @@ TRL 3**. El checklist y el
 informe de corte viven en `evidencias/checklist-validacion-humana-hu011.md` y
 `evidencias/matriz-conformidad-hu011-2026-08-17.md`.
 
+## HU-011 — salida estructurada v2
+
+`procesar_post_estructurado` limita al modelo a un objeto JSON con `gancho`,
+`prosa`, `cta` y `hashtags`. Un renderer determinista agrega los hechos de la
+fuente y el marcador de borrador; fechas, organización, contacto y lugar no se
+delegan como texto libre al LLM. El contrato `post_creative_output_v2` y los
+prompts `post_*_structured_v2` siguen marcados
+`PROVISIONAL_NO_INSTITUCIONAL`.
+
+La matriz fake compara seis borradores —tres actividades por dos canales— con
+`golden/posts_v2/` y verifica además los casos incompletos:
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python scripts/matriz_hu011_v2.py --salida salida/matriz-hu011-v2
+
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python -m pytest -q tests/test_posts_structured.py tests/test_matriz_hu011_v2.py
+```
+
+Esta matriz usa creatividad fake y, por sí sola, no demuestra conformidad con
+Ollama. Los experimentos v2/v3/v4 posteriores sí evalúan el transporte real y
+se documentan más abajo. Ninguna de esas pruebas demuestra calidad
+institucional, grounding semántico integral, validación SEU, publicación ni
+TRL 3. La API primaria está disponible desde `agente1` como
+`procesar_post_estructurado`.
+
 ## Preparación Workspace D2 y seguridad offline
 
 La configuración cerrada de `workspace_config.py` y el smoke
@@ -208,9 +244,104 @@ remotos, ausencia de endpoints de distribución, revocación simulada y estado
 de borrador. Esto no demuestra permisos, revocación, aislamiento ni tráfico
 reales.
 
-La suite conjunta al cierre del paquete completo registró 265 pruebas. Ese
-total no es evidencia de integración institucional ni se atribuye al incremento
-Workspace/security de forma aislada.
+La cantidad de pruebas cambia con cada incremento y debe obtenerse ejecutando la
+suite del checkout actual. Un resultado verde no es evidencia de integración
+institucional ni se atribuye a Workspace/security de forma aislada.
+
+## Runner Workspace end-to-end
+
+`workspace_e2e.py` compone fuente Sheets, HU-010 o HU-011 structured v2,
+destino Drive/Docs, manifest e idempotencia. Por defecto opera enteramente con
+fakes y datos sintéticos:
+
+```bash
+PYTHONPATH=src python scripts/workspace_e2e.py --tipo gacetilla
+PYTHONPATH=src python scripts/workspace_e2e.py --tipo post --canal instagram
+PYTHONPATH=src python scripts/workspace_e2e.py --tipo post --canal linkedin
+```
+
+El modo live exige simultáneamente `--live` y
+`--confirm-write-workspace`, además de configuración y token efímero. Puede
+crear un documento remoto: se debe seguir
+`evidencias/runbook-workspace-e2e.md`, usar un `--id-solicitud` y ambiente
+autorizados, y reconciliar estados `UNCERTAIN` antes de reintentar. No prueba
+publicación, sharing, email ni validación SEU. Para uso programático, importar
+explícitamente desde `agente1.workspace_e2e`; estas APIs operativas no se
+reexportan en el namespace raíz.
+
+## Spike de persistencia PostgreSQL
+
+`agente1.persistencia` define `RepositorioEjecuciones` y un adapter en memoria
+para solicitudes, ejecuciones, borradores, validaciones, defectos, eventos,
+idempotencia y retención lógica. No existe adapter PostgreSQL, driver ni
+conexión activa. El detalle y los pendientes están en
+`evidencias/spike-persistencia-postgresql-2026-08-17.md`.
+
+Las migraciones son artefactos SQL numerados del repositorio bajo
+`migrations/`. No se incluyen como package-data ni se afirma que viajen en un
+wheel: se aplican con un cliente SQL. La superficie se importa desde
+`agente1.persistencia`, no desde `agente1`.
+
+El ciclo forward/rollback/forward **ya fue ejecutado** contra PostgreSQL 16 en un
+contenedor efímero: `0001` crea seis tablas, catorce índices, 44 CHECK, cinco FK
+y cuatro UNIQUE, y el rollback deja la base vacía. Doce inserciones inválidas
+fueron rechazadas por el motor.
+
+Esa ejecución también reveló que cinco invariantes documentadas en el spike **no**
+estaban cubiertas por el esquema: borradores colgados de ejecuciones `FALLIDA`,
+`INCOMPLETA` o `INICIADA`, `output_hash` de borrador distinto al de su ejecución,
+validaciones anteriores al borrador y timestamps futuros.
+`migrations/0002_integridad_referencial_borradores.up.sql` cierra las tres
+primeras mediante claves foráneas compuestas; los controles de timestamp futuro
+siguen dependiendo del puerto, porque exigirían `now()` dentro de un CHECK. El
+detalle está en `evidencias/validacion-migraciones-postgresql-efimero-2026-08-17.md`.
+
+Continúa pendiente ejecutar los mismos contract tests contra un adapter
+PostgreSQL real, que todavía no existe.
+
+## HU-012 — confirmaciones offline
+
+HU-012 renderiza determinísticamente un asunto y cuerpo provisional con
+`BORRADOR — NO ENVIAR`. Valida destinatario y aprobación humana, conserva el
+mismo borrador durante el lifecycle
+`PENDIENTE_VALIDACION → APROBADA/RECHAZADA → ENVIADA_SIMULADA` y usa
+transiciones atómicas para impedir retrocesos, carreras y entregas duplicadas.
+`ENVIADA_SIMULADA` sólo registra una entrega en memoria mediante
+`DestinoConfirmacionesFake`: no existe adapter de correo real.
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  bash scripts/smoke_confirmaciones.sh salida/smoke-hu012
+
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python -m pytest -q tests/test_confirmaciones.py tests/test_matriz_hu012.py
+```
+
+Las APIs primarias (`SolicitudConfirmacion`, `AprobacionHumana`,
+`ResultadoConfirmacion`, `RegistroConfirmacionesMemoria`,
+`DestinoConfirmacionesFake` y `procesar_confirmacion`) se exportan desde
+`agente1`. Contrato, plantilla, aprobaciones de la matriz y destinatarios son
+sintéticos o provisionales. Consultar
+`evidencias/limites-hu012-offline.md`; no hay envío institucional, validación
+SEU ni evidencia de TRL 3.
+
+## Operaciones seguras D2/D3
+
+El tooling operativo consume manifests sanitizados y no modifica recursos. Los
+comandos disponibles son `health`, `reconcile`, `consolidate` y `retention`;
+retención siempre produce un plan `dry_run` y reconciliación sólo indica
+`REVISAR_MANUAL`:
+
+```bash
+PYTHONPATH=src \
+  python scripts/operaciones_seguras.py health data/health_operativo.synthetic.json
+```
+
+El CLI no posee probe live: `health --live` falla cerrado hasta que exista una
+implementación read-only autorizada por DSI. No se deben pasar manifests
+completos, IDs Workspace, PII, contactos, prompts ni credenciales. Ver
+`evidencias/runbook-operaciones-seguras-d2-d3.md`. Para uso programático,
+importar desde `agente1.operaciones_seguras`; no se reexporta en `agente1`.
 
 ## Contrato candidato de insumos A2–A5
 
@@ -242,25 +373,55 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
   python Implementacion/Agente1/scripts/preparar_validacion_seu.py
 ```
 
-## Resultado Ollama de HU-011
+## Resultados Ollama structured de HU-011
 
 El runtime user-local Ollama `0.32.14-1` fue restaurado en el directorio
-ignorado por Git. Con `llama3.2:3b`, el smoke de HU-011 respondió en 6/6
-intentos y no tuvo timeouts, pero produjo **0/6 salidas conformes**. El gate
-fail-closed rechazó las seis respuestas y creó cero borradores. La evidencia
-está en `evidencias/benchmark-hu011-ollama-2026-08-17.md` y
-`evidencias/manifest-hu011-ollama-2026-08-17.json`.
+ignorado por Git. Los tres cortes controlados con `llama3.2:3b` fueron:
 
-El resultado correcto es `NO_CONFORME`, no un éxito de HU-011. El próximo
-experimento debe introducir una hipótesis única y medible —preferentemente
-salida estructurada y render determinista—, fijar el número de intentos y
-mantener el mismo gate. No corresponde aumentar tokens o repetir hasta obtener
-un verde.
+1. structured v2: 0/6 aceptadas por `json_invalid`, sin borradores;
+2. JSON Schema v3: 0/6; HTTP 400 al compilar la grammar, sin inferencia;
+3. JSON Schema v4: 6/6 aceptaciones técnicas, entre 7,035854 y 29,485820 s,
+   todas en `PENDIENTE_VALIDACION`.
+
+V4 corrigió el patrón incompatible mediante un enum exacto sin quitar la
+allowlist posterior. Esto prueba conformidad mecánica en dos registros y seis
+intentos; no prueba estabilidad amplia, SLA, calidad institucional, validación
+SEU ni TRL 3. Los benchmarks y manifests v2/v3/v4 están en `evidencias/`.
+
+La suite completa **se ejecuta fuera del sandbox**: 451 pruebas, todas en
+verde y cero fallas `EPERM`. Las 16 fallas de loopback registradas antes eran
+ambientales del sandbox y no se reprodujeron.
+
+La suite verifica comportamiento del sistema, no redacción de documentación: se
+retiraron las pruebas que afirmaban sobre el texto de este README y de los
+archivos de `evidencias/`, porque acoplaban el verde a la prosa en lugar de a
+una propiedad observable del software.
+
+Un corte posterior amplió la cobertura live de dos a tres actividades en ambos
+canales y agregó los cuatro casos negativos contra el modelo real: **6/6
+generaciones aceptadas y 4/4 rechazos previos correctos**, con los cuatro
+output hashes compartidos reproducidos respecto del corte v4 anterior en una
+sesión independiente. El máximo cold subió a 36,225976 s, por encima del máximo
+previo de 29,485820 s, lo que refuerza `DEF-A1-003`. Ver
+`evidencias/benchmark-hu011-ollama-live-cobertura-ampliada-2026-08-17.md`.
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python scripts/matriz_hu011_live_v4.py \
+  --salida salida/matriz-hu011-live-v4 --confirm-live-llm
+```
+
+El runner exige `--confirm-live-llm` porque invoca un modelo local real, y a
+diferencia de la matriz fake **no aborta ante una salida no conforme**: la
+registra, para poder medir la tasa real de conformidad.
 
 ## Próximo incremento según el Gantt
 
-El próximo incremento técnico es resolver la conformidad HU-011 con un
-experimento controlado de salida estructurada y render determinista. En
-paralelo, DSI/SEU deben provisionar identidad, recursos y permisos para ejecutar
-D2 live, y la SEU debe completar el paquete de validación. Hasta entonces,
-HU-010 y HU-011 continúan parciales y el Gate G2 / TRL 3 permanece pendiente.
+El próximo cierre técnico es reejecutar la suite completa fuera del sandbox,
+inspeccionar el scope y crear un commit atómico cuando se restablezca la
+capacidad, sin inventar un hash antes de hacerlo. Después corresponde validar
+las migraciones sobre PostgreSQL efímero y, sólo con autorización, correr
+Workspace D2 live. En paralelo, DSI/SEU deben provisionar identidad, recursos y
+permisos, aprobar plantilla/criterios y completar el paquete de validación.
+Hasta entonces HU-010, HU-011 y HU-012 continúan parciales y el Gate G2 / TRL 3
+permanece pendiente.

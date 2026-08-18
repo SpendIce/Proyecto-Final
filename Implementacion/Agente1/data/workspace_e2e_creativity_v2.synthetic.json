@@ -1,0 +1,15 @@
+{
+  "schema_version": "workspace_e2e_creativity_fixture_v2",
+  "instagram": {
+    "gancho": "Una propuesta para aprender y compartir.",
+    "prosa": "Sumate a una experiencia pensada para la comunidad.",
+    "cta": "Consultá los datos y participá.",
+    "hashtags": ["#Aprender", "#Comunidad"]
+  },
+  "linkedin": {
+    "gancho": "Una oportunidad para conectar conocimientos.",
+    "prosa": "Te invitamos a ser parte de una experiencia de intercambio.",
+    "cta": "Conocé los datos y sumate.",
+    "hashtags": ["#Conocimiento", "#Comunidad"]
+  }
+}

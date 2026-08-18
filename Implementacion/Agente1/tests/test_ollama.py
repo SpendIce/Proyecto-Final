@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from threading import Thread
@@ -9,7 +10,7 @@ import time
 import pytest
 
 from agente1 import OllamaGenerator
-from agente1.ollama import DEFAULT_OLLAMA_TIMEOUT_S
+from agente1.ollama import DEFAULT_OLLAMA_TIMEOUT_S, MAX_FORMAT_SCHEMA_BYTES
 
 
 @contextmanager
@@ -136,6 +137,65 @@ def test_ollama_permite_configurar_num_predict():
 
     payload = json.loads(solicitudes[0]["body"])
     assert payload["options"] == {"num_predict": 128, "temperature": 0}
+
+
+def test_ollama_envia_format_schema_exacto_y_expone_solo_hash():
+    schema = {
+        "type": "object",
+        "properties": {"gancho": {"type": "string"}},
+        "required": ["gancho"],
+        "additionalProperties": False,
+    }
+    esperado = json.loads(json.dumps(schema))
+    canonico = json.dumps(
+        schema,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    cuerpo = json.dumps({"response": '{"gancho":"ok"}', "done": True}).encode()
+    with servidor_ollama(cuerpo=cuerpo) as (base_url, solicitudes):
+        generator = OllamaGenerator(
+            modelo="llama3.2:3b",
+            base_url=base_url,
+            timeout_s=5,
+            format_schema=schema,
+        )
+        schema["properties"] = {"mutado": {"type": "number"}}
+        generator.generar("Prompt")
+
+    payload = json.loads(solicitudes[0]["body"])
+    assert payload["format"] == esperado
+    assert payload["options"]["temperature"] == 0
+    assert generator.format_mode == "json_schema"
+    assert generator.format_schema_hash == hashlib.sha256(canonico).hexdigest()
+    assert not hasattr(generator, "format_schema")
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {},
+        [],
+        {"const": float("nan")},
+        {"description": "x" * MAX_FORMAT_SCHEMA_BYTES},
+    ],
+)
+def test_ollama_rechaza_format_schema_invalido_sin_filtrar_contenido(schema):
+    with pytest.raises(ValueError) as error:
+        OllamaGenerator(modelo="llama3.2:3b", format_schema=schema)
+
+    assert str(error.value) == "format schema inválido"
+    assert "description" not in str(error.value)
+
+
+def test_ollama_rechaza_format_schema_ciclico():
+    schema: dict[str, object] = {"type": "object"}
+    schema["self"] = schema
+
+    with pytest.raises(ValueError, match="format schema inválido"):
+        OllamaGenerator(modelo="llama3.2:3b", format_schema=schema)
 
 
 @pytest.mark.parametrize(

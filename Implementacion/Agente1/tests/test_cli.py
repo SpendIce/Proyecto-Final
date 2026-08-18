@@ -28,6 +28,18 @@ def salida_conforme_cli() -> str:
     )
 
 
+def salida_post_v2_cli() -> str:
+    return json.dumps(
+        {
+            "gancho": "Una propuesta para aprender y compartir.",
+            "prosa": "Sumate a una experiencia pensada para la comunidad.",
+            "cta": "Consultá los datos y participá.",
+            "hashtags": ["#Aprender", "#Comunidad"],
+        },
+        ensure_ascii=False,
+    )
+
+
 @contextmanager
 def servidor_ollama(*, cuerpo: bytes, status: int = 200):
     solicitudes: list[dict[str, object]] = []
@@ -353,6 +365,8 @@ def test_cli_post_mantiene_gacetilla_default_y_exige_canal(tmp_path):
             "post",
             "--canal",
             "linkedin",
+            "--post-version",
+            "text-v1",
             "--csv",
             str(ROOT / "data" / "actividades_sinteticas.csv"),
             "--id-solicitud",
@@ -408,11 +422,95 @@ def test_cli_post_mantiene_gacetilla_default_y_exige_canal(tmp_path):
     assert json.loads(sin_canal.stdout)["estado"] == "INVALIDA"
 
 
+def test_cli_post_usa_structured_v2_por_default_seguro(tmp_path):
+    entorno = os.environ.copy()
+    entorno["PYTHONPATH"] = str(ROOT / "src")
+    proceso = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "agente1",
+            "--tipo",
+            "post",
+            "--canal",
+            "instagram",
+            "--csv",
+            str(ROOT / "data" / "actividades_sinteticas.csv"),
+            "--id-solicitud",
+            "SYN-001",
+            "--salida",
+            str(tmp_path / "salida-v2"),
+            "--fake-output",
+            salida_post_v2_cli(),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=entorno,
+    )
+
+    assert proceso.returncode == 0, proceso.stderr
+    respuesta = json.loads(proceso.stdout)
+    assert Path(respuesta["borrador"]).name == "SYN-001-instagram-v2.md"
+    registro = json.loads(Path(respuesta["log"]).read_text(encoding="utf-8"))
+    assert registro["output_contract_version"] == "post_creative_output_v2"
+    assert registro["renderer_version"] == "post_deterministic_renderer_v2"
+
+
+def test_cli_post_v2_ollama_envia_schema_exacto_y_audita_solo_hash(tmp_path):
+    entorno = os.environ.copy()
+    entorno["PYTHONPATH"] = str(ROOT / "src")
+    cuerpo = json.dumps({"response": salida_post_v2_cli(), "done": True}).encode()
+    schema_path = ROOT / "src" / "agente1" / "contracts" / "post_creative_output_v2.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    with servidor_ollama(cuerpo=cuerpo) as (base_url, solicitudes):
+        proceso = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "agente1",
+                "--tipo",
+                "post",
+                "--canal",
+                "instagram",
+                "--csv",
+                str(ROOT / "data" / "actividades_sinteticas.csv"),
+                "--id-solicitud",
+                "SYN-001",
+                "--salida",
+                str(tmp_path / "salida-v2-ollama"),
+                "--ollama-model",
+                "llama3.2:3b",
+                "--ollama-base-url",
+                base_url,
+                "--ollama-timeout",
+                "5",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=entorno,
+        )
+
+    assert proceso.returncode == 0, proceso.stderr
+    assert solicitudes[0]["format"] == schema
+    assert solicitudes[0]["options"]["temperature"] == 0
+    respuesta = json.loads(proceso.stdout)
+    log_serializado = Path(respuesta["log"]).read_text(encoding="utf-8")
+    registro = json.loads(log_serializado)
+    assert registro["generation_format"] == "json_schema"
+    assert len(registro["format_schema_hash"]) == 64
+    assert '"properties"' not in log_serializado
+    assert "x-provisional-creative-catalog-by-channel" not in log_serializado
+
+
 def test_cli_gacetilla_rechaza_flags_exclusivos_de_post(tmp_path):
     entorno = os.environ.copy()
     entorno["PYTHONPATH"] = str(ROOT / "src")
     flags = (
         ("--canal", "instagram"),
+        ("--post-version", "text-v1"),
         ("--post-max-chars", "1000"),
         ("--post-min-hashtags", "1"),
         ("--post-max-hashtags", "10"),

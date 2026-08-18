@@ -1,0 +1,201 @@
+{
+  "schema_version": "evidencia_hu011_ollama_structured_v2",
+  "evidence_id": "HU011-OLLAMA-STRUCTURED-V2-20260817-001",
+  "hu": "HU-011",
+  "generated_at": "2026-08-17T17:17:28.335804Z",
+  "status": "NO_CONFORME",
+  "validation": {
+    "data_origin": "SIMULADA",
+    "intended_authority": "SEU",
+    "authority_review_status": "PENDIENTE",
+    "trl3_claimed": false
+  },
+  "repository": {
+    "base_commit_at_capture": "8a62ae63b5bd5a53c096c402ca943841b69ba06f",
+    "pipeline_state_at_capture": "WORKTREE_UNCOMMITTED_REVIEWED",
+    "pipeline_base_commit_match_claimed": false,
+    "component_hashes_unchanged_during_capture": true,
+    "global_worktree_clean": false,
+    "traceability_note": "Structured v2 estaba revisado pero aun no integrado al base commit. Los componentes se identifican por hashes capturados antes y verificados despues de las seis ejecuciones."
+  },
+  "runtime": {
+    "name": "ollama",
+    "version": "0.32.14-1",
+    "installation": "user-local-isolated",
+    "binary_sha256": "624dcb2d103cf4196aca181c967cdf97e8b62479775e57704f7e300386e22f2f",
+    "backend": "cpu",
+    "bind_scope": "LOOPBACK_ONLY",
+    "host": {
+      "cpu": "Intel Core i7-1180G7",
+      "cores": 4,
+      "threads": 8,
+      "ram_gib": 15,
+      "gpu_used_for_this_evidence": false
+    }
+  },
+  "model": {
+    "tag": "llama3.2:3b",
+    "format": "GGUF",
+    "quantization": "Q4_K_M",
+    "config_digest": "sha256:34bb5ab01051a11372a91f95f3fbbc51173eed8e7f13ec395b9ae9b8bd0e242b",
+    "weights_digest": "sha256:dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff",
+    "manifest_sha256": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72"
+  },
+  "pipeline": {
+    "components": [
+      {
+        "component_id": "HU011_POST_PROCESSOR_V2_AT_CAPTURE",
+        "sha256": "6d5da9c08ecb7977b5d50cf8267548d4044977d1293b640909795205a3b725d0"
+      },
+      {
+        "component_id": "OLLAMA_LOOPBACK_ADAPTER_AT_CAPTURE",
+        "sha256": "27624f992ad5cafb7ea798637bc71fac9fe930ca662110e29557b3228122e3b6"
+      },
+      {
+        "component_id": "AGENTE1_CLI_V2_AT_CAPTURE",
+        "sha256": "77882c1a96d996191c1ddc98bfa2ec01d0339a1c510565b94dcb0e57912b4baf"
+      },
+      {
+        "component_id": "POST_INSTAGRAM_STRUCTURED_V2_AT_CAPTURE",
+        "sha256": "4992f29ab25738596cfbf636d6b99cd32bfe88ae28fa6987f388432d658d5f89"
+      },
+      {
+        "component_id": "POST_LINKEDIN_STRUCTURED_V2_AT_CAPTURE",
+        "sha256": "5acb3e1a6dcb492d9b9dd7849fe7e0b6048ea98238cea5adc0d61b7134fcfbc6"
+      },
+      {
+        "component_id": "POST_INPUT_V1_AT_CAPTURE",
+        "sha256": "f6090dd82a37a363fc6364cc0bd56fb7c9286ff3306c4e623bb49615f4431b4a"
+      },
+      {
+        "component_id": "POST_CREATIVE_OUTPUT_V2_AT_CAPTURE",
+        "sha256": "032a246cabe9b027d88d663b0ed4d22595c1b1f0012577bb5d486102063326fa"
+      },
+      {
+        "component_id": "ACTIVIDADES_SINTETICAS_V1_AT_CAPTURE",
+        "sha256": "fe5d712f5f41e777b5daa02ac1de0b23bfde64e0cc61433d9a89d3c0977d98f4"
+      }
+    ],
+    "versions": {
+      "input_contract": "post_input_v1",
+      "output_contract": "post_creative_output_v2",
+      "renderer": "post_deterministic_renderer_v2",
+      "creative_catalog": "post_creative_catalog_v2",
+      "instagram_prompt": "post_instagram_structured_v2",
+      "linkedin_prompt": "post_linkedin_structured_v2"
+    },
+    "dataset_id": "ACTIVIDADES_SINTETICAS_V1",
+    "record_ids": [
+      "SYN-001",
+      "SYN-003"
+    ],
+    "record_hashes": {
+      "SYN-001": "d4971497e1f6db200ba6005e562b42313dab9637ae6ec8476a6f9c10b115e38e",
+      "SYN-003": "73889a1521c41d473749b7e6e5e26f893113295887e9ce4cee91acae666974d0"
+    },
+    "effective_caps": {
+      "max_chars": 1000,
+      "min_hashtags": 1,
+      "max_hashtags": 10,
+      "num_predict": 112,
+      "timeout_seconds": 120
+    }
+  },
+  "execution": {
+    "attempt_limit": 6,
+    "attempts_executed": 6,
+    "automatic_retries": 0,
+    "accepted_outputs": 0,
+    "rejected_outputs": 6,
+    "timeouts": 0,
+    "transport_errors": 0,
+    "invalid_drafts_created": 0,
+    "attempts": [
+      {
+        "channel": "instagram",
+        "condition": "model-cold-prompt-cold",
+        "record_id": "SYN-001",
+        "correlation_id": "0ed5b2b6-072e-4d9c-b429-66f580612772",
+        "latency_seconds": 42.836248,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["json_invalid"],
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "instagram",
+        "condition": "model-resident-prompt-cold",
+        "record_id": "SYN-003",
+        "correlation_id": "29d418d2-3d2d-4ca0-a384-896b27fc63bc",
+        "latency_seconds": 18.381072,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["json_invalid"],
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "instagram",
+        "condition": "same-prompt-warm",
+        "record_id": "SYN-003",
+        "correlation_id": "115fe857-16a5-43f0-97e0-595c5e36b255",
+        "latency_seconds": 14.130929,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["json_invalid"],
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "linkedin",
+        "condition": "model-cold-prompt-cold",
+        "record_id": "SYN-001",
+        "correlation_id": "c4c3624c-0854-46b6-b98b-67c1abee597b",
+        "latency_seconds": 37.958424,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["json_invalid"],
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "linkedin",
+        "condition": "model-resident-prompt-cold",
+        "record_id": "SYN-003",
+        "correlation_id": "476a2935-1ee1-4fba-84d7-c0f49479b4b3",
+        "latency_seconds": 18.442998,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["json_invalid"],
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "linkedin",
+        "condition": "same-prompt-warm",
+        "record_id": "SYN-003",
+        "correlation_id": "b6b63251-c6ba-46ac-8196-c8d79b10f57e",
+        "latency_seconds": 13.932053,
+        "result": "salida_no_conforme",
+        "state": "FALLIDA",
+        "validation_errors": ["json_invalid"],
+        "output_hash": null,
+        "draft_files_created": 0
+      }
+    ]
+  },
+  "human_review": {
+    "checklist_id": "CHECKLIST_VALIDACION_HUMANA_HU011_V1",
+    "status": "NO_APLICA_SIN_BORRADOR_ACEPTADO",
+    "decision": null
+  },
+  "limitations": [
+    "Todos los casos utilizaron datos sinteticos.",
+    "Las seis respuestas fueron JSON invalido bajo el presupuesto fijo y ninguna alcanzo el renderer final.",
+    "No se conservaron cuerpos rechazados en la evidencia versionable.",
+    "La menor latencia no implica conformidad ni constituye un SLA.",
+    "No existe validacion SEU registrada.",
+    "No se declara TRL 3."
+  ]
+}

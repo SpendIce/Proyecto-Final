@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:p100:agente1:confirmacion-inscripcion:v1",
+  "title": "Entrada candidata HU-012",
+  "type": "object",
+  "additionalProperties": false,
+  "x-contract-version": "confirmacion_inscripcion_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "description": "Contrato técnico offline. No constituye autorización de envío ni criterio aprobado por SEU.",
+  "required": [
+    "id_inscripcion",
+    "nombre_destinatario",
+    "email_destinatario",
+    "actividad",
+    "fecha",
+    "organiza",
+    "contacto"
+  ],
+  "properties": {
+    "id_inscripcion": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"},
+    "nombre_destinatario": {"type": "string", "minLength": 1},
+    "email_destinatario": {"type": "string", "format": "email", "maxLength": 254},
+    "actividad": {"type": "string", "minLength": 1},
+    "fecha": {"type": "string", "minLength": 1},
+    "lugar": {"type": "string", "x-required": false},
+    "organiza": {"type": "string", "minLength": 1},
+    "contacto": {"type": "string", "minLength": 1}
+  }
+}

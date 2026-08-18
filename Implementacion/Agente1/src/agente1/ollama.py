@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from http.client import HTTPConnection, HTTPException
 from ipaddress import ip_address
+import hashlib
 import json
 import math
 import time
@@ -15,6 +16,7 @@ DEFAULT_OLLAMA_NUM_PREDICT = 112
 MIN_OLLAMA_NUM_PREDICT = 32
 MAX_OLLAMA_NUM_PREDICT = 512
 MAX_RESPONSE_BYTES = 1_048_576
+MAX_FORMAT_SCHEMA_BYTES = 65_536
 
 
 class OllamaGenerator:
@@ -25,6 +27,7 @@ class OllamaGenerator:
         base_url: str = DEFAULT_OLLAMA_BASE_URL,
         timeout_s: float = DEFAULT_OLLAMA_TIMEOUT_S,
         num_predict: int = DEFAULT_OLLAMA_NUM_PREDICT,
+        format_schema: dict[str, object] | None = None,
     ) -> None:
         if not modelo.strip():
             raise ValueError("modelo inválido")
@@ -40,19 +43,26 @@ class OllamaGenerator:
         self.modelo = modelo.strip()
         self._timeout_s = timeout_s
         self.num_predict = num_predict
+        self._format_schema, self.format_schema_hash = _normalizar_format_schema(
+            format_schema
+        )
+        self.format_mode = "json_schema" if self._format_schema is not None else None
 
     def generar(self, prompt: str) -> str:
         deadline = time.monotonic() + self._timeout_s
-        payload = json.dumps(
-            {
-                "model": self.modelo,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0,
-                    "num_predict": self.num_predict,
-                },
+        solicitud: dict[str, object] = {
+            "model": self.modelo,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0,
+                "num_predict": self.num_predict,
             },
+        }
+        if self._format_schema is not None:
+            solicitud["format"] = self._format_schema
+        payload = json.dumps(
+            solicitud,
             ensure_ascii=False,
         ).encode("utf-8")
         connection: HTTPConnection | None = None
@@ -110,6 +120,30 @@ class OllamaGenerator:
 
 class _TransportError(Exception):
     pass
+
+
+def _normalizar_format_schema(
+    format_schema: dict[str, object] | None,
+) -> tuple[dict[str, object] | None, str | None]:
+    if format_schema is None:
+        return None, None
+    if not isinstance(format_schema, dict) or not format_schema:
+        raise ValueError("format schema inválido")
+    try:
+        serializado = json.dumps(
+            format_schema,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError, RecursionError):
+        raise ValueError("format schema inválido") from None
+    codificado = serializado.encode("utf-8")
+    if len(codificado) > MAX_FORMAT_SCHEMA_BYTES:
+        raise ValueError("format schema inválido")
+    normalizado = json.loads(serializado)
+    return normalizado, hashlib.sha256(codificado).hexdigest()
 
 
 def _validar_base_url(base_url: str) -> tuple[str, int]:

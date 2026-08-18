@@ -1,0 +1,249 @@
+{
+  "schema_version": "evidencia_hu011_ollama_json_schema_v3",
+  "evidence_id": "HU011-OLLAMA-JSON-SCHEMA-V3-20260817-001",
+  "hu": "HU-011",
+  "generated_at": "2026-08-17T17:25:16.967401Z",
+  "status": "INCOMPATIBLE_RUNTIME_SCHEMA",
+  "validation": {
+    "data_origin": "SIMULADA",
+    "intended_authority": "SEU",
+    "authority_review_status": "PENDIENTE",
+    "trl3_claimed": false
+  },
+  "repository": {
+    "base_commit_at_capture": "8a62ae63b5bd5a53c096c402ca943841b69ba06f",
+    "pipeline_state_at_capture": "WORKTREE_UNCOMMITTED_REVIEWED",
+    "pipeline_base_commit_match_claimed": false,
+    "component_hashes_unchanged_during_capture": true,
+    "global_worktree_clean": false,
+    "traceability_note": "El transporte JSON Schema estaba revisado pero aun no integrado al base commit. Los componentes se identifican por hashes capturados antes y verificados despues de las seis ejecuciones."
+  },
+  "controlled_change": {
+    "baseline_evidence_id": "HU011-OLLAMA-STRUCTURED-V2-20260817-001",
+    "change_id": "OLLAMA_FORMAT_JSON_SCHEMA_TEMPERATURE_ZERO",
+    "intended_single_variable": "GENERATION_TRANSPORT_FORMAT",
+    "model_unchanged": true,
+    "prompts_unchanged": true,
+    "contracts_unchanged": true,
+    "dataset_unchanged": true,
+    "timeout_unchanged": true,
+    "num_predict_unchanged": true,
+    "attempt_plan_unchanged": true
+  },
+  "runtime": {
+    "name": "ollama",
+    "version": "0.32.14-1",
+    "installation": "user-local-isolated",
+    "binary_sha256": "624dcb2d103cf4196aca181c967cdf97e8b62479775e57704f7e300386e22f2f",
+    "backend": "cpu",
+    "bind_scope": "LOOPBACK_ONLY",
+    "host": {
+      "cpu": "Intel Core i7-1180G7",
+      "cores": 4,
+      "threads": 8,
+      "ram_gib": 15,
+      "gpu_used_for_this_evidence": false
+    }
+  },
+  "model": {
+    "tag": "llama3.2:3b",
+    "format": "GGUF",
+    "quantization": "Q4_K_M",
+    "config_digest": "sha256:34bb5ab01051a11372a91f95f3fbbc51173eed8e7f13ec395b9ae9b8bd0e242b",
+    "weights_digest": "sha256:dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff",
+    "manifest_sha256": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72"
+  },
+  "pipeline": {
+    "components": [
+      {
+        "component_id": "HU011_POST_PROCESSOR_V2_AT_CAPTURE",
+        "sha256": "7f6d9d86d32ba2714f9ec6bc8310670f4ad74df16a2fd8ed105b280c8e74e685"
+      },
+      {
+        "component_id": "OLLAMA_JSON_SCHEMA_ADAPTER_AT_CAPTURE",
+        "sha256": "3c0c2a36982025dd7fc6390c7a85d27d57e21d9891ca479eca8fa5c4fd71c683"
+      },
+      {
+        "component_id": "AGENTE1_CLI_JSON_SCHEMA_AT_CAPTURE",
+        "sha256": "42342393084664f987e77d25ebf9516002d359c36fb25f3f92d0e4d0e525a800"
+      },
+      {
+        "component_id": "POST_INSTAGRAM_STRUCTURED_V2_AT_CAPTURE",
+        "sha256": "4992f29ab25738596cfbf636d6b99cd32bfe88ae28fa6987f388432d658d5f89"
+      },
+      {
+        "component_id": "POST_LINKEDIN_STRUCTURED_V2_AT_CAPTURE",
+        "sha256": "5acb3e1a6dcb492d9b9dd7849fe7e0b6048ea98238cea5adc0d61b7134fcfbc6"
+      },
+      {
+        "component_id": "POST_INPUT_V1_AT_CAPTURE",
+        "sha256": "f6090dd82a37a363fc6364cc0bd56fb7c9286ff3306c4e623bb49615f4431b4a"
+      },
+      {
+        "component_id": "POST_CREATIVE_OUTPUT_V2_AT_CAPTURE",
+        "sha256": "032a246cabe9b027d88d663b0ed4d22595c1b1f0012577bb5d486102063326fa"
+      },
+      {
+        "component_id": "ACTIVIDADES_SINTETICAS_V1_AT_CAPTURE",
+        "sha256": "fe5d712f5f41e777b5daa02ac1de0b23bfde64e0cc61433d9a89d3c0977d98f4"
+      }
+    ],
+    "versions": {
+      "input_contract": "post_input_v1",
+      "output_contract": "post_creative_output_v2",
+      "renderer": "post_deterministic_renderer_v2",
+      "creative_catalog": "post_creative_catalog_v2",
+      "instagram_prompt": "post_instagram_structured_v2",
+      "linkedin_prompt": "post_linkedin_structured_v2"
+    },
+    "generation_transport": {
+      "format_mode": "json_schema",
+      "format_schema_sha256": "bcadefe75f4aba1e0ad6247ae881f162a029f1fa4495566827230fd4b37ef4e5",
+      "temperature": 0
+    },
+    "dataset_id": "ACTIVIDADES_SINTETICAS_V1",
+    "record_ids": ["SYN-001", "SYN-003"],
+    "record_hashes": {
+      "SYN-001": "d4971497e1f6db200ba6005e562b42313dab9637ae6ec8476a6f9c10b115e38e",
+      "SYN-003": "73889a1521c41d473749b7e6e5e26f893113295887e9ce4cee91acae666974d0"
+    },
+    "effective_caps": {
+      "max_chars": 1000,
+      "min_hashtags": 1,
+      "max_hashtags": 10,
+      "num_predict": 112,
+      "timeout_seconds": 120
+    }
+  },
+  "runtime_diagnostic": {
+    "http_status": 400,
+    "stage": "JSON_SCHEMA_TO_GRAMMAR",
+    "diagnostic_code": "UNSUPPORTED_ESCAPE_IN_PATTERN",
+    "trigger_component": "HASHTAG_PATTERN",
+    "inference_started": false,
+    "prompt_cache_condition_reached": false
+  },
+  "execution": {
+    "attempt_limit": 6,
+    "attempts_executed": 6,
+    "automatic_retries": 0,
+    "accepted_outputs": 0,
+    "rejected_outputs": 6,
+    "api_rejections": 6,
+    "timeouts": 0,
+    "network_transport_errors": 0,
+    "invalid_drafts_created": 0,
+    "attempts": [
+      {
+        "channel": "instagram",
+        "requested_condition": "model-cold-prompt-cold",
+        "effective_condition": "MODEL_LOADED_SCHEMA_REJECTED_BEFORE_INFERENCE",
+        "record_id": "SYN-001",
+        "correlation_id": "25292c3d-631a-4880-aa1e-153f43d96fa0",
+        "latency_seconds": 5.116467,
+        "result": "error_generacion",
+        "state": "FALLIDA",
+        "validation_errors": null,
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "instagram",
+        "requested_condition": "model-resident-prompt-cold",
+        "effective_condition": "SCHEMA_REJECTED_BEFORE_INFERENCE",
+        "record_id": "SYN-003",
+        "correlation_id": "eb409a21-ef6b-4624-bc52-adb57134a2a7",
+        "latency_seconds": 0.241783,
+        "result": "error_generacion",
+        "state": "FALLIDA",
+        "validation_errors": null,
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "instagram",
+        "requested_condition": "same-prompt-warm",
+        "effective_condition": "PROMPT_CACHE_NOT_REACHED",
+        "record_id": "SYN-003",
+        "correlation_id": "0b8e9b55-17e9-454a-9ad9-577b3c500739",
+        "latency_seconds": 0.232705,
+        "result": "error_generacion",
+        "state": "FALLIDA",
+        "validation_errors": null,
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "linkedin",
+        "requested_condition": "model-cold-prompt-cold",
+        "effective_condition": "MODEL_LOADED_SCHEMA_REJECTED_BEFORE_INFERENCE",
+        "record_id": "SYN-001",
+        "correlation_id": "fb444b47-714e-4914-91fd-cd152d03ad0d",
+        "latency_seconds": 6.410774,
+        "result": "error_generacion",
+        "state": "FALLIDA",
+        "validation_errors": null,
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "linkedin",
+        "requested_condition": "model-resident-prompt-cold",
+        "effective_condition": "SCHEMA_REJECTED_BEFORE_INFERENCE",
+        "record_id": "SYN-003",
+        "correlation_id": "d1c93e11-1ba2-4e76-9f7c-7f8ac08b1b10",
+        "latency_seconds": 0.263261,
+        "result": "error_generacion",
+        "state": "FALLIDA",
+        "validation_errors": null,
+        "output_hash": null,
+        "draft_files_created": 0
+      },
+      {
+        "channel": "linkedin",
+        "requested_condition": "same-prompt-warm",
+        "effective_condition": "PROMPT_CACHE_NOT_REACHED",
+        "record_id": "SYN-003",
+        "correlation_id": "9121a2ee-b752-4d57-bd37-ffe1eb32322c",
+        "latency_seconds": 0.230939,
+        "result": "error_generacion",
+        "state": "FALLIDA",
+        "validation_errors": null,
+        "output_hash": null,
+        "draft_files_created": 0
+      }
+    ]
+  },
+  "comparison": {
+    "v2": {
+      "evidence_id": "HU011-OLLAMA-STRUCTURED-V2-20260817-001",
+      "accepted_outputs": 0,
+      "rejected_outputs": 6,
+      "dominant_code": "json_invalid",
+      "inference_started": true,
+      "latency_range_seconds": [13.932053, 42.836248]
+    },
+    "v3": {
+      "evidence_id": "HU011-OLLAMA-JSON-SCHEMA-V3-20260817-001",
+      "accepted_outputs": 0,
+      "rejected_outputs": 6,
+      "dominant_code": "error_generacion",
+      "inference_started": false,
+      "latency_range_seconds": [0.230939, 6.410774]
+    },
+    "interpretation": "V3 no es una mejora de latencia: el runtime rechazo el schema antes de inferencia. No existe comparacion valida de calidad o cache contra v2."
+  },
+  "human_review": {
+    "checklist_id": "CHECKLIST_VALIDACION_HUMANA_HU011_V1",
+    "status": "NO_APLICA_SIN_BORRADOR_ACEPTADO",
+    "decision": null
+  },
+  "limitations": [
+    "Todos los casos utilizaron datos sinteticos.",
+    "La incompatibilidad ocurrio antes de inferencia y no evalua la capacidad del modelo bajo JSON Schema.",
+    "Las condiciones prompt cold y prompt warm no fueron efectivas porque el prompt cache no se alcanzo.",
+    "No se conservaron cuerpos remotos ni diagnosticos crudos en la evidencia versionable.",
+    "No existe validacion SEU registrada.",
+    "No se declara TRL 3."
+  ]
+}
