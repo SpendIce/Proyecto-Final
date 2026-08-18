@@ -388,8 +388,8 @@ allowlist posterior. Esto prueba conformidad mecánica en dos registros y seis
 intentos; no prueba estabilidad amplia, SLA, calidad institucional, validación
 SEU ni TRL 3. Los benchmarks y manifests v2/v3/v4 están en `evidencias/`.
 
-La suite completa **se ejecuta fuera del sandbox**: 451 pruebas, todas en
-verde y cero fallas `EPERM`. Las 16 fallas de loopback registradas antes eran
+El incremento quedó versionado en `db06b3e`. La suite completa **se ejecuta
+fuera del sandbox**: 451 pruebas, todas en verde y cero fallas `EPERM`. Las 16 fallas de loopback registradas antes eran
 ambientales del sandbox y no se reprodujeron.
 
 La suite verifica comportamiento del sistema, no redacción de documentación: se
