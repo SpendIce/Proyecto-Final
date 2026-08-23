@@ -6,13 +6,13 @@ gantt
     todayMarker stroke-width:2px,stroke:#0f766e,opacity:0.6
 
     section Sprint 0 - Bootstrap minimo (1-10 jul)
-    Docker y compose minimo con FastAPI y Ollama local      :s0a, 2026-07-01, 2026-07-06
+    Entorno local minimo con Ollama user-local y script Python sin framework web :s0a, 2026-07-01, 2026-07-06
     Conectar Google Workspace y credenciales OAuth2          :s0b, 2026-07-02, 2026-07-08
-    Esqueleto FastAPI, repo y logging basico                 :s0c, 2026-07-06, 2026-07-10
+    Esqueleto del proyecto Python, repo y logging basico      :s0c, 2026-07-06, 2026-07-10
     Entorno minimo listo para construir el MVP               :milestone, m0, 2026-07-10, 0d
 
     section Sprint 1 - HU-010 Gacetillas (8-31 jul)
-    Disenar prompt y grafo LangGraph de gacetilla            :s1a, 2026-07-08, 2026-07-15
+    Disenar prompt y pipeline Python de gacetilla, sin LangGraph :s1a, 2026-07-08, 2026-07-15
     Integrar lectura de datos desde Google Sheets            :s1b, 2026-07-13, 2026-07-20
     Aplicar plantilla institucional y salida en Google Docs  :s1c, 2026-07-17, 2026-07-24
     Probar gacetillas con datos completos e incompletos      :s1d, 2026-07-22, 2026-07-28
@@ -26,23 +26,24 @@ gantt
     Validar posts con SEU y ajustar prompts                 :s2d, 2026-08-13, 2026-08-17
     MVP HU-010 y HU-011 con evidencia - Gate TRL 3          :milestone, m2, 2026-08-17, 0d
 
-    section Sprint 3 - Robustecimiento (18-28 ago)
-    Esquema PostgreSQL y migracion de la persistencia        :s3a, 2026-08-18, 2026-08-24
-    Cola Celery y Redis para generacion asincrona           :s3b, 2026-08-20, 2026-08-26
-    Capa de secretos y logging con correlation ID           :s3c, 2026-08-24, 2026-08-28
-    Base robustecida lista para las HU de S2                 :milestone, m3, 2026-08-28, 0d
+    section Sprint 3 - Bloqueantes institucionales y base tecnica minima (18-28 ago)
+    Gestionar Workspace live, OAuth y recursos D2/D3 con DSI :s3a, 2026-08-18, 2026-08-24
+    Gestionar validadores SEU y criterios definitivos de canal :s3b, 2026-08-18, 2026-08-24
+    Consolidar persistencia JSONL y cerrar spike PostgreSQL documentado, sin driver ni SQL operativo :s3c, 2026-08-20, 2026-08-26
+    Capa de secretos y logging con correlation ID           :s3d, 2026-08-24, 2026-08-28
+    Bloqueantes gestionados y base tecnica consolidada, sin infraestructura diferida :milestone, m3, 2026-08-28, 0d
 
     section Sprint 4 - HU-012 Confirmaciones (31 ago - 14 sep)
     Modelar datos y endpoint de confirmacion                 :s4a, 2026-08-31, 2026-09-04
     Logica de deduplicacion con clave unica en base          :s4b, 2026-09-03, 2026-09-08
     Plantilla de email y envio via Google Workspace          :s4c, 2026-09-07, 2026-09-11
-    Tarea Celery de envio y registro en base                 :s4d, 2026-09-09, 2026-09-12
+    Tarea de envio asincrona propia, sin Celery/Redis, y registro en base :s4d, 2026-09-09, 2026-09-12
     Probar duplicados, destinatario invalido y validar SEU   :s4e, 2026-09-11, 2026-09-14
     HU-012 operativa con DoD                                 :milestone, m4, 2026-09-14, 0d
 
     section Sprint 5 - HU-013 Lenguaje natural interno (15-25 sep)
     Chat interno con autenticacion de personal SEU           :s5a, 2026-09-15, 2026-09-18
-    Nodo LangGraph de interpretacion con LLM local           :s5b, 2026-09-17, 2026-09-22
+    Modulo Python de interpretacion con LLM local, sin LangGraph :s5b, 2026-09-17, 2026-09-22
     Fallback fuera de alcance y persistir transcript         :s5c, 2026-09-21, 2026-09-24
     Probar solicitudes validas, fuera de alcance y usabilidad :s5d, 2026-09-23, 2026-09-25
     HU-013 operativa con DoD                                 :milestone, m5, 2026-09-25, 0d

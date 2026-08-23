@@ -134,6 +134,8 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 | HU-012 | P1 | 5 | Como Secretaria, quiero enviar confirmaciones automaticas de inscripcion para evitar tareas manuales |
 | HU-013 | P1 | 3 | Como usuario interno, quiero interactuar con el agente en lenguaje natural para generar contenido rapidamente |
 | HU-014 | P2 | 8 | Como Secretaria, quiero generar certificados automaticos para agilizar cierres de actividades |
+| HU-015 | P3/P5/P6 | 8 | Como Coordinador de la SEU, quiero que A1 detecte un **curso** en estado "Aprobado" y genere certificados + borrador de difusion automaticamente |
+| HU-016 | P3/P5/P6 | 8 | Como Coordinador de la SEU, quiero que A1 detecte un **evento** en estado "Aprobado" y genere certificados + borrador de difusion automaticamente (extiende HU-015 a eventos) |
 
 #### DoD por historia
 
@@ -161,6 +163,17 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 - Plantilla base configurada
 - Generacion de PDF
 - Validacion humana previa obligatoria
+
+**HU-015 — Certificados y triggers por Curso**
+- El bot detecta automaticamente el cambio de estado a "Aprobado" en un curso (Bus de Sheets)
+- Redacta el borrador de difusion y genera los PDFs de certificados en base a la lista de alumnos
+- El bot NO publica nada directamente: deja los entregables en la carpeta Drive "Revision Humana" y notifica por correo al RGC
+
+**HU-016 — Certificados y triggers por Evento**
+- Igual que HU-015 pero disparada por el cambio de estado de un **evento** (no un curso)
+- Mismo DoD: entregables en carpeta "Revision Humana", notificacion al RGC, sin publicacion directa
+
+> **Nota de consistencia (bible vigente, 2026-08-18):** el PDF actualizado titula tanto a HU-015 como a HU-016 "Generación de Certificados y Triggers por Eventos" — es un error de copiado del documento fuente; el contenido real distingue curso (HU-015) vs evento (HU-016). Ademas, el ID "HU-015" ya estaba usado en el backlog de Agente 3 para "Gestión de Ceremonial y Protocolo" (ver `Contenido/bible/Procesos y Agentes.md`). Hay colision de numeracion de HU entre epicas en la bible; senalar esto si se convierte en tarea de Jira real.
 
 #### DoD especifico para historias de Generacion de Contenido
 - Texto generado coherente, sin errores gramaticales criticos
@@ -402,6 +415,21 @@ El documento de diseno define 22 casos de prueba en 3 etapas:
 - **Etapa 2 — Interaccion Humana (CP13-CP19):** autenticacion, visualizacion de borradores por rol, correccion, regeneracion, aprobacion semantica y utilitaria
 - **Etapa 3 — Publicacion de Contenido (CP20-CP22):** planificacion de fecha, envio a canales, manejo de fallas de canales
 
+### Escenarios de prueba end-to-end (EP01-EP04, agregados a la bible 2026-08-18)
+Ademas de los CP01-CP22 (pruebas unitarias/funcionales), la bible vigente agrega 4 escenarios integrales que encadenan varios CU en un flujo completo. Son directamente aplicables como criterio de aceptacion del MVP actual (HU-011/HU-012):
+
+| Escenario | Objetivo | CU encadenados | Resultado esperado |
+|-----------|----------|-----------------|---------------------|
+| **EP01** — Flujo de Generacion de Contenido Conforme a Solicitud | Verificar una solicitud de generacion valida de punta a punta | CU01, CU04, CU03, CU06, CU05 | Borrador persistido en Google Workspace segun la plantilla del tipo de contenido; log de generacion en base de datos |
+| **EP02** — Flujo de Aprobacion y Publicacion del Contenido Generado | Verificar aprobacion humana (RGC + Coordinador) y publicacion | CU08, CU10, CU06, CU11(CU12), CU12(CU13) — requiere EP01 exitoso previo | Contenido publicado en canal de difusion de prueba (no RRSS oficiales) y log de auditoria completo |
+| **EP03** — Flujo de Rechazo, Correccion y Ajuste por IA | Verificar el bucle de feedback humano → bot | CU08, CU09, CU06, CU03 — requiere EP01 exitoso previo | Bot regenera el borrador con las correcciones y vuelve a quedar pendiente de aprobacion |
+| **EP04** — Estres por Concurrencia en el Modelo Local de IA | Evaluar el servidor bajo saturacion del hardware que corre Ollama | CU01 (rafaga de 50 solicitudes en <5 min) | Redis retiene la cola, Celery procesa en paralelo con limite configurado, no se desborda memoria ni colapsa FastAPI |
+
+**Por que importa ahora:** EP04 valida exactamente el riesgo tecnico que ya se viene probando en este workspace (smoke test de Ollama, ver `.claude/log/`). Conviene usar EP01-EP04 como guion de pruebas de aceptacion antes de dar por cerrado el MVP HU-011/HU-012.
+
+### Anexo 2 — banco de tono institucional para generacion de contenido
+`Contenido/bible/ANEXO 2 - Planilla de control de impacto y repercusiones Redes sociales FIE.md` (nuevo, 2026-08-18) contiene el registro real de publicaciones FIE en Instagram/Facebook/LinkedIn (2025-2026), con el Copy completo de cada pieza. Es util como banco de ejemplos (few-shot) para calibrar tono, largo y convenciones de hashtag al disenar los prompts de HU-010 (gacetillas) y HU-011 (posts RRSS). El esquema de columnas de esa planilla es el formato objetivo que Agente 5 debe reproducir (HU-021) — A1 NO genera esa planilla, solo puede tomarla como referencia de estilo.
+
 ---
 
 ## Fuentes de verdad
@@ -411,6 +439,7 @@ Tu conocimiento proviene exclusivamente de:
 - `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`
 - `Contenido/bible/Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.pdf`
 - `Contenido/bible/mailinstitucional.pdf`
+- `Contenido/bible/ANEXO 2 - Planilla de control de impacto y repercusiones Redes sociales FIE.md` — banco de tono/ejemplos reales de Copy institucional (no es requisito funcional de A1, solo referencia de estilo)
 - `Contenido/Definicion/arquitectura-multiagente.md` (documentacion consolidada de arquitectura)
 
 Ante cualquier duda sobre datos que no esten en estas fuentes, responde: "Eso no esta definido en la documentacion oficial del proyecto. Habria que consultarlo con el director de carrera o la Secretaria de Extension."

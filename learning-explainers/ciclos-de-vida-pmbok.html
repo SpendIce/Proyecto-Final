@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ciclos de vida PMBOK</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202124;
+      --muted: #5f6368;
+      --line: #d8dee4;
+      --paper: #ffffff;
+      --band: #f5f7fa;
+      --accent: #1b6b5c;
+      --accent-2: #8a4b12;
+      --ok: #176b35;
+      --bad: #a33a2a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--band);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 32px 18px 48px;
+    }
+    header {
+      padding: 28px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 34px 0 12px;
+      font-size: 1.28rem;
+      letter-spacing: 0;
+    }
+    p { margin: 0 0 12px; }
+    .lead { color: var(--muted); max-width: 76ch; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .tile {
+      min-height: 180px;
+      padding: 14px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .tile h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+    .tag {
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #e7f1ee;
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    .comparison {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .comparison th,
+    .comparison td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+    .comparison th {
+      background: #eef2f5;
+      font-size: .9rem;
+    }
+    .comparison tr:last-child td { border-bottom: 0; }
+    .rule {
+      padding: 18px;
+      background: #fff7ed;
+      border: 1px solid #eac08a;
+      border-radius: 8px;
+    }
+    .rule strong { color: var(--accent-2); }
+    .quiz {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .question {
+      padding: 16px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .question label {
+      display: block;
+      margin: 8px 0;
+      cursor: pointer;
+    }
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #result {
+      min-height: 28px;
+      margin-top: 12px;
+      font-weight: 700;
+    }
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      .tile { min-height: auto; }
+      .comparison, .comparison tbody, .comparison tr, .comparison td, .comparison th {
+        display: block;
+      }
+      .comparison thead { display: none; }
+      .comparison td::before {
+        content: attr(data-label);
+        display: block;
+        font-weight: 700;
+        color: var(--muted);
+        margin-bottom: 3px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Ciclos de vida: predictivo, iterativo, incremental, adaptativo e hibrido</h1>
+      <p class="lead">Apunte de repaso para parcial. La idea no es memorizar nombres: es reconocer que cambia cuando cambia la incertidumbre del alcance y la forma de entregar valor.</p>
+    </header>
+
+    <h2>Idea central</h2>
+    <div class="rule">
+      <p><strong>Pregunta guia:</strong> cuanto se sabe del producto al inicio y cuanto se necesita aprender durante el proyecto.</p>
+      <p>Si ya se conoce casi todo, conviene un enfoque predictivo. Si hay incertidumbre, conviene repetir ciclos, entregar partes, o combinar enfoques.</p>
+    </div>
+
+    <h2>Los cinco enfoques</h2>
+    <section class="grid" aria-label="Cinco enfoques de ciclo de vida">
+      <article class="tile">
+        <span class="tag">Predictivo</span>
+        <h3>Plan primero, cambios controlados</h3>
+        <p>Alcance, tiempo y costo se definen temprano. Sirve cuando los requisitos son estables.</p>
+      </article>
+      <article class="tile">
+        <span class="tag">Iterativo</span>
+        <h3>Repetir para aprender</h3>
+        <p>Se trabaja en ciclos repetidos para mejorar la solucion. El alcance general puede estar claro, pero el detalle se ajusta.</p>
+      </article>
+      <article class="tile">
+        <span class="tag">Incremental</span>
+        <h3>Entregar por partes</h3>
+        <p>Cada incremento suma funcionalidad. El producto queda completo al integrar los incrementos necesarios.</p>
+      </article>
+      <article class="tile">
+        <span class="tag">Adaptativo</span>
+        <h3>Agil y orientado al cambio</h3>
+        <p>El alcance detallado se define antes de cada iteracion. Prioriza respuesta al cambio e involucramiento frecuente.</p>
+      </article>
+      <article class="tile">
+        <span class="tag">Hibrido</span>
+        <h3>Mezclar segun la zona</h3>
+        <p>Lo conocido se gestiona predictivamente; lo incierto se gestiona adaptativamente.</p>
+      </article>
+    </section>
+
+    <h2>Comparacion para parcial</h2>
+    <table class="comparison">
+      <thead>
+        <tr>
+          <th>Enfoque</th>
+          <th>Cuando conviene</th>
+          <th>Como se ve en un proyecto</th>
+          <th>Frase clave</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Enfoque">Predictivo</td>
+          <td data-label="Cuando conviene">Requisitos claros, bajo cambio esperado.</td>
+          <td data-label="Como se ve">Analisis, diseno, construccion, prueba y cierre con plan fuerte desde el inicio.</td>
+          <td data-label="Frase clave">Planificar mucho al comienzo.</td>
+        </tr>
+        <tr>
+          <td data-label="Enfoque">Iterativo</td>
+          <td data-label="Cuando conviene">Se necesita aprender y refinar la solucion.</td>
+          <td data-label="Como se ve">Versiones sucesivas de una misma solucion, cada vez mejor entendida.</td>
+          <td data-label="Frase clave">Repetir para mejorar.</td>
+        </tr>
+        <tr>
+          <td data-label="Enfoque">Incremental</td>
+          <td data-label="Cuando conviene">Se puede dividir el producto en partes utiles.</td>
+          <td data-label="Como se ve">Primero modulo A, despues modulo B, despues modulo C.</td>
+          <td data-label="Frase clave">Sumar funcionalidad por entregas.</td>
+        </tr>
+        <tr>
+          <td data-label="Enfoque">Adaptativo</td>
+          <td data-label="Cuando conviene">Alta incertidumbre, prioridades cambiantes, feedback frecuente.</td>
+          <td data-label="Como se ve">Backlog, iteraciones cortas, alcance detallado definido justo antes de construir.</td>
+          <td data-label="Frase clave">Planificar y ajustar continuamente.</td>
+        </tr>
+        <tr>
+          <td data-label="Enfoque">Hibrido</td>
+          <td data-label="Cuando conviene">Hay partes estables y partes inciertas.</td>
+          <td data-label="Como se ve">Infraestructura planificada en cascada; interfaz o funcionalidades en ciclos agiles.</td>
+          <td data-label="Frase clave">Predictivo donde se sabe, adaptativo donde se aprende.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Mini quiz</h2>
+    <div class="quiz">
+      <div class="question">
+        <p><strong>1.</strong> El cliente conoce exactamente el alcance, hay contrato cerrado y los cambios deben aprobarse formalmente.</p>
+        <label><input type="radio" name="q1" value="predictivo"> Predictivo</label>
+        <label><input type="radio" name="q1" value="adaptativo"> Adaptativo</label>
+        <label><input type="radio" name="q1" value="incremental"> Incremental</label>
+      </div>
+      <div class="question">
+        <p><strong>2.</strong> El equipo entrega primero busqueda, despues login, despues reportes. Cada entrega suma funcionalidad.</p>
+        <label><input type="radio" name="q2" value="iterativo"> Iterativo</label>
+        <label><input type="radio" name="q2" value="incremental"> Incremental</label>
+        <label><input type="radio" name="q2" value="predictivo"> Predictivo</label>
+      </div>
+      <div class="question">
+        <p><strong>3.</strong> La arquitectura esta fija, pero la experiencia de usuario se define con feedback semanal.</p>
+        <label><input type="radio" name="q3" value="hibrido"> Hibrido</label>
+        <label><input type="radio" name="q3" value="predictivo"> Predictivo puro</label>
+        <label><input type="radio" name="q3" value="incremental"> Incremental puro</label>
+      </div>
+    </div>
+    <button type="button" onclick="checkQuiz()">Corregir</button>
+    <p id="result" aria-live="polite"></p>
+  </main>
+  <script>
+    function selected(name) {
+      const checked = document.querySelector('input[name="' + name + '"]:checked');
+      return checked ? checked.value : "";
+    }
+    function checkQuiz() {
+      const answers = {
+        q1: "predictivo",
+        q2: "incremental",
+        q3: "hibrido"
+      };
+      let score = 0;
+      for (const key of Object.keys(answers)) {
+        if (selected(key) === answers[key]) score += 1;
+      }
+      const result = document.getElementById("result");
+      if (score === 3) {
+        result.className = "ok";
+        result.textContent = "3/3. Bien: ya estas distinguiendo por logica, no por definicion.";
+      } else {
+        result.className = "bad";
+        result.textContent = score + "/3. Revisa la regla: predictivo = estable, incremental = partes, hibrido = mezcla.";
+      }
+    }
+  </script>
+</body>
+</html>

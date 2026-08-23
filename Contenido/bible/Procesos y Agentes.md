@@ -2,7 +2,7 @@
 
 Fuente original vigente: `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf`.
 
-Nota operativa: este Markdown fue resincronizado desde la version completa vigente del PDF de 169 paginas para mantener una fuente textual buscable por agentes. El PDF queda como evidencia original; este archivo queda como working source para busqueda, diff y actualizacion documental.
+Nota operativa: este Markdown fue resincronizado el 2026-08-18 desde la version actualizada del PDF (169 paginas, ~30958 palabras extraidas via markitdown) para mantener una fuente textual buscable por agentes. El PDF queda como evidencia original; este archivo queda como working source para busqueda, diff y actualizacion documental.
 
 ---
 
@@ -142,7 +142,8 @@ Extensión
 Responsable de R
 Gestión del
 Conocimiento de
-Extensión
+Extensión (Aux Com
+Inst)
 Responsable de Redes R
 Sociales
 Directores de carrera C
@@ -516,22 +517,23 @@ En el marco del Proyecto Centenario, el principio de supervisión humana
 ("human-in-the-loop") es fundamental para garantizar la calidad institucional y mitigar
 riesgos reputacionales. Los procesos específicos que requieren validación humana
 obligatoria son:
+● Gestión de Contenidos Críticos: La arquitectura del sistema excluye explícitamente la
+automatización sin supervisión de cualquier contenido definido como crítico para la
+institución. Caso 1: Datos Personales, protegidos por la Ley DP.
 ● Generación de Contenido Público y Comunicaciones Oficiales (Proceso 4): Todas las
 tareas de generación automática de textos destinadas al público externo, como
 gacetillas, posts para redes sociales, newsletters y correos institucionales, deben
 ser validadas por personal de la Secretaría antes de su publicación o envío. Esto
 busca evitar la difusión de errores, inconsistencias o información inventada
 ("alucinaciones") por los agentes.
+● Validación de Propuestas de Capacitación (Proceso 3): Las propuestas generadas por
+el sistema deben pasar por un flujo de validación humana que incluye la revisión
+coordinada con el Departamento de Planes y Programas de la Secretaría Académica.
+Caso 1: formato UNDEF. Caso 2: formato DGE.
 ● Emisión de Certificados de Asistencia o Aprobación (Proceso 5): Aunque el Agente 1
 (Extensión Bot) se encarga de la generación técnica de los certificados en formato
 PDF, el modelo de procesos establece que la validación humana es obligatoria antes
 del registro y envío final para asegurar la exactitud de los datos académicos.
-● Gestión de Contenidos Críticos: La arquitectura del sistema excluye explícitamente la
-automatización sin supervisión de cualquier contenido definido como crítico para la
-institución.
-● Validación de Propuestas de Capacitación (Proceso 3): Las propuestas generadas por
-el sistema deben pasar por un flujo de validación humana que incluye la revisión
-coordinada con el Departamento de Planes y Programas de la Secretaría Académica.
 Mecanismos de Control
 Para operativizar esta validación, el proyecto integra los siguientes criterios técnicos:
 ● Criterios de Aceptación (DoD): Cada historia de usuario (HU) relacionada con la
@@ -679,7 +681,9 @@ Generación de contenido < 30 segundos
 ●
 Respuestas de atención < 15 segundos
 
-Seguridad
+Seguridad (se amplía en
+https://docs.google.com/document/d/1zI3wDVRO6jSZLan-KqqPbx0nNWhX-PiNEJXFi5A5
+pAo/edit?tab=t.rg4l86s64vzl )
 ●
 Uso de APIs oficiales con control de integridad (Hashes)
 ●
@@ -1118,6 +1122,60 @@ Rate limits paginación + throttling
 Token expirado refresh automático
 Datos incompletos validación
 
+Gestión de Identidades y
+Accesos
+
+Notas técnicas sobre Gestión de Identidades y Accesos (Identity and Access
+Management)
+1. Para todos los Agentes se debe distinguir entre identidad (quién es el agente) y el
+mecanismo de autenticación/autorización técnico (cómo demuestra su identidad
+ante la API) para operar dentro de Google Workspace.
+2. Protocolo de seguridad indispensable para que un sistema autónomo invoque las
+APIs de Google de forma segura:
+a. Desambiguación en el Flujo de Consentimiento (OAuth vs. Cuenta de
+Servicio):
+i. Delegación en todo el dominio: Si el agente necesita leer el
+calendario o Drive de cualquier empleado sin que este firme un
+permiso individual, requiere una Cuenta de Servicio con Domain-Wide
+Delegation. El "Email institucional" aquí sería el de la cuenta de
+servicio o el del usuario a quien va a suplantar programáticamente.
+ii. Consentimiento individual: Si el agente solo debe acceder a los datos
+del usuario que lo está usando en ese momento, requiere OAuth 2.0
+(User Flow). El "Email institucional" sería el del usuario que inicia
+sesión y autoriza explícitamente los alcances (scopes) para el acceso.
+b. Distinción entre Identidad de Aplicación y Credenciales
+i. No se debe confundir una dirección de correo (un identificador de
+texto) con una credencial criptográfica.
+ii. Un "Email institucional" estándar (usuario@empresa.com) no
+genera tokens por sí solo.
+iii. Una Cuenta de Servicio genera un archivo JSON con una clave privada
+(llave criptográfica) para firmar JSON Web Tokens (JWT).
+iv. Un Usuario OAuth requiere un Client ID y un Client Secret para
+redirigir a una pantalla de logueo de Google. [1, 2, 3]
+[1] https://developers.google.com
+[2] https://docs.cloud.google.com
+[3] https://soporte.alumn-e.com
+c. Segmentación de Capas (Canal de Interacción vs. Backend): No se deben
+solapar las capas intervinientes (Canal de Interacción vs. Backend): Si el
+Agente 1 recibe instrucciones porque alguien le escribe un correo a
+agente1@empresa.com (Canal), no se debe asumir erróneamente que
+ese mismo buzón es el que mágicamente tiene acceso a la base de datos de
+Google Workspace mediante código.
+
+d. Definición en el Modelo de Supervisión Humana: Como el Agente 1 es
+autónomo, pero tiene "supervisión humana", se debe distinguir bajo qué
+identidad se auditarán las acciones en los logs de Google Workspace.
+i. Si usa Cuenta de Servicio, en los registros de auditoría de Google
+aparecerá que la aplicación modificó los archivos. Se utilizará cuando
+el agente realice acciones en segundo plano 24/7 sin que el usuario
+esté conectado.
+ii. Si usa OAuth de Usuario, las acciones aparecerán firmadas por el
+supervisor o el usuario final. Se debe adoptar este mecanismo cuando
+las consultas a la base de datos de Workspace están limitadas
+estrictamente a la información que el supervisor humano tiene
+permitido ver? (Apunta a OAuth de Usuario o Delegación de Dominio
+restringida).
+
 Verificación del Mapa de
 Procesos SEU
 
@@ -1467,11 +1525,14 @@ adaptable (HU-011).
 ○ Envío de confirmaciones de inscripción automáticas (HU-012).
 ○ Generación de certificados en PDF, siempre con validación previa obligatoria
 (HU-014).
+● ⚠ Nota de Integración Épica/HU: El comportamiento proactivo de este agente ante
+cambios de estado y la lógica de creación masiva de certificados quedan gobernados
+por la HU-015 (P3, P5, P6, 8 SP).
 ● Rendimiento y Seguridad: El tiempo de generación de contenido debe ser menor a
 30 segundos. Se deben implementar controles de acceso basados en roles y gestión
 segura de credenciales mediante variables de entorno.
-4. Tecnologías a Considerar
 
+4. Tecnologías a Considerar
 El sistema debe ser sostenible y de bajo costo, evitando hardware especializado:
 ● Plataforma de Orquestación: Google Workspace (Apps Script, Sheets, Drive y Docs)
 como núcleo operativo.
@@ -1508,10 +1569,10 @@ Según el modelo de procesos, la validación de los contenidos generados por el 
 recae en perfiles específicos:
 ● Responsable de Gestión del Conocimiento (RGC): Es el encargado primario de la
 validación semántica, comunicacional e institucional de los contenidos producidos.
+
 ● Coordinador de Extensión (COORD): Actúa como la autoridad que valida la
 pertinencia de las gacetillas y la utilidad de los contenidos antes de su difusión
 masiva.
-
 3. Criterios de Aceptación (DoD) para la Configuración
 Para que una tarea del Agente 1 se considere "terminada" en el backlog técnico (Jira), debe
 cumplir con un Definition of Done (DoD) que incluya explícitamente la supervisión humana:
@@ -1548,9 +1609,9 @@ pertinencia y utilidad de los contenidos antes de su difusión masiva y supervis
 historias de usuario críticas, como la generación de gacetillas.
 ● Responsable Técnico de Sistemas / IA agentes (RT): Aunque su función es
 principalmente técnica para asegurar el funcionamiento de los agentes, en el proceso
+
 de comunicación también figura con responsabilidad de ejecución ("R") para la
 automatización del flujo.
-
 ● Personal de la Secretaría / Usuarios Principales: Actúan como los usuarios finales
 que interactúan con el agente y participan en la validación operativa diaria de tareas
 como el envío de confirmaciones de inscripción o la generación de borradores.
@@ -1563,44 +1624,95 @@ IA.
 
 Notas Diseño - AI 1
 
+Diseño de Sistemas Informáticos 1
+Proyecto CENTENARIO: Sistema de Agentes
+Inteligentes para Extensión Universitaria.
+Agente: “Extensión Bot”
+Profesor:
+Lopez Gabriel Vicente
+Integrantes:
+Calatayud Abril Nataly
+López Quevedo Beskow Jazmín Rocío
+
 Índice
-Índice.........................................................................................................................................1
-Proyecto.....................................................................................................................................2
-Problema...................................................................................................................................2
-Descripción de los Usuarios.....................................................................................................2
-Modelo de Negocio...................................................................................................................3
-Requisitos del sistema..............................................................................................................4
-Funcionales.........................................................................................................................4
-No Funcionales....................................................................................................................4
-Interacción con Demás Agentes..............................................................................................5
-Metodología de desarrollo de software...................................................................................5
-Cronograma..............................................................................................................................6
-Diagrama de Gantt...................................................................................................................7
-Diagrama de Clases..................................................................................................................7
-Diagrama de Casos de Uso......................................................................................................7
-Bloque 1: Generación de Contenido.................................................................................7
-CU01: Recibir Entradas..............................................................................................7
-CU02: Notificar Error..................................................................................................8
-CU03: Generar Contenido...........................................................................................8
-CU04: Consultar repositorio.......................................................................................8
-CU05: Persistir Borrador............................................................................................8
-CU06: Registrar Log de Auditoría.............................................................................8
-Bloque 2: Human in the Loop...........................................................................................8
-CU07: Iniciar sesión.....................................................................................................8
-CU08: Consultar borradores.......................................................................................9
-CU09: Corregir Borrador............................................................................................9
-CU10: Aprobar Borrador............................................................................................9
-Bloque 3: Difusión de Contenido......................................................................................9
-CU11: Planificar Fecha de Publicación......................................................................9
-CU12: Publicar Contenido Programado....................................................................9
-Bloque 4: Soporte...............................................................................................................9
-CU13: Mantener el sistema.........................................................................................9
-Lista de Actores para los Casos de Uso:.........................................................................10
-Diagrama de Componentes...................................................................................................10
-Diagrama de Despliegue.........................................................................................................11
-Diagrama de Estados..............................................................................................................11
-Diagrama de Actividades.......................................................................................................12
-Diagrama de Secuencia..........................................................................................................14
+Índice.........................................................................................................................................2
+Proyecto.....................................................................................................................................5
+Problema...................................................................................................................................5
+Descripción de los Usuarios.....................................................................................................5
+Modelo de Negocio...................................................................................................................6
+Requisitos del sistema..............................................................................................................7
+● Funcionales......................................................................................................................7
+● No Funcionales................................................................................................................7
+Interacción con Demás Agentes..............................................................................................8
+Metodología de desarrollo de software...................................................................................8
+Cronograma..............................................................................................................................9
+Diagrama de Gantt.................................................................................................................10
+Diagrama de Clases................................................................................................................10
+Diagrama de Casos de Uso.....................................................................................................11
+Bloque 1: Generación de Contenido...............................................................................11
+CU01: Recibir Entradas.............................................................................................11
+CU02: Notificar Error................................................................................................11
+CU03: Generar Contenido.........................................................................................12
+CU04: Consultar repositorio.....................................................................................12
+CU05: Persistir Borrador..........................................................................................12
+CU06: Registrar Log de Auditoría...........................................................................12
+Bloque 2: Human in the Loop.........................................................................................12
+CU07: Iniciar sesión...................................................................................................12
+CU08: Consultar borradores.....................................................................................13
+CU09: Corregir Borrador..........................................................................................13
+CU10: Aprobar Borrador..........................................................................................13
+CU11: Cerrar sesión...................................................................................................13
+Bloque 3: Difusión de Contenido....................................................................................13
+CU12: Planificar Fecha de Publicación....................................................................13
+CU13: Publicar Contenido Programado..................................................................13
+Bloque 4: Soporte.............................................................................................................14
+CU14: Mantener el sistema.......................................................................................14
+Lista de Actores para los Casos de Uso:.........................................................................14
+Diagrama de Componentes...................................................................................................14
+Diagrama de Despliegue........................................................................................................15
+Diagrama de Estados.............................................................................................................15
+Diagrama de Actividades.......................................................................................................16
+Diagrama de Secuencia..........................................................................................................18
+Plan de Pruebas Unitarias.....................................................................................................19
+Etapa 1: Pruebas sobre la Generación de Contenido...................................................19
+
+CP01: Recibir Entradas Válidas...............................................................................19
+CP02: Recibir Entradas Inválidas............................................................................20
+CP03: Notificación de Error a Apps Script.............................................................20
+CP04: Generar Gacetilla de Extensión.....................................................................20
+CP05: Generar Certificado de Asistencia................................................................20
+CP06: Generar Post para Redes Sociales.................................................................20
+CP07: Generar Newsletter de la Facultad...............................................................21
+CP08: Generar una planilla con información para Agente 4.................................21
+CP09: Respuesta a Timeout del Modelo Ollama.....................................................21
+CP10: Persistir Borrador en Google Drive..............................................................21
+CP11: Persistir Borrador en Gmail..........................................................................22
+CP12: Generar Log de auditoría en la Base de Datos............................................22
+Etapa 2: Pruebas sobre la Interacción Humana con el Sistema..................................22
+CP13: Iniciar sesión con Credenciales Válidas........................................................22
+CP14: Iniciar sesión con Credenciales Inválidas.....................................................22
+CP15: Mostrar borradores pendientes al usuario según su Rol............................22
+CP16: Corregir Borrador..........................................................................................23
+CP17: Regenerar borrador en función de correcciones.........................................23
+CP18: Marcar borrador como Aprobado Semánticamente...................................23
+CP19: Marcar borrador como Aprobado Utilitariamente.....................................23
+Etapa 3: Pruebas sobre la Publicación de Contenido...................................................23
+CP20: Planificar fecha de publicación de Contenido..............................................23
+CP21: Enviar contenido a canales de Difusión........................................................24
+CP22: Manejar fallas de Canales de Publicación....................................................24
+Escenarios de Prueba.............................................................................................................24
+EP01: Flujo de Generación de Contenido Conforme a Solicitud................................24
+Flujo:...........................................................................................................................25
+Resultados esperados:................................................................................................25
+EP02: Flujo de Aprobación y Publicación del Contenido Generado..........................25
+Flujo:...........................................................................................................................26
+Resultados esperados:................................................................................................26
+EP03: Flujo de Rechazo, Corrección y Ajuste por IA..................................................27
+Resultados esperados:................................................................................................28
+EP04: Estrés por Concurrencia en el Modelo Local de IA...........................................28
+Flujo:...........................................................................................................................29
+Resultados esperados:................................................................................................29
+Interfaz de Usuario.................................................................................................................29
 
 Proyecto
 Proyecto CENTENARIO: Sistema de Agentes Inteligentes para Extensión Universitaria.
@@ -1813,7 +1925,6 @@ Téngase en cuenta que dicho diagrama se encuentra sujeto a modificaciones const
 lo tanto no debería considerarse para el desarrollo hasta que se encuentre validado
 oficialmente.
 ● Vista previa:
-AGREGAR VISTA PREVIA
 
 Diagrama de Casos de Uso
 En el link adjunto anterior se puede acceder al diagrama de casos de uso del ExtensiónBot.
@@ -1836,9 +1947,9 @@ CU02: Notificar Error (Actor: Apps Script)
 3. Se envía al Apps Script la información del error para que este gestione la
 solicitud de reenvío de datos con la fuente original (El operario de extensión,
 otro agente, etc)
+
 CU03: Generar Contenido
 1. El bot toma una entrada validada de la cola de Redis.
-
 2. Mediante el modelo de IA ejecuta el prompt adecuado al tipo de solicitud
 recibida (Redacción de gacetilla, generación de certificado, etc) y se dispara el
 CU04 Consultar Repositorio para obtener las referencias necesarias
@@ -1853,10 +1964,16 @@ CU05: Persistir Borrador (Actor: Google Workspace)
 1. Se persiste el contenido generado como borrador pendiente de validación en
 Google Drive o Gmail seǵun corresponda.
 CU06: Registrar Log de Auditoría (Actor: Base de Datos)
-1. ExtensiónBot luego del CU03 Generar Contenido genera una entrada en un
-log detallando qué tipo de contenido se generó, el origen de la petición y la
-fecha y hora de la misma.
-2. El log es almacenado en una base de datos de PostgreSQL.
+1. Se genera un log para auditoría de la acción realizada en el sistema.
+2. En caso de una generación de contenido, el log contendrá: qué tipo de
+contenido se generó, el origen de la petición y la fecha y hora de la misma.
+3. En caso de una aprobación de un borrador, el log contendrá: qué tipo de
+contenido se generó, el origen de la petición y la fecha y hora de la misma, la
+fecha y hora de la aprobación.
+4. En caso de una corrección/solicitud de regeneración de un borrador, el log
+contendrá: qué tipo de contenido se generó, el origen de la petición y la fecha
+y hora de la misma, la fecha y la hora de la corrección.
+5. El log es almacenado en una base de datos de PostgreSQL.
 Bloque 2: Human in the Loop
 CU07: Iniciar sesión (Actores: Responsable de Gestión del
 Conocimiento, Coordinador de Extensión)
@@ -1866,6 +1983,8 @@ Conocimiento, Coordinador de Extensión)
 4. Si faltan credenciales o han sido ingresadas erróneamente, negar acceso.
 5. Registrar ingreso en el log.
 6. Disparar el CU08 Consultar Borradores (include)
+7. Se puede disparar el CU11 Cerrar Sesión (extend)
+
 CU08: Consultar borradores (Actores: Responsable de Gestión del
 Contenido, Coordinador de Extensión)
 1. Los actores, una vez se hayan autenticado correctamente, acceden al listado de
@@ -1873,7 +1992,6 @@ borradores pendientes de validación almacenados en Google Drive.
 2. Los actores eligen uno de los borradores.
 3. Se puede disparar el CU09 Corregir Borrador (extend) o el CU10 Aprobar
 Borrador (extend)
-
 CU09: Corregir Borrador (Actores: Responsable de Gestión del
 Contenido, Coordinador de Extensión)
 1. Los actores marcan observaciones y correcciones al borrador.
@@ -1886,21 +2004,26 @@ Contenido, Coordinador de Extensión)
 Semántica o Utilitaria)
 2. Si el bot detecta que el borrador recibió ambas aprobaciones dispara el CU11
 Planificar Fecha de Publicación (extend)
+CU11: Cerrar sesión (Actores: Responsable de Gestión del
+Conocimiento, Coordinador de Extensión)
+1. Los actores seleccionan cerrar sesión en algún momento luego del CU07
+Iniciar Sesión.
 Bloque 3: Difusión de Contenido
-CU11: Planificar Fecha de Publicación (Actor: Coordinador de
+CU12: Planificar Fecha de Publicación (Actor: Coordinador de
 Extensión)
 1. Una vez el contenido es aprobado se le asigna una fecha y hora de
 publicación.
 2. Cuando se alcance dicha fecha y hora se disparará el CU12 Publicar
 Contenido Programado (include)
-CU12: Publicar Contenido Programado (Actores: Canales de
+CU13: Publicar Contenido Programado (Actores: Canales de
 Publicación, Scheduler)
 1. El Scheduler detecta que se alcanzó la fecha de publicación programada para
 un borrador aprobado.
 2. Se envía el contenido del borrador a las APIs de los canales de publicación
 correspondientes para el contenido.
+
 Bloque 4: Soporte
-CU13: Mantener el sistema (Actor: Responsable Técnico)
+CU14: Mantener el sistema (Actor: Responsable Técnico)
 ● El flujo de este caso de uso depende exclusivamente del responsable técnico y
 queda fuera del alcance del proyecto.
 Lista de Actores para los Casos de Uso:
@@ -1909,7 +2032,6 @@ generación de contenido por parte del Extensión Bot.
 ● Scheduler: Actor de sistema encargado de ejecutar tareas programadas
 ● Repositorio Institucional: Encargado de contener las referencias para la
 generación de contenido.
-
 ● Base de Datos: Encargada de almacenar y gestionar los registros del sistema.
 ● Google Workspace: Almacenar los borradores que genere el bot y gestionar
 el envío de correos electrónicos.
@@ -1928,6 +2050,7 @@ constantes.
 ● Vista Previa:
 
 Diagrama de Despliegue
+
 Diagrama de Estados
 En el link adjunto anterior se puede acceder al diagrama de máquina de estados para el
 contenido generado por ExtensiónBot.
@@ -1941,12 +2064,431 @@ ExtensiónBot, en el que se describe su flujo de trabajo a nivel general.
 Diagrama de Secuencia
 En el link adjunto anterior es posible acceder a los diagrama de secuencia realizados para
 ExtensiónBot.
-Con el fín de facilitar su comprensión y acelerar la lectura, se separó la secuencia de
+Con el fin de facilitar su comprensión y acelerar la lectura, se separó la secuencia de
 ExtensiónBot en un diagrama para su flujo principal y un subdiagrama para las validaciones
 del contenido.
 ● Vista previa del flujo principal:
 
 ● Vista previa de las validaciones del contenido:
+Plan de Pruebas Unitarias
+Para realizar las pruebas pertinentes al sistema cosa que se garantice su correcto
+funcionamiento, se partió de los casos de usos definidos anteriormente en el documento y se
+proponen las siguientes etapas:
+Etapa 1: Pruebas sobre la Generación de Contenido
+CP01: Recibir Entradas Válidas
+● Descripción: Enviar entradas que cumplen estrictamente con la estructura
+requerida a ExtensiónBot.
+● Precondiciones: ExtensiónBot está activo y se ha generado una solicitud de
+generación.
+● Datos de Entrada: Archivo .xlsx / Hoja de cálculo de Google con datos
+correctos (Campos llenos, información con sentido)
+● Resultado Esperado: El sistema acepta el archivo de forma adecuada y
+procesa los datos sin generar excepciones.
+
+CP02: Recibir Entradas Inválidas
+● Descripción: Enviar entradas con errores de formato o datos inconsistentes
+para verificar la detección de errores.
+● Precondiciones: El ExtensiónBot está activo y se ha generado una solicitud
+de generación.
+● Datos de Entrada: Hoja de cálculo con formato adecuado pero campos
+vacíos obligatorios/Hoja de cálculo con formato adecuado pero campos
+rellenos de información incoherente/Archivo de extensión inválida
+● Resultado Esperado: ExtensiónBot detecta el error y ejecuta el CU02 -
+Notificar Error.
+CP03: Notificación de Error a Apps Script
+● Descripción: Verificar que cuando ocurre un error en la validación de entrada,
+el mensaje de error llegue correctamente a Apps Script para su gestión.
+● Precondiciones: CP02 exitoso (se ha generado un error de validación).
+● Datos de Entrada: La solicitud de reenvío generada automáticamente por el
+sistema tras el error.
+● Resultado Esperado: Apps Script recibe la notificación detallada del error y
+puede disparar una alerta o correo al operario responsable solicitando nuevos
+datos.
+CP04: Generar Gacetilla de Extensión
+● Descripción: Identificar petición de generación de gacetilla de Secretaría de
+Extensión Universitaria y generarla.
+● Precondiciones: CP01 exitoso.
+● Datos de Entrada: Petición de generación de gacetilla de Secretaría de
+Extensión Universitaria con los datos necesarios (temática, prompt, etc).
+● Resultado Esperado: El ExtensiónBot detecta que debe generar una gacetilla
+de Secretaría de Extensión Universitaria y la genera con los datos proveídos
+por el personal de Extensión/otros agentes utilizando la plantilla definida para
+las gacetillas.
+CP05: Generar Certificado de Asistencia
+● Descripción: Identificar petición de generación de certificado de asistencia a
+una actividad y generarlo.
+● Precondiciones: CP01 exitoso.
+● Datos de Entrada: Petición de generación de gacetilla de certificado de
+asistencia a una actividad con los datos necesarios (datos del evento, datos del
+alumno/docente, etc).
+● Resultado Esperado: El ExtensiónBot detecta que debe generar un
+certificado de asistencia a una actividad y lo genera con los datos proveídos
+por el personal de Extensión/SIU utilizando la plantilla definida para los
+certificados.
+CP06: Generar Post para Redes Sociales
+● Descripción: Identificar petición de generación de post para las redes sociales
+y generarlo.
+● Precondiciones: CP01 exitoso.
+
+● Datos de Entrada: Petición de generación de post para redes sociales con los
+datos necesarios (temática, prompt, datos sobre fechas o impactos, etc).
+● Resultado Esperado: El ExtensiónBot detecta que debe generar un post para
+redes sociales y lo genera con los datos proveídos por el personal de
+Extensión/otros agentes con variantes para cada red social que posee la FIE.
+CP07: Generar Newsletter de la Facultad
+● Descripción: Identificar petición de generación de newsletter de la Facultad
+de Ingeniería del Ejército y generarlo.
+● Precondiciones: CP01 exitoso.
+● Datos de Entrada: Petición de generación de newsletter de la Facultad de
+Ingeniería del Ejército con los datos necesarios (temática, prompt, etc).
+● Resultado Esperado: El ExtensiónBot detecta que debe generar un newsletter
+de la Facultad de Ingeniería del Ejército y lo genera con los datos proveídos
+por el personal de Extensión/otros agentes utilizando la plantilla definida para
+los newsletter.
+CP08: Generar una planilla con información para Agente 4
+● Descripción: Identificar petición de generación de una planilla de Google
+Sheets con información exclusiva del ExtensiónBot y generarlo.
+● Precondiciones: CP01 exitoso.
+● Datos de Entrada: Petición de generación de un planilla de Google Sheets
+con información exclusiva del ExtensiónBot con los datos necesarios
+(temática, pregunta recibida por el Agente 4, etc).
+● Resultado Esperado: El ExtensiónBot detecta que debe generar una planilla
+de Google Sheets con información exclusiva del ExtensiónBot y la genera en
+base a los datos proveídos por el agente 4.
+CP09: Respuesta a Timeout del Modelo Ollama
+● Descripción: Verificar comportamiento del sistema frente a problemas
+internos del modelo de IA implementado.
+● Precondiciones: CP01 exitoso, simular caída o conexión inestable con
+Ollama.
+● Datos de Entrada: Petición de generación de contenido.
+● Resultado Esperado: ExtensiónBot detecta el error, genera un log en la base
+de datos y notifica al responsable de mantenimiento sin perder la petición de
+generación.
+CP10: Persistir Borrador en Google Drive
+● Descripción: Guardar contenido generado en Google Drive (ya sea un archivo
+de Docs, Sheets, etc.) para su posterior validación.
+● Precondiciones: Se generó contenido para publicar o enviar al agente 4.
+Alguno de estos fue exitoso: CP04, CP05, CP06, CP007, CP08.
+● Datos de Entrada: Contenido generado.
+● Resultado Esperado: Se persiste exitosamente el contenido generado por el
+Extensión Bot en Google Drive con los permisos de acceso correspondientes.
+
+CP11: Persistir Borrador en Gmail
+● Descripción: Guardar un correo electrónico en Gmail como borrador
+pendiente de validación.
+● Precondiciones: Un correo electrónico fue redactado, la cuenta de Gmail está
+configurada.
+● Datos de Entrada: Correo electrónico redactado.
+● Resultado Esperado: ExtensiónBot persiste sin incidentes un borrador en
+Gmail y marca al mismo en la base de datos como “Pendiente de Validación”.
+CP12: Generar Log de auditoría en la Base de Datos
+● Descripción: Generar registros sobre el contenido generado y los detalles de
+su solicitud.
+● Precondiciones: Se cumplió el CU03 - Generar Contenido exitosamente.
+● Datos de Entrada: Contenido generado, datos de la solicitud (Hora de
+recepción, autor, contenido, etc)
+● Resultado Esperado: Un nuevo log es agregado a la base de datos registrando
+los detalles de la solicitud de generación y contenido generado.
+Etapa 2: Pruebas sobre la Interacción Humana con el Sistema
+CP13: Iniciar sesión con Credenciales Válidas
+● Descripción: El usuario ingresa al sistema con los permisos correspondientes.
+● Precondiciones: El ExtensiónBot está activo y un usuario ha enviado una
+petición para loguearse en el sistema ingresando sus credenciales.
+● Datos de Entrada: Correo electrónico que pertenece a un usuario autorizado
+y respectiva contraseña.
+● Resultado Esperado: El usuario ingresa al sistema con los permisos
+correspondientes.
+CP14: Iniciar sesión con Credenciales Inválidas
+● Descripción: El usuario no ingresa al sistema debido a credenciales inválidas.
+● Precondiciones: El ExtensiónBot está activo y un usuario ha enviado una
+petición para loguearse en el sistema ingresando sus credenciales.
+● Datos de Entrada: Datos de logueo (correo electrónico o contraseña)
+incorrectos o inexistentes en la base de datos.
+● Resultado Esperado: El usuario no ingresa al sistema y se le pide que ingrese
+de nuevo las credenciales.
+CP15: Mostrar borradores pendientes al usuario según su Rol
+● Descripción: Los usuarios solo pueden ver los borradores que requieren
+intervención de su rol.
+● Precondiciones: Usuario logueado (RGC o Coordinador).
+● Datos de Entrada: Borradores marcados como “Pendiente de Validación”.
+● Resultado Esperado: El Responsable de Gestión del Conocimiento (RGC) ve
+borradores pendientes de validación semántica, el Coordinador ve los que
+requieren validación utilitaria y no se no se muestran borradores ya aprobados.
+
+CP16: Corregir Borrador
+● Descripción: Permitir a los validadores humanos enviar correcciones a
+ExtensiónBot para mejorar el contenido generado.
+● Precondiciones: Borrador seleccionado por el usuario.
+● Datos de Entrada: Borrador seleccionado por el usuario.
+● Resultado Esperado: El sistema procesa las modificaciones y actualiza el
+estado del borrador en la base de datos a "Pendiente de corrección".
+CP17: Regenerar borrador en función de correcciones
+● Descripción: ExtensiónBot toma las correcciones humanas y mejora el
+contenido.
+● Precondiciones: Borrador corregido en el CP16 - Corregir Borrador enviado a
+ExtensiónBott.
+● Datos de Entrada: Observaciones del usuario en formato de texto.
+● Resultado Esperado: ExtensiónBot suma las correcciones a la petición para
+generar contenido y vuelve a ejecutar el CU03 - Generar Contenido.
+CP18: Marcar borrador como Aprobado Semánticamente
+● Descripción: El RGC aprueba el contenido.
+● Precondiciones: Borrador fue revisado por el Responsable de Gestión de
+Contenido.
+● Datos de Entrada: Señal del RGC (click, mensaje, etc) para aprobar el
+contenido.
+● Resultado Esperado: Se marca que el contenido fue aprobado
+semánticamente en la base de datos, si también tiene aprobación utilitaria, se
+habilita automáticamente el flujo hacia el CU12 - Planificar Fecha de
+Publicación.
+CP19: Marcar borrador como Aprobado Utilitariamente
+● Descripción: El Coordinador de Extensión aprueba el contenido.
+● Precondiciones: Borrador fue revisado por el Coordinador de Extensión.
+● Datos de Entrada: Señal del Coordinador de Extensión (click, mensaje, etc)
+para aprobar el contenido.
+● Resultado Esperado: Se marca que el contenido fue aprobado utilitariamente
+en la base de datos, si también tiene aprobación semántica, se habilita
+automáticamente el flujo hacia el CU12 - Planificar Fecha de Publicación.
+Etapa 3: Pruebas sobre la Publicación de Contenido
+CP20: Planificar fecha de publicación de Contenido
+● Descripción: Configurar cuándo se debe publicar un contenido ya aprobado.
+● Precondiciones: Borrador aprobado semántica y utilitariamente.
+● Datos de Entrada: Fecha y hora futura para la publicación.
+● Resultado Esperado: El sistema asigna el marcador de tiempo al borrador, lo
+pasa al estado "A Publicar" y el Scheduler reconoce la tarea pendiente.
+
+CP21: Enviar contenido a canales de Difusión
+● Descripción: Ejecutar la publicación real cuando llega la hora programada.
+● Precondiciones: Hora programada alcanzada, Scheduler activo, APIs de
+redes/configuración de correo validadas.
+● Datos de Entrada: Borrador con estatus "A Publicar" y fecha y hora
+coincidentes con las de publicación.
+● Resultado Esperado: El contenido se envía correctamente a las APIs
+correspondientes, cambiando el estado a "Publicado" y registrando el evento
+en logs.
+CP22: Manejar fallas de Canales de Publicación
+● Descripción: Verificar el comportamiento ante errores externos (Caídas de las
+APIs, límites de tasa superados, etc).
+● Precondiciones: Simulación de error en la API de destino durante el intento
+de CP20 - Enviar contenido a canales de Difusión.
+● Datos de Entrada: Respuesta de error del canal externo.
+● Resultado Esperado: El sistema no marca como "Publicado", notifica el error
+al Responsable Técnico o al usuario mediante alerta, y no pierde el contenido.
+Escenarios de Prueba
+Considerando superadas las pruebas anteriores, para detectar fallas no prevenidas se plantean
+los siguientes escenarios de prueba:
+EP01: Flujo de Generación de Contenido Conforme a Solicitud
+Verificar el flujo de una solicitud de generación de
+Objetivo
+contenido válida.
+● Analista Funcional
+Participantes
+● Apps Script, Repositorio Institucional, Google
+Workspace, Base de Datos.
+● ExtensiónBot está activo.
+● La base de datos (PostgreSQL) está accesible y
+Precondiciones
+con las tablas inicializadas.
+● Las credenciales de acceso a Google Workspace
+(Drive/Gmail) están vigentes y autenticadas.
+● CU03 - Generar Contenido
+● CU06 - Registrar Log de Auditoría
+● CU08 - Consultar borradores
+Casos de Uso Involucrados
+● CU10 - Aprobar Borrador
+● CU12 - Planificar Fecha de Publicación
+● CU13 - Publicar Contenido Programado
+Datos de Prueba
+● Solicitud de generación de gacetilla institucional
+
+Flujo:
+1. Se recibe una solicitud válida enviada por App Script (CU01 - Recibir Entradas)
+2. La solicitud se agrega a la cola de operaciones y el bot, luego de detectar el tipo de
+contenido, busca su plantilla en el Repositorio Institucional (CU04 - Consultar
+repositorio)
+3. En base a la información del repositorio institucional se genera el borrador (CU03 -
+Generar Contenido)
+4. Se genera un log en la base de datos con los detalles de la generación (CU06 -
+Registrar Log de Auditoría)
+5. El borrador se guarda en Google Drive (CU05 - Persistir Borrador)
+6. La cola de operaciones queda libre.
+Resultados esperados:
+● El bot recibe correctamente la solicitud.
+● El bot logra discernir qué tipo de contenido es.
+● El bot encuentra la plantilla correspondiente.
+● El bot genera sin problemas el borrador.
+● Se agrega un log en la base de datos PosgreSQL que registre las características del
+contenido generado y su solicitud.
+● El borrador se almacena sin problemas en Google Drive.
+● Cola de operaciones liberada al finalizar el escenario.
+El contenido final se persistió en Google
+Workspace como borrador y su estructura
+es acorde a la plantilla del tipo de
+Resultado Final
+contenido solicitado.
+El log de la generación de contenido se
+encuentra disponible en la base de datos.
+Resultado obtenido
+[Completar luego de la ejecución]
+[Completar luego de la ejecución con
+Estado final (Status)
+Exitoso, Fallido o Bloqueado]
+Correcciones [Completar luego de la ejecución]
+
+EP02: Flujo de Aprobación y Publicación del Contenido Generado
+Verificar el flujo de la aprobación de contenido por parte
+Objetivo del personal validador y su publicación en los canales de
+difusión.
+● Analista Funcional
+● Responsable de Gestión de Contenido
+● Coordinador de Extensión
+Participantes
+● Base de Datos
+● Scheduler
+● Canales de Publicación
+● Se ha ejecutado previamente el escenario EP01 de
+manera exitosa.
+● Existe por lo menos un borrador por validar.
+● Las credenciales de acceso a Google Workspace
+(Drive/Gmail) y las APIs de los Canales de
+Publicación externos están vigentes y autenticadas.
+Precondiciones
+● Los usuarios humanos (RGC y Coordinador)
+existen en el sistema con sus respectivos roles
+activos.
+● El validador (RGC o Coordinador) ha iniciado
+sesión correctamente en el sistema y tiene acceso a
+los borradores.
+● CU03 - Generar Contenido
+● CU06 - Registrar Log de Auditoría
+● CU08 - Consultar borradores
+Casos de Uso Involucrados
+● CU10 - Aprobar Borrador
+● CU12 - Planificar Fecha de Publicación
+● CU13 - Publicar Contenido Programado
+Datos de Prueba
+● Solicitud de generación de gacetilla institucional
+Flujo:
+1. El RGC y el Coordinador de Extensión consultan un borrador (CU08 - Consultar
+borradores)
+2. El RGC lo aprueba semánticamente y el Coordinador de Extensión lo aprueba
+utilitariamente (CU10 - Aprobar Borrador)
+3. Se genera un log en la base de datos con los detalles de la validación (CU06 -
+Registrar Log de Auditoría)
+4. Se programa una fecha de publicación (CU12 - Planificar Fecha de Publicación)
+5. El Scheduler publica el contenido en dicha fecha exitosamente (CU13 - Publicar
+Contenido Programado)
+
+Resultados esperados:
+● Los validadores pueden revisar el borrador sin problemas.
+● La interfaz de usuario permite a ambos validadores aprobar el borrador.
+● Log en la base de datos de PosgreSQL detallando las características de las
+validaciones.
+● La interfaz de usuario permite al último validador programar la hora y fecha.
+● Estado del contenido actualizado en la base de datos PosgreSQL a “Publicado”.
+● Gacetilla publicada en un canal de publicación de prueba (no las redes oficiales de la
+FIE) exitosamente.
+El contenido final aparece en los canales
+Resultado Final
+de difusión y el log de auditoría en la base
+de datos.
+Resultado obtenido
+[Completar luego de la ejecución]
+[Completar luego de la ejecución con
+Estado final (Status)
+Exitoso, Fallido o Bloqueado]
+Correcciones [Completar luego de la ejecución]
+
+EP03: Flujo de Rechazo, Corrección y Ajuste por IA
+Verificar el bucle de feedback entre los humanos y
+Objetivo
+ExtensiónBot.
+● Analista Funcional
+● Responsable de Gestión de Contenido
+Participantes
+● Coordinador de Extensión
+● Base de Datos
+● Se ha ejecutado previamente el escenario EP01 de
+manera exitosa.
+● Existe por lo menos un borrador por validar.
+Precondiciones
+● El validador (RGC o Coordinador) ha iniciado
+sesión correctamente en el sistema y tiene acceso a
+los borradores.
+● CU03 - Generar Contenido
+● CU06 - Registrar Log de Auditoría
+Casos de Uso Involucrados
+● CU08 - Consultar borradores
+● CU09 - Corregir Borrador
+● Borrador de gacetilla institucional con tono
+Datos de Prueba
+informal e información errónea.
+Flujo:
+1. Uno de los validadores (El RGC o Coordinador de Contenido) revisa un borrador
+(CU08 - Consultar borradores) y detecta los errores.
+2. Al menos un validador solicita la regeneración agregando correcciones y detalles
+extra (CU09 - Corregir Borrador)
+3. Se genera un log en la base de datos con los detalles de la validación (CU06 -
+Registrar Log de Auditoría)
+4. El bot vuelve a procesar la solicitud tomando la petición original más las
+correcciones. (CU03 - Generar Contenido)
+Resultados esperados:
+● El validador puede revisar el borrador sin problemas.
+● La interfaz de usuario le permite al validador agregar correcciones y regenerar el
+borrador.
+● Log en la base de datos de PosgreSQL detallando las características de las
+validaciones fallidas.
+● El bot recibe la solicitud de regeneración correctamente.
+
+El bot genera un nuevo borrador
+Resultado Final
+considerando las correcciones humanas y
+vuelve a estar pendiente de aprobación.
+Resultado obtenido
+[Completar luego de la ejecución]
+[Completar luego de la ejecución con
+Estado final (Status)
+Exitoso, Fallido o Bloqueado]
+Correcciones [Completar luego de la ejecución]
+
+EP04: Estrés por Concurrencia en el Modelo Local de IA
+Evaluar el comportamiento del servidor cuando se satura
+Objetivo
+el hardware que corre el modelo de IA Ollama.
+● Analista Funcional
+Participantes
+● Apps Script
+Se cuenta con una herramienta de monitoreo de sistema
+Precondiciones
+para medir el uso de la memoria principal y procesadores
+durante la prueba.
+Casos de Uso Involucrados
+● CU01 - Recibir entradas
+Datos de Prueba
+● 50 solicitudes en un lapso menor a 5 minutos.
+Flujo:
+1. Se inyecta una ráfaga masiva de solicitudes en muy poco tiempo (CU01 - Recibir
+entradas)
+Resultados esperados:
+● El sistema de colas Redis retiene las peticiones pendientes.
+● El servicio de Celery procesa solicitudes en paralelo según un límite configurado.
+No se desborda la memoria principal del
+Resultado Final
+servidor, lo que evita que el backend de
+FastAPI colapse.
+Resultado obtenido
+[Completar luego de la ejecución]
+[Completar luego de la ejecución con
+Estado final (Status)
+Exitoso, Fallido o Bloqueado]
+Correcciones [Completar luego de la ejecución]
+Interfaz de Usuario
+Considerando el principio de Human-in-the-Loop, el agente 1 interactúa con humanos en las
+etapas de validación y publicación de contenido.
+
+Para dichas interacciones se propone el modelo de interfaz accesible desde el enlace adjunto
+anterior.
+● Vista Previa:
+Tema Claro Tema Oscuro
 
 Agente 2 - Notas
 
@@ -1955,10 +2497,13 @@ técnicas de los agentes del Proyecto Centenario, he identificado los siguientes
 que deben incorporarse para clarificar alcances, interacciones y datos de procesos en sus
 respectivos documentos:
 Agente 2: Historia Viva (Gestión del Conocimiento)
-● Alcance del Repositorio: Debe definirse, no solo como un almacén seguro e
-interoperable con otras bases de datos (SIU, SISESCA, etc), sino como un custodio del
-acervo histórico para el Centenario de la FIE. Su función es transformar documentos
-estáticos en "activos estratégicos" para la gestión del conocimiento de la facultad.
+● Alcance del Repositorio: Debe definirse, no sólo como un almacén seguro e
+interoperable con otras bases de datos (SIU, CONEAU, SISESCA, etc), sino como un
+custodio del acervo histórico para el Centenario de la FIE. Su función es transformar
+documentos estáticos en "activos estratégicos" para la gestión del conocimiento de
+la facultad y su empleo en los procesos de mejora continua, de evaluación y de
+acreditación externos (CONEAU, IGE, UNDEF), a la vez que se deberá consolidar
+como una herramienta fundamental de cara al Centenario de la Facultad.
 ● Estructura de Datos: Es fundamental incorporar la obligatoriedad de metadatos
 (Fecha, Tipo, Origen o Fuente, Autor o Propietario) para cumplir con el Definition of
 Done (DoD) de indexación.
@@ -1975,16 +2520,19 @@ bajo costo y auditable bajo estándares universitarios.
 El Agente 2, denominado "Historia Viva / Centenario AI", es una entidad de software
 autónoma diseñada específicamente para la gestión del conocimiento y la preservación de
 la memoria institucional de la Secretaría de Extensión de la FIE. Su función principal es
-actuar como el custodio del acervo histórico, especialmente de cara al Centenario de la
-Facultad.
+actuar como el custodio del acervo histórico para la gestión del conocimiento de la facultad
+y su empleo en los procesos de mejora continua, de evaluación y de acreditación externos
+(CONEAU, IGE, UNDEF), a la vez que se deberá consolidar como una herramienta
+fundamental de cara al Centenario de la Facultad.
 A continuación, se exploran sus componentes, funciones y la estructura de su repositorio:
 1. Propósito y Alcance Funcional
 El objetivo central de este agente es registrar, organizar y explotar el conocimiento
 institucional acumulado. Sus capacidades específicas incluyen:
-● Ingesta y Procesamiento: Capacidad para recibir documentos institucionales (SIU,
-Shadow IT o TI en la sombras, reportes de CONEAU, documentos del EA, etc.)
-indexarlos semánticamente para su posterior recuperación inteligente.
 
+● Ingesta y Procesamiento: Capacidad para recibir documentos institucionales (SIU,
+Shadow IT (información, planillas, documentos, etc “en las sombras”, en la
+computadora de cada integrante de la SEU), reportes de CONEAU, documentos del
+EA, etc.) indexarlos semánticamente para su posterior recuperación inteligente.
 ● Soporte a Procesos: Es el soporte principal del Proceso 7: Gestión del Conocimiento
 y Memoria Institucional, cuyo objetivo es “Registrar, organizar y explotar el
 conocimiento institucional".
@@ -2018,12 +2566,15 @@ en el segundo.
 4. Interacción en el Sistema Multiagente
 Dentro de la arquitectura de orquestación, el Agente 2 no trabaja de forma aislada. Su
 principal interacción es con el Agente 1 (Extensión Bot), a quien provee de contenido
-histórico y efemérides para que este último realice la difusión automática a través de
-gacetillas, redes sociales y newsletters.
+histórico, información para la comunidad de interés y efemérides para que este último
+realice la difusión automática a través de gacetillas, redes sociales y newsletters.
+
 En resumen, el Agente 2 convierte la información dispersa en un activo estratégico,
 permitiendo que la historia institucional sea un recurso vivo y accesible para la gestión diaria
 y la proyección futura de la Facultad.
-
+🔄 Nota de Sincronización Inter-Agente: El flujo de salida de datos históricos hacia el canal
+de difusión y la actualización del índice semántico anual se rigen por la HU-032 (P1, P4, P7, 5
+SP).
 --------------------------------------------------------------------------------------------------------------------------
 La estructuración de los metadatos en el repositorio de Historia Viva (gestionado por el
 Agente 2) se fundamenta en la organización taxonómica y la trazabilidad histórica para
@@ -2053,13 +2604,13 @@ por palabras clave,.
 indexación avanzada de los documentos almacenados en Google Drive,.
 ● Trazabilidad: El sistema registra logs de ejecución que incluyen la fecha, el proceso y
 el estado, lo cual refuerza la integridad de los metadatos históricos.
+
 4. Propósito de la Estructura
 Esta estructuración permite que el Agente 2 realice funciones avanzadas como la generación
 automática de efemérides y la producción de contenidos institucionales basados en hitos
 históricos, facilitando la toma de decisiones estratégicas mediante la recuperación
 inteligente de la memoria de la Facultad,.
 --------------------------------------------------------------------------------------------------------------------------
-
 La generación de efemérides automáticas es una de las funciones centrales del Agente 2
 (Historia Viva / Centenario AI), diseñada para valorizar el acervo histórico de la Facultad de
 Ingeniería del Ejército (FIE) de cara a su centenario.
@@ -2089,6 +2640,7 @@ para su difusión masiva.
 ● Bus de Datos: Este intercambio de información se registra en Google Sheets, que
 funciona como el bus de datos central para la trazabilidad de lo generado.
 4. Validación y Calidad
+
 Para que una efeméride sea considerada "terminada" (DoD), debe cumplir con criterios
 estrictos de trazabilidad histórica y validación humana:
 ● Registro de Metadatos: Cada hito debe estar correctamente fechado y categorizado
@@ -2096,7 +2648,6 @@ por tipo y origen.
 ● Supervisión de la SEU: El personal de la Secretaría de Extensión debe validar que el
 contenido generado ayude efectivamente a reconstruir la historia institucional y sea
 adecuado para las comunicaciones oficiales.
-
 ● Consistencia Institucional: Se verifica que no existan "alucinaciones" (información
 inventada) y que el contenido sea reutilizable desde plantillas institucionales.
 Esta funcionalidad permite que el conocimiento acumulado en el repositorio institucional
@@ -2129,13 +2680,13 @@ En resumen, la conexión es de carácter funcional-operativo: Google Sites prove
 presentación (el portal), mientras que el Agente 2 provee la inteligencia para seleccionar,
 redactar y organizar los contenidos que allí se exhiben.
 --------------------------------------------------------------------------------------------------------------------------
+
 En el Proyecto Centenario, la integración de Ollama en el repositorio de Historia Viva
 (Agente 2) es fundamental para habilitar capacidades de inteligencia artificial de forma local,
 económica y segura.
 La integración se estructura de la siguiente manera:
 ● Motor de Ejecución Local: Ollama actúa como el motor de ejecución de IA principal
 para el Agente 2, permitiendo procesar información sin depender de servicios en la
-
 nube. Esto garantiza la soberanía de los datos institucionales y elimina los costos
 recurrentes de suscripciones externas.
 ● Modelos Utilizados: Se integra con modelos de lenguaje ligeros y eficientes,
@@ -2319,8 +2870,11 @@ desempeño real del sistema.
 ● Métricas de Alcance Social: Visualización de datos extraídos de redes sociales
 (Instagram, Facebook, LinkedIn) para medir la efectividad de la comunicación
 institucional.
-2. Infraestructura de Datos y Normalización
 
+● 📊 Ampliación de Alcance Operativo: Este agente evoluciona de un recolector
+puramente social a un sistema híbrido. La lógica de ingesta de datos internos de
+gestión y el motor de alertas tempranas están mapeados en la HU-025 (P8, 8 SP).
+2. Infraestructura de Datos y Normalización
 ● Módulo Social Data Collector (SDC): Un componente técnico especializado en la
 recolección automatizada de datos mediante APIs oficiales, encargado de la limpieza
 de texto y la estructuración de la información.
@@ -2353,12 +2907,12 @@ Proyecto Centenario, actuando como el garante técnico de la trazabilidad docume
 integridad de la información requerida por organismos de auditoría como CONEAU. Su
 función principal es transformar las actividades de extensión en evidencia sistemática y
 verificable a través del Proceso 8 (Monitoreo, Evaluación e Indicadores).
+
 A continuación, se detalla cómo este agente asegura la integridad necesaria para los
 procesos de acreditación universitaria:
 1. Garantía de Trazabilidad Documental
 Para cumplir con los criterios de calidad de CONEAU, el Agente 5 implementa mecanismos
 que aseguran que cada dato recolectado sea auditable:
-
 ● Registro de Auditoría (Logging): Mediante la historia de usuario HU-003, el sistema
 registra obligatoriamente en una hoja de "logs" la fecha, el proceso ejecutado, su
 estado y cualquier error surgido, proporcionando una pista de auditoría completa de
@@ -2389,6 +2943,7 @@ planificación estratégica (Proceso 1).
 El rol del Agente 5 evoluciona para fortalecer la confianza en el sistema:
 ● TRL 5-6 (Año 2): En esta etapa, el agente pasa de prototipos controlados a una
 validación en entorno operativo real, donde sus métricas ya reflejan el
+
 funcionamiento sostenido de la Secretaría de Extensión, requisito indispensable para
 demostrar la institucionalización de los procesos ante CONEAU.
 ● Supervisión Humana: Aunque la extracción es automática, la interpretación de los
@@ -2397,7 +2952,6 @@ perfiles como el Responsable de Gestión del Conocimiento, asegurando que la
 tecnología apoye el juicio experto en la gestión universitaria.
 En conclusión, el Agente 5 funciona como un notario digital de la extensión universitaria,
 asegurando que la Facultad de Ingeniería del Ejército posea un repositorio de datos limpio,
-
 estructurado y auditable que responda con precisión a las exigencias de calidad del sistema
 universitario argentino.
 --------------------------------------------------------------------------------------------------------------------------
@@ -2426,6 +2980,7 @@ obligatorios para cada registro:
 Para garantizar que la fuente de los datos sea legítima y no haya sido alterada, el Agente 5
 utiliza exclusivamente APIs oficiales (Meta Graph API para Instagram/Facebook y LinkedIn
 API). El sistema implementa un control de integridad mediante hashes y una gestión segura
+
 de credenciales, lo que asegura que la información recolectada sea veraz y auditable desde
 su origen técnico.
 4. Validación Automática de Calidad
@@ -2434,7 +2989,6 @@ caracteres corruptos y asegurar la completitud de los campos. Los criterios de a
 (DoD) para el Agente 5 exigen que la extracción sea automática y sin errores en los
 metadatos, permitiendo detectar desvíos y generar alertas inmediatas ante cualquier falla
 en la conexión o expiración de tokens.
-
 5. Dashboards y Evidencia Verificable
 Finalmente, los datos procesados se visualizan en dashboards de Looker Studio, los cuales
 están conectados directamente a las fuentes de datos normalizadas. Esto permite que los
@@ -2462,6 +3016,7 @@ El sistema prioriza el uso de la suite Google Workspace y software open source l
 mantener costos bajos y alta accesibilidad,:
 ● Google Sheets: Funciona como el bus de datos central y repositorio de los datasets
 estructurados (denominados ANEXO 2).
+
 ● Google Apps Script: Actúa como el orquestador y scheduler (programador) que
 dispara la extracción periódica de datos.
 ● Python: Herramienta opcional utilizada para el procesamiento avanzado de datos,
@@ -2471,7 +3026,6 @@ consolidados en etapas de mayor madurez tecnológica (Año 2).
 3. Herramientas de Visualización y Monitoreo (KPIs)
 Para la rendición de cuentas ante CONEAU, el Agente 5 transforma los datos crudos en
 indicadores de impacto mediante,:
-
 ● Google Looker Studio: Para la creación de dashboards interactivos que muestran
 publicaciones, engagement y frecuencia,.
 ● Metabase o Apache Superset: Alternativas open source para analíticas avanzadas y
@@ -2522,8 +3076,10 @@ fuentes de datos y propietarios.
 de datos de ajuste fino (fine-tuning).
 ● Ciclo de Vida: Definir procesos automáticos para la baja y revocación de credenciales
 de agentes inactivos.
-2. Gestión de Identidades No Humanas (NHI)
 
+2. Gestión de Identidades No Humanas (NHI) (Ver, además,
+https://docs.google.com/document/d/1zI3wDVRO6jSZLan-KqqPbx0nNWhX-PiNEJXFi5A5
+pAo/edit?tab=t.rg4l86s64vzl)
 ● Identidades Únicas: Asignar una identidad de máquina (Machine Identity) única por
 agente mediante certificados o tokens.
 ● Rotación de Credenciales: Prohibir el uso de claves de API compartidas o grabadas
@@ -2559,10 +3115,10 @@ del usuario mediante delimitadores seguros.
 Guardrails) para detectar intentos de jailbreak.
 ● Validación de Salidas: Analizar las respuestas del agente antes de ejecutarlas en los
 sistemas de destino. [1]
+
 6. Protección de datos y procesos
 ● Envenenamiento de Datos (Data Poisoning): Verificar la integridad y procedencia de
 los datos de entrenamiento y RAG.
-
 ● Privacidad de Datos: Anonimizar datos de identificación personal (PII) antes de
 enviarlos a modelos de proveedores externos.
 ● Observabilidad Continua: Monitorear desviaciones en el comportamiento del
@@ -2587,10 +3143,10 @@ Suplantación)
 └──────────────────┘ └──────────────────┘ └──────────────────┘
 Amenaza Descripción del Riesgo en Agentes Mitigación Técnica (DevSecOps)
 (STRIDE)
+
 Spoofing Un atacante suplanta la identidad Autenticación mTLS y tokens de
 (Suplantación) de un agente para acceder a corta duración gestionados por la
 sistemas críticos o APIs internas. plataforma de orquestación.
-
 Tampering Inyección de prompts indirecta a Implementación de firewalls de
 (Alteración) través de fuentes RAG (páginas LLM y validación de tipos de datos
 web, correos) que alteran las estrictos en las herramientas del
@@ -2620,8 +3176,8 @@ despliegue continuo:
 [ Código / Prompts ] ──> 🛠 ETAPA 1: LINT & VERIFY ──> 🧪 ETAPA 2: PROMPT SECURITY
 TESTING │ [ Despliegue CD ] <── 🚀 ETAPA 4: PROD / MONITOR <── 🔍 ETAPA 3:
 ARTIFACT & VULN SCAN
-Etapa 1: Static Analysis & Linting (Pre-Build)
 
+Etapa 1: Static Analysis & Linting (Pre-Build)
 Esta etapa se ejecuta inmediatamente después del Pull Request para analizar el código
 estático y la estructura de los archivos de configuración del agente.
 ● Prompt Linting: Validar que las plantillas de prompts utilicen delimitadores estrictos
@@ -2654,9 +3210,9 @@ payloads adversarios categorizados en:
 ○ Inyección indirecta (simulación de datos corruptos provenientes de una base
 de datos o RAG).
 ○ Intentos de fuga del prompt del sistema (System Prompt Extraction).
+
 ○ Intentos de ejecución de comandos no autorizados a través de las funciones
 del agente.
-
 2. Criterios de Aceptación / Calificación (Assertions)
 El pipeline evalúa las respuestas del agente utilizando aserciones automatizadas:
 ● Evaluación Basada en Modelos (LLM-as-a-Judge): Un modelo evaluador secundario
@@ -2714,11 +3270,11 @@ ejecuta en micro-contenedores efímeros, desechables y sin persistencia.
 directamente con el mundo exterior. Se diseña una capa intermedia (API Gateway /
 Proxy de IA) que intercepta, valida y sanitiza tanto los datos que entran al modelo
 como las acciones que el modelo intenta ejecutar.
+
 3. Inmutabilidad y Control del Prompt del Sistema: El "Prompt del Sistema"
 (instrucciones base, reglas y restricciones del agente) se trata como código
 compilado e inmutable en tiempo de ejecución. El agente no puede modificar sus
 propias directrices bajo ninguna circunstancia ni estímulo externo.
-
 Integración del Ciclo de Vida: Amenazas STRIDE vs. Requisitos de Diseño
 Para integrar con éxito el Modelado de Ciberamenazas (STRIDE) con el enfoque Security by
 Design (Seguridad desde el Diseño), la seguridad debe dejar de ser una fase de verificación
@@ -2749,13 +3305,13 @@ usuario que contenga etiquetas de control del sistema (ej. ### Instruction:,
 ● Diseño Seguro: Trazabilidad Criptográfica de Decisiones. El sistema se diseña para
 que el proceso de pensamiento del agente (Chain of Thought), la entrada recibida y
 la acción ejecutada queden vinculados de forma auditable.
+
 ● Control de Ingeniería: Implementación de un ledger de logs inmutables (ej. AWS
 CloudWatch con políticas de retención estricta o soluciones WORM). Cada entrada
 en el log se sella con el hash del estado del agente en ese instante.
 4. Mitigación de Information Disclosure (Fuga de Información)
 ● Diseño Seguro: Principio de "Conocimiento Mínimo Necesario" en RAG. El agente
 no busca en toda la base de datos de la empresa. El motor de búsqueda vectorial
-
 (Vector DB) filtra los fragmentos de datos antes de enviárselos al agente, basándose
 en la identidad del usuario humano que realiza la consulta.
 ● Control de Ingeniería: Capas de enmascaramiento automatizado
@@ -2782,6 +3338,7 @@ mutaciones de base de datos.
 El Flujo de Trabajo DevSecOps bajo "Security by Design"
 Al fusionar ambos enfoques, las responsabilidades del equipo de DevSecOps cambian a lo
 largo del pipeline de desarrollo:
+
 None
 Fase 1: Definición ──> Fase 2: Arquitectura ──> Fase 3:
 Codificación ──> Fase 4: Despliegue
@@ -2789,7 +3346,6 @@ Codificación ──> Fase 4: Despliegue
 Inmutables (Validación de Firmas
 Límites de IA) Planos Separados) y Sandboxing)
 y Logs Inmutables)
-
 1. En Fase de Definición (Product Backlog): Cada historia de usuario que requiera un
 agente inteligente debe incluir explícitamente sus Límites de Autonomía (ej. "El
 agente puede sugerir contenidos sobre cursos aprobados y publicados con
@@ -2820,6 +3376,7 @@ similares se sitúan cerca unos de otros en un "espacio vectorial", facilitando 
 y no por palabras clave exactas. [1, 2, 3, 4, 5]
 2. ¿Cómo funcionan en RAG (Generación Aumentada)?
 El proceso RAG con una base de datos vectorial sigue estos pasos: [1, 2, 3, 4]
+
 1. Ingesta: Se toman documentos (PDFs, webs, bases de datos) y se convierten en vectores,
 almacenándolos en la base de datos vectorial.
 2. Consulta: Cuando haces una pregunta al chatbot, esta se convierte también en un vector.
@@ -2830,7 +3387,6 @@ genera una respuesta precisa y actualizada. [1, 2, 3, 4, 5]
 3. ¿Por qué usar Bases de Datos Vectoriales en RAG?
 ● Evitar Alucinaciones: Permiten que el LLM base sus respuestas en documentos reales y actuales, no
 solo en su entrenamiento previo.
-
 ● Actualización Constante: Es fácil actualizar la base de datos con nuevos documentos sin tener que
 reentrenar el LLM.
 ● Búsqueda Semántica: Entienden el contexto (ej: si buscas "felino", encontrará documentos que dicen
@@ -2904,7 +3460,9 @@ Error frecuente (evitar)
 Resumen operativo
 Concepto Qué mide Para qué sirve
 SP Esfuerzo relativo Planificación
-DoD Calidad y completitud Validación
+DoD Calidad y completitud Validación /
+Criterio de
+Aceptación
 Convenciones
 ● Prioridad: P0 (crítica), P1 (alta), P2 (media)
 ● SP: 1, 2, 3, 5, 8, 13
@@ -2946,46 +3504,81 @@ DoD
 ○ error
 ÉPICA E2 — Agente 1 (Extensión Bot)
 
-HU-010 (P0, 8 SP)
-Como Secretaría
-quiero generar automáticamente gacetillas
-para reducir tiempos de redacción
+HU-010 (P4, 8 SP)
+Como Aux Com Inst
+quiero generar automáticamente gacetillas para FIE Informa con diferentes destinatarios
+(ver filtrado de Listas Distr: Autoridades académicas, Autoridades militares, Personal de
+gestión, Docentes, Alumnos, Comunidad académica, etc.)
+para reducir tiempos de redacción y mejorar la calidad de los mensajes.
 DoD
 ● Input desde Sheet
-● Output en Google Docs
-● Plantilla institucional aplicada
-HU-011 (P0, 5 SP)
-Como sistema
-quiero generar posts para redes
-para difundir actividades
+● Plantilla institucional aplicada en cada Output
+● Output en Google Docs para Email y Pantalla TV
+HU-011 (P4, 5 SP)
+Como Aux Com Inst
+quiero generar posts para redes (IG, LinkedIn)
+para difundir actividades (oferta académica, actividades de alumnos, eventos, etc.).
 DoD
-● Formato adaptable (IG, LinkedIn)
-● Texto limpio y coherente
-● Longitud configurable
+● Formato adaptable con logo institucional (IG, LinkedIn)
+● Texto estilo, semántica y sintaxis definidos, limpio de errores y coherente con la
+cultura institucional.
+● Longitud configurable para cada RS.
 HU-012 (P1, 5 SP)
-Como Secretaría
-quiero enviar confirmaciones automáticas de inscripción
-para evitar tareas manuales
+Como Aux de Curso
+quiero enviar confirmaciones automáticas de inscripción, participación y aprobación para
+cada curso
+para evitar tareas manuales y asegurar que todos los destinatarios reciban el mensaje.
 DoD
-● Trigger al registrar inscripción
+● Trigger (disparador) al registrar inscripción
 ● Email generado automáticamente
 ● Registro de envío
+● Confirmación de recepción.
+
+hu que dispare mensajes a los deudores.
+hu para generar BD de consultas sobre diferentes actividades,
+con declaración de protección de datos personales.
 HU-013 (P1, 3 SP)
 Como usuario interno
 quiero interactuar con el agente en lenguaje natural
-para generar contenido rápidamente
-
+para generar contenido rápidamente.
 DoD
 ● Interfaz simple (prompt en Sheet o Doc)
 ● Respuesta generada usable
 HU-014 (P2, 8 SP)
-Como Secretaría
-quiero generar certificados automáticos
-para agilizar cierres de actividades
+Como Aux de Curso
+quiero generar certificados automáticos de cursos, diplomaturas, eventos, etc., con firma
+digital
+para agilizar cierres de actividades y asegurar exactitud de los datos.
 DoD
 ● Plantilla
 ● Generación PDF
-● Validación previa obligatoria
+● Validación previa obligatoria (control humano).
+HU-015 (P3, P5, P6, 8 SP): Generación de Certificados y Triggers
+por Eventos
+Como Coordinador de la SEU,
+quiero que el Agente 1 detecte automáticamente cuándo un curso cambia a estado
+"Aprobado" en el Bus de Sheets, redacte el borrador de difusión y genere los PDFs de
+certificados basados en la lista de alumnos,
+para reducir los tiempos de gestión administrativa y asegurar la entrega en término a los
+participantes.
+
+DoD: El bot no debe publicar nada de forma directa; debe dejar los entregables en la carpeta
+Drive de "Revisión Humana" y notificar por correo al Responsable de Gestión del
+Conocimiento (RGC).
+Justificación de Puntos (8 SP): Alta complejidad. Requiere configurar oyentes de
+eventos (triggers) en Google Sheets, procesar arrays de datos de alumnos, e integrar
+librerías de renderizado de PDFs en el backend de Python de forma asincrónica.
+HU-016 (P3, P5, P6, 8 SP): Generación de Certificados y Triggers
+por Eventos
+Como Coordinador de la SEU,
+quiero que el Agente 1 detecte automáticamente cuándo un evento cambia a estado
+"Aprobado" en el Bus de Sheets, redacte el borrador de difusión y genere los PDFs de
+certificados basados en la lista de alumnos,
+para reducir los tiempos de gestión administrativa y asegurar la entrega en término a los
+participantes.
+DoD: El bot no debe publicar nada de forma directa; debe dejar los entregables en la carpeta
+Drive de "Revisión Humana" y notificar por correo al Responsable de Gestión del
+Conocimiento (RGC).
 ÉPICA E3 — Agente 5 (Analíticas + Social Data
 Collector)
 HU-020 (P0, 13 SP)
@@ -2998,11 +3591,11 @@ DoD
 ○ Facebook
 ○ LinkedIn
 ● Parámetro temporal configurable
+
 HU-021 (P0, 8 SP)
 Como sistema
 quiero estructurar datos en formato ANEXO 2
 para análisis consistente
-
 DoD
 ● Columnas exactas:
 ○ fecha
@@ -3027,36 +3620,93 @@ DoD
 ○ API caída
 ○ token expirado
 ● Notificación por email
+
 HU-024 (P1, 8 SP)
 Como Secretaría
 quiero visualizar dashboards de KPIs
 para toma de decisiones
 DoD
-
 ● Looker Studio conectado
 ● KPIs:
 ○ publicaciones
 ○ engagement
 ○ frecuencia
-ÉPICA E4 — Agente 2 (Historia Viva)
-HU-030 (P1, 8 SP)
-Como Secretaría
-quiero indexar documentos históricos
-para su reutilización
-DoD
-● Carga en Drive
-● Indexación básica
-HU-031 (P2, 5 SP)
-Como sistema
-quiero generar efemérides
-para difusión institucional
+HU-025 (P8, 8 SP): Recolección de Datos Internos y Alertas de
+KPIs
+Como Secretario de Extensión Universitaria,
+quiero que el Agente 5 consolide las métricas internas de cursos/eventos (retención,
+inscriptos reales) y dispare alertas tempranas por correo si las métricas caen por
+debajo del umbral esperado,
+para tomar acciones correctivas en la difusión antes de que finalicen los períodos de
+inscripción.
+DoD: Las alertas se ejecutarán mediante una tarea programada semanal en Celery,
+evaluando el porcentaje de vacantes cubiertas contra las metas de P1 cargadas en el
+sistema.
+Justificación de Puntos (8 SP): Alta complejidad. Implica expandir el alcance del
+agente (crear el módulo Internal Data Collector), diseñar consultas cruzadas entre
+múltiples planillas de control académico, y programar la lógica del planificador de
+tareas (Celery/Redis) con las reglas de negocio de los umbrales.
+ÉPICA E4 — Agente 2 (Historia Viva / Centenario AI)
+HU-030 — Ingesta, Indexación y Taxonomía de Actividades de
+Extensión
+Puntos de Historia: 8 SP
+
+Rol RACI: Como Responsable de Gestión del Conocimiento (RGC) (Rol R en Proceso 7 y A en Proceso
+8).
+Quiero que: El Agente 2 ingeste, procese y catalogue automáticamente toda la información dispersa
+de las actividades de la facultad —tanto de fuentes oficiales (SIU) como de Shadow IT (planillas
+locales, documentos de texto)— clasificándolas en las categorías exigidas por la CONEAU.
+Para: Consolidar la Memoria Institucional en un repositorio centralizado, eliminando las actividades
+sin registro y garantizando la trazabilidad histórica de la unidad académica.
+Criterios de Aceptación (DoD):
+● El agente debe extraer y validar la presencia de los 4 metadatos obligatorios: Fecha, Tipo de
+actividad (Transferencia, Consultoría, Asistencia Técnica, Proyecto UNDEX, Evento
+Socio-Cultural, Programa/Curso/Diplomatura, o Evento Académico), Origen/Fuente y
+Autor/Propietario.
+● El texto debe ser normalizado (UTF-8, limpieza de caracteres) y su índice semántico debe
+almacenarse de forma segura en la base de datos PostgreSQL utilizando LlamaIndex.
+● Cada ingesta exitosa o fallida debe generar un log de auditoría detallado en el sistema.
+HU-031 (Reformulada) — Recuperación Inteligente y Evaluación
+de Impacto por Carrera
+Puntos de Historia: 5 SP
+Rol RACI: Como Director de Carrera (Rol C en Proceso 7, Proceso 1 y Proceso 5).
+Quiero: Consultar el repositorio de Historia Viva mediante lenguaje natural para obtener la
+información consolidada de todas las actividades de extensión, transferencia y vinculación que mi
+carrera realizó durante un período específico.
+Para: Evaluar el impacto social de la carrera, coordinar mejoras académicas continuas y disponer de
+evidencias documentales inmediatas ante las auditorías de acreditación.
+Criterios de Aceptación (DoD):
+● La interfaz debe permitir al Director de Carrera buscar hitos y proyectos escribiendo
+consultas cotidianas en lenguaje natural (interacción con el modelo local LLaMA 3 / Mistral
+vía Ollama).
+● El sistema debe ser capaz de filtrar y segmentar los resultados por carrera, tipo de evento y
+rango temporal.
+● El tiempo de respuesta para la recuperación y presentación de la información en el entorno
+de consulta debe ser menor a 15 segundos.
+HU-032 (Reformulada) — Consolidación de Evidencias y Reporte
+de Acreditación para CONEAU Global
+Puntos de Historia: 5 SP
+Rol RACI: Como Coordinador de Extensión (Rol A en Proceso 7 y Proceso 4).
+Quiero: Exportar un informe unificado y auditable que estructure cronológica y temáticamente todas
+las transferencias, proyectos UNDEX, diplomaturas, jornadas, conferencias y congresos desarrollados
+por la institución en un ciclo determinado.
+Para: Presentar formalmente ante la CONEAU en el sistema CONEAU Global la totalidad de las
+funciones sustantivas de extensión integradas con docencia e investigación.
+
+Criterios de Aceptación (DoD):
+● El reporte generado debe consolidar los datos batch de los Procesos 3, 5 y 6, asegurando una
+integridad de datos superior al 95%.
+● El flujo de orquestación debe incluir un paso obligatorio de validación humana
+("human-in-the-loop") donde el RGC y el Coordinador verifiquen la exactitud y consistencia
+semántica del informe antes de su cierre definitivo.
+● El resultado debe ser exportable a formatos compatibles y estructurados (como Google Docs
+basados en plantillas institucionales o Sheets) listos para su carga en CONEAU Global.
 ÉPICA E5 — Agente 3 (Vinculación)
 HU-040 (P2, 8 SP)
 Como Secretaría
 quiero detectar eventos académicos
 para mejorar vinculación
 HU-041 (P2, 5 SP)
-
 Como sistema
 quiero generar reportes de participación
 para memoria institucional
@@ -3066,6 +3716,7 @@ Como usuario externo
 quiero consultar oferta académica
 para informarme
 HU-051 (P2, 5 SP)
+
 Como sistema
 quiero responder automáticamente consultas frecuentes
 para reducir carga operativa
@@ -3082,7 +3733,6 @@ de trabajo empleado.
 HU-025 (Agregado): Registro e Integridad CONEAU
 Como Coordinadora de la SEU
 quiero que el Agente 5 valide la integridad de datos entre el SIU y CONEAU GLOBAL
-
 para asegurar la calidad en los procesos de acreditación.
 Importancia: Se asigna para automatizar el manejo de listas de distribución y el envío de
 invitaciones a autoridades, tareas identificadas como de "alto impacto" y actualmente
@@ -3095,6 +3745,7 @@ Importancia: Corresponde a esta nueva ÉPICAa para canalizar la necesidad de una
 comunicación eficaz y soporte de trámites para el claustro de egresados mediante el Agente
 4.
 HU-015 (Agregado): Gestión de Ceremonial y Protocolo
+
 Como Coordinadora de la SEU
 quiero que el Agente 3 gestione las listas de distribución y envíe invitaciones automáticas a
 autoridades, con control humano
@@ -3111,7 +3762,6 @@ Semestre 1 (MVP)
 ● Comunicación automatizada
 ● Extracción RRSS funcionando
 Semestre 2
-
 ● E2 (resto)
 ● E3 (dashboards + alertas)
 ● E4 (inicio repositorio)
@@ -3121,6 +3771,7 @@ DEPENDENCIAS CLAVE
 ● HU-020 → APIs habilitadas
 ● HU-024 → datos previos
 CRITERIOS DE ACEPTACIÓN TRANSVERSALES
+
 ● Integración con Google Workspace
 ● Logs activos
 ● Validación por Secretaría
@@ -3128,7 +3779,7 @@ CRITERIOS DE ACEPTACIÓN TRANSVERSALES
 ● Calidad del output (contenido o datos)
 Definición lista para Jira
 Cada HU puede cargarse con:
-● ÉPICAAAAAAAAAAAAAAAAAAAAAA link
+● ÉPICA link
 ● Priority
 ● Story points
 ● Description (la que ya tenés)
@@ -3605,6 +4256,9 @@ Extensión.
 Esta configuración técnica permite que el proyecto alcance un nivel de madurez tecnológica
 TRL 3-4 durante el primer año, operando en un entorno controlado antes de escalar a una
 validación operativa real.
+Ambientes DEVSECOPS
+https://docs.google.com/document/d/1IvJ7wkGzLIYY8EPde0vpV2jjDaNvtLvX7nhxkPYzfUw/e
+dit?usp=sharing
 
 Año 1
 

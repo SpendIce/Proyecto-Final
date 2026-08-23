@@ -1,0 +1,35 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: A1
+      - generic [ref=e6]:
+        - strong [ref=e7]: Extension Bot
+        - generic [ref=e8]: Proyecto Centenario P100 - FIE / UNDEF
+    - generic [ref=e9]:
+      - button "Vista" [ref=e10] [cursor=pointer]
+      - button "Notas" [ref=e11] [cursor=pointer]
+      - button "Imprimir" [ref=e12] [cursor=pointer]
+  - main [ref=e13]:
+    - article [ref=e15]:
+      - generic [ref=e16]: Agente 1 - Proyecto Centenario
+      - generic [ref=e17]:
+        - heading "Extension Bot" [level=1] [ref=e18]
+        - heading "Comunicacion institucional asistida por IA para la SEU" [level=2] [ref=e19]
+        - paragraph [ref=e20]: Una linea de produccion comunicacional con control humano, bajo costo y evidencia academica.
+        - generic [ref=e21]: "No estamos vendiendo un chatbot: estamos proponiendo una capacidad institucional repetible, auditable y gobernada."
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - strong [ref=e24]: P4
+          - generic [ref=e25]: Comunicacion y Difusion Institucional
+        - generic [ref=e26]:
+          - strong [ref=e27]: "2026"
+          - generic [ref=e28]: "Alcance PPS: Semestre 1 y Semestre 2"
+        - generic [ref=e29]:
+          - strong [ref=e30]: HITL
+          - generic [ref=e31]: Validacion humana antes de publicar, enviar o emitir
+      - generic [ref=e32]: 1/14
+  - contentinfo [ref=e33]:
+    - generic [ref=e34]:
+      - button "Slide anterior" [disabled] [ref=e35] [cursor=pointer]: ‹
+      - button "Slide siguiente" [ref=e36] [cursor=pointer]: ›
+    - generic [ref=e39]: 1 / 14

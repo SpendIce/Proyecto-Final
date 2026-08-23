@@ -1,0 +1,103 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - 'heading "Ciclos de vida: predictivo, iterativo, incremental, adaptativo e hibrido" [level=1] [ref=e4]'
+    - paragraph [ref=e5]: "Apunte de repaso para parcial. La idea no es memorizar nombres: es reconocer que cambia cuando cambia la incertidumbre del alcance y la forma de entregar valor."
+  - heading "Idea central" [level=2] [ref=e6]
+  - generic [ref=e7]:
+    - paragraph [ref=e8]:
+      - strong [ref=e9]: "Pregunta guia:"
+      - text: cuanto se sabe del producto al inicio y cuanto se necesita aprender durante el proyecto.
+    - paragraph [ref=e10]: Si ya se conoce casi todo, conviene un enfoque predictivo. Si hay incertidumbre, conviene repetir ciclos, entregar partes, o combinar enfoques.
+  - heading "Los cinco enfoques" [level=2] [ref=e11]
+  - region "Cinco enfoques de ciclo de vida" [ref=e12]:
+    - article [ref=e13]:
+      - generic [ref=e14]: Predictivo
+      - heading "Plan primero, cambios controlados" [level=3] [ref=e15]
+      - paragraph [ref=e16]: Alcance, tiempo y costo se definen temprano. Sirve cuando los requisitos son estables.
+    - article [ref=e17]:
+      - generic [ref=e18]: Iterativo
+      - heading "Repetir para aprender" [level=3] [ref=e19]
+      - paragraph [ref=e20]: Se trabaja en ciclos repetidos para mejorar la solucion. El alcance general puede estar claro, pero el detalle se ajusta.
+    - article [ref=e21]:
+      - generic [ref=e22]: Incremental
+      - heading "Entregar por partes" [level=3] [ref=e23]
+      - paragraph [ref=e24]: Cada incremento suma funcionalidad. El producto queda completo al integrar los incrementos necesarios.
+    - article [ref=e25]:
+      - generic [ref=e26]: Adaptativo
+      - heading "Agil y orientado al cambio" [level=3] [ref=e27]
+      - paragraph [ref=e28]: El alcance detallado se define antes de cada iteracion. Prioriza respuesta al cambio e involucramiento frecuente.
+    - article [ref=e29]:
+      - generic [ref=e30]: Hibrido
+      - heading "Mezclar segun la zona" [level=3] [ref=e31]
+      - paragraph [ref=e32]: Lo conocido se gestiona predictivamente; lo incierto se gestiona adaptativamente.
+  - heading "Comparacion para parcial" [level=2] [ref=e33]
+  - table [ref=e34]:
+    - rowgroup [ref=e35]:
+      - row "Enfoque Predictivo Cuando conviene Requisitos claros, bajo cambio esperado. Como se ve Analisis, diseno, construccion, prueba y cierre con plan fuerte desde el inicio. Frase clave Planificar mucho al comienzo." [ref=e36]:
+        - cell "Enfoque Predictivo" [ref=e37]
+        - cell "Cuando conviene Requisitos claros, bajo cambio esperado." [ref=e38]
+        - cell "Como se ve Analisis, diseno, construccion, prueba y cierre con plan fuerte desde el inicio." [ref=e39]
+        - cell "Frase clave Planificar mucho al comienzo." [ref=e40]
+      - row "Enfoque Iterativo Cuando conviene Se necesita aprender y refinar la solucion. Como se ve Versiones sucesivas de una misma solucion, cada vez mejor entendida. Frase clave Repetir para mejorar." [ref=e41]:
+        - cell "Enfoque Iterativo" [ref=e42]
+        - cell "Cuando conviene Se necesita aprender y refinar la solucion." [ref=e43]
+        - cell "Como se ve Versiones sucesivas de una misma solucion, cada vez mejor entendida." [ref=e44]
+        - cell "Frase clave Repetir para mejorar." [ref=e45]
+      - row "Enfoque Incremental Cuando conviene Se puede dividir el producto en partes utiles. Como se ve Primero modulo A, despues modulo B, despues modulo C. Frase clave Sumar funcionalidad por entregas." [ref=e46]:
+        - cell "Enfoque Incremental" [ref=e47]
+        - cell "Cuando conviene Se puede dividir el producto en partes utiles." [ref=e48]
+        - cell "Como se ve Primero modulo A, despues modulo B, despues modulo C." [ref=e49]
+        - cell "Frase clave Sumar funcionalidad por entregas." [ref=e50]
+      - row "Enfoque Adaptativo Cuando conviene Alta incertidumbre, prioridades cambiantes, feedback frecuente. Como se ve Backlog, iteraciones cortas, alcance detallado definido justo antes de construir. Frase clave Planificar y ajustar continuamente." [ref=e51]:
+        - cell "Enfoque Adaptativo" [ref=e52]
+        - cell "Cuando conviene Alta incertidumbre, prioridades cambiantes, feedback frecuente." [ref=e53]
+        - cell "Como se ve Backlog, iteraciones cortas, alcance detallado definido justo antes de construir." [ref=e54]
+        - cell "Frase clave Planificar y ajustar continuamente." [ref=e55]
+      - row "Enfoque Hibrido Cuando conviene Hay partes estables y partes inciertas. Como se ve Infraestructura planificada en cascada; interfaz o funcionalidades en ciclos agiles. Frase clave Predictivo donde se sabe, adaptativo donde se aprende." [ref=e56]:
+        - cell "Enfoque Hibrido" [ref=e57]
+        - cell "Cuando conviene Hay partes estables y partes inciertas." [ref=e58]
+        - cell "Como se ve Infraestructura planificada en cascada; interfaz o funcionalidades en ciclos agiles." [ref=e59]
+        - cell "Frase clave Predictivo donde se sabe, adaptativo donde se aprende." [ref=e60]
+  - heading "Mini quiz" [level=2] [ref=e61]
+  - generic [ref=e62]:
+    - generic [ref=e63]:
+      - paragraph [ref=e64]:
+        - strong [ref=e65]: "1."
+        - text: El cliente conoce exactamente el alcance, hay contrato cerrado y los cambios deben aprobarse formalmente.
+      - generic [ref=e66] [cursor=pointer]:
+        - radio "Predictivo" [ref=e67]
+        - text: Predictivo
+      - generic [ref=e68] [cursor=pointer]:
+        - radio "Adaptativo" [ref=e69]
+        - text: Adaptativo
+      - generic [ref=e70] [cursor=pointer]:
+        - radio "Incremental" [ref=e71]
+        - text: Incremental
+    - generic [ref=e72]:
+      - paragraph [ref=e73]:
+        - strong [ref=e74]: "2."
+        - text: El equipo entrega primero busqueda, despues login, despues reportes. Cada entrega suma funcionalidad.
+      - generic [ref=e75] [cursor=pointer]:
+        - radio "Iterativo" [ref=e76]
+        - text: Iterativo
+      - generic [ref=e77] [cursor=pointer]:
+        - radio "Incremental" [ref=e78]
+        - text: Incremental
+      - generic [ref=e79] [cursor=pointer]:
+        - radio "Predictivo" [ref=e80]
+        - text: Predictivo
+    - generic [ref=e81]:
+      - paragraph [ref=e82]:
+        - strong [ref=e83]: "3."
+        - text: La arquitectura esta fija, pero la experiencia de usuario se define con feedback semanal.
+      - generic [ref=e84] [cursor=pointer]:
+        - radio "Hibrido" [ref=e85]
+        - text: Hibrido
+      - generic [ref=e86] [cursor=pointer]:
+        - radio "Predictivo puro" [ref=e87]
+        - text: Predictivo puro
+      - generic [ref=e88] [cursor=pointer]:
+        - radio "Incremental puro" [ref=e89]
+        - text: Incremental puro
+  - button "Corregir" [ref=e90] [cursor=pointer]
+  - paragraph [ref=e91]

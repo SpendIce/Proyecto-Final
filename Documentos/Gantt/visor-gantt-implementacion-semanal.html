@@ -56,13 +56,17 @@
     .group-head .gh-label{position:sticky;left:0;z-index:2;background:#f1f5f9;
       border-right:2px solid var(--line);padding:7px 14px;font-weight:700;font-size:12.5px;
       display:flex;align-items:center;gap:8px}
-    .gh-goal{padding:7px 14px;font-size:12px;color:#475569;display:flex;align-items:center}
+    .gh-goal{padding:7px 14px;font-size:12px;color:#475569;display:flex;align-items:center;gap:8px}
     .tag{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+    .gh-prog{font-size:11px;color:#94a3b8;margin-left:auto}
 
     /* filas */
     .row{border-bottom:1px solid var(--grid)}
     .row:hover .row-label{background:#f8fafc}
-    .row-label{font-size:12.5px;color:#1e293b;min-height:34px}
+    .row-label{font-size:12.5px;color:#1e293b;min-height:34px;gap:7px}
+    .row-id{font-size:10px;color:#cbd5e1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      min-width:26px;flex:0 0 auto}
+    .row-text{flex:1 1 auto}
     .track{position:relative;min-height:34px}
     .bar{position:absolute;top:7px;height:20px;border-radius:5px;cursor:default;
       box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);transition:filter .12s}
@@ -86,15 +90,25 @@
     .controls button{font:inherit;font-size:12px;padding:5px 10px;border:1px solid var(--line);
       background:#fff;border-radius:8px;cursor:pointer;color:#475569}
     .controls button:hover{background:#f1f5f9}
+    .controls button.primary{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600}
+    .controls button.primary:hover{filter:brightness(1.08)}
+    .controls button:disabled{opacity:.45;cursor:not-allowed}
     .controls .toggle{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#475569;cursor:pointer}
     .row.hide,.group-head.hide{display:none}
     #empty{display:none;padding:22px 16px;color:#94a3b8;font-size:13px;text-align:center}
 
     /* checkbox y estado hecho */
     .cbx{flex:0 0 auto;width:15px;height:15px;cursor:pointer;accent-color:var(--s6)}
-    .row.done .row-label{color:#94a3b8;text-decoration:line-through;text-decoration-color:#cbd5e1}
+    .row.done .row-text{color:#94a3b8;text-decoration:line-through;text-decoration-color:#cbd5e1}
     .row.done .bar{opacity:.36;filter:grayscale(.45)}
     .row.done .ms,.row.done .dia{background:var(--s6)}
+    /* barra de estado de sincronizacion */
+    .syncbar{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:10px 16px;
+      border-radius:10px;font-size:12.5px;border:1px solid var(--line);background:var(--panel)}
+    .syncbar.dirty{background:#fffbeb;border-color:#fde68a;color:#92400e}
+    .syncbar .dot2{width:8px;height:8px;border-radius:999px;background:#16a34a;flex:0 0 auto}
+    .syncbar.dirty .dot2{background:#d97706}
+    .syncbar .grow{flex:1 1 auto}
 
     /* marcador de hoy en el eje */
     .todaymark{position:absolute;top:0;height:30px;z-index:2;border-left:2px solid var(--teal);
@@ -109,18 +123,30 @@
 
     /* tooltip */
     #tip{position:fixed;z-index:10;background:#0f172a;color:#fff;padding:7px 10px;border-radius:7px;
-      font-size:12px;pointer-events:none;opacity:0;transition:opacity .1s;max-width:260px;
+      font-size:12px;pointer-events:none;opacity:0;transition:opacity .1s;max-width:280px;
       box-shadow:0 6px 20px rgba(0,0,0,.25)}
     #tip b{display:block;margin-bottom:2px}
-    #tip span{color:#94a3b8}
+    #tip span{color:#94a3b8;display:block}
     footer{color:var(--muted);font-size:12px;padding:0 24px 30px}
     code{background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:12px}
+
+    /* modal de exportacion (fallback sin File System Access API) */
+    #modalBg{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;
+      justify-content:center;z-index:20;padding:24px}
+    #modalBg.show{display:flex}
+    #modal{background:#fff;border-radius:12px;max-width:640px;width:100%;padding:20px;
+      box-shadow:0 20px 60px rgba(0,0,0,.3)}
+    #modal h3{margin:0 0 8px;font-size:15px}
+    #modal p{margin:0 0 12px;font-size:12.5px;color:#475569}
+    #modal textarea{width:100%;height:220px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      font-size:11.5px;padding:10px;border:1px solid var(--line);border-radius:8px;resize:vertical}
+    #modal .mbtns{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
   </style>
 </head>
 <body>
   <header>
     <h1>Agente 1 — Extensión Bot · Cronograma de implementación</h1>
-    <div class="sub">Implementación y codificación · 1 jul → 30 nov 2026 · MVP primero (HU-010/011, Gate TRL 3) → HU-012/013/014 → integración → Gate TRL 4</div>
+    <div class="sub">Implementación y codificación · 1 jul → 30 nov 2026 · MVP primero (HU-010/HU-011, Gate TRL 3) → HU-012/013/014 → integración → Gate TRL 4</div>
   </header>
 
   <div class="wrap">
@@ -139,6 +165,12 @@
       <button id="clear" style="margin-left:auto">Limpiar marcas</button>
     </div>
 
+    <div class="syncbar" id="syncbar">
+      <span class="dot2" id="syncdot"></span>
+      <span class="grow" id="synctext">Progreso sincronizado con <code>gantt-progreso.js</code>.</span>
+      <button id="save" class="primary">Guardar progreso</button>
+    </div>
+
     <div class="controls" id="controls">
       <span class="lbl">Filtrar:</span>
       <span id="chips"></span>
@@ -155,91 +187,112 @@
     </div>
 
     <footer>
-      Fuente de verdad: <code>Documentos/Gantt/diagrama-gantt-implementacion-semanal.mmd</code>.
-      Se renderiza sin servidor ni dependencias externas. Pasá el cursor sobre cada barra o hito para ver fechas y duración.
-      Las marcas de tareas hechas se guardan solo en este navegador (no modifican la fuente).
+      Fuente del plan (fechas, tareas, hitos): <code>Documentos/Gantt/diagrama-gantt-implementacion-semanal.mmd</code>.
+      Fuente del avance (qué está hecho): <code>Documentos/Gantt/gantt-progreso.js</code> — se puede editar ese
+      archivo directamente para marcar una tarea como completada (agregar <code>{done:true, at:"YYYY-MM-DD"}</code>
+      bajo su ID, ej. <code>s1a</code>), a mano o delegado a un agente. Se renderiza sin servidor ni dependencias
+      externas. Pasá el cursor sobre cada barra o hito para ver fechas y duración. Los tildes desde el navegador se
+      guardan en este dispositivo al toque; usá el botón <b>Guardar progreso</b> para escribirlos en
+      <code>gantt-progreso.js</code> y que sean visibles para cualquiera que abra el repo.
     </footer>
   </div>
 
   <div id="tip"></div>
 
+  <div id="modalBg">
+    <div id="modal">
+      <h3>Guardar gantt-progreso.js</h3>
+      <p>Tu navegador no permite escribir el archivo directo desde acá. Copiá este contenido y pegalo reemplazando
+        <code>Documentos/Gantt/gantt-progreso.js</code> (o pedile a un agente que lo haga).</p>
+      <textarea id="modalText" readonly></textarea>
+      <div class="mbtns">
+        <button id="modalCopy" class="primary">Copiar</button>
+        <button id="modalDownload">Descargar .js</button>
+        <button id="modalClose">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fuente de avance: un agente puede editar este archivo directamente -->
+  <script src="gantt-progreso.js"></script>
   <script>
-  // ---- modelo de datos (espejo del .mmd) ----
+  // ---- modelo de datos (espejo de diagrama-gantt-implementacion-semanal.mmd) ----
   const COLORS = {S0:'--s0',S1:'--s1',S2:'--s2',S3:'--s3',S4:'--s4',S5:'--s5',S6:'--s6',S7:'--s7',SC:'--sc'};
   const SPRINTS = [
     {key:'S0', name:'Sprint 0 · Bootstrap mínimo', win:'1–10 jul',
-     goal:'Entorno mínimo para codear el MVP: Docker, Ollama, FastAPI, Workspace',
+     goal:'Entorno mínimo listo para construir el MVP',
      tasks:[
-       {t:'Docker y compose mínimo con FastAPI y Ollama local', s:'2026-07-01', e:'2026-07-06'},
-       {t:'Conectar Google Workspace y credenciales OAuth2', s:'2026-07-02', e:'2026-07-08'},
-       {t:'Esqueleto FastAPI, repo y logging básico', s:'2026-07-06', e:'2026-07-10'},
-       {m:'Entorno mínimo listo para construir el MVP', d:'2026-07-10'}]},
+       {id:'s0a', t:'Entorno local mínimo con Ollama user-local y script Python sin framework web', s:'2026-07-01', e:'2026-07-06'},
+       {id:'s0b', t:'Conectar Google Workspace y credenciales OAuth2', s:'2026-07-02', e:'2026-07-08'},
+       {id:'s0c', t:'Esqueleto del proyecto Python, repo y logging básico', s:'2026-07-06', e:'2026-07-10'},
+       {id:'m0', m:'Entorno mínimo listo para construir el MVP', d:'2026-07-10'}]},
     {key:'S1', name:'Sprint 1 · HU-010 Gacetillas', win:'8–31 jul',
-     goal:'Gacetilla institucional desde Sheets a Docs con plantilla (8 SP)',
+     goal:'HU-010 operativa con DoD',
      tasks:[
-       {t:'Diseñar prompt y grafo LangGraph de gacetilla', s:'2026-07-08', e:'2026-07-15'},
-       {t:'Integrar lectura de datos desde Google Sheets', s:'2026-07-13', e:'2026-07-20'},
-       {t:'Aplicar plantilla institucional y salida en Google Docs', s:'2026-07-17', e:'2026-07-24'},
-       {t:'Probar gacetillas con datos completos e incompletos', s:'2026-07-22', e:'2026-07-28'},
-       {t:'Validar gacetillas con la SEU', s:'2026-07-27', e:'2026-07-31'},
-       {m:'HU-010 operativa con DoD', d:'2026-07-31'}]},
+       {id:'s1a', t:'Diseñar prompt y pipeline Python de gacetilla, sin LangGraph', s:'2026-07-08', e:'2026-07-15'},
+       {id:'s1b', t:'Integrar lectura de datos desde Google Sheets', s:'2026-07-13', e:'2026-07-20'},
+       {id:'s1c', t:'Aplicar plantilla institucional y salida en Google Docs', s:'2026-07-17', e:'2026-07-24'},
+       {id:'s1d', t:'Probar gacetillas con datos completos e incompletos', s:'2026-07-22', e:'2026-07-28'},
+       {id:'s1e', t:'Validar gacetillas con la SEU', s:'2026-07-27', e:'2026-07-31'},
+       {id:'m1', m:'HU-010 operativa con DoD', d:'2026-07-31'}]},
     {key:'S2', name:'Sprint 2 · HU-011 Posts RRSS y cierre MVP', win:'3–17 ago',
-     goal:'Posts Instagram/LinkedIn por canal; cierra MVP y Gate TRL 3 (5 SP)',
+     goal:'MVP HU-010 y HU-011 con evidencia · Gate TRL 3',
      tasks:[
-       {t:'Criterios de canal por tono, longitud y hashtags', s:'2026-08-03', e:'2026-08-07'},
-       {t:'Prototipo de post para Instagram y LinkedIn', s:'2026-08-06', e:'2026-08-12'},
-       {t:'Control de longitud y limpieza de la salida', s:'2026-08-11', e:'2026-08-14'},
-       {t:'Validar posts con SEU y ajustar prompts', s:'2026-08-13', e:'2026-08-17'},
-       {m:'MVP HU-010/011 con evidencia · Gate TRL 3', d:'2026-08-17'}]},
-    {key:'S3', name:'Sprint 3 · Robustecimiento', win:'18–28 ago',
-     goal:'Persistencia y colas antes de las HU del 2.º bloque',
+       {id:'s2a', t:'Criterios de canal por tono, longitud y hashtags', s:'2026-08-03', e:'2026-08-07'},
+       {id:'s2b', t:'Prototipo de post para Instagram y LinkedIn', s:'2026-08-06', e:'2026-08-12'},
+       {id:'s2c', t:'Control de longitud y limpieza de la salida', s:'2026-08-11', e:'2026-08-14'},
+       {id:'s2d', t:'Validar posts con SEU y ajustar prompts', s:'2026-08-13', e:'2026-08-17'},
+       {id:'m2', m:'MVP HU-010 y HU-011 con evidencia · Gate TRL 3', d:'2026-08-17'}]},
+    {key:'S3', name:'Sprint 3 · Bloqueantes institucionales y base técnica mínima', win:'18–28 ago',
+     goal:'Bloqueantes gestionados y base técnica consolidada, sin infraestructura diferida',
      tasks:[
-       {t:'Esquema PostgreSQL y migración de la persistencia', s:'2026-08-18', e:'2026-08-24'},
-       {t:'Cola Celery y Redis para generación asíncrona', s:'2026-08-20', e:'2026-08-26'},
-       {t:'Capa de secretos y logging con correlation ID', s:'2026-08-24', e:'2026-08-28'},
-       {m:'Base robustecida lista para las HU de S2', d:'2026-08-28'}]},
+       {id:'s3a', t:'Gestionar Workspace live, OAuth y recursos D2/D3 con DSI', s:'2026-08-18', e:'2026-08-24'},
+       {id:'s3b', t:'Gestionar validadores SEU y criterios definitivos de canal', s:'2026-08-18', e:'2026-08-24'},
+       {id:'s3c', t:'Consolidar persistencia JSONL y cerrar spike PostgreSQL documentado, sin driver ni SQL operativo', s:'2026-08-20', e:'2026-08-26'},
+       {id:'s3d', t:'Capa de secretos y logging con correlation ID', s:'2026-08-24', e:'2026-08-28'},
+       {id:'m3', m:'Bloqueantes gestionados y base técnica consolidada, sin infraestructura diferida', d:'2026-08-28'}]},
     {key:'S4', name:'Sprint 4 · HU-012 Confirmaciones', win:'31 ago–14 sep',
-     goal:'Confirmaciones de inscripción automáticas con deduplicación (5 SP)',
+     goal:'HU-012 operativa con DoD',
      tasks:[
-       {t:'Modelar datos y endpoint de confirmación', s:'2026-08-31', e:'2026-09-04'},
-       {t:'Lógica de deduplicación con clave única en base', s:'2026-09-03', e:'2026-09-08'},
-       {t:'Plantilla de email y envío vía Google Workspace', s:'2026-09-07', e:'2026-09-11'},
-       {t:'Tarea Celery de envío y registro en base', s:'2026-09-09', e:'2026-09-12'},
-       {t:'Probar duplicados, destinatario inválido y validar SEU', s:'2026-09-11', e:'2026-09-14'},
-       {m:'HU-012 operativa con DoD', d:'2026-09-14'}]},
+       {id:'s4a', t:'Modelar datos y endpoint de confirmación', s:'2026-08-31', e:'2026-09-04'},
+       {id:'s4b', t:'Lógica de deduplicación con clave única en base', s:'2026-09-03', e:'2026-09-08'},
+       {id:'s4c', t:'Plantilla de email y envío vía Google Workspace', s:'2026-09-07', e:'2026-09-11'},
+       {id:'s4d', t:'Tarea de envío asíncrona propia, sin Celery/Redis, y registro en base', s:'2026-09-09', e:'2026-09-12'},
+       {id:'s4e', t:'Probar duplicados, destinatario inválido y validar SEU', s:'2026-09-11', e:'2026-09-14'},
+       {id:'m4', m:'HU-012 operativa con DoD', d:'2026-09-14'}]},
     {key:'S5', name:'Sprint 5 · HU-013 Lenguaje natural interno', win:'15–25 sep',
-     goal:'Chat interno SEU que interpreta solicitudes sin inventar (3 SP)',
+     goal:'HU-013 operativa con DoD',
      tasks:[
-       {t:'Chat interno con autenticación de personal SEU', s:'2026-09-15', e:'2026-09-18'},
-       {t:'Nodo LangGraph de interpretación con LLM local', s:'2026-09-17', e:'2026-09-22'},
-       {t:'Fallback fuera de alcance y persistir transcript', s:'2026-09-21', e:'2026-09-24'},
-       {t:'Probar solicitudes válidas, fuera de alcance y usabilidad', s:'2026-09-23', e:'2026-09-25'},
-       {m:'HU-013 operativa con DoD', d:'2026-09-25'}]},
+       {id:'s5a', t:'Chat interno con autenticación de personal SEU', s:'2026-09-15', e:'2026-09-18'},
+       {id:'s5b', t:'Módulo Python de interpretación con LLM local, sin LangGraph', s:'2026-09-17', e:'2026-09-22'},
+       {id:'s5c', t:'Fallback fuera de alcance y persistir transcript', s:'2026-09-21', e:'2026-09-24'},
+       {id:'s5d', t:'Probar solicitudes válidas, fuera de alcance y usabilidad', s:'2026-09-23', e:'2026-09-25'},
+       {id:'m5', m:'HU-013 operativa con DoD', d:'2026-09-25'}]},
     {key:'S6', name:'Sprint 6 · HU-014 Certificados', win:'28 sep–23 oct',
-     goal:'Certificados PDF con bloqueo HITL antes de emitir (8 SP)',
+     goal:'HU-014 operativa con DoD',
      tasks:[
-       {t:'Plantilla de certificado y máquina de estados HITL', s:'2026-09-28', e:'2026-10-03'},
-       {t:'Generación de PDF con datos académicos', s:'2026-10-01', e:'2026-10-09'},
-       {t:'Bloqueo sin aprobación y cola de aprobación al validador', s:'2026-10-08', e:'2026-10-15'},
-       {t:'Probar datos faltantes, rechazo y emisión controlada', s:'2026-10-14', e:'2026-10-20'},
-       {t:'Registro de emisión, logs y evidencia', s:'2026-10-19', e:'2026-10-23'},
-       {m:'HU-014 operativa con DoD', d:'2026-10-23'}]},
+       {id:'s6a', t:'Plantilla de certificado y máquina de estados HITL', s:'2026-09-28', e:'2026-10-03'},
+       {id:'s6b', t:'Generación de PDF con datos académicos', s:'2026-10-01', e:'2026-10-09'},
+       {id:'s6c', t:'Bloqueo sin aprobación y cola de aprobación al validador', s:'2026-10-08', e:'2026-10-15'},
+       {id:'s6d', t:'Probar datos faltantes, rechazo y emisión controlada', s:'2026-10-14', e:'2026-10-20'},
+       {id:'s6e', t:'Registro de emisión, logs y evidencia', s:'2026-10-19', e:'2026-10-23'},
+       {id:'m6', m:'HU-014 operativa con DoD', d:'2026-10-23'}]},
     {key:'S7', name:'Sprint 7 · Integración y pruebas de sistema', win:'26 oct–13 nov',
-     goal:'Integrar insumos de A2-A5 y dejar la suite en verde',
+     goal:'Suite de pruebas en verde y cobertura registrada',
      tasks:[
-       {t:'Definir contratos y mocks con A2-A5 sin orquestar', s:'2026-10-26', e:'2026-10-30'},
-       {t:'Integrar insumos disponibles de A2-A5 (progresivo)', s:'2026-10-30', e:'2026-11-06'},
-       {t:'Pruebas unitarias, integración y E2E', s:'2026-11-02', e:'2026-11-10'},
-       {t:'Probar seguridad, permisos y prompt injection', s:'2026-11-09', e:'2026-11-13'},
-       {m:'Suite en verde y cobertura registrada', d:'2026-11-13'}]},
+       {id:'s7a', t:'Definir contratos y mocks con A2-A5 sin orquestar', s:'2026-10-26', e:'2026-10-30'},
+       {id:'s7b', t:'Integrar insumos disponibles de A2-A5 progresivo', s:'2026-10-30', e:'2026-11-06'},
+       {id:'s7c', t:'Pruebas unitarias, integración y E2E', s:'2026-11-02', e:'2026-11-10'},
+       {id:'s7d', t:'Probar seguridad, permisos y prompt injection', s:'2026-11-09', e:'2026-11-13'},
+       {id:'m7', m:'Suite de pruebas en verde y cobertura registrada', d:'2026-11-13'}]},
     {key:'SC', name:'Cierre · Validación SEU y Gate TRL 4', win:'16–30 nov',
-     goal:'Validar con usuarios reales, release candidata y go/no-go TRL 4',
+     goal:'Gate TRL 4 validado y cierre del año',
      tasks:[
-       {t:'Validar con usuarios SEU, checklist 1-4 y trazabilidad', s:'2026-11-16', e:'2026-11-20'},
-       {t:'Cerrar defectos críticos y regresión completa', s:'2026-11-18', e:'2026-11-24'},
-       {t:'Release candidata y paquete de evidencias', s:'2026-11-23', e:'2026-11-27'},
-       {t:'Auditoría go/no-go e informe de avance final', s:'2026-11-25', e:'2026-11-30'},
-       {m:'Gate TRL 4 validado y cierre del año', d:'2026-11-30'}]},
+       {id:'c1', t:'Validar con usuarios SEU, checklist 1-4 y trazabilidad', s:'2026-11-16', e:'2026-11-20'},
+       {id:'c2', t:'Cerrar defectos críticos y regresión completa', s:'2026-11-18', e:'2026-11-24'},
+       {id:'c3', t:'Release candidata y paquete de evidencias', s:'2026-11-23', e:'2026-11-27'},
+       {id:'c4', t:'Auditoría go/no-go e informe de avance final', s:'2026-11-25', e:'2026-11-30'},
+       {id:'m8', m:'Gate TRL 4 validado y cierre del año', d:'2026-11-30'}]},
   ];
 
   // ---- escala temporal ----
@@ -250,20 +303,63 @@
   const wpct = (s,e) => ((new Date(e) - new Date(s))/DAY + 1) / span * 100;
   const fmt  = d => new Date(d).toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
   const days = (s,e) => Math.round((new Date(e)-new Date(s))/DAY)+1;
+  const today8601 = () => new Date().toISOString().slice(0,10);
 
-  // ---- estado 'hecho' persistente (localStorage) ----
-  const LS='gantt-impl-done-v1';
-  let doneSet;
-  try{ doneSet=new Set(JSON.parse(localStorage.getItem(LS)||'[]')); }catch(e){ doneSet=new Set(); }
-  const slug=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
-    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-  const saveDone=()=>{ try{ localStorage.setItem(LS, JSON.stringify([...doneSet])); }catch(e){} };
+  // ---- estado de avance: gantt-progreso.js (archivo) + localStorage (buffer local) ----
+  const LS='gantt-impl-progreso-v2';
+  const fileProgress = (window.GANTT_PROGRESS && typeof window.GANTT_PROGRESS==='object') ? window.GANTT_PROGRESS : {};
+  let localProgress;
+  try{ localProgress = JSON.parse(localStorage.getItem(LS)||'{}'); }catch(e){ localProgress = {}; }
+  // estado efectivo mostrado = archivo + overrides locales sin guardar todavia
+  let progress = Object.assign({}, fileProgress, localProgress);
+  let fileHandle = null; // File System Access API, si el navegador la soporta y el usuario la habilito
+  let dirty = Object.keys(localProgress).length > 0;
+
+  const saveLocal = () => { try{ localStorage.setItem(LS, JSON.stringify(localProgress)); }catch(e){} };
+  const isDone = id => !!(progress[id] && progress[id].done);
+
+  function setDone(id, done){
+    if(done){
+      const prev = progress[id] || {};
+      progress[id] = { done:true, at: prev.at || today8601() };
+      localProgress[id] = progress[id];
+    } else {
+      delete progress[id];
+      // si la tarea venia marcada en el archivo, hay que registrar el "des-marcado" localmente
+      localProgress[id] = { done:false };
+      if(!fileProgress[id]) delete localProgress[id];
+    }
+    dirty = true;
+    saveLocal();
+    updateSyncBar();
+  }
+
   function updateProgress(){
     const tot=document.querySelectorAll('.row').length;
     const done=document.querySelectorAll('.row.done').length;
     const pc=tot?Math.round(done/tot*100):0;
     document.getElementById('progtext').textContent=`Hechas: ${done} / ${tot} (${pc}%)`;
     document.getElementById('progfill').style.width=pc+'%';
+    SPRINTS.forEach(sp=>{
+      const rows=[...document.querySelectorAll(`.row[data-sprint="${sp.key}"]`)];
+      const d=rows.filter(r=>r.classList.contains('done')).length;
+      const el=document.querySelector(`.group-head[data-sprint="${sp.key}"] .gh-prog`);
+      if(el) el.textContent = `${d}/${rows.length}`;
+    });
+  }
+
+  function updateSyncBar(){
+    const bar=document.getElementById('syncbar');
+    const dot=document.getElementById('syncdot');
+    const txt=document.getElementById('synctext');
+    if(dirty){
+      bar.classList.add('dirty');
+      const n = Object.keys(localProgress).length;
+      txt.textContent = `Tenés ${n} cambio(s) guardados solo en este navegador. Usá "Guardar progreso" para escribirlos en gantt-progreso.js.`;
+    } else {
+      bar.classList.remove('dirty');
+      txt.textContent = 'Progreso sincronizado con gantt-progreso.js.';
+    }
   }
 
   // ---- leyenda de sprints ----
@@ -276,7 +372,6 @@
 
   // ---- ejes ----
   const inner = document.getElementById('inner');
-  // meses
   const monthDefs=[['Julio','2026-07-01','2026-07-31'],['Agosto','2026-08-01','2026-08-31'],
                    ['Septiembre','2026-09-01','2026-09-30'],['Octubre','2026-10-01','2026-10-31'],
                    ['Noviembre','2026-11-01','2026-11-30']];
@@ -284,7 +379,6 @@
   monthDefs.forEach(([n,s,e])=>{ months+=`<div class="month" style="left:${pct(s)}%;width:${wpct(s,e)}%">${n}</div>`; });
   inner.insertAdjacentHTML('beforeend',
     `<div class="axis-month"><div class="corner">Tarea · Sprint</div><div class="months">${months}</div></div>`);
-  // semanas
   let weeks='', wi=0;
   for(let t=new Date(MIN); t<=MAX; t=new Date(+t+7*DAY)){
     const e=new Date(Math.min(+t+6*DAY,+MAX));
@@ -293,19 +387,15 @@
   inner.insertAdjacentHTML('beforeend',
     `<div class="axis-week"><div class="corner">${wi} semanas</div><div class="weeks">${weeks}</div></div>`);
 
-  // gridlines semanales (fondo de cada track)
   const weekFrac = 7/span*100;
   const gridBg = `repeating-linear-gradient(to right, transparent 0, transparent calc(${weekFrac}% - 1px), var(--grid) calc(${weekFrac}% - 1px), var(--grid) ${weekFrac}%)`;
 
-  // hoy (solo si cae en ventana)
   const now=new Date(); const showToday = now>=MIN && now<=MAX;
-  // pill con la fecha de hoy
   (()=>{
     const tp=document.getElementById('todaypill');
     const ph = now<MIN ? '· el cronograma arranca el 1 jul' : now>MAX ? '· cronograma cerrado' : '· en curso';
     tp.textContent = 'Hoy: '+fmt(now)+' '+now.getFullYear()+' '+ph;
   })();
-  // marcador de hoy en el eje de semanas
   if(showToday){
     const wk=inner.querySelector('.weeks');
     if(wk) wk.insertAdjacentHTML('beforeend', `<div class="todaymark" style="left:${pct(now)}%">Hoy ▸ ${fmt(now)}</div>`);
@@ -316,52 +406,65 @@
     const col=`var(${COLORS[sp.key]})`;
     inner.insertAdjacentHTML('beforeend',
       `<div class="group-head" data-sprint="${sp.key}"><div class="gh-label"><span class="tag" style="background:${col}"></span>${sp.name}</div>`+
-      `<div class="gh-goal">${sp.goal} · <span style="color:#94a3b8">${sp.win}</span></div></div>`);
+      `<div class="gh-goal">${sp.goal} · <span style="color:#94a3b8">${sp.win}</span><span class="gh-prog"></span></div></div>`);
     sp.tasks.forEach(item=>{
       const row=document.createElement('div'); row.className='row';
       row.dataset.sprint=sp.key;
       row.dataset.type=item.m?'ms':'task';
       row.dataset.text=(item.m||item.t).toLowerCase();
-      const key=slug(item.m||item.t);
-      row.dataset.key=key;
-      if(doneSet.has(key)) row.classList.add('done');
+      const id=item.id;
+      row.dataset.id=id;
+      if(isDone(id)) row.classList.add('done');
       const label=document.createElement('div'); label.className='row-label';
       const track=document.createElement('div'); track.className='track';
       track.style.background=gridBg;
       if(showToday) track.insertAdjacentHTML('beforeend',`<div class="today" style="left:${pct(now)}%"></div>`);
+      let tipHtml;
       if(item.m){
-        label.innerHTML=`<span class="dia" style="width:11px;height:11px;margin-right:7px;vertical-align:-1px"></span><b>${item.m}</b>`;
         const el=document.createElement('div'); el.className='ms'; el.style.left=pct(item.d)+'%';
         track.appendChild(el);
         const lab=document.createElement('div'); lab.className='ms-label';
         lab.style.left=`calc(${pct(item.d)}% + 14px)`; lab.textContent=fmt(item.d);
         track.appendChild(lab);
-        attachTip(el,`<b>Hito · ${item.m}</b><span>${fmt(item.d)}</span>`);
+        tipHtml=`<b>Hito · ${item.m}</b><span>${fmt(item.d)}</span>`;
+        attachTip(el,()=>tipHtml+byLine(id));
       } else {
-        label.textContent=item.t;
         const bar=document.createElement('div'); bar.className='bar';
         bar.style.left=pct(item.s)+'%'; bar.style.width=wpct(item.s,item.e)+'%';
         bar.style.background=col;
         track.appendChild(bar);
-        attachTip(bar,`<b>${item.t}</b><span>${fmt(item.s)} → ${fmt(item.e)} · ${days(item.s,item.e)} días</span>`);
+        tipHtml=`<b>${item.t}</b><span>${fmt(item.s)} → ${fmt(item.e)} · ${days(item.s,item.e)} días</span>`;
+        attachTip(bar,()=>tipHtml+byLine(id));
       }
       const cb=document.createElement('input'); cb.type='checkbox'; cb.className='cbx';
-      cb.checked=doneSet.has(key); cb.title='Marcar como hecha';
+      cb.checked=isDone(id); cb.title='Marcar como hecha';
+      const idTag=document.createElement('span'); idTag.className='row-id'; idTag.textContent=id;
+      const textTag=document.createElement('span'); textTag.className='row-text';
+      textTag.innerHTML = item.m ? `<span class="dia" style="width:11px;height:11px;margin-right:7px;vertical-align:-1px"></span><b>${item.m}</b>` : item.t;
       cb.addEventListener('change',()=>{
-        if(cb.checked) doneSet.add(key); else doneSet.delete(key);
-        row.classList.toggle('done', cb.checked); saveDone(); updateProgress(); applyFilters();
+        setDone(id, cb.checked);
+        row.classList.toggle('done', cb.checked);
+        updateProgress(); applyFilters();
       });
-      label.prepend(cb);
+      label.appendChild(cb); label.appendChild(idTag); label.appendChild(textTag);
       row.appendChild(label); row.appendChild(track); inner.appendChild(row);
     });
   });
   updateProgress();
+  updateSyncBar();
+
+  function byLine(id){
+    const p = progress[id];
+    if(!p || !p.done) return '';
+    return `<span>Completada · ${p.at||''}</span>`;
+  }
 
   // ---- tooltip ----
   const tip=document.getElementById('tip');
-  function attachTip(el,html){
+  function attachTip(el,htmlFn){
     el.addEventListener('mousemove',ev=>{
-      tip.innerHTML=html; tip.style.opacity=1;
+      tip.innerHTML= typeof htmlFn==='function' ? htmlFn() : htmlFn;
+      tip.style.opacity=1;
       let x=ev.clientX+14, y=ev.clientY+14;
       if(x+270>innerWidth) x=ev.clientX-270;
       tip.style.left=x+'px'; tip.style.top=y+'px';
@@ -395,7 +498,7 @@
       const ok = active.has(r.dataset.sprint)
         && (!onlyMs.checked || r.dataset.type==='ms')
         && (!hideDone.checked || !r.classList.contains('done'))
-        && (!q || r.dataset.text.includes(q));
+        && (!q || r.dataset.text.includes(q) || r.dataset.id.includes(q));
       r.classList.toggle('hide', !ok);
       if(ok) shown++;
     });
@@ -418,11 +521,67 @@
   onlyMs.addEventListener('change', applyFilters);
   hideDone.addEventListener('change', applyFilters);
   document.getElementById('clear').onclick=()=>{
-    if(!confirm('¿Borrar todas las marcas de hechas?')) return;
-    doneSet.clear(); saveDone();
+    if(!confirm('¿Borrar todas las marcas de hechas de este navegador? (no toca gantt-progreso.js hasta que guardes)')) return;
+    progress = Object.assign({}, fileProgress);
+    localProgress = {};
+    Object.keys(fileProgress).forEach(id=>{ localProgress[id] = {done:false}; });
+    dirty = Object.keys(fileProgress).length > 0;
+    saveLocal();
     document.querySelectorAll('.row.done').forEach(r=>r.classList.remove('done'));
     document.querySelectorAll('.cbx').forEach(c=>c.checked=false);
-    updateProgress(); applyFilters();
+    updateProgress(); applyFilters(); updateSyncBar();
+  };
+
+  // ---- generar el contenido nuevo de gantt-progreso.js ----
+  function buildProgressFileContent(){
+    const lines=[];
+    SPRINTS.forEach(sp=> sp.tasks.forEach(item=>{
+      const p = progress[item.id];
+      if(p && p.done){
+        const nota = p.nota ? `, nota: ${JSON.stringify(p.nota)}` : '';
+        lines.push(`  ${JSON.stringify(item.id)}: { done: true, at: ${JSON.stringify(p.at||today8601())}${nota} },`);
+      }
+    }));
+    return `// Fuente de verdad del AVANCE del cronograma de implementacion (Agente 1).\n`+
+`// La fuente de verdad del PLAN (fechas, tareas, hitos) sigue siendo\n`+
+`// diagrama-gantt-implementacion-semanal.mmd. Este archivo solo registra que\n`+
+`// tareas estan hechas. Generado por el visor el ${today8601()}.\n\n`+
+`window.GANTT_PROGRESS = {\n${lines.join('\n')}\n};\n`;
+  }
+
+  // ---- guardar: File System Access API si esta disponible, si no, modal con copiar/descargar ----
+  const modalBg=document.getElementById('modalBg');
+  const modalText=document.getElementById('modalText');
+  document.getElementById('save').addEventListener('click', async ()=>{
+    const content = buildProgressFileContent();
+    if(window.showSaveFilePicker){
+      try{
+        if(!fileHandle){
+          fileHandle = await window.showSaveFilePicker({
+            suggestedName:'gantt-progreso.js',
+            types:[{description:'JavaScript', accept:{'text/javascript':['.js']}}]
+          });
+        }
+        const w = await fileHandle.createWritable();
+        await w.write(content); await w.close();
+        localProgress = {}; saveLocal(); dirty=false; updateSyncBar();
+        return;
+      }catch(err){
+        if(err && err.name==='AbortError') return; // el usuario cancelo el picker
+        // si falla por otro motivo, cae al modal de respaldo
+      }
+    }
+    modalText.value = content;
+    modalBg.classList.add('show');
+  });
+  document.getElementById('modalClose').onclick=()=> modalBg.classList.remove('show');
+  document.getElementById('modalCopy').onclick=async ()=>{
+    try{ await navigator.clipboard.writeText(modalText.value); }catch(e){ modalText.select(); document.execCommand('copy'); }
+  };
+  document.getElementById('modalDownload').onclick=()=>{
+    const blob=new Blob([modalText.value],{type:'text/javascript'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='gantt-progreso.js';
+    document.body.appendChild(a); a.click(); a.remove();
   };
   </script>
 </body>

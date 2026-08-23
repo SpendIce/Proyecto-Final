@@ -1,0 +1,86 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]: Leccion 0001
+    - heading "Ensayar el Agente 1 sin leer la pantalla" [level=1] [ref=e5]
+    - paragraph [ref=e6]: "Objetivo: transformar el HTML y el guion en una exposicion oral defendible. La pantalla acompaña; vos tenes que conducir el relato."
+  - generic [ref=e7]:
+    - heading "Victoria de esta leccion" [level=2] [ref=e8]
+    - paragraph [ref=e9]: Al terminar, vas a poder explicar el proyecto en 90 segundos, abrir cada bloque de la presentacion con una idea propia y responder tres objeciones previsibles sin buscar el guion.
+    - paragraph [ref=e10]:
+      - text: "Fuente primaria para esta practica:"
+      - link "guion de pitch" [ref=e11] [cursor=pointer]:
+        - /url: ../../guion-pitch-agente1.md
+      - text: ". Apoyo visual:"
+      - link "HTML principal" [ref=e12] [cursor=pointer]:
+        - /url: ../../Presentacion-Agente-1-PPS-Juan-Ignacio-Gone.html
+      - text: ". Referencia de repaso:"
+      - link "mapa de exposicion" [ref=e13] [cursor=pointer]:
+        - /url: ../reference/0001-mapa-de-exposicion-agente1.html
+      - text: .
+  - generic [ref=e14]:
+    - heading "La regla tecnica" [level=2] [ref=e15]
+    - generic [ref=e16]:
+      - paragraph [ref=e17]:
+        - strong [ref=e18]: No leas el slide.
+        - text: "Si lees, la audiencia procesa dos veces lo mismo y vos quedas como operador de pantalla. El slide tiene que dispararte una idea; tu voz tiene que aportar criterio: por que importa, que riesgo controla, que decision habilita."
+      - paragraph [ref=e19]:
+        - text: "En esta exposicion, el criterio central es simple:"
+        - strong [ref=e20]: Agente 1 automatiza comunicacion institucional, pero no reemplaza responsabilidad humana.
+        - text: Todo lo demas cuelga de ahi.
+  - generic [ref=e21]:
+    - heading "El metodo de ensayo en tres pasadas" [level=2] [ref=e22]
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - strong [ref=e25]: 1. Pasada con notas
+        - paragraph [ref=e26]: Abris el HTML, activas notas y recorres el deck. Tu unico objetivo es entender que funcion cumple cada slide.
+      - generic [ref=e27]:
+        - strong [ref=e28]: 2. Pasada sin notas
+        - paragraph [ref=e29]: "Volves a recorrer el deck, pero decis la idea de cada slide sin mirar el guion. Si no sale, no memorizaste estructura: volve al mapa."
+      - generic [ref=e30]:
+        - strong [ref=e31]: 3. Pasada con objeciones
+        - paragraph [ref=e32]: "Despues de slides clave, pausas y contestas: \"que me podrian cuestionar aca?\". Ahi se entrena defensa, no recitado."
+  - generic [ref=e33]:
+    - 'heading "Practica 1: tesis en 90 segundos" [level=2] [ref=e34]'
+    - generic [ref=e35]:
+      - generic [ref=e36]: Escribi de memoria una version de 90 segundos. Tiene que incluir problema, solucion, control humano y pedido.
+      - textbox "Escribi de memoria una version de 90 segundos. Tiene que incluir problema, solucion, control humano y pedido." [ref=e37]:
+        - /placeholder: "Ejemplo de arranque: La SEU hoy pierde tiempo en..."
+        - text: La SEU hoy pierde tiempo con comunicacion manual y poca trazabilidad. Extension Bot transforma datos de actividades en borradores de gacetillas y posts. Nada se publica sin validacion humana, y el pedido concreto es definir plantillas, datos minimos y responsables de aprobacion.
+      - button "Revisar estructura" [active] [ref=e38] [cursor=pointer]
+      - generic [ref=e68]: "Bien: aparece la columna vertebral. Ahora ensayalo en voz alta y recorta lo que suene a lectura."
+    - paragraph [ref=e39]: No busques que salga literario. Buscamos estructura. Primero cimientos, despues pintura, hermano.
+  - generic [ref=e40]:
+    - 'heading "Practica 2: transiciones por bloque" [level=2] [ref=e41]'
+    - paragraph [ref=e42]: Deci en voz alta una frase para pasar de un bloque al siguiente. Despues marcala.
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - 'checkbox "Problema -> solucion: \"Con este dolor claro, la pregunta es que automatizar sin perder control.\"" [ref=e45]'
+        - text: "Problema -> solucion: \"Con este dolor claro, la pregunta es que automatizar sin perder control.\""
+      - generic [ref=e46]:
+        - 'checkbox "Solucion -> flujo: \"Ahora lo bajo a operacion: que entra, que genera y quien valida.\"" [ref=e47]'
+        - text: "Solucion -> flujo: \"Ahora lo bajo a operacion: que entra, que genera y quien valida.\""
+      - generic [ref=e48]:
+        - 'checkbox "Demo -> stack: \"Si esto resuelve una tarea real, falta mostrar por que es viable.\"" [ref=e49]'
+        - text: "Demo -> stack: \"Si esto resuelve una tarea real, falta mostrar por que es viable.\""
+      - generic [ref=e50]:
+        - 'checkbox "Riesgos -> cierre: \"Los riesgos no se niegan: se gobiernan con controles y evidencia.\"" [ref=e51]'
+        - text: "Riesgos -> cierre: \"Los riesgos no se niegan: se gobiernan con controles y evidencia.\""
+  - generic [ref=e52]:
+    - 'heading "Practica 3: objeciones sin escaparte del alcance" [level=2] [ref=e53]'
+    - generic [ref=e54]:
+      - generic [ref=e55]: "Contesta: \"La IA puede inventar informacion, entonces no sirve para comunicacion institucional\"."
+      - 'textbox "Contesta: \"La IA puede inventar informacion, entonces no sirve para comunicacion institucional\"." [ref=e56]':
+        - /placeholder: Tu respuesta...
+      - button "Revisar defensa" [ref=e57] [cursor=pointer]
+  - generic [ref=e58]:
+    - heading "Guia de ensayo con el HTML" [level=2] [ref=e59]
+    - list [ref=e60]:
+      - listitem [ref=e61]:
+        - text: Abrir
+        - code [ref=e62]: Presentacion-Agente-1-PPS-Juan-Ignacio-Gone.html
+        - text: .
+      - listitem [ref=e63]: "Primera vuelta: activar notas y ubicar la funcion de cada slide."
+      - listitem [ref=e64]: "Segunda vuelta: ocultar notas y explicar cada slide en una frase."
+      - listitem [ref=e65]: "Tercera vuelta: cronometrar 12 minutos. Si no llegas al cierre, recortar detalle tecnico."
+      - listitem [ref=e66]: "Ultima vuelta: abrir la referencia rapida y practicar solo objeciones."
+    - paragraph [ref=e67]: "Si algo no cierra, preguntame por esa slide puntual y lo trabajamos como profesor: que queres decir, que evidencia tenes y que riesgo estas controlando."

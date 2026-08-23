@@ -1,0 +1,218 @@
+@startgantt
+title Proyecto Centenario P100 - Agente 1 Extension Bot - finalizacion y presentacion febrero 2027
+caption Cronograma iterativo no cascada; granularidad intermedia, Kanban distribuido por modulo/HU y fechas oficiales pendientes de confirmacion.
+
+project starts 2026-03-01
+printscale monthly
+
+-- Guardarrailes transversales --
+[Analizar prioridades y Ready por HU] starts 2026-03-15
+[Analizar prioridades y Ready por HU] ends 2027-02-20
+[Analizar prioridades y Ready por HU] is colored in LightBlue
+
+[Disenar matriz BPM/RACI/DoD y evidencia viva] starts 2026-03-01
+[Disenar matriz BPM/RACI/DoD y evidencia viva] ends 2027-02-28
+[Disenar matriz BPM/RACI/DoD y evidencia viva] is colored in LightGreen
+
+[Implementar validacion humana y evidencia SEU] starts 2026-04-01
+[Implementar validacion humana y evidencia SEU] ends 2027-02-20
+[Implementar validacion humana y evidencia SEU] is colored in PaleGreen
+
+[Validar seguridad RBAC NHI prompt injection] starts 2026-04-15
+[Validar seguridad RBAC NHI prompt injection] ends 2027-02-20
+[Validar seguridad RBAC NHI prompt injection] is colored in PaleGreen
+
+[Controlar WIP defectos riesgos y minutas] starts 2026-04-15
+[Controlar WIP defectos riesgos y minutas] ends 2027-02-20
+[Controlar WIP defectos riesgos y minutas] is colored in Thistle
+
+-- S1 Ciclo 0 - Alcance y plataforma minima (TRL 3) --
+[Analizar P4 y equipo validador SEU] starts 2026-03-01
+[Analizar P4 y equipo validador SEU] ends 2026-03-31
+[Analizar P4 y equipo validador SEU] is colored in LightBlue
+
+[Disenar alcance A1 exclusiones evidencia] starts 2026-03-15
+[Disenar alcance A1 exclusiones evidencia] ends 2026-04-15
+[Disenar alcance A1 exclusiones evidencia] is colored in LightGreen
+
+[Implementar HU-001/HU-002 Sheets Drive Apps Script] starts 2026-03-01
+[Implementar HU-001/HU-002 Sheets Drive Apps Script] ends 2026-04-30
+[Implementar HU-001/HU-002 Sheets Drive Apps Script] is colored in LightSkyBlue
+
+[Validar checklist SEU e indice evidencias S1] starts 2026-04-01
+[Validar checklist SEU e indice evidencias S1] ends 2026-05-15
+[Validar checklist SEU e indice evidencias S1] is colored in PaleGreen
+
+[H1 Anteproyecto y alcance base] happens 2026-03-31
+
+-- S1 Ciclo 1 - HU-010 Gacetillas --
+[Analizar HU-010 DoD RACI y datos] starts 2026-04-01
+[Analizar HU-010 DoD RACI y datos] ends 2026-04-15
+[Analizar HU-010 DoD RACI y datos] is colored in LightBlue
+
+[Disenar plantilla gacetilla y prompt] starts 2026-04-08
+[Disenar plantilla gacetilla y prompt] ends 2026-04-30
+[Disenar plantilla gacetilla y prompt] is colored in LightGreen
+
+[Implementar spike Sheets -> Docs y prototipo] starts 2026-04-20
+[Implementar spike Sheets -> Docs y prototipo] ends 2026-06-01
+[Implementar spike Sheets -> Docs y prototipo] is colored in LightSkyBlue
+
+[Validar SEU y ajustar HU-010] starts 2026-05-20
+[Validar SEU y ajustar HU-010] ends 2026-06-15
+[Validar SEU y ajustar HU-010] is colored in PaleGreen
+
+[H2 HU-010 evidencia DoD] happens 2026-06-15
+
+-- S1 Ciclo 2 - HU-011 Posts RRSS --
+[Analizar HU-011 canales criterios y datos] starts 2026-04-15
+[Analizar HU-011 canales criterios y datos] ends 2026-05-05
+[Analizar HU-011 canales criterios y datos] is colored in LightBlue
+
+[Disenar tono longitud hashtags y prompt] starts 2026-04-25
+[Disenar tono longitud hashtags y prompt] ends 2026-05-15
+[Disenar tono longitud hashtags y prompt] is colored in LightGreen
+
+[Implementar prototipo HU-011 por canal] starts 2026-05-15
+[Implementar prototipo HU-011 por canal] ends 2026-06-15
+[Implementar prototipo HU-011 por canal] is colored in LightSkyBlue
+
+[Validar SEU ajustar y auditar pre-G2] starts 2026-06-01
+[Validar SEU ajustar y auditar pre-G2] ends 2026-07-20
+[Validar SEU ajustar y auditar pre-G2] is colored in PaleGreen
+
+[Gate TRL 3 MVP HU-010/HU-011] happens 2026-07-31
+
+[Informe avance + rebaseline S2] starts 2026-07-15
+[Informe avance + rebaseline S2] ends 2026-07-31
+[Informe avance + rebaseline S2] is colored in Thistle
+
+-- S2 Ciclo 3 - HU-012 Confirmaciones --
+[Analizar HU-012 contrato datos inscripcion] starts 2026-08-01
+[Analizar HU-012 contrato datos inscripcion] ends 2026-08-15
+[Analizar HU-012 contrato datos inscripcion] is colored in LightBlue
+
+[Disenar plantilla email y estados] starts 2026-08-08
+[Disenar plantilla email y estados] ends 2026-08-22
+[Disenar plantilla email y estados] is colored in LightGreen
+
+[Implementar trigger Gmail registro logs] starts 2026-08-15
+[Implementar trigger Gmail registro logs] ends 2026-09-20
+[Implementar trigger Gmail registro logs] is colored in LightSkyBlue
+
+[Validar usuario interno HU-012] starts 2026-09-10
+[Validar usuario interno HU-012] ends 2026-09-30
+[Validar usuario interno HU-012] is colored in PaleGreen
+
+[H4 HU-012 DoD completo] happens 2026-09-30
+
+-- S2 Ciclo 4 - HU-013 Lenguaje natural interno --
+[Analizar HU-013 criterio email chat Sheets] starts 2026-08-10
+[Analizar HU-013 criterio email chat Sheets] ends 2026-08-25
+[Analizar HU-013 criterio email chat Sheets] is colored in LightBlue
+
+[Disenar email inicio prompt y fallback] starts 2026-08-20
+[Disenar email inicio prompt y fallback] ends 2026-09-25
+[Disenar email inicio prompt y fallback] is colored in LightGreen
+
+[Implementar autenticacion registro transcript] starts 2026-08-25
+[Implementar autenticacion registro transcript] ends 2026-10-10
+[Implementar autenticacion registro transcript] is colored in LightSkyBlue
+
+[Validar usabilidad interna] starts 2026-10-01
+[Validar usabilidad interna] ends 2026-10-31
+[Validar usabilidad interna] is colored in PaleGreen
+
+[H5 HU-013 DoD completo] happens 2026-10-31
+
+-- S2 Ciclo 5 - HU-014 Certificados --
+[Analizar HU-014 contrato datos finalizados] starts 2026-09-15
+[Analizar HU-014 contrato datos finalizados] ends 2026-10-05
+[Analizar HU-014 contrato datos finalizados] is colored in LightBlue
+
+[Disenar plantilla certificado versionada] starts 2026-09-25
+[Disenar plantilla certificado versionada] ends 2026-10-15
+[Disenar plantilla certificado versionada] is colored in LightGreen
+
+[Implementar PDF aprobacion manual y logs] starts 2026-10-01
+[Implementar PDF aprobacion manual y logs] ends 2026-11-20
+[Implementar PDF aprobacion manual y logs] is colored in LightSkyBlue
+
+[Validar prueba controlada y COORD administracion] starts 2026-11-10
+[Validar prueba controlada y COORD administracion] ends 2026-11-30
+[Validar prueba controlada y COORD administracion] is colored in PaleGreen
+
+[H6 HU-014 DoD completo] happens 2026-11-30
+
+-- S2 Integracion y release candidata TRL 4 --
+[Analizar contratos A2-A5 sin orquestar] starts 2026-09-15
+[Analizar contratos A2-A5 sin orquestar] ends 2026-10-31
+[Analizar contratos A2-A5 sin orquestar] is colored in LightBlue
+
+[Disenar refinamiento MVP por feedback] starts 2026-09-15
+[Disenar refinamiento MVP por feedback] ends 2026-11-15
+[Disenar refinamiento MVP por feedback] is colored in LightGreen
+
+[Implementar integracion y ajustes A2-A5] starts 2026-10-15
+[Implementar integracion y ajustes A2-A5] ends 2026-12-20
+[Implementar integracion y ajustes A2-A5] is colored in LightSkyBlue
+
+[Validar SEU calidad seguridad trazabilidad] starts 2026-11-01
+[Validar SEU calidad seguridad trazabilidad] ends 2026-12-15
+[Validar SEU calidad seguridad trazabilidad] is colored in PaleGreen
+
+[Cerrar paquete G4 release candidata] starts 2026-12-01
+[Cerrar paquete G4 release candidata] ends 2026-12-31
+[Cerrar paquete G4 release candidata] is colored in Thistle
+
+[Gate TRL 4 A1 validado] happens 2026-12-15
+
+[Release candidata A1 cerrada] happens 2026-12-31
+
+-- Enero 2027 - Finalizacion del Agente 1 --
+[Analizar hallazgos G4 y pendientes] starts 2027-01-04
+[Analizar hallazgos G4 y pendientes] ends 2027-01-10
+[Analizar hallazgos G4 y pendientes] is colored in LightBlue
+
+[Implementar correcciones y estabilizacion release] starts 2027-01-04
+[Implementar correcciones y estabilizacion release] ends 2027-01-27
+[Implementar correcciones y estabilizacion release] is colored in LightSkyBlue
+
+[Validar reauditoria y regresion HU-010..014] starts 2027-01-10
+[Validar reauditoria y regresion HU-010..014] ends 2027-01-24
+[Validar reauditoria y regresion HU-010..014] is colored in PaleGreen
+
+[Disenar manual usuario operacion transferencia] starts 2027-01-11
+[Disenar manual usuario operacion transferencia] ends 2027-01-31
+[Disenar manual usuario operacion transferencia] is colored in LightGreen
+
+[Cerrar informe anexos y backlog continuidad] starts 2027-01-16
+[Cerrar informe anexos y backlog continuidad] ends 2027-02-03
+[Cerrar informe anexos y backlog continuidad] is colored in Thistle
+
+[H9 Agente 1 finalizado para presentacion] happens 2027-01-31
+
+-- Febrero 2027 - Presentacion y cierre del Agente 1 --
+[Validar release, auditoria y evidencia final A1] starts 2027-02-01
+[Validar release, auditoria y evidencia final A1] ends 2027-02-16
+[Validar release, auditoria y evidencia final A1] is colored in PaleGreen
+
+[Demostracion funcional del Agente 1] happens 2027-02-20
+
+[Presentacion del Agente 1 febrero 2027] happens 2027-02-20
+
+[Implementar transferencia operativa P100] starts 2027-02-20
+[Implementar transferencia operativa P100] ends 2027-02-28
+[Implementar transferencia operativa P100] is colored in LightSkyBlue
+
+[H12 Cierre documental y tecnico del Agente 1] happens 2027-02-28
+
+-- Continuidad P100 fuera del Proyecto A1 --
+[S3 Validacion operativa P100] starts 2027-03-01
+[S3 Validacion operativa P100] ends 2027-07-31
+[S3 Validacion operativa P100] is colored in PaleGreen
+
+[S4 Operacion consolidada P100] starts 2027-08-01
+[S4 Operacion consolidada P100] ends 2027-12-31
+
+@endgantt

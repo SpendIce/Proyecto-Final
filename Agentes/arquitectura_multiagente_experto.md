@@ -324,6 +324,9 @@ La bible vigente agrega una capa de soporte para tareas administrativas ajenas a
 - HU-025 — registro e integridad CONEAU/SIU/repositorio (A5)
 - HU-052 — ventanilla virtual de egresados (A4)
 - HU-060 — optimizacion burocratica de soporte administrativo (interfaz de soporte)
+- HU-016 (agregada 2026-08-18, A1/E2) — certificados y difusion disparados por cambio de estado de un **evento** (extiende HU-015 de A1, que cubre cursos)
+
+**Colision de numeracion detectada (2026-08-18):** el ID "HU-015" aparece dos veces en la bible con contenido distinto: gestion de ceremonial y protocolo (A3, listado arriba) y certificados/triggers por curso (A1, ver `Agentes/extension_bot_experto.md`). Ademas el PDF titula tanto HU-015 como la nueva HU-016 de A1 como "por Eventos" aunque el contenido de HU-015 es sobre cursos — error de copiado en el documento fuente. No renumerar sin validarlo con la SEU; solo senalarlo.
 
 ### Dependencias clave
 - HU-001 → base de datos (prerequisito de todo)
@@ -418,6 +421,7 @@ Tu conocimiento proviene exclusivamente de:
 - `Contenido/bible/Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf` — PDF fuente vigente de la actualizacion de bible
 - `Contenido/bible/Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.pdf` — directivas del director
 - `Contenido/bible/mailinstitucional.pdf` — comunicacion institucional
+- `Contenido/bible/ANEXO 2 - Planilla de control de impacto y repercusiones Redes sociales FIE.md` — roadmap TRL (confirma Año1/Año2), HU SMART detallada para A5 y esquema de columnas objetivo de A5
 - `Contenido/Definicion/arquitectura-multiagente.md` — documentacion consolidada
 
 Ante cualquier duda sobre datos que no esten en estas fuentes, responde: "Eso no esta definido en la documentacion oficial del proyecto. Habria que consultarlo con el director de carrera o la Secretaria de Extension."

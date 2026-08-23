@@ -1,0 +1,38 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: A1
+      - generic [ref=e6]:
+        - strong [ref=e7]: Extension Bot
+        - generic [ref=e8]: Proyecto Centenario P100 - FIE / UNDEF
+    - generic [ref=e9]:
+      - button "Vista" [ref=e10] [cursor=pointer]
+      - button "Notas" [ref=e11] [cursor=pointer]
+      - button "Imprimir" [ref=e12] [cursor=pointer]
+  - main [ref=e13]:
+    - article [ref=e40]:
+      - generic [ref=e41]: Dolor operativo
+      - generic [ref=e42]:
+        - heading "El problema" [level=1] [ref=e43]
+        - paragraph [ref=e44]: La comunicacion de Extension depende demasiado del trabajo manual.
+        - list [ref=e45]:
+          - listitem [ref=e46]: Cada gacetilla, post o mail se arma desde cero.
+          - listitem [ref=e47]: El tono y el formato cambian segun quien redacte.
+          - listitem [ref=e48]: Las inscripciones y certificados generan tareas repetitivas.
+          - listitem [ref=e49]: Falta trazabilidad sistematica de que se genero, quien valido y cuando.
+      - generic [ref=e50]:
+        - generic [ref=e51]:
+          - strong [ref=e52]: Tiempo
+          - generic [ref=e53]: Redaccion manual repetida para cada pieza
+        - generic [ref=e54]:
+          - strong [ref=e55]: Tono
+          - generic [ref=e56]: Consistencia dependiente del redactor
+        - generic [ref=e57]:
+          - strong [ref=e58]: Evidencia
+          - generic [ref=e59]: Validaciones y salidas dificiles de reconstruir
+      - generic [ref=e60]: 2/14
+  - contentinfo [ref=e33]:
+    - generic [ref=e34]:
+      - button "Slide anterior" [ref=e35] [cursor=pointer]: ‹
+      - button "Slide siguiente" [active] [ref=e36] [cursor=pointer]: ›
+    - generic [ref=e39]: 2 / 14

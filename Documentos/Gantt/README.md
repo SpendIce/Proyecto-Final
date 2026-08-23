@@ -6,7 +6,8 @@ Este artefacto contiene la vista principal del cronograma del proyecto de Juan I
 - `diagrama-gantt-implementacion-semanal.mmd`: vista detallada semana a semana del plan de implementacion (1 jul - 30 nov 2026). Arranca con un bootstrap minimo y el MVP (HU-010/HU-011, Gate TRL 3) y sigue con robustecimiento, HU-012/HU-013/HU-014, integracion A2-A5, pruebas y Gate TRL 4. Es el plan operativo de implementacion y codificacion; no reemplaza al Gantt anual, lo expande.
 - `diagrama-gantt-agente-1.puml`: respaldo PlantUML sincronizado con la vista Mermaid.
 - `visor-gantt-agente-1.html`: visor didactico y editable en navegador; permite filtrar, editar tareas y exportar nuevamente la fuente Mermaid.
-- `visor-gantt-implementacion-semanal.html`: visor de solo lectura para la vista semanal de implementacion (1 jul - 30 nov 2026). Self-contained (sin servidor ni dependencias externas), con eje por mes y por semana, grupos de sprint con su objetivo, barras coloreadas por sprint, hitos de DoD/gate como diamantes y tooltip con fechas y duracion. Incluye filtros: chips por sprint (toggle), botones Todos/Ninguno, casilla "Solo hitos" y buscador de tareas por texto. Pensado para lectura rapida en presentacion; la fuente de verdad sigue siendo `diagrama-gantt-implementacion-semanal.mmd`.
+- `visor-gantt-implementacion-semanal.html`: visor interactivo para la vista semanal de implementacion (1 jul - 30 nov 2026). Self-contained (sin servidor ni dependencias externas), con eje por mes y por semana, grupos de sprint con su objetivo y avance, barras coloreadas por sprint, hitos de DoD/gate como diamantes y tooltip con fechas y duracion. Incluye filtros (chips por sprint, Todos/Ninguno, "Solo hitos", "Ocultar hechas", buscador por texto o ID de tarea) y permite tildar cada tarea como hecha. La fuente del plan (fechas, tareas, hitos) sigue siendo `diagrama-gantt-implementacion-semanal.mmd`; la fuente del avance es `gantt-progreso.js`.
+- `gantt-progreso.js`: registro del AVANCE del cronograma, separado del plan. Es un objeto JS indexado por el ID de cada tarea/hito del `.mmd` (`s0a`, `s0b`, ..., `m0`, `s1a`, ..., `m8`) con `{done, at, nota}`. Se puede marcar una tarea como completada editando este archivo directamente (sin tocar el HTML ni el `.mmd`), a mano o delegado a un agente: agregar o actualizar la entrada de su ID con `done:true` y la fecha del dia. El visor lo carga al abrir.
 - `mermaid-live-url.txt`: enlace codificado para abrir la vista en Mermaid Live Editor; regenerar si cambia la fuente Mermaid.
 
 Los PNG/SVG/PDF existentes son artefactos renderizados. No son fuente de verdad y no se regeneran automaticamente despues de cambios documentales. El PDF de la vista de implementacion (`diagrama-gantt-implementacion-semanal.pdf`) es vectorial, pensado para imprimir y compartir; se regenera con `rsvg-convert -f pdf -o diagrama-gantt-implementacion-semanal.pdf diagrama-gantt-implementacion-semanal.svg`.
@@ -62,6 +63,7 @@ La vista principal cubre el proyecto del Agente 1 durante 2026 y deja febrero de
 - `Documentos/Anteproyecto/Anteproyecto-PPS-Juan-Ignacio-Gone.tex`: EDT, entregables por semestre, hitos y planificacion mensual.
 - `Documentos/CasosUso/`, `Documentos/DiagramaClases/` y `Documentos/DiagramaSecuencia/`: comportamiento funcional, estados, actores y trazabilidad tecnica.
 - Planes complementarios del Agente 1: calidad, riesgos, comunicaciones, auditoria, estados, despliegue e integracion.
+- `Documentos/PoC/Plan-Recuperacion-MVP-Agente-1-2026-08-17.md` y `Documentos/PoC/Registro-Defectos-Agente-1.md`: decision de diferir FastAPI, LangGraph, Celery, Redis y PostgreSQL operativo mientras no exista necesidad operativa validada; estado real de bloqueantes institucionales del Sprint 3 en adelante.
 - `Contenido/Campus/DSI1/_md/` y `Contenido/Campus/DSI2/_md/`: planificacion, control, riesgos, calidad, liberacion, comunicaciones y pruebas.
 
 ## Pendientes de confirmacion
@@ -84,6 +86,15 @@ Luego abrir `diagrama-gantt-agente-1.mmd` y usar su contenido como fuente del di
 Abrir `visor-gantt-agente-1.html` en el navegador. El visor funciona sin servidor local y sin dependencias externas: renderiza la fuente Mermaid embebida, permite buscar por tarea, filtrar por semestre/bloque/hito, editar campos desde el panel lateral y exportar un nuevo `diagrama-gantt-agente-1.mmd`.
 
 El navegador no puede guardar directamente sobre el repo por seguridad. Si se hacen cambios en el visor, exportar el `.mmd` y reemplazar la fuente editable solo despues de revisar que el contenido siga respetando el alcance, los hitos y las fechas confirmadas.
+
+## Uso del visor de implementacion (con avance)
+
+Abrir `visor-gantt-implementacion-semanal.html` en el navegador (doble clic, sin servidor). Tildar el checkbox de una tarea la marca como hecha; el cambio se guarda al toque en este navegador (localStorage) pero todavia no queda en el repo — la barra amarilla de "cambios sin guardar" lo indica. Para persistirlo en `gantt-progreso.js`:
+
+- En Chrome/Edge, el boton **Guardar progreso** pide elegir el archivo `gantt-progreso.js` una vez (File System Access API) y despues escribe sobre el directo con cada guardado.
+- En navegadores sin esa API (Firefox, Safari), el mismo boton abre un modal con el contenido nuevo del archivo para copiar o descargar y reemplazar `gantt-progreso.js` a mano.
+
+Para marcar una tarea como completada por otra via (delegado a un agente, por ejemplo) no hace falta abrir el navegador: alcanza con editar `gantt-progreso.js` y agregar la entrada del ID correspondiente (ver formato documentado arriba del propio archivo), por ejemplo `s2a: { done: true, at: "2026-08-19" }`. El visor la va a mostrar como hecha la proxima vez que se abra.
 
 ## Renderizado Mermaid local
 

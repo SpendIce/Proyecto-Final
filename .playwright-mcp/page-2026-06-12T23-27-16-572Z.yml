@@ -1,0 +1,304 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: A1
+      - generic [ref=e6]:
+        - strong [ref=e7]: Extension Bot
+        - generic [ref=e8]: Proyecto Centenario P100 - FIE / UNDEF
+    - generic [ref=e9]:
+      - button "Slides" [active] [ref=e54] [cursor=pointer]
+      - button "Notas" [ref=e11] [cursor=pointer]
+      - button "Imprimir" [ref=e12] [cursor=pointer]
+  - main [ref=e28]:
+    - generic [ref=e29]:
+      - article [ref=e30] [cursor=pointer]:
+        - generic [ref=e31]: Agente 1 - Proyecto Centenario
+        - generic [ref=e32]:
+          - heading "Extension Bot" [level=1] [ref=e33]
+          - heading "Comunicacion institucional asistida por IA para la SEU" [level=2] [ref=e34]
+          - paragraph [ref=e35]: Una linea de produccion comunicacional con control humano, bajo costo y evidencia academica.
+        - generic [ref=e36]:
+          - generic [ref=e37]:
+            - strong [ref=e38]: P4
+            - generic [ref=e39]: Comunicacion y Difusion Institucional
+          - generic [ref=e40]:
+            - strong [ref=e41]: "2026"
+            - generic [ref=e42]: "Alcance PPS: Semestre 1 y Semestre 2"
+          - generic [ref=e43]:
+            - strong [ref=e44]: HITL
+            - generic [ref=e45]: Validacion humana antes de publicar, enviar o emitir
+        - generic [ref=e46]: 1/14
+      - article [ref=e55] [cursor=pointer]:
+        - generic [ref=e56]: Dolor operativo
+        - generic [ref=e57]:
+          - heading "El problema" [level=1] [ref=e58]
+          - paragraph [ref=e59]: La comunicacion de Extension depende demasiado del trabajo manual.
+          - list [ref=e60]:
+            - listitem [ref=e61]: Cada gacetilla, post o mail se arma desde cero.
+            - listitem [ref=e62]: El tono y el formato cambian segun quien redacte.
+            - listitem [ref=e63]: Las inscripciones y certificados generan tareas repetitivas.
+            - listitem [ref=e64]: Falta trazabilidad sistematica de que se genero, quien valido y cuando.
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - strong [ref=e67]: Tiempo
+            - generic [ref=e68]: Redaccion manual repetida para cada pieza
+          - generic [ref=e69]:
+            - strong [ref=e70]: Tono
+            - generic [ref=e71]: Consistencia dependiente del redactor
+          - generic [ref=e72]:
+            - strong [ref=e73]: Evidencia
+            - generic [ref=e74]: Validaciones y salidas dificiles de reconstruir
+        - generic [ref=e75]: 2/14
+      - article [ref=e76] [cursor=pointer]:
+        - generic [ref=e77]: Base institucional existente
+        - generic [ref=e78]:
+          - heading "La oportunidad" [level=1] [ref=e79]
+          - paragraph [ref=e80]: La SEU ya trabaja con Google Sheets, Docs, Drive, Gmail y formularios. A1 conecta esa base con generacion asistida y controlada.
+          - generic [ref=e81]: "Entrada: datos operativos. Proceso: IA con reglas. Salida: piezas pendientes de validacion."
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic [ref=e84]: "1"
+            - generic [ref=e85]: Datos de actividad, inscripcion o documento institucional
+          - generic [ref=e86]:
+            - generic [ref=e87]: "2"
+            - generic [ref=e88]: Generacion asistida con tono, canal y plantilla
+          - generic [ref=e89]:
+            - generic [ref=e90]: "3"
+            - generic [ref=e91]: Borradores, mails, posts o certificados para revisar
+        - generic [ref=e92]: 3/14
+      - article [ref=e93] [cursor=pointer]:
+        - generic [ref=e94]: Alcance defendible
+        - generic [ref=e95]:
+          - heading "La solucion" [level=1] [ref=e96]
+          - paragraph [ref=e97]:
+            - strong [ref=e98]: Extension Bot
+            - text: es el agente de comunicacion institucional del P100.
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - heading "Hace" [level=3] [ref=e101]
+              - list [ref=e102]:
+                - listitem [ref=e103]: gacetillas;
+                - listitem [ref=e104]: posts IG y LinkedIn;
+                - listitem [ref=e105]: newsletters y mails;
+                - listitem [ref=e106]: confirmaciones;
+                - listitem [ref=e107]: certificados con validacion;
+                - listitem [ref=e108]: lenguaje natural interno.
+            - generic [ref=e109]:
+              - heading "No hace" [level=3] [ref=e110]
+              - list [ref=e111]:
+                - listitem [ref=e112]: scraping;
+                - listitem [ref=e113]: analitica o dashboards;
+                - listitem [ref=e114]: atencion masiva al publico;
+                - listitem [ref=e115]: publicacion sin aprobacion humana.
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - strong [ref=e118]: A1
+            - generic [ref=e119]: Hub de comunicacion, no orquestador del sistema
+          - generic [ref=e120]:
+            - strong [ref=e121]: A4/A5
+            - generic [ref=e122]: Atencion publica, analitica y scraping quedan fuera de A1
+        - generic [ref=e123]: 4/14
+      - article [ref=e124] [cursor=pointer]:
+        - generic [ref=e125]: Propuesta de valor
+        - generic [ref=e126]:
+          - heading "Valor para la SEU" [level=1] [ref=e127]
+          - paragraph [ref=e128]: Menos friccion operativa sin resignar responsabilidad institucional.
+        - generic [ref=e129]:
+          - generic [ref=e130]:
+            - strong [ref=e131]: Menos carga
+            - generic [ref=e132]: Borradores generados desde datos ya cargados.
+          - generic [ref=e133]:
+            - strong [ref=e134]: Mas consistencia
+            - generic [ref=e135]: Plantillas, tono institucional y reglas por canal.
+          - generic [ref=e136]:
+            - strong [ref=e137]: Mas control
+            - generic [ref=e138]: Human-in-the-loop antes de publicar, enviar o emitir.
+          - generic [ref=e139]:
+            - strong [ref=e140]: Mas evidencia
+            - generic [ref=e141]: Logs, estados, validadores y outputs recuperables.
+          - generic [ref=e142]:
+            - strong [ref=e143]: Menor costo
+            - generic [ref=e144]: Stack open source y Google Workspace institucional.
+        - generic [ref=e145]: 5/14
+      - article [ref=e146] [cursor=pointer]:
+        - generic [ref=e147]: Actividad a comunicacion
+        - generic [ref=e148]:
+          - heading "Flujo principal" [level=1] [ref=e149]
+          - paragraph [ref=e150]: "La salida oficial no depende de la IA: depende de la validacion institucional."
+          - generic [ref=e151]: "Regla no negociable: ningun contenido oficial sale sin aprobacion humana registrada."
+        - generic [ref=e152]:
+          - generic [ref=e153]:
+            - generic [ref=e154]: "1"
+            - generic [ref=e155]: SEU carga actividad en Sheets o Forms
+          - generic [ref=e156]:
+            - generic [ref=e157]: "2"
+            - generic [ref=e158]: Trigger detecta la solicitud
+          - generic [ref=e159]:
+            - generic [ref=e160]: "3"
+            - generic [ref=e161]: A1 genera gacetilla y posts por canal
+          - generic [ref=e162]:
+            - generic [ref=e163]: "4"
+            - generic [ref=e164]: El contenido queda como borrador
+          - generic [ref=e165]:
+            - generic [ref=e166]: "5"
+            - generic [ref=e167]: Responsable humano revisa, observa o aprueba
+        - generic [ref=e168]: 6/14
+      - article [ref=e169] [cursor=pointer]:
+        - generic [ref=e170]: Caso mostrable
+        - generic [ref=e171]:
+          - heading "Demo sugerida" [level=1] [ref=e172]
+          - paragraph [ref=e173]: Una nueva actividad de Extension convertida en comunicacion lista para revisar.
+          - list [ref=e174]:
+            - listitem [ref=e175]: Datos minimos en una planilla.
+            - listitem [ref=e176]: Click o trigger de generacion.
+            - listitem [ref=e177]: Google Doc con gacetilla institucional.
+            - listitem [ref=e178]: "Dos versiones de post: Instagram y LinkedIn."
+            - listitem [ref=e179]: Estado pendiente de validacion.
+            - listitem [ref=e180]: Registro con fecha, solicitud, output y validador.
+        - generic [ref=e181]:
+          - generic [ref=e182]:
+            - strong [ref=e183]: Antes
+            - generic [ref=e184]: Redaccion manual y evidencia dispersa.
+          - generic [ref=e185]:
+            - strong [ref=e186]: Despues
+            - generic [ref=e187]: Borrador revisable, trazable y adaptado por canal.
+        - generic [ref=e188]: 7/14
+      - article [ref=e189] [cursor=pointer]:
+        - generic [ref=e190]: Roadmap 2026
+        - generic [ref=e191]:
+          - heading "Maduracion por evidencia" [level=1] [ref=e192]
+          - paragraph [ref=e193]: El PPS cubre Agente 1 durante el primer año. El P100 completo continua luego con integracion multiagente.
+        - generic [ref=e194]:
+          - generic [ref=e195]:
+            - generic [ref=e196]: S1 2026 - TRL 3
+            - text: MVP de gacetillas y posts con outputs, logs y checklist SEU.
+          - generic [ref=e197]:
+            - generic [ref=e198]: S2 2026 - TRL 4
+            - text: Confirmaciones, lenguaje natural interno y certificados con usuarios reales internos.
+          - generic [ref=e199]:
+            - generic [ref=e200]: Feb 2027
+            - text: Demo, cierre, paquete final y transferencia hacia P100.
+        - generic [ref=e201]: 8/14
+      - article [ref=e202] [cursor=pointer]:
+        - generic [ref=e203]: Primer valor visible
+        - generic [ref=e204]:
+          - heading "Por que empezar por A1" [level=1] [ref=e205]
+          - list [ref=e206]:
+            - listitem [ref=e207]: Convierte actividades en difusion.
+            - listitem [ref=e208]: Recibe insumos de A2, A3, A4 y A5 sin orquestarlos.
+            - listitem [ref=e209]: Mejora el Proceso 4, que da visibilidad a cursos, eventos y programas.
+            - listitem [ref=e210]: "Permite demostrar IA con bajo riesgo: borradores, validacion y evidencia."
+          - generic [ref=e211]: "A1 no centraliza el P100: lo hace comunicable."
+        - generic [ref=e212]:
+          - generic [ref=e213]:
+            - strong [ref=e214]: A2
+            - generic [ref=e215]: Contenido historico para difusion
+          - generic [ref=e216]:
+            - strong [ref=e217]: A3
+            - generic [ref=e218]: Eventos detectados para comunicar
+          - generic [ref=e219]:
+            - strong [ref=e220]: A4
+            - generic [ref=e221]: Respuestas complejas como insumo
+          - generic [ref=e222]:
+            - strong [ref=e223]: A5
+            - generic [ref=e224]: Texto enriquecido para publicar
+        - generic [ref=e225]: 9/14
+      - article [ref=e226] [cursor=pointer]:
+        - generic [ref=e227]: Gobierno del riesgo
+        - generic [ref=e228]:
+          - heading "Riesgos y controles" [level=1] [ref=e229]
+          - paragraph [ref=e230]: El proyecto no se defiende prometiendo autonomia total; se defiende demostrando control.
+        - generic [ref=e231]:
+          - generic [ref=e232]:
+            - strong [ref=e233]: Informacion inventada
+            - emphasis [ref=e234]: Fuentes visibles, prompts restrictivos y revision humana.
+          - generic [ref=e235]:
+            - strong [ref=e236]: Tono no institucional
+            - emphasis [ref=e237]: Plantillas y checklist SEU.
+          - generic [ref=e238]:
+            - strong [ref=e239]: Publicacion indebida
+            - emphasis [ref=e240]: "Estados bloqueantes: borrador, pendiente, aprobado, rechazado."
+          - generic [ref=e241]:
+            - strong [ref=e242]: Falta de evidencia TRL
+            - emphasis [ref=e243]: Logs, outputs, defectos, actas y checklist.
+          - generic [ref=e244]:
+            - strong [ref=e245]: Expansion de alcance
+            - emphasis [ref=e246]: Matriz BPM-HU-DoD y exclusiones A4/A5.
+        - generic [ref=e247]: 10/14
+      - article [ref=e248] [cursor=pointer]:
+        - generic [ref=e249]: Proximo paso institucional
+        - generic [ref=e250]:
+          - heading "Decision que se necesita" [level=1] [ref=e251]
+          - paragraph [ref=e252]: Para avanzar con una demostracion convincente, la SEU debe confirmar cinco insumos.
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - generic [ref=e255]: "1"
+            - generic [ref=e256]: Plantilla inicial de gacetilla.
+          - generic [ref=e257]:
+            - generic [ref=e258]: "2"
+            - generic [ref=e259]: Reglas de tono para Instagram y LinkedIn.
+          - generic [ref=e260]:
+            - generic [ref=e261]: "3"
+            - generic [ref=e262]: Campos minimos de la planilla de actividades.
+          - generic [ref=e263]:
+            - generic [ref=e264]: "4"
+            - generic [ref=e265]: Responsables de validacion por tipo de pieza.
+          - generic [ref=e266]:
+            - generic [ref=e267]: "5"
+            - generic [ref=e268]: Muestra real o semirreal para probar el MVP.
+        - generic [ref=e269]: 11/14
+      - article [ref=e270] [cursor=pointer]:
+        - generic [ref=e271]: Cierre ejecutivo
+        - generic [ref=e272]:
+          - heading "Extension Bot no reemplaza a la SEU" [level=1] [ref=e273]
+          - paragraph [ref=e274]: Le da una linea de produccion comunicacional con control humano, bajo costo y evidencia academica.
+          - list [ref=e275]:
+            - listitem [ref=e276]: automatizar gacetillas y posts;
+            - listitem [ref=e277]: incorporar confirmaciones, interaccion interna y certificados;
+            - listitem [ref=e278]: demostrar TRL 3 y TRL 4 con evidencia;
+            - listitem [ref=e279]: dejar una base transferible al Proyecto Centenario.
+        - generic [ref=e280]:
+          - generic [ref=e281]:
+            - strong [ref=e282]: Asiste
+            - generic [ref=e283]: El agente genera borradores y acelera tareas repetitivas.
+          - generic [ref=e284]:
+            - strong [ref=e285]: Controla
+            - generic [ref=e286]: La institucion valida, aprueba y conserva responsabilidad.
+          - generic [ref=e287]:
+            - strong [ref=e288]: Demuestra
+            - generic [ref=e289]: El avance se cierra con evidencia, no con relato.
+        - generic [ref=e290]: 12/14
+      - article [ref=e291] [cursor=pointer]:
+        - generic [ref=e292]: Preguntas dificiles
+        - generic [ref=e293]:
+          - heading "Respuestas a objeciones" [level=1] [ref=e294]
+          - paragraph [ref=e295]: La venta mejora cuando los limites estan claros.
+        - generic [ref=e296]:
+          - generic [ref=e297]:
+            - strong [ref=e298]: La IA puede equivocarse.
+            - emphasis [ref=e299]: Si. Por eso el agente no publica ni emite sin validacion humana registrada.
+          - generic [ref=e300]:
+            - strong [ref=e301]: Esto reemplaza personal?
+            - emphasis [ref=e302]: No. Automatiza borradores y tareas repetitivas; la responsabilidad institucional sigue en la SEU.
+          - generic [ref=e303]:
+            - strong [ref=e304]: No es demasiado grande?
+            - emphasis [ref=e305]: El alcance esta acotado a HU-010 a HU-014 durante 2026. S3-S4 son continuidad P100.
+          - generic [ref=e306]:
+            - strong [ref=e307]: Que pasa si no hay datos completos?
+            - emphasis [ref=e308]: El sistema marca la solicitud como incompleta y no genera comunicacion oficial.
+        - generic [ref=e309]: 13/14
+      - article [ref=e310] [cursor=pointer]:
+        - generic [ref=e311]: Trazabilidad documental
+        - generic [ref=e312]:
+          - heading "Fuentes del deck" [level=1] [ref=e313]
+          - paragraph [ref=e314]: El discurso sale del corpus vigente del proyecto, no de claims inventados.
+        - generic [ref=e315]:
+          - code [ref=e316]: Agentes/extension_bot_experto.md
+          - code [ref=e317]: Contenido/Definicion/arquitectura-multiagente.md
+          - code [ref=e318]: Contenido/bible/Procesos y Agentes.md
+          - code [ref=e319]: Documentos/Anteproyecto/Anteproyecto-PPS-Juan-Ignacio-Gone.tex
+          - code [ref=e320]: Documentos/CasosUso/Casos-de-Uso-Agente-1-PPS-Juan-Ignacio-Gone.md
+          - code [ref=e321]: Documentos/PlanCalidad/Plan-Calidad-Agente-1-PPS-Juan-Ignacio-Gone.md
+          - code [ref=e322]: Documentos/PlanRiesgos/Plan-Riesgos-Agente-1-PPS-Juan-Ignacio-Gone.md
+          - code [ref=e323]: Documentos/Gantt/README.md
+        - generic [ref=e324]: 14/14
