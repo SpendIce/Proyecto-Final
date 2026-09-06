@@ -36,8 +36,46 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/workspace_e2e.py`: runner Sheets→procesamiento→Drive, offline por defecto y live con doble opt-in.
 - `src/agente1/persistencia.py` y `migrations/`: puerto en memoria y SQL del spike PostgreSQL, ya ejecutado contra un contenedor efímero.
 - `src/agente1/confirmaciones.py`: lifecycle offline de HU-012 con entrega únicamente fake.
+- `src/agente1/politicas/politica_redes_provisional_v1.json` y `src/agente1/politica_redes.py`: política de redes de HU-011 como inventario de reglas verificables, con sus parámetros por canal y el estado de cada regla (`ACTIVA`, `NO_APLICADA_PENDIENTE_SEU`, `NO_MECANIZABLE`).
+- `src/agente1/contracts/matriz_origenes_inscripcion_v1.json` y `src/agente1/origenes_inscripcion.py`: matriz operativa de HU-012 por origen de inscripción y decisión de envío fail-closed; ningún origen habilita envío.
+- `scripts/medir_capacidad_hu011.py`: prueba de capacidad local contra el volumen de referencia informado por la SEU; mide latencia fría y caliente y tasa de conformidad, y proyecta el mes.
 - `scripts/operaciones_seguras.py`: health, reconciliación, consolidación y retención en dry-run.
 - `salida/`: evidencia runtime local ignorada por Git.
+
+## Dónde está documentada cada decisión
+
+El criterio de documentación del código es: los docstrings de módulo explican
+**por qué** el módulo está hecho así y qué compromiso institucional sostiene;
+los docstrings de función describen el contrato; los comentarios en línea sólo
+aparecen donde el "por qué" no se deduce leyendo el código. Nada documenta lo
+que el código ya dice por sí mismo.
+
+Para revisar una decisión puntual, empezar por el docstring del módulo:
+
+| Decisión | Dónde está explicada |
+|---|---|
+| Por qué el modelo no escribe los datos de la actividad (renderer determinista y gate de hechos) | `src/agente1/posts.py`, docstring de módulo y de `_parsear_creatividad_estructurada` |
+| Por qué se rechaza cualquier dígito en la zona creativa | `posts.py`, comentario sobre `texto_creativo` |
+| Por qué existe un control de registro rioplatense | `posts.py`, comentario de `PATRON_TUTEO` |
+| Por qué el camino `text-v1` sigue en el repo | `posts.py`, docstrings de `procesar_post` y `_validar_salida` |
+| Por qué toda falla termina sin borrador | `src/agente1/procesamiento.py`, docstring de módulo |
+| Por qué el log guarda hashes y no contenido | `procesamiento.py` y `src/agente1/persistencia.py`, docstrings de módulo |
+| Por qué no hay reintento automático tras una ejecución cortada | `src/agente1/workspace_e2e.py`, docstring de módulo y `RegistroIdempotenciaArchivo` |
+| Por qué la reserva de idempotencia se toma recién al escribir | `workspace_e2e.py`, docstring de `_DestinoIdempotente` |
+| Por qué el modo live exige dos banderas | `workspace_e2e.py`, `crear_dependencias_workspace_live` |
+| Por qué se usa HTTP a mano y no el SDK de Google | `src/agente1/google_workspace.py`, docstring de módulo |
+| Qué pasa si la copia de la plantilla queda huérfana | `google_workspace.py`, `GoogleDrivePlantillaDestinoBorradores` y `DestinoBorradoresError` |
+| Por qué el encabezado de la planilla debe ser exacto (y qué implica para Google Forms) | `google_workspace.py`, `_buscar_fila` |
+| Por qué el generador sólo acepta loopback | `src/agente1/ollama.py`, docstring de módulo y `_validar_base_url` |
+| Por qué HU-012 modela un envío que no se hace | `src/agente1/confirmaciones.py`, docstring de módulo |
+| Por qué no se borra nada, sólo se marca | `persistencia.py`, `eliminar_logicamente_anteriores` |
+| Qué prueba y qué no prueba la auditoría de seguridad | `src/agente1/auditoria_d2.py`, `auditar_manifest` |
+| Por qué los límites de redes son provisionales | `src/agente1/politica_redes.py`, docstring de módulo (DEF-A1-007) |
+| Por qué ningún origen de inscripción habilita envío | `src/agente1/origenes_inscripcion.py`, docstring de módulo |
+
+Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
+de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
+encabezados.
 
 ## Ejecutar las pruebas
 
@@ -292,9 +330,12 @@ estaban cubiertas por el esquema: borradores colgados de ejecuciones `FALLIDA`,
 `INCOMPLETA` o `INICIADA`, `output_hash` de borrador distinto al de su ejecución,
 validaciones anteriores al borrador y timestamps futuros.
 `migrations/0002_integridad_referencial_borradores.up.sql` cierra las tres
-primeras mediante claves foráneas compuestas; los controles de timestamp futuro
-siguen dependiendo del puerto, porque exigirían `now()` dentro de un CHECK. El
-detalle está en `evidencias/validacion-migraciones-postgresql-efimero-2026-08-17.md`.
+primeras mediante claves foráneas compuestas. La migración
+`0003_rechazo_timestamps_futuros` agrega triggers para rechazar escrituras
+directas con `creada_en` o `registrada_en` futuro, sin usar `now()` dentro de
+un CHECK. El ciclo completo `0001 → 0002 → 0003`, su rollback y un forward
+final se ejecutaron contra PostgreSQL 16 efímero el 2026-08-26; ver
+`evidencias/validacion-migraciones-postgresql-0003-2026-08-26.md`.
 
 Continúa pendiente ejecutar los mismos contract tests contra un adapter
 PostgreSQL real, que todavía no existe.
@@ -388,9 +429,10 @@ allowlist posterior. Esto prueba conformidad mecánica en dos registros y seis
 intentos; no prueba estabilidad amplia, SLA, calidad institucional, validación
 SEU ni TRL 3. Los benchmarks y manifests v2/v3/v4 están en `evidencias/`.
 
-El incremento quedó versionado en `db06b3e`. La suite completa **se ejecuta
-fuera del sandbox**: 451 pruebas, todas en verde y cero fallas `EPERM`. Las 16 fallas de loopback registradas antes eran
-ambientales del sandbox y no se reprodujeron.
+El incremento quedó versionado en `db06b3e`. En el corte de control del
+2026-08-26, la suite completa **se ejecutó fuera del sandbox**: 455 pruebas,
+todas en verde y cero fallas `EPERM`. Las 16 fallas de loopback registradas bajo
+sandbox son ambientales y no se reproducen fuera de él.
 
 La suite verifica comportamiento del sistema, no redacción de documentación: se
 retiraron las pruebas que afirmaban sobre el texto de este README y de los
@@ -417,11 +459,13 @@ registra, para poder medir la tasa real de conformidad.
 
 ## Próximo incremento según el Gantt
 
-El próximo cierre técnico es reejecutar la suite completa fuera del sandbox,
-inspeccionar el scope y crear un commit atómico cuando se restablezca la
-capacidad, sin inventar un hash antes de hacerlo. Después corresponde validar
-las migraciones sobre PostgreSQL efímero y, sólo con autorización, correr
-Workspace D2 live. En paralelo, DSI/SEU deben provisionar identidad, recursos y
-permisos, aprobar plantilla/criterios y completar el paquete de validación.
-Hasta entonces HU-010, HU-011 y HU-012 continúan parciales y el Gate G2 / TRL 3
-permanece pendiente.
+El próximo cierre técnico es estabilizar la generación live de HU-011: la
+regresión v3 del 26/08 registró 0/6 aceptaciones y mantiene abiertos
+performance y conformidad mecánica. La persistencia `0001 → 0003` ya fue
+validada como spike y no debe integrarse al core ni reemplazar JSONL sin una
+necesidad operativa. Luego corresponde completar la baseline documental de
+HU-012 y, sólo con autorización, correr Workspace D2 live. En paralelo,
+DSI/SEU deben provisionar identidad, recursos y permisos, aprobar
+plantilla/criterios y completar el paquete de validación. Hasta entonces
+HU-010, HU-011 y HU-012 continúan parciales y el Gate G2 / TRL 3 permanece
+pendiente.

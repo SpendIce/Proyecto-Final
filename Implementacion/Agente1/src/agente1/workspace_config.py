@@ -1,3 +1,28 @@
+"""Configuración de Workspace por entorno, validada de una sola vez.
+
+Todo lo que el agente puede tocar en Google —qué planilla, qué rango, qué
+plantilla, qué carpeta— viene de variables de entorno y se valida acá antes de
+construir ningún adapter. No hay valores por defecto para los identificadores:
+un entorno incompleto falla, no cae en un recurso "de prueba" implícito.
+
+Decisiones que no se ven en el código:
+
+- **Se rechazan las variables desconocidas con el prefijo del agente**
+  (`workspace_config_unknown_key`). Un `AGENTE1_WORKSPACE_SPREADSHEET` mal
+  tipeado no debe ignorarse en silencio dejando activa la configuración
+  anterior: es justo el error que llevaría a leer la planilla equivocada.
+- **`max_response_bytes` debe coincidir exactamente con el límite del módulo
+  de Workspace.** No es configurable en la práctica: se pide en el entorno para
+  que quede explícito y asentado en la evidencia, pero cualquier otro valor se
+  rechaza.
+- **El token va aparte, en su propia variable, y nunca en esta estructura.**
+  `resumen_seguro()` es lo único que se publica en reportes: sólo hashes de los
+  identificadores, para poder probar que dos corridas usaron los mismos
+  recursos sin revelar cuáles son.
+- **`repr=False` en la dataclass**: evita que un `print` o un traceback
+  impriman los identificadores reales.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -31,6 +56,10 @@ _REQUIRED_KEYS = frozenset(
 )
 _ALLOWED_KEYS = _REQUIRED_KEYS | {TOKEN_ENV}
 _ID_RE = re.compile(r"[A-Za-z0-9_-]{1,256}\Z")
+# Rango A1 completo y acotado: exige nombre de hoja y celdas inicial y final
+# (`'Respuestas'!A1:I500`). No se admite un rango abierto —ni una hoja entera—
+# para que la lectura tenga un techo conocido y no dependa de cuánto crezca la
+# planilla.
 _A1_RE = re.compile(
     r"(?:'[^'\r\n]{1,100}'|[A-Za-z0-9_ -]{1,100})!"
     r"[A-Z]{1,3}[1-9][0-9]*:[A-Z]{1,3}[1-9][0-9]*\Z"
@@ -57,6 +86,13 @@ class ConfiguracionWorkspace:
     drive_host: str = DRIVE_HOST
 
     def resumen_seguro(self) -> dict[str, object]:
+        """Vista publicable de la configuración: hashes en vez de identificadores.
+
+        Es lo que se adjunta a reportes y evidencias. Permite verificar que una
+        corrida usó los recursos autorizados —comparando hashes contra los
+        declarados— sin exponer las URLs de la planilla ni de la carpeta.
+        """
+
         return {
             "ambiente": self.ambiente,
             "endpoints": [self.sheets_host, self.docs_host, self.drive_host],
@@ -93,6 +129,14 @@ class TokenEntornoProvider:
 def cargar_configuracion_workspace(
     environ: Mapping[str, str] | None = None,
 ) -> ConfiguracionWorkspace:
+    """Lee y valida el entorno. Falla con un código, nunca con datos adentro.
+
+    `environ` inyectable para poder probar sin tocar el entorno real del
+    proceso. Los mensajes de error son códigos (`workspace_config_invalid`) y
+    no dicen qué variable ni con qué valor falló: ese detalle terminaría en
+    logs de CI.
+    """
+
     env = os.environ if environ is None else environ
     desconocidas = {
         clave for clave in env if clave.startswith(_PREFIX) and clave not in _ALLOWED_KEYS

@@ -1,3 +1,7 @@
+"""Contrato de insumos de A2-A5: cada motivo de rechazo tiene su código, el
+payload se valida como dato (nunca se ejecuta ni se interpreta) y el resumen
+de auditoría no filtra contenido."""
+
 import json
 from pathlib import Path
 

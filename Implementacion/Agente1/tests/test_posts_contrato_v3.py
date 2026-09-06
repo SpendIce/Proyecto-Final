@@ -94,6 +94,29 @@ def test_v3_conserva_el_gate_de_hechos(tmp_path: Path) -> None:
     assert "unauthorized_number" in registro["validation_errors"]
 
 
+@pytest.mark.parametrize(
+    ("campo", "valor", "error"),
+    [
+        ("prosa", "Un seminario remoto para seguir aprendiendo junto a otras personas.", "unauthorized_fact_claim"),
+        ("cta", "Inscribite ahora y asegurá tu lugar en esta propuesta.", "unauthorized_call_to_action"),
+        ("cta", "Inscríbete y conocé nuevas propuestas para participar.", "non_rioplatense_register"),
+        ("prosa", "Este taller propone un espacio abierto para compartir experiencias.", "source_fact_in_creative_field"),
+    ],
+)
+def test_v3_rechaza_riesgos_linguisticos_y_fragmentos_de_hechos(
+    campo: str, valor: str, error: str, tmp_path: Path
+) -> None:
+    """Regresiones de DEF-A1-012; no sustituyen la validación editorial SEU."""
+    creatividad = dict(CREATIVIDAD_LIBRE)
+    creatividad[campo] = valor
+
+    resultado = _generar(creatividad, CONTRATO_CREATIVO_V3, tmp_path)
+
+    assert resultado.estado == "FALLIDA"
+    registro = json.loads(resultado.log_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert error in registro["validation_errors"]
+
+
 def test_v3_rechaza_texto_por_debajo_del_minimo(tmp_path: Path) -> None:
     creatividad = dict(CREATIVIDAD_LIBRE)
     creatividad["gancho"] = "Hola."

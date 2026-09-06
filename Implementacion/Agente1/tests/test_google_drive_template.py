@@ -1,3 +1,7 @@
+"""Adapter de plantilla en Drive: la copia va a la carpeta autorizada, el título
+lleva la marca de borrador, y una falla al volcar el texto informa el hash de
+reconciliación en vez de dejar el error sin rastro."""
+
 import hashlib
 import json
 

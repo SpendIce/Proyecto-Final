@@ -1,3 +1,7 @@
+"""Runner de punta a punta: la reserva de idempotencia es atómica, una ejecución
+previa sin cerrar bloquea en vez de retomarse, el modo live exige doble opt-in
+y el manifest nunca contiene identificadores ni contenido."""
+
 from __future__ import annotations
 
 import json

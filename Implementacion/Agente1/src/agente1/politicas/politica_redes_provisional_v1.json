@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:politica-redes:v1",
+  "title": "Política de comunicación en redes — reglas verificables (provisional)",
+  "x-policy-version": "politica_redes_provisional_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-hu": "HU-011",
+  "x-proceso-bpm": "P4",
+  "x-defecto-asociado": "DEF-A1-007",
+  "x-origen": "Equipo técnico del PPS. Ningún valor de este artefacto fue aprobado por la SEU.",
+  "x-referencia-solicitud": "Documentos/PoC/Nota-Solicitud-SEU-Agente-1-PPS-Juan-Ignacio-Gone.md, punto 4.1",
+  "description": "Traduce la política de redes a reglas identificadas, parametrizadas y verificables. Cada regla declara si está aplicada mecánicamente por el gate de HU-011, con qué código de validación se observa, de dónde sale su valor y qué punto de la nota a la SEU la reemplazaría por criterio institucional. Una regla ACTIVA debe tener regresión automática; una regla no aplicada no debe presentarse como cumplida.",
+
+  "aplicaciones": {
+    "ACTIVA": "Regla aplicada por el gate y cubierta por regresión automática.",
+    "NO_APLICADA_PENDIENTE_SEU": "Regla identificada cuyo criterio no existe todavía; el sistema no la aplica y no debe simular que la cumple.",
+    "NO_MECANIZABLE": "Regla que requiere juicio editorial humano; el gate no la reemplaza."
+  },
+
+  "canales_soportados": ["instagram", "linkedin"],
+
+  "canales_no_soportados": {
+    "reel": {
+      "motivo": "A1 no genera video, audio, guion audiovisual ni piezas de reel. La SEU informó un mínimo de un reel mensual, pero ese formato queda fuera del alcance del MVP.",
+      "estado": "FUERA_DE_ALCANCE_MVP",
+      "efecto": "Toda solicitud con canal distinto de los soportados termina INVALIDA antes de invocar al modelo."
+    }
+  },
+
+  "canales": {
+    "instagram": {
+      "policy_version": "post_instagram_policy_provisional_v1",
+      "max_chars": 1000,
+      "min_hashtags": 1,
+      "max_hashtags": 10,
+      "max_emojis": 3,
+      "max_exclamaciones": 2,
+      "tono_declarado": "Cercano, cálido y breve, en registro rioplatense.",
+      "origen_valores": "EQUIPO_TECNICO_PROVISIONAL"
+    },
+    "linkedin": {
+      "policy_version": "post_linkedin_policy_provisional_v1",
+      "max_chars": 1000,
+      "min_hashtags": 1,
+      "max_hashtags": 10,
+      "max_emojis": 0,
+      "max_exclamaciones": 0,
+      "tono_declarado": "Profesional y sobrio, orientado a vinculación académica e institucional.",
+      "origen_valores": "EQUIPO_TECNICO_PROVISIONAL"
+    }
+  },
+
+  "hashtags_autorizados_provisionales": [
+    "#Aprender",
+    "#Comunidad",
+    "#Conocimiento",
+    "#Participación"
+  ],
+
+  "lexico_promocional_prohibido": [
+    "imperdible",
+    "increíble",
+    "espectacular",
+    "sorprendente",
+    "revolucionario",
+    "exclusivo",
+    "exclusiva",
+    "oferta",
+    "promoción",
+    "descuento",
+    "última oportunidad",
+    "no te lo pierdas",
+    "no se lo pierdan",
+    "urgente"
+  ],
+
+  "reglas": [
+    {
+      "id": "RED-EXT-01",
+      "dimension": "extension",
+      "enunciado": "El texto renderizado más los hashtags no puede superar max_chars del canal.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "max_chars",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "length_out_of_range",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.1"
+    },
+    {
+      "id": "RED-EXT-02",
+      "dimension": "extension",
+      "enunciado": "Gancho, prosa y CTA deben respetar los mínimos y máximos del contrato creativo vigente.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "limites_creativos",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "creative_field_invalid",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.1"
+    },
+    {
+      "id": "RED-EXT-03",
+      "dimension": "extension",
+      "enunciado": "La extensión debe diferenciarse por canal según criterio editorial institucional.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "max_chars",
+      "aplicacion": "NO_APLICADA_PENDIENTE_SEU",
+      "codigo_gate": null,
+      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
+      "punto_nota_seu": "4.1.1",
+      "observacion": "Hoy ambos canales comparten 1000 caracteres, lo que evidencia un marcador de posición y no un criterio."
+    },
+    {
+      "id": "RED-HTG-01",
+      "dimension": "hashtags",
+      "enunciado": "La cantidad de etiquetas debe quedar entre min_hashtags y max_hashtags del canal.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "min_hashtags/max_hashtags",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "hashtag_count_out_of_range",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.2"
+    },
+    {
+      "id": "RED-HTG-02",
+      "dimension": "hashtags",
+      "enunciado": "Sólo se admiten etiquetas de la allowlist provisional de seguridad.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "hashtags_autorizados_provisionales",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "hashtag_not_in_provisional_safety_allowlist",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.3"
+    },
+    {
+      "id": "RED-HTG-03",
+      "dimension": "hashtags",
+      "enunciado": "No se admiten etiquetas repetidas, ni siquiera con distinta capitalización o normalización.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "hashtags",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "hashtag_duplicate",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.2"
+    },
+    {
+      "id": "RED-HTG-04",
+      "dimension": "hashtags",
+      "enunciado": "Cada etiqueta debe tener forma válida: numeral inicial, sin espacios y sin comenzar con dígito.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "hashtags",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "hashtag_invalid",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.2"
+    },
+    {
+      "id": "RED-HTG-05",
+      "dimension": "hashtags",
+      "enunciado": "Las etiquetas institucionales reales de la Facultad deben reemplazar a la allowlist provisional.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "hashtags_autorizados_provisionales",
+      "aplicacion": "NO_APLICADA_PENDIENTE_SEU",
+      "codigo_gate": null,
+      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
+      "punto_nota_seu": "4.1.3",
+      "observacion": "Las cuatro etiquetas vigentes son genéricas y fueron propuestas por el equipo técnico."
+    },
+    {
+      "id": "RED-REG-01",
+      "dimension": "registro",
+      "enunciado": "Se rechazan formas explícitas de tuteo peninsular o neutro en el texto creativo.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "registro",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "non_rioplatense_register",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.4"
+    },
+    {
+      "id": "RED-REG-02",
+      "dimension": "registro",
+      "enunciado": "El registro institucional definitivo —voseo rioplatense, tuteo neutro o tercera persona— debe ser decidido por la SEU.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "registro",
+      "aplicacion": "NO_APLICADA_PENDIENTE_SEU",
+      "codigo_gate": null,
+      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
+      "punto_nota_seu": "4.1.4",
+      "observacion": "El rechazo de tuteo es una decisión técnica conservadora, no un criterio editorial aprobado."
+    },
+    {
+      "id": "RED-TON-01",
+      "dimension": "tono",
+      "enunciado": "El texto creativo no puede usar léxico promocional superlativo ni de urgencia comercial.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "lexico_promocional_prohibido",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "unauthorized_promotional_language",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.5"
+    },
+    {
+      "id": "RED-TON-02",
+      "dimension": "tono",
+      "enunciado": "La cantidad de signos de exclamación no puede superar max_exclamaciones del canal.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "max_exclamaciones",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "unauthorized_exclamation",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.5",
+      "observacion": "LinkedIn admite cero por el tono sobrio declarado en su prompt; Instagram admite hasta dos."
+    },
+    {
+      "id": "RED-TON-03",
+      "dimension": "tono",
+      "enunciado": "La adecuación editorial del tono a la identidad institucional por canal.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "tono_declarado",
+      "aplicacion": "NO_MECANIZABLE",
+      "codigo_gate": null,
+      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
+      "punto_nota_seu": "4.1.5",
+      "observacion": "Ningún control léxico decide calidad ni adecuación; requiere revisión humana registrada."
+    },
+    {
+      "id": "RED-EMO-01",
+      "dimension": "emojis",
+      "enunciado": "La cantidad de emojis no puede superar max_emojis del canal.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "max_emojis",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "unauthorized_emoji",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.6",
+      "observacion": "El prompt de LinkedIn ya declaraba «sin emojis» sin que ningún control lo verificara."
+    },
+    {
+      "id": "RED-CTA-01",
+      "dimension": "cta",
+      "enunciado": "El CTA no puede prometer inscripción, registro, reserva, compra ni agenda mientras no exista un circuito informado.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "cta",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "unauthorized_call_to_action",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.7"
+    },
+    {
+      "id": "RED-CTA-02",
+      "dimension": "cta",
+      "enunciado": "El texto creativo no puede afirmar que algo fue aprobado, publicado, enviado, confirmado, validado u oficializado.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "cta",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "unauthorized_action_claim",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1.7"
+    },
+    {
+      "id": "RED-CTA-03",
+      "dimension": "cta",
+      "enunciado": "El CTA admisible cuando exista circuito de inscripción real, con su destino autorizado.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "cta",
+      "aplicacion": "NO_APLICADA_PENDIENTE_SEU",
+      "codigo_gate": null,
+      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
+      "punto_nota_seu": "4.1.7",
+      "observacion": "Depende también de la consulta 5.1 sobre la existencia del circuito de inscripción."
+    },
+    {
+      "id": "RED-ALC-01",
+      "dimension": "alcance",
+      "enunciado": "Sólo se procesan los canales soportados; cualquier otro canal se rechaza antes de invocar al modelo.",
+      "canales": ["instagram", "linkedin"],
+      "parametro": "canales_soportados",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "channel_not_allowed",
+      "origen_valor": "EQUIPO_TECNICO_PROVISIONAL",
+      "punto_nota_seu": "4.1"
+    },
+    {
+      "id": "RED-ALC-02",
+      "dimension": "alcance",
+      "enunciado": "El canal reel está fuera del alcance del MVP: A1 no genera video, audio ni guion audiovisual.",
+      "canales": ["reel"],
+      "parametro": "canales_no_soportados",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "channel_not_allowed",
+      "origen_valor": "ALCANCE_DECLARADO_DEL_AGENTE",
+      "punto_nota_seu": "4.1"
+    },
+    {
+      "id": "RED-ALC-03",
+      "dimension": "alcance",
+      "enunciado": "Si la SEU requiere apoyo de A1 para reels, debe definirse qué producto textual corresponde y con qué validación.",
+      "canales": ["reel"],
+      "parametro": "canales_no_soportados",
+      "aplicacion": "NO_APLICADA_PENDIENTE_SEU",
+      "codigo_gate": null,
+      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
+      "punto_nota_seu": "4.1",
+      "observacion": "El volumen informado incluye al menos un reel mensual; hoy ese formato no tiene ningún soporte en A1."
+    }
+  ]
+}

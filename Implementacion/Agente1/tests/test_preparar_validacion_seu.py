@@ -1,3 +1,9 @@
+"""Acta de validación humana de la SEU: una aprobación exige identidad, fecha con
+zona, puntajes enteros, controles booleanos completos y la muestra versionada; un
+puntaje bajo obliga a observación, y ajuste o rechazo exigen motivo. El manifest
+resultante lleva sólo referencias y hashes, y ni siquiera sus mensajes de error
+repiten paths que puedan contener datos personales."""
+
 from __future__ import annotations
 
 import hashlib

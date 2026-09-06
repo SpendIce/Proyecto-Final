@@ -1,3 +1,30 @@
+"""HU-010: de una fila de solicitud a un borrador de gacetilla auditado.
+
+Este módulo es el pipeline completo de la gacetilla: leer la fila, validarla,
+pedirle el texto al generador, verificar mecánicamente lo que devolvió,
+guardarlo por el puerto de salida y registrar la ejecución. Cada camino
+—incluidos todos los de falla— termina escribiendo exactamente una línea en
+`logs/ejecuciones.jsonl`.
+
+Decisiones que no se ven en el código:
+
+- **Fail-closed en cada frontera.** Falta de datos, generador caído, salida que
+  no cumple el contrato o destino inaccesible: en todos los casos no queda
+  borrador. Nunca se produce una salida "parcial" o "mejor que nada", porque el
+  destinatario del borrador es una comunicación institucional.
+- **La validación de la salida es mecánica, no de calidad.** `_validar_salida`
+  comprueba estructura y que los hechos coincidan con la fuente; no juzga si el
+  texto está bien escrito. Eso lo decide la SEU en la revisión humana.
+- **El log guarda hashes, no contenido.** `input_hash` y `output_hash` permiten
+  probar después que un borrador salió de una fila determinada, sin copiar
+  datos de la actividad ni el texto generado a un segundo lugar.
+- **Los códigos de error se filtran contra una allowlist**
+  (`SOURCE_ERROR_CODES`, `DESTINATION_ERROR_CODES`) antes de registrarse: un
+  adapter no puede inyectar texto arbitrario en la auditoría.
+- **El estado de éxito se llama `PENDIENTE_VALIDACION`, no `OK`.** Generar el
+  borrador no completa el trabajo: recién lo deja listo para revisión humana.
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -28,9 +55,15 @@ from .fuentes import (
 
 
 HU = "HU-010"
+# Estas tres versiones se escriben en cada línea del log. Si alguna cambia hay
+# que subirle el número: es lo que permite explicar, meses después, por qué dos
+# ejecuciones de la misma fila dieron textos distintos.
 PROMPT_VERSION = "gacetilla_v2"
 CONTRACT_VERSION = "gacetilla_input_v1"
 MAX_BORRADOR_CHARS = 5000
+# Límites de extensión de la gacetilla. Son técnicos y provisionales: se
+# eligieron para que el modelo no se extienda en prosa no verificable, no
+# porque la SEU haya fijado una longitud editorial (ver DEF-A1-007).
 MAX_CUERPO_WORDS = 12
 MAX_BAJADA_WORDS = 12
 CONTRATO_ENTRADA = json.loads(
@@ -60,6 +93,11 @@ PATRON_DATOS = re.compile(
     r"(?:\nLugar: (?P<lugar>[^\n]+))?\Z"
 )
 ID_SOLICITUD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
+# Allowlists de códigos de error registrables. Un adapter que devuelva un
+# código fuera de estos conjuntos se registra como fallo genérico
+# (`source_unavailable` / `destination_unavailable`): la auditoría sólo admite
+# vocabulario conocido, para que sea analizable y para que ningún mensaje de
+# excepción termine copiado en el log.
 SOURCE_ERROR_CODES = frozenset(
     {
         "sheets_headers_invalid",
@@ -102,6 +140,13 @@ DESTINATION_ERROR_CODES = frozenset(
 
 
 class Generator(Protocol):
+    """Puerto del generador de texto.
+
+    `modelo` y `num_predict` no son detalles internos del adapter: se registran
+    en el log, porque un borrador sólo es reproducible si consta con qué modelo
+    y con qué límite de tokens se produjo.
+    """
+
     modelo: str
     num_predict: int | None
 
@@ -109,6 +154,15 @@ class Generator(Protocol):
 
 
 class FakeGenerator:
+    """Generador determinista: devuelve siempre el texto que se le pasó.
+
+    Existe para que las pruebas y las matrices de regresión ejerciten el
+    pipeline completo —validación, destino, auditoría— sin depender de un
+    modelo instalado ni de su variabilidad. Se identifica como
+    `fake-determinista` en el log, así una evidencia producida con él nunca se
+    confunde con una corrida real contra un modelo.
+    """
+
     modelo = "fake-determinista"
     num_predict = None
 
@@ -121,6 +175,13 @@ class FakeGenerator:
 
 @dataclass(frozen=True)
 class ResultadoProceso:
+    """Salida del pipeline.
+
+    `borrador_path` viene en `None` cuando no hubo borrador (falla) y también
+    cuando el destino es remoto y no dejó archivo local; para saber dónde quedó
+    en ese caso hay que mirar `referencia_borrador`.
+    """
+
     estado: str
     borrador_path: Path | None
     log_path: Path
@@ -136,6 +197,8 @@ def procesar_fila_csv(
     directorio_salida: Path,
     generator: Generator,
 ) -> ResultadoProceso:
+    """Atajo para el camino local: CSV como fuente y Markdown como destino."""
+
     return procesar_solicitud(
         fuente=CsvFuenteSolicitudes(csv_path),
         id_solicitud=id_solicitud,
@@ -152,6 +215,19 @@ def procesar_solicitud(
     generator: Generator,
     destino: DestinoBorradores | None = None,
 ) -> ResultadoProceso:
+    """Ejecuta el pipeline de gacetilla para una solicitud.
+
+    Devuelve siempre un `ResultadoProceso` y nunca propaga excepciones del
+    generador, de la fuente ni del destino: cada falla se traduce a un estado y
+    a una línea de auditoría. Estados posibles: `PENDIENTE_VALIDACION` (hay
+    borrador), `INCOMPLETA` (faltan datos obligatorios), `INVALIDA` (la
+    solicitud no existe o el id no es válido) y `FALLIDA` (falló el generador,
+    la salida no cumplió el contrato, o falló el destino).
+
+    El `correlation_id` se genera antes de tocar nada para que hasta el fallo
+    más temprano quede correlacionado con el resto de la evidencia.
+    """
+
     correlation_id = str(uuid.uuid4())
     inicio_fuente = time.perf_counter()
     try:
@@ -195,8 +271,15 @@ def procesar_solicitud(
             latencia_s=round(time.perf_counter() - inicio_fuente, 6),
             source_error_code=source_error_code,
         )
+    # Control previo a la generación: si falta un campo obligatorio no se
+    # llama al modelo. Además de evitar una comunicación incompleta, ahorra el
+    # costo de una generación que igual se descartaría. `lugar` no está en
+    # CAMPOS_OBLIGATORIOS: hay actividades sin sede definida y la SEU todavía
+    # no fijó si debe exigirse.
     faltantes = [campo for campo in CAMPOS_OBLIGATORIOS if not fila.get(campo, "").strip()]
     if faltantes:
+        # El nombre de los campos faltantes sí va al log: son nombres de
+        # columna del contrato, no datos de la actividad.
         error = f"Campos obligatorios faltantes: {', '.join(faltantes)}"
         log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
         _registrar(
@@ -269,6 +352,8 @@ def procesar_solicitud(
             validation_errors=validation_errors,
         )
 
+    # La marca se antepone recién acá, después de que la salida pasó el
+    # contrato: nada que no haya sido validado llega a tener forma de borrador.
     borrador = f"{BORRADOR_MARKER}{contenido}\n"
     destino_efectivo = destino or MarkdownDestinoBorradores(directorio_salida)
     try:
@@ -380,6 +465,9 @@ def _resultado_fallido(
 
 def _resultado_fuente_fallida(
     *,
+    # `id_solicitud` entra como `object` a propósito: este camino también cubre
+    # el caso en que el id no es siquiera un string válido, y nunca se escribe
+    # tal cual en el log sino como hash (ver abajo).
     id_solicitud: object,
     directorio_salida: Path,
     generator: Generator,
@@ -389,6 +477,10 @@ def _resultado_fuente_fallida(
 ) -> ResultadoProceso:
     if source_error_code not in SOURCE_ERROR_CODES:
         source_error_code = "source_unavailable"
+    # Se distingue "la solicitud está mal o no existe" (INVALIDA, no se
+    # reintenta: hay que corregir el origen) de "la fuente falló" (FALLIDA,
+    # puede reintentarse cuando el servicio vuelva). La diferencia importa para
+    # decidir qué hacer con la solicitud, no sólo para el reporte.
     invalida = source_error_code in {
         "source_request_invalid",
         "source_request_not_found",
@@ -405,6 +497,10 @@ def _resultado_fuente_fallida(
         log_path,
         {
             "correlation_id": correlation_id,
+            # Cuando la fuente falla no se pudo confirmar que el id
+            # corresponda a una solicitud real, así que se registra su hash en
+            # vez del valor: un id inválido puede venir de afuera y no debe
+            # quedar escrito literal en la auditoría.
             "id_solicitud": None,
             "id_solicitud_hash": (
                 _hash_texto(id_solicitud) if isinstance(id_solicitud, str) else None
@@ -481,6 +577,16 @@ def _resultado_destino_fallido(
 def _normalizar_fila_fuente(
     fila: object, id_solicitud: str
 ) -> tuple[dict[str, str], str | None]:
+    """Lleva lo que devolvió el adapter a la forma canónica del contrato.
+
+    Devuelve `(fila, None)` o `({}, codigo_de_error)` en lugar de levantar: el
+    llamador necesita registrar el código, no manejar una excepción más.
+
+    El control de `source_id_mismatch` parece redundante —se pidió ese id— pero
+    protege contra un adapter que devuelva la fila equivocada: sin él, un
+    borrador podría construirse con los datos de otra actividad.
+    """
+
     if not isinstance(fila, dict) or any(
         campo not in fila for campo in CAMPOS_OBLIGATORIOS
     ):
@@ -507,6 +613,9 @@ def _construir_prompt(fila: dict[str, str]) -> str:
 
 
 def _registrar(path: Path, registro: dict[str, object]) -> None:
+    # Append a un JSONL, una línea por ejecución: el archivo se puede analizar
+    # incrementalmente y ninguna corrida pisa a la anterior. `sort_keys` deja
+    # las claves en orden estable para poder comparar (o hashear) evidencias.
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as archivo:
         archivo.write(json.dumps(registro, ensure_ascii=False, sort_keys=True) + "\n")
@@ -522,6 +631,24 @@ def _hash_texto(valor: str) -> str:
 
 
 def _validar_salida(contenido: str, fila: dict[str, str]) -> list[str]:
+    """Contrato mecánico mínimo de la gacetilla generada.
+
+    Verifica dos cosas distintas: que el documento tenga la estructura pactada
+    (las cinco secciones, en orden) y que los hechos que declara —título,
+    fecha, organiza, lugar, contacto— sean exactamente los de la fila. El
+    objetivo es detectar que el modelo haya inventado o alterado un dato, que
+    es la falla con consecuencias institucionales; no evaluar la redacción.
+
+    Las comparaciones pasan por `_normalizar_texto` (sin acentos, sin
+    mayúsculas, espacios colapsados) porque el modelo tiende a reescribir con
+    otra capitalización o acentuación, y eso no es invención de un hecho.
+
+    Devuelve una lista de códigos, no un booleano, para que el log diga
+    exactamente qué falló. Algunas verificaciones cortan y devuelven de
+    inmediato: sin estructura válida, el resto de los controles no tendría
+    sobre qué operar.
+    """
+
     errores: list[str] = []
     if len(contenido) > MAX_BORRADOR_CHARS:
         errores.append("length_out_of_range")
@@ -550,6 +677,9 @@ def _validar_salida(contenido: str, fila: dict[str, str]) -> list[str]:
         fila["organiza"]
     ):
         errores.append("organizer_mismatch")
+    # El lugar es opcional en la fuente, así que se controla en los dos
+    # sentidos: si la fila no trae lugar, el borrador tampoco puede traerlo
+    # (sería un dato inventado); si la fila lo trae, tiene que estar y coincidir.
     lugar = fila.get("lugar", "").strip()
     lugar_generado = datos_match.group("lugar")
     if not lugar and lugar_generado is not None:
@@ -574,6 +704,12 @@ def _num_predict(generator: Generator) -> int | None:
 
 
 def _normalizar_texto(valor: str) -> str:
+    """Forma comparable de un texto: sin acentos, sin caso y sin espacios de más.
+
+    Se usa sólo para *comparar* hechos contra la fuente. El borrador conserva
+    el texto tal como lo escribió el modelo: acá no se reescribe nada.
+    """
+
     sin_acentos = "".join(
         caracter
         for caracter in unicodedata.normalize("NFKD", valor)

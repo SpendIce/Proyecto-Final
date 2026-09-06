@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:p100:agente1:confirmacion-inscripcion:v2",
+  "title": "Entrada candidata HU-012 por origen de inscripción",
+  "type": "object",
+  "additionalProperties": false,
+  "x-contract-version": "confirmacion_inscripcion_v2",
+  "x-status": "CANDIDATO_PENDIENTE_CONFIRMACION_SEU",
+  "x-supersedes": "confirmacion_inscripcion_v1",
+  "x-habilita-envio": false,
+  "description": "Contrato candidato derivado del relevamiento SEU del 2026-08-26. Clasifica el origen de la preinscripción para trazabilidad y enrutamiento futuro. No autoriza acceso a SIU/Google Forms, correo, pagos ni envío automático.",
+  "required": [
+    "id_inscripcion",
+    "origen_inscripcion",
+    "tipo_actividad",
+    "nombre_destinatario",
+    "email_destinatario",
+    "actividad",
+    "fecha",
+    "organiza",
+    "contacto"
+  ],
+  "properties": {
+    "id_inscripcion": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"},
+    "origen_inscripcion": {
+      "type": "string",
+      "enum": ["SIU_GUARANI", "SIU_GUARANI_EXTENSION", "GOOGLE_FORMS"],
+      "description": "Canal en el que se registró la preinscripción; no representa una integración activa."
+    },
+    "tipo_actividad": {
+      "type": "string",
+      "enum": ["CURSO", "DIPLOMATURA", "TALLER", "WEBINAR", "INGENIERIA_POR_UN_DIA"],
+      "description": "Clasificación informada por SEU; las combinaciones origen/tipo deben validarse antes de operar."
+    },
+    "nombre_destinatario": {"type": "string", "minLength": 1},
+    "email_destinatario": {"type": "string", "format": "email", "maxLength": 254},
+    "actividad": {"type": "string", "minLength": 1},
+    "fecha": {"type": "string", "minLength": 1},
+    "lugar": {"type": "string", "x-required": false},
+    "organiza": {"type": "string", "minLength": 1},
+    "contacto": {"type": "string", "minLength": 1},
+    "referencia_pdf_informativo": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Referencia controlada al PDF informativo, si SEU confirma que corresponde al caso. No almacenar enlace de pago ni datos de pago en este contrato."
+    },
+    "referencia_aprobacion_actividad": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identificador o referencia recuperable de la aprobación de la actividad; su obligatoriedad queda pendiente de confirmación SEU."
+    }
+  }
+}

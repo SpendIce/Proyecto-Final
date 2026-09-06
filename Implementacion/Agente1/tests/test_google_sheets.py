@@ -1,3 +1,6 @@
+"""Adapter de Sheets: encabezados exactos, filas recortadas por celdas vacías,
+ids duplicados, respuestas demasiado grandes y errores de autorización."""
+
 import json
 import time
 

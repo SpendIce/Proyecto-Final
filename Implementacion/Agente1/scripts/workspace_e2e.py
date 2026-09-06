@@ -1,4 +1,20 @@
 #!/usr/bin/env python3
+"""Runner de línea de comandos del flujo Sheets → Agente 1 → Docs.
+
+Es el único ejecutable que puede salir a Google Workspace, y sólo si se lo pide
+de forma explícita: sin `--live` y `--confirmar-escritura` corre íntegramente
+con fuente y destino en memoria (`FuenteMemoria` / `DestinoMemoria`), que no
+tocan red ni disco remoto. Toda la evidencia disponible al 26/08/2026 se
+produjo por ese camino offline.
+
+En modo live la configuración sale del entorno (`AGENTE1_WORKSPACE_*`) y el
+token de su propia variable; nada de eso se pasa por argv, porque los
+argumentos quedan visibles en la lista de procesos y en el historial del shell.
+
+Cada corrida deja un manifest sanitizado bajo `manifests/`, incluso cuando no
+genera nada: una ejecución bloqueada o duplicada también es evidencia.
+"""
+
 from __future__ import annotations
 
 import argparse

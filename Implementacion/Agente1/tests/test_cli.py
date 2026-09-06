@@ -1,3 +1,7 @@
+"""Contrato público de la CLI: códigos de salida por estado, forma estable del
+JSON de stdout, exclusión mutua de generadores y rechazo de las banderas de
+post cuando el tipo es gacetilla."""
+
 import csv
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Smoke local de HU-010: genera una gacetilla con el generador fake a partir
+# del golden SYN-001 y verifica que la salida sea idéntica. Es la comprobación
+# más rápida de que el pipeline y el contrato siguen funcionando; no usa modelo
+# ni red.
+
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 salida_dir="${1:-${repo_dir}/salida/smoke}"
 fake_output="$(python - "${repo_dir}/golden/SYN-001.md" <<'PY'

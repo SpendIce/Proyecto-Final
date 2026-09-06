@@ -1,3 +1,7 @@
+"""Pipeline de HU-011 de punta a punta: datos incompletos, canal inválido, gate
+de hechos, política incompatible, fallas de destino y la línea de auditoría
+resultante en cada caso."""
+
 import json
 from pathlib import Path
 

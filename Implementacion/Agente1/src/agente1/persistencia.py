@@ -2,6 +2,31 @@
 
 El módulo guarda sólo referencias opacas y hashes. El contenido de solicitudes,
 borradores y prompts permanece en los sistemas que ya son responsables por él.
+
+Modela seis agregados —solicitud, ejecución, borrador, validación, defecto y
+evento— y el ciclo de vida que los une. El adapter incluido es en memoria; el
+esquema SQL equivalente vive en `migrations/` y se ejecutó contra un PostgreSQL
+efímero (ver `evidencias/spike-persistencia-postgresql-*`).
+
+Decisiones que no se ven en el código:
+
+- **El vocabulario está cerrado.** Estados, resultados válidos por estado y
+  códigos de error son conjuntos explícitos, y se validan al escribir. Una
+  ejecución no puede quedar `PENDIENTE_VALIDACION` con resultado
+  `error_generacion`: esa combinación no existe. Es lo que permite consultar la
+  base con confianza en vez de reinterpretar strings sueltos.
+- **Baja lógica, nunca borrado.** `eliminar_logicamente_anteriores` marca
+  `eliminado_en`; las filas quedan. Una evidencia que desaparece no se puede
+  auditar, y la retención de datos personales se resuelve no guardándolos.
+- **La idempotencia compara la firma completa.** Si llega la misma
+  `idempotency_key` con datos distintos, es `ConflictoIdempotencia`, no una
+  reutilización silenciosa: dos cosas distintas no pueden compartir clave.
+- **Los timestamps futuros se rechazan.** Un reloj adelantado —o un registro
+  fabricado— rompería el orden de los eventos, que es lo único que sostiene la
+  reconstrucción de qué pasó y cuándo.
+- **La validación humana se guarda como hash del validador**
+  (`validador_ref_hash`) más la versión del checklist usado: queda constancia
+  de que alguien decidió y con qué criterio, sin almacenar su identidad.
 """
 
 from __future__ import annotations
@@ -288,6 +313,16 @@ class InMemoryRepositorioEjecuciones:
         self._clock = clock or (lambda: datetime.now(timezone.utc))
 
     def iniciar(self, nueva: EjecucionNueva) -> EjecucionPersistida:
+        """Abre una ejecución, creando la solicitud si es la primera vez.
+
+        Reintentar con la misma `idempotency_key` y los mismos datos devuelve la
+        ejecución existente (operación idempotente); con datos distintos es
+        conflicto. Además se controla que una solicitud ya conocida no cambie su
+        `input_hash` ni su `fuente_tipo`: si el mismo id ahora trae otros datos,
+        alguien editó la fila después de procesarla y eso debe verse, no
+        pisarse.
+        """
+
         _validar_ejecucion_nueva(nueva)
         with self._lock:
             self._validar_no_futuro(nueva.creada_en)
@@ -339,6 +374,14 @@ class InMemoryRepositorioEjecuciones:
             return ejecucion
 
     def completar(self, resultado: ResultadoEjecucion) -> None:
+        """Cierra la ejecución con su desenlace y, si hubo, su borrador.
+
+        El borrador nace en `PENDIENTE_VALIDACION`: no existe forma de crear uno
+        ya aprobado. El par estado/resultado se valida contra
+        `RESULTADOS_POR_ESTADO`, así que no puede quedar un desenlace
+        incoherente con el estado.
+        """
+
         _validar_resultado(resultado)
         with self._lock:
             ejecucion = self._obtener_ejecucion(resultado.id_ejecucion)
@@ -386,6 +429,15 @@ class InMemoryRepositorioEjecuciones:
             )
 
     def registrar_validacion(self, validacion: ValidacionNueva) -> None:
+        """Asienta la decisión humana sobre un borrador.
+
+        Es el único camino por el que una ejecución sale de
+        `PENDIENTE_VALIDACION`: el sistema no puede aprobarse a sí mismo ni por
+        tiempo transcurrido. Un borrador ya validado no admite una segunda
+        decisión —para cambiarla habría que generar otro borrador—, y la
+        validación no puede ser anterior al borrador que juzga.
+        """
+
         _validar_validacion(validacion)
         with self._lock:
             if validacion.id_validacion in self._validaciones:
@@ -451,6 +503,18 @@ class InMemoryRepositorioEjecuciones:
     def eliminar_logicamente_anteriores(
         self, *, antes_de: datetime, eliminado_en: datetime
     ) -> int:
+        """Marca como eliminadas las ejecuciones terminadas antes del corte.
+
+        No borra nada: escribe `eliminado_en` y propaga la marca a borradores,
+        validaciones y defectos de esa ejecución, y a la solicitud sólo cuando
+        *todas* sus ejecuciones quedaron marcadas. Cada baja deja además un
+        evento `retencion_eliminacion_logica`, para que la retención misma sea
+        auditable.
+
+        Sólo alcanza a ejecuciones en estado terminal: una `PENDIENTE_VALIDACION`
+        vieja está esperando a una persona, no vencida.
+        """
+
         _validar_timestamp(antes_de)
         _validar_timestamp(eliminado_en)
         with self._lock:
@@ -505,6 +569,12 @@ class InMemoryRepositorioEjecuciones:
             return len(candidatas)
 
     def snapshot(self) -> SnapshotPersistencia:
+        """Copia inmutable del estado, para pruebas y reportes.
+
+        Devuelve `MappingProxyType` sobre copias: quien lo reciba no puede
+        modificar el repositorio por la puerta de atrás.
+        """
+
         with self._lock:
             return SnapshotPersistencia(
                 solicitudes=MappingProxyType(dict(self._solicitudes)),
@@ -557,6 +627,20 @@ def _validar_ejecucion_nueva(nueva: EjecucionNueva) -> None:
 
 
 def _validar_resultado(resultado: ResultadoEjecucion) -> None:
+    """Reglas de coherencia del desenlace de una ejecución.
+
+    Las invariantes que sostiene, todas verificadas por pruebas:
+
+    - Sólo `PENDIENTE_VALIDACION` puede traer borrador y `output_hash`. Ningún
+      otro estado —fallido, incompleto— puede dejar un borrador registrado.
+    - Un borrador pendiente no puede traer `error_code`: si hubo error, no hay
+      borrador válido.
+    - Una solicitud `INCOMPLETA` tampoco lleva `error_code`: faltaban datos, el
+      sistema no falló.
+    - El `output_hash` del borrador y el de la ejecución deben coincidir; si no,
+      se estaría registrando el hash de otro contenido.
+    """
+
     _validar_patron(resultado.id_ejecucion, ID_RE, "id_ejecucion")
     _validar_timestamp(resultado.finalizada_en)
     if not isinstance(resultado.estado, EstadoEjecucion):
@@ -624,11 +708,16 @@ def _validar_hash(valor: str) -> None:
 
 
 def _validar_timestamp(valor: datetime) -> None:
+    # Zona horaria obligatoria: un timestamp ingenuo no es comparable entre
+    # máquinas, y toda la trazabilidad depende de poder ordenar eventos.
     if not isinstance(valor, datetime) or valor.tzinfo is None or valor.utcoffset() is None:
         raise ValueError("el timestamp debe incluir zona horaria")
 
 
 def _firma_nueva(nueva: EjecucionNueva) -> tuple[str, ...]:
+    # Firma usada para decidir si un reintento es "la misma ejecución". Incluye
+    # el correlation_id a propósito: dos intentos con distinta correlación son
+    # eventos distintos aunque compartan clave, y eso es un conflicto.
     return (
         nueva.id_solicitud,
         nueva.idempotency_key,

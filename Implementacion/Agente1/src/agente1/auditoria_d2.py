@@ -40,7 +40,27 @@ _SAFE_ERROR_CODE_RE = re.compile(r"[a-z][a-z0-9_]{0,127}\Z")
 
 
 def auditar_manifest(manifest: object) -> dict[str, object]:
-    """Valida un manifest de observaciones ya sanitizado, sin ejecutar red."""
+    """Valida un manifest de observaciones ya sanitizado, sin ejecutar red.
+
+    Los seis controles corresponden a los compromisos que el proyecto asume
+    ante la SEU y el laboratorio, y cada uno responde a una pregunta concreta:
+
+    - `logs_redacted`: ¿quedó algún secreto o contacto escrito en los logs?
+    - `resources_allowlisted`: ¿tocó sólo la planilla, plantilla y carpeta
+      autorizadas?
+    - `remote_errors_redacted`: ¿los errores del proveedor filtran datos?
+    - `no_distribution_endpoints`: ¿aparece alguna llamada capaz de enviar,
+      compartir o cambiar permisos?
+    - `revocation_blocks`: al revocar permisos, ¿se detuvo sin producir salida?
+    - `outputs_are_drafts`: ¿toda salida quedó marcada como borrador y en
+      estado pendiente de validación?
+
+    Fail-closed en dos sentidos: un manifest que no cumple el contrato devuelve
+    `INVALID` (no `PASS`), y basta que un control falle para que el reporte
+    entero sea `FAIL`. Trabaja sobre observaciones registradas por otro proceso,
+    no ejecuta nada: es auditoría, no monitoreo.
+    """
+
     if not _contrato_basico_valido(manifest):
         return _reporte_invalido()
 
@@ -211,6 +231,15 @@ def _recursos_permitidos(resources: object, allowlist: object) -> bool:
 
 
 def _sin_endpoints_distribucion(http_calls: object) -> bool:
+    """Ninguna llamada puede distribuir contenido ni cambiar permisos.
+
+    No alcanza con revisar el path: se exige además que el host esté entre los
+    tres de Workspace y que el método sea GET o POST. Cualquier llamada a un
+    endpoint de permisos, de compartir o de correo hace fallar el control, aun
+    cuando el host sea de Google. La lista se verifica contra las rutas que
+    realmente usa `google_workspace`.
+    """
+
     if not isinstance(http_calls, list):
         return False
     for call in http_calls:
@@ -236,6 +265,14 @@ def _sin_endpoints_distribucion(http_calls: object) -> bool:
 
 
 def _revocacion_bloquea(probe: object) -> bool:
+    """La prueba de revocación sólo pasa si se detuvo *y* no dejó borrador.
+
+    Exige `simulated is True` porque hoy la revocación se ensaya contra
+    servicios falsos: una evidencia producida así no puede presentarse como
+    prueba contra Workspace real. `draft_created is False` es la parte
+    importante: no basta con registrar el error, no tiene que haber salida.
+    """
+
     return (
         isinstance(probe, dict)
         and probe.get("simulated") is True
@@ -246,6 +283,12 @@ def _revocacion_bloquea(probe: object) -> bool:
 
 
 def _salidas_son_borradores(outputs: object) -> bool:
+    """Toda salida debe estar marcada y pendiente. Cero salidas también falla.
+
+    Una lista vacía se rechaza a propósito: un manifest sin salidas no prueba
+    que las salidas estén marcadas, prueba que no se ejercitó el flujo.
+    """
+
     if not isinstance(outputs, list) or not outputs:
         return False
     return all(

@@ -1,3 +1,6 @@
+"""Puerto de salida: se exige la marca de borrador, se rechazan identificadores
+fuera de la allowlist y no se puede escribir fuera del directorio de salida."""
+
 import json
 
 import pytest

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Ejecuta la matriz contractual simulada HU-011 sin depender de un LLM."""
+"""Ejecuta la matriz contractual simulada HU-011 sin depender de un LLM.
+
+Equivalente de `matriz_hu010.py` para posts: cubre los dos canales y los casos
+de rechazo del gate. Al usar el generador fake, cualquier diferencia entre dos
+corridas es un cambio del código, nunca variabilidad del modelo.
+"""
 
 from __future__ import annotations
 

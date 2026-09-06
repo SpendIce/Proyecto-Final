@@ -1,3 +1,5 @@
+"""La matriz de confirmaciones recorre el ciclo completo sin tocar correo."""
+
 from __future__ import annotations
 
 import json

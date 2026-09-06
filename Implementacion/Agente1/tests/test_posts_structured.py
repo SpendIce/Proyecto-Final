@@ -1,3 +1,7 @@
+"""Contrato creativo v2 y renderer determinista: JSON del modelo mal formado o
+con claves duplicadas, hashtags fuera de la lista segura, hechos filtrados en
+la zona creativa y la invariante de que el render sea reproducible."""
+
 import json
 from pathlib import Path
 

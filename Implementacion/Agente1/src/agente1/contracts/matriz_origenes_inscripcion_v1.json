@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:matriz-origenes-inscripcion:v1",
+  "title": "Matriz operativa HU-012 por origen de inscripción",
+  "x-contract-version": "matriz_origenes_inscripcion_v1",
+  "x-status": "CANDIDATO_PENDIENTE_CONFIRMACION_SEU",
+  "x-hu": "HU-012",
+  "x-proceso-bpm": "P5 con apoyo de P4",
+  "x-contrato-asociado": "confirmacion_inscripcion_v2",
+  "x-fuente": "Definiciones operativas comunicadas por la SEU el 2026-08-26.",
+  "x-habilita-envio": false,
+  "description": "Declara, por origen de inscripción, qué campos hay, quién es responsable del dato, qué estados de preinscripción se conocen, si existe PDF informativo y cuál es la regla de envío vigente. Ningún origen habilita envío: la matriz existe para que el adapter futuro se especifique sin conectar SIU, Google Forms ni correo, y para que el pedido a la SEU sea puntual en lugar de genérico.",
+
+  "procedencia_dato": {
+    "CONFIRMADO_SEU": "Comunicado por escrito por la SEU.",
+    "SUPUESTO_TECNICO": "Propuesto por el equipo técnico; requiere confirmación.",
+    "DESCONOCIDO": "Ni comunicado ni supuesto con fundamento suficiente."
+  },
+
+  "motivos_de_bloqueo": {
+    "origen_sin_adapter": "No existe endpoint, permiso ni contrato de extracción definido para el origen.",
+    "combinacion_origen_tipo_no_confirmada": "La SEU no confirmó que ese tipo de actividad se inscriba por ese origen.",
+    "estado_preinscripcion_no_confirmado": "No existe una lista validada de estados ni un criterio de qué estado habilita confirmar.",
+    "regla_de_aprobacion_no_definida": "No está definido si cada confirmación requiere aprobación individual o si existe preaprobación de plantilla.",
+    "politica_datos_personales_no_definida": "Falta tratamiento de datos personales, consentimiento, retención, borrado y canal autorizado.",
+    "canal_no_es_origen_de_inscripcion": "El elemento es un canal de comunicación posterior, no un origen de preinscripción."
+  },
+
+  "estados_preinscripcion_candidatos": {
+    "procedencia": "SUPUESTO_TECNICO",
+    "valores": ["PREINSCRIPTO", "INSCRIPTO", "PAGO_PENDIENTE", "CONFIRMADO", "BAJA"],
+    "observacion": "La SEU no comunicó estados ni cuál de ellos habilita una confirmación. Sin esa definición, A1 no puede decidir a quién corresponde confirmar."
+  },
+
+  "campos_requeridos_por_contrato": [
+    "id_inscripcion",
+    "origen_inscripcion",
+    "tipo_actividad",
+    "nombre_destinatario",
+    "email_destinatario",
+    "actividad",
+    "fecha",
+    "organiza",
+    "contacto"
+  ],
+
+  "origenes": [
+    {
+      "origen": "SIU_GUARANI",
+      "clase": "ORIGEN_DE_INSCRIPCION",
+      "hecho_comunicado": "La inscripción a cursos y diplomaturas se realiza en SIU Guaraní.",
+      "procedencia_hecho": "CONFIRMADO_SEU",
+      "tipos_actividad": ["CURSO", "DIPLOMATURA"],
+      "procedencia_tipos": "CONFIRMADO_SEU",
+      "responsable_dato": {
+        "area": "Departamento de Cursos Complementarios",
+        "procedencia": "SUPUESTO_TECNICO",
+        "observacion": "La SEU describió a este departamento como puerta de entrada de la solicitud de actividad; no confirmó quién administra el padrón de inscriptos."
+      },
+      "campos_disponibles": {
+        "id_inscripcion": "DESCONOCIDO",
+        "nombre_destinatario": "SUPUESTO_TECNICO",
+        "email_destinatario": "SUPUESTO_TECNICO",
+        "actividad": "SUPUESTO_TECNICO",
+        "fecha": "SUPUESTO_TECNICO",
+        "lugar": "DESCONOCIDO",
+        "organiza": "SUPUESTO_TECNICO",
+        "contacto": "DESCONOCIDO",
+        "estado_preinscripcion": "DESCONOCIDO"
+      },
+      "pdf_informativo": {
+        "existe": "DESCONOCIDO",
+        "productor": null,
+        "observacion": "El PDF informativo se comunicó asociado al correo de Cursos Complementarios, no al padrón de SIU."
+      },
+      "adapter": "NO_DEFINIDO",
+      "regla_envio": "PROHIBIDO",
+      "motivos_de_bloqueo": [
+        "origen_sin_adapter",
+        "estado_preinscripcion_no_confirmado",
+        "regla_de_aprobacion_no_definida",
+        "politica_datos_personales_no_definida"
+      ]
+    },
+    {
+      "origen": "SIU_GUARANI_EXTENSION",
+      "clase": "ORIGEN_DE_INSCRIPCION",
+      "hecho_comunicado": "Los talleres se inscriben en un SIU Guaraní de Extensión, con un dominio diferente al inscribirse; luego puede accederse desde la misma web.",
+      "procedencia_hecho": "CONFIRMADO_SEU",
+      "tipos_actividad": ["TALLER"],
+      "procedencia_tipos": "CONFIRMADO_SEU",
+      "responsable_dato": {
+        "area": "Secretaría de Extensión Universitaria",
+        "procedencia": "SUPUESTO_TECNICO",
+        "observacion": "No se comunicó administrador ni referente técnico del entorno de Extensión."
+      },
+      "campos_disponibles": {
+        "id_inscripcion": "DESCONOCIDO",
+        "nombre_destinatario": "SUPUESTO_TECNICO",
+        "email_destinatario": "SUPUESTO_TECNICO",
+        "actividad": "SUPUESTO_TECNICO",
+        "fecha": "SUPUESTO_TECNICO",
+        "lugar": "DESCONOCIDO",
+        "organiza": "SUPUESTO_TECNICO",
+        "contacto": "DESCONOCIDO",
+        "estado_preinscripcion": "DESCONOCIDO"
+      },
+      "pdf_informativo": {
+        "existe": "DESCONOCIDO",
+        "productor": null,
+        "observacion": "Sin información específica para talleres."
+      },
+      "adapter": "NO_DEFINIDO",
+      "regla_envio": "PROHIBIDO",
+      "motivos_de_bloqueo": [
+        "origen_sin_adapter",
+        "estado_preinscripcion_no_confirmado",
+        "regla_de_aprobacion_no_definida",
+        "politica_datos_personales_no_definida"
+      ]
+    },
+    {
+      "origen": "GOOGLE_FORMS",
+      "clase": "ORIGEN_DE_INSCRIPCION",
+      "hecho_comunicado": "Webinar e Ingeniería Por Un Día usan Google Forms, habitual para eventos gratuitos y de mayor asistencia.",
+      "procedencia_hecho": "CONFIRMADO_SEU",
+      "tipos_actividad": ["WEBINAR", "INGENIERIA_POR_UN_DIA"],
+      "procedencia_tipos": "CONFIRMADO_SEU",
+      "responsable_dato": {
+        "area": "Secretaría de Extensión Universitaria",
+        "procedencia": "SUPUESTO_TECNICO",
+        "observacion": "No se comunicó quién es dueño del formulario ni de la planilla de respuestas, dato necesario para permisos y para responsabilidad sobre datos personales."
+      },
+      "campos_disponibles": {
+        "id_inscripcion": "DESCONOCIDO",
+        "nombre_destinatario": "SUPUESTO_TECNICO",
+        "email_destinatario": "SUPUESTO_TECNICO",
+        "actividad": "SUPUESTO_TECNICO",
+        "fecha": "SUPUESTO_TECNICO",
+        "lugar": "DESCONOCIDO",
+        "organiza": "SUPUESTO_TECNICO",
+        "contacto": "DESCONOCIDO",
+        "estado_preinscripcion": "DESCONOCIDO"
+      },
+      "pdf_informativo": {
+        "existe": "DESCONOCIDO",
+        "productor": null,
+        "observacion": "Los eventos gratuitos no tendrían enlace de pago; no se confirmó si igualmente se envía material informativo."
+      },
+      "adapter": "NO_DEFINIDO",
+      "regla_envio": "PROHIBIDO",
+      "motivos_de_bloqueo": [
+        "origen_sin_adapter",
+        "estado_preinscripcion_no_confirmado",
+        "regla_de_aprobacion_no_definida",
+        "politica_datos_personales_no_definida"
+      ]
+    },
+    {
+      "origen": "CORREO_CURSOS_COMPLEMENTARIOS",
+      "clase": "CANAL_POSTERIOR",
+      "hecho_comunicado": "Tras la preinscripción se comunica información adicional del curso y un PDF con información y enlace de pago.",
+      "procedencia_hecho": "CONFIRMADO_SEU",
+      "tipos_actividad": ["CURSO", "DIPLOMATURA"],
+      "procedencia_tipos": "SUPUESTO_TECNICO",
+      "responsable_dato": {
+        "area": "Departamento de Cursos Complementarios",
+        "procedencia": "CONFIRMADO_SEU",
+        "observacion": "La SEU nombró a este departamento como emisor del correo posterior a la preinscripción."
+      },
+      "campos_disponibles": {
+        "id_inscripcion": "DESCONOCIDO",
+        "nombre_destinatario": "SUPUESTO_TECNICO",
+        "email_destinatario": "SUPUESTO_TECNICO",
+        "actividad": "SUPUESTO_TECNICO",
+        "fecha": "DESCONOCIDO",
+        "lugar": "DESCONOCIDO",
+        "organiza": "SUPUESTO_TECNICO",
+        "contacto": "SUPUESTO_TECNICO",
+        "estado_preinscripcion": "DESCONOCIDO"
+      },
+      "pdf_informativo": {
+        "existe": "CONFIRMADO_SEU",
+        "productor": "Departamento de Cursos Complementarios",
+        "observacion": "El PDF incluye enlace de pago. El contrato no debe persistir enlaces de pago ni datos de pago; a lo sumo una referencia controlada al material."
+      },
+      "adapter": "NO_DEFINIDO",
+      "regla_envio": "PROHIBIDO",
+      "motivos_de_bloqueo": [
+        "canal_no_es_origen_de_inscripcion",
+        "origen_sin_adapter",
+        "regla_de_aprobacion_no_definida",
+        "politica_datos_personales_no_definida"
+      ]
+    }
+  ],
+
+  "preguntas_abiertas": [
+    "¿Qué identificador estable de inscripción expone cada origen y es utilizable como clave de idempotencia junto con el origen?",
+    "¿Qué estados de preinscripción existen y cuál habilita emitir una confirmación?",
+    "¿Cada confirmación requiere aprobación individual o existe una plantilla preaprobada con regla de habilitación?",
+    "¿Quién es responsable del dato y de los permisos en cada origen?",
+    "¿Se envía material informativo en todos los tipos de actividad o sólo en cursos y diplomaturas arancelados?",
+    "¿Cuál es el tratamiento de datos personales, consentimiento, retención y canal autorizado?"
+  ]
+}

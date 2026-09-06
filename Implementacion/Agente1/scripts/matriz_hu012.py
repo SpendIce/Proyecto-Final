@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Matriz contractual offline de HU-012; no accede a correo ni Workspace."""
+"""Matriz contractual offline de HU-012; no accede a correo ni Workspace.
+
+Recorre el ciclo de vida completo de una confirmación —pendiente, aprobada,
+rechazada, duplicada, envío simulado— contra el destino fake. Es la evidencia
+de que la secuencia de autorización se cumple antes de que exista capacidad
+real de enviar correo.
+"""
 
 from __future__ import annotations
 

@@ -1,3 +1,8 @@
+"""Auditoría de seguridad D2/D3: cada uno de los seis controles falla cuando
+debe (secreto en logs, recurso fuera de allowlist, endpoint de distribución,
+revocación que no bloquea, salida sin marca de borrador) y un manifest que no
+cumple el contrato da INVALID, nunca PASS."""
+
 from __future__ import annotations
 
 import json

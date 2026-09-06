@@ -1,4 +1,27 @@
-"""Slice offline de HU-012: borradores de confirmación, nunca correo real."""
+"""Slice offline de HU-012: borradores de confirmación, nunca correo real.
+
+Prepara el texto de una confirmación de inscripción y modela su ciclo de vida
+completo —incluida la aprobación humana y el "envío"— pero **no existe ningún
+adapter que mande correo**. La única entrega posible es contra
+`DestinoConfirmacionesFake`, y eso se verifica en tiempo de ejecución
+comparando el tipo exacto (`type(destino) is not DestinoConfirmacionesFake`, no
+`isinstance`): ni siquiera una subclase puede colarse como destino.
+
+Por qué modelar un envío que no se hace: el punto de la HU es demostrar que la
+secuencia de autorización es correcta —sin aprobación no hay envío, sin
+destinatario válido no hay borrador, un reintento no duplica— antes de que
+exista la capacidad técnica de enviar. Cuando la SEU habilite el correo, lo que
+se agrega es un adapter, no la lógica de control.
+
+Estados: `PENDIENTE_VALIDACION` → `APROBADA` | `RECHAZADA`, y de `APROBADA` →
+`ENVIO_RESERVADO` → `ENVIADA_SIMULADA` | `FALLIDA`. El paso intermedio
+`ENVIO_RESERVADO` existe para que una caída durante la entrega no deje el
+registro en un estado que habilite reintentar y mandar dos veces.
+
+Qué falta para que esto sea utilizable, y por qué no está: los orígenes de
+inscripción reales no están definidos por la SEU. `origenes_inscripcion.py`
+enumera exactamente qué falta por cada origen y bloquea el envío en todos.
+"""
 
 from __future__ import annotations
 
@@ -46,6 +69,13 @@ class SolicitudConfirmacion:
 
 @dataclass(frozen=True)
 class AprobacionHumana:
+    """Decisión humana registrada. Sin esto no hay envío posible.
+
+    Exige quién decidió (`validador`), con qué rol y cuándo, con zona horaria
+    obligatoria: una aprobación sin responsable identificable no sirve como
+    evidencia. Sólo se guarda su hash en el log, no los datos de la persona.
+    """
+
     aprobada: bool
     validador: str
     rol: str
@@ -103,6 +133,14 @@ class BorradorRegistrado:
 
 
 class RegistroConfirmaciones(Protocol):
+    """Puerto del registro de estado.
+
+    `transicionar` recibe el conjunto de estados de origen aceptables y devuelve
+    `False` si el actual no está entre ellos: es un compare-and-set. Así el
+    llamador no puede leer el estado, decidir y escribir en tres pasos, que es
+    donde aparecería la carrera que permite enviar dos veces.
+    """
+
     def obtener(self, idempotency_key: str) -> BorradorRegistrado | None: ...
 
     def crear(self, idempotency_key: str, asunto: str, cuerpo: str) -> bool: ...
@@ -165,7 +203,19 @@ def procesar_confirmacion(
     destino: DestinoConfirmaciones | None = None,
     enviar: bool = False,
 ) -> ResultadoConfirmacion:
-    """Genera y opcionalmente entrega sólo a un fake, bajo aprobación explícita."""
+    """Genera y opcionalmente entrega sólo a un fake, bajo aprobación explícita.
+
+    El orden de los controles no es casual: primero los que descalifican la
+    solicitud en sí (tipos, destinatario, campos completos), después los de
+    autorización (aprobación válida, aprobación presente si se pide enviar,
+    destino obligatoriamente fake). Recién ahí se toca el registro. Así una
+    solicitud mal formada no crea ni reserva nada.
+
+    Sin `aprobacion` el resultado máximo es `PENDIENTE_VALIDACION`: generar el
+    texto no es aprobarlo. Con `aprobacion.aprobada = False` la confirmación
+    queda `RECHAZADA` y el borrador ya no puede aprobarse después.
+    """
+
 
     correlation_id = str(uuid.uuid4())
     log_path = directorio_salida / "logs" / "confirmaciones-hu012.jsonl"
@@ -216,6 +266,10 @@ def procesar_confirmacion(
             estado="INVALIDA",
             error="approval_required",
         )
+    # Control central de la HU: sólo se entrega a un fake. Se compara el tipo
+    # exacto y no con isinstance, para que una subclase que sí mande correo no
+    # pueda pasar por acá. Es el candado que permite tener el ciclo de vida
+    # completo implementado sin capacidad real de envío.
     if (
         enviar
         and aprobacion is not None
@@ -301,6 +355,10 @@ def procesar_confirmacion(
             aprobacion=aprobacion,
         )
 
+    # Reserva del envío antes de intentarlo: si el proceso muere en la entrega,
+    # el registro queda en ENVIO_RESERVADO y un reintento no vuelve a entregar,
+    # porque ya no está en APROBADA. Se prefiere una confirmación no enviada a
+    # una enviada dos veces.
     if not registro.transicionar(
         idempotency_key,
         frozenset({"APROBADA"}),
@@ -387,6 +445,16 @@ def _finalizar(
 
 
 def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
+    """Arma asunto y cuerpo desde una plantilla fija. No interviene el modelo.
+
+    La confirmación de una inscripción es un texto administrativo: no hay nada
+    que redactar y sí un riesgo concreto si un modelo altera un dato. Por eso
+    HU-012 es puramente determinista.
+    """
+
+    # Un lugar vacío se completa con una frase explícita en vez de dejarse en
+    # blanco: el destinatario tiene que ver que el dato falta, no un renglón
+    # cortado que parezca un error de sistema.
     lugar = solicitud.lugar.strip() or "A confirmar por la Secretaría de Extensión"
     cuerpo = (
         f"{MARCADOR_BORRADOR}\n\n"
@@ -457,6 +525,14 @@ def _aprobacion_valida(aprobacion: AprobacionHumana) -> bool:
 
 
 def _idempotency_key(solicitud: SolicitudConfirmacion) -> str:
+    """Deriva la clave del contenido completo de la solicitud.
+
+    Al incluir todos los campos, cambiar cualquier dato —la fecha, el
+    destinatario— produce una clave distinta y por lo tanto una confirmación
+    nueva, que es lo correcto: es otra comunicación. Reenviar exactamente la
+    misma solicitud, en cambio, choca contra la clave existente.
+    """
+
     canonico = json.dumps(
         {"contract": CONTRACT_VERSION, **asdict(solicitud)},
         ensure_ascii=False,
@@ -485,6 +561,9 @@ def _resultado(
         sort_keys=True,
         default=lambda valor: f"<invalid:{type(valor).__name__}>",
     )
+    # La línea de auditoría no lleva ni el correo del destinatario ni el texto:
+    # sólo hashes. `recipient_hash` permite verificar después que se confirmó a
+    # la persona correcta, sin guardar el dato personal en un segundo lugar.
     auditoria = {
         "hu": HU,
         "contract_version": CONTRACT_VERSION,

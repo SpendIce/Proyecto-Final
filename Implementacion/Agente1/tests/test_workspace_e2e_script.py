@@ -1,3 +1,6 @@
+"""El script del runner corre offline por defecto y no sale a la red sin las dos
+banderas explícitas."""
+
 from __future__ import annotations
 
 import importlib.util

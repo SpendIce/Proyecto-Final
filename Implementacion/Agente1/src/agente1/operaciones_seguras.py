@@ -59,7 +59,15 @@ def evaluar_health(
     live_opt_in: bool = False,
     probe: ProbeLectura | None = None,
 ) -> dict[str, object]:
-    """Evalúa salud offline; el probe live requiere doble opt-in y es read-only."""
+    """Evalúa salud offline; el probe live requiere doble opt-in y es read-only.
+
+    El chequeo live es una lectura y nada más: sirve para confirmar que la
+    identidad técnica todavía puede leer la planilla autorizada, sin escribir
+    ni generar nada. Cualquier excepción del probe se traduce a `UNAVAILABLE`
+    —no se propaga— porque un diagnóstico no debe voltear al llamador, y
+    `UNAVAILABLE` hace fallar el reporte igual.
+    """
+
     if not _health_manifest_valido(manifest):
         raise ContratoOperativoInvalido("health_manifest_invalid")
     assert isinstance(manifest, dict)
@@ -103,7 +111,15 @@ def evaluar_health(
 
 
 def planificar_reconciliacion(records: object) -> dict[str, object]:
-    """Clasifica referencias opacas; deliberadamente no acepta IDs ni acciones."""
+    """Clasifica referencias opacas; deliberadamente no acepta IDs ni acciones.
+
+    Produce instrucciones para que una persona reconcilie a mano los casos que
+    quedaron a medias (`docs_update_failed_orphaned` y similares). Sólo acepta
+    hashes: no recibe identificadores de documentos ni puede ejecutar nada. La
+    política de recuperación manual del runner depende de que esta herramienta
+    siga siendo un informe y no una acción.
+    """
+
     if not isinstance(records, list):
         raise ContratoOperativoInvalido("reconciliation_invalid")
     items: list[dict[str, str]] = []
@@ -150,7 +166,18 @@ def planificar_retencion(
     now: datetime,
     retention_days: int,
 ) -> dict[str, object]:
-    """Produce un dry-run opaco; no ofrece una operación de borrado."""
+    """Produce un dry-run opaco; no ofrece una operación de borrado.
+
+    `dry_run: True` está fijo en la salida: no hay parámetro para desactivarlo.
+    Lo máximo que dice de un artefacto vencido es
+    `CANDIDATO_BORRADO_MANUAL`, y sólo si además está cerrado: un caso abierto
+    nunca es candidato por más viejo que sea.
+
+    Los paths se validan contra `base_dir` (`_validar_path_retencion`) aunque
+    después no se toque ningún archivo: un registro que apunte fuera del árbol
+    es señal de que el insumo está mal, y conviene detectarlo en el informe.
+    """
+
     if (
         not isinstance(records, list)
         or not isinstance(retention_days, int)
@@ -194,7 +221,14 @@ def planificar_retencion(
 
 
 def consolidar_manifests(manifests: object) -> dict[str, object]:
-    """Agrega manifests mínimos; entradas con PII o secretos cuentan inválidas."""
+    """Agrega manifests mínimos; entradas con PII o secretos cuentan inválidas.
+
+    Un manifest que traiga un dato sensible no se limpia ni se reporta con
+    detalle: se cuenta como inválido y se descarta. Reportar *qué* dato sensible
+    apareció convertiría al consolidado —que es lo que se adjunta como
+    evidencia— en el canal de fuga que se quiere evitar.
+    """
+
     if not isinstance(manifests, list):
         raise ContratoOperativoInvalido("consolidated_input_invalid")
     statuses: Counter[str] = Counter()

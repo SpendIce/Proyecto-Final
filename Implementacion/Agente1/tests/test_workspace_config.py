@@ -1,3 +1,7 @@
+"""Configuración por entorno: variables desconocidas con el prefijo del agente se
+rechazan, los identificadores y el rango A1 se validan, y el resumen seguro
+sólo expone hashes."""
+
 import json
 
 import pytest

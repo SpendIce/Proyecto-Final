@@ -1,7 +1,30 @@
+"""CLI local del MVP: una solicitud, un borrador, salida JSON en stdout.
+
+Es la interfaz usada en pruebas, smokes y matrices de evidencia. Trabaja
+siempre contra un CSV local y deja el borrador en disco: **no tiene modo
+Workspace**. Salir a Google se hace por `scripts/workspace_e2e.py`, que exige
+el doble opt-in; que no exista una bandera `--live` acá es intencional.
+
+Decisiones que no se ven en el código:
+
+- **El código de salida distingue estados, no excepciones.** `0` sólo si quedó
+  un borrador (`PENDIENTE_VALIDACION`); `2` para cualquier otro desenlace,
+  incluidos los legítimos como datos incompletos. Un script que encadene
+  ejecuciones no debe seguir adelante como si se hubiera generado algo.
+- **La salida es JSON con claves ordenadas** para poder compararla entre
+  corridas y guardarla como evidencia.
+- **Elegir generador es obligatorio y excluyente**: o el fake determinista o un
+  modelo de Ollama. No hay default, para que ninguna evidencia quede con dudas
+  sobre con qué se produjo.
+- **El default seguro de HU-011 es el contrato estructurado**; `text-v1`, el
+  camino heredado sin renderer determinista, hay que pedirlo explícitamente.
+"""
+
 from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
@@ -17,13 +40,14 @@ from .fuentes import CsvFuenteSolicitudes
 from .posts import (
     CONTRATO_SALIDA_ESTRUCTURADA,
     POLITICAS_DEFAULT,
-    PoliticaPost,
     procesar_post,
     procesar_post_estructurado,
 )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Punto de entrada. Devuelve el código de salida del proceso."""
+
     parser = argparse.ArgumentParser(
         description="Genera un borrador local HU-010/HU-011 desde una fila CSV sintética."
     )
@@ -88,6 +112,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.post_min_hashtags,
             args.post_max_hashtags,
         )
+        # Las banderas de post con --tipo gacetilla son un error, no algo a
+        # ignorar: quien las pasó cree estar ajustando límites que no se van a
+        # aplicar, y la evidencia resultante diría otra cosa que lo pedido.
         if args.tipo == "gacetilla" and any(valor is not None for valor in post_flags):
             raise ValueError("flags exclusivos de post")
         generator = (
@@ -118,9 +145,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 canal=args.canal,
                 directorio_salida=args.salida,
                 generator=generator,
-                politica=PoliticaPost(
-                    version=politica_base.version,
-                    status=politica_base.status,
+                politica=replace(
+                    politica_base,
                     max_chars=args.post_max_chars or politica_base.max_chars,
                     min_hashtags=(
                         args.post_min_hashtags
@@ -138,6 +164,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 generator=generator,
             )
     except ValueError:
+        # Todo error de armado (flags incompatibles, canal faltante, URL de
+        # Ollama inválida) se reporta con el mismo mensaje genérico: el detalle
+        # ya lo dio argparse por stderr, y stdout debe mantener una forma
+        # estable y sin datos para quien parsee la salida.
         print(
             json.dumps(
                 {

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Smoke local de HU-011: corre la matriz fake de posts en ambos canales. Igual
+# que el de gacetillas, es determinista y no depende de un modelo instalado.
+
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 salida_dir="${1:-${repo_dir}/salida/smoke-hu011}"
 

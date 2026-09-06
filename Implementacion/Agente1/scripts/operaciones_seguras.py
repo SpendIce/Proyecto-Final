@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""CLI offline para planes y reportes operativos sanitizados del Agente 1."""
+"""CLI offline para planes y reportes operativos sanitizados del Agente 1.
+
+Expone las tres herramientas de `agente1.operaciones_seguras`: health,
+reconciliación y retención. Todas producen informes; ninguna borra, envía ni
+modifica nada. El plan de retención en particular es siempre un dry-run: marca
+candidatos a borrado manual y no ofrece una opción para ejecutarlo.
+"""
 
 from __future__ import annotations
 

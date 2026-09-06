@@ -1,3 +1,6 @@
+"""Puerto de entrada y adapter CSV: id inexistente, id duplicado, contrato de
+columnas roto y normalización de campos opcionales."""
+
 import csv
 from importlib.resources import files
 import json

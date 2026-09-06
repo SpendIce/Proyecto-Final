@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Matriz fake reproducible para el renderer determinista HU-011 v2."""
+"""Matriz fake reproducible para el renderer determinista HU-011 v2.
+
+Ejercita el contrato creativo v2 —el que restringe al modelo a un catálogo
+cerrado— alimentando creatividades fijas. Sirve para verificar el renderer y el
+gate de hechos sin que intervenga un modelo: si esta matriz falla, el problema
+está en el código y no en la generación.
+"""
 
 from __future__ import annotations
 

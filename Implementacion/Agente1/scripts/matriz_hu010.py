@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""Ejecuta la matriz contractual simulada HU-010 sin depender de un LLM."""
+"""Ejecuta la matriz contractual simulada HU-010 sin depender de un LLM.
+
+Recorre los cinco casos del dataset sintético —completos, incompletos y con
+lugar ausente— con el generador fake, de modo que el resultado es reproducible
+byte a byte y sirve como regresión del contrato: verifica el pipeline, la
+validación y la auditoría, no la calidad de un modelo.
+
+Por eso conviven dos familias de matrices: las `fake` prueban el contrato, y
+las `live` (`matriz_hu011_live_v4.py`, `medir_capacidad_hu011.py`) miden cómo
+se comporta un modelo real contra ese contrato ya fijado.
+"""
 
 from __future__ import annotations
 

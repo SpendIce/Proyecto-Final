@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""Audita offline un manifest sintético D2/D3 y emite un reporte redactado."""
+"""Audita offline un manifest sintético D2/D3 y emite un reporte redactado.
+
+Corre los seis controles de `agente1.auditoria_d2` sobre un manifest de
+observaciones y guarda el reporte como evidencia versionable. No ejecuta el
+flujo ni toca la red: audita lo que otra corrida registró.
+
+El manifest de entrada es sintético a propósito. El reporte que produce dice
+que los controles se cumplen *en ese escenario*, no que se hayan verificado
+contra Workspace real; esa distinción es la que separa el estado actual del
+cierre del Gate G2 / TRL 3.
+"""
 
 from __future__ import annotations
 

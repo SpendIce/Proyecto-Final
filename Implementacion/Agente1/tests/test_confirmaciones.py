@@ -1,3 +1,7 @@
+"""Ciclo de vida de HU-012: sin aprobación no hay envío, un destino que no sea
+exactamente el fake se rechaza, los reintentos no duplican y cada transición
+de estado queda registrada."""
+
 import json
 from concurrent.futures import ThreadPoolExecutor
 from importlib.resources import files
@@ -453,3 +457,20 @@ def test_recursos_hu012_son_versionados_provisionales_y_offline():
     assert contrato["x-contract-version"] == "confirmacion_inscripcion_v1"
     assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
     assert "TEMPLATE_VERSION: confirmacion_inscripcion_provisional_v1" in plantilla
+
+
+def test_contrato_hu012_v2_clasifica_origen_sin_habilitar_envios():
+    contrato = json.loads(
+        files("agente1")
+        .joinpath("contracts", "confirmacion_inscripcion_v2.schema.json")
+        .read_text(encoding="utf-8")
+    )
+
+    assert contrato["x-contract-version"] == "confirmacion_inscripcion_v2"
+    assert contrato["x-status"] == "CANDIDATO_PENDIENTE_CONFIRMACION_SEU"
+    assert contrato["x-habilita-envio"] is False
+    assert set(contrato["properties"]["origen_inscripcion"]["enum"]) == {
+        "SIU_GUARANI",
+        "SIU_GUARANI_EXTENSION",
+        "GOOGLE_FORMS",
+    }

@@ -1,3 +1,6 @@
+"""Adapter del generador local: sólo acepta loopback, respeta el deadline, exige
+`done: true` y rechaza respuestas truncadas, vacías o demasiado grandes."""
+
 from __future__ import annotations
 
 from contextlib import contextmanager

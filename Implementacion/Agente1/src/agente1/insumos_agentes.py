@@ -79,7 +79,20 @@ class ResultadoValidacionInsumo:
 
 
 def validar_insumo_agente(raw: object) -> ResultadoValidacionInsumo:
-    """Valida y copia un envelope candidato sin ejecutar su contenido."""
+    """Valida y copia un envelope candidato sin ejecutar su contenido.
+
+    Punto de entrada de lo que otros agentes (A2-A5) le mandarían al Agente 1.
+    El principio es que un insumo es **dato, nunca instrucción**: el contenido
+    se valida estructuralmente y se copia, y en ningún momento se interpreta
+    como algo a ejecutar ni se concatena a un prompt en este módulo.
+
+    Devuelve un resultado, no levanta: cada rechazo tiene su código para que el
+    productor sepa qué corregir, y todos se pueden auditar por igual.
+
+    El `deepcopy` antes de devolver evita que quien llamó siga teniendo una
+    referencia mutable al envelope aceptado: lo que se valida es exactamente lo
+    que se usa después.
+    """
 
     if not isinstance(raw, dict):
         return _rechazo("envelope_not_object")
@@ -202,6 +215,15 @@ def _validar_provenance(value: object) -> list[dict[str, str]] | None:
 
 
 def _json_data_valida(value: object, *, depth: int = 0) -> bool:
+    """Acota forma y tamaño de un payload de otro agente.
+
+    Los topes —profundidad 10, mil elementos, cadenas de 20 000 caracteres— no
+    son requisitos funcionales: son límites contra un insumo hostil o
+    defectuoso que podría agotar memoria o tiempo. Se rechazan también los
+    flotantes no finitos (`NaN`, infinitos) porque no sobreviven a un ida y
+    vuelta por JSON estándar y romperían el hash.
+    """
+
     if depth > 10:
         return False
     if value is None or isinstance(value, (str, bool, int, float)):

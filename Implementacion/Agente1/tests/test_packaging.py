@@ -1,3 +1,6 @@
+"""El paquete declara e incluye sus artefactos de datos (contratos, prompts,
+políticas): sin ellos los módulos no pueden cargar sus contratos."""
+
 import importlib
 from importlib.resources import files
 import csv
@@ -136,7 +139,11 @@ def test_migraciones_del_spike_son_artefactos_de_repo_no_package_data():
     migraciones = ROOT / "migrations"
 
     assert all("migration" not in patron for patron in recursos)
-    for version in ("0001_persistencia_agente1", "0002_integridad_referencial_borradores"):
+    for version in (
+        "0001_persistencia_agente1",
+        "0002_integridad_referencial_borradores",
+        "0003_rechazo_timestamps_futuros",
+    ):
         assert (migraciones / f"{version}.up.sql").is_file()
         assert (migraciones / f"{version}.down.sql").is_file()
 

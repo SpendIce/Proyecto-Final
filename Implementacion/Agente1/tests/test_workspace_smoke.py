@@ -1,3 +1,6 @@
+"""El smoke de Workspace es de sólo lectura y su parser no vuelve a imprimir
+argv, que podría contener un token."""
+
 import json
 import os
 from pathlib import Path

@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""Smoke de sólo lectura contra la planilla autorizada.
+
+Comprueba una única cosa: que la identidad técnica pueda leer una fila de la
+planilla configurada. No genera, no escribe y no crea documentos, así que es la
+prueba con menor riesgo para ejecutar primero en el sandbox de la SEU.
+
+El parser de argumentos está reemplazado por `_ParserSeguro` para que un error
+de uso no vuelva a imprimir argv, que podría contener un token pegado por error.
+"""
+
 from __future__ import annotations
 
 import argparse

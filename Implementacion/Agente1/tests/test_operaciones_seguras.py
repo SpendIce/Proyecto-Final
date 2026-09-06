@@ -1,3 +1,7 @@
+"""Health, reconciliación y retención: el probe live exige doble opt-in, el plan
+de retención es siempre dry-run y un insumo con dato sensible se cuenta como
+inválido en vez de reportarse."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

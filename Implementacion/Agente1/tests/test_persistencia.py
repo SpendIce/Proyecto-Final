@@ -1,3 +1,7 @@
+"""Puerto de persistencia: idempotencia por firma completa, transiciones válidas
+de estado, invariantes de borrador/output_hash, rechazo de timestamps futuros
+y baja lógica que nunca borra filas."""
+
 from __future__ import annotations
 
 from dataclasses import fields

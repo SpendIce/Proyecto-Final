@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Smoke opt-in contra un Ollama YA iniciado en loopback, con el modelo
+# descargado. Es el único smoke que necesita un modelo real; sirve para
+# confirmar que el adapter y el entorno hablan entre sí, no para medir calidad
+# (para eso están las matrices live y `medir_capacidad_hu011.py`).
+# Configurable por entorno: OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_TIMEOUT,
+# OLLAMA_NUM_PREDICT.
+
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 base_url="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
 model="${OLLAMA_MODEL:-llama3.2:3b}"

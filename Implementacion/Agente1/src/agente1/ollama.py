@@ -1,3 +1,26 @@
+"""Adapter del generador local (Ollama). El modelo corre en la misma máquina.
+
+Decisiones que no se ven en el código:
+
+- **Sólo loopback.** `_validar_base_url` rechaza cualquier host que no sea
+  `localhost` o una IP de loopback. Es lo que sostiene la afirmación "el modelo
+  es local y no sale a internet": no es una convención de despliegue, está
+  impedido en el código. Por eso también se acepta `http` y no se exige TLS: el
+  tráfico no abandona la máquina.
+- **`temperature: 0`.** El objetivo no es un texto creativo distinto en cada
+  corrida sino uno reproducible: dos ejecuciones de la misma fila deberían dar
+  el mismo borrador, para que la evidencia sea comparable. La variedad
+  aceptable la aporta el contrato creativo, no el muestreo.
+- **`format_schema` opcional.** Cuando se pasa, Ollama fuerza la salida a ese
+  esquema JSON. Su hash se registra en la auditoría: no es lo mismo un JSON
+  pedido por prompt que uno impuesto por el motor, y la diferencia explica
+  tasas de conformidad distintas entre corridas.
+- **Todo error de red o de forma se colapsa a un `RuntimeError` genérico.** El
+  pipeline sólo necesita saber que el generador no entregó algo utilizable, y
+  un mensaje detallado podría arrastrar el prompt —que contiene datos de la
+  actividad— hacia el log.
+"""
+
 from __future__ import annotations
 
 from http.client import HTTPConnection, HTTPException
@@ -12,6 +35,10 @@ from urllib.parse import urlsplit
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_OLLAMA_TIMEOUT_S = 45.0
 MAX_OLLAMA_TIMEOUT_S = 120.0
+# Techo de tokens a generar. El default es bajo a propósito: las piezas
+# creativas del contrato son cortas y un techo chico acota la latencia. Los
+# benchmarks de capacidad (`evidencias/benchmark-*`) documentan por qué en
+# algunas corridas se sube a 512.
 DEFAULT_OLLAMA_NUM_PREDICT = 112
 MIN_OLLAMA_NUM_PREDICT = 32
 MAX_OLLAMA_NUM_PREDICT = 512
@@ -20,6 +47,13 @@ MAX_FORMAT_SCHEMA_BYTES = 65_536
 
 
 class OllamaGenerator:
+    """Implementa el puerto `Generator` contra un Ollama local ya iniciado.
+
+    No descarga modelos ni levanta el servicio: si Ollama no está corriendo, la
+    generación falla y la ejecución queda `FALLIDA`. Es deliberado que el
+    agente no administre el runtime del modelo.
+    """
+
     def __init__(
         self,
         *,
@@ -108,6 +142,9 @@ class OllamaGenerator:
         if not isinstance(documento, dict):
             raise RuntimeError("Respuesta inválida del generador local")
         contenido = documento.get("response")
+        # `done is not True` es intencional: Ollama puede devolver 200 con una
+        # respuesta truncada (se acabó el presupuesto de tokens, se cortó el
+        # stream). Un texto incompleto no es una generación válida.
         if (
             "error" in documento
             or documento.get("done") is not True
@@ -125,6 +162,14 @@ class _TransportError(Exception):
 def _normalizar_format_schema(
     format_schema: dict[str, object] | None,
 ) -> tuple[dict[str, object] | None, str | None]:
+    """Serializa el esquema de forma canónica y devuelve su hash.
+
+    El hash tiene que identificar al esquema, no a cómo se escribió: por eso se
+    serializa con claves ordenadas y sin espacios antes de hashear. Así dos
+    corridas con el mismo esquema escrito distinto quedan con el mismo hash en
+    la auditoría, y un cambio real de esquema se nota.
+    """
+
     if format_schema is None:
         return None, None
     if not isinstance(format_schema, dict) or not format_schema:
@@ -147,6 +192,13 @@ def _normalizar_format_schema(
 
 
 def _validar_base_url(base_url: str) -> tuple[str, int]:
+    """Acepta únicamente un Ollama en loopback.
+
+    Rechaza credenciales embebidas, query y fragment porque no tienen uso
+    legítimo acá y sí serían una forma de apuntar el generador a otro destino.
+    Es el control que hace verificable la frase "el modelo corre local".
+    """
+
     parsed = urlsplit(base_url)
     if (
         parsed.scheme != "http"

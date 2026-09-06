@@ -1,3 +1,6 @@
+"""La matriz fake de posts cubre ambos canales y los rechazos del gate, con
+salida reproducible."""
+
 from __future__ import annotations
 
 import json

@@ -1,3 +1,8 @@
+"""Las migraciones SQL imponen en la base las mismas invariantes que el puerto
+en memoria: el borrador atado al output_hash de su ejecución, ninguna validación
+anterior al borrador que juzga, ningún contenido ni credencial persistido y un
+trigger que rechaza timestamps futuros. Cada rollback deshace en orden inverso."""
+
 from pathlib import Path
 
 
@@ -102,6 +107,35 @@ def test_rollback_0002_revierte_en_orden_inverso_a_la_migracion() -> None:
         "borradores_id_creada_key",
         "borradores_ejecucion_output_fk",
         "ejecuciones_id_output_hash_key",
+    )
+
+    posiciones = [sql.index(objeto) for objeto in objetos]
+    assert posiciones == sorted(posiciones)
+
+
+def test_migracion_0003_rechaza_timestamps_futuros_con_trigger() -> None:
+    sql = (MIGRACIONES / "0003_rechazo_timestamps_futuros.up.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "RETURNS TRIGGER" in sql
+    assert "timestamp_controlado > CURRENT_TIMESTAMP" in sql
+    assert "ERRCODE = '23514'" in sql
+    assert "ejecuciones_rechazan_creada_en_futura" in sql
+    assert "validaciones_rechazan_registrada_en_futura" in sql
+    assert "UPDATE OF creada_en ON ejecuciones" in sql
+    assert "UPDATE OF registrada_en ON validaciones" in sql
+    assert "CHECK (" not in sql
+
+
+def test_rollback_0003_elimina_triggers_antes_de_la_funcion() -> None:
+    sql = (MIGRACIONES / "0003_rechazo_timestamps_futuros.down.sql").read_text(
+        encoding="utf-8"
+    )
+    objetos = (
+        "validaciones_rechazan_registrada_en_futura",
+        "ejecuciones_rechazan_creada_en_futura",
+        "agente1_rechazar_timestamp_futuro",
     )
 
     posiciones = [sql.index(objeto) for objeto in objetos]

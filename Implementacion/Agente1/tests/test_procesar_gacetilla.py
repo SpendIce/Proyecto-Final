@@ -1,3 +1,7 @@
+"""Pipeline de HU-010: campos obligatorios, estructura de la salida, coincidencia
+de cada hecho con la fuente, lugar opcional en ambos sentidos y auditoría de
+todos los caminos de falla."""
+
 import csv
 import json
 

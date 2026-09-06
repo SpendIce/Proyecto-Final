@@ -1,3 +1,6 @@
+"""La matriz fake de gacetillas produce siempre el mismo resultado y cubre los
+cinco casos del dataset sintético."""
+
 from __future__ import annotations
 
 import csv

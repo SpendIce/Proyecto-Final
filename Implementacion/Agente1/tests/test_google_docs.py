@@ -1,3 +1,7 @@
+"""Adapter de Google Docs con transporte falso: creación, volcado del texto,
+traducción de errores HTTP a códigos y el caso de documento huérfano cuando
+falla el segundo paso."""
+
 import hashlib
 import json
 
