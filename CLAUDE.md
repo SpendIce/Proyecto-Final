@@ -93,3 +93,17 @@ Hereda las leyes universales del `CLAUDE.md` raíz y las reglas de `FIE/CLAUDE.m
 - Bible del proyecto: `Contenido/bible/`
 - Agentes: `Agentes/`
 - Documentos: `Documentos/`
+
+## Agent skills
+
+### Issue tracker
+
+Los issues y specs se gestionan en GitHub Issues de `SpendIce/Proyecto-Final`. Ver `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Se usan las cinco etiquetas canonicas de triage sin modificaciones. Ver `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Se usa un esquema single-context. Ver `docs/agents/domain.md`.
