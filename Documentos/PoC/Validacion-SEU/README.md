@@ -3,7 +3,9 @@
 ## Estado
 
 - **Estado documental:** `PENDIENTE`
-- **Personas revisoras designadas:** pendiente de confirmación institucional
+- **Personas revisoras comunicadas por SEU:** A/c Juan Manuel Gonzalez
+  Chipont; suplente: VS “ec” Tomás de Vergara. La participación efectiva se
+  registra recién en el acta.
 - **Validación SEU registrada:** no
 - **Gate G2 / TRL 3 acreditado:** no
 - **Publicación o envío habilitado:** no

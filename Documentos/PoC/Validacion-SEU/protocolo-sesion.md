@@ -9,7 +9,13 @@ humana posterior.
 
 ## 2. Prerrequisitos
 
-- La SEU comunicó quiénes están formalmente designados para revisar.
+- La SEU comunicó como revisor editorial de primeros borradores y criterios de
+  redes al A/c Juan Manuel Gonzalez Chipont, con el VS “ec” Tomás de Vergara
+  como suplente. La identidad efectiva de quien participa se registra recién
+  en el acta de la sesión.
+- Se distingue la revisión editorial de la aprobación/corrección institucional,
+  que SEU informó a cargo del Oficial de Comunicación Institucional. Un
+  escalamiento superior sólo ocurre si corresponde.
 - Cada persona revisora conoce que la decisión se limita al borrador.
 - El manifest fue regenerado y sus referencias existen.
 - Los borradores conservan `BORRADOR — NO PUBLICAR`.
@@ -41,7 +47,10 @@ estén autorizados.
 7. Completa nombre o identificación verificable, rol/área, fecha, referencia de
    evidencia y decisión global. La fecha usa ISO 8601 con zona horaria, por
    ejemplo `2026-08-20T14:00:00-03:00`.
-8. Actualiza `acta-validacion.json` y regenera el manifest.
+8. Si la decisión se usará para una pieza oficial, deja registrada la elevación
+   a aprobación/corrección institucional; la revisión editorial sola no la
+   sustituye.
+9. Actualiza `acta-validacion.json` y regenera el manifest.
 
 ## 5. Regla de decisión
 

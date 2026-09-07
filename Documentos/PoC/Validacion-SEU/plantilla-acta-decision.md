@@ -4,6 +4,8 @@
 - **Identificador de sesión:**
 - **Persona revisora:**
 - **Rol / área:**
+- **Etapa de esta decisión:** `REVISION_EDITORIAL` / `APROBACION_INSTITUCIONAL`
+- **Referencia a aprobación/corrección institucional (si corresponde):**
 - **Fecha y hora ISO 8601 con zona:**
 - **Referencia de evidencia:**
 - **Manifest verificado:**
@@ -30,4 +32,5 @@
 **Firma o identificación verificable:**
 
 > El acta registra una decisión sobre borradores. No autoriza publicación ni
-> envío y no acredita por sí sola Gate G2 o TRL 3.
+> envío. Una revisión editorial no reemplaza la aprobación/corrección
+> institucional y no acredita por sí sola Gate G2 o TRL 3.
