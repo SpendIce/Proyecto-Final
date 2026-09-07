@@ -107,10 +107,13 @@
 
   \begin{tabular}{ll}
     \textbf{Autor:} & \autorNombre \\
-    \textbf{Correo:} & \autorEmail \\
+    \textbf{Correo:} & \autorEmail\textsuperscript{*} \\
     \textbf{Tutor:} & \tutorNombre \\
     \textbf{Compa\~nero de proyecto:} & \companeroNombre\ (\companeroEmail) \\
   \end{tabular}
+
+  \vspace{0.25cm}
+  {\scriptsize * Dirección institucional declarada para este entregable; verificar vigencia y autorización de publicación antes de distribuir.}
 
   \vfill
   {\large \today}
@@ -126,11 +129,11 @@
 % =============================================================================
 \section{Resumen}
 
-El presente anteproyecto describe el dise\~no e implementaci\'on del \agenteUno{} (\ac{A1}), componente de la arquitectura multiagente del Proyecto Centenario (\ac{P100}) de la Facultad de Ingenier\'ia del Ej\'ercito (\ac{FIE}). El Agente~1 es el agente de comunicaci\'on institucional del sistema: automatiza la generaci\'on de gacetillas, publicaciones para redes sociales, newsletters, correos electr\'onicos y confirmaciones de inscripci\'on para la Secretar\'ia de Extensi\'on Universitaria (\ac{SEU}), liberando al personal de tareas manuales repetitivas y garantizando consistencia en las comunicaciones oficiales.
+El presente anteproyecto describe el dise\~no e implementaci\'on del \agenteUno{} (\ac{A1}), componente de la arquitectura multiagente del Proyecto Centenario (\ac{P100}) de la Facultad de Ingenier\'ia del Ej\'ercito (\ac{FIE}). El Agente~1 es el agente de comunicaci\'on institucional del sistema: automatiza la generaci\'on de gacetillas, publicaciones para redes sociales, newsletters, correos electr\'onicos y confirmaciones de inscripci\'on para la Secretar\'ia de Extensi\'on Universitaria (\ac{SEU}), liberando al personal de tareas manuales repetitivas y aplicando reglas orientadas a favorecer la consistencia en las comunicaciones oficiales.
 
 El alcance espec\'ifico de este Proyecto comprende la implementaci\'on completa del Agente~1 a lo largo de \textbf{un a\~no acad\'emico} (dos semestres: Semestre~1 y Semestre~2, 2026): en el Semestre~1 se implementan las funcionalidades de mayor prioridad ---generaci\'on de gacetillas y posts para redes sociales--- alcanzando \ac{TRL}~3; en el Semestre~2 se a\~naden confirmaciones autom\'aticas, interacci\'on en lenguaje natural y generaci\'on de certificados, alcanzando \ac{TRL}~4. Nota: el Proyecto Centenario (\ac{P100}) en su totalidad abarca \textbf{dos a\~nos} (cuatro semestres, 2026--2027), pero este Proyecto cubre \'unicamente el primer a\~no. La arquitectura multiagente global ---en la que este agente se integra--- es dise\~nada e implementada de forma conjunta con el Proyecto de Ignacio Becerra Mas Roca, quien se especializa posteriormente en el Agente~2.
 
-La propuesta se sustenta en tecnolog\'ias de c\'odigo abierto (Ollama, LangGraph, FastAPI, Google Workspace y \texttt{deepagents} como apoyo de desarrollo), ejecuci\'on local de modelos de lenguaje que garantiza soberan\'ia de datos, ciberseguridad desde el principio y un esquema de maduraci\'on progresiva basado en niveles \ac{TRL}. Todo contenido generado autom\'aticamente requiere validaci\'on humana antes de su publicaci\'on o env\'io oficial, eliminando el riesgo de automatizar comunicaciones institucionales sin control profesional. La estimaci\'on de costos para el a\~no de alcance del Proyecto se ubica en el rango de \$~0 a \$~1.400~USD, seg\'un se utilicen o no componentes opcionales de infraestructura, respaldo o contingencia.
+La propuesta se sustenta en tecnolog\'ias de c\'odigo abierto (Ollama, LangGraph, FastAPI, Google Workspace y \texttt{deepagents} como apoyo de desarrollo), ejecuci\'on local de modelos de lenguaje como medida de dise\~no para preservar la soberan\'ia de datos, ciberseguridad desde el principio y un esquema de maduraci\'on progresiva basado en niveles \ac{TRL}. Todo contenido generado autom\'aticamente requiere validaci\'on humana antes de su publicaci\'on o env\'io oficial, reduciendo el riesgo de automatizar comunicaciones institucionales sin control profesional. La estimaci\'on de costos para el a\~no de alcance del Proyecto se ubica en el rango de \$~0 a \$~1.400~USD, seg\'un se utilicen o no componentes opcionales de infraestructura, respaldo o contingencia.
 
 El presente anteproyecto incluye, adem\'as del dise\~no funcional y t\'ecnico del Agente~1, los siguientes artefactos: casos de uso, plan de calidad, plan de riesgos, gates de calidad y auditor\'ia, m\'etricas con protocolo de medici\'on, factores cr\'iticos de \'exito y cronograma iterativo no en cascada. Estos artefactos establecen los criterios operativos de ejecuci\'on, medici\'on, entrega y transferencia del agente, incluyendo reglas de go/no-go y evidencia exigible para acreditar \ac{TRL}~3 y \ac{TRL}~4.
 
@@ -206,7 +209,7 @@ La Facultad de Ingenier\'ia del Ej\'ercito se aproxima a su centenario instituci
 
 El proceso de comunicaci\'on y difusi\'on institucional (Proceso~4 del mapa \ac{BPM}) es uno de los m\'as onerosos en t\'erminos de tiempo: cada gacetilla, publicaci\'on en redes sociales o correo de confirmaci\'on requiere intervenci\'on manual completa, desde la redacci\'on hasta el formato y la publicaci\'on. Esta carga limita la frecuencia y calidad de las comunicaciones, genera inconsistencias en el mensaje institucional y representa un cuello de botella operativo que escala negativamente con el volumen de actividades de extensi\'on.
 
-El Proyecto Centenario (\ac{P100}) aborda esta problem\'atica mediante una arquitectura de cinco agentes inteligentes especializados, con un horizonte de dos a\~nos (2026--2027). El presente anteproyecto delimita el alcance del Proyecto de Juan Ignacio Go\~ne al primer a\~no acad\'emico (2026) y al \ac{A1} (``Extensi\'on Bot''): el agente de comunicaci\'on institucional del sistema. Su prop\'osito es automatizar la generaci\'on de contenido comunicacional de la \ac{SEU}, desde gacetillas y posts para redes sociales hasta confirmaciones de inscripci\'on y certificados, liberando al personal de tareas repetitivas y garantizando consistencia en los mensajes institucionales.
+El Proyecto Centenario (\ac{P100}) aborda esta problem\'atica mediante una arquitectura de cinco agentes inteligentes especializados, con un horizonte de dos a\~nos (2026--2027). El presente anteproyecto delimita el alcance del Proyecto de Juan Ignacio Go\~ne al primer a\~no acad\'emico (2026) y al \ac{A1} (``Extensi\'on Bot''): el agente de comunicaci\'on institucional del sistema. Su prop\'osito es automatizar la generaci\'on de contenido comunicacional de la \ac{SEU}, desde gacetillas y posts para redes sociales hasta confirmaciones de inscripci\'on y certificados, liberando al personal de tareas repetitivas y aplicando reglas orientadas a favorecer la consistencia en los mensajes institucionales.
 
 La arquitectura multiagente global en la que se integra el Agente~1 ---incluyendo los mecanismos de orquestaci\'on, la infraestructura compartida y el dise\~no del sistema de cinco agentes--- es definida e implementada en forma conjunta por ambos desarrolladores (Go\~ne y Becerra Mas Roca). Sobre esa base com\'un, cada desarrollador se especializa en su agente: Go\~ne en el Agente~1 (``Extensi\'on Bot'') y Becerra Mas Roca en el Agente~2 (``Historia Viva''). El Agente~1 no es un chatbot p\'ublico, no realiza scraping, no produce anal\'itica ni orquesta el sistema: su responsabilidad queda acotada a la comunicaci\'on institucional con supervisi\'on humana.
 
@@ -288,7 +291,7 @@ El prop\'osito del presente Proyecto es implementar el \ac{A1} --- Extensi\'on B
 
   \item \textbf{Viabilidad econ\'omica:} la base de software libre tiene costo cero. Las erogaciones opcionales se estiman entre \$~0 y \$~1.400~USD para el a\~no de alcance del Proyecto, seg\'un se requieran respaldo externo, contingencia cloud, comparaciones con APIs IA o mejoras menores de infraestructura. La estimaci\'on detallada se presenta en la Secci\'on~\ref{sec:factibilidad}.
 
-  \item \textbf{Soberan\'ia de datos:} la ejecuci\'on local de modelos de lenguaje garantiza que la informaci\'on institucional no abandone la infraestructura de la facultad, cumpliendo con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326}.
+  \item \textbf{Soberan\'ia de datos:} la ejecuci\'on local de modelos de lenguaje se adopta como medida de dise\~no para mantener la informaci\'on institucional dentro de la infraestructura de la facultad. La integraci\'on real, su configuraci\'on y el cumplimiento de la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 deber\'an verificarse antes de operar con datos institucionales \parencite{ley25326}.
 
   \item \textbf{Complemento, no reemplazo:} el sistema asiste al personal de la \ac{SEU} sin sustituirlo. Todo contenido generado autom\'aticamente requiere validaci\'on humana obligatoria antes de cualquier publicaci\'on o env\'io oficial. Esta premisa es estructural al dise\~no del agente.
 
@@ -315,7 +318,7 @@ Un sistema en el que el personal de la \ac{SEU} ingresa datos de una actividad e
 \begin{enumerate}[label=OE\arabic*.]
   \item Implementar el m\'odulo de generaci\'on de gacetillas institucionales, con input desde Google Sheets y output en Google Docs con plantilla oficial de la \ac{SEU}.
   \item Implementar el m\'odulo de generaci\'on de posts para redes sociales, con formato adaptado a Instagram (texto breve, hashtags) y LinkedIn (texto extendido, tono profesional), controlando longitud y tono seg\'un canal.
-  \item Implementar el sistema de confirmaciones autom\'aticas de inscripci\'on, con trigger al registrarse una nueva inscripci\'on en Google Sheets y registro de cada env\'io.
+  \item Implementar el sistema de confirmaciones autom\'aticas de inscripci\'on, con trigger al registrarse una nueva inscripci\'on en Google Sheets, aprobaci\'on humana registrada previa al env\'io y registro de cada env\'io.
   \item Implementar la interfaz de interacci\'on en lenguaje natural para uso interno del personal de la \ac{SEU}, iniciada por correo electr\'onico con invitaci\'on a chat y registro operativo en Google Sheets.
   \item Implementar el m\'odulo de generaci\'on de certificados autom\'aticos con plantilla base y flujo obligatorio de validaci\'on humana antes de emisi\'on.
   \item Incorporar el procesamiento acotado de documentos PDF/DOCX como insumo para generar res\'umenes o piezas de comunicaci\'on, sin convertir al Agente~1 en herramienta de anal\'itica documental.
@@ -348,7 +351,7 @@ Las actividades de este Proyecto (primer a\~no del Proyecto Centenario) abarcan 
 \begin{itemize}
   \item \textbf{HU-010} (Semestre~1): generaci\'on autom\'atica de gacetillas institucionales. Input: datos de Google Sheets. Output: Google Docs con plantilla institucional aplicada.
   \item \textbf{HU-011} (Semestre~1): generaci\'on de posts para redes sociales. Canales: Instagram y LinkedIn. Longitud y tono configurables por canal.
-  \item \textbf{HU-012} (Semestre~2): env\'io autom\'atico de confirmaciones de inscripci\'on. Trigger al registrarse nueva inscripci\'on en Google Sheets. Registro de cada env\'io.
+  \item \textbf{HU-012} (Semestre~2): confirmaciones de inscripci\'on. Trigger al registrarse una nueva inscripci\'on en Google Sheets: el agente prepara la confirmaci\'on y la deja en estado \texttt{PENDIENTE\_VALIDACION}; el env\'io autom\'atico por correo se ejecuta reci\'en tras una aprobaci\'on humana registrada. Registro de cada env\'io con marca temporal, destinatario y estado. Es la \'unica salida que el Agente~1 entrega de forma autom\'atica a un destinatario final.
   \item \textbf{HU-013} (Semestre~2): interfaz de interacci\'on en lenguaje natural para uso interno, iniciada mediante correo electr\'onico con invitaci\'on a chat y registro de datos operativos en Google Sheets.
   \item \textbf{HU-014} (Semestre~2): generaci\'on de certificados autom\'aticos con plantilla base, generaci\'on PDF y validaci\'on humana obligatoria previa a emisi\'on.
   \item Integraci\'on del Agente~1 como nodo de comunicaci\'on institucional: recepci\'on de insumos de A2 (contenido hist\'orico), A3 (datos de eventos), A4 (respuestas complejas) y A5 (enriquecimiento de texto de \ac{RRSS}).
@@ -395,6 +398,7 @@ El Agente~1 se ubica como soporte tecnol\'ogico principal del Proceso~4 (Comunic
   \item Historias agregadas fuera del alcance del Agente~1: HU-015 (ceremonial y protocolo, Agente~3), HU-025 (registro e integridad CONEAU/SIU, Agente~5), HU-052 (ventanilla virtual de egresados, Agente~4) y HU-060 (optimizaci\'on burocr\'atica de soporte inter-secretar\'ia).
   \item Gesti\'on de tareas administrativas de soporte inter-secretar\'ia, tales como orden del d\'ia, ceremonial, proveedores, presupuestos, aprovisionamiento e inventarios. Esas tareas se canalizan hacia el \'area de apoyo correspondiente y no redefinen el \ac{MVP} del Agente~1.
   \item Scraping o consumo de APIs externas complejas no definidas en la etapa actual.
+  \item Publicaci\'on en redes sociales y env\'io de gacetillas, newsletters o correos de difusi\'on: el Agente~1 produce esas piezas \'unicamente como borrador y la publicaci\'on o distribuci\'on queda a cargo del personal de la \ac{SEU}, de forma manual y desde los canales y cuentas institucionales. La \'unica excepci\'on es la confirmaci\'on de inscripci\'on (HU-012), acotada al destinatario de esa inscripci\'on y condicionada a aprobaci\'on humana registrada.
   \item Automatizaci\'on sin validaci\'on humana en contenidos destinados a publicaci\'on oficial.
   \item Infraestructura de alto costo (servidores GPU, servicios cloud premium).
   \item Comunicaci\'on con organismos militares y dependencias de la \ac{UNDEF}: el alcance comunicacional del Agente~1 se limita a la comunidad \ac{FIE} (FIE Informa), organismos institucionales y canales de redes sociales definidos. Toda comunicaci\'on oficial con la \ac{UNDEF} o dependencias castrenses queda fuera de alcance.
@@ -423,7 +427,7 @@ Un sistema multiagente es un sistema compuesto por m\'ultiples agentes que inter
 
 \subsection{LLMs locales y soberan\'ia de datos}
 
-Los Large Language Models de c\'odigo abierto pueden ejecutarse localmente mediante Ollama \parencite{ollama2024}, eliminando la necesidad de enviar datos institucionales a servicios externos. Esta caracter\'istica es fundamental para cumplir con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326} y con los requisitos de soberan\'ia de datos de una instituci\'on de defensa. LangGraph \parencite{langgraph2026} provee la capa de orquestaci\'on de grafos con estado, permitiendo construir flujos de generaci\'on de contenido complejos, persistentes, auditables y reutilizables sobre estos modelos.
+Los Large Language Models de c\'odigo abierto pueden ejecutarse localmente mediante Ollama \parencite{ollama2024}, reduciendo la necesidad de enviar datos institucionales a servicios externos. Esta caracter\'istica contribuye al dise\~no de controles para la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326} y los requisitos de soberan\'ia de datos de una instituci\'on de defensa, pero la integraci\'on institucional y su cumplimiento todav\'ia deben verificarse. LangGraph \parencite{langgraph2026} provee la capa de orquestaci\'on de grafos con estado, permitiendo construir flujos de generaci\'on de contenido complejos, persistentes, auditables y reutilizables sobre estos modelos.
 
 \subsection{Ciberseguridad desde el principio}
 
@@ -676,7 +680,7 @@ La Tabla~\ref{tab:bmc} presenta el Business Model Canvas del Agente~1, adaptado 
     Automatizaci\'on de la generaci\'on de comunicaciones institucionales (gacetillas, posts, correos, certificados); consistencia en el mensaje institucional; liberaci\'on de tiempo del personal para tareas de mayor valor; trazabilidad auditable de todas las comunicaciones; soberan\'ia de datos con ejecuci\'on local de IA. \\
     \hline
     \textbf{Canales} &
-    Google Workspace como canal primario de interacci\'on (Sheets para insumos, Docs para salidas, Gmail para env\'ios). Redes sociales institucionales (Instagram, LinkedIn) como canales de publicaci\'on. \\
+    Google Workspace como canal primario de interacci\'on (Sheets para insumos, Docs para salidas, Gmail acotado a las confirmaciones de HU-012 y a las notificaciones internas al validador). Redes sociales institucionales (Instagram, LinkedIn) como canales de publicaci\'on manual a cargo de la \ac{SEU}. \\
     \hline
     \textbf{Relaci\'on con clientes} &
     Asistencia automatizada con validaci\'on humana obligatoria. Capacitaci\'on al personal de la SEU. Retroalimentaci\'on iterativa sobre calidad de contenido generado. Checklist de validaci\'on (escala 1--4) en cada gate TRL. \\
@@ -701,11 +705,11 @@ La Tabla~\ref{tab:bmc} presenta el Business Model Canvas del Agente~1, adaptado 
 
 \subsection{Viabilidad operativa}
 
-El Agente~1 se integra con Google Workspace, ya adoptado institucionalmente por la \ac{FIE}. La incorporaci\'on es progresiva: en S1 se implementan las funcionalidades de mayor valor (gacetillas y posts), y en S2 se agregan confirmaciones, interacci\'on natural y certificados. El flujo de validaci\'on humana obligatoria garantiza que el personal mantiene el control total sobre las comunicaciones oficiales, minimizando la resistencia al cambio y los riesgos operativos.
+El dise\~no del Agente~1 prev\'e su integraci\'on con Google Workspace, ya adoptado institucionalmente por la \ac{FIE}; dicha integraci\'on real a\'un debe validarse en un entorno autorizado. La incorporaci\'on es progresiva: en S1 se implementan las funcionalidades de mayor valor (gacetillas y posts), y en S2 se agregan confirmaciones, interacci\'on natural y certificados. El flujo de validaci\'on humana obligatoria garantiza que el personal mantiene el control total sobre las comunicaciones oficiales, minimizando la resistencia al cambio y los riesgos operativos.
 
 \subsection{Viabilidad legal}
 
-El stack base se compone de software con licencias de c\'odigo abierto (MIT, Apache 2.0, BSD, GPL). La ejecuci\'on local de modelos de lenguaje y el almacenamiento de datos en infraestructura propia cumplen con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326 \parencite{ley25326}. Los datos de inscripciones y correos de confirmaci\'on se procesan dentro de la infraestructura institucional. Cualquier API IA externa queda limitada a contingencias o comparaciones controladas, con aprobaci\'on previa, anonimizaci\'on de datos sensibles y registro de uso.
+El stack base se compone de software con licencias de c\'odigo abierto (MIT, Apache 2.0, BSD, GPL). La ejecuci\'on local de modelos de lenguaje y el almacenamiento de datos en infraestructura propia se proponen como controles para alinearse con la Ley de Protecci\'on de Datos Personales N\textsuperscript{o}~25.326; su cumplimiento deber\'a verificarse mediante la configuraci\'on institucional y la revisi\'on correspondiente \parencite{ley25326}. Los datos de inscripciones y correos de confirmaci\'on s\'olo deber\'an procesarse dentro de la infraestructura institucional una vez validado el entorno. Cualquier API IA externa queda limitada a contingencias o comparaciones controladas, con aprobaci\'on previa, anonimizaci\'on de datos sensibles y registro de uso.
 
 \subsection{Viabilidad medioambiental}
 
@@ -777,7 +781,7 @@ La gesti\'on de calidad del Agente~1 se estructura en cinco niveles:
 
   \item \textbf{Calidad del contenido generado:} se eval\'ua con un checklist de cuatro dimensiones: precisi\'on factual, adecuaci\'on al tono institucional, correcta aplicaci\'on de plantilla y longitud adecuada al canal. La escala es 1--4 (1~=~no cumple, 4~=~cumple completamente). El criterio de aceptaci\'on es $\geq 3$ en todas las dimensiones.
 
-  \item \textbf{Requisitos no funcionales operativos:} la versi\'on vigente de \textit{Procesos y Agentes.md} explicita como atributos esperados la seguridad de la informaci\'on, una interfaz amigable, uso directo de las tareas principales, operaci\'on en servidor local, mantenibilidad, tolerancia a fallos y disponibilidad objetivo del 99\%. En este anteproyecto esos atributos se verifican mediante controles de seguridad, pruebas de usabilidad, registro de fallos, plan de contingencia y monitoreo de ejecuci\'on.
+  \item \textbf{Requisitos no funcionales operativos:} la versi\'on vigente de \textit{Procesos y Agentes.md} explicita como atributos esperados la seguridad de la informaci\'on, una interfaz amigable, uso directo de las tareas principales, operaci\'on en servidor local, mantenibilidad, tolerancia a fallos y disponibilidad objetivo del 99\%. Este porcentaje es un criterio de aceptaci\'on pendiente de medici\'on; no constituye un resultado demostrado. En este anteproyecto esos atributos se verifican mediante controles de seguridad, pruebas de usabilidad, registro de fallos, plan de contingencia y monitoreo de ejecuci\'on.
 
   \item \textbf{Alineaci\'on con ISO/IEC~25010 e ISO~9001:} se mantiene un backlog de calidad espec\'ifico alineado con las caracter\'isticas de funcionalidad, confiabilidad, mantenibilidad y usabilidad de la norma \parencite{iso25010, iso9001}. Los registros de validaci\'on se almacenan en Google Drive con nomenclatura estandarizada: \texttt{VAL-SX-YYYY-MM-DD-descripcion.pdf}, garantizando trazabilidad auditable para \ac{CONEAU}.
 
@@ -885,7 +889,7 @@ La propuesta se articula en torno al \agenteUno{} como componente de comunicaci\
 
 \subsection{Flujo principal del Agente~1}
 
-La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el ingreso de datos hasta la publicaci\'on final.
+La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el ingreso de datos hasta la publicaci\'on final. El \'ultimo paso queda fuera del agente: salvo la confirmaci\'on de inscripci\'on (HU-012), la publicaci\'on la ejecuta manualmente el personal de la \ac{SEU} sobre el borrador ya aprobado.
 
 \begin{figure}[H]
   \centering
@@ -941,7 +945,7 @@ La Figura~\ref{fig:flujo-a1} ilustra el flujo completo del Agente~1, desde el in
 
   \end{tikzpicture}%
   }
-  \caption{Flujo principal del Agente~1 (Extensi\'on Bot): desde el ingreso de datos hasta la publicaci\'on final, con validaci\'on humana obligatoria.}
+  \caption{Flujo principal del Agente~1 (Extensi\'on Bot): desde el ingreso de datos hasta la publicaci\'on final, con validaci\'on humana obligatoria. La publicaci\'on es manual y la realiza el personal de la \ac{SEU}; la \'unica entrega autom\'atica del agente es el correo de confirmaci\'on de inscripci\'on (HU-012), posterior a la aprobaci\'on.}
   \label{fig:flujo-a1}
 \end{figure}
 
@@ -960,7 +964,7 @@ La Tabla~\ref{tab:hu} presenta las cinco historias de usuario del \ac{EPIC}~E2 (
     \midrule
     HU-010: Generar gacetillas autom\'aticamente & P0 & 8 & Input desde Google Sheets. Output en Google Docs con plantilla institucional aplicada. Tiempo de generaci\'on $<$~30~s. Validaci\'on humana previa a entrega. \\
     HU-011: Generar posts para redes sociales & P0 & 5 & Formato adaptable a Instagram (breve, hashtags) y LinkedIn (extendido, tono profesional). Longitud configurable. Texto limpio, sin alucinaciones verificadas por validador. \\
-    HU-012: Confirmaciones autom\'aticas de inscripci\'on & P1 & 5 & Trigger al registrarse nueva fila en Sheets. Correo autom\'atico enviado v\'ia Gmail. Registro de env\'io (timestamp, destinatario, estado). \\
+    HU-012: Confirmaciones autom\'aticas de inscripci\'on & P1 & 5 & Trigger al registrarse nueva fila en Sheets. Confirmaci\'on preparada en estado pendiente; correo enviado v\'ia Gmail s\'olo tras aprobaci\'on humana registrada. Registro de env\'io (timestamp, destinatario, estado). \\
     HU-013: Interacci\'on en lenguaje natural (uso interno) & P1 & 3 & Interfaz simple iniciada por email con invitaci\'on a chat. Google Sheets registra los datos requeridos por el sistema. Respuesta generada usable por personal no t\'ecnico. \\
     HU-014: Generar certificados autom\'aticos & P2 & 8 & Plantilla base definida con la SEU. Generaci\'on de PDF. Validaci\'on humana obligatoria antes de emisi\'on. Log de cada certificado emitido. \\
     \midrule
@@ -988,7 +992,7 @@ La Tabla~\ref{tab:trazabilidad-funcional} vincula cada elemento del alcance con 
     \midrule
     Gacetillas (HU-010) & P4 & Input desde Sheet; output en Google Docs; plantilla institucional aplicada; validaci\'on humana. Evidencia: documento generado, log y checklist de calidad. & COORD/RGC \\
     Posts \ac{RRSS} (HU-011) & P4 & Formato adaptable a Instagram y LinkedIn; texto limpio y coherente; longitud configurable; validaci\'on humana. Evidencia: borrador de post, log y checklist de canal. & RGC/RRSS \\
-    Confirmaciones (HU-012) & P5/P4 & Trigger al registrar inscripci\'on; email generado autom\'aticamente; registro de env\'io. Evidencia: email recibido y log de env\'io. & Responsable de cursos \\
+    Confirmaciones (HU-012) & P5/P4 & Trigger al registrar inscripci\'on; email generado autom\'aticamente y enviado tras aprobaci\'on registrada; registro de env\'io. Evidencia: email recibido, aprobaci\'on registrada y log de env\'io. & Responsable de cursos \\
     Lenguaje natural interno (HU-013) & P4/P3 & Email de inicio con invitaci\'on a chat; respuesta usable; datos requeridos registrados en Sheets. Evidencia: captura de interacci\'on y registro en Sheet. & COORD/RGC \\
     Certificados (HU-014) & P5 & Plantilla base; PDF generado; validaci\'on previa obligatoria. Evidencia: PDF generado, aprobaci\'on manual y log. & COORD/Admin. \\
     Seguridad y auditor\'ia & Transversal & Inventario, credenciales seguras, \ac{RBAC}, logs y validaci\'on formal registrada. Evidencia: registro de activos, checklist de seguridad y logs. & Go\~ne + \ac{SEU} \\
@@ -1127,7 +1131,7 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
     C0 & Alcance, gobierno y baseline documental & Relevamiento P4, equipo validador \ac{SEU}, exclusiones, devoluciones, firma institucional del anteproyecto y evidencia inicial & S1 \\
     C1 & HU-010 Gacetillas & Co-dise\~no de plantilla, spike Sheets--Docs, prototipo, prueba, validaci\'on \ac{SEU} y ajuste & S1 \\
     C2 & HU-011 Posts \ac{RRSS} & Criterios Instagram/LinkedIn, prototipo por canal, validaci\'on de tono/longitud y gate \ac{TRL}~3 & S1 \\
-    C3 & HU-012 Confirmaciones & Trigger Sheets--Gmail, registro de env\'io, logs persistentes y validaci\'on interna & S2 \\
+    C3 & HU-012 Confirmaciones & Trigger Sheets--Gmail con aprobaci\'on humana previa al env\'io, registro de env\'io, logs persistentes y validaci\'on interna & S2 \\
     C4 & HU-013 Lenguaje natural interno & Email de inicio, invitaci\'on a chat, registro en Sheets, validaci\'on de usabilidad y controles de alcance & S2 \\
     C5 & HU-014 Certificados & Plantilla, generaci\'on PDF, aprobaci\'on manual, log de emisi\'on y prueba controlada & S2 \\
     CI & Integraci\'on, release y cierre & Contratos/mocks A2--A5, integraci\'on progresiva, pruebas \ac{SEU}, release candidata, paquete de evidencias, informe final, transferencia y gate \ac{TRL}~4 & S2 \\
@@ -1259,7 +1263,7 @@ La Tabla~\ref{tab:criterios-aceptacion} consolida las m\'etricas n\'ucleo que se
     M10 & Cumplimiento \ac{DoD} & Checks \ac{DoD} cumplidos / checks aplicables por \ac{HU} & 100\% para declarar una \ac{HU} cerrada & Por \ac{HU} \\
     M11 & Defectos cr\'iticos & Defectos cr\'iticos abiertos al momento de gate o release & 0 defectos cr\'iticos abiertos & Gates \\
     M12 & Pruebas cr\'iticas & Pruebas cr\'iticas ejecutadas / pruebas cr\'iticas planificadas & 100\% para el gate correspondiente & Gates \\
-    M13 & Disponibilidad funcional & Tiempo en que el flujo candidato permanece utilizable durante ventanas de prueba / tiempo total de ventana & $\geq$~99\% en piloto controlado; incidentes registrados y analizados & S2 \\
+    M13 & Disponibilidad funcional & Tiempo en que el flujo candidato permanece utilizable durante ventanas de prueba / tiempo total de ventana & Objetivo $\geq$~99\% en piloto controlado; pendiente de medir; incidentes registrados y analizados & S2 \\
     M14 & Usabilidad operativa & Usuarios que completan tareas guiadas sin asistencia t\'ecnica / usuarios participantes & $\geq$~80\% en muestra de validaci\'on \ac{SEU} & S2 \\
     M15 & Mantenibilidad y tolerancia a fallos & Incidentes con log, causa, acci\'on correctiva y recuperaci\'on documentada / incidentes detectados & 100\% de incidentes relevantes registrados antes de gate & S1--S2 \\
     \bottomrule
