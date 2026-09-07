@@ -1,0 +1,145 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,margin=2.1cm]{geometry}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{parskip}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\usepackage[none]{hyphenat}
+
+\definecolor{azul}{HTML}{17365D}
+\definecolor{celeste}{HTML}{EAF2F8}
+\definecolor{gris}{HTML}{F3F4F6}
+\definecolor{verde}{HTML}{EAF5EE}
+\hypersetup{colorlinks=true,linkcolor=azul,urlcolor=azul}
+\setlength{\headheight}{14pt}
+\setlength{\emergencystretch}{3em}
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.35}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Proyecto Centenario · Agente 1}
+\rhead{Ficha para la SEU}
+\cfoot{Página \thepage\ de \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\campo}[3][0.65cm]{\TextField[name=#2,width=#3,height=#1,bordercolor={0.25 0.35 0.55},backgroundcolor={0.96 0.98 1},charsize=9pt]{} }
+\newcommand{\multicampo}[2]{\TextField[name=#1,width=#2,height=1.15cm,multiline=true,bordercolor={0.25 0.35 0.55},backgroundcolor={0.96 0.98 1},charsize=9pt]{} }
+
+\begin{document}
+\begin{Form}
+
+\begin{titlepage}
+\centering
+\vspace*{1.5cm}
+{\Large\color{azul}\textbf{PROYECTO CENTENARIO}}\\[0.4cm]
+{\large Facultad de Ingeniería del Ejército}\par
+\vspace{1.8cm}
+{\Huge\color{azul}\textbf{Ficha de definiciones}}\\[0.35cm]
+{\LARGE Agente 1 · Extensión Bot}\par
+\vspace{1cm}
+{\Large Información operativa para la Secretaría de Extensión}\par
+\vfill
+\begin{tcolorbox}[colback=verde,colframe=azul,width=0.9\textwidth]
+Este formulario reúne preguntas sobre el formato de las gacetillas y el circuito de confirmaciones de inscripción. Puede completarse directamente en el PDF y devolverse por correo.\\[0.2cm]
+No se solicitan credenciales, accesos ni datos personales reales. La información recibida se utilizará para documentar reglas de trabajo; no habilita publicaciones ni envíos automáticos.
+\end{tcolorbox}
+\vfill
+\textbf{Preparado por:} Juan Ignacio Goñe\\
+\textbf{Fecha:} 2026-08-31
+\end{titlepage}
+
+\section{Datos de quien responde}
+
+\begin{tabular}{|>{\raggedright\arraybackslash}p{4.5cm}|p{11.5cm}|}
+\hline
+Nombre y apellido & \campo{datos-nombre}{10.4cm}\\[0.25cm] \hline
+Rol y área & \campo{datos-rol-area}{10.4cm}\\[0.25cm] \hline
+Fecha & \campo{datos-fecha}{10.4cm}\\[0.25cm] \hline
+\end{tabular}
+
+\section{Gacetillas y notas institucionales}
+
+La SEU informó que no existe una plantilla oficial de gacetilla y que, para elevar una publicación a DGE/SGE, se prepara una nota institucional con logos, texto e imágenes.
+
+Complete los campos siguientes. Si un punto todavía no está definido, escriba ``pendiente''.
+
+\begin{tabular}{|>{\raggedright\arraybackslash}p{5.1cm}|p{10.5cm}|}
+\hline
+Estructura y secciones obligatorias & \multicampo{gacetilla-estructura}{9.6cm}\\[0.45cm] \hline
+Encabezado, pie, firma y contacto & \multicampo{gacetilla-encabezado-pie}{9.6cm}\\[0.45cm] \hline
+Logos, orden y reglas de uso & \multicampo{gacetilla-logos}{9.6cm}\\[0.45cm] \hline
+Imágenes: características y responsable & \multicampo{gacetilla-imagenes}{9.6cm}\\[0.45cm] \hline
+Ejemplo sanitizado o instructivo disponible & \multicampo{gacetilla-ejemplo}{9.6cm}\\[0.45cm] \hline
+Formatos distintos según actividad & \multicampo{gacetilla-formatos}{9.6cm}\\[0.45cm] \hline
+Evidencia de aprobación para difusión & \multicampo{gacetilla-aprobacion-difusion}{9.6cm}\\[0.45cm] \hline
+Circuito de corrección y aprobación & \multicampo{gacetilla-circuito}{9.6cm}\\[0.45cm] \hline
+\end{tabular}
+
+\clearpage
+\section{Confirmaciones de inscripción}
+
+Indique si los siguientes orígenes corresponden a las actividades mencionadas y qué reglas deben aplicarse. La ficha no solicita datos de personas inscriptas.
+
+\subsection*{Cursos y diplomaturas · SIU Guaraní}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{5.1cm}|p{10.5cm}|}
+\hline
+Actividades que utilizan este origen & \campo{siuguarani-actividades}{9.6cm}\\[0.25cm] \hline
+Estado que habilita preparar confirmación & \campo{siuguarani-estado}{9.6cm}\\[0.25cm] \hline
+Datos mínimos y responsable & \multicampo{siuguarani-datos-responsable}{9.6cm}\\[0.45cm] \hline
+\end{tabular}
+
+\subsection*{Talleres · SIU Guaraní de Extensión}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{5.1cm}|p{10.5cm}|}
+\hline
+Actividades que utilizan este origen & \campo{siuguarani-extension-actividades}{9.6cm}\\[0.25cm] \hline
+Estado que habilita preparar confirmación & \campo{siuguarani-extension-estado}{9.6cm}\\[0.25cm] \hline
+Datos mínimos y responsable & \multicampo{siuguarani-extension-datos-responsable}{9.6cm}\\[0.45cm] \hline
+\end{tabular}
+
+\clearpage
+\subsection*{Webinar e Ingeniería Por Un Día · Google Forms}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{5.1cm}|p{10.5cm}|}
+\hline
+Actividades que utilizan este origen & \campo{google-forms-actividades}{9.6cm}\\[0.25cm] \hline
+Quién administra el formulario & \campo{google-forms-responsable}{9.6cm}\\[0.25cm] \hline
+Estado que habilita preparar confirmación & \campo{google-forms-estado}{9.6cm}\\[0.25cm] \hline
+Datos mínimos y responsable & \multicampo{google-forms-datos-responsable}{9.6cm}\\[0.45cm] \hline
+\end{tabular}
+
+\subsection*{Información posterior a una preinscripción · Correo de Cursos Complementarios}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{5.1cm}|p{10.5cm}|}
+\hline
+Actividades a las que corresponde & \campo{correo-cursos-actividades}{9.6cm}\\[0.25cm] \hline
+Estado que habilita preparar información & \campo{correo-cursos-estado}{9.6cm}\\[0.25cm] \hline
+Datos mínimos y responsable & \multicampo{correo-cursos-datos-responsable}{9.6cm}\\[0.45cm] \hline
+\end{tabular}
+
+\clearpage
+\section{Reglas comunes para las confirmaciones}
+
+\begin{tabular}{|>{\raggedright\arraybackslash}p{5.1cm}|p{10.5cm}|}
+\hline
+¿La confirmación requiere aprobación individual? & \multicampo{regla-aprobacion}{9.6cm}\\[0.45cm] \hline
+¿Existe una plantilla preaprobada? & \multicampo{regla-plantilla}{9.6cm}\\[0.45cm] \hline
+Remitente, asunto, firma y pie & \multicampo{regla-mensaje}{9.6cm}\\[0.45cm] \hline
+Canal autorizado para enviar & \multicampo{regla-canal}{9.6cm}\\[0.45cm] \hline
+Consentimiento y datos personales & \multicampo{regla-datos-personales}{9.6cm}\\[0.45cm] \hline
+Retención y borrado & \multicampo{regla-retencion}{9.6cm}\\[0.45cm] \hline
+Qué hacer si falta el lugar u otro dato & \multicampo{regla-dato-faltante}{9.6cm}\\[0.45cm] \hline
+Observaciones generales & \multicampo{observaciones-generales}{9.6cm}\\[0.45cm] \hline
+\end{tabular}
+
+\vspace{0.6cm}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+Hasta contar con estas definiciones, el Agente 1 mantiene las confirmaciones como borradores y no realiza envíos automáticos.
+\end{tcolorbox}
+
+\end{Form}
+\end{document}

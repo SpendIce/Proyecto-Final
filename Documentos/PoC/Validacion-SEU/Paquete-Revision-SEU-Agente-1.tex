@@ -1,0 +1,291 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,margin=2.1cm]{geometry}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{amssymb}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{parskip}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\usepackage{tabularx}
+\usepackage[none]{hyphenat}
+\renewcommand{\contentsname}{Índice}
+
+\definecolor{azul}{HTML}{17365D}
+\definecolor{celeste}{HTML}{EAF2F8}
+\definecolor{gris}{HTML}{F3F4F6}
+\definecolor{verde}{HTML}{EAF5EE}
+\hypersetup{colorlinks=true,linkcolor=azul,urlcolor=azul}
+\newcommand{\campo}[2]{\TextField[name=#1,width=#2,height=0.42cm,bordercolor={0.25 0.35 0.55},backgroundcolor={0.96 0.98 1},charsize=9pt]{}}
+\newcommand{\casilla}[1]{\CheckBox[name=#1,width=0.32cm,height=0.32cm,bordercolor={0.25 0.35 0.55}]{} }
+\setlist[itemize]{nosep,leftmargin=*}
+\setlist[enumerate]{nosep,leftmargin=*}
+\renewcommand{\arraystretch}{1.35}
+
+\pagestyle{fancy}
+\setlength{\headheight}{14pt}
+\fancyhf{}
+\lhead{Proyecto Centenario · Agente 1}
+\rhead{Paquete de revisión SEU}
+\cfoot{Página \thepage\ de \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\muestra}[3]{%
+  \clearpage
+  \section*{Muestra #1: #2}
+  \begin{tcolorbox}[colback=celeste,colframe=azul,boxrule=0.5pt]
+  \textbf{Historia:} #3\hfill\textbf{Origen:} datos simulados\\
+  Esta pieza es un borrador de trabajo. No contiene información institucional real y no debe publicarse ni enviarse.
+  \end{tcolorbox}
+}
+
+\newcommand{\ficharevision}[1]{%
+  \subsection*{Ficha de revisión}
+  Marque una opción en cada fila y agregue observaciones concretas cuando corresponda.
+  \vspace{0.2cm}
+  \centering
+  \begin{tabular}{|>{\raggedright\arraybackslash}p{3.3cm}|>{\raggedright\arraybackslash}p{8.3cm}|p{2.4cm}|}
+  \hline
+  \textbf{Criterio} & \textbf{Qué revisar} & \textbf{Puntaje 1--4}\\ \hline
+  Precisión & Los datos coinciden con el insumo de la actividad. & \campo{#1-precision}{2cm}\\ \hline
+  Tono & El registro resulta apropiado para una comunicación institucional. & \campo{#1-tono}{2cm}\\ \hline
+  Adecuación al canal & La pieza es pertinente para gacetilla, Instagram o LinkedIn. & \campo{#1-canal}{2cm}\\ \hline
+  Gramática y claridad & La redacción es correcta y se entiende sin esfuerzo. & \campo{#1-gramatica}{2cm}\\ \hline
+  Longitud & La extensión resulta adecuada y legible para el canal. & \campo{#1-longitud}{2cm}\\ \hline
+  Información no respaldada & No agrega datos, enlaces, lugares, contactos ni aprobaciones ausentes. & \campo{#1-respaldo}{2cm}\\ \hline
+  \end{tabular}
+  \vspace{0.2cm}
+
+  \begin{tabular}{|>{\raggedright\arraybackslash}p{3.3cm}|>{\raggedright\arraybackslash}p{10.7cm}|}
+  \hline
+  \textbf{Decisión} & \casilla{#1-aprobado} APROBADO COMO BORRADOR\quad \casilla{#1-ajustes} REQUIERE AJUSTES\quad \casilla{#1-rechazado} RECHAZADO\\ \hline
+  \textbf{Observaciones} & \campo{#1-observaciones}{9.8cm}\\[0.7cm] \hline
+  \end{tabular}
+}
+
+\begin{document}
+\begin{Form}
+
+\begin{titlepage}
+\centering
+\vspace*{1.4cm}
+{\Large\color{azul}\textbf{PROYECTO CENTENARIO}}\\[0.4cm]
+{\large Facultad de Ingeniería del Ejército}\par
+\vspace{1.8cm}
+{\Huge\color{azul}\textbf{Paquete de revisión}}\\[0.35cm]
+{\LARGE Agente 1 · Extensión Bot}\par
+\vspace{1cm}
+{\Large Borradores de comunicación institucional}\par
+\vfill
+\begin{tcolorbox}[colback=verde,colframe=azul,width=0.9\textwidth]
+\textbf{Documento para revisión humana}\par
+Este paquete reúne nueve borradores elaborados con datos íntegramente simulados. Su objetivo es recibir observaciones sobre la calidad de los textos y dejar asentados criterios institucionales para futuras piezas.\\[0.2cm]
+\textbf{Nada de lo incluido autoriza a publicar, enviar o aprobar comunicaciones oficiales.}
+\end{tcolorbox}
+\vfill
+\textbf{Preparado por:} Juan Ignacio Goñe\\
+\textbf{Fecha de preparación:} 2026-08-31
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+\section{Cómo usar este documento}
+
+La revisión puede hacerse de manera individual o durante una reunión. Para cada muestra:
+
+\begin{enumerate}
+  \item lea el borrador completo;
+  \item compárelo con los datos de la actividad que figuran en la misma página;
+  \item complete los seis criterios con un puntaje de 1 a 4;
+  \item escriba una observación si encuentra un problema;
+  \item marque una decisión: \textbf{aprobado como borrador}, \textbf{requiere ajustes} o \textbf{rechazado}.
+\end{enumerate}
+
+\begin{tcolorbox}[colback=gris,colframe=azul,boxrule=0.5pt]
+\textbf{Escala:} 1 = deficiente; 2 = insuficiente; 3 = adecuado con observaciones; 4 = adecuado.\\
+Una muestra aprobada sólo se considera una base de trabajo. No habilita publicación, envío ni aprobación institucional.
+\end{tcolorbox}
+
+\section{Datos de las actividades sintéticas}
+
+Las nueve piezas se elaboraron a partir de tres actividades ficticias. Los datos permiten revisar si el texto conserva la información recibida.
+
+\begin{tabular}{|>{\raggedright\arraybackslash}p{3cm}|>{\raggedright\arraybackslash}p{13cm}|}
+\hline
+\textbf{Actividad} & \textbf{Datos de referencia}\\ \hline
+\multirow{5}{*}{SYN-001} & \textbf{Título:} Taller sintético de vinculación\\
+& \textbf{Fecha:} 2026-08-05\\
+& \textbf{Organiza:} Equipo de prueba\\
+& \textbf{Contacto:} pruebas@example.invalid\\
+& \textbf{Lugar:} Aula de prueba\\[0.12cm] \hline
+\multirow{5}{*}{SYN-003} & \textbf{Título:} Jornada sintética\\
+& \textbf{Fecha:} 2026-08-07\\
+& \textbf{Organiza:} Equipo de prueba\\
+& \textbf{Contacto:} pruebas@example.invalid\\
+& \textbf{Lugar:} No informado\\[0.12cm] \hline
+\multirow{5}{*}{SYN-005} & \textbf{Título:} Seminario sintético remoto\\
+& \textbf{Fecha:} 2026-08-09\\
+& \textbf{Organiza:} Área de prueba\\
+& \textbf{Contacto:} contacto@example.invalid\\
+& \textbf{Lugar:} No informado\\[0.12cm] \hline
+\end{tabular}
+
+\section{Criterios institucionales para redes}
+
+Además de revisar las muestras, se solicita dejar asentados los criterios que deberían aplicar a Instagram y LinkedIn. Si algún punto no está definido, puede indicarse ``pendiente''.
+
+\begin{tabular}{|>{\raggedright\arraybackslash}p{5.1cm}|>{\raggedright\arraybackslash}p{4.3cm}|>{\raggedright\arraybackslash}p{4.5cm}|}
+\hline
+\textbf{Criterio} & \textbf{Instagram} & \textbf{LinkedIn}\\ \hline
+Registro lingüístico (voseo, tuteo u otro) & \campo{redes-registro-instagram}{3.7cm} & \campo{redes-registro-linkedin}{3.7cm}\\ \hline
+Tono y estilo & \campo{redes-tono-instagram}{3.7cm} & \campo{redes-tono-linkedin}{3.7cm}\\ \hline
+Extensión máxima & \campo{redes-extension-instagram}{3.7cm} & \campo{redes-extension-linkedin}{3.7cm}\\ \hline
+Hashtags autorizados & \campo{redes-hashtags-instagram}{3.7cm} & \campo{redes-hashtags-linkedin}{3.7cm}\\ \hline
+Cantidad de hashtags & \campo{redes-cantidad-instagram}{3.7cm} & \campo{redes-cantidad-linkedin}{3.7cm}\\ \hline
+Uso de emojis & \campo{redes-emojis-instagram}{3.7cm} & \campo{redes-emojis-linkedin}{3.7cm}\\ \hline
+Llamados a la acción e inscripciones & \campo{redes-cta-instagram}{3.7cm} & \campo{redes-cta-linkedin}{3.7cm}\\ \hline
+Apoyo textual para reels & \campo{redes-reels-instagram}{3.7cm} & \campo{redes-reels-linkedin}{3.7cm}\\ \hline
+Ejemplos o referencias aprobadas & \campo{redes-ejemplos-instagram}{3.7cm} & \campo{redes-ejemplos-linkedin}{3.7cm}\\ \hline
+\hline
+\end{tabular}
+
+\section{Criterios para gacetillas}
+
+La revisión también puede indicar qué formato debería tener una gacetilla o nota institucional. No se presume que exista una plantilla oficial.
+
+\begin{tabular}{|>{\raggedright\arraybackslash}p{5.3cm}|p{10.7cm}|}
+\hline
+¿Qué partes debe incluir? & \campo{gacetilla-partes}{9.8cm}\\[0.35cm] \hline
+¿Qué encabezado, logos o pie deben utilizarse? & \campo{gacetilla-identidad}{9.8cm}\\[0.35cm] \hline
+¿Hay formatos distintos según el tipo de actividad? & \campo{gacetilla-formatos}{9.8cm}\\[0.35cm] \hline
+¿Qué correcciones son obligatorias antes de elevar una pieza? & \campo{gacetilla-correcciones}{9.8cm}\\[0.35cm] \hline
+\end{tabular}
+
+\section{Borradores para revisar}
+
+\muestra{M-001}{Gacetilla de SYN-001}{HU-010}
+\subsection*{Borrador}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+\textbf{BORRADOR · NO PUBLICAR}\par
+\textbf{Taller sintético de vinculación}\par\medskip
+\textbf{Fecha:} 2026-08-05\\
+\textbf{Organiza:} Equipo de prueba\\
+\textbf{Lugar:} Aula de prueba\par\medskip
+\textbf{Contacto:} pruebas@example.invalid\par\medskip
+\textbf{Bajada:} Actividad ficticia para validar el flujo.\par\medskip
+\textbf{Cuerpo:} El Equipo de prueba invita a la Comunidad universitaria ficticia.
+\end{tcolorbox}
+\ficharevision{M001}
+
+\muestra{M-002}{Post de Instagram de SYN-001}{HU-011}
+\subsection*{Borrador}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+\textbf{BORRADOR · NO PUBLICAR}\par
+\textbf{Canal:} Instagram\par\medskip
+Sumate al Taller sintético de vinculación el 2026-08-05 en Aula de prueba. Organiza: Equipo de prueba. Contacto: pruebas@example.invalid.\par\medskip
+\textbf{Hashtags:} \#Vinculación \#ComunidadUniversitaria
+\end{tcolorbox}
+\ficharevision{M002}
+
+\muestra{M-003}{Post de LinkedIn de SYN-001}{HU-011}
+\subsection*{Borrador}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+\textbf{BORRADOR · NO PUBLICAR}\par
+\textbf{Canal:} LinkedIn\par\medskip
+Taller sintético de vinculación, el 2026-08-05 en Aula de prueba. Organiza: Equipo de prueba. Contacto: pruebas@example.invalid.\par\medskip
+\textbf{Hashtags:} \#Vinculación \#Universidad
+\end{tcolorbox}
+\ficharevision{M003}
+
+\muestra{M-004}{Gacetilla de SYN-003}{HU-010}
+\subsection*{Borrador}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+\textbf{BORRADOR · NO PUBLICAR}\par
+\textbf{Jornada sintética}\par\medskip
+\textbf{Fecha:} 2026-08-07\\
+\textbf{Organiza:} Equipo de prueba\par\medskip
+\textbf{Contacto:} pruebas@example.invalid\par\medskip
+\textbf{Bajada:} Datos exclusivamente ficticios para validar el flujo.\par\medskip
+\textbf{Cuerpo:} El Equipo de prueba invita al Público ficticio.
+\end{tcolorbox}
+\ficharevision{M004}
+
+\muestra{M-005}{Post de Instagram de SYN-003}{HU-011}
+\subsection*{Borrador}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+\textbf{BORRADOR · NO PUBLICAR}\par
+\textbf{Canal:} Instagram\par\medskip
+Participá de la Jornada sintética el 2026-08-07. Organiza: Equipo de prueba. Contacto: pruebas@example.invalid.\par\medskip
+\textbf{Hashtags:} \#Jornada \#Comunidad
+\end{tcolorbox}
+\ficharevision{M005}
+
+\muestra{M-006}{Post de LinkedIn de SYN-003}{HU-011}
+\subsection*{Borrador}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+\textbf{BORRADOR · NO PUBLICAR}\par
+\textbf{Canal:} LinkedIn\par\medskip
+Jornada sintética, el 2026-08-07. Organiza: Equipo de prueba. Contacto: pruebas@example.invalid.\par\medskip
+\textbf{Hashtags:} \#Jornada \#Universidad
+\end{tcolorbox}
+\ficharevision{M006}
+
+\muestra{M-007}{Gacetilla de SYN-005}{HU-010}
+\subsection*{Borrador}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+\textbf{BORRADOR · NO PUBLICAR}\par
+\textbf{Seminario sintético remoto}\par\medskip
+\textbf{Fecha:} 2026-08-09\\
+\textbf{Organiza:} Área de prueba\par\medskip
+\textbf{Contacto:} contacto@example.invalid\par\medskip
+\textbf{Bajada:} Actividad ficticia para validar el flujo remoto.\par\medskip
+\textbf{Cuerpo:} El Área de prueba invita a la Comunidad universitaria ficticia.
+\end{tcolorbox}
+\ficharevision{M007}
+
+\muestra{M-008}{Post de Instagram de SYN-005}{HU-011}
+\subsection*{Borrador}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+\textbf{BORRADOR · NO PUBLICAR}\par
+\textbf{Canal:} Instagram\par\medskip
+Conocé el Seminario sintético remoto el 2026-08-09. Organiza: Área de prueba. Contacto: contacto@example.invalid.\par\medskip
+\textbf{Hashtags:} \#Seminario \#ComunidadUniversitaria
+\end{tcolorbox}
+\ficharevision{M008}
+
+\muestra{M-009}{Post de LinkedIn de SYN-005}{HU-011}
+\subsection*{Borrador}
+\begin{tcolorbox}[colback=gris,colframe=azul]
+\textbf{BORRADOR · NO PUBLICAR}\par
+\textbf{Canal:} LinkedIn\par\medskip
+Seminario sintético remoto, el 2026-08-09. Organiza: Área de prueba. Contacto: contacto@example.invalid.\par\medskip
+\textbf{Hashtags:} \#Seminario \#Universidad
+\end{tcolorbox}
+\ficharevision{M009}
+
+\clearpage
+\section{Cierre de la revisión}
+\begin{tabular}{|>{\raggedright\arraybackslash}p{5.5cm}|p{10.5cm}|}
+\hline
+Persona revisora & \campo{cierre-revisor}{9.6cm}\\[0.25cm] \hline
+Rol y área & \campo{cierre-rol}{9.6cm}\\[0.25cm] \hline
+Fecha y hora & \campo{cierre-fecha}{9.6cm}\\[0.25cm] \hline
+Modalidad de revisión & \campo{cierre-modalidad}{9.6cm}\\[0.25cm] \hline
+Decisión general sobre las muestras & \casilla{cierre-adecuada} Base adecuada\quad \casilla{cierre-ajustes} Requiere ajustes\quad \casilla{cierre-no-adecuada} No adecuada\\[0.25cm] \hline
+Observaciones generales & \campo{cierre-observaciones}{9.6cm}\\[0.8cm] \hline
+\end{tabular}
+
+\vspace{0.5cm}
+\begin{tcolorbox}[colback=verde,colframe=azul]
+La revisión documentada en este paquete se limita a los borradores y a los criterios editoriales. No autoriza publicación, envío, emisión de certificados ni puesta en producción del sistema.
+\end{tcolorbox}
+
+\end{Form}
+\end{document}
