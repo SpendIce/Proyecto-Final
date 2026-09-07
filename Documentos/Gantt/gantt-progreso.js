@@ -35,8 +35,18 @@ window.GANTT_PROGRESS = {
   "s2b": { done: true, at: "2026-08-12", nota: "Prototipo de post offline resuelto en 537402a (DEF-A1-004 RESUELTO_TECNICO)" },
   "s2c": { done: true, at: "2026-08-14", nota: "Control de longitud/limpieza offline resuelto en 537402a (DEF-A1-004 RESUELTO_TECNICO)" },
 
+  "s3c": { done: true, at: "2026-08-26", nota: "Spike PostgreSQL cerrado técnicamente: migraciones 0001→0003, timestamps futuros rechazados, rollback a cero tablas y forward final en PostgreSQL 16 efímero (regresión integral canónica del corte documental 2026-09-06: 513 pruebas verdes fuera del sandbox; medición registrada el 26/08)." },
+  "s3d": { done: true, at: "2026-08-26", nota: "Logging seguro con correlation ID, hashes, versiones y controles D2/D3 verificado en la regresión local; no incluye secretos ni acceso Workspace live." },
+
+  "s4a": { done: true, at: "2026-08-26", nota: "Contrato, modelo de datos y puerto local de confirmación implementados en HU-012; no hay endpoint ni trigger institucional live." },
+  "s4b": { done: true, at: "2026-08-26", nota: "Idempotencia y transiciones atómicas verificadas con RegistroConfirmacionesMemoria y pruebas de concurrencia offline." },
+  "s4c": { done: true, at: "2026-08-26", nota: "Plantilla provisional y puerto de entrega fake verificados; Gmail/Workspace y plantilla institucional continúan BLOQUEADO_EXTERNO." },
+
   // Sin marcar a proposito (evidencia no alcanza para done:true):
   // s0b  - Workspace/OAuth2 institucional: BLOQUEADO_EXTERNO (DEF-A1-001).
   // s1b-s1e, m1 - HU-010 sigue PARCIAL segun Plan-Recuperacion-MVP-Agente-1-2026-08-17.md.
   // s2d, m2 - Validacion SEU y Gate TRL 3 siguen PENDIENTE/BLOQUEADO_EXTERNO (DEF-A1-005, DEF-A1-006).
+  // s3a, m3 - Workspace/OAuth y el cierre institucional siguen BLOQUEADO_EXTERNO.
+  // s3b - SEU designó revisor titular/suplente y se documentó el circuito, pero faltan criterios por canal y sesión/acta real; no corresponde done:true.
+  // s4d-s4e, m4 - asincronía operativa, entrega real y validación SEU siguen pendientes.
 };
