@@ -4,7 +4,7 @@
 **Autor del PPS:** Juan Ignacio Gone  
 **Artefacto:** evaluacion del proyecto de desarrollo y plan de integracion  
 **Estado:** borrador academico trazable  
-**Ultima actualizacion:** 2026-05-18
+**Ultima actualizacion:** 2026-09-06
 
 ## 1. Proposito
 
@@ -43,6 +43,7 @@ El plan funciona como artefacto puente entre el anteproyecto, los casos de uso, 
 - `Documentos/PlanAuditoria/Plan-Auditoria-Agente-1-PPS-Juan-Ignacio-Gone.md`
 - `Documentos/PlanEstados/Plan-Estados-Agente-1-PPS-Juan-Ignacio-Gone.md`
 - `Documentos/PlanDespliegue/Plan-Despliegue-Agente-1-PPS-Juan-Ignacio-Gone.md`
+- `Documentos/PoC/Definiciones-SEU-Operacion-Agente-1-2026-08-26.md`
 
 Tambien se integraron relevamientos read-only realizados por subagentes sobre alcance documental, arquitectura de integracion y seguridad.
 
@@ -198,9 +199,9 @@ Regla: toda interfaz A2-A5 debe probarse primero con mocks estaticos. La integra
 
 | Pieza / HU | Validador principal por rol | Evidencia minima | Regla bloqueante |
 |---|---|---|---|
-| HU-010 Gacetilla | Responsable Gestion del Conocimiento / Coordinador | Google Doc, checklist, estado, log | no se publica sin `APROBADA` |
-| HU-011 Post RRSS | Responsable RRSS / Responsable Gestion del Conocimiento | borrador por canal, checklist canal, log | no se publica sin `APROBADA` |
-| HU-012 Confirmacion | Responsable de cursos / Personal SEU | email de prueba, estado, timestamp, log | si usa LLM queda en borrador; envio automatico solo con plantilla preaprobada |
+| HU-010 Gacetilla | Revisión editorial: referente SEU designado; aprobación/corrección: Oficial de Comunicación Institucional | Borrador, checklist, estado, log y decisión por etapa | no se publica ni eleva oficialmente sin aprobación/corrección institucional registrada |
+| HU-011 Post RRSS | Revisión editorial y criterios: referente SEU designado; aprobación/corrección institucional si corresponde | borrador por canal, checklist canal, log y decisión por etapa | no se publica sin decisión humana registrada; la revisión editorial no autoriza publicación |
+| HU-012 Confirmacion | Responsable de Cursos / personal SEU, a confirmar por origen | email de prueba, estado, timestamp, log y origen de inscripción | permanece en borrador; ningún envío automático hasta definir la regla escrita de aprobación individual o preaprobación de plantilla |
 | HU-013 Chat interno | Personal SEU / Coordinador | email de inicio, captura/transcript, registro Sheet | no es chatbot publico; usuario autenticado |
 | HU-014 Certificado | Coordinador / Administracion | PDF, aprobacion manual, log | no se emite sin aprobacion previa |
 
@@ -218,15 +219,17 @@ Regla: toda interfaz A2-A5 debe probarse primero con mocks estaticos. La integra
 | MI-08 | Uso de LLM externo con PII | 0 |
 | MI-09 | Eventos duplicados HU-012 | 0 |
 | MI-10 | Logs con input hash, output hash, estado y validador | 100% para muestra auditada |
+| MI-11 | Publicaciones mensuales de referencia para prueba de capacidad | 12 aproximadas; no SLA |
+| MI-12 | Mínimo informado para calendario editorial | 1 reel mensual y 2 publicaciones semanales; no sustituye la prioridad por eventos |
 
 ## 14. Matriz de trazabilidad de integracion
 
 | Elemento | Proceso BPM | HU / control | DoD de integracion | Evidencia | Responsable |
 |---|---|---|---|---|---|
 | Bus operativo Sheets | Transversal | HU-001/HU-002 como prerequisito | estructura, campos, estados, permisos | Sheet versionada, matriz de campos | Responsable tecnico IA |
-| Gacetillas | P4 | HU-010 | input Sheets, output Docs, plantilla, validacion | Doc, checklist, log | RGC / Coordinador |
-| Posts RRSS | P4 | HU-011 | canal, longitud, tono, validacion | borrador, checklist, log | RRSS / RGC |
-| Confirmaciones | P5/P4 | HU-012 | trigger, plantilla, no duplicado, registro | email, timestamp, log | Cursos / SEU |
+| Gacetillas | P4 | HU-010 | actividad aprobada, nota institucional candidata, revisión y aprobación por etapa | Doc/borrador, checklist, log, decisión | Departamento de Comunicación / Oficial de Comunicación Institucional |
+| Posts RRSS | P4 | HU-011 | canal, longitud, tono y validación; criterios aún pendientes | borrador, checklist, log, decisión | Referente de redes SEU / Oficial de Comunicación Institucional |
+| Confirmaciones | P5/P4 | HU-012 | origen, trigger, plantilla, no duplicado, registro y regla de envío | email de prueba, timestamp, log, origen | Cursos / SEU |
 | Lenguaje natural interno | P4/P3 | HU-013 | email + invitacion a chat, usuario interno, registro | captura/transcript, Sheet, log | Coordinacion / SEU |
 | Certificados | P5 | HU-014 | plantilla, PDF, aprobacion previa | PDF, aprobacion, log | Coordinador / Administracion |
 | Insumos A2-A5 | P4 con origen segun agente | Integracion S2 | contrato, mock, metadatos, evidencia | contrato, ejemplo, log | Responsable tecnico / pares P100 |

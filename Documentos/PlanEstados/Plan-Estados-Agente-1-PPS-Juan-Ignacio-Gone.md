@@ -4,7 +4,7 @@
 **Autor del PPS:** Juan Ignacio Gone  
 **Artefacto:** evaluacion del estado del proyecto y plan de estados de desarrollo  
 **Estado:** borrador academico trazable  
-**Ultima actualizacion:** 2026-05-18
+**Ultima actualizacion:** 2026-09-06
 
 ## 1. Proposito
 
@@ -52,14 +52,14 @@ Las observaciones principales son operativas:
 
 ## 4. Estado actual asignado
 
-**Estado recomendado al 2026-05-18:** `E1 - Diseno validable avanzado`, con preparacion parcial de `E2 - Preparado para MVP controlado`.
+**Estado recomendado al 2026-09-06:** `E3 - MVP controlado S1` en entorno offline, con preparacion parcial de `E4 - Gate G2 / TRL 3`.
 
 Justificacion:
 
 - El alcance, backlog y controles transversales estan documentados.
 - Existen artefactos de casos de uso, clases, Gantt, calidad, riesgos, comunicaciones y auditoria.
-- No hay evidencia en este repositorio de implementacion tecnica ejecutable, suite de pruebas, outputs de HU-010/HU-011, logs reales ni validacion SEU ya cerrada.
-- Por lo tanto, el proyecto no deberia declararse todavia en `E3 - MVP controlado` ni en `G2 - TRL 3 cerrado`.
+- Existe implementacion tecnica ejecutable, outputs offline de HU-010/HU-011, logs y una regresion integral canónica de 513 pruebas verdes fuera del sandbox, según el corte documental del 2026-09-06.
+- La evidencia sigue siendo local/offline: no acredita Workspace live ni validacion SEU. Por lo tanto, el proyecto no debe declararse en `E4 - Gate G2 / TRL 3 cerrado`.
 
 ## 5. Plan de estados del proyecto
 
@@ -96,9 +96,9 @@ Estos estados se aplican a HU-010 a HU-014 y a controles transversales como vali
 
 | HU / Control | Estado inicial recomendado | Motivo | Proxima accion |
 |---|---|---|---|
-| HU-010 Gacetillas | H1 - Preparada parcial | Caso de uso y DoD existen, pero faltan campos finales, plantilla SEU, validador nominal y evidencia real | Cerrar checklist S1, esquema Sheets y plantilla |
-| HU-011 Posts RRSS | H1 - Preparada parcial | Caso de uso y DoD existen, pero faltan criterios finales de canal, plantilla/guia de tono y validador RRSS nominal | Definir checklist canal y muestra de prueba |
-| HU-012 Confirmaciones | H0/H1 - Definicion avanzada | Esta planificada para S2; requiere plantilla aprobada, datos validos, trigger, control de duplicados y log | Definir contrato de datos y politica de envio |
+| HU-010 Gacetillas | H1 - Preparada parcial | SEU comunicó que no hay plantilla oficial; existe nota institucional candidata y roles de revisión/aprobación diferenciados, pero faltan activos aprobados, checklist completado y evidencia real | Co-diseñar formato con activos/reglas SEU y ejecutar sesión de validación |
+| HU-011 Posts RRSS | H1 - Preparada parcial | Existe referente nominal para revisar borradores y ayudar a definir criterios; aún faltan guía de tono/longitud/hashtags, acta y muestra validada | Definir criterios por canal y realizar sesión de nueve muestras |
+| HU-012 Confirmaciones | H1 - Contrato candidato por origen | v1 offline probado; v2 clasifica SIU Guaraní, SIU Guaraní de Extensión y Google Forms, pero faltan matriz operativa, permisos, trigger y política de envío | Confirmar matriz origen/tipo/estado/campos y autorización de cada envío |
 | HU-013 Lenguaje natural interno | H0/H1 - Definicion con inconsistencia documental | El criterio vigente es email + invitacion a chat + registro en Sheets; hay formulacion antigua en fuente backlog | Resolver trazabilidad textual y definir canal inicial |
 | HU-014 Certificados | H0 - Pendiente de definicion operativa | Requiere plantilla, datos academicos validados, aprobacion previa y log de emision | Definir plantilla, responsables y control de emision |
 | HITL / Validacion humana | H1 - Preparada parcial | Esta definida como obligatoria, pero falta instrumento operativo final | Crear checklist y acta/registro por tipo de pieza |
