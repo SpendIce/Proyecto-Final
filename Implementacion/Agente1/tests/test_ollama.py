@@ -100,7 +100,7 @@ def test_ollama_envia_generate_no_streaming_y_devuelve_respuesta():
     assert solicitudes[0]["content_type"] == "application/json"
     assert json.loads(solicitudes[0]["body"]) == {
         "model": "llama3.2:3b",
-        "options": {"num_predict": 112, "temperature": 0},
+        "options": {"num_predict": 300, "temperature": 0},
         "prompt": "PROMPT SECRETO",
         "stream": False,
     }

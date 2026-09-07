@@ -35,11 +35,9 @@ from urllib.parse import urlsplit
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_OLLAMA_TIMEOUT_S = 45.0
 MAX_OLLAMA_TIMEOUT_S = 120.0
-# Techo de tokens a generar. El default es bajo a propósito: las piezas
-# creativas del contrato son cortas y un techo chico acota la latencia. Los
-# benchmarks de capacidad (`evidencias/benchmark-*`) documentan por qué en
-# algunas corridas se sube a 512.
-DEFAULT_OLLAMA_NUM_PREDICT = 112
+# El benchmark mostró que 112 truncaba respuestas JSON y ocultaba fallas de
+# contenido. Trescientos tokens eliminan ese falso negativo sin relajar el gate.
+DEFAULT_OLLAMA_NUM_PREDICT = 300
 MIN_OLLAMA_NUM_PREDICT = 32
 MAX_OLLAMA_NUM_PREDICT = 512
 MAX_RESPONSE_BYTES = 1_048_576

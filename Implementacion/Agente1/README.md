@@ -173,10 +173,10 @@ python -m agente1 \
   --ollama-model llama3.2:3b \
   --ollama-base-url http://127.0.0.1:11434 \
   --ollama-timeout 45 \
-  --ollama-num-predict 112
+  --ollama-num-predict 300
 ```
 
-El timeout conserva semántica de deadline total para conexión, envío, headers y cuerpo; un servidor trickle no puede reiniciarlo. La evidencia CPU live mostró generaciones que superan 30 segundos, por lo que el presupuesto operativo usa 45 segundos por defecto y admite configuración entre más de cero y 120 segundos. Este ajuste evita confundir capacidad del host con un corte artificial; no modifica ni declara cumplido un requisito institucional de performance. Puede definirse `OLLAMA_TIMEOUT` en el smoke live. `num_predict` usa 112 por defecto, valor elegido tras el benchmark para permitir un cierre completo con puntuación, y admite valores entre 32 y 512. El valor efectivo queda auditado en cada ejecución Ollama; el fake registra `null`. También puede definirse `OLLAMA_NUM_PREDICT`. Errores HTTP, timeouts o respuestas inválidas terminan como `FALLIDA`: no crean borrador ni exponen prompt, URL o cuerpo remoto en la CLI o el audit log. Por seguridad, el adapter sólo acepta HTTP hacia `localhost`, direcciones `127.0.0.0/8` o `::1`; no admite hosts remotos, HTTPS, credenciales embebidas ni paths adicionales.
+El timeout conserva semántica de deadline total para conexión, envío, headers y cuerpo; un servidor trickle no puede reiniciarlo. La evidencia CPU live mostró generaciones que superan 30 segundos, por lo que el presupuesto operativo usa 45 segundos por defecto y admite configuración entre más de cero y 120 segundos. Este ajuste evita confundir capacidad del host con un corte artificial; no modifica ni declara cumplido un requisito institucional de performance. Puede definirse `OLLAMA_TIMEOUT` en el smoke live. `num_predict` usa 300 por defecto: el benchmark de capacidad mostró que 112 truncaba respuestas JSON y ocultaba fallas de contenido. Admite valores entre 32 y 512. El valor efectivo queda auditado en cada ejecución Ollama; el fake registra `null`. También puede definirse `OLLAMA_NUM_PREDICT`. Errores HTTP, timeouts o respuestas inválidas terminan como `FALLIDA`: no crean borrador ni exponen prompt, URL o cuerpo remoto en la CLI o el audit log. Por seguridad, el adapter sólo acepta HTTP hacia `localhost`, direcciones `127.0.0.0/8` o `::1`; no admite hosts remotos, HTTPS, credenciales embebidas ni paths adicionales.
 
 El smoke real deja sus resultados en un subdirectorio temporal de `salida/`, ignorado por Git. Verifica controles técnicos; no reemplaza la revisión humana, la validación SEU ni permite declarar cumplido el Gate TRL 3.
 
@@ -430,9 +430,10 @@ intentos; no prueba estabilidad amplia, SLA, calidad institucional, validación
 SEU ni TRL 3. Los benchmarks y manifests v2/v3/v4 están en `evidencias/`.
 
 El incremento quedó versionado en `db06b3e`. En el corte de control del
-2026-08-26, la suite completa **se ejecutó fuera del sandbox**: 455 pruebas,
-todas en verde y cero fallas `EPERM`. Las 16 fallas de loopback registradas bajo
-sandbox son ambientales y no se reproducen fuera de él.
+2026-09-06, la suite completa se ejecutó con
+`uv run --with pytest --with setuptools pytest -q`: 513 pruebas, todas en
+verde. `pytest` y `setuptools` también están declarados en el grupo de
+dependencias de desarrollo para que un checkout limpio pueda reproducirla.
 
 La suite verifica comportamiento del sistema, no redacción de documentación: se
 retiraron las pruebas que afirmaban sobre el texto de este README y de los
