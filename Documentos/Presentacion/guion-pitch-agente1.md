@@ -83,10 +83,10 @@
 1. Gacetillas institucionales (Sheets → Google Docs con plantilla).
 2. Posts para redes (Instagram, LinkedIn) adaptados por canal.
 3. Newsletters y mails institucionales.
-4. Confirmaciones automáticas de inscripción.
+4. Confirmaciones de inscripción (único envío automático, tras aprobación).
 5. Certificados en PDF (con validación obligatoria).
 
-**🎤 Narración:** "Concretamente hace cinco cosas que hoy comen tiempo: gacetillas, posts adaptados a cada red, newsletters y mails, confirmaciones automáticas de inscripción, y certificados. Todo lo repetitivo, automatizado; todo lo importante, supervisado."
+**🎤 Narración:** "Concretamente hace cinco cosas que hoy comen tiempo: gacetillas, posts adaptados a cada red, newsletters y mails, confirmaciones de inscripción, y certificados. Ojo con una distinción importante: el agente redacta; publicar en redes y mandar las gacetillas lo sigue haciendo la Secretaría a mano. Lo único que el agente entrega solo es el mail de confirmación de inscripción, y recién después de que alguien lo aprobó. Todo lo repetitivo, automatizado; todo lo importante, supervisado."
 
 **🎨 Gamma:** grilla de 5 tarjetas con íconos. Cero párrafos.
 
@@ -110,11 +110,12 @@
 ## Slide 8 — Cómo funciona (el flujo)
 
 **En pantalla (diagrama horizontal):**
-`Formulario / Sheets → Trigger → Agente 1 genera borrador → Validación humana → Publicación`
+`Formulario / Sheets → Trigger → Agente 1 genera borrador → Validación humana → Publicación manual (SEU)`
 - Punto de control: el sistema **nunca publica solo**.
+- El último paso está fuera del agente: la publicación en redes y el envío de gacetillas los hace la SEU. Excepción única: el mail de confirmación (HU-012), que sí sale automático una vez aprobado.
 - Human-in-the-loop: RGC y Coordinador validan.
 
-**🎤 Narración:** "El flujo es simple. Entra un dato por una planilla, se dispara el agente, genera un borrador. Ese borrador queda PENDIENTE. Un responsable lo revisa, lo corrige si hace falta, lo aprueba. Recién ahí se publica. El humano está en el centro, siempre."
+**🎤 Narración:** "El flujo es simple. Entra un dato por una planilla, se dispara el agente, genera un borrador. Ese borrador queda PENDIENTE. Un responsable lo revisa, lo corrige si hace falta, lo aprueba. Y recién ahí se publica: pero lo publica una persona, en la cuenta institucional. El agente no tiene forma de publicar. El humano está en el centro, siempre."
 
 **🎨 Gamma:** diagrama de flujo de 5 nodos, horizontal, el nodo "validación humana" resaltado.
 
@@ -138,9 +139,9 @@
 - LLM **local** (Ollama · LLaMA 3 8B / Mistral 7B) — sin GPU dedicada.
 - Python + FastAPI · LangGraph · PostgreSQL · Celery/Redis · Docker.
 - Sobre **Google Workspace** que la SEU ya usa.
-- **Costo de licencias: $0.** Los datos **no salen** de la FIE.
+- **Costo de licencias: $0.** En las pruebas offline, los datos sintéticos permanecen en el entorno local; la integración con Workspace/FIE queda pendiente de validar.
 
-**🎤 Narración:** "¿Con qué se construye? Todo software libre, modelos que corren localmente sin GPU cara, encima del Google Workspace que la SEU ya usa. Dos cosas clave para una institución de defensa: costo de licencias cero, y los datos institucionales NUNCA salen de la facultad. Soberanía de datos, Ley 25.326."
+**🎤 Narración:** "¿Con qué se construye? Todo software libre, con modelos que pueden correr localmente y sobre el Google Workspace que la SEU ya usa. En las pruebas actuales trabajamos offline con datos sintéticos; la integración institucional y sus controles de soberanía todavía deben validarse."
 
 **🎨 Gamma:** logos del stack + dos sellos: "$0 licencias" y "Datos locales". Técnico pero limpio.
 
@@ -196,11 +197,11 @@
 
 **En pantalla:**
 - Generación de contenido **< 30 segundos** por pieza.
-- Disponibilidad **99 %**.
+- Disponibilidad objetivo: **99 %**, pendiente de medir en un piloto controlado.
 - Trazabilidad completa (log de acción, fecha, usuario, validación) → CONEAU.
 - Satisfacción de usuarios SEU **≥ 3/4** al cierre del Semestre 2.
 
-**🎤 Narración:** "Y no me voy a quedar con 'salió lindo'. Hay métricas: genera en menos de 30 segundos, 99% de disponibilidad, trazabilidad completa para CONEAU, y validación con los usuarios reales de la SEU apuntando a 3 sobre 4 de satisfacción. Esto se mide."
+**🎤 Narración:** "Y no me voy a quedar con 'salió lindo'. Hay métricas: el objetivo de generación es menos de 30 segundos y el de disponibilidad es 99%, pero ambos deben medirse en el piloto. También se verifica la trazabilidad y se apunta a 3 sobre 4 de satisfacción con usuarios de la SEU."
 
 **🎨 Gamma:** 4 KPIs grandes en tarjetas. Números, no texto.
 
@@ -237,12 +238,12 @@ El costo: +30 min por pieza, cuello de botella, sin trazabilidad CONEAU
 La solución: Extensión Bot genera contenido con validación humana
 Qué hace: gacetillas, posts, newsletters, mails, confirmaciones, certificados
 Qué NO hace: no es chatbot público, no scrapea, no hace analítica
-Cómo funciona: Sheets → Agente → borrador → validación humana → publicación
+Cómo funciona: Sheets → Agente → borrador → validación humana → publicación manual por la SEU
 Demo: de datos crudos en planilla a gacetilla lista en segundos
 Stack: LLM local, software libre, sobre Google Workspace, costo $0, datos soberanos
 Alcance y TRL: 2026, prototipo a automatización completa, integración multiagente
 Backlog: historias HU-010 a HU-014 priorizadas, metodología Scrum
 Riesgos y mitigación: alucinaciones, calidad, aceptación del personal
-Métricas de éxito: <30s, 99% disponibilidad, trazabilidad, satisfacción ≥3/4
+Métricas de éxito: <30s, disponibilidad objetivo 99% (pendiente de medir), trazabilidad, satisfacción ≥3/4
 El pedido: validar plantillas, acceso a datos, acompañar pruebas. Cierre.
 ```

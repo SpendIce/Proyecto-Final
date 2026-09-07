@@ -22,13 +22,13 @@
 | 5 | La solución | 7 s | "Extensión Bot genera ese contenido automáticamente. Y siempre con validación humana antes de publicar." |
 | 6 | Qué hace | 8 s | "Gacetillas, posts adaptados a cada red, newsletters, mails, confirmaciones de inscripción y certificados." |
 | 7 | Qué NO hace | 7 s | "No es chatbot público, no hace scraping ni analítica. Un alcance acotado es un proyecto que se entrega." |
-| 8 | Cómo funciona | 8 s | "Entra un dato, el agente genera un borrador, un responsable lo aprueba, recién ahí se publica. El humano, siempre en el centro." |
+| 8 | Cómo funciona | 8 s | "Entra un dato, el agente redacta un borrador, un responsable lo aprueba y lo publica. El agente escribe; publicar es acción de la Secretaría." |
 | 9 | Demo | 9 s | "De datos sueltos en una planilla, a una gacetilla institucional lista para revisar. De media hora, a segundos." |
-| 10 | Stack | 7 s | "Todo software libre, modelos que corren localmente. Costo de licencias cero, y los datos nunca salen de la FIE." |
+| 10 | Stack | 7 s | "Todo software libre, con ejecución local posible. Las pruebas actuales usan datos sintéticos offline; la integración y los controles institucionales de Workspace todavía deben validarse." |
 | 11 | Alcance y TRL | 7 s | "Maduración por niveles: del MVP de generación a la integración total con los cinco agentes del Proyecto Centenario." |
 | 12 | Backlog | 6 s | "No es una idea suelta: es un backlog priorizado, con metodología Scrum." |
 | 13 | Riesgos | 6 s | "Los riesgos están previstos: validación humana obligatoria, ajuste de modelos y participación temprana del personal." |
-| 14 | Métricas | 7 s | "Y se mide: menos de treinta segundos por pieza, noventa y nueve por ciento de disponibilidad, trazabilidad completa." |
+| 14 | Métricas | 7 s | "Y se mide: el objetivo es menos de treinta segundos por pieza y noventa y nueve por ciento de disponibilidad; ambos quedan pendientes de validar en el piloto." |
 | 15 | Cierre | 8 s | "Extensión Bot: la comunicación de la Secretaría de Extensión, automatizada y bajo control humano." |
 
 **Total: 105 s (~1:45).**
@@ -43,8 +43,8 @@ Fusionar y recortar a 8 escenas. Narración:
 2. (Problema + costo) "Hoy, más de media hora por cada gacetilla, post o correo. A mano, sin registro."
 3. (Solución) "Extensión Bot lo genera automáticamente, siempre con validación humana."
 4. (Qué hace) "Gacetillas, posts, newsletters, confirmaciones, certificados."
-5. (Control humano) "El agente propone; el responsable de la SEU aprueba. Nunca publica solo."
-6. (Soberanía) "Software libre, modelos locales: costo cero y los datos no salen de la FIE."
+5. (Control humano) "El agente propone; la SEU aprueba y publica. El agente no tiene forma de publicar."
+6. (Soberanía) "Software libre y pruebas offline con datos sintéticos: la integración institucional y la soberanía de datos quedan pendientes de validar."
 7. (Métricas) "Menos de treinta segundos por pieza, con trazabilidad para CONEAU."
 8. (Cierre) "Extensión Bot. Comunicación institucional, bajo control humano."
 

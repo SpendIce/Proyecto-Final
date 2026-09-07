@@ -74,6 +74,7 @@ No hace:
 - scraping;
 - analitica o dashboards;
 - atencion masiva al publico;
+- publicacion en redes y envio de gacetillas o newsletters: eso lo hace la SEU a mano sobre el borrador aprobado;
 - publicacion sin aprobacion humana.
 
 <!--
@@ -109,7 +110,7 @@ Esto es lo que se vende: tiempo, consistencia, control y evidencia. La IA es el 
 3. El Agente 1 genera gacetilla y posts por canal.
 4. El contenido queda como borrador.
 5. Un responsable humano revisa, observa o aprueba.
-6. La publicacion o envio ocurre solo despues de esa validacion.
+6. La publicacion o envio ocurre solo despues de esa validacion, y la ejecuta la SEU de forma manual. Unica excepcion: el mail de confirmacion de inscripcion (HU-012), que el agente envia automaticamente una vez aprobado.
 
 **Regla no negociable:** ningun contenido oficial sale sin aprobacion humana registrada.
 
@@ -204,7 +205,7 @@ Para avanzar con una demostracion convincente, la SEU debe confirmar:
 - reglas de tono para Instagram y LinkedIn;
 - campos minimos de la planilla de actividades;
 - responsables de validacion por tipo de pieza;
-- una muestra real o semirreal para probar el MVP.
+- una muestra sintética o semirreal autorizada para probar el MVP.
 
 Con eso se puede cerrar un caso demostrable de punta a punta.
 
