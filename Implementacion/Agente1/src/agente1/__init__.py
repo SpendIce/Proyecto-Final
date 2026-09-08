@@ -21,6 +21,7 @@ Guía rápida de módulos:
 - `auditoria_d2`              auditoría offline de invariantes de seguridad.
 - `operaciones_seguras`       health, retención y reconciliación.
 - `insumos_agentes`           contrato candidato de insumos de A2-A5.
+- `historia_viva`             puerto de consulta al acervo de A2 (offline).
 - `origenes_inscripcion`      matriz de orígenes de inscripción (HU-012).
 """
 

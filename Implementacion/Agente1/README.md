@@ -400,6 +400,44 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
   python -m pytest -q tests/test_insumos_agentes.py
 ```
 
+## Seam de consulta a Historia Viva
+
+`historia_viva.py` prepara el lado de A1 para consultar el acervo histórico
+validado del Agente 2. Es un puerto único con tres operaciones —buscar
+fragmentos, ampliar una pieza y registrar un aporte— y **A1 siempre inicia**:
+no hay callback, webhook ni cola entrante, y una prueba verifica que esa
+superficie no aparezca. Va en dirección contraria al envelope push candidato de
+`insumos_agentes.py`, que sigue versionado y sin consumir.
+
+Dos controles sostienen el alcance:
+
+- **La precisión de fecha no es un metadato, es un control.**
+  `RangoHistorico.expresion_temporal` es la única forma de obtener una fecha
+  para redactar, y devuelve sólo lo que la precisión declarada sostiene: una
+  pieza con precisión de mes se nombra «agosto de 1926», nunca «7 de agosto de
+  1926». No existe un atributo de fecha suelto que se pueda formatear por
+  afuera.
+- **Historia Viva no redacta, y A1 no inventa.** El acervo devuelve fragmentos
+  citables; la efeméride la compone A1 con `componer_material_efemeride`, a
+  partir de una búsqueda por período. Con material vacío,
+  `MaterialEfemeride.afirmaciones` devuelve una tupla vacía: quien redacte no
+  tiene un hueco para rellenar, tiene ausencia de material.
+
+Los aportes conservan procedencia (`piezas_fuente`), exigen clave de
+idempotencia —un POST reintentado a ciegas duplica el aporte— y sólo pueden
+nacer `PENDIENTE_VALIDACION`: no existe forma de declarar uno validado ni
+publicado.
+
+`HistoriaVivaFake` implementa el puerto en memoria, sin red ni credenciales, y
+permite forzar la falla de una operación por separado. El transporte definitivo
+depende del contrato con Ignacio, que sigue abierto.
+
+Prueba focalizada:
+
+```bash
+uv run pytest -q tests/test_historia_viva.py
+```
+
 ## Paquete pendiente de validación SEU
 
 `Documentos/PoC/Validacion-SEU/` contiene nueve muestras y un manifest de 17
