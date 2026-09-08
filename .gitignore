@@ -1,2 +1,29 @@
 # Respaldo local previo al saneamiento; puede contener material no publicable.
 /.local-recovery/
+
+# --- Artefactos reproducibles y runtime ---
+# Politica: Documentos/PoC/Politica-Artefactos-Versionados-v1.md
+# Regeneracion: scripts/renderizar-artefactos.sh
+# Git no desversiona por ignore: los intermedios ya trackeados de
+# Documentos/Anteproyecto/ y Documentos/CasosUso/ se conservan sin cambios.
+
+# Intermedios de compilacion LaTeX
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+
+# Renders regenerables desde fuentes versionadas
+/Documentos/PoC/Ficha-Definiciones-Operativas-SEU-Agente-1.pdf
+/Documentos/PoC/Validacion-SEU/Paquete-Revision-SEU-Agente-1.pdf
+/Documentos/Presentacion/Flujo-Aprobacion-SEU-Agente-1-2026-08-26.pdf
+/Documentos/Presentacion/Flujo-Aprobacion-SEU-Agente-1-2026-08-26.png
+/Documentos/Presentacion/Lamina-Agente-1-Extension-Bot-2026-08-26.png
+/Documentos/Presentacion/Laminas-Agente-1-Extension-Bot-2026-08-26.pdf
+/Documentos/Presentacion/Laminas-Agente-1-Extension-Bot-2026-08-26/
+
+# Snapshots nuevos de navegador; los del corte historico siguen versionados
+/.playwright-mcp/
