@@ -591,7 +591,7 @@ Para evitar una lectura en cascada, el cronograma operativo se gobierna por cicl
 % =============================================================================
 \section{Plataforma requerida}
 
-La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico validado para el Agente~1. La selecci\'on de cada componente responde a tres criterios: (1)~licencia de c\'odigo abierto o gratuita para uso educativo/institucional, (2)~madurez y estabilidad de la tecnolog\'ia, y (3)~compatibilidad con la infraestructura de Google Workspace ya adoptada por la \ac{FIE}.
+La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico propuesto para el Agente~1. La selecci\'on de cada componente responde a tres criterios: (1)~licencia de c\'odigo abierto o gratuita para uso educativo/institucional, (2)~madurez y estabilidad de la tecnolog\'ia, y (3)~compatibilidad con la infraestructura de Google Workspace ya adoptada por la \ac{FIE}.
 
 \begin{table}[H]
   \centering
@@ -602,12 +602,12 @@ La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico validado para el Ag
     \textbf{Categor\'ia} & \textbf{Componente} & \textbf{Licencia} \\
     \midrule
     Lenguaje principal      & Python 3.x                                & MIT \\
-    Framework backend       & FastAPI                                   & MIT \\
-    Orquestaci\'on ag\'entica & LangGraph                                & MIT \\
+    Framework backend       & FastAPI \emph{(diferido, ver nota)}       & MIT \\
+    Orquestaci\'on ag\'entica & LangGraph \emph{(diferido, ver nota)}    & MIT \\
     Entorno de desarrollo   & \texttt{deepagents}                       & MIT \\
     Motor IA local          & Ollama                                    & MIT \\
     Modelos de lenguaje     & LLM de c\'odigo abierto (configurable)     & Variada \\
-    Tareas asincr\'onicas   & Celery + Redis (S2)                       & BSD / BSD \\
+    Tareas asincr\'onicas   & Celery + Redis (S2) \emph{(diferido, ver nota)} & BSD / BSD \\
     Tareas iniciales (S1)   & Cron (scheduler nativo)                   & GPL \\
     Automatizaci\'on        & Google Apps Script                        & Gratuito (institucional) \\
     Suite institucional     & Google Workspace (Sheets, Drive, Docs, Gmail) & Institucional \\
@@ -620,7 +620,7 @@ La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico validado para el Ag
   \end{tabularx}
 \end{table}
 
-\noindent\textbf{Nota sobre evoluci\'on de infraestructura:} en el Semestre~1 (TRL~3) se opera con un stack m\'inimo: servidor local, Docker/Compose, Ollama, LangGraph, FastAPI, Google Workspace y \texttt{deepagents} para desarrollo y pruebas controladas de flujos. En el Semestre~2 (TRL~4) se incorporan Google Apps Script para triggers autom\'aticos, PostgreSQL para persistencia de logs y estado, y Celery~+~Redis para tareas asincr\'onicas. Esta evoluci\'on progresiva minimiza la complejidad inicial y permite validar el n\'ucleo de generaci\'on de contenido antes de agregar capas de automatizaci\'on.
+\noindent\textbf{Nota sobre evoluci\'on de infraestructura:} el Semestre~1 se implement\'o con un stack deliberadamente menor al previsto: Python, Ollama local, Docker para PostgreSQL ef\'imero, Git y PyTest. \textbf{FastAPI, LangGraph, Celery y Redis quedaron diferidos por decisi\'on documentada}: no resultaron condici\'on para producir borradores con validaci\'on humana ni para el gate del Semestre~1, y agregarlos habr\'ia sumado complejidad sin resolver los bloqueantes reales, que son institucionales. La tabla los conserva porque siguen siendo la opci\'on evaluada para cuando exista una necesidad operativa validada ---volumen, concurrencia o integraci\'on entre agentes---, no porque est\'en en uso. PostgreSQL se verific\'o \'unicamente como \emph{spike} contractual de migraciones sobre una instancia ef\'imera; la persistencia vigente es en archivos. Google Apps Script para \emph{triggers} autom\'aticos permanece previsto para el Semestre~2.
 
 % =============================================================================
 % SECCION 14: ENUNCIADO DE FACTIBILIDAD
@@ -1013,7 +1013,7 @@ El Agente~1 no es el orquestador del sistema multiagente ---ese rol corresponde 
     \toprule
     \textbf{Origen} & \textbf{Tipo de insumo} & \textbf{Uso por el Agente~1} \\
     \midrule
-    A2 --- Historia Viva      & Contenido hist\'orico institucional  & Generaci\'on de gacetillas de efem\'erides, posts alusivos a fechas institucionales \\
+    A2 --- Historia Viva      & Fragmentos hist\'oricos validados, citables y con precisi\'on de fecha expl\'icita & El Agente~1 consulta por per\'iodo y \textbf{redacta} la efem\'eride o el post alusivo. A2 no entrega piezas redactadas ni efem\'erides ya elaboradas \\
     A3 --- Vinculaci\'on      & Datos de eventos y oportunidades     & Difusi\'on de congresos, jornadas, convenios detectados por A3 \\
     A4 --- Atenci\'on         & Consultas complejas derivadas & Texto institucional y material de respuesta para que A4 resuelva con tono oficial (flujo bidireccional) \\
     A5 --- Anal\'iticas       & Enriquecimiento de texto de \ac{RRSS} & Mejora de calidad y consistencia de publicaciones antes de su difusi\'on \\
@@ -1022,6 +1022,8 @@ El Agente~1 no es el orquestador del sistema multiagente ---ese rol corresponde 
 \end{table}
 
 En el Semestre~1, el Agente~1 opera de forma aut\'onoma (sin integraci\'on con A2--A5), procesando exclusivamente insumos del personal de la \ac{SEU} v\'ia Google Sheets. La integraci\'on como nodo de comunicaci\'on institucional con los dem\'as agentes se produce progresivamente en el Semestre~2, a medida que la arquitectura multiagente dise\~nada de forma conjunta con Becerra Mas Roca habilita los canales de comunicaci\'on entre agentes.
+
+\noindent\textbf{Nota sobre la direcci\'on del intercambio con A2:} el caso de Historia Viva no es una entrega entrante sino una \textbf{consulta que inicia el Agente~1}. A1 busca fragmentos validados por per\'iodo, recibe pasajes citables con su precisi\'on de fecha y redacta la pieza; A2 no empuja contenido ni env\'ia efem\'erides ya elaboradas, y no existen \emph{callbacks} desde A2 hacia A1. Una pieza cuya precisi\'on declarada sea de mes, a\~no o d\'ecada no puede presentarse como fecha exacta, y una consulta sin resultados no habilita afirmaciones hist\'oricas. El contrato de interfaz correspondiente todav\'ia no est\'a cerrado con el responsable del Agente~2; lo aqu\'i descripto es la posici\'on del Agente~1, no un acuerdo firmado.
 
 \subsection{Storyboard: coordinador de la SEU genera una gacetilla}
 
@@ -1162,6 +1164,16 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
 \end{table}
 
 La ventana de febrero de 2027 se reserva solamente como margen m\'aximo para observaciones finales de c\'atedra o de la \ac{SEU}, preparaci\'on de demo y transferencia al \ac{P100}. No agrega funcionalidades nuevas ni extiende el alcance de implementaci\'on del Proyecto, que permanece concentrado en S1--S2 de 2026.
+
+\noindent\textbf{Nota sobre fechas y estado verificado:} las fechas de las Tablas~\ref{tab:entregables} y~\ref{tab:hitos} son objetivos de planificaci\'on, no compromisos confirmados por la \ac{SEU} ni por la c\'atedra. Al corte del 8 de septiembre de 2026, el estado verificable difiere del plan y conviene leerlo as\'i:
+
+\begin{itemize}
+  \item \textbf{Demostrado en entorno local controlado con datos sint\'eticos:} HU-010 produce borradores conformes con el gate mec\'anico de estructura y de coincidencia de hechos; HU-011 alcanza conformidad mec\'anica con el contrato creativo de cat\'alogo cerrado; HU-012 existe como recorte \emph{offline} sin capacidad de env\'io real. Toda salida queda marcada como borrador y pendiente de validaci\'on.
+  \item \textbf{No demostrado:} la validaci\'on de calidad por referentes de la \ac{SEU} (H3 y H4 dependen de ella), la operaci\'on contra Google Workspace con identidad y permisos institucionales, y el criterio formal del gate. Por lo tanto el \textbf{hito H5 no est\'a cerrado} y el \ac{TRL}~3 permanece pendiente.
+  \item \textbf{Brecha t\'ecnica abierta:} el contrato creativo de redacci\'on libre para HU-011 todav\'ia no supera el control de contenido ---el gate detecta hechos de la fuente filtrados al texto creativo y registro ling\"u\'istico no rioplatense---, de modo que la variedad comunicacional depende de criterios editoriales que la \ac{SEU} a\'un no defini\'o.
+\end{itemize}
+
+\noindent Los bloqueantes vigentes son institucionales y no de software: definiciones operativas y validaci\'on de la \ac{SEU}, identidad y permisos de infraestructura, y criterio del gate. El detalle por defecto, con su evidencia y su estado, se mantiene en el registro de defectos del Proyecto.
 
 \subsection{Cronograma de hitos}
 
