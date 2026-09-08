@@ -31,13 +31,19 @@ import math
 import time
 from urllib.parse import urlsplit
 
+from .presupuesto import PresupuestoAgotadoError
+
 
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_OLLAMA_TIMEOUT_S = 45.0
 MAX_OLLAMA_TIMEOUT_S = 120.0
-# El benchmark mostró que 112 truncaba respuestas JSON y ocultaba fallas de
-# contenido. Trescientos tokens eliminan ese falso negativo sin relajar el gate.
-DEFAULT_OLLAMA_NUM_PREDICT = 300
+# El presupuesto por defecto se deriva del contrato, no de una corrida que
+# anduvo: `presupuesto.presupuesto_minimo_num_predict` da 482 tokens para el
+# documento más grande que admite el contrato creativo vigente, medido con el
+# tokenizador real. Subir el techo casi no cuesta: `num_predict` es un tope, no
+# una meta, y la latencia la fija la cantidad de tokens que el modelo llega a
+# emitir. Ver DEF-A1-013.
+DEFAULT_OLLAMA_NUM_PREDICT = 512
 MIN_OLLAMA_NUM_PREDICT = 32
 MAX_OLLAMA_NUM_PREDICT = 512
 MAX_RESPONSE_BYTES = 1_048_576
@@ -79,6 +85,9 @@ class OllamaGenerator:
             format_schema
         )
         self.format_mode = "json_schema" if self._format_schema is not None else None
+        # Lo lee la auditoría por `getattr`: es un contador de la última
+        # generación, no contenido. `None` significa que todavía no se generó.
+        self.ultimo_num_predict_agotado: bool | None = None
 
     def generar(self, prompt: str) -> str:
         deadline = time.monotonic() + self._timeout_s
@@ -141,8 +150,8 @@ class OllamaGenerator:
             raise RuntimeError("Respuesta inválida del generador local")
         contenido = documento.get("response")
         # `done is not True` es intencional: Ollama puede devolver 200 con una
-        # respuesta truncada (se acabó el presupuesto de tokens, se cortó el
-        # stream). Un texto incompleto no es una generación válida.
+        # respuesta truncada porque se cortó el stream. Un texto incompleto no
+        # es una generación válida.
         if (
             "error" in documento
             or documento.get("done") is not True
@@ -150,6 +159,15 @@ class OllamaGenerator:
             or not contenido.strip()
         ):
             raise RuntimeError("Respuesta inválida del generador local")
+        # Cuando se agota `num_predict`, Ollama igual responde `done: true` y
+        # marca el motivo en `done_reason`. Sin este chequeo el corte llega al
+        # parser como JSON incompleto y el defecto se le atribuye al modelo.
+        if documento.get("done_reason") == "length":
+            self.ultimo_num_predict_agotado = True
+            raise PresupuestoAgotadoError(
+                "El generador local agotó el presupuesto de decodificación"
+            )
+        self.ultimo_num_predict_agotado = False
         return contenido.strip()
 
 

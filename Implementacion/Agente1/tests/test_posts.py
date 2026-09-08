@@ -11,6 +11,7 @@ from agente1 import FakeGenerator
 from agente1.destinos import DestinoBorradoresError
 from agente1.fuentes import FuenteSolicitudesError
 from agente1.posts import PoliticaPost, procesar_post
+from agente1.presupuesto import PresupuestoAgotadoError
 
 
 class FuenteFake:
@@ -512,3 +513,44 @@ def test_metadata_fuente_no_autoriza_numero_en_texto(tmp_path: Path):
     assert resultado.estado == "FALLIDA"
     errores = json.loads(resultado.log_path.read_text(encoding="utf-8"))["validation_errors"]
     assert "unauthorized_number" in errores
+
+
+def test_agotar_el_presupuesto_no_se_confunde_con_un_fallo_de_generacion(
+    tmp_path: Path,
+):
+    """Regresión de `DEF-A1-013` sobre HU-011.
+
+    Es el camino que el defecto recorrió en la vida real: con `num_predict`
+    corto la salida se cortaba a mitad del objeto JSON, el parser la rechazaba
+    y la evidencia terminaba diciendo `json_invalid`, que apunta al modelo en
+    vez de a la configuración.
+    """
+
+    class GeneratorQueAgotaPresupuesto:
+        modelo = "fake-presupuesto"
+        num_predict = 32
+
+        def generar(self, prompt: str) -> str:
+            raise PresupuestoAgotadoError(
+                "El generador local agotó el presupuesto de decodificación"
+            )
+
+    resultado = procesar_post(
+        fuente=FuenteFake(actividad()),
+        id_solicitud="SYN-POST-001",
+        canal="instagram",
+        directorio_salida=tmp_path,
+        generator=GeneratorQueAgotaPresupuesto(),
+    )
+
+    assert resultado.estado == "FALLIDA"
+    assert resultado.borrador_path is None
+    registro_serializado = resultado.log_path.read_text(encoding="utf-8")
+    registro = json.loads(registro_serializado)
+    assert registro["resultado"] == "presupuesto_agotado"
+    # No hay errores de validación porque no llegó nada que validar: el corte
+    # se detecta antes del parser, que es la diferencia con `json_invalid`.
+    assert "validation_errors" not in registro
+    assert registro["num_predict"] == 32
+    assert "pruebas@example.invalid" not in registro_serializado
+    assert "Taller sintético" not in registro_serializado

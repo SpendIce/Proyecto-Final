@@ -8,6 +8,7 @@ import json
 import pytest
 
 from agente1 import FakeGenerator, procesar_fila_csv
+from agente1.presupuesto import PresupuestoAgotadoError
 
 
 class GeneratorQueNoDebeInvocarse:
@@ -619,3 +620,50 @@ def test_csv_truncado_trata_valores_none_como_datos_incompletos(tmp_path):
     assert not (tmp_path / "salida" / "borradores").exists()
     registro = json.loads(resultado.log_path.read_text(encoding="utf-8"))
     assert registro["resultado"] == "datos_incompletos"
+
+
+class GeneratorQueAgotaPresupuesto:
+    modelo = "fake-presupuesto"
+    num_predict = 32
+
+    def generar(self, prompt: str) -> str:
+        raise PresupuestoAgotadoError(
+            "El generador local agotó el presupuesto de decodificación"
+        )
+
+
+def test_agotar_el_presupuesto_se_registra_aparte_de_un_fallo_de_generacion(tmp_path):
+    """Regresión de `DEF-A1-013`.
+
+    El caso se distingue porque se corrige subiendo `num_predict`, no
+    cambiando el prompt ni el modelo; mezclarlo con `error_generacion` deja la
+    evidencia sin forma de mostrar cuál de los dos ocurrió.
+    """
+
+    csv_path = tmp_path / "actividades.csv"
+    csv_path.write_text(
+        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente\n"
+        "SYN-TRUNC,Título secreto,Descripción,2026-08-05,Público,Equipo,"
+        "pruebas@example.invalid,Sintética\n",
+        encoding="utf-8",
+    )
+
+    resultado = procesar_fila_csv(
+        csv_path=csv_path,
+        id_solicitud="SYN-TRUNC",
+        directorio_salida=tmp_path / "salida",
+        generator=GeneratorQueAgotaPresupuesto(),
+    )
+
+    assert resultado.estado == "FALLIDA"
+    assert resultado.borrador_path is None
+    assert not (tmp_path / "salida" / "borradores").exists()
+    registro_serializado = resultado.log_path.read_text(encoding="utf-8")
+    registro = json.loads(registro_serializado)
+    assert registro["resultado"] == "presupuesto_agotado"
+    assert registro["estado"] == "FALLIDA"
+    # La auditoría conserva el valor efectivo, que es lo que hace accionable el
+    # diagnóstico, sin arrastrar prompt ni datos de la actividad.
+    assert registro["num_predict"] == 32
+    assert "Título secreto" not in registro_serializado
+    assert "pruebas@example.invalid" not in registro_serializado

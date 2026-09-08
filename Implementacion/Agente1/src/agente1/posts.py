@@ -64,6 +64,7 @@ from .politica_redes import (
     PoliticaPost,
     errores_de_estilo,
 )
+from .presupuesto import PresupuestoAgotadoError
 from .procesamiento import Generator, ResultadoProceso
 
 
@@ -417,6 +418,24 @@ def _procesar_post(
     inicio_generacion = time.perf_counter()
     try:
         salida_cruda = generator.generar(prompt)
+    # Antes del genérico: una salida truncada por presupuesto no es un fallo de
+    # generación, y registrarla como tal hace que el diagnóstico apunte al
+    # modelo en vez de a la configuración. Ver DEF-A1-013.
+    except PresupuestoAgotadoError:
+        return _fallo(
+            fila=fila,
+            id_solicitud=id_solicitud,
+            canal=canal,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            politica=politica_efectiva,
+            correlation_id=correlation_id,
+            inicio=inicio_generacion,
+            estado="FALLIDA",
+            resultado="presupuesto_agotado",
+            error="El presupuesto de decodificación no alcanzó para la salida",
+            extra_fields=_campos_auditoria_estructurada(structured, canal),
+        )
     except Exception:
         return _fallo(
             fila=fila,

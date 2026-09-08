@@ -52,6 +52,7 @@ from .fuentes import (
     FuenteSolicitudes,
     FuenteSolicitudesError,
 )
+from .presupuesto import PresupuestoAgotadoError
 
 
 HU = "HU-010"
@@ -313,6 +314,20 @@ def procesar_solicitud(
     prompt = _construir_prompt(fila)
     try:
         contenido_generado = generator.generar(prompt)
+    # Ver DEF-A1-013: el agotamiento de presupuesto se registra aparte porque
+    # se corrige cambiando la configuración, no el prompt ni el modelo.
+    except PresupuestoAgotadoError:
+        latencia_s = round(time.perf_counter() - inicio, 6)
+        return _resultado_fallido(
+            fila=fila,
+            id_solicitud=id_solicitud,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=latencia_s,
+            resultado="presupuesto_agotado",
+            error="El presupuesto de decodificación no alcanzó para la salida",
+        )
     except Exception:
         latencia_s = round(time.perf_counter() - inicio, 6)
         return _resultado_fallido(

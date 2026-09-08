@@ -39,6 +39,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from agente1 import OllamaGenerator  # noqa: E402
 from agente1.fuentes import CsvFuenteSolicitudes  # noqa: E402
+from agente1.ollama import DEFAULT_OLLAMA_NUM_PREDICT  # noqa: E402
 from agente1.politica_redes import POLICY_VERSION  # noqa: E402
 from agente1.posts import (  # noqa: E402
     CONTRATO_CREATIVO_V3,
@@ -106,7 +107,9 @@ def main() -> int:
     parser.add_argument("--modelo", default="llama3.2:3b")
     parser.add_argument("--base-url", default="http://127.0.0.1:11434")
     parser.add_argument("--timeout", type=float, default=120.0)
-    parser.add_argument("--num-predict", type=int, default=112)
+    parser.add_argument(
+        "--num-predict", type=int, default=DEFAULT_OLLAMA_NUM_PREDICT
+    )
     parser.add_argument(
         "--ciclos",
         type=int,

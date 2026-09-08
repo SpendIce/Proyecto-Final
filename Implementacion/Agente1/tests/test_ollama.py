@@ -13,7 +13,12 @@ import time
 import pytest
 
 from agente1 import OllamaGenerator
-from agente1.ollama import DEFAULT_OLLAMA_TIMEOUT_S, MAX_FORMAT_SCHEMA_BYTES
+from agente1.ollama import (
+    DEFAULT_OLLAMA_NUM_PREDICT,
+    DEFAULT_OLLAMA_TIMEOUT_S,
+    MAX_FORMAT_SCHEMA_BYTES,
+)
+from agente1.presupuesto import PresupuestoAgotadoError
 
 
 @contextmanager
@@ -100,7 +105,7 @@ def test_ollama_envia_generate_no_streaming_y_devuelve_respuesta():
     assert solicitudes[0]["content_type"] == "application/json"
     assert json.loads(solicitudes[0]["body"]) == {
         "model": "llama3.2:3b",
-        "options": {"num_predict": 300, "temperature": 0},
+        "options": {"num_predict": DEFAULT_OLLAMA_NUM_PREDICT, "temperature": 0},
         "prompt": "PROMPT SECRETO",
         "stream": False,
     }
@@ -304,3 +309,61 @@ def test_ollama_timeout_es_deadline_total_aunque_el_servidor_entregue_bytes():
 
     assert str(error.value) == "No se pudo contactar al generador local"
     assert transcurrido < 0.5
+
+
+def test_ollama_reporta_agotamiento_de_presupuesto_como_tal():
+    """Ollama responde `done: true` aunque haya cortado por `num_predict`.
+
+    Sin este chequeo el texto incompleto llega al parser y el defecto se
+    registra como `json_invalid`, que fue el diagnóstico equivocado de
+    `DEF-A1-013`.
+    """
+
+    cuerpo = json.dumps(
+        {
+            "model": "llama3.2:3b",
+            "response": '{"gancho":"Jornada abierta","prosa":"La Facultad inv',
+            "done": True,
+            "done_reason": "length",
+        }
+    ).encode()
+    with servidor_ollama(cuerpo=cuerpo) as (base_url, _):
+        generator = OllamaGenerator(
+            modelo="llama3.2:3b",
+            base_url=base_url,
+            timeout_s=5,
+        )
+
+        with pytest.raises(PresupuestoAgotadoError) as excinfo:
+            generator.generar("PROMPT SECRETO")
+
+    mensaje = str(excinfo.value)
+    assert "PROMPT SECRETO" not in mensaje
+    assert "Jornada abierta" not in mensaje
+    assert generator.ultimo_num_predict_agotado is True
+
+
+def test_ollama_no_marca_agotamiento_cuando_el_modelo_termina_solo():
+    cuerpo = json.dumps(
+        {
+            "model": "llama3.2:3b",
+            "response": "Borrador completo.",
+            "done": True,
+            "done_reason": "stop",
+        }
+    ).encode()
+    with servidor_ollama(cuerpo=cuerpo) as (base_url, _):
+        generator = OllamaGenerator(
+            modelo="llama3.2:3b",
+            base_url=base_url,
+            timeout_s=5,
+        )
+
+        assert generator.generar("PROMPT") == "Borrador completo."
+        assert generator.ultimo_num_predict_agotado is False
+
+
+def test_ollama_expone_el_indicador_de_agotamiento_antes_de_generar():
+    generator = OllamaGenerator(modelo="llama3.2:3b")
+
+    assert generator.ultimo_num_predict_agotado is None
