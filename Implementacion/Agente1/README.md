@@ -23,7 +23,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 
 - `data/actividades_sinteticas.csv`: dataset ficticio de cinco filas; incluye tres casos completos, dos incompletos y lugares opcionales ausentes.
 - `src/agente1/contracts/gacetilla_input_v1.schema.json`: contrato técnico versionado de los campos actuales, marcado `PROVISIONAL_NO_INSTITUCIONAL`.
-- `src/agente1/prompts/gacetilla_v2.txt`: prompt versionado con estructura fija, límites y ejemplo sintético; también está marcado como provisional.
+- `src/agente1/prompts/gacetilla_v3.txt`: prompt versionado con estructura fija, límites y ejemplo sintético; también está marcado como provisional. La línea `Lugar:` se decide por caso antes de armar el prompt, en la estructura y en el ejemplo: v2 la mostraba siempre con la excepción escrita adentro del placeholder, y el modelo la copiaba sin valor para las filas sin lugar, lo que el gate rechazaba como `data_structure`. Ver `DEF-A1-014` y `evidencias/correccion-gacetillas-lugar-ausente-2026-09-08.md`. `gacetilla_v2.txt` se conserva versionado como plantilla histórica.
 - `src/agente1/fuentes.py`: puerto `FuenteSolicitudes` y adapter CSV compatible con el flujo local.
 - `src/agente1/destinos.py`: puerto `DestinoBorradores` y adapter Markdown que preserva la salida local.
 - `src/agente1/google_workspace.py`: contratos HTTP de lectura Google Sheets y creación de borradores Google Docs; sólo están verificados offline con token y transporte fake.

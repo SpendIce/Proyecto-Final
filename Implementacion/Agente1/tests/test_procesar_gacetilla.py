@@ -8,6 +8,7 @@ import json
 import pytest
 
 from agente1 import FakeGenerator, procesar_fila_csv
+from agente1.procesamiento import PROMPT_VERSION
 from agente1.presupuesto import PresupuestoAgotadoError
 
 
@@ -213,7 +214,7 @@ def test_prompt_versionado_solo_solicita_un_borrador(tmp_path):
         generator=generator,
     )
 
-    assert "PROMPT_VERSION: gacetilla_v2" in generator.prompt
+    assert f"PROMPT_VERSION: {PROMPT_VERSION}" in generator.prompt
     assert "CONTRACT_VERSION: gacetilla_input_v1" in generator.prompt
     assert "PROVISIONAL_NO_INSTITUCIONAL" in generator.prompt
     assert "## DATOS DE LA ACTIVIDAD" in generator.prompt
@@ -667,3 +668,138 @@ def test_agotar_el_presupuesto_se_registra_aparte_de_un_fallo_de_generacion(tmp_
     assert registro["num_predict"] == 32
     assert "Título secreto" not in registro_serializado
     assert "pruebas@example.invalid" not in registro_serializado
+
+
+def _prompt_de(fila_csv: str, id_solicitud: str, tmp_path) -> str:
+    csv_path = tmp_path / "actividades.csv"
+    csv_path.write_text(
+        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
+        + fila_csv,
+        encoding="utf-8",
+    )
+    generator = GeneratorQueCapturaPrompt()
+    procesar_fila_csv(
+        csv_path=csv_path,
+        id_solicitud=id_solicitud,
+        directorio_salida=tmp_path / "salida",
+        generator=generator,
+    )
+    return generator.prompt
+
+
+def test_el_prompt_no_muestra_la_linea_lugar_cuando_la_fuente_no_la_trae(tmp_path):
+    """Regresión de `DEF-A1-014`.
+
+    La plantilla v2 mostraba `Lugar:` siempre —en la estructura y en el
+    ejemplo— con la excepción escrita adentro del placeholder. El modelo
+    copiaba la forma y emitía `Lugar:` sin valor, que el gate rechaza como
+    `data_structure`. Acá se verifica que la línea no esté donde el modelo la
+    pueda copiar.
+    """
+
+    prompt = _prompt_de(
+        "SYN-SIN-LUGAR,Jornada remota,Descripción,2026-08-17,Público,Equipo,"
+        "contacto@example.invalid,Sintética,\n",
+        "SYN-SIN-LUGAR",
+        tmp_path,
+    )
+
+    estructura, ejemplo = prompt.split("--- EJEMPLO ---", 1)
+    assert "Lugar:" not in estructura.split("Estructura exacta de salida:", 1)[1]
+    assert "Lugar: Aula Ficticia" not in ejemplo
+    assert "no incluye ninguna línea `Lugar:`" in prompt
+    # La fuente sigue mostrando el campo vacío: el modelo tiene que saber que
+    # el dato falta, no que la columna no existe.
+    datos_fuente = prompt.split("--- DATOS FUENTE ---", 1)[1]
+    assert "lugar:" in datos_fuente
+
+
+def test_el_prompt_pide_la_linea_lugar_cuando_la_fuente_la_trae(tmp_path):
+    prompt = _prompt_de(
+        "SYN-CON-LUGAR,Jornada presencial,Descripción,2026-08-17,Público,Equipo,"
+        "contacto@example.invalid,Sintética,Aula 6\n",
+        "SYN-CON-LUGAR",
+        tmp_path,
+    )
+
+    assert "Lugar: <lugar exacto>" in prompt
+    assert "Lugar: Aula Ficticia" in prompt
+    assert "lleva exactamente tres líneas" in prompt
+
+
+@pytest.mark.parametrize("id_solicitud", ["SYN-SIN-LUGAR", "SYN-CON-LUGAR"])
+def test_el_prompt_no_deja_marcadores_sin_resolver(tmp_path, id_solicitud):
+    filas = {
+        "SYN-SIN-LUGAR": "SYN-SIN-LUGAR,Jornada remota,Descripción,2026-08-17,Público,"
+        "Equipo,contacto@example.invalid,Sintética,\n",
+        "SYN-CON-LUGAR": "SYN-CON-LUGAR,Jornada presencial,Descripción,2026-08-17,"
+        "Público,Equipo,contacto@example.invalid,Sintética,Aula 6\n",
+    }
+
+    prompt = _prompt_de(filas[id_solicitud], id_solicitud, tmp_path)
+
+    assert "{regla_lugar}" not in prompt
+    assert "{linea_lugar_estructura}" not in prompt
+    assert "{linea_lugar_ejemplo}" not in prompt
+    assert "{datos_fuente}" not in prompt
+
+
+def test_lugar_vacio_en_el_borrador_sigue_siendo_estructura_invalida(tmp_path):
+    """El gate no se toca: `Lugar:` sin valor se sigue rechazando.
+
+    Es el caso negativo del arreglo. La corrección va en el prompt, así que el
+    documento malformado tiene que seguir cayendo igual que antes.
+    """
+
+    csv_path = tmp_path / "actividades.csv"
+    csv_path.write_text(
+        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
+        "SYN-VACIO,Jornada remota,Descripción,2026-08-17,Público,Equipo,"
+        "contacto@example.invalid,Sintética,\n",
+        encoding="utf-8",
+    )
+    contenido = salida_conforme(
+        titulo="Jornada remota",
+        fecha="2026-08-17",
+        organiza="Equipo",
+        contacto="contacto@example.invalid",
+    ).replace("Organiza: Equipo", "Organiza: Equipo\nLugar:")
+
+    resultado = procesar_fila_csv(
+        csv_path=csv_path,
+        id_solicitud="SYN-VACIO",
+        directorio_salida=tmp_path / "salida",
+        generator=FakeGenerator(contenido),
+    )
+
+    assert resultado.estado == "FALLIDA"
+    assert resultado.borrador_path is None
+    registro = json.loads(resultado.log_path.read_text(encoding="utf-8"))
+    assert registro["validation_errors"] == ["data_structure"]
+
+
+def test_omitir_el_lugar_informado_sigue_siendo_un_hecho_faltante(tmp_path):
+    csv_path = tmp_path / "actividades.csv"
+    csv_path.write_text(
+        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
+        "SYN-FALTA,Jornada presencial,Descripción,2026-08-17,Público,Equipo,"
+        "contacto@example.invalid,Sintética,Aula 6\n",
+        encoding="utf-8",
+    )
+    contenido = salida_conforme(
+        titulo="Jornada presencial",
+        fecha="2026-08-17",
+        organiza="Equipo",
+        contacto="contacto@example.invalid",
+    )
+
+    resultado = procesar_fila_csv(
+        csv_path=csv_path,
+        id_solicitud="SYN-FALTA",
+        directorio_salida=tmp_path / "salida",
+        generator=FakeGenerator(contenido),
+    )
+
+    assert resultado.estado == "FALLIDA"
+    registro = json.loads(resultado.log_path.read_text(encoding="utf-8"))
+    assert "place_missing" in registro["validation_errors"]

@@ -59,7 +59,7 @@ HU = "HU-010"
 # Estas tres versiones se escriben en cada línea del log. Si alguna cambia hay
 # que subirle el número: es lo que permite explicar, meses después, por qué dos
 # ejecuciones de la misma fila dieron textos distintos.
-PROMPT_VERSION = "gacetilla_v2"
+PROMPT_VERSION = "gacetilla_v3"
 CONTRACT_VERSION = "gacetilla_input_v1"
 MAX_BORRADOR_CHARS = 5000
 # Límites de extensión de la gacetilla. Son técnicos y provisionales: se
@@ -617,13 +617,41 @@ def _normalizar_fila_fuente(
     return fila_canonica, None
 
 
+# `DEF-A1-014`: la plantilla v2 mostraba siempre la línea `Lugar:` en la
+# estructura y en el ejemplo, con la excepción escrita como una anotación
+# dentro del placeholder. Un modelo de 3B copia la forma que ve: para las filas
+# sin lugar emitía `Lugar:` sin valor, `PATRON_DATOS` lo rechazaba y el
+# resultado quedaba registrado como `data_structure` de manera reproducible.
+# Por eso la línea deja de estar presente cuando no corresponde, en los dos
+# lugares donde el modelo la puede copiar, y la regla se dice en positivo.
+REGLA_LUGAR_INFORMADO = (
+    "- Esta actividad informa lugar: el bloque DATOS DE LA ACTIVIDAD lleva "
+    "exactamente tres líneas."
+)
+REGLA_LUGAR_AUSENTE = (
+    "- Esta actividad NO informa lugar: el bloque DATOS DE LA ACTIVIDAD lleva "
+    "exactamente dos líneas y no incluye ninguna línea `Lugar:`. Escribir "
+    "`Lugar:` sin valor es un error de formato."
+)
+
+
 def _construir_prompt(fila: dict[str, str]) -> str:
     datos = "\n".join(f"{campo}: {valor}" for campo, valor in fila.items())
     plantilla = (
         files("agente1")
-        .joinpath("prompts", "gacetilla_v2.txt")
+        .joinpath("prompts", f"{PROMPT_VERSION}.txt")
         .read_text(encoding="utf-8")
     )
+    if fila.get("lugar", "").strip():
+        plantilla = plantilla.replace("{regla_lugar}", REGLA_LUGAR_INFORMADO)
+        plantilla = plantilla.replace("{linea_lugar_estructura}", "Lugar: <lugar exacto>")
+        plantilla = plantilla.replace("{linea_lugar_ejemplo}", "Lugar: Aula Ficticia")
+    else:
+        plantilla = plantilla.replace("{regla_lugar}", REGLA_LUGAR_AUSENTE)
+        # Se saca la línea entera, con su salto: dejarla vacía volvería a
+        # mostrar el hueco que el modelo rellenaba.
+        plantilla = plantilla.replace("{linea_lugar_estructura}\n", "")
+        plantilla = plantilla.replace("{linea_lugar_ejemplo}\n", "")
     return plantilla.replace("{datos_fuente}", datos)
 
 

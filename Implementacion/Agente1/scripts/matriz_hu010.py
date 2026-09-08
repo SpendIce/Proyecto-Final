@@ -27,6 +27,7 @@ REPO_ROOT = ROOT.parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from agente1 import FakeGenerator, procesar_fila_csv  # noqa: E402
+from agente1.procesamiento import PROMPT_VERSION  # noqa: E402
 
 
 CASOS = (
@@ -122,7 +123,9 @@ def main() -> int:
         "trl3_claimed": False,
         "artifact_hashes": {
             "dataset_sha256": _sha256(dataset),
-            "prompt_sha256": _sha256(ROOT / "src" / "agente1" / "prompts" / "gacetilla_v2.txt"),
+            "prompt_sha256": _sha256(
+                ROOT / "src" / "agente1" / "prompts" / f"{PROMPT_VERSION}.txt"
+            ),
             "contract_sha256": _sha256(
                 ROOT / "src" / "agente1" / "contracts" / "gacetilla_input_v1.schema.json"
             ),

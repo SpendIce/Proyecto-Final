@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 import tomllib
 
+from agente1.procesamiento import PROMPT_VERSION
+
 
 ROOT = Path(__file__).parents[1]
 
@@ -18,9 +20,9 @@ def test_configuracion_de_packaging_declara_backend_importable_y_prompt():
 
     importlib.import_module(backend)
     assert configuracion["tool"]["setuptools"]["packages"]["find"]["where"] == ["src"]
-    assert "PROMPT_VERSION: gacetilla_v2" in (
+    assert f"PROMPT_VERSION: {PROMPT_VERSION}" in (
         files("agente1")
-        .joinpath("prompts", "gacetilla_v2.txt")
+        .joinpath("prompts", f"{PROMPT_VERSION}.txt")
         .read_text(encoding="utf-8")
     )
 
