@@ -28,10 +28,13 @@ Guía rápida de módulos:
 from .confirmaciones import (
     AprobacionHumana,
     DestinoConfirmacionesFake,
+    RegistroConfirmacionesArchivo,
     RegistroConfirmacionesMemoria,
+    ReservaReconciliada,
     ResultadoConfirmacion,
     SolicitudConfirmacion,
     procesar_confirmacion,
+    reconciliar_envios_reservados,
 )
 from .ollama import OllamaGenerator
 from .procesamiento import FakeGenerator, ResultadoProceso, procesar_fila_csv
@@ -43,7 +46,9 @@ __all__ = [
     "FakeGenerator",
     "OllamaGenerator",
     "PoliticaPost",
+    "RegistroConfirmacionesArchivo",
     "RegistroConfirmacionesMemoria",
+    "ReservaReconciliada",
     "ResultadoConfirmacion",
     "ResultadoProceso",
     "SolicitudConfirmacion",
@@ -51,4 +56,5 @@ __all__ = [
     "procesar_fila_csv",
     "procesar_post",
     "procesar_post_estructurado",
+    "reconciliar_envios_reservados",
 ]

@@ -51,6 +51,8 @@ La conformidad técnica no sustituye validación humana ni aceptación instituci
 |---|---|---|---|---|---|
 | P4/P5 | HU-012 | Contrato, render determinista, estados HITL e idempotencia | Implementación v1 offline en `db06b3e`; contrato v2 candidato separa SIU Guaraní, SIU Guaraní de Extensión y Google Forms sin habilitar adapters ni envíos | Juan Ignacio Gone | `CUMPLE_TECNICO_OFFLINE`; v2 pendiente de confirmación SEU |
 | P4/P5 | HU-012 | Entrega de confirmación | Sólo `DestinoConfirmacionesFake` en memoria; `ENVIADA_SIMULADA` | Juan Ignacio Gone + DSI/SEU | `NO_IMPLEMENTADA_LIVE`: no Gmail, SMTP ni email real |
+| P4/P5 | HU-012 | Recuperación tras interrupción e idempotencia durable | `RegistroConfirmacionesArchivo` conserva el estado en disco: la aprobación y la reserva sobreviven al reinicio del proceso y un reintento posterior no vuelve a entregar. Corte 2026-09-08; 18 pruebas nuevas en `tests/test_confirmaciones_durables.py`, incluidas dos de concurrencia | Juan Ignacio Gone | `CUMPLE_TECNICO_OFFLINE`; sin entrega real, no acredita TRL |
+| P4/P5 | HU-012 | Reconciliación de una entrega en duda | `reconciliar_envios_reservados` cierra las reservas colgadas hacia `ENVIO_INDETERMINADO` **sin volver a entregar**: una reserva interrumpida es indeterminada y reintentar sería apostar a que la entrega no ocurrió. El pipeline no transiciona desde ese estado | Juan Ignacio Gone; decisión final humana | `CUMPLE_TECNICO_OFFLINE`; la resolución de cada caso es humana |
 | P4/P5 | HU-012 | Validación y plantilla institucional | Checklist vacío y límites documentados | Validadores SEU | `PENDIENTE_EXTERNO` |
 
 ## 5. Controles transversales del MVP y Gate G2

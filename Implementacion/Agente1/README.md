@@ -345,8 +345,10 @@ PostgreSQL real, que todavía no existe.
 HU-012 renderiza determinísticamente un asunto y cuerpo provisional con
 `BORRADOR — NO ENVIAR`. Valida destinatario y aprobación humana, conserva el
 mismo borrador durante el lifecycle
-`PENDIENTE_VALIDACION → APROBADA/RECHAZADA → ENVIADA_SIMULADA` y usa
-transiciones atómicas para impedir retrocesos, carreras y entregas duplicadas.
+`PENDIENTE_VALIDACION → APROBADA/RECHAZADA → ENVIO_RESERVADO →
+ENVIADA_SIMULADA/FALLIDA`, con `ENVIO_INDETERMINADO` para una reserva que quedó
+colgada, y usa transiciones atómicas para impedir retrocesos, carreras y
+entregas duplicadas.
 `ENVIADA_SIMULADA` sólo registra una entrega en memoria mediante
 `DestinoConfirmacionesFake`: no existe adapter de correo real.
 
@@ -358,8 +360,39 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
   python -m pytest -q tests/test_confirmaciones.py tests/test_matriz_hu012.py
 ```
 
+### Registro durable y reconciliación
+
+`RegistroConfirmacionesMemoria` alcanza para una corrida, pero la idempotencia
+que importa es la que aguanta una caída: si el proceso muere después de reservar
+el envío y al reiniciar no queda rastro, un reintento vuelve a entregar. Por eso
+`RegistroConfirmacionesArchivo` guarda el estado en disco, un archivo por clave.
+
+`crear` publica el archivo con `os.link` desde un temporal ya escrito: `link`
+falla si el destino existe —lo que da la semántica de «crear una vez» entre
+procesos— y además publica el registro completo. Con `O_EXCL` alcanzaba para la
+exclusión pero no para eso: el archivo quedaba visible y vacío entre la
+creación y la escritura, y otro proceso que perdía la carrera lo leía justo ahí.
+`transicionar` toma `flock` sobre un `.lock` por clave, no sobre el `.json`,
+porque el registro se reemplaza con `os.replace` y un lock sobre el `.json`
+quedaría sobre el inodo viejo. El directorio queda `0700` y los archivos `0600`:
+el registro guarda el texto del borrador, mientras que la auditoría sigue
+llevando sólo hashes.
+
+`reconciliar_envios_reservados` cierra las reservas que quedaron colgadas **sin
+volver a entregar**. Una reserva interrumpida es indeterminada por definición: el
+proceso murió entre reservar y saber el resultado, así que nadie puede afirmar si
+la entrega ocurrió. Reintentar sería apostar a que no, y el costo de equivocarse
+es una confirmación duplicada a una persona. La reconciliación mueve el registro
+a `ENVIO_INDETERMINADO`, desde donde el pipeline no transiciona, para que una
+persona decida con el registro a la vista.
+
+```bash
+uv run pytest -q tests/test_confirmaciones_durables.py
+```
+
 Las APIs primarias (`SolicitudConfirmacion`, `AprobacionHumana`,
 `ResultadoConfirmacion`, `RegistroConfirmacionesMemoria`,
+`RegistroConfirmacionesArchivo`, `reconciliar_envios_reservados`,
 `DestinoConfirmacionesFake` y `procesar_confirmacion`) se exportan desde
 `agente1`. Contrato, plantilla, aprobaciones de la matriz y destinatarios son
 sintéticos o provisionales. Consultar

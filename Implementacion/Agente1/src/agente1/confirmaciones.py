@@ -27,8 +27,10 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
+import fcntl
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 from threading import Lock
@@ -45,6 +47,9 @@ MARCADOR_BORRADOR = "BORRADOR — NO ENVIAR"
 EMAIL_LOCAL_RE = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}\Z")
 EMAIL_DOMAIN_LABEL_RE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\Z")
 ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
+# Las claves del registro durable son sha256 en hexadecimal. Se validan igual
+# antes de construir un path: una clave no debe poder elegir dónde se escribe.
+CLAVE_REGISTRO_RE = re.compile(r"[0-9a-f]{64}\Z")
 REQUIRED_FIELDS = (
     "id_inscripcion",
     "nombre_destinatario",
@@ -181,6 +186,186 @@ class RegistroConfirmacionesMemoria:
                 estado=hacia, asunto=actual.asunto, cuerpo=actual.cuerpo
             )
             return True
+
+
+class RegistroConfirmacionesArchivo:
+    """Registro durable: la idempotencia sobrevive al reinicio del proceso.
+
+    El registro en memoria alcanza para una corrida, pero la idempotencia que
+    importa es la que aguanta una caída: si el proceso muere después de
+    reservar el envío y al reiniciar no queda rastro, un reintento vuelve a
+    entregar. Por eso el estado vive en disco.
+
+    Decisiones que no se ven en el código:
+
+    - **Un archivo por clave, publicado con `os.link`.** `crear` no consulta y
+      después escribe: escribe el contenido en un temporal y lo enlaza al
+      nombre definitivo. `link` falla si el destino existe, así que da la
+      semántica de "crear una vez" entre procesos, y además publica el archivo
+      ya completo. Con `O_EXCL` alcanzaba para la exclusión pero no para eso:
+      el archivo quedaba visible y vacío entre la creación y la escritura, y
+      otro proceso que perdía la carrera lo leía justo ahí y encontraba un
+      registro ilegible.
+    - **`transicionar` toma un lock sobre un archivo aparte.** Un
+      compare-and-set hecho con leer, decidir y escribir tiene una ventana
+      donde dos procesos ven `APROBADA` y los dos reservan. `flock` la cierra,
+      pero el lock tiene que vivir en un archivo cuyo inodo no cambie: como el
+      registro se escribe con `os.replace`, un lock tomado sobre el `.json`
+      quedaría sobre el inodo viejo y dejaría entrar a un segundo proceso. Por
+      eso cada clave tiene su `.lock` estable, y el `.json` se reemplaza entero
+      para que ningún lector vea un registro a medio escribir.
+    - **Permisos restrictivos.** El registro guarda el texto del borrador, que
+      es una comunicación institucional sin publicar y puede llevar el nombre
+      de una persona. El directorio queda `0700` y cada archivo `0600`. La
+      línea de auditoría, en cambio, sigue sin llevar texto: sólo hashes.
+    - **La clave es un sha256.** Se valida igual antes de construir el path:
+      una clave con `..` o con separadores no debe poder elegir dónde escribe
+      el registro, aunque hoy la produzca el propio módulo.
+    """
+
+    def __init__(self, directorio: Path) -> None:
+        self._directorio = Path(directorio)
+        self._directorio.mkdir(parents=True, exist_ok=True, mode=0o700)
+
+    def _ruta(self, idempotency_key: str) -> Path:
+        if not CLAVE_REGISTRO_RE.fullmatch(idempotency_key):
+            raise ValueError("clave de idempotencia inválida")
+        return self._directorio / f"{idempotency_key}.json"
+
+    def obtener(self, idempotency_key: str) -> BorradorRegistrado | None:
+        ruta = self._ruta(idempotency_key)
+        try:
+            contenido = ruta.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return None
+        return _leer_registro(contenido)
+
+    def crear(self, idempotency_key: str, asunto: str, cuerpo: str) -> bool:
+        ruta = self._ruta(idempotency_key)
+        registro = BorradorRegistrado(
+            estado="PENDIENTE_VALIDACION", asunto=asunto, cuerpo=cuerpo
+        )
+        temporal = ruta.with_name(f"{ruta.stem}.{uuid.uuid4().hex}.tmp")
+        descriptor = os.open(temporal, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as archivo:
+                archivo.write(_serializar_registro(registro))
+                archivo.flush()
+                os.fsync(archivo.fileno())
+            try:
+                os.link(temporal, ruta)
+            except FileExistsError:
+                return False
+            return True
+        finally:
+            temporal.unlink(missing_ok=True)
+
+    def transicionar(
+        self, idempotency_key: str, desde: frozenset[str], hacia: str
+    ) -> bool:
+        ruta = self._ruta(idempotency_key)
+        candado = ruta.with_suffix(".lock")
+        descriptor = os.open(candado, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            with os.fdopen(descriptor, "r+", encoding="utf-8") as archivo:
+                fcntl.flock(archivo.fileno(), fcntl.LOCK_EX)
+                actual = self.obtener(idempotency_key)
+                if actual is None or actual.estado not in desde:
+                    return False
+                _escribir_atomico(
+                    ruta,
+                    BorradorRegistrado(
+                        estado=hacia, asunto=actual.asunto, cuerpo=actual.cuerpo
+                    ),
+                )
+                return True
+        except OSError:
+            return False
+
+    def listar_por_estado(self, estado: str) -> tuple[str, ...]:
+        """Claves en un estado dado, para reconciliar. No cambia nada."""
+
+        encontradas = []
+        for ruta in sorted(self._directorio.glob("*.json")):
+            registro = _leer_registro(ruta.read_text(encoding="utf-8"))
+            if registro is not None and registro.estado == estado:
+                encontradas.append(ruta.stem)
+        return tuple(encontradas)
+
+
+def _serializar_registro(registro: BorradorRegistrado) -> str:
+    return json.dumps(asdict(registro), ensure_ascii=False, sort_keys=True)
+
+
+def _leer_registro(contenido: str) -> BorradorRegistrado | None:
+    """Un registro ilegible se trata como ausente, no como vacío.
+
+    Devolver un `BorradorRegistrado` con campos por defecto convertiría un
+    archivo corrupto en un estado válido, y desde ahí se podría transicionar a
+    entrega. Ausente es fail-closed: `crear` va a fallar por `O_EXCL` y la
+    inconsistencia sale a la luz en vez de habilitar un envío.
+    """
+
+    try:
+        datos = json.loads(contenido)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(datos, dict):
+        return None
+    estado, asunto, cuerpo = (
+        datos.get("estado"),
+        datos.get("asunto"),
+        datos.get("cuerpo"),
+    )
+    if not all(isinstance(valor, str) for valor in (estado, asunto, cuerpo)):
+        return None
+    return BorradorRegistrado(estado=estado, asunto=asunto, cuerpo=cuerpo)
+
+
+def _escribir_atomico(ruta: Path, registro: BorradorRegistrado) -> None:
+    """Escribe por reemplazo para que nadie lea un registro a medio escribir."""
+
+    temporal = ruta.with_suffix(".json.tmp")
+    descriptor = os.open(temporal, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as archivo:
+        archivo.write(_serializar_registro(registro))
+        archivo.flush()
+        os.fsync(archivo.fileno())
+    os.replace(temporal, ruta)
+
+
+@dataclass(frozen=True)
+class ReservaReconciliada:
+    """Una entrega que quedó en duda, y por qué no se reintenta."""
+
+    idempotency_key: str
+    estado_anterior: str = "ENVIO_RESERVADO"
+    estado: str = "ENVIO_INDETERMINADO"
+
+
+def reconciliar_envios_reservados(
+    registro: RegistroConfirmacionesArchivo,
+) -> tuple[ReservaReconciliada, ...]:
+    """Cierra las reservas que quedaron colgadas, sin volver a entregar.
+
+    Una reserva interrumpida es, por definición, indeterminada: el proceso
+    murió entre reservar y saber el resultado, así que nadie puede afirmar si
+    la entrega ocurrió. Reintentar sería apostar a que no, y el costo de
+    equivocarse es una confirmación duplicada a una persona real.
+
+    Por eso la reconciliación no entrega ni marca como enviada: mueve el
+    registro a `ENVIO_INDETERMINADO`, un estado terminal para el pipeline —
+    `procesar_confirmacion` no transiciona desde ahí— que existe para que una
+    persona decida con el registro a la vista.
+    """
+
+    reconciliadas = []
+    for clave in registro.listar_por_estado("ENVIO_RESERVADO"):
+        if registro.transicionar(
+            clave, frozenset({"ENVIO_RESERVADO"}), "ENVIO_INDETERMINADO"
+        ):
+            reconciliadas.append(ReservaReconciliada(idempotency_key=clave))
+    return tuple(reconciliadas)
 
 
 @dataclass(frozen=True)
