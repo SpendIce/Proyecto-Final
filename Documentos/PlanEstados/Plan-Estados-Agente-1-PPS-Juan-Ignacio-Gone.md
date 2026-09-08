@@ -58,7 +58,7 @@ Justificacion:
 
 - El alcance, backlog y controles transversales estan documentados.
 - Existen artefactos de casos de uso, clases, Gantt, calidad, riesgos, comunicaciones y auditoria.
-- Existe implementacion tecnica ejecutable, outputs offline de HU-010/HU-011, logs y una regresion integral canónica de 513 pruebas verdes fuera del sandbox, según el corte documental del 2026-09-06.
+- Existe implementacion tecnica ejecutable, outputs offline de HU-010/HU-011, logs y una regresion integral canónica de 534 pruebas verdes, según el corte del 2026-09-08 (`a2c33b1`). Las 513 del corte documental del 2026-09-06 quedan como referencia histórica.
 - La evidencia sigue siendo local/offline: no acredita Workspace live ni validacion SEU. Por lo tanto, el proyecto no debe declararse en `E4 - Gate G2 / TRL 3 cerrado`.
 
 ## 5. Plan de estados del proyecto

@@ -42,8 +42,12 @@ total no se atribuye a un incremento individual ni describe la candidata actual.
 El cierre previo de HU-011 structured, HU-012 offline y parte del spike quedó
 versionado en `db06b3e`. La regresión integral histórica del 26/08 obtuvo **457
 pruebas verdes fuera del sandbox**. El incremento posterior registrado en el
-mismo corte dejó **513 pruebas verdes**; este es el conteo canónico de la
-revisión documental del 2026-09-06. Bajo sandbox, las 16 fallas de loopback
+mismo corte dejó **513 pruebas verdes**, conteo canónico de la revisión
+documental del 2026-09-06 y hoy histórico: el corte vigente es el del
+2026-09-08 (`a2c33b1`) con **534 pruebas verdes**, que le suma las regresiones
+de `DEF-A1-013` y `DEF-A1-014`. Ver
+`Implementacion/Agente1/evidencias/regresion-consolidada-2026-09-08.md`. Bajo
+sandbox, las 16 fallas de loopback
 `EPERM` son ambientales y no se reproducen fuera de él. Los cambios posteriores
 a ese commit se mantienen identificados por artefacto y no se les inventa un hash.
 

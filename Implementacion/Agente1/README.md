@@ -429,10 +429,10 @@ allowlist posterior. Esto prueba conformidad mecánica en dos registros y seis
 intentos; no prueba estabilidad amplia, SLA, calidad institucional, validación
 SEU ni TRL 3. Los benchmarks y manifests v2/v3/v4 están en `evidencias/`.
 
-El incremento quedó versionado en `db06b3e`. En el corte de control del
-2026-09-06, la suite completa se ejecutó con
-`uv run --with pytest --with setuptools pytest -q`: 513 pruebas, todas en
-verde. `pytest` y `setuptools` también están declarados en el grupo de
+El incremento quedó versionado en `db06b3e`. En el corte vigente del
+2026-09-08 (`a2c33b1`) la suite completa se ejecutó con `uv run pytest -q`:
+534 pruebas, todas en verde. El corte del 2026-09-06 había dado 513; la
+diferencia son las regresiones de `DEF-A1-013` y `DEF-A1-014`. `pytest` y `setuptools` también están declarados en el grupo de
 dependencias de desarrollo para que un checkout limpio pueda reproducirla.
 
 La suite verifica comportamiento del sistema, no redacción de documentación: se

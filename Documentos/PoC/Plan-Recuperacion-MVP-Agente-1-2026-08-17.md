@@ -1,9 +1,9 @@
 # Plan de recuperación del MVP — Agente 1
 
 - **Ventana de recuperación:** 17 al 28 de agosto de 2026
-- **Fecha de actualización documental:** 6 de septiembre de 2026
+- **Fecha de actualización documental:** 8 de septiembre de 2026 (rebaseline previo: 6 de septiembre)
 - **Alcance:** HU-010 + HU-011, Proceso 4
-- **Estado actualizado:** HU-010 `PARCIAL`; HU-011 `PARCIAL` con regresión integral canónica de 513 pruebas verdes fuera del sandbox; Gate G2 / TRL 3 `PENDIENTE`
+- **Estado actualizado:** HU-010 `PARCIAL`; HU-011 `PARCIAL` con regresión integral de 534 pruebas verdes en el corte 2026-09-08 (`a2c33b1`); Gate G2 / TRL 3 `PENDIENTE`
 
 ## 1. Objetivo
 
@@ -34,7 +34,8 @@ Recuperar el camino de valor del MVP sin adelantar infraestructura que no resuel
 | 25–28/08 | Persistencia Sprint 3 | Puerto, adapter memoria, SQL y migraciones contractuales | Juan Ignacio + DSI | PostgreSQL/driver/entorno efímero | **Spike validado en PostgreSQL 16 efímero:** `0001→0003`, rechazos temporales, rollback y forward final; no existe adapter ni reemplazo de JSONL |
 | 25–28/08 | Operaciones | Health, reconciliación, consolidación y retención | Juan Ignacio + DSI | Manifests sanitizados; probes DSI | **Tooling offline candidato:** sin escritura/borrado y sin probes live |
 | 25–28/08 | HU-012 | Confirmación contractual con HITL e idempotencia | Juan Ignacio + SEU/DSI | Plantilla, validadores y transporte autorizados | **Implementado y verificado offline:** no Gmail/SMTP, email real ni aprobación SEU |
-| Rebaseline documental 06/09 | Verificación y estado | Suite integral canónica: 513 pruebas verdes fuera del sandbox; no sustituye validación institucional | Juan Ignacio Gone | Evidencia técnica registrada en el incremento posterior del 26/08 | Mantener trazabilidad del corte y conservar Workspace live, validación SEU y Gate G2 como pendientes |
+| Rebaseline documental 06/09 | Verificación y estado | Suite integral: 513 pruebas verdes fuera del sandbox; no sustituye validación institucional | Juan Ignacio Gone | Evidencia técnica registrada en el incremento posterior del 26/08 | Mantener trazabilidad del corte y conservar Workspace live, validación SEU y Gate G2 como pendientes |
+| Cierre técnico 08/09 | `DEF-A1-013` y `DEF-A1-014` | Presupuesto de decodificación derivado del contrato y línea `Lugar:` decidida por caso; suite en 534 verdes; matrices live v2 y v3 registradas por separado | Juan Ignacio Gone | Baseline del 06/09 | El contrato v3 pasa a 0/6 por fuga de hechos y registro: el gate ya no queda tapado por truncamiento, y la brecha depende de criterios SEU |
 | 28/08 | Gate | Auditoría del paquete y decisión go/no-go | César Cicerchia + SEU | Evidencia completa | Acta o informe; sin declaración automática de TRL |
 
 Las fechas institucionales son objetivos de coordinación, no compromisos confirmados. Si una dependencia externa no llega, se registra como bloqueante y no se falsea el cierre.
@@ -53,7 +54,7 @@ Las fechas institucionales son objetivos de coordinación, no compromisos confir
 - El runtime user-local Ollama `0.32.14-1` quedó restaurado e ignorado por Git.
 - El cierre structured v2/v3/v4 quedó versionado en `db06b3e`: v2 falló 0/6 por `json_invalid`; v3 histórico falló 0/6 por HTTP 400 de grammar; v4 corrigió la incompatibilidad y obtuvo 6/6 aceptaciones técnicas.
 - Workspace E2E, persistencia, operaciones y HU-012 están preparados sólo offline en el worktree: no demuestran servicios institucionales operativos.
-- La verificación integral histórica del 26/08 terminó con **457 pruebas verdes fuera del sandbox**. El incremento posterior registrado en ese mismo corte alcanzó **513 pruebas verdes**, conteo canónico para esta actualización documental del 06/09. Las 16 fallas de loopback `EPERM` son una restricción ambiental del sandbox y no se reproducen fuera de él.
+- La verificación integral histórica del 26/08 terminó con **457 pruebas verdes fuera del sandbox**. El incremento posterior registrado en ese mismo corte alcanzó **513 pruebas verdes**, conteo del rebaseline documental del 06/09. El corte vigente es el del 08/09 (`a2c33b1`) con **534 pruebas verdes**, que agrega las regresiones de `DEF-A1-013` y `DEF-A1-014`. Las 16 fallas de loopback `EPERM` son una restricción ambiental del sandbox y no se reproducen fuera de él.
 - El cierre técnico previo está versionado en `db06b3e`; los cambios posteriores deben conservar trazabilidad antes de un nuevo commit, sin inventar hashes.
 - Continúan pendientes Workspace live, validación SEU, SLA y decisión G2.
 
@@ -123,7 +124,7 @@ PostgreSQL fue abordado únicamente como spike contractual: puerto, adapter memo
 
 ## 7. Estado esperado al 28/08
 
-- **Estado técnico al corte documental 06/09:** suite integral canónica de 513 pruebas verdes fuera del sandbox; cero fallas no ambientales reportadas en ese corte y revisión de scope documentada.
+- **Estado técnico al corte 08/09:** suite integral de 534 pruebas verdes; cero defectos `CRITICA` y cero defectos técnicos en estado `ABIERTO`. HU-010 da 6/6 borradores live y HU-011 6/6 con el contrato v2; el contrato v3 queda 0/6 porque el gate detecta fuga de hechos y registro no rioplatense, brecha que depende de criterios SEU.
 - **Mejor caso institucional posterior:** D2 operativo, validación SEU registrada, SLA acordado y paquete listo para decisión G2.
-- **Caso vigente:** HU-011 conserva conformidad técnica/offline y regresión integral canónica; D2, SEU y la decisión G2 siguen abiertos; G2 `PENDIENTE`.
+- **Caso vigente:** HU-011 conserva conformidad mecánica con el contrato v2 y regresión integral; el contrato v3 no alcanza conformidad de contenido; D2, SEU y la decisión G2 siguen abiertos; G2 `PENDIENTE`.
 - **Condición prohibida:** declarar TRL 3 por calendario, commits o cantidad de pruebas sin evidencia institucional exigida.

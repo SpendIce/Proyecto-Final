@@ -14,7 +14,7 @@ corte dejó el conteo canónico usado en esta actualización documental:
 
 | Alcance | Resultado | Límite de interpretación |
 |---|---:|---|
-| Suite completa (conteo canónico del corte documental 2026-09-06) | **513 pruebas verdes** | Verifica comportamiento local y contratos; no prueba servicios institucionales live. |
+| Suite completa (corte documental 2026-09-06, hoy histórico) | **513 pruebas verdes** | Verifica comportamiento local y contratos; no prueba servicios institucionales live. El conteo vigente es 534 en el corte del 2026-09-08. |
 | Suite completa, primer corte histórico del 26/08 | **457 pruebas verdes** | Línea base previa al incremento; no describe la candidata vigente. |
 | Bloque HU-011 estructurado, corte histórico | **68 pruebas verdes** | Incluye regresiones para controles mecánicos de `DEF-A1-012`; no sustituye validación editorial SEU. |
 | Suite dentro del sandbox | 16 fallas `EPERM` de loopback | Restricción ambiental conocida; no se reproduce fuera del sandbox. |
@@ -69,9 +69,13 @@ autorizan publicar, enviar ni reemplazan el checklist humano.
 | HU-010 | `Solicitud-Activos-Gacetilla-Agente-1.md` | `PEDIDO_PREPARADO` | Sin respuesta, `DEF-A1-002` sigue `BLOQUEADO_EXTERNO` |
 
 La suite integral quedó en **513 pruebas verdes** fuera del sandbox tras este
-incremento; este es el conteo canónico del corte documental 2026-09-06. Se
-abrieron `DEF-A1-013`, `DEF-A1-014` y `DEF-A1-015`; `DEF-A1-003`
-pasó a `RESUELTO_PENDIENTE_VALIDACION` en su componente técnico.
+incremento, conteo del corte documental 2026-09-06. Se abrieron `DEF-A1-013`,
+`DEF-A1-014` y `DEF-A1-015`; `DEF-A1-003` pasó a
+`RESUELTO_PENDIENTE_VALIDACION` en su componente técnico.
+
+`DEF-A1-013` y `DEF-A1-014` se cerraron después, en el corte del 2026-09-08
+(`a2c33b1`), que deja la suite en **534 pruebas verdes**. `DEF-A1-015` sigue
+`BLOQUEADO_EXTERNO`.
 
 ## Lectura del Gantt
 
