@@ -52,7 +52,11 @@ from .fuentes import (
     FuenteSolicitudes,
     FuenteSolicitudesError,
 )
-from .presupuesto import PresupuestoAgotadoError
+from .presupuesto import (
+    MENSAJE_PRESUPUESTO_AGOTADO,
+    RESULTADO_PRESUPUESTO_AGOTADO,
+    PresupuestoAgotadoError,
+)
 
 
 HU = "HU-010"
@@ -325,8 +329,8 @@ def procesar_solicitud(
             generator=generator,
             correlation_id=correlation_id,
             latencia_s=latencia_s,
-            resultado="presupuesto_agotado",
-            error="El presupuesto de decodificación no alcanzó para la salida",
+            resultado=RESULTADO_PRESUPUESTO_AGOTADO,
+            error=MENSAJE_PRESUPUESTO_AGOTADO,
         )
     except Exception:
         latencia_s = round(time.perf_counter() - inicio, 6)
@@ -635,24 +639,44 @@ REGLA_LUGAR_AUSENTE = (
 )
 
 
+def _lineas_de_lugar(fila: dict[str, str]) -> dict[str, str | None]:
+    """Qué dice la plantilla sobre el lugar, según lo que traiga la fila.
+
+    `None` significa que la línea entera se borra, con su salto: dejarla vacía
+    volvería a mostrarle al modelo el hueco que rellenaba.
+    """
+
+    if fila.get("lugar", "").strip():
+        return {
+            "regla_lugar": REGLA_LUGAR_INFORMADO,
+            "linea_lugar_estructura": "Lugar: <lugar exacto>",
+            "linea_lugar_ejemplo": "Lugar: Aula Ficticia",
+        }
+    return {
+        "regla_lugar": REGLA_LUGAR_AUSENTE,
+        "linea_lugar_estructura": None,
+        "linea_lugar_ejemplo": None,
+    }
+
+
 def _construir_prompt(fila: dict[str, str]) -> str:
-    datos = "\n".join(f"{campo}: {valor}" for campo, valor in fila.items())
     plantilla = (
         files("agente1")
         .joinpath("prompts", f"{PROMPT_VERSION}.txt")
         .read_text(encoding="utf-8")
     )
-    if fila.get("lugar", "").strip():
-        plantilla = plantilla.replace("{regla_lugar}", REGLA_LUGAR_INFORMADO)
-        plantilla = plantilla.replace("{linea_lugar_estructura}", "Lugar: <lugar exacto>")
-        plantilla = plantilla.replace("{linea_lugar_ejemplo}", "Lugar: Aula Ficticia")
-    else:
-        plantilla = plantilla.replace("{regla_lugar}", REGLA_LUGAR_AUSENTE)
-        # Se saca la línea entera, con su salto: dejarla vacía volvería a
-        # mostrar el hueco que el modelo rellenaba.
-        plantilla = plantilla.replace("{linea_lugar_estructura}\n", "")
-        plantilla = plantilla.replace("{linea_lugar_ejemplo}\n", "")
-    return plantilla.replace("{datos_fuente}", datos)
+    sustituciones: dict[str, str | None] = {
+        **_lineas_de_lugar(fila),
+        "datos_fuente": "\n".join(
+            f"{campo}: {valor}" for campo, valor in fila.items()
+        ),
+    }
+    for marcador, valor in sustituciones.items():
+        if valor is None:
+            plantilla = plantilla.replace("{" + marcador + "}\n", "")
+        else:
+            plantilla = plantilla.replace("{" + marcador + "}", valor)
+    return plantilla
 
 
 def _registrar(path: Path, registro: dict[str, object]) -> None:

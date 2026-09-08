@@ -10,7 +10,7 @@
 
 La suite de `Implementacion/Agente1` se ejecutó fuera del sandbox el
 2026-08-26. El primer corte fue histórico; el incremento posterior del mismo
-corte dejó el conteo canónico usado en esta actualización documental:
+corte dejó el conteo usado en esta actualización documental:
 
 | Alcance | Resultado | Límite de interpretación |
 |---|---:|---|
@@ -33,7 +33,7 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache python -m pytest -q
 | Registro lingüístico | HU-011 / tono | Rechazo mecánico de tuteo explícito | `PARCIAL_TECNICO` | La SEU debe definir el registro editorial; el control no infiere calidad. |
 | Persistencia | Sprint 3 / integridad | Migraciones `0001`, `0002`, `0003` y validación PostgreSQL efímera | `REGRESIONADA_EN_MOTOR` | Mantener el spike aislado; concurrencia, performance y recuperación quedan para una necesidad operativa validada. |
 | HU-012 | Trigger, borrador, HITL, idempotencia y registro | Contrato, matriz offline y tests | `BASELINE_OFFLINE` | Mantener el fake y completar la trazabilidad del DoD para Sprint 4; no integrar correo real. |
-| Evidencia | Gate G2 / trazabilidad | Registro de defectos, README y este corte | `ACTUALIZADA_PARCIALMENTE` | Mantener el índice alineado con el conteo canónico de 513 y vincular cada resultado a su evidencia; no atribuir validación SEU. |
+| Evidencia | Gate G2 / trazabilidad | Registro de defectos, README y este corte | `ACTUALIZADA_PARCIALMENTE` | Mantener el índice alineado con el conteo vigente —534 en el corte 2026-09-08— y vincular cada resultado a su evidencia; no atribuir validación SEU. |
 
 ## Controles incorporados para `DEF-A1-012`
 

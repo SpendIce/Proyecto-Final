@@ -23,6 +23,9 @@ contrato v3 (924 caracteres):
 | Palabras de una y dos letras | 308 | 3,000 |
 | Mayúsculas y signos de puntuación | 482 | 1,917 |
 
+Los mismos números están en `MEDICION_DOCUMENTO_MAXIMO_V3`, para que la
+constante se pueda verificar contra la medición y no contra sí misma.
+
 El rango es la razón por la que un presupuesto "que anduvo" no sirve como
 justificación: el mismo documento, dentro del mismo contrato, cuesta entre 228
 y 482 tokens según cómo esté escrito. `CHARS_POR_TOKEN_MENOS_FAVORABLE` toma el
@@ -42,11 +45,31 @@ import json
 import math
 
 
-# Extremo malo de la medición del 2026-09-08 sobre llama3.2:3b. Bajarlo sin
-# volver a medir convierte una cota en una suposición.
-CHARS_POR_TOKEN_MENOS_FAVORABLE = 1.91
 TOKENIZADOR_MEDIDO = "llama3.2:3b"
 FECHA_MEDICION = "2026-09-08"
+# La medición queda como dato y no sólo como prosa: así la constante se puede
+# verificar contra lo observado en vez de contra sí misma, y
+# `scripts/medir_presupuesto_decodificacion.py` puede comparar una corrida
+# nueva con este registro. Caracteres y tokens del documento máximo del
+# contrato v3, por estilo de redacción.
+MEDICION_DOCUMENTO_MAXIMO_V3 = {
+    "prosa institucional": (924, 233),
+    "prosa con acentuacion densa": (924, 228),
+    "palabras de una y dos letras": (924, 308),
+    "mayusculas y signos": (924, 482),
+}
+# Extremo malo de esa medición, redondeado hacia abajo: 924/482 da 1,917 y se
+# versiona como 1,91, para que el presupuesto derivado nunca quede por debajo
+# de lo que la medición ya observó. Bajarlo sin volver a medir convierte una
+# cota en una suposición.
+CHARS_POR_TOKEN_MENOS_FAVORABLE = 1.91
+
+
+# El resultado y el mensaje viven acá, con la excepción, porque los dos
+# pipelines los tienen que escribir igual: si HU-010 y HU-011 nombran distinto
+# el mismo caso, la evidencia deja de ser comparable entre ellos.
+RESULTADO_PRESUPUESTO_AGOTADO = "presupuesto_agotado"
+MENSAJE_PRESUPUESTO_AGOTADO = "El presupuesto de decodificación no alcanzó para la salida"
 
 
 class ContratoNoDimensionable(ValueError):

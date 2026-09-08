@@ -34,6 +34,10 @@ contra un Ollama local con el modelo descargado. El script termina con código 2
 si una corrida mide un extremo peor que el versionado, para que la evidencia no
 envejezca en silencio.
 
+Los mismos números quedan como dato en `presupuesto.MEDICION_DOCUMENTO_MAXIMO_V3`,
+para que la regresión pueda verificar la cota contra la medición en lugar de
+contra sí misma.
+
 ## 3. Resultado
 
 Mismo documento de 924 caracteres, cuatro estilos de redacción:
@@ -60,8 +64,16 @@ el extremo malo medido. El 1,917 observado se versiona redondeado hacia abajo
 como 1,91, para que el presupuesto derivado nunca quede por debajo de lo que la
 medición ya vio: **484 tokens** para v2 y v3.
 
-`DEFAULT_OLLAMA_NUM_PREDICT` pasa de 300 a **512**, que es el techo configurable
-del adapter y cubre los 484 requeridos con 5,8 % de margen.
+`DEFAULT_OLLAMA_NUM_PREDICT` pasa de 300 a **512**, que cubre los 484
+requeridos con 5,8 % de margen.
+
+El rango configurable pasa a 32–1024. El piso queda bajo a propósito: una
+corrida de evidencia tiene que poder elegir un presupuesto insuficiente para
+demostrar el agotamiento, como hace la sección 5. Lo que protege a una baseline
+no es el rango sino el default y su regresión. El techo sube porque con 512
+quedaba pegado a los 484 requeridos: un contrato apenas más largo se habría
+quedado sin ninguna configuración válida. El techo acota una generación
+desbocada; el límite efectivo en la práctica lo pone el timeout.
 
 Subir el techo casi no cuesta, porque `num_predict` es un tope y no una meta:
 la latencia la fija la cantidad de tokens que el modelo llega a emitir. Corrida

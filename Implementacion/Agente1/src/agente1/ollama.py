@@ -31,7 +31,7 @@ import math
 import time
 from urllib.parse import urlsplit
 
-from .presupuesto import PresupuestoAgotadoError
+from .presupuesto import MENSAJE_PRESUPUESTO_AGOTADO, PresupuestoAgotadoError
 
 
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
@@ -44,8 +44,16 @@ MAX_OLLAMA_TIMEOUT_S = 120.0
 # una meta, y la latencia la fija la cantidad de tokens que el modelo llega a
 # emitir. Ver DEF-A1-013.
 DEFAULT_OLLAMA_NUM_PREDICT = 512
+# El piso queda bajo a propósito: una corrida de evidencia tiene que poder
+# elegir un presupuesto insuficiente para demostrar el agotamiento. Lo que
+# protege a una baseline no es el rango sino el default, y la regresión de
+# `tests/test_presupuesto.py` que verifica que el default cubra el contrato.
 MIN_OLLAMA_NUM_PREDICT = 32
-MAX_OLLAMA_NUM_PREDICT = 512
+# El techo acota una generación desbocada; no ajusta calidad. Sube a 1024 para
+# que quede margen real sobre los 484 que pide el contrato de hoy: con el techo
+# pegado al requerido, un contrato apenas más largo se quedaba sin ninguna
+# configuración válida. El límite efectivo en la práctica lo pone el timeout.
+MAX_OLLAMA_NUM_PREDICT = 1024
 MAX_RESPONSE_BYTES = 1_048_576
 MAX_FORMAT_SCHEMA_BYTES = 65_536
 
@@ -76,7 +84,10 @@ class OllamaGenerator:
             or not isinstance(num_predict, int)
             or not MIN_OLLAMA_NUM_PREDICT <= num_predict <= MAX_OLLAMA_NUM_PREDICT
         ):
-            raise ValueError("num_predict debe estar entre 32 y 512")
+            raise ValueError(
+                f"num_predict debe estar entre {MIN_OLLAMA_NUM_PREDICT} y "
+                f"{MAX_OLLAMA_NUM_PREDICT}"
+            )
         self._host, self._port = _validar_base_url(base_url)
         self.modelo = modelo.strip()
         self._timeout_s = timeout_s
@@ -85,9 +96,6 @@ class OllamaGenerator:
             format_schema
         )
         self.format_mode = "json_schema" if self._format_schema is not None else None
-        # Lo lee la auditoría por `getattr`: es un contador de la última
-        # generación, no contenido. `None` significa que todavía no se generó.
-        self.ultimo_num_predict_agotado: bool | None = None
 
     def generar(self, prompt: str) -> str:
         deadline = time.monotonic() + self._timeout_s
@@ -163,11 +171,7 @@ class OllamaGenerator:
         # marca el motivo en `done_reason`. Sin este chequeo el corte llega al
         # parser como JSON incompleto y el defecto se le atribuye al modelo.
         if documento.get("done_reason") == "length":
-            self.ultimo_num_predict_agotado = True
-            raise PresupuestoAgotadoError(
-                "El generador local agotó el presupuesto de decodificación"
-            )
-        self.ultimo_num_predict_agotado = False
+            raise PresupuestoAgotadoError(MENSAJE_PRESUPUESTO_AGOTADO)
         return contenido.strip()
 
 

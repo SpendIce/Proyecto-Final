@@ -16,6 +16,7 @@ from agente1.posts import (
 )
 from agente1.presupuesto import (
     CHARS_POR_TOKEN_MENOS_FAVORABLE,
+    MEDICION_DOCUMENTO_MAXIMO_V3,
     ContratoNoDimensionable,
     documento_maximo,
     presupuesto_minimo_num_predict,
@@ -96,11 +97,32 @@ def test_un_arreglo_sin_enum_no_se_puede_dimensionar():
         presupuesto_minimo_num_predict(contrato)
 
 
-def test_la_relacion_de_tokens_documenta_el_extremo_malo_medido():
-    """El número viene de una medición, no de una estimación.
+def test_la_relacion_de_tokens_no_supera_ningun_extremo_medido():
+    """La constante tiene que ser una cota, no un promedio ni una estimación.
 
-    Si alguien lo sube sin volver a medir, el presupuesto derivado baja y la
-    cota deja de ser una cota. Ver `evidencias/medicion-presupuesto-decodificacion-2026-09-08.md`.
+    Se verifica contra la medición versionada y no contra sí misma: si alguien
+    la sube por encima de cualquier estilo observado, el presupuesto derivado
+    baja y deja de cubrir el caso que la medición ya vio. Evidencia:
+    `evidencias/medicion-presupuesto-decodificacion-2026-09-08.md`.
     """
 
-    assert CHARS_POR_TOKEN_MENOS_FAVORABLE == 1.91
+    peor_medido = min(
+        caracteres / tokens
+        for caracteres, tokens in MEDICION_DOCUMENTO_MAXIMO_V3.values()
+    )
+
+    assert CHARS_POR_TOKEN_MENOS_FAVORABLE <= peor_medido
+
+
+def test_la_medicion_versionada_describe_el_documento_maximo_del_contrato():
+    """Los caracteres medidos tienen que ser los del contrato vigente.
+
+    Si el contrato cambia de tamaño, la medición queda vieja y el presupuesto
+    derivado se apoya en un documento que ya no existe.
+    """
+
+    caracteres = len(documento_maximo(CONTRATO_SALIDA_ESTRUCTURADA_V3))
+
+    assert {medido for medido, _ in MEDICION_DOCUMENTO_MAXIMO_V3.values()} == {
+        caracteres
+    }

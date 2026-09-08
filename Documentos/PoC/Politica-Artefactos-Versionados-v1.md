@@ -65,7 +65,10 @@ principal para dejarlos fuera de Git y regenerarlos cuando se necesiten.
 `.gitignore` incorpora:
 
 - intermedios de LaTeX por extension (`.aux`, `.fdb_latexmk`, `.fls`, `.log`,
-  `.out`, `.synctex.gz`, `.toc`);
+  `.out`, `.synctex.gz`, `.toc`), acotados a `Documentos/`, que es donde viven
+  los `.tex`. Un glob de extension a todo el repositorio taparia en silencio
+  evidencia futura del mismo tipo, como los logs de corrida de
+  `Implementacion/Agente1/evidencias/`;
 - las rutas explicitas de los renders regenerables de `Documentos/PoC/` y
   `Documentos/Presentacion/`;
 - `.playwright-mcp/` para snapshots nuevos de navegador.

@@ -7,14 +7,16 @@
 # Git no desversiona por ignore: los intermedios ya trackeados de
 # Documentos/Anteproyecto/ y Documentos/CasosUso/ se conservan sin cambios.
 
-# Intermedios de compilacion LaTeX
-*.aux
-*.fdb_latexmk
-*.fls
-*.log
-*.out
-*.synctex.gz
-*.toc
+# Intermedios de compilacion LaTeX, acotados a donde viven los .tex. Un glob de
+# extension a todo el repo taparia en silencio evidencia futura del mismo tipo,
+# como los logs de corrida de Implementacion/Agente1/evidencias/.
+/Documentos/**/*.aux
+/Documentos/**/*.fdb_latexmk
+/Documentos/**/*.fls
+/Documentos/**/*.log
+/Documentos/**/*.out
+/Documentos/**/*.synctex.gz
+/Documentos/**/*.toc
 
 # Renders regenerables desde fuentes versionadas
 /Documentos/PoC/Ficha-Definiciones-Operativas-SEU-Agente-1.pdf

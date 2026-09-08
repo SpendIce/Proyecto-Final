@@ -17,6 +17,8 @@ from agente1.ollama import (
     DEFAULT_OLLAMA_NUM_PREDICT,
     DEFAULT_OLLAMA_TIMEOUT_S,
     MAX_FORMAT_SCHEMA_BYTES,
+    MAX_OLLAMA_NUM_PREDICT,
+    MIN_OLLAMA_NUM_PREDICT,
 )
 from agente1.presupuesto import PresupuestoAgotadoError
 
@@ -125,7 +127,10 @@ def test_ollama_timeout_default_y_maximo_operativo():
     assert generator.modelo == "llama3.2:3b"
 
 
-@pytest.mark.parametrize("num_predict", [31, 513])
+@pytest.mark.parametrize(
+    "num_predict",
+    [MIN_OLLAMA_NUM_PREDICT - 1, MAX_OLLAMA_NUM_PREDICT + 1],
+)
 def test_ollama_rechaza_num_predict_fuera_del_rango(num_predict):
     with pytest.raises(ValueError, match="num_predict"):
         OllamaGenerator(modelo="llama3.2:3b", num_predict=num_predict)
@@ -340,7 +345,6 @@ def test_ollama_reporta_agotamiento_de_presupuesto_como_tal():
     mensaje = str(excinfo.value)
     assert "PROMPT SECRETO" not in mensaje
     assert "Jornada abierta" not in mensaje
-    assert generator.ultimo_num_predict_agotado is True
 
 
 def test_ollama_no_marca_agotamiento_cuando_el_modelo_termina_solo():
@@ -360,10 +364,4 @@ def test_ollama_no_marca_agotamiento_cuando_el_modelo_termina_solo():
         )
 
         assert generator.generar("PROMPT") == "Borrador completo."
-        assert generator.ultimo_num_predict_agotado is False
 
-
-def test_ollama_expone_el_indicador_de_agotamiento_antes_de_generar():
-    generator = OllamaGenerator(modelo="llama3.2:3b")
-
-    assert generator.ultimo_num_predict_agotado is None

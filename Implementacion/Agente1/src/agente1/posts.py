@@ -64,7 +64,11 @@ from .politica_redes import (
     PoliticaPost,
     errores_de_estilo,
 )
-from .presupuesto import PresupuestoAgotadoError
+from .presupuesto import (
+    MENSAJE_PRESUPUESTO_AGOTADO,
+    RESULTADO_PRESUPUESTO_AGOTADO,
+    PresupuestoAgotadoError,
+)
 from .procesamiento import Generator, ResultadoProceso
 
 
@@ -432,8 +436,8 @@ def _procesar_post(
             correlation_id=correlation_id,
             inicio=inicio_generacion,
             estado="FALLIDA",
-            resultado="presupuesto_agotado",
-            error="El presupuesto de decodificación no alcanzó para la salida",
+            resultado=RESULTADO_PRESUPUESTO_AGOTADO,
+            error=MENSAJE_PRESUPUESTO_AGOTADO,
             extra_fields=_campos_auditoria_estructurada(structured, canal),
         )
     except Exception:

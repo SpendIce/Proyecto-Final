@@ -12,6 +12,8 @@ import subprocess
 import sys
 from threading import Thread
 
+from agente1.ollama import MAX_OLLAMA_NUM_PREDICT
+
 
 ROOT = Path(__file__).parents[1]
 
@@ -342,7 +344,7 @@ def test_cli_ollama_rechaza_num_predict_fuera_de_rango(tmp_path):
             "--ollama-model",
             "llama3.2:3b",
             "--ollama-num-predict",
-            "513",
+            str(MAX_OLLAMA_NUM_PREDICT + 1),
         ],
         check=False,
         capture_output=True,

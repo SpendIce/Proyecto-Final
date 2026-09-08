@@ -1,12 +1,12 @@
 {
   "alcance": "HU-010 y HU-011 en entorno local controlado con datos sintéticos",
-  "commit_padre": "9d02a4fdf6dd56eb368b29500faf7efebe089bc3",
+  "commit_padre": "0294688c31ff7dea5f3768b1af132c110bbf2e9d",
   "configuracion": {
     "chars_por_token_menos_favorable": 1.91,
     "ollama_num_predict_default": 512,
     "ollama_num_predict_rango": [
       32,
-      512
+      1024
     ],
     "ollama_timeout_s_default": 45.0,
     "presupuesto_minimo_contrato_v3": 484,
@@ -19,12 +19,12 @@
     "src/agente1/contracts/post_creative_output_v2.schema.json": "841aa535ce5bacdcb863cae418e58076e413d04d10226088855ce351bca06a97",
     "src/agente1/contracts/post_creative_output_v3.schema.json": "277e26866e21dea5010ec1e15596428c21ebdfaab645c3af1f6497291a68b266",
     "src/agente1/contracts/post_input_v1.schema.json": "f6090dd82a37a363fc6364cc0bd56fb7c9286ff3306c4e623bb49615f4431b4a",
-    "src/agente1/ollama.py": "0b83a0ca98c7c9b31457cde14554066e43e4bde439373ddebe0c27c9d8129647",
+    "src/agente1/ollama.py": "855063d82f43bc210fe718e2a3d243095cf20d78b1176bef672370b4e9a08afa",
     "src/agente1/politica_redes.py": "30a17a336471d8fc99a830b2f827f1399a158a711d956393e7bdf4f6be2810b8",
     "src/agente1/politicas/politica_redes_provisional_v1.json": "d58c1be1c9778b101719b91de7b32941a2f6e2efbcea3b554472216c548469bd",
-    "src/agente1/posts.py": "92038751b1e89e2362a3f24a95cd0309bc8bb665c97b5ef9dedb62b4e4e7725d",
-    "src/agente1/presupuesto.py": "50f08d2946dd44d0d59f920b130f834c80bb2e58bb775c29655a54f6d804888e",
-    "src/agente1/procesamiento.py": "02f5acbfbd3a630ab59f969a4cbe89a054148a727d1b931d18f56c8f38d15867",
+    "src/agente1/posts.py": "ed59c10d7c76fc638238bca41f0c83376625cee73bca0385ed35f247a07b8db8",
+    "src/agente1/presupuesto.py": "6ab68c73b8279b4e6cb81167995bc7201146760a01a0ab701bfb7abf794584d5",
+    "src/agente1/procesamiento.py": "eb48618b0e3b4a1abd8782d4c12f7f1380759b7cda350b98b9cc2ff3e8f9522f",
     "src/agente1/prompts/gacetilla_v3.txt": "f014b7922a2b54397624955a13671438e5eb0bc3a4e991ae5050982ba5c3b7ae",
     "src/agente1/prompts/post_instagram_structured_v3.txt": "93db4c1f975f87e7538c6942d6467c2c11a668142527f4c72c87d146eea66313",
     "src/agente1/prompts/post_linkedin_structured_v3.txt": "a45aaf8d80ee4da2b03a44b8a7767cf019ade04d829ffefca97ddbba56cc69bc"

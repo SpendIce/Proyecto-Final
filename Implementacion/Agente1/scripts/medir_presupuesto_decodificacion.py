@@ -27,8 +27,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from agente1.posts import (  # noqa: E402
+    CONTRATO_SALIDA_ESTRUCTURADA,
+    CONTRATO_SALIDA_ESTRUCTURADA_V3,
+)
 from agente1.presupuesto import (  # noqa: E402
     CHARS_POR_TOKEN_MENOS_FAVORABLE,
+    MEDICION_DOCUMENTO_MAXIMO_V3,
     documento_maximo,
     presupuesto_minimo_num_predict,
 )
@@ -55,11 +60,13 @@ ESTILOS = {
 }
 
 
-def _contrato(version: str) -> dict[str, object]:
-    ruta = (
-        ROOT / "src" / "agente1" / "contracts" / f"post_creative_output_{version}.schema.json"
-    )
-    return json.loads(ruta.read_text(encoding="utf-8"))
+# Los contratos se importan, no se releen del disco: si el módulo y el script
+# leyeran el mismo archivo por su cuenta, una divergencia entre los dos pasaría
+# desapercibida justo en la medición que sirve para justificar el presupuesto.
+CONTRATOS = {
+    "v2": CONTRATO_SALIDA_ESTRUCTURADA,
+    "v3": CONTRATO_SALIDA_ESTRUCTURADA_V3,
+}
 
 
 def _con_estilo(documento: str, muestra: str) -> str:
@@ -99,7 +106,7 @@ def main() -> int:
     parser.add_argument("--contrato", default="v3", choices=("v2", "v3"))
     args = parser.parse_args()
 
-    contrato = _contrato(args.contrato)
+    contrato = CONTRATOS[args.contrato]
     documento = documento_maximo(contrato)
     print(f"contrato {args.contrato}: documento maximo de {len(documento)} caracteres")
     print()
@@ -116,9 +123,14 @@ def main() -> int:
         peor = ratio if peor is None else min(peor, ratio)
         print(f"  {nombre:32s} tokens={tokens:4d}  caracteres_por_token={ratio:.2f}")
 
+    versionado = min(
+        caracteres / tokens
+        for caracteres, tokens in MEDICION_DOCUMENTO_MAXIMO_V3.values()
+    )
     print()
-    print(f"extremo malo medido ahora:        {peor:.2f} caracteres por token")
-    print(f"extremo malo versionado:          {CHARS_POR_TOKEN_MENOS_FAVORABLE:.2f}")
+    print(f"extremo malo medido ahora:         {peor:.3f} caracteres por token")
+    print(f"extremo malo de la medicion versionada: {versionado:.3f}")
+    print(f"cota versionada:                   {CHARS_POR_TOKEN_MENOS_FAVORABLE:.2f}")
     print(f"presupuesto derivado del contrato: {presupuesto_minimo_num_predict(contrato)} tokens")
     if peor < CHARS_POR_TOKEN_MENOS_FAVORABLE:
         print()

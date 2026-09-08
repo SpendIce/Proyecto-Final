@@ -1,7 +1,9 @@
 # Regresión consolidada y evidencia del corte 2026-09-08
 
 - **Issue:** `SpendIce/Proyecto-Final#6`
-- **Commit del corte:** `9d02a4f`
+- **Commit del corte:** `a2c33b1`. El código bajo prueba es el de su padre
+  `9d02a4f`, sobre el que se midió la suite y se corrieron los benchmarks;
+  `a2c33b1` sólo agrega esta evidencia y no toca código.
 - **Alcance:** HU-010 y HU-011 en entorno local controlado con datos
   sintéticos.
 - **Manifest de reconstrucción:** `evidencias/manifest-corte-2026-09-08.json`
@@ -24,7 +26,7 @@ aceptación institucional.
 
 ## 2. Suite determinista
 
-`uv run pytest -q` sobre `9d02a4f`: **534 pruebas, todas verdes**.
+`uv run pytest -q` sobre `9d02a4f`, el código del corte `a2c33b1`: **534 pruebas, todas verdes**.
 
 Ese número describe el corte; no es un contrato. La suite se mide por lo que
 cubre, no por su cardinalidad, y ninguna prueba fija la cantidad total. El
