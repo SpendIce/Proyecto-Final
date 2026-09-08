@@ -1,9 +1,10 @@
 # Regresión consolidada y evidencia del corte 2026-09-08
 
 - **Issue:** `SpendIce/Proyecto-Final#6`
-- **Commit del corte:** `a2c33b1`. El código bajo prueba es el de su padre
-  `9d02a4f`, sobre el que se midió la suite y se corrieron los benchmarks;
-  `a2c33b1` sólo agrega esta evidencia y no toca código.
+- **Commit del corte:** `32a79d9`. Las mediciones de este documento se
+  reprodujeron sobre ese árbol despues de las correcciones de revisión, para que
+  los hashes de los manifests correspondan al código que efectivamente corrió.
+  Los cortes intermedios `9d02a4f` y `a2c33b1` quedan como referencia.
 - **Alcance:** HU-010 y HU-011 en entorno local controlado con datos
   sintéticos.
 - **Manifest de reconstrucción:** `evidencias/manifest-corte-2026-09-08.json`
@@ -26,7 +27,7 @@ aceptación institucional.
 
 ## 2. Suite determinista
 
-`uv run pytest -q` sobre `9d02a4f`, el código del corte `a2c33b1`: **534 pruebas, todas verdes**.
+`uv run pytest -q` sobre `32a79d9`: **588 pruebas, todas verdes**.
 
 Ese número describe el corte; no es un contrato. La suite se mide por lo que
 cubre, no por su cardinalidad, y ninguna prueba fija la cantidad total. El
@@ -39,9 +40,11 @@ Regresiones incorporadas en este corte:
 |---|---|---|
 | `DEF-A1-013` | 15 | Aceptar un presupuesto de decodificación que no cubre el documento máximo del contrato, y confundir el agotamiento con un fallo de generación |
 | `DEF-A1-014` | 6 | Volver a pedirle al modelo una línea `Lugar:` que el gate rechaza, y aflojar los cuatro controles negativos de lugar |
+| Seam de Historia Viva | 36 | Que A2 pueda iniciar la interacción, que una precisión gruesa produzca una fecha exacta, y que material vacío habilite afirmaciones históricas |
+| Recuperación de HU-012 | 18 | Que la idempotencia se pierda al reiniciar, y que una reserva interrumpida se reintente y duplique la entrega |
 
-Los cortes históricos de 451, 457 y 513 pruebas quedan como referencia y no
-describen la candidata vigente.
+Los cortes históricos de 451, 457, 513 y 534 pruebas quedan como referencia y
+no describen la candidata vigente.
 
 ## 3. Benchmarks live
 
@@ -55,7 +58,7 @@ Dos intentos por actividad sobre las tres actividades completas, con
 
 | Configuración | Conformidad | Latencia | Reproducibilidad |
 |---|---|---|---|
-| `num_predict` 512, `gacetilla_v3` | 6/6 borradores | 7,26 a 11,47 s | borradores idénticos byte a byte entre intentos |
+| `num_predict` 512, `gacetilla_v3` | 6/6 borradores | 11,45 a 24,88 s | borradores idénticos byte a byte entre intentos, y también entre la corrida de `9d02a4f` y la de `32a79d9` |
 
 Los dos casos incompletos del dataset —`SYN-002` sin contacto y `SYN-004` sin
 fecha— se siguen rechazando antes de invocar al modelo.
@@ -69,8 +72,8 @@ Dos contratos creativos, ejecutados por separado porque miden cosas distintas:
 
 | Contrato | Aceptadas | Negativos conformes | Latencia | Errores observados |
 |---|---|---|---|---|
-| `post_creative_output_v2` (catálogo cerrado) | 6/6 | 4/4 | 7,87 a 19,13 s | ninguno en los casos positivos |
-| `post_creative_output_v3` (redacción libre) | 0/6 | 4/4 | 14,24 a 35,09 s | `source_fact_in_creative_field` 6, `non_rioplatense_register` 6, `unauthorized_exclamation` 2, `unauthorized_fact_claim` 1 |
+| `post_creative_output_v2` (catálogo cerrado) | 6/6 | 4/4 | 8,14 a 20,66 s | ninguno en los casos positivos |
+| `post_creative_output_v3` (redacción libre) | 0/6 | 4/4 | 14,53 a 40,48 s | `source_fact_in_creative_field`, `non_rioplatense_register` |
 
 Manifests: `evidencias/manifest-hu011-live-v2-2026-09-08.json` y
 `evidencias/manifest-hu011-live-v3-2026-09-08.json`.

@@ -1,6 +1,6 @@
 {
   "alcance": "HU-010 y HU-011 en entorno local controlado con datos sintéticos",
-  "commit_padre": "0294688c31ff7dea5f3768b1af132c110bbf2e9d",
+  "commit_padre": "32a79d9164f13d445dd8cbd40de72f639565c77f",
   "configuracion": {
     "chars_por_token_menos_favorable": 1.91,
     "ollama_num_predict_default": 512,

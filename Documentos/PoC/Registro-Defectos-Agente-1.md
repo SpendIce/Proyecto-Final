@@ -59,7 +59,8 @@ Para cerrar un registro deben agregarse fecha, evidencia de corrección y prueba
 | `DEF-A1-013` | 2026-09-08 | Presupuesto derivado del contrato en `src/agente1/presupuesto.py`; default 512; agotamiento observable vía `done_reason` y `resultado=presupuesto_agotado`; medición reproducible con `scripts/medir_presupuesto_decodificacion.py` | 15 pruebas nuevas: la regresión falla con 112 y con 300, y falla también si un contrato futuro sube `maxLength` por encima del techo. Suite completa en 528 verdes. Verificación live sobre `SYN-001`: `num_predict=32` da `presupuesto_agotado`; 300 y 512 dan el mismo borrador byte a byte | `RESUELTO_TECNICO`; no cerrado institucionalmente — no implica validación SEU ni Gate G2 |
 | `DEF-A1-014` | 2026-09-08 | Plantilla `gacetilla_v3` con línea de lugar decidida por caso en la estructura y en el ejemplo; `PROMPT_VERSION` actualizada; gate de estructura sin cambios | Reproducción focalizada con `gacetilla_v2`: 2/2 `data_structure` en `SYN-003` y `SYN-005` con `Lugar:` sin valor. Con `gacetilla_v3`: 6/6 borradores en dos intentos, idénticos byte a byte. Seis regresiones deterministas nuevas, incluidos cuatro casos negativos de lugar. Suite completa en 534 verdes | `RESUELTO_TECNICO`; no cerrado institucionalmente — no implica validación SEU ni Gate G2 |
 
-La regresión integral canónica del corte 2026-09-08 es de **534 pruebas
-verdes**: las 513 del corte 2026-09-06 más 15 regresiones de `DEF-A1-013` y 6
-de `DEF-A1-014`. Los conteos 451, 457 y 513 que aparecen arriba son históricos
-y no describen la candidata vigente.
+La regresión integral del corte 2026-09-08 (`32a79d9`) es de **588 pruebas
+verdes**: las 513 del corte 2026-09-06, más 15 regresiones de `DEF-A1-013`, 6
+de `DEF-A1-014`, 36 del seam de Historia Viva y 18 de la recuperación durable
+de HU-012. Los conteos 451, 457, 513 y 534 que aparecen arriba son históricos y
+no describen la candidata vigente.

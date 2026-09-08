@@ -80,6 +80,12 @@ Corrida live del 2026-09-08, dos intentos por actividad, `gacetilla_v3`:
 6 de 6, con borradores idénticos byte a byte entre intentos. Todas las salidas
 quedan `BORRADOR — NO PUBLICAR` y `PENDIENTE_VALIDACION`.
 
+La corrida se repitió sobre `32a79d9`, después de refactorizar `_construir_prompt`
+a un mapa de sustituciones: los seis borradores salieron con los mismos tres
+hashes, de modo que el refactor no cambió lo que el modelo recibe. Las latencias
+de esa segunda corrida van de 11,45 a 24,88 s; la diferencia con la primera es
+carga del host, no del prompt.
+
 Reproducible con `uv run python scripts/reproducir_def_a1_014.py`, que corre
 las dos plantillas una al lado de la otra.
 
