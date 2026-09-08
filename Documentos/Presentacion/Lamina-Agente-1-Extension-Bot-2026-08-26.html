@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Lámina Agente 1 — Extension Bot</title>
+<style>
+  :root{
+    --papel:#FBF8F3;
+    --papel2:#FFFFFF;
+    --tinta:#1B2A41;
+    --tinta2:#33465F;
+    --gris:#6B7A8D;
+    --linea:#E2DCD1;
+    --azul:#2C5282;
+    --azul-claro:#E8EEF6;
+    --ambar:#C8892A;
+    --ambar-claro:#FBF0DC;
+    --rojo:#9B2C2C;
+    --rojo-claro:#FBE9E7;
+    --verde:#2F6B4F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1600px;height:900px}
+  body{
+    background:var(--papel);
+    font-family:"Noto Sans","Liberation Sans",sans-serif;
+    color:var(--tinta);
+    display:flex;flex-direction:column;
+    padding:20px 34px 0 34px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- encabezado ---------- */
+  header{display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:10px;border-bottom:2px solid var(--tinta);}
+  h1{font-size:31px;letter-spacing:-0.4px;font-weight:800;line-height:1.05}
+  h1 span{color:var(--azul)}
+  .sub{margin-top:4px;font-size:15.2px;color:var(--tinta2);font-family:"Noto Serif","Liberation Serif",serif;font-style:italic}
+  .meta{text-align:right;font-size:12.5px;color:var(--gris);line-height:1.5}
+  .badge{display:inline-block;background:var(--azul-claro);color:var(--azul);border:1px solid #C9D7E8;
+         border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;letter-spacing:.2px;margin-bottom:6px}
+
+  /* ---------- banda problema / solución ---------- */
+  .banda{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:11px}
+  .bloque{border-radius:12px;padding:10px 15px 11px;display:flex;gap:13px;align-items:flex-start}
+  .bloque.prob{background:#FBF1EE;border:1px solid #EFD9D3}
+  .bloque.sol{background:#EEF3FA;border:1px solid #D3E0F0}
+  .bloque .ic{flex:0 0 auto;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+  .bloque.prob .ic{background:#F5DFD9}
+  .bloque.sol .ic{background:#DCE7F6}
+  .bloque .et{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
+  .bloque.prob .et{color:var(--rojo)}
+  .bloque.sol .et{color:var(--azul)}
+  .bloque .tx{font-family:"Noto Serif","Liberation Serif",serif;font-size:13.7px;line-height:1.42;color:#2A3646;margin-top:4px}
+  .bloque .tx b{font-weight:700;color:var(--tinta)}
+
+  /* ---------- grilla ---------- */
+  main{flex:1;display:grid;grid-template-columns:352px 1fr 372px;gap:22px;padding:12px 0 0 0;min-height:0}
+  .col{display:flex;flex-direction:column;min-height:0}
+  .titulo-col{font-size:12px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--gris);margin-bottom:9px}
+  .card{background:var(--papel2);border:1px solid var(--linea);border-radius:12px;
+        box-shadow:0 1px 2px rgba(27,42,65,.05),0 6px 16px rgba(27,42,65,.045)}
+
+  /* ---------- columna 1: personas ---------- */
+  .paso{display:flex;gap:12px;align-items:flex-start;padding:11px 14px;margin-bottom:7px}
+  .paso.agente{background:#F4F7FC;border-color:#D4E0F0}
+  .ava{flex:0 0 auto;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .ava.persona{background:var(--ambar-claro);border:1.5px solid #E4CBA0}
+  .ava.bot{background:#E1EAF7;border:1.5px solid #BDD0EA}
+  .rol{font-size:14px;font-weight:800;line-height:1.2}
+  .quien{font-size:11.5px;color:var(--gris);margin-top:1px;font-weight:600}
+  .accion{font-size:12.8px;color:var(--tinta2);line-height:1.38;margin-top:5px;font-family:"Noto Serif","Liberation Serif",serif}
+  .dato{margin-top:5px;font-size:10.6px;font-family:"JetBrains Mono",monospace;color:var(--gris)}
+  .conector{margin:-3px 0 -1px 32px;width:2px;height:10px;background:var(--linea)}
+  .firma{margin-top:auto;background:var(--tinta);color:#fff;border-radius:12px;padding:13px 16px}
+  .firma p{font-family:"Noto Serif","Liberation Serif",serif;font-size:15px;line-height:1.38}
+  .firma b{color:#F3C877}
+  .firma small{display:block;margin-top:6px;font-family:"Noto Sans",sans-serif;font-size:11px;color:#AEBED2;line-height:1.4}
+
+  /* ---------- columna 2: ejemplo sintético ---------- */
+  .entrada{padding:10px 14px 11px}
+  .mini-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--gris)}
+  .mini-h .pill{background:var(--linea);color:var(--tinta2);border-radius:4px;padding:1px 6px;font-size:10px;letter-spacing:.4px}
+  .campos{display:grid;grid-template-columns:1fr 1fr;gap:2px 22px;margin-top:7px;
+          font-family:"JetBrains Mono",monospace;font-size:11.7px;color:var(--tinta2)}
+  .campos i{color:var(--gris);font-style:normal}
+  .flecha{display:flex;align-items:center;gap:10px;margin:7px 0 7px 2px;color:var(--azul)}
+  .flecha .l{width:2px;height:20px;background:#C3D2E6;margin-left:18px}
+  .flecha .t{font-size:12.4px;color:var(--tinta2)}
+  .flecha .t b{color:var(--azul)}
+
+  .piezas{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0}
+  .borrador{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .cinta{background:var(--rojo-claro);border-bottom:1px solid #F0CFCB;padding:7px 15px;
+         display:flex;align-items:center;justify-content:space-between}
+  .cinta .txt{color:var(--rojo);font-weight:800;font-size:12.4px;letter-spacing:.5px}
+  .cinta .est{font-size:9.6px;font-family:"JetBrains Mono",monospace;color:#8A4A46}
+  .cuerpo{padding:10px 15px 9px;display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}
+  .canal{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--azul)}
+  .gen{border-left:3px solid #B9CDE8;padding-left:10px}
+  .gen p{font-family:"Noto Serif","Liberation Serif",serif;font-size:12.9px;line-height:1.42;color:#22303F}
+  .gen p+p{margin-top:6px}
+  .det{border-left:3px solid #E0C892;padding-left:10px;font-family:"JetBrains Mono",monospace;
+       font-size:10.7px;line-height:1.45;color:var(--tinta2)}
+  .det i{color:var(--gris);font-style:normal}
+  .tags{font-family:"JetBrains Mono",monospace;font-size:11.2px;line-height:1.45;color:var(--azul)}
+  .leyenda{display:flex;gap:22px;font-size:10.8px;color:var(--gris);padding:9px 2px 0;margin-top:2px}
+  .leyenda span{display:flex;align-items:center;gap:6px}
+  .sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+
+  /* ---------- columna 3: registro ---------- */
+  .reg{padding:10px 14px 11px;margin-bottom:9px}
+  .filas{margin-top:6px;font-size:11.9px}
+  .fila{display:flex;justify-content:space-between;gap:10px;padding:3.6px 0;border-bottom:1px dotted var(--linea)}
+  .fila:last-child{border-bottom:0}
+  .fila .k{color:var(--gris)}
+  .fila .v{font-family:"JetBrains Mono",monospace;color:var(--tinta);text-align:right}
+  .v.ok{color:var(--verde);font-weight:700}
+  .neg{padding:10px 14px 11px;margin-bottom:9px;background:#FDF7F6;border-color:#F0DCD8}
+  .neg .t{font-size:13px;font-weight:800;color:var(--rojo)}
+  .neg .d{margin-top:5px;font-size:12.2px;color:var(--tinta2);line-height:1.4;font-family:"Noto Serif","Liberation Serif",serif}
+  .neg .m{margin-top:7px;font-family:"JetBrains Mono",monospace;font-size:11px;color:#8A4A46}
+  .ctrl{padding:10px 14px 11px;margin-top:auto}
+  .ctrl ul{list-style:none;margin-top:7px}
+  .ctrl li{display:flex;gap:9px;align-items:flex-start;font-size:12.1px;color:var(--tinta2);padding:2.6px 0;line-height:1.32}
+  .ctrl li svg{flex:0 0 auto;margin-top:1px}
+
+  /* ---------- pie ---------- */
+  footer{margin:12px -34px 0;background:var(--tinta);color:#fff;padding:11px 34px;
+         display:flex;align-items:center;justify-content:space-between;gap:24px}
+  footer .lema{font-size:18px;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:12px}
+  footer .lema b{color:#F3C877}
+  footer .nota{font-size:11.2px;color:#B7C6D8;line-height:1.45;text-align:right;max-width:640px}
+  footer .nota b{color:#E8EEF6;font-weight:700}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Agente 1 <span>—</span> Extension&nbsp;Bot</h1>
+    <div class="sub">Un asistente de redacción para el equipo de Extensión. Escribe el primer borrador; la última palabra siempre es de una persona.</div>
+  </div>
+  <div class="meta">
+    <div class="badge">Proceso 4 · Comunicación y Difusión Institucional</div>
+    <div>Ejecución real registrada · 17/08/2026 19:40 UTC</div>
+    <div>Entorno controlado, dataset sintético versionado</div>
+  </div>
+</header>
+
+<section class="banda">
+  <div class="bloque prob">
+    <div class="ic">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#9B2C2C" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.6v5M12 16.1h.01"/></svg>
+    </div>
+    <div>
+      <div class="et">El problema de hoy</div>
+      <div class="tx">Cada actividad de Extensión necesita una gacetilla y un texto distinto por canal. Se redactan <b>a mano, una por una</b>, y ese tiempo sale de tareas que nadie más hace. El tono y los datos terminan dependiendo de quién esté disponible ese día.</div>
+    </div>
+  </div>
+  <div class="bloque sol">
+    <div class="ic">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#2C5282" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.5 5.3 5.8.8-4.2 4 1 5.7L12 16.3 6.9 19l1-5.7-4.2-4 5.8-.8z"/></svg>
+    </div>
+    <div>
+      <div class="et">Lo que propone el Agente 1</div>
+      <div class="tx">El <b>primer borrador por canal</b> a partir de los datos ya cargados: en segundos, con los mismos datos en todas las piezas, marcado como borrador y con registro de cada ejecución. La persona deja de escribir desde cero y pasa a <b>revisar y decidir</b>.</div>
+    </div>
+  </div>
+</section>
+
+<main>
+
+  <!-- ================= COLUMNA 1 ================= -->
+  <section class="col">
+    <div class="titulo-col">Quién hace qué</div>
+
+    <div class="card paso">
+      <div class="ava persona">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#8A6524" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c.6-4 3.6-6 7.2-6s6.6 2 7.2 6"/></svg>
+      </div>
+      <div>
+        <div class="rol">Coordinación de la actividad</div>
+        <div class="quien">Personal de la SEU</div>
+        <div class="accion">Carga los datos de la actividad en la planilla autorizada. Nada más.</div>
+        <div class="dato">7 campos · fuente única · sin datos personales</div>
+      </div>
+    </div>
+    <div class="conector"></div>
+
+    <div class="card paso agente">
+      <div class="ava bot">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#2C5282" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="7.5" width="16" height="12" rx="3.2"/><path d="M12 7.5V4M9.5 13h.01M14.5 13h.01M9.5 16.4h5"/></svg>
+      </div>
+      <div>
+        <div class="rol">Agente 1</div>
+        <div class="quien">Modelo local, sin salida a internet</div>
+        <div class="accion">Redacta el borrador, lo marca como no publicable y deja registro de todo lo que hizo.</div>
+        <div class="dato">17 s por pieza · llama3.2:3b · log con hash</div>
+      </div>
+    </div>
+    <div class="conector"></div>
+
+    <div class="card paso">
+      <div class="ava persona">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#8A6524" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c.6-4 3.6-6 7.2-6s6.6 2 7.2 6"/></svg>
+      </div>
+      <div>
+        <div class="rol">Comunicación institucional</div>
+        <div class="quien">Personal de la SEU</div>
+        <div class="accion">Lee, corrige el tono, ajusta lo que haga falta y recién ahí aprueba o rechaza.</div>
+        <div class="dato">La decisión queda registrada con nombre y fecha</div>
+      </div>
+    </div>
+
+    <div class="firma">
+      <p>El agente <b>propone</b>.<br>La institución <b>decide</b>.</p>
+      <small>El texto no sale del entorno sin una aprobación humana registrada. La responsabilidad del contenido no se transfiere al modelo.</small>
+    </div>
+  </section>
+
+  <!-- ================= COLUMNA 2 ================= -->
+  <section class="col">
+    <div class="titulo-col">Una generación sintética, de punta a punta</div>
+
+    <div class="card entrada">
+      <div class="mini-h">Lo que carga la persona, una sola vez <span class="pill">planilla · SYN-003</span></div>
+      <div class="campos">
+        <div><i>título:</i> Jornada sintética</div>
+        <div><i>organiza:</i> Equipo de prueba</div>
+        <div><i>fecha:</i> 2026-08-07</div>
+        <div><i>público:</i> Público ficticio</div>
+        <div><i>descripción:</i> Datos exclusivamente ficticios.</div>
+        <div><i>contacto:</i> pruebas@example.invalid</div>
+      </div>
+    </div>
+
+    <div class="flecha">
+      <div class="l"></div>
+      <div class="t"><b>Dos piezas, una por canal, en 17 segundos cada una</b> — sin reescribir nada a mano</div>
+    </div>
+
+    <div class="piezas">
+
+      <div class="card borrador">
+        <div class="cinta">
+          <div class="txt">BORRADOR — NO PUBLICAR</div>
+          <div class="est">PENDIENTE_VALIDACION</div>
+        </div>
+        <div class="cuerpo">
+          <div class="canal">Canal: LinkedIn</div>
+          <div class="gen">
+            <p>¿Estás listo para impulsar tus investigaciones y fortalecer tus redes académicas?</p>
+            <p>En este espacio, podrás conectarte con otros profesionales y académicos que comparten tus intereses y objetivos. Descubre nuevas oportunidades de colaboración, aprendizaje y crecimiento profesional. ¡Únete a nosotros y comienza a construir tus redes académicas!</p>
+          </div>
+          <div class="det">
+            <i>Título:</i> Jornada sintética<br>
+            <i>Fecha:</i> 2026-08-07<br>
+            <i>Organiza:</i> Equipo de prueba<br>
+            <i>Contacto:</i> pruebas@example.invalid
+          </div>
+          <div class="gen">
+            <p>Únete a nuestra comunidad de investigadores y académicos para explorar nuevas oportunidades de colaboración y aprendizaje.</p>
+          </div>
+          <div class="tags">#Aprender #Comunidad<br>#Conocimiento #Participación</div>
+        </div>
+      </div>
+
+      <div class="card borrador">
+        <div class="cinta">
+          <div class="txt">BORRADOR — NO PUBLICAR</div>
+          <div class="est">PENDIENTE_VALIDACION</div>
+        </div>
+        <div class="cuerpo">
+          <div class="canal">Canal: Instagram</div>
+          <div class="gen">
+            <p>¿Estás listo para sumergirte en un mundo de conocimiento y crecimiento?</p>
+            <p>En esta actividad de extensión universitaria, nos unimos para explorar y compartir ideas. ¡Vamos a crear juntos un espacio de aprendizaje enriquecedor y divertido! ¡Inscríbete ahora y comienza a descubrir nuevas posibilidades!</p>
+          </div>
+          <div class="det">
+            <i>Título:</i> Jornada sintética<br>
+            <i>Fecha:</i> 2026-08-07<br>
+            <i>Organiza:</i> Equipo de prueba<br>
+            <i>Contacto:</i> pruebas@example.invalid
+          </div>
+          <div class="gen">
+            <p>¡Únete a nosotros en esta emocionante jornada de aprendizaje y descubrimiento!</p>
+          </div>
+          <div class="tags">#Aprender #Comunidad<br>#Conocimiento #Participación</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="leyenda">
+      <span><i class="sw" style="background:#B9CDE8"></i> Texto redactado por el modelo — es lo que la persona revisa y corrige</span>
+      <span><i class="sw" style="background:#E0C892"></i> Datos copiados tal cual de la planilla — el modelo no los toca</span>
+    </div>
+  </section>
+
+  <!-- ================= COLUMNA 3 ================= -->
+  <section class="col">
+    <div class="titulo-col">Lo que queda registrado</div>
+
+    <div class="card reg">
+      <div class="mini-h">Línea de auditoría <span class="pill">ejecuciones.jsonl</span></div>
+      <div class="filas">
+        <div class="fila"><span class="k">Solicitud</span><span class="v">SYN-003 · 2 canales</span></div>
+        <div class="fila"><span class="k">Resultado</span><span class="v ok">borrador_generado ×2</span></div>
+        <div class="fila"><span class="k">Estado</span><span class="v">PENDIENTE_VALIDACION</span></div>
+        <div class="fila"><span class="k">Modelo</span><span class="v">llama3.2:3b · local</span></div>
+        <div class="fila"><span class="k">Latencia</span><span class="v">17,22 s · 16,81 s</span></div>
+        <div class="fila"><span class="k">Hash · linkedin</span><span class="v">ab3c6f9b…17a8</span></div>
+        <div class="fila"><span class="k">Hash · instagram</span><span class="v">01a57afd…81ab</span></div>
+        <div class="fila"><span class="k">Política</span><span class="v">PROVISIONAL</span></div>
+      </div>
+    </div>
+
+    <div class="card neg">
+      <div class="t">Y cuando faltan datos, no inventa</div>
+      <div class="d">La solicitud SYN-002 llegó sin el contacto obligatorio. El agente se detuvo antes de escribir una sola línea.</div>
+      <div class="m">SYN-002 → datos_incompletos · estado INCOMPLETA · 0 borradores</div>
+    </div>
+
+    <div class="card ctrl">
+      <div class="mini-h">Controles verificados offline</div>
+      <ul>
+        <li>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2F6B4F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          Solo accede a la planilla, plantilla y carpeta autorizadas
+        </li>
+        <li>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2F6B4F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          Ningún secreto ni credencial queda escrito en los logs
+        </li>
+        <li>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2F6B4F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          Si se revocan los permisos, se detiene sin producir salida
+        </li>
+        <li>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2F6B4F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          No existe ruta para publicar, enviar ni compartir
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="lema">
+    <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#F3C877" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.4c0 4.4-3 8-7.5 9.6-4.5-1.6-7.5-5.2-7.5-9.6V6z"/><path d="M8.6 12.2l2.3 2.3 4.5-4.6"/></svg>
+    Sin publicación automática. <b>Nunca.</b>
+  </div>
+  <div class="nota">
+    Evidencia de entorno controlado con datos sintéticos: <b>no equivale todavía a aprobación institucional ni al cierre del Gate G2 / TRL 3</b>.
+    Pendientes: sandbox de Workspace, identidad técnica de mínimo privilegio y validación de calidad por referentes de la SEU.
+  </div>
+</footer>
+
+</body>
+</html>

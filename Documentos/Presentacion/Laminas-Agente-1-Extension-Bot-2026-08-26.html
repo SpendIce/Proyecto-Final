@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Láminas — Agente 1 Extension Bot</title>
+<style>
+  :root{
+    --papel:#FBF8F3;
+    --blanco:#FFFFFF;
+    --tinta:#1B2A41;
+    --tinta2:#33465F;
+    --gris:#6B7A8D;
+    --linea:#E2DCD1;
+    --azul:#2C5282;
+    --azul-claro:#EAF0F8;
+    --ambar:#C8892A;
+    --ambar-claro:#FBF0DC;
+    --rojo:#9B2C2C;
+    --rojo-claro:#FBEDEA;
+    --verde:#2F6B4F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:#101A29}
+  body{font-family:"Noto Sans","Liberation Sans",sans-serif;color:var(--tinta);-webkit-font-smoothing:antialiased;cursor:default}
+
+  /* ---- escenario: la lámina se escala sola al tamaño de la ventana ---- */
+  #deck{position:absolute;top:0;left:0;width:1600px;height:900px;transform-origin:top left}
+  .slide{display:none}
+  .slide.activa{display:flex}
+
+  .slide{position:absolute;top:0;left:0;width:1600px;height:900px;background:var(--papel);
+         padding:44px 58px 46px;flex-direction:column;overflow:hidden}
+  .slide.oscura{background:var(--tinta);color:#fff}
+
+  .kicker{font-size:19px;font-weight:800;letter-spacing:2.6px;text-transform:uppercase;color:var(--gris);
+          display:flex;align-items:center;gap:14px;margin-bottom:16px;padding-right:64px}
+  .kicker::after{content:"";flex:1;height:2px;background:var(--linea)}
+  .oscura .kicker{color:#8FA3BC}
+  .oscura .kicker::after{background:#33465F}
+
+  h1{font-size:66px;line-height:1.02;letter-spacing:-1.6px;font-weight:800}
+  h1 span{color:var(--azul)}
+  h2{font-size:46px;line-height:1.08;letter-spacing:-.8px;font-weight:800}
+  h2 em{font-style:normal;color:var(--azul)}
+  .oscura h2 em{color:#F3C877}
+  .lead{font-family:"Noto Serif","Liberation Serif",serif;font-size:29px;line-height:1.38;color:var(--tinta2);margin-top:16px;max-width:1250px}
+  .lead b{color:var(--tinta);font-weight:700}
+  .num{position:absolute;right:58px;top:46px;font-size:17px;color:#B4AFA5;letter-spacing:1.5px;font-weight:700}
+  .oscura .num{color:#4A5D77}
+  .card{background:var(--blanco);border:1px solid var(--linea);border-radius:16px;
+        box-shadow:0 2px 4px rgba(27,42,65,.05),0 12px 28px rgba(27,42,65,.06)}
+
+  /* ---- bloques sí/no ---- */
+  .dos{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:auto;margin-bottom:26px}
+  .bloque{border-radius:16px;padding:26px 30px}
+  .bloque .et{font-size:19px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:11px}
+  .bloque.prob{background:var(--rojo-claro);border:1.5px solid #EFD9D3}
+  .bloque.prob .et{color:var(--rojo)}
+  .bloque.sol{background:var(--azul-claro);border:1.5px solid #CFDDEE}
+  .bloque.sol .et{color:var(--azul)}
+  ul.grande{list-style:none;display:flex;flex-direction:column;gap:14px}
+  ul.grande li{display:flex;gap:14px;align-items:flex-start;font-size:26px;line-height:1.33;color:var(--tinta2)}
+  ul.grande li svg{flex:0 0 auto;margin-top:5px}
+
+  .remate{background:var(--tinta);color:#fff;border-radius:16px;padding:22px 32px;
+          display:flex;align-items:center;gap:26px}
+  .remate .t{font-family:"Noto Serif","Liberation Serif",serif;font-size:32px;font-weight:700;white-space:nowrap}
+  .remate .t b{color:#F3C877}
+  .remate .s{font-size:21px;color:#AEBED2;line-height:1.38;border-left:2px solid #3C5271;padding-left:24px}
+
+  /* ---- ejemplo ---- */
+  .ejemplo{display:grid;grid-template-columns:1fr 452px;gap:26px;flex:1;min-height:0}
+  .colE{display:flex;flex-direction:column;min-height:0}
+  .entrada{padding:20px 26px 22px;margin-bottom:16px}
+  .mini-h{display:flex;align-items:center;gap:13px;font-size:18px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--gris)}
+  .mini-h .pill{background:var(--linea);color:var(--tinta2);border-radius:6px;padding:3px 11px;font-size:16px;letter-spacing:.6px}
+  .campos{display:grid;grid-template-columns:1fr 1fr;gap:5px 34px;margin-top:13px;
+          font-family:"JetBrains Mono",monospace;font-size:21px;color:var(--tinta2)}
+  .campos i{color:var(--gris);font-style:normal}
+  .flecha{display:flex;align-items:center;gap:15px;margin:0 0 16px 4px;font-size:22px;color:var(--tinta2)}
+  .flecha b{color:var(--azul)}
+  .flecha .l{width:3px;height:26px;background:#C3D2E6;margin-left:22px}
+
+  .borrador{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .cinta{background:var(--rojo-claro);border-bottom:2px solid #F0CFCB;padding:14px 26px;
+         display:flex;align-items:center;justify-content:space-between}
+  .cinta .txt{color:var(--rojo);font-weight:800;font-size:25px;letter-spacing:.8px}
+  .cinta .est{font-size:18px;font-family:"JetBrains Mono",monospace;color:#8A4A46}
+  .cuerpo{padding:20px 26px 22px;display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
+  .canal{font-size:19px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--azul)}
+  .gen{border-left:5px solid #B9CDE8;padding-left:18px}
+  .gen p{font-family:"Noto Serif","Liberation Serif",serif;font-size:26px;line-height:1.42;color:#22303F}
+  .gen p+p{margin-top:11px}
+  .det{border-left:5px solid #E0C892;padding-left:18px;font-family:"JetBrains Mono",monospace;
+       font-size:20px;line-height:1.5;color:var(--tinta2)}
+  .det i{color:var(--gris);font-style:normal}
+  .tags{font-family:"JetBrains Mono",monospace;font-size:22px;color:var(--azul)}
+  .leyenda{display:flex;gap:34px;font-size:18px;color:var(--gris);padding-top:14px}
+  .leyenda span{display:flex;align-items:center;gap:10px}
+  .sw{width:24px;height:5px;border-radius:3px;display:inline-block}
+
+  /* ---- registro ---- */
+  .reg{padding:20px 24px 22px}
+  .filas{margin-top:12px;font-size:21px}
+  .fila{display:flex;justify-content:space-between;gap:18px;padding:8.5px 0;border-bottom:1px dotted var(--linea)}
+  .fila:last-child{border-bottom:0}
+  .fila .k{color:var(--gris)}
+  .fila .v{font-family:"JetBrains Mono",monospace;color:var(--tinta);text-align:right}
+  .v.ok{color:var(--verde);font-weight:700}
+  .franja{margin-top:16px;background:#FDF6F4;border:1.5px solid #EFD9D3;border-radius:16px;padding:20px 24px}
+  .franja .t{font-size:24px;font-weight:800;color:var(--rojo);line-height:1.2}
+  .franja .d{font-family:"Noto Serif","Liberation Serif",serif;font-size:22px;color:var(--tinta2);margin-top:9px;line-height:1.38}
+  .franja .m{font-family:"JetBrains Mono",monospace;font-size:18px;color:#8A4A46;margin-top:10px;line-height:1.35}
+
+  /* ---- personas ---- */
+  .flujo{display:grid;grid-template-columns:1fr 54px 1fr 54px 1fr;margin:22px 0 24px}
+  .persona{padding:22px 24px 24px;display:flex;flex-direction:column;height:100%;color:var(--tinta)}
+  .persona.agente{background:#F1F5FB;border-color:#CFDDEE}
+  .ava{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .ava.p{background:var(--ambar-claro);border:2.5px solid #E4CBA0}
+  .ava.b{background:#DFE9F7;border:2.5px solid #BDD0EA}
+  .persona .rol{font-size:26px;font-weight:800;line-height:1.15;color:var(--tinta)}
+  .persona .quien{font-size:18px;color:var(--gris);font-weight:700;margin-top:5px}
+  .persona .acc{font-family:"Noto Serif","Liberation Serif",serif;font-size:23px;line-height:1.36;color:var(--tinta2);margin-top:13px}
+  .persona.agente .rol{color:var(--azul)}
+  .fl{display:flex;align-items:center;justify-content:center}
+
+  /* ---- cajas oscuras ---- */
+  .pedido{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+  .caja{background:rgba(255,255,255,.06);border:1.5px solid #3C5271;border-radius:16px;padding:24px 28px}
+  .caja .et{font-size:19px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#F3C877;margin-bottom:14px}
+  .caja ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+  .caja li{font-size:24px;line-height:1.3;color:#DCE6F2;display:flex;gap:12px}
+  .caja li::before{content:"—";color:#7E93AC}
+  .aviso{margin-top:24px;background:#F3C877;color:#2B2110;border-radius:16px;padding:20px 30px;font-size:24px;line-height:1.38;font-weight:600}
+  .aviso b{font-weight:800}
+
+  /* ---- barra de control ---- */
+  .controles{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:50;
+             display:flex;align-items:center;gap:6px;background:rgba(16,26,41,.86);
+             border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:7px 9px;
+             backdrop-filter:blur(6px);opacity:0;transition:opacity .25s;pointer-events:none}
+  .controles.visible{opacity:1;pointer-events:auto}
+  .controles button{background:transparent;border:0;color:#DCE6F2;font-size:17px;font-family:inherit;
+                    cursor:pointer;border-radius:999px;padding:7px 13px;line-height:1}
+  .controles button:hover{background:rgba(255,255,255,.14)}
+  .controles .cuenta{color:#93A6BE;font-size:14px;font-weight:700;letter-spacing:1.2px;padding:0 10px;min-width:56px;text-align:center}
+  .ayuda{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);z-index:50;
+         color:#7E93AC;font-size:13px;letter-spacing:.4px;opacity:0;transition:opacity .25s}
+  .ayuda.visible{opacity:1}
+
+  /* ---- impresión / exportar a PDF: una lámina por página ---- */
+  @page{size:1600px 900px;margin:0}
+  @media print{
+    html,body{overflow:visible;background:#fff;height:auto}
+    #deck{position:static;transform:none !important;width:auto;height:auto}
+    .slide{position:relative;display:flex !important;break-after:page;page-break-after:always}
+    .slide:last-child{break-after:auto;page-break-after:auto}
+    .controles,.ayuda{display:none !important}
+  }
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- ================= 1 · PROBLEMA Y PROPUESTA ================= -->
+<section class="slide">
+  <div class="kicker">Proyecto Centenario · Secretaría de Extensión Universitaria · Proceso 4</div>
+  <h1>Agente 1 <span>—</span> Extension Bot</h1>
+  <div class="lead">Un asistente que escribe el <b>primer borrador</b> de las comunicaciones de Extensión. La última palabra es siempre de una persona.</div>
+
+  <div class="dos">
+    <div class="bloque prob">
+      <div class="et">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#9B2C2C" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.6v5M12 16.1h.01"/></svg>
+        El problema de hoy
+      </div>
+      <ul class="grande">
+        <li>Cada actividad necesita una gacetilla y un texto distinto por canal.</li>
+        <li>Se escriben a mano, uno por uno, y ese tiempo sale de otras tareas.</li>
+        <li>El tono depende de quién esté disponible, y no queda registro de nada.</li>
+      </ul>
+    </div>
+    <div class="bloque sol">
+      <div class="et">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#2C5282" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Lo que propone el Agente 1
+      </div>
+      <ul class="grande">
+        <li>Una pieza por canal en segundos, a partir de datos ya cargados.</li>
+        <li>Toda salida sale marcada como borrador y con su ejecución registrada.</li>
+        <li>No publica, no envía, no atiende público, no hace analítica.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="remate">
+    <div class="t">El agente <b>propone</b>. La institución <b>decide</b>.</div>
+    <div class="s">La responsabilidad del contenido no se transfiere al modelo ni al desarrollador.</div>
+  </div>
+  <div class="num">1 / 3</div>
+</section>
+
+<!-- ================= 2 · EJEMPLO SINTÉTICO ================= -->
+<section class="slide">
+  <div class="kicker">Una generación sintética · corrida registrada del 17/08/2026 · datos sintéticos</div>
+
+  <div class="ejemplo">
+    <div class="colE">
+      <div class="card entrada">
+        <div class="mini-h">Lo que carga la persona, una sola vez <span class="pill">planilla · SYN-003</span></div>
+        <div class="campos">
+          <div><i>título:</i> Jornada sintética</div>
+          <div><i>organiza:</i> Equipo de prueba</div>
+          <div><i>fecha:</i> 2026-08-07</div>
+          <div><i>contacto:</i> pruebas@example.invalid</div>
+        </div>
+      </div>
+
+      <div class="flecha"><div class="l"></div><div><b>17,2 segundos después</b> — sin reescribir nada a mano</div></div>
+
+      <div class="card borrador">
+        <div class="cinta">
+          <div class="txt">BORRADOR — NO PUBLICAR</div>
+          <div class="est">estado: PENDIENTE_VALIDACION</div>
+        </div>
+        <div class="cuerpo">
+          <div class="canal">Canal: LinkedIn</div>
+          <div class="gen">
+            <p>¿Estás listo para impulsar tus investigaciones y fortalecer tus redes académicas?</p>
+            <p>En este espacio, podrás conectarte con otros profesionales y académicos que comparten tus intereses y objetivos. Descubre nuevas oportunidades de colaboración, aprendizaje y crecimiento profesional. ¡Únete a nosotros y comienza a construir tus redes académicas!</p>
+          </div>
+          <div class="det"><i>Título:</i> Jornada sintética &nbsp;·&nbsp; <i>Fecha:</i> 2026-08-07<br><i>Organiza:</i> Equipo de prueba &nbsp;·&nbsp; <i>Contacto:</i> pruebas@example.invalid</div>
+          <div class="tags">#Aprender #Comunidad #Conocimiento #Participación</div>
+        </div>
+      </div>
+
+      <div class="leyenda">
+        <span><i class="sw" style="background:#B9CDE8"></i> Lo redactó el modelo — es lo que la persona revisa</span>
+        <span><i class="sw" style="background:#E0C892"></i> Datos copiados de la planilla — el modelo no los toca</span>
+      </div>
+    </div>
+
+    <div class="colE">
+      <div class="card reg">
+        <div class="mini-h">Lo que queda registrado</div>
+        <div class="filas">
+          <div class="fila"><span class="k">Solicitud</span><span class="v">SYN-003</span></div>
+          <div class="fila"><span class="k">Piezas</span><span class="v ok">2 borradores</span></div>
+          <div class="fila"><span class="k">Canales</span><span class="v">linkedin · instagram</span></div>
+          <div class="fila"><span class="k">Estado</span><span class="v">PENDIENTE_VALIDACION</span></div>
+          <div class="fila"><span class="k">Modelo</span><span class="v">llama3.2:3b local</span></div>
+          <div class="fila"><span class="k">Latencia</span><span class="v">17,2 s · 16,8 s</span></div>
+          <div class="fila"><span class="k">Hash pieza 1</span><span class="v">ab3c6f9b…17a8</span></div>
+          <div class="fila"><span class="k">Hash pieza 2</span><span class="v">01a57afd…81ab</span></div>
+        </div>
+      </div>
+
+      <div class="franja">
+        <div class="t">Misma actividad, otro canal.</div>
+        <div class="d">La pieza de Instagram salió sola, con otro tono, sin recargar los datos.</div>
+      </div>
+
+      <div class="franja">
+        <div class="t">Si faltan datos, no inventa.</div>
+        <div class="d">SYN-002 llegó sin contacto obligatorio y se detuvo antes de escribir.</div>
+        <div class="m">INCOMPLETA · 0 borradores</div>
+      </div>
+    </div>
+  </div>
+  <div class="num">2 / 3</div>
+</section>
+
+<!-- ================= 3 · CONTROL HUMANO, ESTADO Y PEDIDO ================= -->
+<section class="slide oscura">
+  <div class="kicker">Quién decide, qué está verificado y qué falta</div>
+  <h2>Dos personas y un asistente en el medio.</h2>
+
+  <div class="flujo">
+    <div class="card persona">
+      <div class="ava p"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8A6524" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c.6-4 3.6-6 7.2-6s6.6 2 7.2 6"/></svg></div>
+      <div class="rol">Coordinación</div>
+      <div class="quien">Personal de la SEU</div>
+      <div class="acc">Carga los datos de la actividad en la planilla autorizada. Nada más.</div>
+    </div>
+    <div class="fl"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7E93AC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+    <div class="card persona agente">
+      <div class="ava b"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2C5282" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="7.5" width="16" height="12" rx="3.2"/><path d="M12 7.5V4M9.5 13h.01M14.5 13h.01M9.5 16.4h5"/></svg></div>
+      <div class="rol">Agente 1</div>
+      <div class="quien">Modelo local, sin salida a internet</div>
+      <div class="acc">Redacta el borrador, lo marca como no publicable y deja registro.</div>
+    </div>
+    <div class="fl"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7E93AC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+    <div class="card persona">
+      <div class="ava p"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8A6524" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c.6-4 3.6-6 7.2-6s6.6 2 7.2 6"/></svg></div>
+      <div class="rol">Comunicación</div>
+      <div class="quien">Personal de la SEU</div>
+      <div class="acc">Lee, corrige el tono y recién ahí aprueba o rechaza. Queda registrado.</div>
+    </div>
+  </div>
+
+  <div class="pedido">
+    <div class="caja">
+      <div class="et">Verificado offline</div>
+      <ul>
+        <li>Sólo accede a la planilla, plantilla y carpeta autorizadas</li>
+        <li>Ningún secreto ni credencial queda escrito en los logs</li>
+        <li>Si se revocan los permisos, se detiene sin producir salida</li>
+        <li>No existe ruta para publicar, enviar ni compartir</li>
+      </ul>
+    </div>
+    <div class="caja">
+      <div class="et">Lo que pido para avanzar</div>
+      <ul>
+        <li>Sandbox de Workspace y un responsable técnico</li>
+        <li>Identidad técnica con privilegio mínimo</li>
+        <li>Planilla, plantilla y carpeta de prueba autorizadas</li>
+        <li>Criterios de tono y responsables de validación en la SEU</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="aviso">Todo esto es evidencia de un <b>entorno controlado con datos sintéticos</b>: no equivale todavía a aprobación institucional ni al cierre del Gate G2 / TRL 3.</div>
+  <div class="num">3 / 3</div>
+</section>
+
+</div>
+
+<div class="controles" id="controles">
+  <button id="prev" title="Anterior (←)">‹</button>
+  <span class="cuenta" id="cuenta">1 / 3</span>
+  <button id="next" title="Siguiente (→ o espacio)">›</button>
+  <button id="full" title="Pantalla completa (F)">⛶</button>
+</div>
+<div class="ayuda" id="ayuda">← → para pasar · F pantalla completa · P imprimir o guardar en PDF</div>
+
+<script>
+(function(){
+  var laminas = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var deck = document.getElementById('deck');
+  var cuenta = document.getElementById('cuenta');
+  var barra = document.getElementById('controles');
+  var ayuda = document.getElementById('ayuda');
+  var actual = 0, ocultar;
+
+  function escalar(){
+    var e = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    deck.style.transform = 'translate(' + ((window.innerWidth - 1600 * e) / 2) + 'px,' +
+                           ((window.innerHeight - 900 * e) / 2) + 'px) scale(' + e + ')';
+  }
+
+  function mostrar(i){
+    actual = Math.max(0, Math.min(laminas.length - 1, i));
+    laminas.forEach(function(l, n){ l.classList.toggle('activa', n === actual); });
+    cuenta.textContent = (actual + 1) + ' / ' + laminas.length;
+    location.hash = 'l' + (actual + 1);
+  }
+
+  function asomar(){
+    barra.classList.add('visible'); ayuda.classList.add('visible');
+    clearTimeout(ocultar);
+    ocultar = setTimeout(function(){
+      barra.classList.remove('visible'); ayuda.classList.remove('visible');
+    }, 2600);
+  }
+
+  document.addEventListener('keydown', function(ev){
+    var k = ev.key;
+    if (k === 'ArrowRight' || k === 'ArrowDown' || k === ' ' || k === 'PageDown' || k === 'Enter'){ mostrar(actual + 1); ev.preventDefault(); }
+    else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || k === 'Backspace'){ mostrar(actual - 1); ev.preventDefault(); }
+    else if (k === 'Home'){ mostrar(0); }
+    else if (k === 'End'){ mostrar(laminas.length - 1); }
+    else if (k === 'f' || k === 'F'){ alternarPantalla(); }
+    else if (k === 'p' || k === 'P'){ window.print(); }
+    asomar();
+  });
+
+  function alternarPantalla(){
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  }
+
+  document.getElementById('next').addEventListener('click', function(e){ e.stopPropagation(); mostrar(actual + 1); });
+  document.getElementById('prev').addEventListener('click', function(e){ e.stopPropagation(); mostrar(actual - 1); });
+  document.getElementById('full').addEventListener('click', function(e){ e.stopPropagation(); alternarPantalla(); });
+
+  document.addEventListener('click', function(ev){
+    if (ev.target.closest('#controles')) return;
+    mostrar(ev.clientX < window.innerWidth * 0.25 ? actual - 1 : actual + 1);
+  });
+  document.addEventListener('mousemove', asomar);
+  window.addEventListener('resize', escalar);
+
+  var limpio = location.search.indexOf('limpio') >= 0;   // ?limpio → sin barra, para exportar imágenes
+  if (limpio){ barra.style.display = 'none'; ayuda.style.display = 'none'; }
+  var desde = parseInt((location.hash || '').replace('#l', ''), 10);
+  escalar();
+  mostrar(isNaN(desde) ? 0 : desde - 1);
+  if (!limpio) asomar();
+})();
+</script>
+</body>
+</html>
