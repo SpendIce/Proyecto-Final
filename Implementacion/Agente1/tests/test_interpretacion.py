@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import csv
 import json
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -78,10 +79,14 @@ from agente1.interpretacion import (
 )
 from agente1.presupuesto import presupuesto_minimo_num_predict
 
+sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
+from medir_cobertura_sin_inferencia import medir as medir_cobertura  # noqa: E402
+
 
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 CORPUS_RESOLUCION_ACTIVIDAD = ROOT / "data" / "frases_resolucion_actividad.csv"
+CORPUS_AMBIGUAS_FALLBACK = ROOT / "data" / "frases_ambiguas_fallback.csv"
 ROL_HABILITADO = next(iter(ROLES_HABILITADOS))
 
 
@@ -1778,3 +1783,40 @@ def test_una_falla_del_interprete_no_propaga_excepcion(tmp_path: Path) -> None:
     assert "boom" not in (resultado.error or "")
     registro = _ultima_linea(resultado.log_path)
     assert registro["modelo_utilizado"] is False
+
+
+def test_la_medicion_de_cobertura_sin_inferencia_esta_disponible(
+    tmp_path: Path,
+) -> None:
+    """Criterio de aceptación de #26: la medición existe y no invoca ningún
+    modelo. Se ejerce la función, no la salida por consola."""
+    medicion = medir_cobertura(CORPUS_RESOLUCION_ACTIVIDAD, DATASET)
+
+    assert medicion["total"] == len(medicion["detalle"])
+    assert medicion["total"] > 0
+    assert 0.0 <= medicion["porcentaje_sin_inferencia"] <= 100.0
+    assert all(
+        caso["via"] in {"identificador explicito", "resolucion difusa", "sin resolver"}
+        for caso in medicion["detalle"]
+    )
+
+
+def test_el_corpus_calibrado_resuelve_entero_sin_inferencia() -> None:
+    """El corpus de #23 se calibró para eso, así que este número tiene que
+    seguir en 100 %: si baja, una constante de resolución se movió."""
+    medicion = medir_cobertura(CORPUS_RESOLUCION_ACTIVIDAD, DATASET)
+
+    assert medicion["porcentaje_sin_inferencia"] == 100.0
+    assert medicion["porcentaje_correctas"] == 100.0
+
+
+def test_el_corpus_no_calibrado_deja_trabajo_al_fallback() -> None:
+    """La contracara honesta del test anterior. `frases_ambiguas_fallback.csv`
+    reúne frases que no se eligieron para pasar, y la mayoría no resuelve de
+    forma determinística: eso es lo que justifica que el fallback exista. Si
+    alguna vez resolviera entero, el corpus dejó de ser exigente y hay que
+    revisarlo, no celebrarlo."""
+    medicion = medir_cobertura(CORPUS_AMBIGUAS_FALLBACK, DATASET)
+
+    assert medicion["total"] > 0
+    assert medicion["porcentaje_sin_inferencia"] < 100.0
