@@ -166,3 +166,49 @@ def test_un_arreglo_de_texto_sin_maxitems_no_se_puede_dimensionar():
 
     with pytest.raises(ContratoNoDimensionable):
         documento_maximo(schema)
+
+
+def test_un_arreglo_largo_de_texto_respeta_el_maxlength_de_cada_item():
+    """El relleno que distingue un elemento de otro no puede hacerle exceder
+    su propio `maxLength`: un documento más grande que el contrato
+    sobredimensiona el presupuesto, que es el error de medición de
+    `DEF-A1-013` al revés. Se prueba en el borde exacto —tantos elementos
+    como valores distintos admite el largo— porque es donde un relleno
+    ingenuo empieza a desbordar."""
+    schema = {
+        "required": ["terminos"],
+        "properties": {
+            "terminos": {
+                "type": "array",
+                "maxItems": 100,
+                "uniqueItems": True,
+                "items": {"type": "string", "maxLength": 2},
+            }
+        },
+    }
+
+    documento = json.loads(documento_maximo(schema))
+
+    assert len(documento["terminos"]) == 100
+    assert all(len(termino) == 2 for termino in documento["terminos"])
+    assert len(set(documento["terminos"])) == 100, "uniqueItems exige valores distintos"
+
+
+def test_un_arreglo_que_no_puede_tener_items_unicos_no_se_puede_dimensionar():
+    """`uniqueItems` con más elementos que combinaciones posibles es un
+    contrato imposible de satisfacer, no un contrato grande: tiene que
+    interrumpir el cálculo en vez de devolver un número inventado."""
+    schema = {
+        "required": ["terminos"],
+        "properties": {
+            "terminos": {
+                "type": "array",
+                "maxItems": 200,
+                "uniqueItems": True,
+                "items": {"type": "string", "maxLength": 1},
+            }
+        },
+    }
+
+    with pytest.raises(ContratoNoDimensionable):
+        documento_maximo(schema)

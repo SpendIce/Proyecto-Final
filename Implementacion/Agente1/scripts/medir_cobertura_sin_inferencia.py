@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import csv
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -46,8 +47,38 @@ from agente1.interpretacion import (  # noqa: E402
 CORPUS = ROOT / "data" / "frases_resolucion_actividad.csv"
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 
+# Los tres caminos posibles. Como constantes y no como literales sueltos,
+# porque la prueba de la medición afirma sobre este conjunto.
+VIA_IDENTIFICADOR = "identificador explicito"
+VIA_DIFUSA = "resolucion difusa"
+VIA_SIN_RESOLVER = "sin resolver"
+VIAS = (VIA_IDENTIFICADOR, VIA_DIFUSA, VIA_SIN_RESOLVER)
 
-def medir(corpus: Path, dataset: Path) -> dict[str, object]:
+
+@dataclass(frozen=True)
+class Medicion:
+    """Resumen de una corrida más el detalle frase por frase.
+
+    Existe para no devolver un diccionario que mezcla escalares con la lista
+    de casos: quien consume la medición pregunta por un porcentaje o recorre
+    el detalle, y son dos cosas distintas.
+    """
+
+    total: int
+    sin_inferencia: int
+    correctas: int
+    detalle: tuple[dict[str, str], ...] = field(default=())
+
+    @property
+    def porcentaje_sin_inferencia(self) -> float:
+        return (100.0 * self.sin_inferencia / self.total) if self.total else 0.0
+
+    @property
+    def porcentaje_correctas(self) -> float:
+        return (100.0 * self.correctas / self.total) if self.total else 0.0
+
+
+def medir(corpus: Path, dataset: Path) -> Medicion:
     fuente = CsvFuenteSolicitudes(dataset)
     with corpus.open(encoding="utf-8", newline="") as archivo:
         filas = list(csv.DictReader(archivo))
@@ -59,11 +90,11 @@ def medir(corpus: Path, dataset: Path) -> dict[str, object]:
         por_identificador = _extraer_identificador_explicito(frase)
         resuelto = por_identificador or _resolver_actividad_por_similitud(frase, fuente)
         if resuelto is None:
-            via = "sin resolver"
+            via = VIA_SIN_RESOLVER
         elif por_identificador is not None:
-            via = "identificador explicito"
+            via = VIA_IDENTIFICADOR
         else:
-            via = "resolucion difusa"
+            via = VIA_DIFUSA
         detalle.append(
             {
                 "frase": frase,
@@ -74,17 +105,12 @@ def medir(corpus: Path, dataset: Path) -> dict[str, object]:
             }
         )
 
-    total = len(detalle)
-    sin_inferencia = sum(1 for caso in detalle if caso["via"] != "sin resolver")
-    correctas = sum(1 for caso in detalle if caso["correcto"] == "si")
-    return {
-        "total": total,
-        "sin_inferencia": sin_inferencia,
-        "correctas": correctas,
-        "porcentaje_sin_inferencia": (100.0 * sin_inferencia / total) if total else 0.0,
-        "porcentaje_correctas": (100.0 * correctas / total) if total else 0.0,
-        "detalle": detalle,
-    }
+    return Medicion(
+        total=len(detalle),
+        sin_inferencia=sum(1 for caso in detalle if caso["via"] != VIA_SIN_RESOLVER),
+        correctas=sum(1 for caso in detalle if caso["correcto"] == "si"),
+        detalle=tuple(detalle),
+    )
 
 
 def main() -> int:
@@ -100,21 +126,21 @@ def main() -> int:
 
     medicion = medir(args.corpus, args.dataset)
     if args.detalle:
-        for caso in medicion["detalle"]:
+        for caso in medicion.detalle:
             print(
                 f"[{caso['via']:>23}] {caso['resuelto']:>8} "
                 f"(esperado {caso['esperado']}, correcto: {caso['correcto']}) "
                 f"{caso['frase']}"
             )
         print()
-    print(f"Frases del corpus:                 {medicion['total']}")
+    print(f"Frases del corpus:                 {medicion.total}")
     print(
-        f"Resueltas sin inferencia:          {medicion['sin_inferencia']} "
-        f"({medicion['porcentaje_sin_inferencia']:.1f} %)"
+        f"Resueltas sin inferencia:          {medicion.sin_inferencia} "
+        f"({medicion.porcentaje_sin_inferencia:.1f} %)"
     )
     print(
-        f"Resueltas a la actividad esperada: {medicion['correctas']} "
-        f"({medicion['porcentaje_correctas']:.1f} %)"
+        f"Resueltas a la actividad esperada: {medicion.correctas} "
+        f"({medicion.porcentaje_correctas:.1f} %)"
     )
     print()
     print("Ningún modelo fue invocado: esta medición es del camino determinístico.")

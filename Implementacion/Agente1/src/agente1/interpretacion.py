@@ -736,7 +736,12 @@ def _validar_salida_fallback(salida: str) -> TerminosInterpretados | None:
         return None
     if not isinstance(documento, dict):
         return None
-    if set(documento) != set(CONTRATO_FALLBACK["required"]):
+    # Contra `properties` y no contra `required`: el contrato declara
+    # `additionalProperties: false`, así que el conjunto admitido es el de
+    # propiedades declaradas. Hoy coinciden con `required`; validar contra el
+    # conjunto correcto evita que dejen de coincidir en silencio si alguna vez
+    # se agrega una propiedad opcional.
+    if set(documento) != set(CONTRATO_FALLBACK["properties"]):
         return None
     intencion = documento["intencion"]
     if not isinstance(intencion, str) or intencion not in IDS_INTENCIONES:
@@ -750,6 +755,13 @@ def _validar_salida_fallback(salida: str) -> TerminosInterpretados | None:
             or not termino.strip()
             or len(termino) > MAX_LARGO_TERMINO_FALLBACK
         ):
+            return None
+    # `uniqueItems` también lo declara el contrato, y `documento_maximo`
+    # dimensiona el presupuesto asumiendo esa unicidad: si el validador la
+    # dejara pasar, las dos mitades dirían cosas distintas sobre el mismo
+    # contrato.
+    if CONTRATO_FALLBACK["properties"]["terminos_busqueda"].get("uniqueItems"):
+        if len(set(terminos)) != len(terminos):
             return None
     return TerminosInterpretados(
         intencion=intencion, terminos=tuple(str(termino) for termino in terminos)
@@ -770,6 +782,15 @@ def _interpretar_con_modelo(
 
     if interprete is None:
         return None
+    # El presupuesto no alcanza con derivarse del contrato: se aplica acá. Un
+    # intérprete configurado por debajo de la cota devolvería un JSON cortado
+    # antes de cerrar, que el validador rechazaría como salida inválida — el
+    # diagnóstico equivocado que dejó `DEF-A1-013`. Se prefiere no invocarlo.
+    # `None` no es un presupuesto insuficiente sino la ausencia de un tope
+    # declarado, y entonces no hay nada que comparar.
+    tope = getattr(interprete, "num_predict", None)
+    if isinstance(tope, int) and tope < NUM_PREDICT_FALLBACK:
+        return None
     # `replace` y no `format`: la plantilla contiene un ejemplo JSON literal
     # con llaves, que `format` interpretaría como marcadores. Misma razón por
     # la que los prompts de posts usan `replace` (ver `posts.py`).
@@ -789,6 +810,28 @@ def _interpretar_con_modelo(
     if not isinstance(salida, str):
         return None
     return _validar_salida_fallback(salida)
+
+
+def _buscar_actividad_con_terminos(
+    texto: str, terminos: tuple[str, ...], fuente: FuenteSolicitudes
+) -> str | None:
+    """Resuelve la actividad sumando los términos del modelo a la prosa.
+
+    Los términos se **suman** en lugar de reemplazarla. No es un detalle: la
+    cobertura de `_puntuar_actividad` es monótona en la cantidad de tokens de
+    la búsqueda, así que una búsqueda armada sólo con los términos del modelo
+    nunca podría puntuar más alto que la prosa completa, y el fallback no
+    daría cobertura alguna. Sumándolos, el modelo sólo puede aportar señal
+    —una forma normalizada de lo que la persona escribió mal— y nunca quitar
+    la que ya había.
+
+    El modelo nunca elige la actividad: alimenta la **misma** resolución
+    determinística de #23.
+    """
+
+    if not terminos:
+        return None
+    return _resolver_actividad_por_similitud(texto + " " + " ".join(terminos), fuente)
 
 
 @dataclass(frozen=True)
@@ -1121,6 +1164,20 @@ def interpretar_solicitud(
     intencion = _clasificar_intencion(texto)
 
     modelo_utilizado = False
+    interpretado: TerminosInterpretados | None = None
+
+    if intencion not in INTENCIONES_CON_DESPACHO and referencia is None:
+        # #26: el criterio de aceptación dice "un pedido que el camino
+        # determinístico no resuelve", y la clasificación es parte de ese
+        # camino. Un tipeo en la palabra que nombra la pieza —historia 2 de
+        # #18— deja a `_clasificar_intencion` en `fuera_de_alcance`, y el
+        # modelo es lo único que puede recuperar el pedido. La salida sigue
+        # validándose contra el catálogo cerrado, así que esto no habilita
+        # ninguna intención nueva: sólo puede llegar a una que ya existía.
+        interpretado = _interpretar_con_modelo(texto, interprete)
+        if interpretado is not None:
+            modelo_utilizado = True
+            intencion = interpretado.intencion
 
     if intencion in INTENCIONES_CON_DESPACHO:
         intencion_efectiva = intencion
@@ -1142,30 +1199,40 @@ def interpretar_solicitud(
             id_actividad = referencia.id_actividad
             _descartar_pendiente(registro_pendientes, solicitante.identificador)
         else:
-            # #26: antes de repreguntar se intenta el modelo. Su salida
-            # validada aporta términos de búsqueda que alimentan la **misma**
-            # resolución determinística de #23 — el modelo nunca elige la
-            # actividad, sólo reformula la consulta— y puede corregir la
-            # intención, siempre dentro del catálogo cerrado.
-            interpretado = _interpretar_con_modelo(texto, interprete)
-            if interpretado is not None:
-                if interpretado.intencion in INTENCIONES_CON_DESPACHO:
-                    intencion_efectiva = interpretado.intencion
-                if interpretado.terminos:
-                    # Los términos se **suman** a la prosa original en lugar
-                    # de reemplazarla. No es un detalle: la cobertura de
-                    # `_puntuar_actividad` es monótona en la cantidad de
-                    # tokens de la consulta, así que una consulta armada sólo
-                    # con los términos del modelo nunca podría puntuar más
-                    # alto que la prosa completa, y el fallback no agregaría
-                    # cobertura alguna. Sumándolos, el modelo sólo puede
-                    # aportar señal —una forma normalizada de lo que la
-                    # persona escribió mal— y nunca quitar la que ya había.
-                    id_actividad = _resolver_actividad_por_similitud(
-                        texto + " " + " ".join(interpretado.terminos), fuente
-                    )
-                if id_actividad is not None:
+            # #26: antes de repreguntar se intenta el modelo, si no se lo
+            # intentó ya arriba para recuperar la clasificación.
+            if interpretado is None:
+                interpretado = _interpretar_con_modelo(texto, interprete)
+                if interpretado is not None:
                     modelo_utilizado = True
+            if interpretado is not None:
+                if interpretado.intencion not in INTENCIONES_CON_DESPACHO:
+                    # El modelo dice que el pedido no corresponde. Se respeta:
+                    # `fuera_de_alcance` es un valor del catálogo y tiene que
+                    # tener efecto observable, no descartarse en silencio. Va
+                    # en la dirección conservadora —nunca amplía lo que se
+                    # puede generar— así que se acepta sin más resguardos.
+                    entrada_rechazo = INTENCIONES_POR_ID[interpretado.intencion]
+                    return _finalizar(
+                        log_path=log_path,
+                        correlation_id=correlation_id,
+                        texto=texto_seguro,
+                        solicitante=solicitante,
+                        intencion=interpretado.intencion,
+                        id_actividad=None,
+                        modelo_utilizado=True,
+                        estado="RECHAZADA",
+                        resultado=str(entrada_rechazo["codigo_rechazo"]),
+                        error=(
+                            "La solicitud no corresponde a una intención con "
+                            "despacho disponible en este seam"
+                        ),
+                    )
+                intencion_efectiva = interpretado.intencion
+                id_actividad = _buscar_actividad_con_terminos(
+                    texto, interpretado.terminos, fuente
+                )
+                if id_actividad is not None:
                     _descartar_pendiente(
                         registro_pendientes, solicitante.identificador
                     )
@@ -1183,8 +1250,12 @@ def interpretar_solicitud(
                     correlation_id=correlation_id,
                     texto=texto_seguro,
                     solicitante=solicitante,
-                    intencion=intencion,
+                    # `intencion_efectiva` y no `intencion`: si el modelo
+                    # corrigió la clasificación, la auditoría tiene que decir
+                    # sobre qué intención se trabajó, no la que se descartó.
+                    intencion=intencion_efectiva,
                     id_actividad=None,
+                    modelo_utilizado=modelo_utilizado,
                     estado="INCOMPLETA",
                     resultado="identificador_no_encontrado",
                     error=(
@@ -1196,7 +1267,10 @@ def interpretar_solicitud(
                 registro_pendientes,
                 solicitante.identificador,
                 InteraccionPendiente(
-                    intencion=intencion,
+                    # La pendiente guarda la intención con la que se va a
+                    # despachar en el turno siguiente, que puede ser la que
+                    # corrigió el modelo.
+                    intencion=intencion_efectiva,
                     candidatas=candidatas,
                     vencimiento=ahora_fn() + VENCIMIENTO_PENDIENTE,
                 ),
@@ -1206,8 +1280,9 @@ def interpretar_solicitud(
                 correlation_id=correlation_id,
                 texto=texto_seguro,
                 solicitante=solicitante,
-                intencion=intencion,
+                intencion=intencion_efectiva,
                 id_actividad=None,
+                modelo_utilizado=modelo_utilizado,
                 estado="PENDIENTE_DESAMBIGUACION",
                 resultado="repregunta_generada",
                 error=None,

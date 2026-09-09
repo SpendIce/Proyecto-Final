@@ -52,7 +52,6 @@ from __future__ import annotations
 
 import csv
 import json
-import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -77,16 +76,13 @@ from agente1.interpretacion import (
     RegistroPendientesMemoria,
     interpretar_solicitud,
 )
+from agente1.ollama import DEFAULT_OLLAMA_NUM_PREDICT, MAX_OLLAMA_NUM_PREDICT
 from agente1.presupuesto import presupuesto_minimo_num_predict
-
-sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
-from medir_cobertura_sin_inferencia import medir as medir_cobertura  # noqa: E402
 
 
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 CORPUS_RESOLUCION_ACTIVIDAD = ROOT / "data" / "frases_resolucion_actividad.csv"
-CORPUS_AMBIGUAS_FALLBACK = ROOT / "data" / "frases_ambiguas_fallback.csv"
 ROL_HABILITADO = next(iter(ROLES_HABILITADOS))
 
 
@@ -1634,14 +1630,80 @@ def test_el_contrato_del_fallback_declara_exactamente_el_catalogo_de_intenciones
 
 
 def test_el_presupuesto_del_fallback_se_deriva_del_contrato() -> None:
-    """Misma regla que en el pipeline de gacetilla: el presupuesto es una cota
-    sobre el contrato, no un número elegido a mano. Si una versión futura sube
-    un `maxLength` o un `maxItems`, el mínimo requerido sube solo y esta prueba
-    avisa antes de que la baseline acepte un presupuesto que ya no alcanza."""
-    minimo = presupuesto_minimo_num_predict(CONTRATO_FALLBACK)
+    """Mismo patrón que `test_el_presupuesto_por_defecto_cubre_el_documento_maximo`
+    para HU-010/HU-011: se compara un valor fijado **independientemente** —el
+    del adapter— contra la cota derivada del contrato. Comparar la constante
+    contra la expresión que la define sería una tautología que no puede fallar,
+    y por lo tanto no sería la regresión que pide el criterio de aceptación.
 
-    assert NUM_PREDICT_FALLBACK == minimo
-    assert NUM_PREDICT_FALLBACK >= minimo
+    Si una versión futura del contrato sube `maxItems` o `maxLength`, el
+    requerido sube solo y este test falla antes de que una corrida trunque la
+    salida del intérprete en silencio.
+    """
+
+    requerido = presupuesto_minimo_num_predict(CONTRATO_FALLBACK)
+
+    assert NUM_PREDICT_FALLBACK == requerido
+    # Valor versionado: si cambia, fue por una decisión sobre el contrato y
+    # tiene que verse en el diff, no colarse.
+    assert requerido == 211
+    assert DEFAULT_OLLAMA_NUM_PREDICT >= requerido, (
+        f"el presupuesto por defecto del adapter ({DEFAULT_OLLAMA_NUM_PREDICT}) "
+        f"no alcanza para la salida máxima del fallback ({requerido} tokens)"
+    )
+    assert MAX_OLLAMA_NUM_PREDICT >= requerido, (
+        "ninguna configuración válida del adapter cubriría el contrato vigente"
+    )
+
+
+def test_un_contrato_de_fallback_mas_grande_exige_mas_presupuesto() -> None:
+    """La cota tiene que moverse con el contrato, no quedar clavada."""
+    mas_grande = json.loads(json.dumps(CONTRATO_FALLBACK))
+    mas_grande["properties"]["terminos_busqueda"]["maxItems"] = 20
+    mas_grande["properties"]["terminos_busqueda"]["items"]["maxLength"] = 80
+
+    assert presupuesto_minimo_num_predict(mas_grande) > NUM_PREDICT_FALLBACK
+
+
+def test_un_interprete_sin_presupuesto_suficiente_no_se_usa(tmp_path: Path) -> None:
+    """El presupuesto no alcanza con derivarse: se aplica. Un intérprete
+    configurado por debajo de la cota produciría una salida truncada, que el
+    validador rechazaría como JSON inválido — exactamente el diagnóstico
+    equivocado de `DEF-A1-013`. Se prefiere no invocarlo: fail-closed."""
+
+    class _InterpreteConPresupuestoCorto:
+        modelo = "fake-interprete-corto"
+        num_predict = 8
+
+        def __init__(self) -> None:
+            self.prompts: list[str] = []
+
+        def generar(self, prompt: str) -> str:
+            self.prompts.append(prompt)
+            return _salida_interprete("generar_gacetilla", "taller", "sintetico")
+
+    interprete = _InterpreteConPresupuestoCorto()
+
+    resultado = _interpretar(tmp_path, _PEDIDO_VAGO, interprete=interprete)
+
+    assert interprete.prompts == [], "no se invoca un intérprete que va a truncar"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["modelo_utilizado"] is False
+
+
+def test_un_interprete_sin_presupuesto_declarado_se_usa(tmp_path: Path) -> None:
+    """`num_predict` es `None` en el puerto cuando el adapter no declara tope
+    (así es `FakeGenerator`). Eso no es un presupuesto insuficiente: es la
+    ausencia de un tope, y no hay nada que comparar."""
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_gacetilla", "taller", "sintetico", "vinculacion")
+    )
+
+    resultado = _interpretar(tmp_path, _PEDIDO_VAGO, interprete=interprete)
+
+    assert interprete.prompts, "un intérprete sin tope declarado sí se invoca"
+    assert resultado.estado == "PENDIENTE_VALIDACION"
 
 
 def test_pedido_ambiguo_se_intenta_con_el_modelo_antes_de_repreguntar(
@@ -1697,6 +1759,12 @@ def test_una_salida_manipulada_no_puede_producir_una_intencion_inexistente(
         ),
         json.dumps({"intencion": "generar_gacetilla", "terminos_busqueda": [1, 2]}),
         json.dumps({"intencion": "generar_gacetilla", "terminos_busqueda": ["x" * 41]}),
+        json.dumps(
+            {
+                "intencion": "generar_gacetilla",
+                "terminos_busqueda": ["taller", "taller", "taller"],
+            }
+        ),
     ],
 )
 def test_una_salida_que_no_cumple_el_contrato_se_descarta(
@@ -1785,38 +1853,76 @@ def test_una_falla_del_interprete_no_propaga_excepcion(tmp_path: Path) -> None:
     assert registro["modelo_utilizado"] is False
 
 
-def test_la_medicion_de_cobertura_sin_inferencia_esta_disponible(
+def test_el_modelo_se_intenta_cuando_la_clasificacion_deterministica_no_resuelve(
     tmp_path: Path,
 ) -> None:
-    """Criterio de aceptación de #26: la medición existe y no invoca ningún
-    modelo. Se ejerce la función, no la salida por consola."""
-    medicion = medir_cobertura(CORPUS_RESOLUCION_ACTIVIDAD, DATASET)
-
-    assert medicion["total"] == len(medicion["detalle"])
-    assert medicion["total"] > 0
-    assert 0.0 <= medicion["porcentaje_sin_inferencia"] <= 100.0
-    assert all(
-        caso["via"] in {"identificador explicito", "resolucion difusa", "sin resolver"}
-        for caso in medicion["detalle"]
+    """El criterio de aceptación dice "un pedido que el camino determinístico
+    no resuelve", no "un pedido cuya actividad no se resuelve". Un tipeo en la
+    palabra que nombra la pieza —historia 2 de #18— deja a
+    `_clasificar_intencion` en `fuera_de_alcance`, y ahí el modelo es el único
+    que puede recuperar el pedido."""
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_gacetilla", "taller", "sintetico", "vinculacion")
     )
 
+    resultado = _interpretar(
+        tmp_path, "Necesito la gasetiya del taller sintetico", interprete=interprete
+    )
 
-def test_el_corpus_calibrado_resuelve_entero_sin_inferencia() -> None:
-    """El corpus de #23 se calibró para eso, así que este número tiene que
-    seguir en 100 %: si baja, una constante de resolución se movió."""
-    medicion = medir_cobertura(CORPUS_RESOLUCION_ACTIVIDAD, DATASET)
-
-    assert medicion["porcentaje_sin_inferencia"] == 100.0
-    assert medicion["porcentaje_correctas"] == 100.0
+    assert interprete.prompts, "un pedido sin intención clasificada llega al modelo"
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "generar_gacetilla"
+    assert registro["modelo_utilizado"] is True
 
 
-def test_el_corpus_no_calibrado_deja_trabajo_al_fallback() -> None:
-    """La contracara honesta del test anterior. `frases_ambiguas_fallback.csv`
-    reúne frases que no se eligieron para pasar, y la mayoría no resuelve de
-    forma determinística: eso es lo que justifica que el fallback exista. Si
-    alguna vez resolviera entero, el corpus dejó de ser exigente y hay que
-    revisarlo, no celebrarlo."""
-    medicion = medir_cobertura(CORPUS_AMBIGUAS_FALLBACK, DATASET)
+def test_el_modelo_no_puede_promover_un_pedido_ajeno_al_catalogo(
+    tmp_path: Path,
+) -> None:
+    """La contracara: que el modelo pueda recuperar un pedido no significa que
+    pueda inventar una intención. Una salida manipulada sobre un pedido fuera
+    de alcance sigue sin producir nada."""
+    interprete = _InterpreteFake(_salida_interprete("borrar_todo", "taller"))
 
-    assert medicion["total"] > 0
-    assert medicion["porcentaje_sin_inferencia"] < 100.0
+    resultado = _interpretar(
+        tmp_path,
+        "¿Puede alguien ayudarme con la inscripción a un curso?",
+        interprete=interprete,
+    )
+
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] in IDS_INTENCIONES
+    assert registro["modelo_utilizado"] is False
+
+
+def test_un_fuera_de_alcance_del_modelo_se_respeta(tmp_path: Path) -> None:
+    """`fuera_de_alcance` es un valor del catálogo y tiene efecto observable:
+    si el modelo dice que el pedido no corresponde, no se genera nada aunque
+    el clasificador determinístico lo hubiera tomado por una gacetilla."""
+    interprete = _InterpreteFake(_salida_interprete("fuera_de_alcance"))
+
+    resultado = _interpretar(tmp_path, _PEDIDO_VAGO, interprete=interprete)
+
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "fuera_de_alcance"
+    assert registro["modelo_utilizado"] is True
+
+
+def test_el_registro_marca_el_modelo_aunque_no_haya_resuelto_la_actividad(
+    tmp_path: Path,
+) -> None:
+    """El campo promete "si intervino el modelo" (#18), no "si el modelo
+    acertó". Una salida validada que corrigió la intención ya influyó en el
+    estado, incluso si los términos no alcanzaron para resolver la actividad."""
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_post", "inexistente", "jamas")
+    )
+
+    resultado = _interpretar(tmp_path, _PEDIDO_VAGO, interprete=interprete)
+
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "generar_post"
+    assert registro["modelo_utilizado"] is True
