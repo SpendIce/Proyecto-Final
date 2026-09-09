@@ -1516,3 +1516,56 @@ def test_registro_pendientes_memoria_no_implementa_durabilidad(tmp_path: Path) -
 
     segunda_instancia = RegistroPendientesMemoria()
     assert segunda_instancia.obtener(identidad.identificador) is None
+
+
+# --- 12. La prosa tampoco entra al registro por el camino de repregunta ------
+#
+# `test_la_prosa_del_pedido_nunca_aparece_en_el_registro` (sección 4) usa la
+# fuente por defecto, así que ejercita sólo los caminos que ya existían antes
+# de #25. La repregunta agrega dos líneas de auditoría nuevas —la que registra
+# la pregunta y la que registra el turno siguiente— y el segundo turno es, él
+# mismo, prosa nueva entrando al sistema. Sin estas pruebas, la garantía "el
+# registro no conserva la prosa escrita por las personas" quedaría afirmada
+# para los caminos viejos y sin verificar para el más nuevo.
+
+
+def test_la_prosa_no_entra_al_registro_al_producir_una_repregunta(
+    tmp_path: Path,
+) -> None:
+    texto = "Quiero la gacetilla del taller de robotica, mandámela cuanto antes"
+
+    resultado = _interpretar(
+        tmp_path,
+        texto,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=RegistroPendientesMemoria(),
+    )
+
+    contenido_log = resultado.log_path.read_text(encoding="utf-8")
+    assert texto not in contenido_log
+    assert "cuanto antes" not in contenido_log
+
+
+def test_la_prosa_del_segundo_turno_no_entra_al_registro(tmp_path: Path) -> None:
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-segundo-turno-prosa")
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+    )
+    texto_eleccion = "el segundo, por favor, y gracias por la paciencia"
+
+    resultado = _interpretar(
+        tmp_path,
+        texto_eleccion,
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+    )
+
+    contenido_log = resultado.log_path.read_text(encoding="utf-8")
+    assert texto_eleccion not in contenido_log
+    assert "gracias por la paciencia" not in contenido_log
