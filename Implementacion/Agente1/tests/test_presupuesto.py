@@ -212,3 +212,40 @@ def test_un_arreglo_que_no_puede_tener_items_unicos_no_se_puede_dimensionar():
 
     with pytest.raises(ContratoNoDimensionable):
         documento_maximo(schema)
+
+
+def test_un_enum_mas_grande_que_maxitems_no_sobredimensiona():
+    """Las dos formas de acotar un arreglo tienen que decir lo mismo: si el
+    contrato admite menos items que valores tiene el enum, el documento máximo
+    no puede usar el catálogo entero."""
+    schema = {
+        "required": ["etiquetas"],
+        "properties": {
+            "etiquetas": {
+                "type": "array",
+                "maxItems": 2,
+                "uniqueItems": True,
+                "items": {"type": "string", "enum": ["#a", "#b", "#c", "#d"]},
+            }
+        },
+    }
+
+    documento = json.loads(documento_maximo(schema))
+
+    assert documento["etiquetas"] == ["#a", "#b"]
+
+
+def test_un_enum_no_textual_no_se_puede_dimensionar():
+    schema = {
+        "required": ["numeros"],
+        "properties": {
+            "numeros": {
+                "type": "array",
+                "uniqueItems": True,
+                "items": {"enum": [1, 2, 3]},
+            }
+        },
+    }
+
+    with pytest.raises(ContratoNoDimensionable):
+        documento_maximo(schema)

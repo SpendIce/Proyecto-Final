@@ -1853,14 +1853,18 @@ def test_una_falla_del_interprete_no_propaga_excepcion(tmp_path: Path) -> None:
     assert registro["modelo_utilizado"] is False
 
 
-def test_el_modelo_se_intenta_cuando_la_clasificacion_deterministica_no_resuelve(
-    tmp_path: Path,
-) -> None:
-    """El criterio de aceptación dice "un pedido que el camino determinístico
-    no resuelve", no "un pedido cuya actividad no se resuelve". Un tipeo en la
-    palabra que nombra la pieza —historia 2 de #18— deja a
-    `_clasificar_intencion` en `fuera_de_alcance`, y ahí el modelo es el único
-    que puede recuperar el pedido."""
+def test_el_modelo_no_clasifica_la_solicitud(tmp_path: Path) -> None:
+    """ADR 0001 descartó "dejar que el modelo interpretara libremente la
+    solicitud" —"paga inferencia y superficie de ataque para una decisión
+    ternaria"— y fija que "el modelo, cuando interviene, sólo extrae términos
+    de búsqueda estructurados".
+
+    Consecuencia aceptada: un tipeo en la palabra que nombra la pieza deja el
+    pedido en `fuera_de_alcance` y se rechaza sin consultar el modelo, aunque
+    el modelo podría haberlo recuperado. La tensión con el criterio de
+    aceptación de #26 está elevada como consulta; el ADR manda mientras no se
+    enmiende.
+    """
     interprete = _InterpreteFake(
         _salida_interprete("generar_gacetilla", "taller", "sintetico", "vinculacion")
     )
@@ -1869,11 +1873,30 @@ def test_el_modelo_se_intenta_cuando_la_clasificacion_deterministica_no_resuelve
         tmp_path, "Necesito la gasetiya del taller sintetico", interprete=interprete
     )
 
-    assert interprete.prompts, "un pedido sin intención clasificada llega al modelo"
-    assert resultado.estado == "PENDIENTE_VALIDACION"
+    assert interprete.prompts == [], "la clasificación no consulta el modelo"
+    assert resultado.estado == "RECHAZADA"
+    assert resultado.borrador_path is None
     registro = _ultima_linea(resultado.log_path)
-    assert registro["intencion"] == "generar_gacetilla"
-    assert registro["modelo_utilizado"] is True
+    assert registro["intencion"] == "fuera_de_alcance"
+    assert registro["modelo_utilizado"] is False
+
+
+def test_el_modelo_no_puede_cambiar_el_pipeline_que_eligio_el_camino_deterministico(
+    tmp_path: Path,
+) -> None:
+    """El campo `intencion` de la salida del modelo se usa en una sola
+    dirección: para rechazar. Un modelo que dice "esto es un post" sobre un
+    pedido que el clasificador leyó como gacetilla no cambia el pipeline."""
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_post", "taller", "sintetico", "vinculacion")
+    )
+
+    resultado = _interpretar(tmp_path, _PEDIDO_VAGO, interprete=interprete)
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    assert resultado.intencion == "generar_gacetilla"
+    contenido = resultado.borrador_path.read_text(encoding="utf-8")
+    assert "CANAL:" not in contenido, "no se despachó al pipeline de posts"
 
 
 def test_el_modelo_no_puede_promover_un_pedido_ajeno_al_catalogo(
@@ -1913,16 +1936,119 @@ def test_un_fuera_de_alcance_del_modelo_se_respeta(tmp_path: Path) -> None:
 def test_el_registro_marca_el_modelo_aunque_no_haya_resuelto_la_actividad(
     tmp_path: Path,
 ) -> None:
-    """El campo promete "si intervino el modelo" (#18), no "si el modelo
-    acertó". Una salida validada que corrigió la intención ya influyó en el
-    estado, incluso si los términos no alcanzaron para resolver la actividad."""
+    """El campo promete "si intervino el modelo" (#18 historia 19), no "si el
+    modelo acertó": una salida validada ya influyó en el estado, incluso si
+    los términos no alcanzaron para resolver la actividad."""
     interprete = _InterpreteFake(
-        _salida_interprete("generar_post", "inexistente", "jamas")
+        _salida_interprete("generar_gacetilla", "inexistente", "jamas")
     )
 
     resultado = _interpretar(tmp_path, _PEDIDO_VAGO, interprete=interprete)
 
     assert resultado.borrador_path is None
     registro = _ultima_linea(resultado.log_path)
-    assert registro["intencion"] == "generar_post"
     assert registro["modelo_utilizado"] is True
+
+
+@pytest.mark.parametrize(
+    "intencion_sin_despacho",
+    sorted(IDS_INTENCIONES - INTENCIONES_CON_DESPACHO),
+)
+def test_toda_intencion_sin_despacho_devuelta_por_el_modelo_rechaza(
+    intencion_sin_despacho: str, tmp_path: Path
+) -> None:
+    """#18 exige que la suite falle si se activa una intención sin su caso
+    negativo. Vale también para las que llegan por el modelo: ninguna de las
+    que no tienen despacho puede producir un borrador, y el rechazo lleva el
+    código del catálogo."""
+    interprete = _InterpreteFake(
+        _salida_interprete(intencion_sin_despacho, "taller", "sintetico")
+    )
+
+    resultado = _interpretar(tmp_path, _PEDIDO_VAGO, interprete=interprete)
+
+    assert resultado.estado == "RECHAZADA"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == intencion_sin_despacho
+    assert registro["resultado"] == INTENCIONES_POR_ID[intencion_sin_despacho][
+        "codigo_rechazo"
+    ]
+    assert registro["modelo_utilizado"] is True
+
+
+def test_los_terminos_del_modelo_no_rompen_un_empate_en_falso(tmp_path: Path) -> None:
+    """Los términos sólo pueden subir puntajes, así que hay que verificar que
+    no empujen un conjunto ambiguo a un "match único claro" equivocado: con
+    dos actividades idénticas, ningún término puede desempatar, y el desenlace
+    sigue siendo la repregunta de #25."""
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_gacetilla", "taller", "robotica", "educativa")
+    )
+
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica",
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=RegistroPendientesMemoria(),
+        interprete=interprete,
+    )
+
+    assert resultado.estado == "PENDIENTE_DESAMBIGUACION"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["modelo_utilizado"] is True
+
+
+def test_el_canal_faltante_de_un_post_registra_que_intervino_el_modelo(
+    tmp_path: Path,
+) -> None:
+    """El modelo puede resolver la actividad y faltar sólo el canal: esa
+    salida también tiene que decir que intervino."""
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_gacetilla", "taller", "sintetico", "vinculacion")
+    )
+
+    resultado = _interpretar(
+        tmp_path,
+        "Necesito un post de la de vinculasion",
+        generator=FakeGenerator(_POST_CONFORME),
+        interprete=interprete,
+    )
+
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["resultado"] == "canal_no_encontrado"
+    assert registro["id_actividad"] == "SYN-001"
+    assert registro["modelo_utilizado"] is True
+
+
+def test_un_error_no_previsto_no_escapa_del_seam(tmp_path: Path) -> None:
+    """#18 define el seam como uno que "nunca propaga excepciones". Esa
+    promesa no puede depender de que cada rama se acuerde de cumplirla, así
+    que se ejerce con una falla que ninguna rama previó: el reloj inyectado,
+    que la repregunta usa para calcular el vencimiento.
+
+    `KeyboardInterrupt` y compañía siguen propagando a propósito: la guarda
+    atrapa `Exception`, no `BaseException`, porque cancelar el proceso no es
+    una falla que corresponda traducir a un estado.
+    """
+
+    def _reloj_roto() -> datetime:
+        raise ValueError("el reloj no previsto")
+
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica",
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=RegistroPendientesMemoria(),
+        reloj=_reloj_roto,
+    )
+
+    assert resultado.estado == "FALLIDA"
+    assert resultado.borrador_path is None
+    assert "no previsto" in (resultado.error or "")
+    # El detalle de la excepción no viaja al resultado ni al registro.
+    assert "el reloj no previsto" not in (resultado.error or "")
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["resultado"] == "error_no_previsto"
+    assert "el reloj no previsto" not in resultado.log_path.read_text(encoding="utf-8")

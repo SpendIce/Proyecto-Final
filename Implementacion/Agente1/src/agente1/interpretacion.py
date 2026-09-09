@@ -1066,7 +1066,7 @@ class ResultadoInterpretacion:
     candidatas: "tuple[CandidataActividad, ...]" = ()
 
 
-def interpretar_solicitud(
+def _interpretar_solicitud_sin_guarda(
     *,
     texto: str,
     solicitante: IdentidadSolicitante,
@@ -1166,19 +1166,15 @@ def interpretar_solicitud(
     modelo_utilizado = False
     interpretado: TerminosInterpretados | None = None
 
-    if intencion not in INTENCIONES_CON_DESPACHO and referencia is None:
-        # #26: el criterio de aceptación dice "un pedido que el camino
-        # determinístico no resuelve", y la clasificación es parte de ese
-        # camino. Un tipeo en la palabra que nombra la pieza —historia 2 de
-        # #18— deja a `_clasificar_intencion` en `fuera_de_alcance`, y el
-        # modelo es lo único que puede recuperar el pedido. La salida sigue
-        # validándose contra el catálogo cerrado, así que esto no habilita
-        # ninguna intención nueva: sólo puede llegar a una que ya existía.
-        interpretado = _interpretar_con_modelo(texto, interprete)
-        if interpretado is not None:
-            modelo_utilizado = True
-            intencion = interpretado.intencion
-
+    # La clasificación de la intención es **siempre** determinística. El modelo
+    # no la decide: ADR 0001 descartó explícitamente "dejar que el modelo
+    # interpretara libremente la solicitud" porque paga superficie de ataque
+    # por una decisión ternaria, y fija que "el modelo, cuando interviene,
+    # sólo extrae términos de búsqueda estructurados". Un pedido cuya
+    # clasificación no resuelve se rechaza sin consultar el modelo, aunque eso
+    # deje sin recuperar un tipeo en la palabra que nombra la pieza. La
+    # tensión entre esa limitación y el criterio de aceptación de #26 quedó
+    # elevada como consulta, no resuelta acá.
     if intencion in INTENCIONES_CON_DESPACHO:
         intencion_efectiva = intencion
         id_actividad = _extraer_identificador_explicito(texto)
@@ -1206,12 +1202,15 @@ def interpretar_solicitud(
                 if interpretado is not None:
                     modelo_utilizado = True
             if interpretado is not None:
+                # El campo `intencion` de la salida se valida contra el
+                # catálogo (ver `_validar_salida_fallback`) y desde acá se usa
+                # en **una sola dirección**: para rechazar. Si el modelo dice
+                # que el pedido no corresponde a una intención con despacho, se
+                # rechaza. Nunca se usa para habilitar una intención ni para
+                # cambiar el pipeline que ya eligió el camino determinístico:
+                # eso sería la interpretación libre que descartó ADR 0001.
+                # Restringirlo a rechazar sólo puede reducir lo que se genera.
                 if interpretado.intencion not in INTENCIONES_CON_DESPACHO:
-                    # El modelo dice que el pedido no corresponde. Se respeta:
-                    # `fuera_de_alcance` es un valor del catálogo y tiene que
-                    # tener efecto observable, no descartarse en silencio. Va
-                    # en la dirección conservadora —nunca amplía lo que se
-                    # puede generar— así que se acepta sin más resguardos.
                     entrada_rechazo = INTENCIONES_POR_ID[interpretado.intencion]
                     return _finalizar(
                         log_path=log_path,
@@ -1228,7 +1227,6 @@ def interpretar_solicitud(
                             "despacho disponible en este seam"
                         ),
                     )
-                intencion_efectiva = interpretado.intencion
                 id_actividad = _buscar_actividad_con_terminos(
                     texto, interpretado.terminos, fuente
                 )
@@ -1317,6 +1315,10 @@ def interpretar_solicitud(
             solicitante=solicitante,
             intencion=intencion,
             id_actividad=None,
+            # Siempre `False`: acá se llega sin haber consultado el modelo,
+            # porque la clasificación es determinística (ADR 0001). Se pasa
+            # explícito para que no dependa del valor por defecto.
+            modelo_utilizado=False,
             estado="RECHAZADA",
             resultado=str(entrada_catalogo["codigo_rechazo"]),
             error="La solicitud no corresponde a una intención con despacho disponible en este seam",
@@ -1341,6 +1343,9 @@ def interpretar_solicitud(
                 solicitante=solicitante,
                 intencion=intencion_efectiva,
                 id_actividad=id_actividad,
+                # El modelo pudo haber resuelto la actividad y faltar sólo el
+                # canal: la auditoría tiene que decir que intervino.
+                modelo_utilizado=modelo_utilizado,
                 estado="INCOMPLETA",
                 resultado="canal_no_encontrado",
                 error=(
@@ -1395,6 +1400,61 @@ _RESULTADOS_POR_ESTADO = {
     "INVALIDA": "solicitud_invalida",
     "FALLIDA": "pipeline_failure",
 }
+
+
+def interpretar_solicitud(
+    *,
+    texto: str,
+    solicitante: IdentidadSolicitante,
+    fuente: FuenteSolicitudes,
+    directorio_salida: Path,
+    generator: Generator,
+    destino: DestinoBorradores | None = None,
+    registro_pendientes: RegistroPendientes | None = None,
+    reloj: Callable[[], datetime] | None = None,
+    interprete: Generator | None = None,
+) -> ResultadoInterpretacion:
+    """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
+
+    Cada camino conocido ya traduce su falla a un estado y a una línea de
+    auditoría; esta guarda cubre lo **no** previsto. La spec (#18) define el
+    seam como uno que "nunca propaga excepciones —de la fuente, del modelo o
+    del destino—", y esa promesa no puede depender de que cada rama futura se
+    acuerde de cumplirla: un `KeyError` por un catálogo mal editado dejaría al
+    canal sin respuesta y sin registro. Acá el peor caso es un resultado
+    `FALLIDA` con su línea de auditoría.
+
+    El detalle de la excepción no viaja al resultado ni al registro, por la
+    misma razón por la que los códigos de error son estables y sin contenido:
+    un mensaje de excepción puede arrastrar datos de una fila.
+    """
+
+    try:
+        return _interpretar_solicitud_sin_guarda(
+            texto=texto,
+            solicitante=solicitante,
+            fuente=fuente,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            destino=destino,
+            registro_pendientes=registro_pendientes,
+            reloj=reloj,
+            interprete=interprete,
+        )
+    except Exception:
+        return _finalizar(
+            log_path=Path(directorio_salida) / "logs" / "interpretaciones-hu013.jsonl",
+            correlation_id=str(uuid.uuid4()),
+            texto=texto if isinstance(texto, str) else "",
+            solicitante=(
+                solicitante if isinstance(solicitante, IdentidadSolicitante) else None
+            ),
+            intencion=None,
+            id_actividad=None,
+            estado="FALLIDA",
+            resultado="error_no_previsto",
+            error="La interpretación falló por un error no previsto",
+        )
 
 
 def _resumen_desde_fuente(fuente: FuenteSolicitudes, id_actividad: str) -> str | None:

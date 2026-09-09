@@ -40,15 +40,13 @@ def _cargar_script():
 
 
 def test_la_medicion_esta_disponible_y_clasifica_cada_frase():
-    medicion = _cargar_script().medir(CORPUS_CALIBRADO, DATASET)
+    modulo = _cargar_script()
+    medicion = modulo.medir(CORPUS_CALIBRADO, DATASET)
 
     assert medicion.total == len(medicion.detalle)
     assert medicion.total > 0
     assert 0.0 <= medicion.porcentaje_sin_inferencia <= 100.0
-    assert all(
-        caso["via"] in {"identificador explicito", "resolucion difusa", "sin resolver"}
-        for caso in medicion.detalle
-    )
+    assert all(caso["via"] in modulo.VIAS for caso in medicion.detalle)
 
 
 def test_el_corpus_calibrado_resuelve_entero_sin_inferencia():
@@ -89,3 +87,26 @@ def test_toda_frase_resuelta_del_corpus_ambiguo_llega_a_la_actividad_esperada():
     assert resueltas, "si nada resuelve, el corpus no ejercita la resolución"
     for caso in resueltas:
         assert caso["resuelto"] == caso["esperado"], caso["frase"]
+
+
+def test_todo_id_esperado_del_corpus_existe_en_el_dataset():
+    """Sin esto, la columna `id_esperado` sólo se verifica en las filas que el
+    camino determinístico resuelve —hoy 1 de 8— y las otras siete podrían
+    apuntar a actividades inexistentes sin que nada avise. El corpus es la
+    referencia contra la que se mide el fallback: si sus expectativas son
+    falsas, la medición no significa nada.
+    """
+    import csv
+
+    with DATASET.open(encoding="utf-8", newline="") as archivo:
+        ids_dataset = {fila["id_solicitud"] for fila in csv.DictReader(archivo)}
+
+    for corpus in (CORPUS_CALIBRADO, CORPUS_AMBIGUAS):
+        with corpus.open(encoding="utf-8", newline="") as archivo:
+            filas = list(csv.DictReader(archivo))
+        assert filas, f"{corpus.name} está vacío"
+        for fila in filas:
+            assert fila["id_esperado"] in ids_dataset, (
+                f"{corpus.name} espera {fila['id_esperado']}, "
+                f"que no existe en el dataset: {fila['frase']}"
+            )

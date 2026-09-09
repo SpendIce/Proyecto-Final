@@ -110,7 +110,17 @@ def _dimensionar_arreglo(campo: str, definicion: dict[str, object]) -> list[str]
     items = definicion.get("items", {})
     valores = items.get("enum")
     if valores and definicion.get("uniqueItems"):
-        return list(valores)
+        if not all(isinstance(valor, str) for valor in valores):
+            raise ContratoNoDimensionable(f"{campo} tiene un enum no textual")
+        # `maxItems` acota también acá: un contrato que declara un enum más
+        # grande que la cantidad de items admitidos no puede producir el
+        # catálogo entero, y dimensionar con el catálogo entero sobreestimaría
+        # el presupuesto. Ninguno de los contratos vigentes está en ese caso;
+        # la rama existe para que las dos formas de acotar digan lo mismo.
+        cantidad_enum = definicion.get("maxItems")
+        if isinstance(cantidad_enum, int) and cantidad_enum < len(valores):
+            return [str(valor) for valor in valores[:cantidad_enum]]
+        return [str(valor) for valor in valores]
 
     cantidad = definicion.get("maxItems")
     largo_item = items.get("maxLength")
@@ -135,9 +145,11 @@ def _dimensionar_arreglo(campo: str, definicion: dict[str, object]) -> list[str]
         for _ in range(largo_item):
             sufijo = alfabeto[resto % len(alfabeto)] + sufijo
             resto //= len(alfabeto)
-        # El relleno sólo aporta longitud; el costo en tokens lo aporta después
-        # CHARS_POR_TOKEN_MENOS_FAVORABLE, medido sobre texto real.
-        elementos.append(sufijo[-largo_item:])
+        # El bucle produce exactamente `largo_item` caracteres, así que no hay
+        # nada que truncar. El relleno sólo aporta longitud; el costo en tokens
+        # lo aporta después CHARS_POR_TOKEN_MENOS_FAVORABLE, medido sobre
+        # texto real.
+        elementos.append(sufijo)
     return elementos
 
 

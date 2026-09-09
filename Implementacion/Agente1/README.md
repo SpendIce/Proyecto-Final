@@ -80,6 +80,15 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Qué prueba y qué no prueba la auditoría de seguridad | `src/agente1/auditoria_d2.py`, `auditar_manifest` |
 | Por qué los límites de redes son provisionales | `src/agente1/politica_redes.py`, docstring de módulo (DEF-A1-007) |
 | Por qué ningún origen de inscripción habilita envío | `src/agente1/origenes_inscripcion.py`, docstring de módulo |
+| Por qué la prosa de una persona nunca llega a un prompt como instrucción | `src/agente1/interpretacion.py`, docstring de módulo y ADR 0001 |
+| Por qué el despacho no se deriva del campo `pipeline_integrado` del catálogo | `interpretacion.py`, comentario de `INTENCIONES_CON_DESPACHO` |
+| Por qué el registro de interacciones no guarda la prosa ni la identidad en claro | `interpretacion.py`, docstring de módulo y `_finalizar`; ADR 0002 |
+| Por qué la interacción pendiente no necesita durabilidad | `interpretacion.py`, docstring de `RegistroPendientes` |
+| Por qué los términos del modelo se suman a la prosa en lugar de reemplazarla | `interpretacion.py`, docstring de `_buscar_actividad_con_terminos` |
+| Por qué se rechaza un intérprete cuyo presupuesto no cubre el contrato | `interpretacion.py`, comentario de `_interpretar_con_modelo` (DEF-A1-013) |
+| Por qué un arreglo de texto libre acotado sí se puede dimensionar | `src/agente1/presupuesto.py`, docstring de `_dimensionar_arreglo` |
+| Por qué el núcleo no sabe nada del transporte de la interacción | `src/agente1/canal.py`, docstring de módulo y de `atender_canal` |
+| Por qué medir el corpus calibrado da 100 % y eso no informa nada | `scripts/medir_cobertura_sin_inferencia.py`, docstring de módulo |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los

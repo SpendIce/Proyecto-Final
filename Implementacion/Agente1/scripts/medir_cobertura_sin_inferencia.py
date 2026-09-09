@@ -47,8 +47,9 @@ from agente1.interpretacion import (  # noqa: E402
 CORPUS = ROOT / "data" / "frases_resolucion_actividad.csv"
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 
-# Los tres caminos posibles. Como constantes y no como literales sueltos,
-# porque la prueba de la medición afirma sobre este conjunto.
+# Los tres caminos posibles, como constantes y no como literales sueltos para
+# que la prueba de la medición afirme contra `VIAS` en lugar de repetir las
+# cadenas por su cuenta.
 VIA_IDENTIFICADOR = "identificador explicito"
 VIA_DIFUSA = "resolucion difusa"
 VIA_SIN_RESOLVER = "sin resolver"
