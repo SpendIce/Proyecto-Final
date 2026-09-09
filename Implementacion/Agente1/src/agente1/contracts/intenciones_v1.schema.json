@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:intenciones:v1",
+  "title": "Catalogo cerrado de intenciones para la interpretacion en lenguaje natural (HU-013)",
+  "description": "Toda solicitud en lenguaje natural se clasifica a una de estas intenciones o se rechaza; nunca se aproxima a la mas parecida. `pipeline_integrado` distingue una propiedad estable del catalogo (aplicacion) de un hecho de esta iteracion (si el seam de HU-013 ya despacha esa intencion a un pipeline). generar_post tiene pipeline propio desde HU-011 pero su despacho desde este seam es HU-013/#22; hasta entonces se reconoce y se rechaza con codigo explicito.",
+  "x-contract-version": "intenciones_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-hu": "HU-013",
+  "x-issue": "#20",
+  "x-origen": "Equipo tecnico del PPS. El catalogo de intenciones y los roles habilitados no fueron aprobados por la SEU.",
+
+  "aplicaciones": {
+    "ACTIVA": "Intencion legitima del catalogo cerrado, reconocida por la clasificacion deterministica.",
+    "RECONOCIDA_FUERA_DE_ALCANCE": "Intencion identificable en la prosa cuya ejecucion excede el alcance de la iteracion vigente: requiere un gate propio que todavia no existe. Se responde como fuera de alcance con codigo explicito, nunca en silencio.",
+    "NO_APLICADA_PENDIENTE_PIPELINE": "Intencion versionada en el contrato sin pipeline propio construido todavia. No debe presentarse como habilitada."
+  },
+
+  "intenciones": [
+    {
+      "id": "generar_gacetilla",
+      "aplicacion": "ACTIVA",
+      "pipeline": "gacetilla",
+      "pipeline_integrado": true,
+      "codigo_rechazo": null,
+      "descripcion": "Pedido de una gacetilla institucional. Despachada al pipeline de HU-010 (procesar_solicitud)."
+    },
+    {
+      "id": "generar_post",
+      "aplicacion": "ACTIVA",
+      "pipeline": "post",
+      "pipeline_integrado": false,
+      "codigo_rechazo": "intencion_sin_despacho_integrado",
+      "descripcion": "Pedido de un post de redes. El pipeline existe desde HU-011, pero su despacho desde este seam es HU-013/#22."
+    },
+    {
+      "id": "fuera_de_alcance",
+      "aplicacion": "ACTIVA",
+      "pipeline": null,
+      "pipeline_integrado": true,
+      "codigo_rechazo": "fuera_de_alcance",
+      "descripcion": "Ninguna intencion del catalogo corresponde a la solicitud. Resultado terminal: no se aproxima a la mas parecida."
+    },
+    {
+      "id": "ajustar_borrador",
+      "aplicacion": "RECONOCIDA_FUERA_DE_ALCANCE",
+      "pipeline": null,
+      "pipeline_integrado": false,
+      "codigo_rechazo": "ajustar_borrador_fuera_de_alcance",
+      "descripcion": "Unica intencion donde la prosa deberia influir en la generacion. Merece su propio incremento con su propio gate."
+    },
+    {
+      "id": "generar_newsletter",
+      "aplicacion": "NO_APLICADA_PENDIENTE_PIPELINE",
+      "pipeline": null,
+      "pipeline_integrado": false,
+      "codigo_rechazo": "intencion_sin_pipeline",
+      "descripcion": "Sin pipeline construido. Versionada para que agregar el pipeline obligue a revisar este contrato."
+    },
+    {
+      "id": "generar_mail",
+      "aplicacion": "NO_APLICADA_PENDIENTE_PIPELINE",
+      "pipeline": null,
+      "pipeline_integrado": false,
+      "codigo_rechazo": "intencion_sin_pipeline",
+      "descripcion": "Sin pipeline construido. Versionada para que agregar el pipeline obligue a revisar este contrato."
+    }
+  ],
+
+  "roles_habilitados_provisionales": ["coordinador_seu", "auxiliar_seu"],
+  "x-roles-origen": "Equipo tecnico del PPS, a partir de las personas de HU-013 (coordinador y auxiliar de la SEU). Pendiente de definicion institucional de roles y permisos."
+}

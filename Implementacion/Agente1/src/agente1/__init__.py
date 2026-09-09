@@ -23,6 +23,7 @@ Guía rápida de módulos:
 - `insumos_agentes`           contrato candidato de insumos de A2-A5.
 - `historia_viva`             puerto de consulta al acervo de A2 (offline).
 - `origenes_inscripcion`      matriz de orígenes de inscripción (HU-012).
+- `interpretacion`            HU-013, interpretación en lenguaje natural (#20).
 """
 
 from .confirmaciones import (
@@ -36,6 +37,11 @@ from .confirmaciones import (
     procesar_confirmacion,
     reconciliar_envios_reservados,
 )
+from .interpretacion import (
+    IdentidadSolicitante,
+    ResultadoInterpretacion,
+    interpretar_solicitud,
+)
 from .ollama import OllamaGenerator
 from .procesamiento import FakeGenerator, ResultadoProceso, procesar_fila_csv
 from .posts import PoliticaPost, procesar_post, procesar_post_estructurado
@@ -44,14 +50,17 @@ __all__ = [
     "AprobacionHumana",
     "DestinoConfirmacionesFake",
     "FakeGenerator",
+    "IdentidadSolicitante",
     "OllamaGenerator",
     "PoliticaPost",
     "RegistroConfirmacionesArchivo",
     "RegistroConfirmacionesMemoria",
     "ReservaReconciliada",
     "ResultadoConfirmacion",
+    "ResultadoInterpretacion",
     "ResultadoProceso",
     "SolicitudConfirmacion",
+    "interpretar_solicitud",
     "procesar_confirmacion",
     "procesar_fila_csv",
     "procesar_post",

@@ -163,6 +163,30 @@ def test_schema_candidato_a2_a5_esta_declarado_como_recurso_importable():
     assert contrato["properties"]["schema"]["const"] == "agente1.insumo.v1"
 
 
+def test_catalogo_de_intenciones_hu013_es_empaquetable_y_provisional():
+    import agente1
+
+    contrato = json.loads(
+        files("agente1")
+        .joinpath("contracts", "intenciones_v1.schema.json")
+        .read_text(encoding="utf-8")
+    )
+
+    assert contrato["x-contract-version"] == "intenciones_v1"
+    assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+    assert {item["id"] for item in contrato["intenciones"]} == {
+        "generar_gacetilla",
+        "generar_post",
+        "fuera_de_alcance",
+        "ajustar_borrador",
+        "generar_newsletter",
+        "generar_mail",
+    }
+    assert callable(agente1.interpretar_solicitud)
+    for nombre in ("IdentidadSolicitante", "ResultadoInterpretacion", "interpretar_solicitud"):
+        assert nombre in agente1.__all__
+
+
 def test_dataset_versionado_tiene_cinco_casos_y_dos_invalidos():
     with (ROOT / "data" / "actividades_sinteticas.csv").open(
         encoding="utf-8", newline=""
