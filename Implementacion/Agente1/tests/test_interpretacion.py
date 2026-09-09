@@ -1,4 +1,4 @@
-"""HU-013 (#20): de una solicitud en lenguaje natural a un borrador.
+"""HU-013 (#20, #23): de una solicitud en lenguaje natural a un borrador.
 
 Ejercita únicamente el seam público `interpretar_solicitud`: entra un mensaje
 y puertos, sale un `ResultadoInterpretacion`. Nada de estas pruebas mira
@@ -21,6 +21,13 @@ Cobertura, en orden:
 6. Inyección: sólo puede producir una intención válida o un rechazo.
 7. El recorrido funciona sin modelo configurado (se prueba enteramente con
    `FakeGenerator`, que es justamente ese camino).
+8. Resolución difusa de actividad sin identificador explícito (#23):
+   coincidencia única y clara por título parcial o con tipeos, corpus
+   versionado de frases realistas, ausencia de contenido de otras filas en
+   el prompt, coincidencia nula y coincidencia múltiple o cercana (ambas se
+   comportan como "no se encontró identificador" en este incremento, sin
+   repregunta), reproducibilidad entre corridas, y ninguna falla al enumerar
+   la fuente propaga una excepción.
 """
 
 from __future__ import annotations
@@ -615,13 +622,18 @@ def test_contenido_de_otras_filas_de_la_planilla_no_llega_al_prompt_por_resoluci
 
     assert resultado.estado == "PENDIENTE_VALIDACION"
     assert len(prompts) == 1
-    for titulo_de_otra_actividad in (
-        "Actividad sintética incompleta",
-        "Jornada sintética",
-        "Encuentro sintético incompleto",
-        "Seminario sintético remoto",
-    ):
-        assert titulo_de_otra_actividad not in prompts[0]
+    with DATASET.open(encoding="utf-8", newline="") as archivo:
+        filas = {fila["id_solicitud"]: fila for fila in csv.DictReader(archivo)}
+    fila_resuelta = filas.pop("SYN-001")
+    assert filas, "el dataset sintético debe tener más de una actividad"
+    for fila in filas.values():
+        for columna in ("titulo", "descripcion", "fecha", "organiza", "contacto", "lugar"):
+            valor = fila[columna]
+            # Algunos valores (organizador, contacto) se repiten entre filas
+            # del dataset sintético; sólo es una fuga si el valor de la otra
+            # fila no es, además, un valor legítimo de la actividad resuelta.
+            if valor and valor != fila_resuelta[columna]:
+                assert valor not in prompts[0]
 
 
 def test_pedido_sin_ninguna_coincidencia_no_genera_borrador(tmp_path: Path) -> None:
@@ -677,6 +689,57 @@ def test_pedido_con_coincidencia_multiple_no_genera_borrador(tmp_path: Path) -> 
     assert resultado.borrador_path is None
     registro = _ultima_linea(resultado.log_path)
     assert registro["resultado"] == "identificador_no_encontrado"
+    assert registro["id_actividad"] is None
+
+
+class _FuenteConActividadesParecidasNoIdenticas:
+    """Dos actividades parecidas pero no idénticas (mismo organizador, título
+    con una sola palabra distinta, fechas distintas). A diferencia de
+    `_FuenteConActividadesAmbiguas`, acá los puntajes de las dos actividades
+    no empatan exactamente: quedan cerca (dentro de `MARGEN_DESAMBIGUACION`)
+    pero no iguales. Esto ejerce el margen de desambiguación mismo, no sólo
+    el caso degenerado de un empate exacto a puntaje cero de diferencia."""
+
+    def obtener(self, id_solicitud: str) -> dict[str, str]:
+        for fila in self.enumerar():
+            if fila["id_solicitud"] == id_solicitud:
+                return fila
+        raise AssertionError("no debería pedirse una actividad ambigua por id")
+
+    def enumerar(self) -> list[dict[str, str]]:
+        base = {"descripcion": "", "publico": "", "contacto": "", "fuente": "", "lugar": ""}
+        return [
+            {
+                **base,
+                "id_solicitud": "PAR-001",
+                "titulo": "Taller de robótica educativa avanzada",
+                "fecha": "2026-09-01",
+                "organiza": "Equipo Norte",
+            },
+            {
+                **base,
+                "id_solicitud": "PAR-002",
+                "titulo": "Taller de robótica educativa básica",
+                "fecha": "2026-09-02",
+                "organiza": "Equipo Norte",
+            },
+        ]
+
+
+def test_pedido_con_coincidencia_cercana_pero_no_identica_no_genera_borrador(
+    tmp_path: Path,
+) -> None:
+    """El margen de desambiguación tiene que rechazar también dos
+    actividades parecidas cuyo puntaje difiere, no sólo un empate exacto."""
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        fuente=_FuenteConActividadesParecidasNoIdenticas(),
+    )
+
+    assert resultado.estado == "INCOMPLETA"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
     assert registro["id_actividad"] is None
 
 

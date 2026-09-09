@@ -197,6 +197,19 @@ def _extraer_identificador_explicito(texto: str) -> str | None:
 # favor") sin que ese relleno diluya el puntaje: una palabra de relleno de la
 # consulta simplemente no aporta a la cobertura de ninguna palabra del campo,
 # no resta.
+#
+# El umbral, el margen y los pesos no salen de una fórmula: se calibraron a
+# mano contra el dataset sintético (`data/actividades_sinteticas.csv`) y el
+# corpus versionado de frases realistas (`data/frases_resolucion_actividad.csv`),
+# de modo que toda frase del corpus resuelva a su actividad esperada y que
+# "el taller del martes" —ninguna actividad del dataset cae un martes—
+# siga sin resolver. El título pesa más que la fecha y la organización
+# porque es, en la prosa real, el dato que más se nombra; fecha y
+# organización actúan sobre todo como desempate cuando dos títulos son
+# parecidos (ver `test_frase_del_corpus_resuelve_a_la_actividad_esperada` y
+# `test_pedido_con_coincidencia_cercana_pero_no_identica_no_genera_borrador`
+# en `test_interpretacion.py`). Cambiar cualquiera de estos números exige
+# volver a correr esas pruebas.
 UMBRAL_COINCIDENCIA_CLARA = 0.55
 MARGEN_DESAMBIGUACION = 0.10
 _PESO_TITULO = 0.60
@@ -314,10 +327,18 @@ def _resolver_actividad_por_similitud(texto: str, fuente: FuenteSolicitudes) -> 
     que cero coincidencias. Ninguna coincidencia y varias coincidencias
     cercanas entre sí se tratan igual en este incremento (#23): sólo se
     acepta la actividad ganadora cuando supera el umbral mínimo *y* saca una
-    ventaja clara sobre la segunda mejor. El desempate ante puntajes iguales
-    es por `id_solicitud` (orden alfabético), para que el resultado sea
-    exactamente reproducible entre corridas sin depender del orden en que la
-    fuente haya enumerado las filas.
+    ventaja clara sobre la segunda mejor — un empate exacto en el puntaje
+    más alto queda, por construcción, siempre por debajo de ese margen, así
+    que nunca se acepta como ganador.
+
+    El orden de `candidatos` se desempata por `id_solicitud` (orden
+    alfabético) ante puntajes iguales. Esto no es lo que hace reproducible
+    al resultado devuelto: eso ya lo garantiza que el puntaje sea una
+    función pura del texto normalizado, sin estructuras de orden no
+    determinístico de por medio. El desempate por id es más bien higiene
+    defensiva: mantiene el orden de la lista interna de candidatos
+    independiente del orden en que la fuente haya enumerado las filas, en
+    vez de heredarlo por la estabilidad incidental de `sort()`.
     """
 
     try:
