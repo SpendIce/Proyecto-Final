@@ -2052,3 +2052,22 @@ def test_un_error_no_previsto_no_escapa_del_seam(tmp_path: Path) -> None:
     registro = _ultima_linea(resultado.log_path)
     assert registro["resultado"] == "error_no_previsto"
     assert "el reloj no previsto" not in resultado.log_path.read_text(encoding="utf-8")
+
+
+def test_la_guarda_del_seam_no_atrapa_una_cancelacion(tmp_path: Path) -> None:
+    """La guarda atrapa `Exception`, no `BaseException`, y eso es deliberado:
+    cancelar el proceso no es una falla que corresponda traducir a un estado y
+    a una línea de auditoría. Sin esta prueba, ampliarla a `BaseException` no
+    rompería nada y el invariante quedaría siendo un accidente del código."""
+
+    def _reloj_cancelado() -> datetime:
+        raise KeyboardInterrupt("cancelado por quien opera")
+
+    with pytest.raises(KeyboardInterrupt):
+        _interpretar(
+            tmp_path,
+            "Quiero la gacetilla del taller de robotica",
+            fuente=_FuenteConActividadesAmbiguas(),
+            registro_pendientes=RegistroPendientesMemoria(),
+            reloj=_reloj_cancelado,
+        )

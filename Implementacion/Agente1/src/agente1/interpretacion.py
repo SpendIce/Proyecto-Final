@@ -1173,8 +1173,9 @@ def _interpretar_solicitud_sin_guarda(
     # sólo extrae términos de búsqueda estructurados". Un pedido cuya
     # clasificación no resuelve se rechaza sin consultar el modelo, aunque eso
     # deje sin recuperar un tipeo en la palabra que nombra la pieza. La
-    # tensión entre esa limitación y el criterio de aceptación de #26 quedó
-    # elevada como consulta, no resuelta acá.
+    # tensión entre esa limitación y el criterio de aceptación de #26 está
+    # elevada en el issue #27, que la deja como decisión institucional: cambiar
+    # esto mueve el límite de confianza que el ADR fijó a propósito.
     if intencion in INTENCIONES_CON_DESPACHO:
         intencion_efectiva = intencion
         id_actividad = _extraer_identificador_explicito(texto)
@@ -1248,9 +1249,10 @@ def _interpretar_solicitud_sin_guarda(
                     correlation_id=correlation_id,
                     texto=texto_seguro,
                     solicitante=solicitante,
-                    # `intencion_efectiva` y no `intencion`: si el modelo
-                    # corrigió la clasificación, la auditoría tiene que decir
-                    # sobre qué intención se trabajó, no la que se descartó.
+                    # `intencion_efectiva` es la intención con la que se
+                    # trabajó. Hoy coincide siempre con `intencion`, porque el
+                    # modelo no puede cambiarla (ADR 0001); se usa la efectiva
+                    # para que la auditoría siga siendo correcta si eso cambia.
                     intencion=intencion_efectiva,
                     id_actividad=None,
                     modelo_utilizado=modelo_utilizado,
@@ -1266,8 +1268,8 @@ def _interpretar_solicitud_sin_guarda(
                 solicitante.identificador,
                 InteraccionPendiente(
                     # La pendiente guarda la intención con la que se va a
-                    # despachar en el turno siguiente, que puede ser la que
-                    # corrigió el modelo.
+                    # despachar en el turno siguiente, que es la que clasificó
+                    # el camino determinístico: el modelo no la cambia.
                     intencion=intencion_efectiva,
                     candidatas=candidatas,
                     vencimiento=ahora_fn() + VENCIMIENTO_PENDIENTE,
