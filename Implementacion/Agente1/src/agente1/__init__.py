@@ -24,6 +24,8 @@ Guía rápida de módulos:
 - `historia_viva`             puerto de consulta al acervo de A2 (offline).
 - `origenes_inscripcion`      matriz de orígenes de inscripción (HU-012).
 - `interpretacion`            HU-013, interpretación en lenguaje natural (#20).
+- `canal`                     HU-013, puerto de canal y bucle de atención (#24).
+- `canal_planilla`            HU-013, adapter de planilla offline del canal (#24).
 """
 
 from .confirmaciones import (
