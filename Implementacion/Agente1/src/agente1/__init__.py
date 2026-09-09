@@ -23,7 +23,7 @@ Guía rápida de módulos:
 - `insumos_agentes`           contrato candidato de insumos de A2-A5.
 - `historia_viva`             puerto de consulta al acervo de A2 (offline).
 - `origenes_inscripcion`      matriz de orígenes de inscripción (HU-012).
-- `interpretacion`            HU-013, interpretación en lenguaje natural (#20).
+- `interpretacion`            HU-013, interpretación en lenguaje natural (#20, #22).
 """
 
 from .confirmaciones import (

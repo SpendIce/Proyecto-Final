@@ -1,34 +1,46 @@
-"""HU-013 (#20): de una solicitud en lenguaje natural a un borrador.
+"""HU-013 (#20, #22): de una solicitud en lenguaje natural a un borrador.
 
 Este módulo es el seam nuevo: `interpretar_solicitud` recibe la prosa de una
 persona de la SEU junto con la identidad que afirma el canal, la clasifica a
 una **intención** de un catálogo cerrado y, cuando corresponde, despacha al
-pipeline de gacetilla que ya existe (HU-010). Nunca propaga excepciones de la
-fuente, del generador ni del destino: cada camino —éxito o falla— termina en
-un `ResultadoInterpretacion` y en una línea de auditoría.
+pipeline de gacetilla (HU-010) o al de post (HU-011) que ya existen. Nunca
+propaga excepciones de la fuente, del generador ni del destino: cada camino
+—éxito o falla— termina en un `ResultadoInterpretacion` y en una línea de
+auditoría.
 
-Alcance de este incremento (#20, "un pedido con identificador explícito
-produce un borrador"): la persona nombra la intención y un identificador de
-actividad reconocible en la prosa. Deliberadamente **no** entran acá:
+Alcance de estos incrementos: la persona nombra la intención y un
+identificador de actividad reconocible en la prosa (#20); para
+`generar_post` (#22) además nombra el canal (Instagram o LinkedIn) en la
+misma prosa. Deliberadamente **no** entran acá:
 
 - la búsqueda difusa de actividad por título (#23, requiere #19);
 - la repregunta con candidatas y el estado entre turnos (#25);
-- el despacho del pipeline de post desde este seam (#22) — el pipeline existe
-  desde HU-011, pero conectarlo con resolución de canal es otro incremento;
-- el canal de interacción como adapter (#24);
+- el canal de interacción como adapter (#24) — no confundir con el canal de
+  la red social que resuelve `_resolver_canal`, que es un dato del dominio de
+  `generar_post`, no el transporte de la interacción;
 - el fallback con modelo ante lo ambiguo (#26).
 
 Decisiones que no se ven en el código:
 
-- **La prosa nunca llega a un prompt.** Lo único que sale de `texto` hacia el
-  pipeline de gacetilla es el identificador extraído, que ya pasa por el
-  mismo contrato de `id_solicitud` que HU-010. El texto libre se usa
+- **La prosa nunca llega a un prompt.** Lo único que sale de `texto` hacia los
+  pipelines de gacetilla y de post es el identificador de actividad y, para
+  `generar_post`, el nombre del canal ya resuelto — ambos ya pasan por sus
+  propios contratos (`id_solicitud`, `canal`). El texto libre se usa
   únicamente para clasificar localmente, en este proceso, contra un
   vocabulario cerrado.
 - **La clasificación es determinística y el catálogo es cerrado.** Un texto
   que no activa ninguna palabra clave del catálogo se clasifica
   `fuera_de_alcance`; no se aproxima a la intención más parecida. Ver
   ADR 0001.
+- **El canal de `generar_post` se resuelve con código determinístico, nunca
+  con el modelo.** `_resolver_canal` reconoce la mención literal de
+  "Instagram" o "LinkedIn" en la prosa. Un pedido que no menciona ninguno de
+  los dos, o que menciona los dos a la vez, no tiene un canal resuelto sin
+  ambigüedad: en ambos casos el resultado es el mismo, explícito y sin
+  inventar un default — `INCOMPLETA` con `canal_no_encontrado`, el mismo
+  tratamiento que ya recibe un identificador de actividad ausente. No hay
+  heurística de "canal más probable": o se reconoce exactamente uno, o se
+  pide el dato.
 - **La identidad se exige y se registra, nunca se verifica.** El canal afirma
   quién pide y con qué rol; el núcleo decide con ese dato pero no tiene forma
   de comprobarlo. Ver ADR 0002. Cada línea de auditoría lleva
@@ -58,6 +70,7 @@ from pathlib import Path
 
 from .destinos import DestinoBorradores, ReferenciaBorrador
 from .fuentes import FuenteSolicitudes
+from .posts import procesar_post_estructurado
 from .procesamiento import Generator, procesar_solicitud
 
 
@@ -87,7 +100,7 @@ ROLES_HABILITADOS = frozenset(
 # para documentar la intención, pero quien decide en tiempo de ejecución —y
 # quien exige que exista un caso de prueba, ver `test_interpretacion.py`— es
 # este conjunto.
-INTENCIONES_CON_DESPACHO = frozenset({"generar_gacetilla"})
+INTENCIONES_CON_DESPACHO = frozenset({"generar_gacetilla", "generar_post"})
 
 # Identificador "explícito": palabras alfabéticas cortas, un guion y dígitos,
 # como los que ya produce el dataset sintético (`SYN-001`). Es una forma
@@ -158,6 +171,34 @@ def _extraer_identificador_explicito(texto: str) -> str | None:
 
     coincidencia = PATRON_IDENTIFICADOR_EXPLICITO.search(texto)
     return coincidencia.group(0) if coincidencia is not None else None
+
+
+# Canal de red social para `generar_post` (#22). Reconoce la mención literal
+# de cada red sobre el texto ya normalizado (sin acentos, sin mayúsculas),
+# igual que `_clasificar_intencion`: código determinístico, nunca el modelo.
+# No es resolución difusa ni sinónimos: sólo el nombre de la red.
+PATRON_CANAL_INSTAGRAM = re.compile(r"\binstagram\w*\b")
+PATRON_CANAL_LINKEDIN = re.compile(r"\blinkedin\w*\b")
+
+
+def _resolver_canal(texto: str) -> str | None:
+    """Resuelve el canal de `generar_post` a partir de la prosa, o `None`.
+
+    `None` significa "no hay un canal resuelto sin ambigüedad": cubre tanto el
+    pedido que no menciona ninguna red como el que menciona las dos a la vez.
+    Deliberadamente no hay un canal por defecto ni una preferencia entre
+    ambos: el llamador trata `None` como dato faltante, igual que un
+    identificador de actividad que no aparece en el texto.
+    """
+
+    normalizado = _normalizar(texto)
+    es_instagram = PATRON_CANAL_INSTAGRAM.search(normalizado) is not None
+    es_linkedin = PATRON_CANAL_LINKEDIN.search(normalizado) is not None
+    if es_instagram and not es_linkedin:
+        return "instagram"
+    if es_linkedin and not es_instagram:
+        return "linkedin"
+    return None
 
 
 @dataclass(frozen=True)
@@ -274,9 +315,8 @@ def interpretar_solicitud(
 
     # Único punto de decisión sobre "esta intención produce un borrador o se
     # rechaza": cubre en la misma rama `fuera_de_alcance` (nunca se aproxima a
-    # la más parecida), `generar_post` (pipeline propio de HU-011, despacho
-    # desde acá pendiente de #22), `ajustar_borrador` (reconocida, fuera de
-    # alcance de esta iteración) y las intenciones sin pipeline construido
+    # la más parecida), `ajustar_borrador` (reconocida, fuera de alcance de
+    # esta iteración) y las intenciones sin pipeline construido
     # (`generar_newsletter`, `generar_mail`). `INTENCIONES_CON_DESPACHO` es la
     # única fuente de verdad de qué intención despacha de verdad: ni el
     # catálogo por sí solo ni una intención declarada `ACTIVA` alcanzan para
@@ -310,16 +350,49 @@ def interpretar_solicitud(
             error="No se reconoció un identificador de actividad explícito en el pedido",
         )
 
-    resultado_proceso = procesar_solicitud(
-        fuente=fuente,
-        id_solicitud=id_actividad,
-        directorio_salida=directorio_salida,
-        generator=generator,
-        destino=destino,
-    )
-    resumen = None
-    if resultado_proceso.estado == "PENDIENTE_VALIDACION":
-        resumen = _resumen_desde_fuente(fuente, id_actividad)
+    # `generar_gacetilla` y `generar_post` comparten la misma forma de
+    # despacho (pipeline -> resumen a partir de la fuente) pero difieren en un
+    # dato de entrada: el post necesita además el canal, resuelto acá mismo
+    # con código determinístico (`_resolver_canal`), nunca por el modelo.
+    if intencion == "generar_post":
+        canal = _resolver_canal(texto)
+        if canal is None:
+            return _finalizar(
+                log_path=log_path,
+                correlation_id=correlation_id,
+                texto=texto_seguro,
+                solicitante=solicitante,
+                intencion=intencion,
+                id_actividad=id_actividad,
+                estado="INCOMPLETA",
+                resultado="canal_no_encontrado",
+                error=(
+                    "No se reconoció un canal (Instagram o LinkedIn) "
+                    "explícito en el pedido"
+                ),
+            )
+        resultado_proceso = procesar_post_estructurado(
+            fuente=fuente,
+            id_solicitud=id_actividad,
+            canal=canal,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            destino=destino,
+        )
+        resumen = None
+        if resultado_proceso.estado == "PENDIENTE_VALIDACION":
+            resumen = _resumen_post_desde_fuente(fuente, id_actividad, canal)
+    else:
+        resultado_proceso = procesar_solicitud(
+            fuente=fuente,
+            id_solicitud=id_actividad,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            destino=destino,
+        )
+        resumen = None
+        if resultado_proceso.estado == "PENDIENTE_VALIDACION":
+            resumen = _resumen_desde_fuente(fuente, id_actividad)
 
     return _finalizar(
         log_path=log_path,
@@ -368,6 +441,28 @@ def _resumen_desde_fuente(fuente: FuenteSolicitudes, id_actividad: str) -> str |
     if isinstance(fecha, str) and fecha.strip():
         return f"Gacetilla para '{titulo.strip()}' ({fecha.strip()})."
     return f"Gacetilla para '{titulo.strip()}'."
+
+
+def _resumen_post_desde_fuente(
+    fuente: FuenteSolicitudes, id_actividad: str, canal: str
+) -> str | None:
+    """Resumen corto del post generado, análogo a `_resumen_desde_fuente`.
+
+    Nunca lee el borrador generado: sólo vuelve a consultar la fuente
+    (solo lectura) para nombrar la actividad, e incluye el canal ya resuelto
+    para que la respuesta sea inequívoca sobre qué pieza se generó.
+    """
+
+    try:
+        fila = fuente.obtener(id_actividad)
+    except Exception:
+        return None
+    if not isinstance(fila, dict):
+        return None
+    titulo = fila.get("titulo", "")
+    if not isinstance(titulo, str) or not titulo.strip():
+        return None
+    return f"Post de {canal} para '{titulo.strip()}'."
 
 
 def _finalizar(

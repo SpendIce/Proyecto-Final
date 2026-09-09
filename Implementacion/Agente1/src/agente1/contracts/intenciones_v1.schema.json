@@ -2,11 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:proyecto-centenario:agente1:intenciones:v1",
   "title": "Catalogo cerrado de intenciones para la interpretacion en lenguaje natural (HU-013)",
-  "description": "Toda solicitud en lenguaje natural se clasifica a una de estas intenciones o se rechaza; nunca se aproxima a la mas parecida. `pipeline_integrado` distingue una propiedad estable del catalogo (aplicacion) de un hecho de esta iteracion (si el seam de HU-013 ya despacha esa intencion a un pipeline). generar_post tiene pipeline propio desde HU-011 pero su despacho desde este seam es HU-013/#22; hasta entonces se reconoce y se rechaza con codigo explicito.",
+  "description": "Toda solicitud en lenguaje natural se clasifica a una de estas intenciones o se rechaza; nunca se aproxima a la mas parecida. `pipeline_integrado` distingue una propiedad estable del catalogo (aplicacion) de un hecho de esta iteracion (si el seam de HU-013 ya despacha esa intencion a un pipeline). generar_gacetilla despacha desde HU-013/#20 y generar_post desde HU-013/#22, ambos a los pipelines propios de HU-010 y HU-011 respectivamente.",
   "x-contract-version": "intenciones_v1",
   "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
   "x-hu": "HU-013",
-  "x-issue": "#20",
+  "x-issue": "#20, #22",
   "x-origen": "Equipo tecnico del PPS. El catalogo de intenciones y los roles habilitados no fueron aprobados por la SEU.",
 
   "aplicaciones": {
@@ -28,9 +28,9 @@
       "id": "generar_post",
       "aplicacion": "ACTIVA",
       "pipeline": "post",
-      "pipeline_integrado": false,
-      "codigo_rechazo": "intencion_sin_despacho_integrado",
-      "descripcion": "Pedido de un post de redes. El pipeline existe desde HU-011, pero su despacho desde este seam es HU-013/#22."
+      "pipeline_integrado": true,
+      "codigo_rechazo": null,
+      "descripcion": "Pedido de un post de redes. Despachado al pipeline estructurado de HU-011 (procesar_post_estructurado) con el canal resuelto de forma deterministica desde la prosa (HU-013/#22)."
     },
     {
       "id": "fuera_de_alcance",

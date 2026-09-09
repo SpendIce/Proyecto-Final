@@ -1,4 +1,4 @@
-"""HU-013 (#20): de una solicitud en lenguaje natural a un borrador.
+"""HU-013 (#20, #22): de una solicitud en lenguaje natural a un borrador.
 
 Ejercita únicamente el seam público `interpretar_solicitud`: entra un mensaje
 y puertos, sale un `ResultadoInterpretacion`. Nada de estas pruebas mira
@@ -21,6 +21,10 @@ Cobertura, en orden:
 6. Inyección: sólo puede producir una intención válida o un rechazo.
 7. El recorrido funciona sin modelo configurado (se prueba enteramente con
    `FakeGenerator`, que es justamente ese camino).
+8. Post de HU-011 despachado desde este seam (#22): canal resuelto de forma
+   determinística desde la prosa para Instagram y LinkedIn, comportamiento
+   explícito sin canal reconocido (ausente o ambiguo), gate de contenido y
+   política de redes de HU-011 aplicados sin debilitarse.
 """
 
 from __future__ import annotations
@@ -153,12 +157,12 @@ def test_intencion_pendiente_de_pipeline_no_aparece_habilitada() -> None:
 # (`test_toda_intencion_sin_despacho_tiene_caso_negativo`) falla antes de que
 # esa intención pueda colarse como aceptada a medias. `fuera_de_alcance` entra
 # acá igual que cualquier otra: pasa por la misma rama de rechazo que
-# `generar_post` o `ajustar_borrador`, así que su código y la ausencia de
-# nombres de agentes se verifican con la misma prueba parametrizada, sin un
-# caso especial.
+# `ajustar_borrador`, así que su código y la ausencia de nombres de agentes se
+# verifican con la misma prueba parametrizada, sin un caso especial.
+# `generar_post` (#22) ya no es un caso negativo: tiene despacho propio, ver
+# la sección 8 al final de este archivo.
 CASOS_NEGATIVOS: dict[str, str] = {
     "fuera_de_alcance": "¿A qué hora cierra la biblioteca los sábados?",
-    "generar_post": "Necesitamos un post de instagram para la actividad SYN-001",
     "ajustar_borrador": "Corregí el borrador de la gacetilla SYN-001, quedó mal",
     "generar_newsletter": "Preparen el newsletter mensual con la actividad SYN-001",
     "generar_mail": "Mandale un mail a los inscriptos de SYN-001",
@@ -509,6 +513,202 @@ def test_recorrido_completo_funciona_sin_modelo_configurado(tmp_path: Path) -> N
     no hay ningún cliente de inferencia detrás. Este test recorre el camino
     feliz completo con él y verifica que el registro lo deja explícito."""
     resultado = _interpretar(tmp_path, "Necesito la gacetilla de SYN-001")
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["modelo_utilizado"] is False
+
+
+# --- 8. Post de HU-011 despachado desde este seam (#22) ----------------------
+#
+# `generar_post` comparte el pipeline de gacetilla en todo salvo un dato: el
+# canal. `_POST_CONFORME` es una creatividad válida para el contrato v2 por
+# defecto (`CONTRATO_CREATIVO_V2`) en *ambos* canales soportados —gancho,
+# prosa y cta pertenecen al catálogo cerrado de Instagram y de LinkedIn a la
+# vez, ver `post_creative_output_v2.schema.json`— así que un mismo fixture
+# alcanza para las pruebas de los dos canales.
+
+_POST_CONFORME = json.dumps(
+    {
+        "gancho": "Una propuesta para aprender y compartir.",
+        "prosa": "Sumate a una experiencia pensada para la comunidad.",
+        "cta": "Consultá los datos y participá.",
+        "hashtags": ["#Aprender", "#Comunidad"],
+    },
+    ensure_ascii=False,
+)
+
+
+@pytest.mark.parametrize(
+    ("canal", "texto"),
+    [
+        ("instagram", "Necesitamos un post de instagram para la actividad SYN-001"),
+        ("linkedin", "Necesitamos un post de linkedin para la actividad SYN-001"),
+    ],
+)
+def test_pedido_de_post_con_canal_explicito_produce_borrador(
+    canal: str, texto: str, tmp_path: Path
+) -> None:
+    resultado = _interpretar(
+        tmp_path, texto, generator=FakeGenerator(_POST_CONFORME)
+    )
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    assert resultado.intencion == "generar_post"
+    assert resultado.borrador_path is not None
+    assert resultado.borrador_path.is_file()
+    assert isinstance(resultado.referencia_borrador, ReferenciaBorrador)
+    contenido = resultado.borrador_path.read_text(encoding="utf-8")
+    assert f"CANAL: {canal}" in contenido
+
+
+def test_respuesta_de_post_trae_puntero_y_resumen_nunca_el_texto_completo(
+    tmp_path: Path,
+) -> None:
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero un post de instagram para SYN-001",
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+
+    assert resultado.resumen is not None
+    assert "Taller sintético de vinculación" in resultado.resumen
+    contenido_borrador = resultado.borrador_path.read_text(encoding="utf-8")
+    assert resultado.resumen != contenido_borrador
+    assert "Sumate a una experiencia" not in resultado.resumen
+
+
+def test_post_generado_conserva_marca_y_estado_pendiente(tmp_path: Path) -> None:
+    resultado = _interpretar(
+        tmp_path,
+        "Post de instagram para SYN-001",
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+
+    contenido = resultado.borrador_path.read_text(encoding="utf-8")
+    assert contenido.startswith("# BORRADOR — NO PUBLICAR")
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+
+
+def test_post_sin_canal_indicado_devuelve_incompleta_sin_decidir_por_defecto(
+    tmp_path: Path,
+) -> None:
+    """Un pedido de post que no nombra Instagram ni LinkedIn no recibe un canal
+    inventado: el comportamiento es el mismo que un identificador ausente."""
+    resultado = _interpretar(
+        tmp_path,
+        "Necesito un post para la actividad SYN-001",
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+
+    assert resultado.estado == "INCOMPLETA"
+    assert resultado.intencion == "generar_post"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["resultado"] == "canal_no_encontrado"
+    assert registro["id_actividad"] == "SYN-001"
+
+
+def test_post_con_los_dos_canales_a_la_vez_tampoco_decide_por_defecto(
+    tmp_path: Path,
+) -> None:
+    """Mencionar Instagram y LinkedIn a la vez tampoco resuelve un canal: es
+    el mismo resultado explícito que no mencionar ninguno, nunca una elección
+    del modelo ni una preferencia silenciosa por uno de los dos."""
+    resultado = _interpretar(
+        tmp_path,
+        "Necesito un post de instagram y linkedin para la actividad SYN-001",
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+
+    assert resultado.estado == "INCOMPLETA"
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["resultado"] == "canal_no_encontrado"
+
+
+def test_post_gate_de_contenido_de_hu011_no_se_debilita(tmp_path: Path) -> None:
+    """Una creatividad que inventa un hecho sigue rechazándose igual que en
+    HU-011: el despacho desde este seam no relaja el gate existente."""
+    creatividad_con_hecho_inventado = json.dumps(
+        {
+            "gancho": "Una propuesta para aprender y compartir.",
+            "prosa": "Nos encontramos el 5 de agosto a las 18 horas.",
+            "cta": "Consultá los datos y participá.",
+            "hashtags": ["#Aprender", "#Comunidad"],
+        },
+        ensure_ascii=False,
+    )
+
+    resultado = _interpretar(
+        tmp_path,
+        "Necesito un post de instagram para la actividad SYN-001",
+        generator=FakeGenerator(creatividad_con_hecho_inventado),
+    )
+
+    assert resultado.estado == "FALLIDA"
+    assert resultado.borrador_path is None
+
+
+def test_post_politica_de_redes_no_se_debilita_minimo_de_hashtags(
+    tmp_path: Path,
+) -> None:
+    """La política de redes de HU-011 —acá, el mínimo de hashtags por
+    canal— sigue aplicándose igual que si se llamara a `procesar_post_estructurado`
+    directamente: el despacho desde este seam no es una vía para relajarla."""
+    creatividad_sin_hashtags = json.dumps(
+        {
+            "gancho": "Una propuesta para aprender y compartir.",
+            "prosa": "Sumate a una experiencia pensada para la comunidad.",
+            "cta": "Consultá los datos y participá.",
+            "hashtags": [],
+        },
+        ensure_ascii=False,
+    )
+
+    resultado = _interpretar(
+        tmp_path,
+        "Necesito un post de instagram para la actividad SYN-001",
+        generator=FakeGenerator(creatividad_sin_hashtags),
+    )
+
+    assert resultado.estado == "FALLIDA"
+    assert resultado.borrador_path is None
+
+
+def test_post_con_identificador_explicito_inexistente_no_genera_borrador(
+    tmp_path: Path,
+) -> None:
+    resultado = _interpretar(
+        tmp_path,
+        "Post de instagram para la actividad ZZZ-999",
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.borrador_path is None
+
+
+def test_post_registra_solo_derivado_estructurado_nunca_prosa(tmp_path: Path) -> None:
+    texto = "Necesito un post de instagram para SYN-001, es urgente y personal"
+
+    resultado = _interpretar(tmp_path, texto, generator=FakeGenerator(_POST_CONFORME))
+
+    contenido_log = resultado.log_path.read_text(encoding="utf-8")
+    assert texto not in contenido_log
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "generar_post"
+    assert registro["id_actividad"] == "SYN-001"
+
+
+def test_recorrido_de_post_funciona_sin_modelo_configurado(tmp_path: Path) -> None:
+    """Igual que el camino de gacetilla: `FakeGenerator` no invoca ningún
+    cliente de inferencia y el post se genera igual, con menor cobertura de
+    ambigüedad porque acá no hay fallback con modelo (#26)."""
+    resultado = _interpretar(
+        tmp_path,
+        "Necesito un post de linkedin para SYN-001",
+        generator=FakeGenerator(_POST_CONFORME),
+    )
 
     assert resultado.estado == "PENDIENTE_VALIDACION"
     registro = _ultima_linea(resultado.log_path)
