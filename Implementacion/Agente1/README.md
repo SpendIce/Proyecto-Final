@@ -86,6 +86,8 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué la interacción pendiente no necesita durabilidad | `interpretacion.py`, docstring de `RegistroPendientes` |
 | Por qué los términos del modelo se suman a la prosa en lugar de reemplazarla | `interpretacion.py`, docstring de `_buscar_actividad_con_terminos` |
 | Por qué se rechaza un intérprete cuyo presupuesto no cubre el contrato | `interpretacion.py`, comentario de `_interpretar_con_modelo` (DEF-A1-013) |
+| Por qué el seam tiene una guarda de último recurso además de traducir cada falla prevista | `interpretacion.py`, docstring de `interpretar_solicitud` |
+| Por qué el campo `intencion` que devuelve el modelo sólo puede rechazar, nunca habilitar | `interpretacion.py`, comentario dentro del fallback; ADR 0001 |
 | Por qué un arreglo de texto libre acotado sí se puede dimensionar | `src/agente1/presupuesto.py`, docstring de `_dimensionar_arreglo` |
 | Por qué el núcleo no sabe nada del transporte de la interacción | `src/agente1/canal.py`, docstring de módulo y de `atender_canal` |
 | Por qué medir el corpus calibrado da 100 % y eso no informa nada | `scripts/medir_cobertura_sin_inferencia.py`, docstring de módulo |
