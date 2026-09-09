@@ -1,4 +1,4 @@
-"""HU-013 (#20, #22): de una solicitud en lenguaje natural a un borrador.
+"""HU-013 (#20, #22, #23): de una solicitud en lenguaje natural a un borrador.
 
 Ejercita únicamente el seam público `interpretar_solicitud`: entra un mensaje
 y puertos, sale un `ResultadoInterpretacion`. Nada de estas pruebas mira
@@ -25,10 +25,18 @@ Cobertura, en orden:
    determinística desde la prosa para Instagram y LinkedIn, comportamiento
    explícito sin canal reconocido (ausente o ambiguo), gate de contenido y
    política de redes de HU-011 aplicados sin debilitarse.
+9. Resolución difusa de actividad sin identificador explícito (#23):
+   coincidencia única y clara por título parcial o con tipeos, corpus
+   versionado de frases realistas, ausencia de contenido de otras filas en
+   el prompt, coincidencia nula y coincidencia múltiple o cercana (ambas se
+   comportan como "no se encontró identificador" en este incremento, sin
+   repregunta), reproducibilidad entre corridas, y ninguna falla al enumerar
+   la fuente propaga una excepción.
 """
 
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 
@@ -51,6 +59,7 @@ from agente1.interpretacion import (
 
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
+CORPUS_RESOLUCION_ACTIVIDAD = ROOT / "data" / "frases_resolucion_actividad.csv"
 ROL_HABILITADO = next(iter(ROLES_HABILITADOS))
 
 
@@ -713,3 +722,307 @@ def test_recorrido_de_post_funciona_sin_modelo_configurado(tmp_path: Path) -> No
     assert resultado.estado == "PENDIENTE_VALIDACION"
     registro = _ultima_linea(resultado.log_path)
     assert registro["modelo_utilizado"] is False
+
+
+# --- 9. Resolución difusa de actividad sin identificador explícito (#23) ----
+#
+# Cobertura, en orden: coincidencia única y clara por título parcial produce
+# borrador y el resultado indica qué actividad se entendió; el corpus
+# versionado de frases realistas con tipeos y títulos parciales resuelve a
+# la actividad esperada; el contenido de otras filas de la planilla no llega
+# al prompt del generador por este camino; coincidencia nula y coincidencia
+# múltiple (ambigua) se quedan, en este incremento, en el mismo estado que
+# "no se encontró identificador"; la resolución es reproducible entre
+# corridas; ninguna falla de la fuente al enumerar propaga una excepción.
+
+
+def test_pedido_con_titulo_parcial_resuelve_a_la_actividad_unica_y_genera_borrador(
+    tmp_path: Path,
+) -> None:
+    resultado = _interpretar(tmp_path, "Quiero la gacetilla del taller de vinculacion")
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    assert resultado.borrador_path is not None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["id_actividad"] == "SYN-001"
+
+
+def test_resultado_indica_que_actividad_se_entendio(tmp_path: Path) -> None:
+    """El resumen nombra la actividad resuelta, para que un error de
+    resolución sea visible de inmediato sin tener que abrir el borrador."""
+    resultado = _interpretar(tmp_path, "Quiero la gacetilla del taller de vinculacion")
+
+    assert resultado.resumen is not None
+    assert "Taller sintético de vinculación" in resultado.resumen
+
+
+def _casos_corpus_resolucion_actividad() -> list[tuple[str, str]]:
+    with CORPUS_RESOLUCION_ACTIVIDAD.open(encoding="utf-8", newline="") as archivo:
+        return [(fila["frase"], fila["id_esperado"]) for fila in csv.DictReader(archivo)]
+
+
+CASOS_CORPUS_RESOLUCION_ACTIVIDAD = _casos_corpus_resolucion_actividad()
+
+
+def test_el_corpus_de_resolucion_de_actividad_no_esta_vacio() -> None:
+    """Guarda contra un corpus vaciado por error: si esto falla, la prueba
+    parametrizada de abajo pasaría trivialmente sin ejercer nada."""
+    assert len(CASOS_CORPUS_RESOLUCION_ACTIVIDAD) >= 10
+
+
+@pytest.mark.parametrize(
+    "frase, id_esperado",
+    CASOS_CORPUS_RESOLUCION_ACTIVIDAD,
+    ids=[frase for frase, _ in CASOS_CORPUS_RESOLUCION_ACTIVIDAD],
+)
+def test_frase_del_corpus_resuelve_a_la_actividad_esperada(
+    frase: str, id_esperado: str, tmp_path: Path
+) -> None:
+    """Corpus versionado en data/frases_resolucion_actividad.csv: frases
+    realistas con errores de tipeo y títulos parciales, cada una con la
+    actividad que se espera que resuelva.
+
+    Sólo se verifica a qué actividad se resolvió, que es el criterio de
+    este ticket (#23). Dos filas del dataset sintético (SYN-002 y SYN-004)
+    son deliberadamente incompletas para ejercer el gate de HU-010 —les
+    falta contacto o fecha— así que resolver correctamente hacia ellas
+    puede terminar en `INCOMPLETA` por esa razón, no por una resolución de
+    actividad equivocada. Ese gate ya está probado en
+    `test_procesar_gacetilla.py`; acá no se repite."""
+    resultado = _interpretar(tmp_path, frase)
+
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["id_actividad"] == id_esperado
+    assert resultado.estado != "RECHAZADA"
+
+
+def test_contenido_de_otras_filas_de_la_planilla_no_llega_al_prompt_por_resolucion_difusa(
+    tmp_path: Path,
+) -> None:
+    """La resolución difusa lee `fuente.enumerar()`, es decir todas las
+    filas del catálogo. Este test verifica que ese barrido no filtra
+    contenido de actividades no pedidas hacia el prompt del generador: sólo
+    la actividad resuelta entra al pipeline de gacetilla, con el mismo
+    contrato que HU-010."""
+    prompts: list[str] = []
+
+    class _GeneratorQueCapturaPrompt:
+        modelo = "fake-captura-prompt"
+        num_predict = None
+
+        def generar(self, prompt: str) -> str:
+            prompts.append(prompt)
+            return _BORRADOR_CONFORME
+
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de vinculacion",
+        generator=_GeneratorQueCapturaPrompt(),
+    )
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    assert len(prompts) == 1
+    with DATASET.open(encoding="utf-8", newline="") as archivo:
+        filas = {fila["id_solicitud"]: fila for fila in csv.DictReader(archivo)}
+    fila_resuelta = filas.pop("SYN-001")
+    assert filas, "el dataset sintético debe tener más de una actividad"
+    for fila in filas.values():
+        for columna in ("titulo", "descripcion", "fecha", "organiza", "contacto", "lugar"):
+            valor = fila[columna]
+            # Algunos valores (organizador, contacto) se repiten entre filas
+            # del dataset sintético; sólo es una fuga si el valor de la otra
+            # fila no es, además, un valor legítimo de la actividad resuelta.
+            if valor and valor != fila_resuelta[columna]:
+                assert valor not in prompts[0]
+
+
+def test_pedido_sin_ninguna_coincidencia_no_genera_borrador(tmp_path: Path) -> None:
+    resultado = _interpretar(tmp_path, "Necesito la gacetilla del festival de robotica")
+
+    assert resultado.estado == "INCOMPLETA"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["resultado"] == "identificador_no_encontrado"
+    assert registro["id_actividad"] is None
+
+
+class _FuenteConActividadesAmbiguas:
+    """Dos actividades con título, fecha y organización idénticos: cualquier
+    consulta sobre ellas empata exactamente, para ejercer la rama de
+    coincidencia múltiple sin depender de márgenes delicados del dataset
+    sintético real."""
+
+    _FILA_BASE = {
+        "descripcion": "",
+        "publico": "",
+        "contacto": "",
+        "fuente": "",
+        "lugar": "",
+        "titulo": "Taller de robótica educativa",
+        "fecha": "2026-09-01",
+        "organiza": "Equipo ambiguo",
+    }
+
+    def obtener(self, id_solicitud: str) -> dict[str, str]:
+        for fila in self.enumerar():
+            if fila["id_solicitud"] == id_solicitud:
+                return fila
+        raise AssertionError("no debería pedirse una actividad ambigua por id")
+
+    def enumerar(self) -> list[dict[str, str]]:
+        return [
+            {**self._FILA_BASE, "id_solicitud": "AMB-001"},
+            {**self._FILA_BASE, "id_solicitud": "AMB-002"},
+        ]
+
+
+def test_pedido_con_coincidencia_multiple_no_genera_borrador(tmp_path: Path) -> None:
+    """Coincidencia múltiple: en este incremento se comporta igual que
+    ninguna coincidencia, sin repregunta (#25)."""
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        fuente=_FuenteConActividadesAmbiguas(),
+    )
+
+    assert resultado.estado == "INCOMPLETA"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["resultado"] == "identificador_no_encontrado"
+    assert registro["id_actividad"] is None
+
+
+class _FuenteConActividadesParecidasNoIdenticas:
+    """Dos actividades parecidas pero no idénticas (mismo organizador, título
+    con una sola palabra distinta, fechas distintas). A diferencia de
+    `_FuenteConActividadesAmbiguas`, acá los puntajes de las dos actividades
+    no empatan exactamente: quedan cerca (dentro de `MARGEN_DESAMBIGUACION`)
+    pero no iguales. Esto ejerce el margen de desambiguación mismo, no sólo
+    el caso degenerado de un empate exacto a puntaje cero de diferencia."""
+
+    def obtener(self, id_solicitud: str) -> dict[str, str]:
+        for fila in self.enumerar():
+            if fila["id_solicitud"] == id_solicitud:
+                return fila
+        raise AssertionError("no debería pedirse una actividad ambigua por id")
+
+    def enumerar(self) -> list[dict[str, str]]:
+        base = {"descripcion": "", "publico": "", "contacto": "", "fuente": "", "lugar": ""}
+        return [
+            {
+                **base,
+                "id_solicitud": "PAR-001",
+                "titulo": "Taller de robótica educativa avanzada",
+                "fecha": "2026-09-01",
+                "organiza": "Equipo Norte",
+            },
+            {
+                **base,
+                "id_solicitud": "PAR-002",
+                "titulo": "Taller de robótica educativa básica",
+                "fecha": "2026-09-02",
+                "organiza": "Equipo Norte",
+            },
+        ]
+
+
+def test_pedido_con_coincidencia_cercana_pero_no_identica_no_genera_borrador(
+    tmp_path: Path,
+) -> None:
+    """El margen de desambiguación tiene que rechazar también dos
+    actividades parecidas cuyo puntaje difiere, no sólo un empate exacto."""
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        fuente=_FuenteConActividadesParecidasNoIdenticas(),
+    )
+
+    assert resultado.estado == "INCOMPLETA"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["id_actividad"] is None
+
+
+def test_resolucion_difusa_es_reproducible_entre_corridas(tmp_path: Path) -> None:
+    """Misma frase, misma fuente: la actividad resuelta tiene que ser
+    idéntica en corridas independientes. El algoritmo de similitud
+    (`difflib.SequenceMatcher` sobre texto normalizado) no depende de
+    semillas de hash ni de estructuras con orden no determinístico, así que
+    esto tiene que valer siempre, no sólo en la mayoría de las corridas."""
+    frase = "Necesito la gacetilla del taller sintetico de vinculasion, porfa"
+
+    ids_resueltos = set()
+    for corrida in range(5):
+        resultado = _interpretar(tmp_path / f"corrida-{corrida}", frase)
+        assert resultado.estado == "PENDIENTE_VALIDACION"
+        registro = _ultima_linea(resultado.log_path)
+        ids_resueltos.add(registro["id_actividad"])
+
+    assert ids_resueltos == {"SYN-001"}
+
+
+class _FuenteQueRompeAlEnumerar:
+    def obtener(self, id_solicitud: str) -> dict[str, str]:
+        raise AssertionError("no debería pedirse una actividad si enumerar ya falló")
+
+    def enumerar(self) -> list[dict[str, str]]:
+        raise RuntimeError("boom: fallo interno al enumerar la fuente")
+
+
+def test_falla_al_enumerar_actividades_no_propaga_excepcion(tmp_path: Path) -> None:
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de vinculacion",
+        fuente=_FuenteQueRompeAlEnumerar(),
+    )
+
+    assert resultado.estado == "INCOMPLETA"
+    assert resultado.borrador_path is None
+    assert "boom" not in (resultado.error or "")
+
+
+# --- 10. Composición de #22 y #23 --------------------------------------------
+#
+# Cada incremento probó su camino por separado: #22 despacha `generar_post`
+# con un identificador explícito en la prosa, y #23 resuelve la actividad por
+# similitud cuando ese identificador no aparece. La combinación —un pedido de
+# post que además omite el identificador— no la ejercitaba ninguno de los dos,
+# y es un camino real: quien pide un post tiene tan pocos motivos para conocer
+# el `id_solicitud` como quien pide una gacetilla.
+
+
+def test_pedido_de_post_sin_identificador_resuelve_la_actividad_por_similitud(
+    tmp_path: Path,
+) -> None:
+    resultado = _interpretar(
+        tmp_path,
+        "Necesito un post de instagram del taller de vinculacion",
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    assert resultado.intencion == "generar_post"
+    assert resultado.borrador_path is not None
+    contenido = resultado.borrador_path.read_text(encoding="utf-8")
+    assert "CANAL: instagram" in contenido
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["id_actividad"] == "SYN-001"
+
+
+def test_post_sin_identificador_ni_canal_reporta_el_canal_faltante(
+    tmp_path: Path,
+) -> None:
+    # El orden de los controles importa: la actividad se resuelve primero, así
+    # que la falta de canal es lo único que queda pendiente y el pedido no se
+    # confunde con uno cuya actividad no se pudo identificar.
+    resultado = _interpretar(
+        tmp_path,
+        "Necesito un post del taller de vinculacion",
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+
+    assert resultado.estado == "INCOMPLETA"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["resultado"] == "canal_no_encontrado"
+    assert registro["id_actividad"] == "SYN-001"

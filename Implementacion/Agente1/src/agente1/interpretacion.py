@@ -1,4 +1,4 @@
-"""HU-013 (#20, #22): de una solicitud en lenguaje natural a un borrador.
+"""HU-013 (#20, #22, #23): de una solicitud en lenguaje natural a un borrador.
 
 Este módulo es el seam nuevo: `interpretar_solicitud` recibe la prosa de una
 persona de la SEU junto con la identidad que afirma el canal, la clasifica a
@@ -8,26 +8,42 @@ propaga excepciones de la fuente, del generador ni del destino: cada camino
 —éxito o falla— termina en un `ResultadoInterpretacion` y en una línea de
 auditoría.
 
-Alcance de estos incrementos: la persona nombra la intención y un
-identificador de actividad reconocible en la prosa (#20); para
-`generar_post` (#22) además nombra el canal (Instagram o LinkedIn) en la
-misma prosa. Deliberadamente **no** entran acá:
+Alcance de estos incrementos: la persona nombra la intención y, o bien un
+identificador de actividad reconocible en la prosa (#20), o bien datos
+suficientes para resolver la actividad por **búsqueda difusa
+determinística** sobre el índice que arma `fuente.enumerar()` (#23, requiere
+#19), normalizando título, fecha y organización. De la búsqueda difusa sólo
+se acepta el caso de **coincidencia única y clara**: ninguna coincidencia, o
+varias cercanas entre sí, se tratan igual que "no se encontró identificador"
+en este incremento — la repregunta con candidatas es #25, no esto. Para
+`generar_post` (#22) la prosa además nombra el canal (Instagram o LinkedIn).
 
-- la búsqueda difusa de actividad por título (#23, requiere #19);
-- la repregunta con candidatas y el estado entre turnos (#25);
+Deliberadamente **no** entran acá:
+
+- la repregunta con candidatas y el estado entre turnos ante coincidencia
+  múltiple o nula (#25);
 - el canal de interacción como adapter (#24) — no confundir con el canal de
   la red social que resuelve `_resolver_canal`, que es un dato del dominio de
   `generar_post`, no el transporte de la interacción;
-- el fallback con modelo ante lo ambiguo (#26).
+- el fallback con modelo ante lo ambiguo (#26) — la resolución de actividad
+  sigue siendo íntegramente de código, nunca del modelo, aun así.
 
 Decisiones que no se ven en el código:
 
 - **La prosa nunca llega a un prompt.** Lo único que sale de `texto` hacia los
-  pipelines de gacetilla y de post es el identificador de actividad y, para
-  `generar_post`, el nombre del canal ya resuelto — ambos ya pasan por sus
-  propios contratos (`id_solicitud`, `canal`). El texto libre se usa
-  únicamente para clasificar localmente, en este proceso, contra un
-  vocabulario cerrado.
+  pipelines de gacetilla y de post es el identificador de actividad —extraído
+  o resuelto— y, para `generar_post`, el nombre del canal ya resuelto: ambos
+  pasan por sus propios contratos (`id_solicitud`, `canal`). El texto libre se
+  usa únicamente para clasificar y para buscar localmente, en este proceso,
+  contra un vocabulario cerrado y contra un índice estructurado — nunca como
+  instrucción hacia el generador.
+- **La resolución de actividad es código, no el modelo.** `fuente.enumerar()`
+  entrega filas estructuradas; la comparación es un puntaje determinístico
+  sobre texto normalizado (ver `_resolver_actividad_por_similitud`). El
+  contenido de la planilla no entra a ningún prompt: en el peor caso, el
+  código elige mal una actividad, lo que es visible de inmediato en el
+  `resumen` de la respuesta y queda bloqueado igual por el gate de hechos y
+  por la validación humana. Ver ADR 0001.
 - **La clasificación es determinística y el catálogo es cerrado.** Un texto
   que no activa ninguna palabra clave del catálogo se clasifica
   `fuera_de_alcance`; no se aproxima a la intención más parecida. Ver
@@ -65,6 +81,7 @@ import unicodedata
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
 from importlib.resources import files
 from pathlib import Path
 
@@ -199,6 +216,204 @@ def _resolver_canal(texto: str) -> str | None:
     if es_linkedin and not es_instagram:
         return "linkedin"
     return None
+
+
+# --- Resolución difusa de actividad (#23) ------------------------------------
+# Cuando la prosa no trae un identificador explícito, se intenta resolver la
+# actividad por similitud contra el índice que arma `fuente.enumerar()` (#19).
+# Todo lo que sigue es código determinístico sobre texto ya normalizado: nada
+# de esto arma un prompt ni consulta un modelo. Ver ADR 0001 y el docstring
+# del módulo.
+#
+# El puntaje de una actividad es un promedio ponderado de tres "coberturas"
+# de tokens (título, fecha, organización): para cada palabra de contenido del
+# campo, se busca su mejor coincidencia entre las palabras de la consulta con
+# `difflib.SequenceMatcher.ratio()` —determinístico, sin semillas de hash de
+# por medio— y se promedia. Comparar por palabra en vez de por cadena
+# completa es lo que permite tolerar relleno de la prosa ("quiero", "por
+# favor") sin que ese relleno diluya el puntaje: una palabra de relleno de la
+# consulta simplemente no aporta a la cobertura de ninguna palabra del campo,
+# no resta.
+#
+# El umbral, el margen y los pesos no salen de una fórmula: se calibraron a
+# mano contra el dataset sintético (`data/actividades_sinteticas.csv`) y el
+# corpus versionado de frases realistas (`data/frases_resolucion_actividad.csv`),
+# de modo que toda frase del corpus resuelva a su actividad esperada y que
+# "el taller del martes" —ninguna actividad del dataset cae un martes—
+# siga sin resolver. El título pesa más que la fecha y la organización
+# porque es, en la prosa real, el dato que más se nombra; fecha y
+# organización actúan sobre todo como desempate cuando dos títulos son
+# parecidos (ver `test_frase_del_corpus_resuelve_a_la_actividad_esperada` y
+# `test_pedido_con_coincidencia_cercana_pero_no_identica_no_genera_borrador`
+# en `test_interpretacion.py`). Cambiar cualquiera de estos números exige
+# volver a correr esas pruebas.
+UMBRAL_COINCIDENCIA_CLARA = 0.55
+MARGEN_DESAMBIGUACION = 0.10
+_PESO_TITULO = 0.60
+_PESO_FECHA = 0.25
+_PESO_ORGANIZA = 0.15
+
+_PATRON_TOKEN = re.compile(r"[a-z0-9]+")
+# Palabras puramente gramaticales del español: artículos, preposiciones y
+# pronombres cortos que aparecen tanto en la prosa como, a veces, en la
+# escritura en letras de una fecha ("5 de agosto"). Sin filtrarlas, un "de"
+# de la consulta coincidiría por igual contra el "de" de cualquier fecha o
+# título, inflando el puntaje de todas las actividades por parejo y anulando
+# la capacidad de discriminar entre ellas.
+_STOPWORDS_ES = frozenset(
+    {
+        "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas",
+        "y", "o", "en", "con", "por", "para", "al", "que", "su", "sus",
+        "lo", "le", "les", "es", "son", "esa", "ese", "esta", "este",
+    }
+)
+_MESES_ES = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril", 5: "mayo", 6: "junio",
+    7: "julio", 8: "agosto", 9: "septiembre", 10: "octubre", 11: "noviembre",
+    12: "diciembre",
+}
+
+
+def _tokenizar(texto_normalizado: str) -> tuple[str, ...]:
+    """Palabras de contenido de un texto ya pasado por `_normalizar`.
+
+    Descarta palabras puramente gramaticales y palabras cortas que no son
+    números: son las que menos aportan a distinguir una actividad de otra.
+    """
+
+    tokens = _PATRON_TOKEN.findall(texto_normalizado)
+    return tuple(
+        token
+        for token in tokens
+        if token not in _STOPWORDS_ES and (len(token) >= 3 or token.isdigit())
+    )
+
+
+def _variantes_fecha_tokenizadas(fecha: str) -> tuple[str, ...]:
+    """Tokens de contenido de una fecha, en las formas en que se la nombra.
+
+    Una fecha ISO ("2026-08-05") casi nunca aparece así en prosa suelta; se
+    la nombra con el día y el mes en letras ("5 de agosto"). Se agregan
+    ambas representaciones al índice para que la fecha pueda aportar a la
+    resolución tanto si la prosa la cita en formato ISO como en letras.
+    """
+
+    fecha = fecha.strip() if isinstance(fecha, str) else ""
+    if not fecha:
+        return ()
+    tokens: set[str] = set(_tokenizar(_normalizar(fecha)))
+    try:
+        fecha_dt = datetime.strptime(fecha, "%Y-%m-%d")
+    except ValueError:
+        return tuple(sorted(tokens))
+    nombre_mes = _MESES_ES[fecha_dt.month]
+    tokens.update(
+        _tokenizar(
+            _normalizar(f"{fecha_dt.day} de {nombre_mes} de {fecha_dt.year}")
+        )
+    )
+    return tuple(sorted(tokens))
+
+
+def _cobertura_tokens(
+    tokens_campo: tuple[str, ...], tokens_consulta: tuple[str, ...]
+) -> float:
+    """Fracción de `tokens_campo` reconocible entre `tokens_consulta`.
+
+    Para cada palabra del campo (título, fecha u organización), se toma su
+    mejor `ratio()` contra cualquier palabra de la consulta —tolera errores
+    de tipeo de a una palabra— y se promedia. Un campo vacío no aporta nada
+    (cobertura 0), nunca indeterminado.
+    """
+
+    if not tokens_campo:
+        return 0.0
+    if not tokens_consulta:
+        return 0.0
+    total = 0.0
+    for token_campo in tokens_campo:
+        mejor = max(
+            SequenceMatcher(None, token_campo, token_consulta, autojunk=False).ratio()
+            for token_consulta in tokens_consulta
+        )
+        total += mejor
+    return total / len(tokens_campo)
+
+
+def _puntuar_actividad(tokens_consulta: tuple[str, ...], fila: dict[str, str]) -> float:
+    titulo = str(fila.get("titulo", "") or "")
+    organiza = str(fila.get("organiza", "") or "")
+    fecha = str(fila.get("fecha", "") or "")
+
+    cobertura_titulo = _cobertura_tokens(_tokenizar(_normalizar(titulo)), tokens_consulta)
+    cobertura_organiza = _cobertura_tokens(_tokenizar(_normalizar(organiza)), tokens_consulta)
+    cobertura_fecha = _cobertura_tokens(_variantes_fecha_tokenizadas(fecha), tokens_consulta)
+
+    return (
+        _PESO_TITULO * cobertura_titulo
+        + _PESO_FECHA * cobertura_fecha
+        + _PESO_ORGANIZA * cobertura_organiza
+    )
+
+
+def _resolver_actividad_por_similitud(texto: str, fuente: FuenteSolicitudes) -> str | None:
+    """Resuelve a lo sumo un `id_solicitud`, sólo ante coincidencia única y clara.
+
+    Nunca propaga: cualquier falla al enumerar la fuente, o cualquier fila
+    con forma inesperada, se trata como "no se encontró actividad", igual
+    que cero coincidencias. Ninguna coincidencia y varias coincidencias
+    cercanas entre sí se tratan igual en este incremento (#23): sólo se
+    acepta la actividad ganadora cuando supera el umbral mínimo *y* saca una
+    ventaja clara sobre la segunda mejor — un empate exacto en el puntaje
+    más alto queda, por construcción, siempre por debajo de ese margen, así
+    que nunca se acepta como ganador.
+
+    El orden de `candidatos` se desempata por `id_solicitud` (orden
+    alfabético) ante puntajes iguales. Esto no es lo que hace reproducible
+    al resultado devuelto: eso ya lo garantiza que el puntaje sea una
+    función pura del texto normalizado, sin estructuras de orden no
+    determinístico de por medio. El desempate por id es más bien higiene
+    defensiva: mantiene el orden de la lista interna de candidatos
+    independiente del orden en que la fuente haya enumerado las filas, en
+    vez de heredarlo por la estabilidad incidental de `sort()`.
+    """
+
+    try:
+        actividades = fuente.enumerar()
+    except Exception:
+        return None
+    if not isinstance(actividades, list):
+        return None
+
+    tokens_consulta = _tokenizar(_normalizar(texto))
+    if not tokens_consulta:
+        return None
+
+    candidatos: list[tuple[float, str]] = []
+    for fila in actividades:
+        if not isinstance(fila, dict):
+            continue
+        id_solicitud = fila.get("id_solicitud")
+        if not isinstance(id_solicitud, str) or not id_solicitud:
+            continue
+        try:
+            puntaje = _puntuar_actividad(tokens_consulta, fila)
+        except Exception:
+            continue
+        candidatos.append((puntaje, id_solicitud))
+
+    if not candidatos:
+        return None
+    candidatos.sort(key=lambda candidato: (-candidato[0], candidato[1]))
+
+    mejor_puntaje, mejor_id = candidatos[0]
+    if mejor_puntaje < UMBRAL_COINCIDENCIA_CLARA:
+        return None
+    if len(candidatos) > 1:
+        segundo_puntaje, _ = candidatos[1]
+        if mejor_puntaje - segundo_puntaje < MARGEN_DESAMBIGUACION:
+            return None
+    return mejor_id
 
 
 @dataclass(frozen=True)
@@ -338,6 +553,14 @@ def interpretar_solicitud(
 
     id_actividad = _extraer_identificador_explicito(texto)
     if id_actividad is None:
+        # #23: sin identificador explícito, se intenta resolver la actividad
+        # por similitud contra el índice de `fuente.enumerar()`. Sólo se
+        # acepta coincidencia única y clara; ninguna coincidencia o varias
+        # coincidencias cercanas quedan, en este incremento, en el mismo
+        # camino que "no se encontró identificador" — la repregunta con
+        # candidatas es #25, no esto.
+        id_actividad = _resolver_actividad_por_similitud(texto, fuente)
+    if id_actividad is None:
         return _finalizar(
             log_path=log_path,
             correlation_id=correlation_id,
@@ -347,7 +570,10 @@ def interpretar_solicitud(
             id_actividad=None,
             estado="INCOMPLETA",
             resultado="identificador_no_encontrado",
-            error="No se reconoció un identificador de actividad explícito en el pedido",
+            error=(
+                "No se reconoció ni un identificador explícito ni una "
+                "actividad única y clara en el pedido"
+            ),
         )
 
     # `generar_gacetilla` y `generar_post` comparten la misma forma de
