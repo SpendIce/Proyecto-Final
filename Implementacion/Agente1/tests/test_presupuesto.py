@@ -126,3 +126,43 @@ def test_la_medicion_versionada_describe_el_documento_maximo_del_contrato():
     assert {medido for medido, _ in MEDICION_DOCUMENTO_MAXIMO_V3.values()} == {
         caracteres
     }
+
+
+def test_un_arreglo_de_texto_acotado_por_maxitems_si_se_puede_dimensionar():
+    """El contrato del fallback de interpretación (#26) acota su arreglo con
+    `maxItems` y `items.maxLength` en lugar de con un enum, porque los términos
+    de búsqueda son texto libre y no un catálogo cerrado. Eso sigue siendo una
+    salida acotada, así que tiene que poder dimensionarse."""
+    schema = {
+        "required": ["terminos"],
+        "properties": {
+            "terminos": {
+                "type": "array",
+                "maxItems": 3,
+                "uniqueItems": True,
+                "items": {"type": "string", "maxLength": 5},
+            }
+        },
+    }
+
+    documento = json.loads(documento_maximo(schema))
+
+    assert len(documento["terminos"]) == 3
+    assert all(len(termino) == 5 for termino in documento["terminos"])
+    assert len(set(documento["terminos"])) == 3, "uniqueItems exige valores distintos"
+
+
+def test_un_arreglo_de_texto_sin_maxitems_no_se_puede_dimensionar():
+    schema = {
+        "required": ["terminos"],
+        "properties": {
+            "terminos": {
+                "type": "array",
+                "uniqueItems": True,
+                "items": {"type": "string", "maxLength": 5},
+            }
+        },
+    }
+
+    with pytest.raises(ContratoNoDimensionable):
+        documento_maximo(schema)

@@ -119,6 +119,7 @@ from typing import Callable, Protocol
 from .destinos import DestinoBorradores, ReferenciaBorrador
 from .fuentes import FuenteSolicitudes
 from .posts import procesar_post_estructurado
+from .presupuesto import presupuesto_minimo_num_predict
 from .procesamiento import Generator, procesar_solicitud
 
 
@@ -149,6 +150,37 @@ ROLES_HABILITADOS = frozenset(
 # quien exige que exista un caso de prueba, ver `test_interpretacion.py`— es
 # este conjunto.
 INTENCIONES_CON_DESPACHO = frozenset({"generar_gacetilla", "generar_post"})
+
+
+# --- Fallback con modelo local (#26) ----------------------------------------
+# El modelo interviene sólo cuando el camino determinístico no resolvió, y su
+# única salida admitida es una intención del catálogo más términos de búsqueda
+# estructurados. `interpretacion_fallback_v1` es el contrato de esa salida; su
+# enum tiene que ser el mismo catálogo que `intenciones_v1`, y hay una prueba
+# que falla si dejan de coincidir. Ver ADR 0001.
+CONTRATO_FALLBACK = json.loads(
+    files("agente1")
+    .joinpath("contracts", "interpretacion_fallback_v1.schema.json")
+    .read_text(encoding="utf-8")
+)
+CONTRATO_FALLBACK_VERSION = str(CONTRATO_FALLBACK["x-contract-version"])
+PROMPT_FALLBACK = (
+    files("agente1")
+    .joinpath("prompts", "interpretacion_fallback_v1.txt")
+    .read_text(encoding="utf-8")
+)
+MAX_TERMINOS_FALLBACK = int(
+    CONTRATO_FALLBACK["properties"]["terminos_busqueda"]["maxItems"]
+)
+MAX_LARGO_TERMINO_FALLBACK = int(
+    CONTRATO_FALLBACK["properties"]["terminos_busqueda"]["items"]["maxLength"]
+)
+# El presupuesto se deriva del contrato con la misma maquinaria que usa el
+# pipeline de gacetilla (`presupuesto.py`), no se fija a mano: si una versión
+# futura del contrato admite más términos o términos más largos, este número
+# sube solo y la regresión avisa antes de que alguien acepte un presupuesto que
+# ya no alcanza. Es la lección de DEF-A1-013.
+NUM_PREDICT_FALLBACK = presupuesto_minimo_num_predict(CONTRATO_FALLBACK)
 
 # Identificador "explícito": palabras alfabéticas cortas, un guion y dígitos,
 # como los que ya produce el dataset sintético (`SYN-001`). Es una forma
@@ -675,6 +707,91 @@ def _resumen_repregunta(candidatas: tuple["CandidataActividad", ...]) -> str:
 
 
 @dataclass(frozen=True)
+class TerminosInterpretados:
+    """Lo único que se acepta de vuelta del modelo, ya validado (#26).
+
+    `intencion` pertenece al catálogo cerrado y `terminos` son palabras
+    sueltas acotadas por el contrato. No hay ningún otro campo: el modelo no
+    devuelve texto redactado, ni identificadores de actividad, ni decisiones.
+    """
+
+    intencion: str
+    terminos: tuple[str, ...]
+
+
+def _validar_salida_fallback(salida: str) -> TerminosInterpretados | None:
+    """Valida la salida del modelo contra `interpretacion_fallback_v1`.
+
+    Devuelve `None` ante cualquier desvío —JSON inválido, claves faltantes o
+    de más, tipos equivocados, término demasiado largo, o una intención que no
+    está en el catálogo— sin distinguir entre ellos: el llamador sólo necesita
+    saber si hay una salida usable. Una salida manipulada no puede producir
+    una intención inexistente porque la pertenencia al catálogo se comprueba
+    acá y no en el prompt. Ver ADR 0001.
+    """
+
+    try:
+        documento = json.loads(salida)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(documento, dict):
+        return None
+    if set(documento) != set(CONTRATO_FALLBACK["required"]):
+        return None
+    intencion = documento["intencion"]
+    if not isinstance(intencion, str) or intencion not in IDS_INTENCIONES:
+        return None
+    terminos = documento["terminos_busqueda"]
+    if not isinstance(terminos, list) or len(terminos) > MAX_TERMINOS_FALLBACK:
+        return None
+    for termino in terminos:
+        if (
+            not isinstance(termino, str)
+            or not termino.strip()
+            or len(termino) > MAX_LARGO_TERMINO_FALLBACK
+        ):
+            return None
+    return TerminosInterpretados(
+        intencion=intencion, terminos=tuple(str(termino) for termino in terminos)
+    )
+
+
+def _interpretar_con_modelo(
+    texto: str, interprete: Generator | None
+) -> TerminosInterpretados | None:
+    """Intenta el fallback. Nunca propaga y nunca ve la planilla.
+
+    El prompt lleva el catálogo cerrado y la prosa de la persona delimitada y
+    declarada como dato no confiable —nunca como instrucción—, y nada más: el
+    contenido de la fuente no entra acá, así que una fila maliciosa no puede
+    alterar el comportamiento del modelo. Si el intérprete no está
+    configurado, la capa sigue funcionando con menor cobertura.
+    """
+
+    if interprete is None:
+        return None
+    # `replace` y no `format`: la plantilla contiene un ejemplo JSON literal
+    # con llaves, que `format` interpretaría como marcadores. Misma razón por
+    # la que los prompts de posts usan `replace` (ver `posts.py`).
+    prompt = (
+        PROMPT_FALLBACK.replace(
+            "{intenciones}",
+            "\n".join(f"- {identificador}" for identificador in sorted(IDS_INTENCIONES)),
+        )
+        .replace("{max_terminos}", str(MAX_TERMINOS_FALLBACK))
+        .replace("{max_largo_termino}", str(MAX_LARGO_TERMINO_FALLBACK))
+        .replace("{pedido}", texto)
+    )
+    try:
+        salida = interprete.generar(prompt)
+    except Exception:
+        return None
+    if not isinstance(salida, str):
+        return None
+    return _validar_salida_fallback(salida)
+
+
+@dataclass(frozen=True)
 class CandidataActividad:
     """Una actividad candidata ofrecida en una repregunta.
 
@@ -916,6 +1033,7 @@ def interpretar_solicitud(
     destino: DestinoBorradores | None = None,
     registro_pendientes: RegistroPendientes | None = None,
     reloj: Callable[[], datetime] | None = None,
+    interprete: Generator | None = None,
 ) -> ResultadoInterpretacion:
     """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
 
@@ -930,6 +1048,13 @@ def interpretar_solicitud(
     turnos, no en disponibilidad, igual que el resto del módulo degrada sin
     el modelo. `reloj` por defecto es `datetime.now(timezone.utc)`; las
     pruebas lo inyectan para no depender de esperas reales (#25).
+
+    `interprete` es el modelo local del fallback (#26). También es opcional y
+    por la misma razón: sin él, un pedido que el camino determinístico no
+    resuelve termina en repregunta igual que antes, con menor cobertura y sin
+    perder disponibilidad. Es un `Generator` distinto del que redacta los
+    borradores porque hace otra cosa —extrae términos, no redacta— y porque
+    así ninguna prueba determinística depende de que exista.
     """
 
     correlation_id = str(uuid.uuid4())
@@ -995,6 +1120,8 @@ def interpretar_solicitud(
 
     intencion = _clasificar_intencion(texto)
 
+    modelo_utilizado = False
+
     if intencion in INTENCIONES_CON_DESPACHO:
         intencion_efectiva = intencion
         id_actividad = _extraer_identificador_explicito(texto)
@@ -1015,11 +1142,40 @@ def interpretar_solicitud(
             id_actividad = referencia.id_actividad
             _descartar_pendiente(registro_pendientes, solicitante.identificador)
         else:
-            # Ni resolución directa ni referencia a una pendiente: se junta
-            # un conjunto de candidatas y se repregunta (#25) en lugar de
-            # aceptar una elección propia. Si ni siquiera hay candidatas que
-            # ofrecer, se mantiene el desenlace de #23: "no se encontró
-            # identificador", sin crear estado nuevo.
+            # #26: antes de repreguntar se intenta el modelo. Su salida
+            # validada aporta términos de búsqueda que alimentan la **misma**
+            # resolución determinística de #23 — el modelo nunca elige la
+            # actividad, sólo reformula la consulta— y puede corregir la
+            # intención, siempre dentro del catálogo cerrado.
+            interpretado = _interpretar_con_modelo(texto, interprete)
+            if interpretado is not None:
+                if interpretado.intencion in INTENCIONES_CON_DESPACHO:
+                    intencion_efectiva = interpretado.intencion
+                if interpretado.terminos:
+                    # Los términos se **suman** a la prosa original en lugar
+                    # de reemplazarla. No es un detalle: la cobertura de
+                    # `_puntuar_actividad` es monótona en la cantidad de
+                    # tokens de la consulta, así que una consulta armada sólo
+                    # con los términos del modelo nunca podría puntuar más
+                    # alto que la prosa completa, y el fallback no agregaría
+                    # cobertura alguna. Sumándolos, el modelo sólo puede
+                    # aportar señal —una forma normalizada de lo que la
+                    # persona escribió mal— y nunca quitar la que ya había.
+                    id_actividad = _resolver_actividad_por_similitud(
+                        texto + " " + " ".join(interpretado.terminos), fuente
+                    )
+                if id_actividad is not None:
+                    modelo_utilizado = True
+                    _descartar_pendiente(
+                        registro_pendientes, solicitante.identificador
+                    )
+
+        if id_actividad is None and referencia is None:
+            # Ni resolución directa, ni referencia a una pendiente, ni ayuda
+            # del modelo: se junta un conjunto de candidatas y se repregunta
+            # (#25) en lugar de aceptar una elección propia. Si ni siquiera
+            # hay candidatas que ofrecer, se mantiene el desenlace de #23:
+            # "no se encontró identificador", sin crear estado nuevo.
             candidatas = _generar_candidatas(texto, fuente)
             if not candidatas:
                 return _finalizar(
@@ -1147,6 +1303,7 @@ def interpretar_solicitud(
         solicitante=solicitante,
         intencion=intencion_efectiva,
         id_actividad=id_actividad,
+        modelo_utilizado=modelo_utilizado,
         estado=resultado_proceso.estado,
         resultado=_RESULTADOS_POR_ESTADO.get(resultado_proceso.estado, "estado_no_reconocido"),
         error=resultado_proceso.error,
@@ -1227,6 +1384,7 @@ def _finalizar(
     resumen: str | None = None,
     pipeline_correlation_id: str | None = None,
     candidatas: "tuple[CandidataActividad, ...]" = (),
+    modelo_utilizado: bool = False,
 ) -> ResultadoInterpretacion:
     if estado not in ESTADOS_RESULTADO:
         estado = "FALLIDA"
@@ -1237,7 +1395,7 @@ def _finalizar(
         "pipeline_correlation_id": pipeline_correlation_id,
         "intencion": intencion,
         "id_actividad": id_actividad,
-        "modelo_utilizado": False,
+        "modelo_utilizado": modelo_utilizado,
         "solicitante_rol": solicitante.rol if solicitante is not None else None,
         "solicitante_hash": (
             _hash(solicitante.identificador) if solicitante is not None else None

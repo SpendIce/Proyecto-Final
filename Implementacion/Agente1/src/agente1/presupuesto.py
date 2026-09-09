@@ -113,9 +113,29 @@ def documento_maximo(schema: dict[str, object]) -> str:
         elif tipo == "array":
             items = definicion.get("items", {})
             valores = items.get("enum")
-            if not valores or not definicion.get("uniqueItems"):
-                raise ContratoNoDimensionable(f"{campo} no acota su cantidad de items")
-            documento[campo] = list(valores)
+            if valores and definicion.get("uniqueItems"):
+                documento[campo] = list(valores)
+                continue
+            # Un arreglo de texto libre también acota su salida si declara
+            # cuántos elementos admite y cuánto mide cada uno. Es la forma que
+            # usa `interpretacion_fallback_v1` (#26): los términos de búsqueda
+            # son texto, no un catálogo cerrado, así que no hay enum del cual
+            # derivar la cota. El relleno se hace distinto por elemento para no
+            # violar `uniqueItems` en el documento que se dimensiona.
+            cantidad = definicion.get("maxItems")
+            largo_item = items.get("maxLength")
+            if (
+                items.get("type") == "string"
+                and isinstance(cantidad, int)
+                and cantidad > 0
+                and isinstance(largo_item, int)
+                and largo_item > 0
+            ):
+                documento[campo] = [
+                    str(indice).rjust(largo_item, "x") for indice in range(cantidad)
+                ]
+                continue
+            raise ContratoNoDimensionable(f"{campo} no acota su cantidad de items")
         else:
             raise ContratoNoDimensionable(f"{campo} tiene un tipo no dimensionable")
     return json.dumps(documento, ensure_ascii=False, separators=(",", ":"))
