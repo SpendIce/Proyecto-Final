@@ -12,6 +12,9 @@ repetirla acá — aunque sea parcialmente — sería duplicar el único lugar d
 la spec (#18, ADR 0001) exige que la entrada no confiable se interprete. Si
 alguna vez este módulo necesita mirar el contenido del texto del pedido para
 decidir algo, esa lógica se fue del diseño acordado y pertenece al núcleo.
+Lo mismo vale para el estado entre turnos (#25): `atender_canal` sólo
+reenvía `registro_pendientes` y `reloj` al núcleo, sin saber qué es una
+interacción pendiente ni cuándo vence.
 
 Se entregan dos implementaciones del puerto:
 
@@ -47,13 +50,15 @@ Decisiones que no se ven en el código:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Callable, Protocol
 
 from .destinos import DestinoBorradores
 from .fuentes import FuenteSolicitudes
 from .interpretacion import (
     IdentidadSolicitante,
+    RegistroPendientes,
     ResultadoInterpretacion,
     interpretar_solicitud,
 )
@@ -134,6 +139,8 @@ def atender_canal(
     directorio_salida: Path,
     generator: Generator,
     destino: DestinoBorradores | None = None,
+    registro_pendientes: RegistroPendientes | None = None,
+    reloj: Callable[[], datetime] | None = None,
 ) -> tuple[ResultadoInterpretacion, ...]:
     """Bucle delgado de lectura y respuesta. Sin lógica de interpretación.
 
@@ -143,6 +150,14 @@ def atender_canal(
     enteramente en `interpretacion.py`. Devuelve los resultados en el mismo
     orden en que se leyeron los pedidos, para que quien invoque el bucle
     pueda auditar la corrida sin volver a leer el canal.
+
+    `registro_pendientes` y `reloj` (#25) sólo se reenvían al núcleo: el
+    bucle no sabe qué es una interacción pendiente ni cuándo vence, así como
+    no sabe qué es una intención o una actividad. Para que el turno
+    siguiente de una misma persona pueda resolver una repregunta, quien
+    invoque el bucle tiene que pasar la misma instancia de
+    `registro_pendientes` en cada llamada — el estado vive en el puerto, no
+    en `atender_canal`.
     """
 
     resultados: list[ResultadoInterpretacion] = []
@@ -154,6 +169,8 @@ def atender_canal(
             directorio_salida=directorio_salida,
             generator=generator,
             destino=destino,
+            registro_pendientes=registro_pendientes,
+            reloj=reloj,
         )
         canal.responder(pedido, resultado)
         resultados.append(resultado)
