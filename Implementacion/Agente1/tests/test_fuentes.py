@@ -1,5 +1,7 @@
 """Puerto de entrada y adapter CSV: id inexistente, id duplicado, contrato de
-columnas roto y normalización de campos opcionales."""
+columnas roto y normalización de campos opcionales. Incluye la enumeración
+del catálogo completo: forma de fila, encabezado que no coincide con el
+contrato, id duplicado en el catálogo y catálogo vacío."""
 
 import csv
 from importlib.resources import files

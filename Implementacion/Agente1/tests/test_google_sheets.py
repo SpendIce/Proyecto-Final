@@ -1,5 +1,8 @@
 """Adapter de Sheets: encabezados exactos, filas recortadas por celdas vacías,
-ids duplicados, respuestas demasiado grandes y errores de autorización."""
+ids duplicados, respuestas demasiado grandes y errores de autorización.
+Incluye la enumeración del catálogo completo: una sola solicitud HTTP para
+todo el rango, catálogo vacío, y el mismo contrato tabular y mapeo de errores
+HTTP que `obtener`."""
 
 import json
 import time
