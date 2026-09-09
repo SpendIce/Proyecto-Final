@@ -24,7 +24,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `data/actividades_sinteticas.csv`: dataset ficticio de cinco filas; incluye tres casos completos, dos incompletos y lugares opcionales ausentes.
 - `src/agente1/contracts/gacetilla_input_v1.schema.json`: contrato técnico versionado de los campos actuales, marcado `PROVISIONAL_NO_INSTITUCIONAL`.
 - `src/agente1/prompts/gacetilla_v3.txt`: prompt versionado con estructura fija, límites y ejemplo sintético; también está marcado como provisional. La línea `Lugar:` se decide por caso antes de armar el prompt, en la estructura y en el ejemplo: v2 la mostraba siempre con la excepción escrita adentro del placeholder, y el modelo la copiaba sin valor para las filas sin lugar, lo que el gate rechazaba como `data_structure`. Ver `DEF-A1-014` y `evidencias/correccion-gacetillas-lugar-ausente-2026-09-08.md`. `gacetilla_v2.txt` se conserva versionado como plantilla histórica.
-- `src/agente1/fuentes.py`: puerto `FuenteSolicitudes` y adapter CSV compatible con el flujo local.
+- `src/agente1/fuentes.py`: puerto `FuenteSolicitudes` (lectura por id y enumeración del catálogo completo) y adapter CSV compatible con el flujo local.
 - `src/agente1/destinos.py`: puerto `DestinoBorradores` y adapter Markdown que preserva la salida local.
 - `src/agente1/google_workspace.py`: contratos HTTP de lectura Google Sheets y creación de borradores Google Docs; sólo están verificados offline con token y transporte fake.
 - `golden/SYN-001.md`, `SYN-003.md` y `SYN-005.md`: salidas esperadas del generador fake para las tres filas completas.
@@ -65,7 +65,7 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué el modo live exige dos banderas | `workspace_e2e.py`, `crear_dependencias_workspace_live` |
 | Por qué se usa HTTP a mano y no el SDK de Google | `src/agente1/google_workspace.py`, docstring de módulo |
 | Qué pasa si la copia de la plantilla queda huérfana | `google_workspace.py`, `GoogleDrivePlantillaDestinoBorradores` y `DestinoBorradoresError` |
-| Por qué el encabezado de la planilla debe ser exacto (y qué implica para Google Forms) | `google_workspace.py`, `_buscar_fila` |
+| Por qué el encabezado de la planilla debe ser exacto (y qué implica para Google Forms) | `google_workspace.py`, `_parsear_filas` |
 | Por qué el generador sólo acepta loopback | `src/agente1/ollama.py`, docstring de módulo y `_validar_base_url` |
 | Por qué HU-012 modela un envío que no se hace | `src/agente1/confirmaciones.py`, docstring de módulo |
 | Por qué no se borra nada, sólo se marca | `persistencia.py`, `eliminar_logicamente_anteriores` |

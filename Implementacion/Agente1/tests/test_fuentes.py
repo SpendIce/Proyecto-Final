@@ -1,5 +1,7 @@
 """Puerto de entrada y adapter CSV: id inexistente, id duplicado, contrato de
-columnas roto y normalización de campos opcionales."""
+columnas roto y normalización de campos opcionales. Incluye la enumeración
+del catálogo completo: forma de fila, encabezado que no coincide con el
+contrato, id duplicado en el catálogo y catálogo vacío."""
 
 import csv
 from importlib.resources import files
@@ -94,6 +96,102 @@ def test_csv_inexistente_usa_codigo_cerrado(tmp_path):
         CsvFuenteSolicitudes(csv_path).obtener("SYN-AUSENTE")
 
     assert error.value.code == "source_request_not_found"
+
+
+def test_csv_enumera_todas_las_actividades_con_el_contrato_de_columnas(tmp_path):
+    csv_path = tmp_path / "solicitudes.csv"
+    with csv_path.open("w", encoding="utf-8", newline="") as archivo:
+        writer = csv.DictWriter(archivo, fieldnames=COLUMNAS_GACETILLA)
+        writer.writeheader()
+        writer.writerow(
+            {
+                "id_solicitud": "SYN-001",
+                "titulo": "Primera actividad",
+                "descripcion": "Caso de prueba",
+                "fecha": "2026-08-05",
+                "publico": "Comunidad ficticia",
+                "organiza": "Equipo de prueba",
+                "contacto": "pruebas@example.invalid",
+                "fuente": "Dataset sintético",
+                "lugar": "",
+            }
+        )
+        writer.writerow(
+            {
+                "id_solicitud": "SYN-002",
+                "titulo": "Segunda actividad",
+                "descripcion": "Otro caso",
+                "fecha": "2026-08-12",
+                "publico": "Comunidad ficticia",
+                "organiza": "Otro equipo",
+                "contacto": "otras@example.invalid",
+                "fuente": "Dataset sintético",
+                "lugar": "Aula ficticia",
+            }
+        )
+    fuente: FuenteSolicitudes = CsvFuenteSolicitudes(csv_path)
+
+    actividades = fuente.enumerar()
+
+    assert [a["id_solicitud"] for a in actividades] == ["SYN-001", "SYN-002"]
+    assert all(tuple(a) == COLUMNAS_GACETILLA for a in actividades)
+    assert actividades[1]["titulo"] == "Segunda actividad"
+
+
+def test_csv_enumera_normaliza_columnas_faltantes_igual_que_obtener(tmp_path):
+    csv_path = tmp_path / "solicitudes.csv"
+    csv_path.write_text(
+        ",".join(COLUMNAS_GACETILLA) + "\n"
+        "SYN-TRUNC,Título,Descripción,2026-08-05,Público,Equipo\n",
+        encoding="utf-8",
+    )
+
+    actividades = CsvFuenteSolicitudes(csv_path).enumerar()
+
+    assert len(actividades) == 1
+    assert actividades[0]["contacto"] == ""
+    assert actividades[0]["fuente"] == ""
+    assert actividades[0]["lugar"] == ""
+
+
+def test_csv_enumera_rechaza_encabezado_que_no_coincide_con_el_contrato(tmp_path):
+    csv_path = tmp_path / "solicitudes.csv"
+    columnas_con_error = (*COLUMNAS_GACETILLA[:-1], "ubicacion")
+    csv_path.write_text(
+        ",".join(columnas_con_error) + "\n"
+        "SYN-001,Título,Descripción,2026-08-05,Público,Equipo,contacto@example.invalid,Fuente,Aula\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(FuenteSolicitudesError) as error:
+        CsvFuenteSolicitudes(csv_path).enumerar()
+
+    assert error.value.code == "source_contract_invalid"
+
+
+def test_csv_enumera_rechaza_id_duplicado_en_el_catalogo_sin_copiar_datos(tmp_path):
+    csv_path = tmp_path / "secreto.csv"
+    csv_path.write_text(
+        ",".join(COLUMNAS_GACETILLA) + "\n"
+        + "SYN-DUP," + ",".join(["dato-secreto"] * 8) + "\n"
+        + "SYN-DUP," + ",".join(["otro-secreto"] * 8) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(FuenteSolicitudesError) as error:
+        CsvFuenteSolicitudes(csv_path).enumerar()
+
+    assert error.value.code == "source_duplicate_id"
+    assert str(error.value) == "source_duplicate_id"
+    assert "dato-secreto" not in str(error.value)
+    assert "secreto.csv" not in str(error.value)
+
+
+def test_csv_enumera_catalogo_vacio_devuelve_lista_vacia(tmp_path):
+    csv_path = tmp_path / "solicitudes.csv"
+    csv_path.write_text(",".join(COLUMNAS_GACETILLA) + "\n", encoding="utf-8")
+
+    assert CsvFuenteSolicitudes(csv_path).enumerar() == []
 
 
 def test_procesamiento_consume_el_port_sin_conocer_csv(tmp_path):
