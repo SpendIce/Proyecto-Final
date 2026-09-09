@@ -145,6 +145,17 @@ class GoogleSheetsFuenteSolicitudes(FuenteSolicitudes):
             id_solicitud
         ) is None:
             raise FuenteSolicitudesError("source_request_invalid")
+        values = self._leer_valores()
+        return _buscar_fila(values, id_solicitud)
+
+    def enumerar(self) -> list[dict[str, str]]:
+        # Misma lectura que `obtener`, sin recorte a un id: el rango
+        # configurado es la única superficie que este adapter toca, así que
+        # enumerar no agrega ningún endpoint ni verbo nuevo.
+        values = self._leer_valores()
+        return _enumerar_filas(values)
+
+    def _leer_valores(self) -> list[object]:
         token = self._obtener_token()
         # `FORMATTED_VALUE` devuelve lo que ve una persona en la planilla, no el
         # valor serial interno: una fecha llega como la escribió quien cargó la
@@ -187,7 +198,7 @@ class GoogleSheetsFuenteSolicitudes(FuenteSolicitudes):
             documento.get("values"), list
         ):
             raise FuenteSolicitudesError("workspace_response_invalid")
-        return _buscar_fila(documento["values"], id_solicitud)
+        return documento["values"]
 
     def _obtener_token(self) -> str:
         try:
@@ -501,8 +512,8 @@ class _RespuestaDemasiadoGrande(Exception):
     pass
 
 
-def _buscar_fila(values: list[object], id_solicitud: str) -> dict[str, str]:
-    """Ubica la fila pedida dentro del rango leído y la valida.
+def _parsear_filas(values: list[object]) -> dict[str, dict[str, str]]:
+    """Valida el rango leído y arma el catálogo indexado por id.
 
     Requisito de configuración importante para el flujo con Google Forms: el
     encabezado del rango debe ser **exactamente** `COLUMNAS_GACETILLA`, en ese
@@ -511,6 +522,10 @@ def _buscar_fila(values: list[object], id_solicitud: str) -> dict[str, str]:
     que hay que apuntar el rango a las columnas correctas o volcar a una hoja
     derivada. Es deliberado que no se acomode solo: una planilla con otra forma
     puede significar que se está leyendo la planilla equivocada.
+
+    Comparte esta validación `obtener` (busca un id en el resultado) y
+    `enumerar` (devuelve el catálogo completo): las dos operaciones deben
+    aceptar y rechazar exactamente los mismos rangos.
     """
 
     if not values or not isinstance(values[0], list):
@@ -546,10 +561,23 @@ def _buscar_fila(values: list[object], id_solicitud: str) -> dict[str, str]:
         filas_por_id[identificador] = dict(
             zip(COLUMNAS_GACETILLA, fila_completa, strict=True)
         )
+    return filas_por_id
+
+
+def _buscar_fila(values: list[object], id_solicitud: str) -> dict[str, str]:
+    """Ubica la fila pedida dentro del rango leído."""
+
+    filas_por_id = _parsear_filas(values)
     try:
         return filas_por_id[id_solicitud]
     except KeyError:
         raise FuenteSolicitudesError("source_request_not_found") from None
+
+
+def _enumerar_filas(values: list[object]) -> list[dict[str, str]]:
+    """Devuelve el catálogo completo, en el orden en que aparece en el rango."""
+
+    return list(_parsear_filas(values).values())
 
 
 def _validar_create_docs(respuesta: RespuestaHttp) -> dict[str, str]:

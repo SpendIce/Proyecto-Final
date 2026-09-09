@@ -167,6 +167,89 @@ def test_sheets_rechaza_contrato_tabular_invalido(filas, codigo):
     assert error.value.code == codigo
 
 
+def test_sheets_enumera_todas_las_filas_del_rango_con_una_sola_solicitud_http():
+    fuente, transporte, tokens = crear_fuente(
+        respuesta_values(
+            [
+                list(COLUMNAS_GACETILLA),
+                fila_valida("SYN-001"),
+                fila_valida("SYN-002"),
+            ]
+        )
+    )
+
+    actividades = fuente.enumerar()
+
+    assert [a["id_solicitud"] for a in actividades] == ["SYN-001", "SYN-002"]
+    assert all(tuple(a) == COLUMNAS_GACETILLA for a in actividades)
+    assert tokens.invocaciones == 1
+    assert len(transporte.solicitudes) == 1
+    assert transporte.solicitudes[0]["method"] == "GET"
+
+
+def test_sheets_enumera_catalogo_vacio_devuelve_lista_vacia():
+    fuente, _, _ = crear_fuente(respuesta_values([list(COLUMNAS_GACETILLA)]))
+
+    assert fuente.enumerar() == []
+
+
+@pytest.mark.parametrize(
+    ("filas", "codigo"),
+    [
+        ([list(COLUMNAS_GACETILLA[:-1]), fila_valida()[:-1]], "sheets_headers_invalid"),
+        (
+            [
+                [*COLUMNAS_GACETILLA[:-1], "fuente"],
+                fila_valida(),
+            ],
+            "sheets_headers_invalid",
+        ),
+        (
+            [list(COLUMNAS_GACETILLA), [*fila_valida(), "extra"]],
+            "sheets_row_invalid",
+        ),
+        (
+            [list(COLUMNAS_GACETILLA), [*fila_valida()[:-1], 42]],
+            "sheets_row_invalid",
+        ),
+        (
+            [list(COLUMNAS_GACETILLA), fila_valida("SYN-DUP"), fila_valida("SYN-DUP")],
+            "source_duplicate_id",
+        ),
+    ],
+)
+def test_sheets_enumera_rechaza_contrato_tabular_invalido(filas, codigo):
+    fuente, _, _ = crear_fuente(respuesta_values(filas))
+
+    with pytest.raises(FuenteSolicitudesError) as error:
+        fuente.enumerar()
+
+    assert error.value.code == codigo
+
+
+@pytest.mark.parametrize(
+    ("status", "codigo"),
+    [
+        (401, "workspace_auth_denied"),
+        (403, "workspace_auth_denied"),
+        (404, "workspace_source_not_found"),
+        (429, "workspace_rate_limited"),
+        (500, "workspace_unavailable"),
+    ],
+)
+def test_sheets_enumera_mapea_http_sin_filtrar_token_o_cuerpo(status, codigo):
+    secreto = "correo-secreto@example.invalid"
+    fuente, _, _ = crear_fuente(RespuestaHttp(status=status, body=secreto.encode()))
+
+    with pytest.raises(FuenteSolicitudesError) as error:
+        fuente.enumerar()
+
+    assert error.value.code == codigo
+    assert str(error.value) == codigo
+    assert secreto not in str(error.value)
+    assert "TOKEN_ULTRA_SECRETO" not in str(error.value)
+
+
 def test_sheets_solicitud_inexistente_usa_codigo_cerrado():
     fuente, _, _ = crear_fuente(
         respuesta_values([list(COLUMNAS_GACETILLA), fila_valida()])
