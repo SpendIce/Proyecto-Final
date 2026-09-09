@@ -1,10 +1,14 @@
-"""HU-013 (#20, #22, #23): de una solicitud en lenguaje natural a un borrador.
+"""HU-013 (#20, #22, #23, #25): de una solicitud en lenguaje natural a un
+borrador, con repregunta y estado entre turnos cuando la actividad no se
+resuelve sola.
 
-Ejercita únicamente el seam público `interpretar_solicitud`: entra un mensaje
-y puertos, sale un `ResultadoInterpretacion`. Nada de estas pruebas mira
-funciones privadas del módulo; eso es exactamente lo que pide la sección
-"Testing Decisions" de la spec (#18): comportamiento observable desde el seam,
-nunca estructura interna.
+Ejercita únicamente el seam público `interpretar_solicitud` (y, para la
+resolución de la pendiente en el bucle de canal, `atender_canal` en
+`test_canal.py`): entra un mensaje y puertos, sale un
+`ResultadoInterpretacion`. Nada de estas pruebas mira funciones privadas del
+módulo; eso es exactamente lo que pide la sección "Testing Decisions" de la
+spec (#18): comportamiento observable desde el seam, nunca estructura
+interna.
 
 Cobertura, en orden:
 
@@ -28,16 +32,27 @@ Cobertura, en orden:
 9. Resolución difusa de actividad sin identificador explícito (#23):
    coincidencia única y clara por título parcial o con tipeos, corpus
    versionado de frases realistas, ausencia de contenido de otras filas en
-   el prompt, coincidencia nula y coincidencia múltiple o cercana (ambas se
-   comportan como "no se encontró identificador" en este incremento, sin
-   repregunta), reproducibilidad entre corridas, y ninguna falla al enumerar
-   la fuente propaga una excepción.
+   el prompt, y ninguna falla al enumerar la fuente propaga una excepción.
+   Coincidencia nula y coincidencia múltiple o cercana ya no terminan en un
+   simple "no se encontró identificador": desde #25 producen una repregunta
+   con candidatas, cubierta en la sección 11.
+10. Composición de #22 y #23.
+11. Repregunta con candidatas y estado entre turnos (#25): coincidencia
+    múltiple y nula producen una repregunta con candidatas; la pendiente
+    conserva sólo orden, identificador, título y fecha de cada candidata más
+    la intención y el vencimiento, nunca prosa; el mensaje siguiente resuelve
+    por número de orden y por rasgo distintivo (título parcial, fecha, día de
+    la semana); el vencimiento de quince minutos se prueba con el reloj
+    inyectado; hay una sola interacción pendiente por persona y no se mezcla
+    entre personas distintas; un pedido nuevo y completo descarta la
+    pendiente; perder la pendiente no rompe nada.
 """
 
 from __future__ import annotations
 
 import csv
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -52,7 +67,11 @@ from agente1.interpretacion import (
     INTENCIONES_CON_DESPACHO,
     INTENCIONES_POR_ID,
     ROLES_HABILITADOS,
+    VENCIMIENTO_PENDIENTE,
+    CandidataActividad,
     IdentidadSolicitante,
+    InteraccionPendiente,
+    RegistroPendientesMemoria,
     interpretar_solicitud,
 )
 
@@ -75,6 +94,8 @@ def _interpretar(
     fuente=None,
     generator=None,
     destino=None,
+    registro_pendientes=None,
+    reloj=None,
 ):
     return interpretar_solicitud(
         texto=texto,
@@ -83,6 +104,8 @@ def _interpretar(
         directorio_salida=tmp_path,
         generator=generator or FakeGenerator(_BORRADOR_CONFORME),
         destino=destino,
+        registro_pendientes=registro_pendientes,
+        reloj=reloj,
     )
 
 
@@ -250,14 +273,38 @@ def test_borrador_generado_conserva_marca_y_estado_pendiente(tmp_path: Path) -> 
     assert resultado.estado == "PENDIENTE_VALIDACION"
 
 
+class _FuenteSinActividades:
+    """Catálogo vacío: no hay nada que ofrecer como candidata.
+
+    Distinto de `_FuenteQueRompeAlEnumerar` (sección 9): acá `enumerar()` no
+    falla, simplemente no tiene filas. Es el único caso, desde #25, en el que
+    "no se encontró identificador" sigue siendo una `INCOMPLETA` plana sin
+    repregunta: no hay candidatas posibles que ofrecer."""
+
+    def obtener(self, id_solicitud: str) -> dict[str, str]:
+        raise AssertionError("no debería pedirse una actividad de un catálogo vacío")
+
+    def enumerar(self) -> list[dict[str, str]]:
+        return []
+
+
 def test_identificador_no_encontrado_en_la_prosa_devuelve_incompleta(
     tmp_path: Path,
 ) -> None:
-    resultado = _interpretar(tmp_path, "Quiero una gacetilla para el taller del martes")
+    """Sin identificador explícito y sin ninguna actividad en el catálogo,
+    no hay candidatas que ofrecer: el desenlace sigue siendo el de #23, sin
+    repregunta. Cuando sí hay candidatas posibles, el desenlace es otro —ver
+    sección 11, `test_coincidencia_nula_produce_repregunta_con_candidatas`."""
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero una gacetilla para el taller del martes",
+        fuente=_FuenteSinActividades(),
+    )
 
     assert resultado.estado == "INCOMPLETA"
     assert resultado.intencion == "generar_gacetilla"
     assert resultado.borrador_path is None
+    assert resultado.candidatas == ()
     registro = _ultima_linea(resultado.log_path)
     assert registro["resultado"] == "identificador_no_encontrado"
     assert registro["id_actividad"] is None
@@ -731,9 +778,11 @@ def test_recorrido_de_post_funciona_sin_modelo_configurado(tmp_path: Path) -> No
 # versionado de frases realistas con tipeos y títulos parciales resuelve a
 # la actividad esperada; el contenido de otras filas de la planilla no llega
 # al prompt del generador por este camino; coincidencia nula y coincidencia
-# múltiple (ambigua) se quedan, en este incremento, en el mismo estado que
-# "no se encontró identificador"; la resolución es reproducible entre
-# corridas; ninguna falla de la fuente al enumerar propaga una excepción.
+# múltiple (ambigua) ya no terminan en "no se encontró identificador" sin más
+# —desde #25 producen una repregunta con candidatas, ver también la sección
+# 11 para la cobertura de la pendiente que esa repregunta deja—; la
+# resolución es reproducible entre corridas; ninguna falla de la fuente al
+# enumerar propaga una excepción.
 
 
 def test_pedido_con_titulo_parcial_resuelve_a_la_actividad_unica_y_genera_borrador(
@@ -837,12 +886,14 @@ def test_contenido_de_otras_filas_de_la_planilla_no_llega_al_prompt_por_resoluci
 
 
 def test_pedido_sin_ninguna_coincidencia_no_genera_borrador(tmp_path: Path) -> None:
+    """Sin una actividad que resuelva clara, no se genera un borrador — pero,
+    desde #25, sí se ofrecen candidatas para elegir (ver sección 11)."""
     resultado = _interpretar(tmp_path, "Necesito la gacetilla del festival de robotica")
 
-    assert resultado.estado == "INCOMPLETA"
+    assert resultado.estado == "PENDIENTE_DESAMBIGUACION"
     assert resultado.borrador_path is None
     registro = _ultima_linea(resultado.log_path)
-    assert registro["resultado"] == "identificador_no_encontrado"
+    assert registro["resultado"] == "repregunta_generada"
     assert registro["id_actividad"] is None
 
 
@@ -877,19 +928,23 @@ class _FuenteConActividadesAmbiguas:
 
 
 def test_pedido_con_coincidencia_multiple_no_genera_borrador(tmp_path: Path) -> None:
-    """Coincidencia múltiple: en este incremento se comporta igual que
-    ninguna coincidencia, sin repregunta (#25)."""
+    """Coincidencia múltiple: no genera un borrador de una — desde #25,
+    produce una repregunta con las dos candidatas empatadas (sección 11)."""
     resultado = _interpretar(
         tmp_path,
         "Quiero la gacetilla del taller de robotica educativa",
         fuente=_FuenteConActividadesAmbiguas(),
     )
 
-    assert resultado.estado == "INCOMPLETA"
+    assert resultado.estado == "PENDIENTE_DESAMBIGUACION"
     assert resultado.borrador_path is None
     registro = _ultima_linea(resultado.log_path)
-    assert registro["resultado"] == "identificador_no_encontrado"
+    assert registro["resultado"] == "repregunta_generada"
     assert registro["id_actividad"] is None
+    assert {candidata.id_actividad for candidata in resultado.candidatas} == {
+        "AMB-001",
+        "AMB-002",
+    }
 
 
 class _FuenteConActividadesParecidasNoIdenticas:
@@ -930,17 +985,22 @@ def test_pedido_con_coincidencia_cercana_pero_no_identica_no_genera_borrador(
     tmp_path: Path,
 ) -> None:
     """El margen de desambiguación tiene que rechazar también dos
-    actividades parecidas cuyo puntaje difiere, no sólo un empate exacto."""
+    actividades parecidas cuyo puntaje difiere, no sólo un empate exacto —y,
+    desde #25, ofrecerlas igual como candidatas de una repregunta."""
     resultado = _interpretar(
         tmp_path,
         "Quiero la gacetilla del taller de robotica educativa",
         fuente=_FuenteConActividadesParecidasNoIdenticas(),
     )
 
-    assert resultado.estado == "INCOMPLETA"
+    assert resultado.estado == "PENDIENTE_DESAMBIGUACION"
     assert resultado.borrador_path is None
     registro = _ultima_linea(resultado.log_path)
     assert registro["id_actividad"] is None
+    assert {candidata.id_actividad for candidata in resultado.candidatas} == {
+        "PAR-001",
+        "PAR-002",
+    }
 
 
 def test_resolucion_difusa_es_reproducible_entre_corridas(tmp_path: Path) -> None:
@@ -1026,3 +1086,433 @@ def test_post_sin_identificador_ni_canal_reporta_el_canal_faltante(
     registro = _ultima_linea(resultado.log_path)
     assert registro["resultado"] == "canal_no_encontrado"
     assert registro["id_actividad"] == "SYN-001"
+
+
+# --- 11. Repregunta con candidatas y estado entre turnos (#25) --------------
+#
+# Cobertura, en orden: coincidencia múltiple y nula producen una repregunta
+# con candidatas y sus identificadores; la pendiente que esa repregunta deja
+# conserva únicamente orden, identificador, título y fecha de cada candidata
+# más la intención y el vencimiento, nunca prosa; el mensaje siguiente
+# resuelve por número de orden y por rasgo distintivo (título parcial, día de
+# la semana); el vencimiento de quince minutos se prueba con el reloj
+# inyectado; hay una sola interacción pendiente por persona, la más reciente
+# reemplaza a cualquier anterior, y no se mezcla entre personas distintas; un
+# pedido nuevo y completo descarta la pendiente; el canal de un post referido
+# por pendiente sigue viniendo del mensaje del turno, nunca de la pendiente;
+# perder la pendiente no rompe nada.
+
+
+def test_coincidencia_multiple_produce_repregunta_con_candidatas_y_sus_identificadores(
+    tmp_path: Path,
+) -> None:
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        fuente=_FuenteConActividadesAmbiguas(),
+    )
+
+    assert resultado.estado == "PENDIENTE_DESAMBIGUACION"
+    assert len(resultado.candidatas) == 2
+    ordenes = sorted(candidata.orden for candidata in resultado.candidatas)
+    assert ordenes == [1, 2]
+    ids = {candidata.id_actividad for candidata in resultado.candidatas}
+    assert ids == {"AMB-001", "AMB-002"}
+    for candidata in resultado.candidatas:
+        assert candidata.titulo == "Taller de robótica educativa"
+        assert candidata.fecha == "2026-09-01"
+    assert resultado.resumen is not None
+    assert "AMB-001" not in resultado.resumen  # el resumen es prosa, no ids crudos
+    assert "Taller de robótica educativa" in resultado.resumen
+
+
+def test_coincidencia_nula_produce_repregunta_con_candidatas(tmp_path: Path) -> None:
+    """Igual que la coincidencia múltiple: ninguna actividad supera el umbral
+    de coincidencia clara, y aun así se ofrecen candidatas (acá, todo el
+    catálogo sintético) en lugar de rechazar sin más."""
+    resultado = _interpretar(tmp_path, "Necesito la gacetilla del festival de robotica")
+
+    assert resultado.estado == "PENDIENTE_DESAMBIGUACION"
+    assert resultado.candidatas
+    assert len(resultado.candidatas) <= 5
+    ordenes = [candidata.orden for candidata in resultado.candidatas]
+    assert ordenes == list(range(1, len(resultado.candidatas) + 1))
+
+
+def test_pendiente_guardada_conserva_solo_lo_que_produjo_el_agente_nunca_prosa(
+    tmp_path: Path,
+) -> None:
+    """La pendiente que queda en el registro tiene exactamente los campos que
+    pide la spec (#25): candidatas (orden, identificador, título, fecha),
+    intención y vencimiento. Nunca la prosa del pedido que la originó."""
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-pendiente-shape")
+    texto_original = "Quiero la gacetilla del taller de robotica educativa, es urgente"
+
+    _interpretar(
+        tmp_path,
+        texto_original,
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+    )
+
+    pendiente = registro_pendientes.obtener(identidad.identificador)
+    assert isinstance(pendiente, InteraccionPendiente)
+    assert pendiente.intencion == "generar_gacetilla"
+    assert {campo.name for campo in InteraccionPendiente.__dataclass_fields__.values()} == {
+        "intencion",
+        "candidatas",
+        "vencimiento",
+    }
+    assert {campo.name for campo in CandidataActividad.__dataclass_fields__.values()} == {
+        "orden",
+        "id_actividad",
+        "titulo",
+        "fecha",
+    }
+    # Ni la pendiente ni sus candidatas guardan la prosa original en ningún
+    # campo: son datos que el propio agente calculó a partir del índice.
+    assert texto_original not in repr(pendiente)
+    assert "urgente" not in repr(pendiente)
+
+
+def test_mensaje_siguiente_resuelve_por_numero_de_orden(tmp_path: Path) -> None:
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-por-orden")
+
+    primero = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+    )
+    assert primero.estado == "PENDIENTE_DESAMBIGUACION"
+    segunda_candidata = next(
+        candidata for candidata in primero.candidatas if candidata.orden == 2
+    )
+
+    segundo = _interpretar(
+        tmp_path,
+        "El segundo, por favor",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+    )
+
+    registro = _ultima_linea(segundo.log_path)
+    assert registro["intencion"] == "generar_gacetilla"
+    assert registro["id_actividad"] == segunda_candidata.id_actividad
+
+
+def test_mensaje_siguiente_resuelve_por_rasgo_distintivo_dia_de_la_semana(
+    tmp_path: Path,
+) -> None:
+    """`_FuenteConActividadesParecidasNoIdenticas` tiene PAR-001 (2026-09-01,
+    martes) y PAR-002 (2026-09-02, miércoles): días de la semana distintos,
+    así que "el del martes" identifica una sola candidata sin ambigüedad."""
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-por-rasgo-fecha")
+
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesParecidasNoIdenticas(),
+        registro_pendientes=registro_pendientes,
+    )
+
+    resultado = _interpretar(
+        tmp_path,
+        "El del martes, dale",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesParecidasNoIdenticas(),
+        registro_pendientes=registro_pendientes,
+    )
+
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["id_actividad"] == "PAR-001"
+
+
+def test_mensaje_siguiente_resuelve_por_rasgo_distintivo_titulo_parcial(
+    tmp_path: Path,
+) -> None:
+    """La misma pendiente también se resuelve por una palabra del título que
+    distinga a una sola candidata ("avanzada" sólo está en PAR-001)."""
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-por-rasgo-titulo")
+
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesParecidasNoIdenticas(),
+        registro_pendientes=registro_pendientes,
+    )
+
+    resultado = _interpretar(
+        tmp_path,
+        "La avanzada",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesParecidasNoIdenticas(),
+        registro_pendientes=registro_pendientes,
+    )
+
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["id_actividad"] == "PAR-001"
+
+
+def test_vencimiento_de_pendiente_se_prueba_con_reloj_inyectado(tmp_path: Path) -> None:
+    base = datetime(2026, 9, 9, 12, 0, tzinfo=timezone.utc)
+
+    # Dentro de la ventana de quince minutos: la referencia todavía resuelve.
+    registro_a_tiempo = RegistroPendientesMemoria()
+    identidad_a_tiempo = _identidad(identificador="persona-vence-a-tiempo")
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=identidad_a_tiempo,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_a_tiempo,
+        reloj=lambda: base,
+    )
+    resultado_a_tiempo = _interpretar(
+        tmp_path,
+        "El segundo",
+        solicitante=identidad_a_tiempo,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_a_tiempo,
+        reloj=lambda: base + VENCIMIENTO_PENDIENTE - timedelta(minutes=1),
+    )
+    registro = _ultima_linea(resultado_a_tiempo.log_path)
+    assert registro["id_actividad"] == "AMB-002"
+
+    # Justo al cumplirse los quince minutos: la pendiente ya venció, así que
+    # "El segundo" no clasifica solo y no tiene nada que resolver.
+    registro_vencido = RegistroPendientesMemoria()
+    identidad_vencida = _identidad(identificador="persona-vence-tarde")
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=identidad_vencida,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_vencido,
+        reloj=lambda: base,
+    )
+    resultado_vencido = _interpretar(
+        tmp_path,
+        "El segundo",
+        solicitante=identidad_vencida,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_vencido,
+        reloj=lambda: base + VENCIMIENTO_PENDIENTE,
+    )
+
+    assert resultado_vencido.estado == "RECHAZADA"
+    assert resultado_vencido.intencion == "fuera_de_alcance"
+    assert registro_vencido.obtener(identidad_vencida.identificador) is None
+
+
+def test_una_sola_interaccion_pendiente_por_persona_la_mas_reciente_reemplaza(
+    tmp_path: Path,
+) -> None:
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-una-pendiente")
+
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+    )
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesParecidasNoIdenticas(),
+        registro_pendientes=registro_pendientes,
+    )
+
+    pendiente = registro_pendientes.obtener(identidad.identificador)
+    assert isinstance(pendiente, InteraccionPendiente)
+    ids = {candidata.id_actividad for candidata in pendiente.candidatas}
+    assert ids == {"PAR-001", "PAR-002"}  # la primera pendiente (AMB-*) quedó reemplazada
+
+    resultado = _interpretar(
+        tmp_path,
+        "El segundo",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesParecidasNoIdenticas(),
+        registro_pendientes=registro_pendientes,
+    )
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["id_actividad"] in {"PAR-001", "PAR-002"}
+
+
+def test_pendientes_no_se_mezclan_entre_personas_distintas(tmp_path: Path) -> None:
+    registro_pendientes = RegistroPendientesMemoria()
+    persona_a = _identidad(identificador="persona-a")
+    persona_b = _identidad(identificador="persona-b")
+
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=persona_a,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+    )
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=persona_b,
+        fuente=_FuenteConActividadesParecidasNoIdenticas(),
+        registro_pendientes=registro_pendientes,
+    )
+
+    pendiente_a = registro_pendientes.obtener(persona_a.identificador)
+    pendiente_b = registro_pendientes.obtener(persona_b.identificador)
+    assert {candidata.id_actividad for candidata in pendiente_a.candidatas} == {
+        "AMB-001",
+        "AMB-002",
+    }
+    assert {candidata.id_actividad for candidata in pendiente_b.candidatas} == {
+        "PAR-001",
+        "PAR-002",
+    }
+
+
+def test_pedido_nuevo_y_completo_descarta_la_pendiente(tmp_path: Path) -> None:
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-descarta-pendiente")
+
+    ambiguo = _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+    )
+    assert ambiguo.estado == "PENDIENTE_DESAMBIGUACION"
+    assert registro_pendientes.obtener(identidad.identificador) is not None
+
+    completo = _interpretar(
+        tmp_path,
+        "Gacetilla de la actividad SYN-001, por favor",
+        solicitante=identidad,
+        registro_pendientes=registro_pendientes,
+    )
+
+    assert completo.estado == "PENDIENTE_VALIDACION"
+    registro = _ultima_linea(completo.log_path)
+    assert registro["id_actividad"] == "SYN-001"
+    assert registro_pendientes.obtener(identidad.identificador) is None
+
+
+def test_referencia_a_pendiente_de_post_toma_el_canal_del_mensaje_del_turno(
+    tmp_path: Path,
+) -> None:
+    """La pendiente no conserva canal: si el mensaje que resuelve la
+    referencia también lo menciona, el despacho lo toma de ahí, nunca de un
+    dato guardado en el turno anterior."""
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-post-pendiente")
+
+    ambiguo = _interpretar(
+        tmp_path,
+        "Necesito un post de instagram del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+    assert ambiguo.estado == "PENDIENTE_DESAMBIGUACION"
+    assert ambiguo.intencion == "generar_post"
+
+    sin_canal = _interpretar(
+        tmp_path,
+        "El primero",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+    # Resolver la referencia consume la pendiente igual que un identificador
+    # explícito sin canal: falta un dato del pipeline de post, no de la
+    # resolución de actividad.
+    assert sin_canal.estado == "INCOMPLETA"
+    registro_sin_canal = _ultima_linea(sin_canal.log_path)
+    assert registro_sin_canal["resultado"] == "canal_no_encontrado"
+    assert registro_sin_canal["id_actividad"] == "AMB-001"
+    assert registro_pendientes.obtener(identidad.identificador) is None
+
+    # Repitiendo la pendiente y resolviendo con el canal en el mismo mensaje,
+    # el despacho sí llega a generar el borrador.
+    _interpretar(
+        tmp_path,
+        "Necesito un post de instagram del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+    con_canal = _interpretar(
+        tmp_path,
+        "El primero, en instagram",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+        generator=FakeGenerator(_POST_CONFORME),
+    )
+    assert con_canal.intencion == "generar_post"
+    registro_con_canal = _ultima_linea(con_canal.log_path)
+    assert registro_con_canal["id_actividad"] == "AMB-001"
+
+
+def test_perder_la_pendiente_no_rompe_nada(tmp_path: Path) -> None:
+    """Sin puerto de pendientes, o con uno que nunca vio a esta persona, un
+    mensaje que sólo tiene sentido como referencia ("el segundo") no tiene
+    nada que resolver: se trata como cualquier mensaje fuera de catálogo, sin
+    excepciones. La persona puede volver a preguntar con un pedido completo y
+    funciona con normalidad."""
+    resultado_sin_puerto = _interpretar(tmp_path, "El segundo")
+    assert resultado_sin_puerto.estado == "RECHAZADA"
+    assert resultado_sin_puerto.intencion == "fuera_de_alcance"
+
+    registro_pendientes_vacio = RegistroPendientesMemoria()
+    resultado_puerto_vacio = _interpretar(
+        tmp_path, "El segundo", registro_pendientes=registro_pendientes_vacio
+    )
+    assert resultado_puerto_vacio.estado == "RECHAZADA"
+
+    # La misma persona, sin ninguna pendiente que la ayude, vuelve a
+    # preguntar con un pedido completo y no queda nada roto.
+    resultado_completo = _interpretar(
+        tmp_path, "Gacetilla de SYN-001", registro_pendientes=registro_pendientes_vacio
+    )
+    assert resultado_completo.estado == "PENDIENTE_VALIDACION"
+
+
+def test_registro_pendientes_memoria_no_implementa_durabilidad(tmp_path: Path) -> None:
+    """El registro de pendientes es un puerto con fake en memoria, sin
+    ninguna implementación que sobreviva al proceso: una instancia nueva no
+    hereda nada de otra, y no hay ningún parámetro de ubicación en disco."""
+    import inspect
+
+    firma = inspect.signature(RegistroPendientesMemoria.__init__)
+    assert list(firma.parameters) == ["self"]
+
+    primera_instancia = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-durabilidad")
+    _interpretar(
+        tmp_path,
+        "Quiero la gacetilla del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=primera_instancia,
+    )
+    assert primera_instancia.obtener(identidad.identificador) is not None
+
+    segunda_instancia = RegistroPendientesMemoria()
+    assert segunda_instancia.obtener(identidad.identificador) is None
