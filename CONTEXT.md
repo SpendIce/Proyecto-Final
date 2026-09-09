@@ -17,8 +17,28 @@ Pieza comunicacional generada que no tiene autorizacion para publicarse, enviars
 _Evitar_: contenido aprobado, publicacion
 
 **Validacion humana**:
-Decision registrada de una persona con rol institucional autorizado sobre una pieza o un dato; no se infiere de la conformidad tecnica.
-_Evitar_: validacion automatica, aprobacion del agente
+Conjunto de decisiones registradas por personas con rol institucional autorizado que habilita a una pieza a avanzar; no se infiere de la conformidad tecnica. Una pieza destinada a publicacion requiere aprobacion semantica y aprobacion utilitaria, no una sola firma.
+_Evitar_: validacion automatica, aprobacion del agente, aprobacion unica
+
+**Aprobacion semantica**:
+Decision del Responsable de Gestion del Conocimiento sobre si el contenido dice lo correcto: hechos, tono y consistencia institucional.
+_Evitar_: revision editorial, visto bueno
+
+**Aprobacion utilitaria**:
+Decision del Coordinador de Extension sobre si la pieza sirve para el proposito y el canal previstos.
+_Evitar_: aprobacion final, aprobacion del coordinador a secas
+
+**Canal de interaccion**:
+Medio por el que una persona de la SEU le pide algo al Agente 1 y recibe la respuesta. Es independiente de la identidad con la que el agente opera contra los sistemas institucionales: recibir un pedido por un buzon no otorga los permisos de ese buzon.
+_Evitar_: chat, interfaz, frontend, backend
+
+**Solicitud en lenguaje natural**:
+Pedido en prosa libre que una persona interna dirige al Agente 1. Es entrada no confiable: nunca llega como instruccion al modelo generador.
+_Evitar_: prompt del usuario, comando, consulta
+
+**Intencion**:
+Resultado estructurado de interpretar una solicitud en lenguaje natural, tomado de un catalogo cerrado. Una solicitud que no corresponde a ninguna intencion del catalogo se rechaza; no se aproxima a la mas parecida.
+_Evitar_: comando, accion, funcion invocada
 
 **Baseline tecnica recuperable**:
 Estado versionado del Agente 1 que puede reconstruirse desde Git, supera sus verificaciones tecnicas declaradas y mantiene trazabilidad entre alcance, pruebas y evidencia, sin implicar aceptacion institucional ni un nivel TRL.
