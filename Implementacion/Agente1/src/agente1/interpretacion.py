@@ -119,6 +119,7 @@ from typing import Callable, Protocol
 from .destinos import DestinoBorradores, ReferenciaBorrador
 from .fuentes import FuenteSolicitudes
 from .posts import procesar_post_estructurado
+from .presupuesto import presupuesto_minimo_num_predict
 from .procesamiento import Generator, procesar_solicitud
 
 
@@ -149,6 +150,37 @@ ROLES_HABILITADOS = frozenset(
 # quien exige que exista un caso de prueba, ver `test_interpretacion.py`— es
 # este conjunto.
 INTENCIONES_CON_DESPACHO = frozenset({"generar_gacetilla", "generar_post"})
+
+
+# --- Fallback con modelo local (#26) ----------------------------------------
+# El modelo interviene sólo cuando el camino determinístico no resolvió, y su
+# única salida admitida es una intención del catálogo más términos de búsqueda
+# estructurados. `interpretacion_fallback_v1` es el contrato de esa salida; su
+# enum tiene que ser el mismo catálogo que `intenciones_v1`, y hay una prueba
+# que falla si dejan de coincidir. Ver ADR 0001.
+CONTRATO_FALLBACK = json.loads(
+    files("agente1")
+    .joinpath("contracts", "interpretacion_fallback_v1.schema.json")
+    .read_text(encoding="utf-8")
+)
+CONTRATO_FALLBACK_VERSION = str(CONTRATO_FALLBACK["x-contract-version"])
+PROMPT_FALLBACK = (
+    files("agente1")
+    .joinpath("prompts", "interpretacion_fallback_v1.txt")
+    .read_text(encoding="utf-8")
+)
+MAX_TERMINOS_FALLBACK = int(
+    CONTRATO_FALLBACK["properties"]["terminos_busqueda"]["maxItems"]
+)
+MAX_LARGO_TERMINO_FALLBACK = int(
+    CONTRATO_FALLBACK["properties"]["terminos_busqueda"]["items"]["maxLength"]
+)
+# El presupuesto se deriva del contrato con la misma maquinaria que usa el
+# pipeline de gacetilla (`presupuesto.py`), no se fija a mano: si una versión
+# futura del contrato admite más términos o términos más largos, este número
+# sube solo y la regresión avisa antes de que alguien acepte un presupuesto que
+# ya no alcanza. Es la lección de DEF-A1-013.
+NUM_PREDICT_FALLBACK = presupuesto_minimo_num_predict(CONTRATO_FALLBACK)
 
 # Identificador "explícito": palabras alfabéticas cortas, un guion y dígitos,
 # como los que ya produce el dataset sintético (`SYN-001`). Es una forma
@@ -675,6 +707,134 @@ def _resumen_repregunta(candidatas: tuple["CandidataActividad", ...]) -> str:
 
 
 @dataclass(frozen=True)
+class TerminosInterpretados:
+    """Lo único que se acepta de vuelta del modelo, ya validado (#26).
+
+    `intencion` pertenece al catálogo cerrado y `terminos` son palabras
+    sueltas acotadas por el contrato. No hay ningún otro campo: el modelo no
+    devuelve texto redactado, ni identificadores de actividad, ni decisiones.
+    """
+
+    intencion: str
+    terminos: tuple[str, ...]
+
+
+def _validar_salida_fallback(salida: str) -> TerminosInterpretados | None:
+    """Valida la salida del modelo contra `interpretacion_fallback_v1`.
+
+    Devuelve `None` ante cualquier desvío —JSON inválido, claves faltantes o
+    de más, tipos equivocados, término demasiado largo, o una intención que no
+    está en el catálogo— sin distinguir entre ellos: el llamador sólo necesita
+    saber si hay una salida usable. Una salida manipulada no puede producir
+    una intención inexistente porque la pertenencia al catálogo se comprueba
+    acá y no en el prompt. Ver ADR 0001.
+    """
+
+    try:
+        documento = json.loads(salida)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(documento, dict):
+        return None
+    # Contra `properties` y no contra `required`: el contrato declara
+    # `additionalProperties: false`, así que el conjunto admitido es el de
+    # propiedades declaradas. Hoy coinciden con `required`; validar contra el
+    # conjunto correcto evita que dejen de coincidir en silencio si alguna vez
+    # se agrega una propiedad opcional.
+    if set(documento) != set(CONTRATO_FALLBACK["properties"]):
+        return None
+    intencion = documento["intencion"]
+    if not isinstance(intencion, str) or intencion not in IDS_INTENCIONES:
+        return None
+    terminos = documento["terminos_busqueda"]
+    if not isinstance(terminos, list) or len(terminos) > MAX_TERMINOS_FALLBACK:
+        return None
+    for termino in terminos:
+        if (
+            not isinstance(termino, str)
+            or not termino.strip()
+            or len(termino) > MAX_LARGO_TERMINO_FALLBACK
+        ):
+            return None
+    # `uniqueItems` también lo declara el contrato, y `documento_maximo`
+    # dimensiona el presupuesto asumiendo esa unicidad: si el validador la
+    # dejara pasar, las dos mitades dirían cosas distintas sobre el mismo
+    # contrato.
+    if CONTRATO_FALLBACK["properties"]["terminos_busqueda"].get("uniqueItems"):
+        if len(set(terminos)) != len(terminos):
+            return None
+    return TerminosInterpretados(
+        intencion=intencion, terminos=tuple(str(termino) for termino in terminos)
+    )
+
+
+def _interpretar_con_modelo(
+    texto: str, interprete: Generator | None
+) -> TerminosInterpretados | None:
+    """Intenta el fallback. Nunca propaga y nunca ve la planilla.
+
+    El prompt lleva el catálogo cerrado y la prosa de la persona delimitada y
+    declarada como dato no confiable —nunca como instrucción—, y nada más: el
+    contenido de la fuente no entra acá, así que una fila maliciosa no puede
+    alterar el comportamiento del modelo. Si el intérprete no está
+    configurado, la capa sigue funcionando con menor cobertura.
+    """
+
+    if interprete is None:
+        return None
+    # El presupuesto no alcanza con derivarse del contrato: se aplica acá. Un
+    # intérprete configurado por debajo de la cota devolvería un JSON cortado
+    # antes de cerrar, que el validador rechazaría como salida inválida — el
+    # diagnóstico equivocado que dejó `DEF-A1-013`. Se prefiere no invocarlo.
+    # `None` no es un presupuesto insuficiente sino la ausencia de un tope
+    # declarado, y entonces no hay nada que comparar.
+    tope = getattr(interprete, "num_predict", None)
+    if isinstance(tope, int) and tope < NUM_PREDICT_FALLBACK:
+        return None
+    # `replace` y no `format`: la plantilla contiene un ejemplo JSON literal
+    # con llaves, que `format` interpretaría como marcadores. Misma razón por
+    # la que los prompts de posts usan `replace` (ver `posts.py`).
+    prompt = (
+        PROMPT_FALLBACK.replace(
+            "{intenciones}",
+            "\n".join(f"- {identificador}" for identificador in sorted(IDS_INTENCIONES)),
+        )
+        .replace("{max_terminos}", str(MAX_TERMINOS_FALLBACK))
+        .replace("{max_largo_termino}", str(MAX_LARGO_TERMINO_FALLBACK))
+        .replace("{pedido}", texto)
+    )
+    try:
+        salida = interprete.generar(prompt)
+    except Exception:
+        return None
+    if not isinstance(salida, str):
+        return None
+    return _validar_salida_fallback(salida)
+
+
+def _buscar_actividad_con_terminos(
+    texto: str, terminos: tuple[str, ...], fuente: FuenteSolicitudes
+) -> str | None:
+    """Resuelve la actividad sumando los términos del modelo a la prosa.
+
+    Los términos se **suman** en lugar de reemplazarla. No es un detalle: la
+    cobertura de `_puntuar_actividad` es monótona en la cantidad de tokens de
+    la búsqueda, así que una búsqueda armada sólo con los términos del modelo
+    nunca podría puntuar más alto que la prosa completa, y el fallback no
+    daría cobertura alguna. Sumándolos, el modelo sólo puede aportar señal
+    —una forma normalizada de lo que la persona escribió mal— y nunca quitar
+    la que ya había.
+
+    El modelo nunca elige la actividad: alimenta la **misma** resolución
+    determinística de #23.
+    """
+
+    if not terminos:
+        return None
+    return _resolver_actividad_por_similitud(texto + " " + " ".join(terminos), fuente)
+
+
+@dataclass(frozen=True)
 class CandidataActividad:
     """Una actividad candidata ofrecida en una repregunta.
 
@@ -906,7 +1066,7 @@ class ResultadoInterpretacion:
     candidatas: "tuple[CandidataActividad, ...]" = ()
 
 
-def interpretar_solicitud(
+def _interpretar_solicitud_sin_guarda(
     *,
     texto: str,
     solicitante: IdentidadSolicitante,
@@ -916,6 +1076,7 @@ def interpretar_solicitud(
     destino: DestinoBorradores | None = None,
     registro_pendientes: RegistroPendientes | None = None,
     reloj: Callable[[], datetime] | None = None,
+    interprete: Generator | None = None,
 ) -> ResultadoInterpretacion:
     """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
 
@@ -930,6 +1091,13 @@ def interpretar_solicitud(
     turnos, no en disponibilidad, igual que el resto del módulo degrada sin
     el modelo. `reloj` por defecto es `datetime.now(timezone.utc)`; las
     pruebas lo inyectan para no depender de esperas reales (#25).
+
+    `interprete` es el modelo local del fallback (#26). También es opcional y
+    por la misma razón: sin él, un pedido que el camino determinístico no
+    resuelve termina en repregunta igual que antes, con menor cobertura y sin
+    perder disponibilidad. Es un `Generator` distinto del que redacta los
+    borradores porque hace otra cosa —extrae términos, no redacta— y porque
+    así ninguna prueba determinística depende de que exista.
     """
 
     correlation_id = str(uuid.uuid4())
@@ -995,6 +1163,19 @@ def interpretar_solicitud(
 
     intencion = _clasificar_intencion(texto)
 
+    modelo_utilizado = False
+    interpretado: TerminosInterpretados | None = None
+
+    # La clasificación de la intención es **siempre** determinística. El modelo
+    # no la decide: ADR 0001 descartó explícitamente "dejar que el modelo
+    # interpretara libremente la solicitud" porque paga superficie de ataque
+    # por una decisión ternaria, y fija que "el modelo, cuando interviene,
+    # sólo extrae términos de búsqueda estructurados". Un pedido cuya
+    # clasificación no resuelve se rechaza sin consultar el modelo, aunque eso
+    # deje sin recuperar un tipeo en la palabra que nombra la pieza. La
+    # tensión entre esa limitación y el criterio de aceptación de #26 está
+    # elevada en el issue #27, que la deja como decisión institucional: cambiar
+    # esto mueve el límite de confianza que el ADR fijó a propósito.
     if intencion in INTENCIONES_CON_DESPACHO:
         intencion_efectiva = intencion
         id_actividad = _extraer_identificador_explicito(texto)
@@ -1015,11 +1196,52 @@ def interpretar_solicitud(
             id_actividad = referencia.id_actividad
             _descartar_pendiente(registro_pendientes, solicitante.identificador)
         else:
-            # Ni resolución directa ni referencia a una pendiente: se junta
-            # un conjunto de candidatas y se repregunta (#25) en lugar de
-            # aceptar una elección propia. Si ni siquiera hay candidatas que
-            # ofrecer, se mantiene el desenlace de #23: "no se encontró
-            # identificador", sin crear estado nuevo.
+            # #26: antes de repreguntar se intenta el modelo, si no se lo
+            # intentó ya arriba para recuperar la clasificación.
+            if interpretado is None:
+                interpretado = _interpretar_con_modelo(texto, interprete)
+                if interpretado is not None:
+                    modelo_utilizado = True
+            if interpretado is not None:
+                # El campo `intencion` de la salida se valida contra el
+                # catálogo (ver `_validar_salida_fallback`) y desde acá se usa
+                # en **una sola dirección**: para rechazar. Si el modelo dice
+                # que el pedido no corresponde a una intención con despacho, se
+                # rechaza. Nunca se usa para habilitar una intención ni para
+                # cambiar el pipeline que ya eligió el camino determinístico:
+                # eso sería la interpretación libre que descartó ADR 0001.
+                # Restringirlo a rechazar sólo puede reducir lo que se genera.
+                if interpretado.intencion not in INTENCIONES_CON_DESPACHO:
+                    entrada_rechazo = INTENCIONES_POR_ID[interpretado.intencion]
+                    return _finalizar(
+                        log_path=log_path,
+                        correlation_id=correlation_id,
+                        texto=texto_seguro,
+                        solicitante=solicitante,
+                        intencion=interpretado.intencion,
+                        id_actividad=None,
+                        modelo_utilizado=True,
+                        estado="RECHAZADA",
+                        resultado=str(entrada_rechazo["codigo_rechazo"]),
+                        error=(
+                            "La solicitud no corresponde a una intención con "
+                            "despacho disponible en este seam"
+                        ),
+                    )
+                id_actividad = _buscar_actividad_con_terminos(
+                    texto, interpretado.terminos, fuente
+                )
+                if id_actividad is not None:
+                    _descartar_pendiente(
+                        registro_pendientes, solicitante.identificador
+                    )
+
+        if id_actividad is None and referencia is None:
+            # Ni resolución directa, ni referencia a una pendiente, ni ayuda
+            # del modelo: se junta un conjunto de candidatas y se repregunta
+            # (#25) en lugar de aceptar una elección propia. Si ni siquiera
+            # hay candidatas que ofrecer, se mantiene el desenlace de #23:
+            # "no se encontró identificador", sin crear estado nuevo.
             candidatas = _generar_candidatas(texto, fuente)
             if not candidatas:
                 return _finalizar(
@@ -1027,8 +1249,13 @@ def interpretar_solicitud(
                     correlation_id=correlation_id,
                     texto=texto_seguro,
                     solicitante=solicitante,
-                    intencion=intencion,
+                    # `intencion_efectiva` es la intención con la que se
+                    # trabajó. Hoy coincide siempre con `intencion`, porque el
+                    # modelo no puede cambiarla (ADR 0001); se usa la efectiva
+                    # para que la auditoría siga siendo correcta si eso cambia.
+                    intencion=intencion_efectiva,
                     id_actividad=None,
+                    modelo_utilizado=modelo_utilizado,
                     estado="INCOMPLETA",
                     resultado="identificador_no_encontrado",
                     error=(
@@ -1040,7 +1267,10 @@ def interpretar_solicitud(
                 registro_pendientes,
                 solicitante.identificador,
                 InteraccionPendiente(
-                    intencion=intencion,
+                    # La pendiente guarda la intención con la que se va a
+                    # despachar en el turno siguiente, que es la que clasificó
+                    # el camino determinístico: el modelo no la cambia.
+                    intencion=intencion_efectiva,
                     candidatas=candidatas,
                     vencimiento=ahora_fn() + VENCIMIENTO_PENDIENTE,
                 ),
@@ -1050,8 +1280,9 @@ def interpretar_solicitud(
                 correlation_id=correlation_id,
                 texto=texto_seguro,
                 solicitante=solicitante,
-                intencion=intencion,
+                intencion=intencion_efectiva,
                 id_actividad=None,
+                modelo_utilizado=modelo_utilizado,
                 estado="PENDIENTE_DESAMBIGUACION",
                 resultado="repregunta_generada",
                 error=None,
@@ -1086,6 +1317,10 @@ def interpretar_solicitud(
             solicitante=solicitante,
             intencion=intencion,
             id_actividad=None,
+            # Siempre `False`: acá se llega sin haber consultado el modelo,
+            # porque la clasificación es determinística (ADR 0001). Se pasa
+            # explícito para que no dependa del valor por defecto.
+            modelo_utilizado=False,
             estado="RECHAZADA",
             resultado=str(entrada_catalogo["codigo_rechazo"]),
             error="La solicitud no corresponde a una intención con despacho disponible en este seam",
@@ -1110,6 +1345,9 @@ def interpretar_solicitud(
                 solicitante=solicitante,
                 intencion=intencion_efectiva,
                 id_actividad=id_actividad,
+                # El modelo pudo haber resuelto la actividad y faltar sólo el
+                # canal: la auditoría tiene que decir que intervino.
+                modelo_utilizado=modelo_utilizado,
                 estado="INCOMPLETA",
                 resultado="canal_no_encontrado",
                 error=(
@@ -1147,6 +1385,7 @@ def interpretar_solicitud(
         solicitante=solicitante,
         intencion=intencion_efectiva,
         id_actividad=id_actividad,
+        modelo_utilizado=modelo_utilizado,
         estado=resultado_proceso.estado,
         resultado=_RESULTADOS_POR_ESTADO.get(resultado_proceso.estado, "estado_no_reconocido"),
         error=resultado_proceso.error,
@@ -1163,6 +1402,61 @@ _RESULTADOS_POR_ESTADO = {
     "INVALIDA": "solicitud_invalida",
     "FALLIDA": "pipeline_failure",
 }
+
+
+def interpretar_solicitud(
+    *,
+    texto: str,
+    solicitante: IdentidadSolicitante,
+    fuente: FuenteSolicitudes,
+    directorio_salida: Path,
+    generator: Generator,
+    destino: DestinoBorradores | None = None,
+    registro_pendientes: RegistroPendientes | None = None,
+    reloj: Callable[[], datetime] | None = None,
+    interprete: Generator | None = None,
+) -> ResultadoInterpretacion:
+    """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
+
+    Cada camino conocido ya traduce su falla a un estado y a una línea de
+    auditoría; esta guarda cubre lo **no** previsto. La spec (#18) define el
+    seam como uno que "nunca propaga excepciones —de la fuente, del modelo o
+    del destino—", y esa promesa no puede depender de que cada rama futura se
+    acuerde de cumplirla: un `KeyError` por un catálogo mal editado dejaría al
+    canal sin respuesta y sin registro. Acá el peor caso es un resultado
+    `FALLIDA` con su línea de auditoría.
+
+    El detalle de la excepción no viaja al resultado ni al registro, por la
+    misma razón por la que los códigos de error son estables y sin contenido:
+    un mensaje de excepción puede arrastrar datos de una fila.
+    """
+
+    try:
+        return _interpretar_solicitud_sin_guarda(
+            texto=texto,
+            solicitante=solicitante,
+            fuente=fuente,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            destino=destino,
+            registro_pendientes=registro_pendientes,
+            reloj=reloj,
+            interprete=interprete,
+        )
+    except Exception:
+        return _finalizar(
+            log_path=Path(directorio_salida) / "logs" / "interpretaciones-hu013.jsonl",
+            correlation_id=str(uuid.uuid4()),
+            texto=texto if isinstance(texto, str) else "",
+            solicitante=(
+                solicitante if isinstance(solicitante, IdentidadSolicitante) else None
+            ),
+            intencion=None,
+            id_actividad=None,
+            estado="FALLIDA",
+            resultado="error_no_previsto",
+            error="La interpretación falló por un error no previsto",
+        )
 
 
 def _resumen_desde_fuente(fuente: FuenteSolicitudes, id_actividad: str) -> str | None:
@@ -1227,6 +1521,7 @@ def _finalizar(
     resumen: str | None = None,
     pipeline_correlation_id: str | None = None,
     candidatas: "tuple[CandidataActividad, ...]" = (),
+    modelo_utilizado: bool = False,
 ) -> ResultadoInterpretacion:
     if estado not in ESTADOS_RESULTADO:
         estado = "FALLIDA"
@@ -1237,7 +1532,7 @@ def _finalizar(
         "pipeline_correlation_id": pipeline_correlation_id,
         "intencion": intencion,
         "id_actividad": id_actividad,
-        "modelo_utilizado": False,
+        "modelo_utilizado": modelo_utilizado,
         "solicitante_rol": solicitante.rol if solicitante is not None else None,
         "solicitante_hash": (
             _hash(solicitante.identificador) if solicitante is not None else None

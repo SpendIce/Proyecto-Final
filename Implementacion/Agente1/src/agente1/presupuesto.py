@@ -89,6 +89,70 @@ class PresupuestoAgotadoError(RuntimeError):
     """
 
 
+def _dimensionar_arreglo(campo: str, definicion: dict[str, object]) -> list[str]:
+    """El arreglo más grande que admite la definición, en dos formas posibles.
+
+    Un arreglo acota su salida de dos maneras distintas, y `documento_maximo`
+    no debería cambiar cuando aparece una tercera: por un enum cerrado, donde
+    el máximo es el catálogo entero, o por `maxItems` más `items.maxLength`,
+    que es la forma de `interpretacion_fallback_v1` (#26) —los términos de
+    búsqueda son texto libre, así que no hay enum del cual derivar la cota.
+
+    En la segunda forma los elementos tienen que ser distintos entre sí para
+    no violar `uniqueItems`, y a la vez ninguno puede exceder su propio
+    `maxLength`: un relleno que numera los elementos sin respetar ese largo
+    produce un documento más grande que el contrato y sobredimensiona el
+    presupuesto. Si el largo permitido no alcanza para tantos elementos
+    distintos, el contrato es imposible de satisfacer y eso interrumpe el
+    cálculo en vez de devolver un número inventado.
+    """
+
+    items = definicion.get("items", {})
+    valores = items.get("enum")
+    if valores and definicion.get("uniqueItems"):
+        if not all(isinstance(valor, str) for valor in valores):
+            raise ContratoNoDimensionable(f"{campo} tiene un enum no textual")
+        # `maxItems` acota también acá: un contrato que declara un enum más
+        # grande que la cantidad de items admitidos no puede producir el
+        # catálogo entero, y dimensionar con el catálogo entero sobreestimaría
+        # el presupuesto. Ninguno de los contratos vigentes está en ese caso;
+        # la rama existe para que las dos formas de acotar digan lo mismo.
+        cantidad_enum = definicion.get("maxItems")
+        if isinstance(cantidad_enum, int) and cantidad_enum < len(valores):
+            return [str(valor) for valor in valores[:cantidad_enum]]
+        return [str(valor) for valor in valores]
+
+    cantidad = definicion.get("maxItems")
+    largo_item = items.get("maxLength")
+    if not (
+        items.get("type") == "string"
+        and isinstance(cantidad, int)
+        and cantidad > 0
+        and isinstance(largo_item, int)
+        and largo_item > 0
+    ):
+        raise ContratoNoDimensionable(f"{campo} no acota su cantidad de items")
+
+    alfabeto = "0123456789"
+    if definicion.get("uniqueItems") and cantidad > len(alfabeto) ** largo_item:
+        raise ContratoNoDimensionable(
+            f"{campo} pide más items únicos que los representables en maxLength"
+        )
+    elementos: list[str] = []
+    for indice in range(cantidad):
+        sufijo = ""
+        resto = indice
+        for _ in range(largo_item):
+            sufijo = alfabeto[resto % len(alfabeto)] + sufijo
+            resto //= len(alfabeto)
+        # El bucle produce exactamente `largo_item` caracteres, así que no hay
+        # nada que truncar. El relleno sólo aporta longitud; el costo en tokens
+        # lo aporta después CHARS_POR_TOKEN_MENOS_FAVORABLE, medido sobre
+        # texto real.
+        elementos.append(sufijo)
+    return elementos
+
+
 def documento_maximo(schema: dict[str, object]) -> str:
     """Construye el documento JSON más grande que el esquema admite.
 
@@ -111,11 +175,7 @@ def documento_maximo(schema: dict[str, object]) -> str:
             # después CHARS_POR_TOKEN_MENOS_FAVORABLE, medido sobre texto real.
             documento[campo] = "x" * largo
         elif tipo == "array":
-            items = definicion.get("items", {})
-            valores = items.get("enum")
-            if not valores or not definicion.get("uniqueItems"):
-                raise ContratoNoDimensionable(f"{campo} no acota su cantidad de items")
-            documento[campo] = list(valores)
+            documento[campo] = _dimensionar_arreglo(campo, definicion)
         else:
             raise ContratoNoDimensionable(f"{campo} tiene un tipo no dimensionable")
     return json.dumps(documento, ensure_ascii=False, separators=(",", ":"))

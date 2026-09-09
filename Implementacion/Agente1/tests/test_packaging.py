@@ -196,3 +196,32 @@ def test_dataset_versionado_tiene_cinco_casos_y_dos_invalidos():
     assert len(filas) == 5
     assert sum(not fila["contacto"] or not fila["fecha"] for fila in filas) >= 2
     assert any(not fila["lugar"] for fila in filas)
+
+
+def test_contrato_del_fallback_de_interpretacion_es_empaquetable_y_provisional():
+    contrato = json.loads(
+        files("agente1")
+        .joinpath("contracts", "interpretacion_fallback_v1.schema.json")
+        .read_text(encoding="utf-8")
+    )
+
+    assert contrato["x-contract-version"] == "interpretacion_fallback_v1"
+    assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+    assert contrato["x-hu"] == "HU-013"
+    assert contrato["additionalProperties"] is False
+    assert set(contrato["required"]) == {"intencion", "terminos_busqueda"}
+
+
+def test_prompt_del_fallback_de_interpretacion_es_empaquetable():
+    plantilla = (
+        files("agente1")
+        .joinpath("prompts", "interpretacion_fallback_v1.txt")
+        .read_text(encoding="utf-8")
+    )
+
+    assert "PROMPT_VERSION: interpretacion_fallback_v1" in plantilla
+    assert "CONTRACT_VERSION: interpretacion_fallback_v1" in plantilla
+    assert "STATUS: PROVISIONAL_NO_INSTITUCIONAL" in plantilla
+    # Los marcadores que rellena `_interpretar_con_modelo`.
+    for marcador in ("{intenciones}", "{max_terminos}", "{max_largo_termino}", "{pedido}"):
+        assert marcador in plantilla

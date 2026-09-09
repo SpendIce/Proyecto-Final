@@ -24,6 +24,14 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `data/actividades_sinteticas.csv`: dataset ficticio de cinco filas; incluye tres casos completos, dos incompletos y lugares opcionales ausentes.
 - `src/agente1/contracts/gacetilla_input_v1.schema.json`: contrato técnico versionado de los campos actuales, marcado `PROVISIONAL_NO_INSTITUCIONAL`.
 - `src/agente1/prompts/gacetilla_v3.txt`: prompt versionado con estructura fija, límites y ejemplo sintético; también está marcado como provisional. La línea `Lugar:` se decide por caso antes de armar el prompt, en la estructura y en el ejemplo: v2 la mostraba siempre con la excepción escrita adentro del placeholder, y el modelo la copiaba sin valor para las filas sin lugar, lo que el gate rechazaba como `data_structure`. Ver `DEF-A1-014` y `evidencias/correccion-gacetillas-lugar-ausente-2026-09-08.md`. `gacetilla_v2.txt` se conserva versionado como plantilla histórica.
+- `src/agente1/interpretacion.py`: seam de HU-013. Convierte una solicitud en lenguaje natural en una intención del catálogo cerrado, resuelve a qué actividad se refiere y despacha a los pipelines de gacetilla y de post. Incluye la repregunta con candidatas, el estado entre turnos y el fallback con modelo local.
+- `src/agente1/contracts/intenciones_v1.schema.json`: catálogo cerrado de intenciones, versionado y `PROVISIONAL_NO_INSTITUCIONAL`.
+- `src/agente1/contracts/interpretacion_fallback_v1.schema.json` y `src/agente1/prompts/interpretacion_fallback_v1.txt`: única salida admitida del modelo en el fallback de interpretación —una intención del catálogo más términos de búsqueda— y el prompt que la pide. El presupuesto de decodificación se deriva de ese contrato.
+- `src/agente1/canal.py` y `src/agente1/canal_planilla.py`: puerto del canal de interacción, con fake en memoria y adapter de planilla offline. Viven por encima del seam: el núcleo no sabe nada de transporte.
+- `data/frases_resolucion_actividad.csv`: corpus versionado de frases realistas con tipeos y títulos parciales, calibrado para que todas resuelvan sin inferencia.
+- `data/frases_ambiguas_fallback.csv`: corpus deliberadamente **no** calibrado, para medir cuánta cobertura da realmente el camino determinístico. Ver `scripts/medir_cobertura_sin_inferencia.py`.
+- `scripts/medir_cobertura_sin_inferencia.py`: mide qué porcentaje de un corpus resuelve sin invocar ningún modelo.
+- `scripts/atender_canal_planilla.py`: corrida guiada del canal de planilla offline, sin credenciales. Ver `evidencias/recorrido-prueba-guiada-canal-planilla.md`.
 - `src/agente1/fuentes.py`: puerto `FuenteSolicitudes` (lectura por id y enumeración del catálogo completo) y adapter CSV compatible con el flujo local.
 - `src/agente1/destinos.py`: puerto `DestinoBorradores` y adapter Markdown que preserva la salida local.
 - `src/agente1/google_workspace.py`: contratos HTTP de lectura Google Sheets y creación de borradores Google Docs; sólo están verificados offline con token y transporte fake.
@@ -72,6 +80,17 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Qué prueba y qué no prueba la auditoría de seguridad | `src/agente1/auditoria_d2.py`, `auditar_manifest` |
 | Por qué los límites de redes son provisionales | `src/agente1/politica_redes.py`, docstring de módulo (DEF-A1-007) |
 | Por qué ningún origen de inscripción habilita envío | `src/agente1/origenes_inscripcion.py`, docstring de módulo |
+| Por qué la prosa de una persona nunca llega a un prompt como instrucción | `src/agente1/interpretacion.py`, docstring de módulo y ADR 0001 |
+| Por qué el despacho no se deriva del campo `pipeline_integrado` del catálogo | `interpretacion.py`, comentario de `INTENCIONES_CON_DESPACHO` |
+| Por qué el registro de interacciones no guarda la prosa ni la identidad en claro | `interpretacion.py`, docstring de módulo y `_finalizar`; ADR 0002 |
+| Por qué la interacción pendiente no necesita durabilidad | `interpretacion.py`, docstring de `RegistroPendientes` |
+| Por qué los términos del modelo se suman a la prosa en lugar de reemplazarla | `interpretacion.py`, docstring de `_buscar_actividad_con_terminos` |
+| Por qué se rechaza un intérprete cuyo presupuesto no cubre el contrato | `interpretacion.py`, comentario de `_interpretar_con_modelo` (DEF-A1-013) |
+| Por qué el seam tiene una guarda de último recurso además de traducir cada falla prevista | `interpretacion.py`, docstring de `interpretar_solicitud` |
+| Por qué el campo `intencion` que devuelve el modelo sólo puede rechazar, nunca habilitar | `interpretacion.py`, comentario dentro del fallback; ADR 0001 |
+| Por qué un arreglo de texto libre acotado sí se puede dimensionar | `src/agente1/presupuesto.py`, docstring de `_dimensionar_arreglo` |
+| Por qué el núcleo no sabe nada del transporte de la interacción | `src/agente1/canal.py`, docstring de módulo y de `atender_canal` |
+| Por qué medir el corpus calibrado da 100 % y eso no informa nada | `scripts/medir_cobertura_sin_inferencia.py`, docstring de módulo |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
