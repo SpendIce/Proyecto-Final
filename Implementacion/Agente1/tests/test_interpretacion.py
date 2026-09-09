@@ -31,12 +31,13 @@ from pathlib import Path
 import pytest
 
 from agente1 import FakeGenerator
-from agente1.destinos import DestinoBorradoresError, ReferenciaBorrador
-from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
+from agente1.destinos import ReferenciaBorrador
+from agente1.fuentes import CsvFuenteSolicitudes
 from agente1.interpretacion import (
     CATALOGO_INTENCIONES,
     IDS_INTENCIONES,
     INTENCIONES,
+    INTENCIONES_CON_DESPACHO,
     INTENCIONES_POR_ID,
     ROLES_HABILITADOS,
     IdentidadSolicitante,
@@ -144,12 +145,19 @@ def test_intencion_pendiente_de_pipeline_no_aparece_habilitada() -> None:
             assert item["pipeline"] is None
 
 
-# Caso negativo por cada intención sin despacho integrado en este incremento
-# (`fuera_de_alcance` tiene su propia prueba dedicada más abajo: su "caso
-# negativo" es, por diseño, cualquier texto que no dispare otra intención).
-# Si se agrega una intención al catálogo sin su entrada acá,
-# `test_toda_intencion_no_integrada_tiene_caso_negativo` falla.
+# Caso negativo por cada intención sin despacho en este incremento. La clave
+# de completitud es `INTENCIONES_CON_DESPACHO`, no el `pipeline_integrado` que
+# declara el catálogo por sí solo: si alguien agrega una intención `ACTIVA` al
+# catálogo (o le pone `pipeline_integrado: true`) sin sumarla también a
+# `INTENCIONES_CON_DESPACHO` y sin escribir su despacho, esta prueba
+# (`test_toda_intencion_sin_despacho_tiene_caso_negativo`) falla antes de que
+# esa intención pueda colarse como aceptada a medias. `fuera_de_alcance` entra
+# acá igual que cualquier otra: pasa por la misma rama de rechazo que
+# `generar_post` o `ajustar_borrador`, así que su código y la ausencia de
+# nombres de agentes se verifican con la misma prueba parametrizada, sin un
+# caso especial.
 CASOS_NEGATIVOS: dict[str, str] = {
+    "fuera_de_alcance": "¿A qué hora cierra la biblioteca los sábados?",
     "generar_post": "Necesitamos un post de instagram para la actividad SYN-001",
     "ajustar_borrador": "Corregí el borrador de la gacetilla SYN-001, quedó mal",
     "generar_newsletter": "Preparen el newsletter mensual con la actividad SYN-001",
@@ -157,14 +165,14 @@ CASOS_NEGATIVOS: dict[str, str] = {
 }
 
 
-def test_toda_intencion_no_integrada_tiene_caso_negativo() -> None:
-    no_integradas = {item["id"] for item in INTENCIONES if not item["pipeline_integrado"]}
+def test_toda_intencion_sin_despacho_tiene_caso_negativo() -> None:
+    sin_despacho = IDS_INTENCIONES - INTENCIONES_CON_DESPACHO
 
-    assert no_integradas == set(CASOS_NEGATIVOS)
+    assert sin_despacho == set(CASOS_NEGATIVOS)
 
 
 @pytest.mark.parametrize("intencion", sorted(CASOS_NEGATIVOS))
-def test_intencion_no_integrada_se_rechaza_con_su_codigo(
+def test_intencion_sin_despacho_se_rechaza_con_su_codigo(
     intencion: str, tmp_path: Path
 ) -> None:
     texto = CASOS_NEGATIVOS[intencion]
@@ -176,8 +184,7 @@ def test_intencion_no_integrada_se_rechaza_con_su_codigo(
     assert resultado.intencion == intencion
     registro = _ultima_linea(resultado.log_path)
     assert registro["resultado"] == INTENCIONES_POR_ID[intencion]["codigo_rechazo"]
-    # El rechazo por fuera de alcance no puede nombrar agentes inexistentes.
-    assert "agente" not in (resultado.error or "").lower() or intencion == "fuera_de_alcance"
+    # Ningún rechazo puede nombrar un agente que todavía no existe.
     for agente in ("Historia Viva", "Agente 2", "Agente 3", "Agente 4", "Agente 5"):
         assert agente not in (resultado.error or "")
 
@@ -341,7 +348,6 @@ def test_registro_conserva_unicamente_el_derivado_estructurado(tmp_path: Path) -
         "resultado",
         "error",
         "mensaje_hash",
-        "mensaje_longitud",
         "output_hash",
         "timestamp",
     }

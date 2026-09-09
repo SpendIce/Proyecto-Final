@@ -69,7 +69,6 @@ CATALOGO_INTENCIONES = json.loads(
     .joinpath("contracts", "intenciones_v1.schema.json")
     .read_text(encoding="utf-8")
 )
-APLICACIONES = frozenset(CATALOGO_INTENCIONES["aplicaciones"])
 INTENCIONES = tuple(CATALOGO_INTENCIONES["intenciones"])
 INTENCIONES_POR_ID: dict[str, dict[str, object]] = {
     str(item["id"]): item for item in INTENCIONES
@@ -79,14 +78,26 @@ INTENCION_FUERA_DE_ALCANCE = "fuera_de_alcance"
 ROLES_HABILITADOS = frozenset(
     str(rol) for rol in CATALOGO_INTENCIONES["roles_habilitados_provisionales"]
 )
+# Fuente de verdad, del lado del código, de qué intención sabe producir
+# realmente un borrador en este seam. Deliberadamente no se deriva de
+# `pipeline_integrado` del catálogo: ese campo es una declaración del
+# artefacto JSON, y basar el despacho en una declaración autoreportada
+# permitiría que alguien la marque `true` sin escribir el despacho. Acá se
+# fuerza la correspondencia inversa: el catálogo declara `pipeline_integrado`
+# para documentar la intención, pero quien decide en tiempo de ejecución —y
+# quien exige que exista un caso de prueba, ver `test_interpretacion.py`— es
+# este conjunto.
+INTENCIONES_CON_DESPACHO = frozenset({"generar_gacetilla"})
 
-# Mismo contrato de forma que `id_solicitud` en HU-010/HU-011.
-ID_SOLICITUD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
-# Identificador "explícito": una o dos palabras alfabéticas cortas, un guion y
-# dígitos, como los que ya produce el dataset sintético (`SYN-001`). Es una
-# forma reconocible en prosa suelta sin necesitar que la persona la etiquete
-# ("el identificador es...").  No es resolución difusa: sólo reconoce un
-# patrón sintáctico, nunca compara contra el contenido de la planilla.
+# Identificador "explícito": palabras alfabéticas cortas, un guion y dígitos,
+# como los que ya produce el dataset sintético (`SYN-001`). Es una forma
+# reconocible en prosa suelta sin necesitar que la persona la etiquete ("el
+# identificador es..."). No es resolución difusa: sólo reconoce un patrón
+# sintáctico, nunca compara contra el contenido de la planilla. Todo lo que
+# este patrón acepta es, por construcción, un subconjunto de lo que acepta el
+# contrato de `id_solicitud` de HU-010/HU-011 (alfanumérico, guion y guion
+# bajo): la validación de forma final la vuelve a hacer `procesar_solicitud`,
+# así que acá no hace falta repetirla.
 PATRON_IDENTIFICADOR_EXPLICITO = re.compile(r"\b[A-Za-z]{2,10}-[0-9]{1,6}\b")
 
 
@@ -146,12 +157,7 @@ def _extraer_identificador_explicito(texto: str) -> str | None:
     """
 
     coincidencia = PATRON_IDENTIFICADOR_EXPLICITO.search(texto)
-    if coincidencia is None:
-        return None
-    candidato = coincidencia.group(0)
-    if ID_SOLICITUD_RE.fullmatch(candidato) is None:
-        return None
-    return candidato
+    return coincidencia.group(0) if coincidencia is not None else None
 
 
 @dataclass(frozen=True)
@@ -266,7 +272,18 @@ def interpretar_solicitud(
     intencion = _clasificar_intencion(texto)
     entrada_catalogo = INTENCIONES_POR_ID[intencion]
 
-    if intencion == INTENCION_FUERA_DE_ALCANCE:
+    # Único punto de decisión sobre "esta intención produce un borrador o se
+    # rechaza": cubre en la misma rama `fuera_de_alcance` (nunca se aproxima a
+    # la más parecida), `generar_post` (pipeline propio de HU-011, despacho
+    # desde acá pendiente de #22), `ajustar_borrador` (reconocida, fuera de
+    # alcance de esta iteración) y las intenciones sin pipeline construido
+    # (`generar_newsletter`, `generar_mail`). `INTENCIONES_CON_DESPACHO` es la
+    # única fuente de verdad de qué intención despacha de verdad: ni el
+    # catálogo por sí solo ni una intención declarada `ACTIVA` alcanzan para
+    # producir un borrador si no está también acá. Agregar una intención al
+    # catálogo sin sumarla a este conjunto (y sin escribir su despacho) la
+    # deja rechazada con su `codigo_rechazo`, nunca aceptada a medias.
+    if intencion not in INTENCIONES_CON_DESPACHO:
         return _finalizar(
             log_path=log_path,
             correlation_id=correlation_id,
@@ -276,36 +293,7 @@ def interpretar_solicitud(
             id_actividad=None,
             estado="RECHAZADA",
             resultado=str(entrada_catalogo["codigo_rechazo"]),
-            error="La solicitud no corresponde a ninguna intención soportada por el agente",
-        )
-    if not entrada_catalogo["pipeline_integrado"]:
-        return _finalizar(
-            log_path=log_path,
-            correlation_id=correlation_id,
-            texto=texto_seguro,
-            solicitante=solicitante,
-            intencion=intencion,
-            id_actividad=None,
-            estado="RECHAZADA",
-            resultado=str(entrada_catalogo["codigo_rechazo"]),
-            error="La intención fue reconocida pero todavía no tiene un pipeline integrado en este seam",
-        )
-
-    # A partir de acá sólo queda `generar_gacetilla`: es la única intención
-    # del catálogo con `pipeline_integrado = true` distinta de
-    # `fuera_de_alcance`. El `else` es una red de seguridad defensiva, no un
-    # camino alcanzable con el catálogo vigente.
-    if intencion != "generar_gacetilla":
-        return _finalizar(
-            log_path=log_path,
-            correlation_id=correlation_id,
-            texto=texto_seguro,
-            solicitante=solicitante,
-            intencion=intencion,
-            id_actividad=None,
-            estado="RECHAZADA",
-            resultado="intencion_sin_manejo",
-            error="La intención no tiene un manejo definido en este seam",
+            error="La solicitud no corresponde a una intención con despacho disponible en este seam",
         )
 
     id_actividad = _extraer_identificador_explicito(texto)
@@ -417,7 +405,6 @@ def _finalizar(
         "resultado": resultado,
         "error": error,
         "mensaje_hash": _hash(texto),
-        "mensaje_longitud": len(texto),
         "output_hash": (
             _hash(referencia_borrador.referencia) if referencia_borrador is not None else None
         ),
