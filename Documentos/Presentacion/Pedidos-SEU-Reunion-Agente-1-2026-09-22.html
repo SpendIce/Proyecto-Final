@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Qué necesitamos de la SEU — Agente 1 · Reunión 2026-09-22</title>
+<style>
+  :root{
+    --papel:#FFFFFF;
+    --tinta:#1B2A41;
+    --tinta2:#33465F;
+    --gris:#6B7A8D;
+    --linea:#DCD6CB;
+    --azul:#2C5282;
+    --azul-claro:#EDF2F9;
+    --ambar:#B87D22;
+    --ambar-claro:#FCF3E1;
+    --rojo:#9B2C2C;
+    --rojo-claro:#FBEDEA;
+    --verde:#2F6B4F;
+    --verde-claro:#EDF5F0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#8A8A8A;font-family:"Noto Sans","Liberation Sans",sans-serif;color:var(--tinta);
+       -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.45}
+  .hoja{width:1240px;min-height:1754px;background:var(--papel);padding:44px 68px 34px;
+        margin:0 auto 24px;position:relative;display:flex;flex-direction:column}
+  .membrete{display:flex;justify-content:space-between;align-items:flex-start;
+            border-bottom:2.5px solid var(--tinta);padding-bottom:11px;margin-bottom:18px}
+  .membrete .org{font-size:12.5px;font-weight:700;letter-spacing:.09em;line-height:1.65;
+                 text-transform:uppercase;color:var(--tinta)}
+  .membrete .doc{text-align:right;font-size:11.5px;color:var(--gris);line-height:1.6}
+  h1{font-size:26px;letter-spacing:.01em;margin-bottom:4px}
+  .sub{color:var(--tinta2);font-size:14px;margin-bottom:16px}
+  h2{font-size:16px;text-transform:uppercase;letter-spacing:.08em;color:var(--azul);
+     border-bottom:1.5px solid var(--linea);padding-bottom:5px;margin:20px 0 10px}
+  .intro{background:var(--azul-claro);border-left:4px solid var(--azul);
+         padding:12px 16px;font-size:14px;color:var(--tinta2);margin-bottom:6px}
+  .intro b{color:var(--tinta)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .card{border:1.5px solid var(--linea);border-radius:8px;padding:14px 16px 12px;
+        page-break-inside:avoid}
+  .card.full{grid-column:1/-1}
+  .card h3{font-size:15px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .card h3 .num{display:inline-flex;align-items:center;justify-content:center;
+                width:24px;height:24px;border-radius:50%;background:var(--azul);
+                color:#fff;font-size:13px;font-weight:700;flex:none}
+  .card .para-que{font-size:12.5px;color:var(--gris);margin-bottom:8px;font-style:italic}
+  .card ul{list-style:none;font-size:13.5px}
+  .card li{padding:4px 0 4px 22px;position:relative;border-bottom:1px dotted var(--linea)}
+  .card li:last-child{border-bottom:none}
+  .card li::before{content:"";position:absolute;left:2px;top:9px;width:11px;height:11px;
+                   border:1.6px solid var(--azul);border-radius:2.5px;background:#fff}
+  .card li b{color:var(--azul)}
+  .card li .resp{display:block;margin-top:3px;height:14px;
+                 border-bottom:1px solid var(--linea)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+  th{background:var(--azul-claro);color:var(--tinta);text-align:left;
+     padding:6px 8px;border:1px solid var(--linea);font-size:12.5px}
+  td{padding:9px 8px;border:1px solid var(--linea);vertical-align:top;min-height:26px}
+  td.vacio{color:var(--gris);font-size:12px}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;
+        padding:2px 9px;border-radius:10px;text-transform:uppercase}
+  .pill.pend{background:var(--ambar-claro);color:var(--ambar)}
+  .pill.ok{background:var(--verde-claro);color:var(--verde)}
+  .nopedimos{background:var(--rojo-claro);border:1.5px solid var(--rojo);border-radius:8px;
+             padding:14px 16px;margin-top:20px}
+  .nopedimos h3{color:var(--rojo);font-size:14px;text-transform:uppercase;
+                letter-spacing:.07em;margin-bottom:8px}
+  .nopedimos ul{list-style:none;font-size:13.5px;columns:2;column-gap:28px}
+  .nopedimos li{padding:3px 0 3px 18px;position:relative}
+  .nopedimos li::before{content:"✕";position:absolute;left:0;color:var(--rojo);
+                        font-weight:700;font-size:12px}
+  .pie{margin-top:auto;padding-top:14px;border-top:1.5px solid var(--linea);
+       font-size:11.5px;color:var(--gris);display:flex;justify-content:space-between}
+  .nota{font-size:12px;color:var(--gris);margin-top:8px}
+  @media print{body{background:#fff}.hoja{margin:0;min-height:auto}}
+</style>
+</head>
+<body>
+
+<div class="hoja">
+
+  <div class="membrete">
+    <div class="org">Facultad de Ingeniería del Ejército · UNDEF<br>
+      Proyecto Centenario — Agente 1 «Extensión Bot»</div>
+    <div class="doc">Reunión de trabajo con la SEU<br>
+      Juan Ignacio Goñe · PPS · 2026-09-22</div>
+  </div>
+
+  <h1>Qué necesitamos que la SEU nos defina</h1>
+  <p class="sub">Solicitudes concretas para que el prototipo pueda avanzar de entorno controlado a validación institucional.</p>
+
+  <div class="intro">
+    <b>Estado actual:</b> el prototipo genera borradores de gacetillas y posts, confirmaciones de
+    inscripción y certificados, todo en entorno controlado y con datos sintéticos. Nada se publica ni
+    se envía: cada pieza queda marcada <b>«BORRADOR — NO PUBLICAR»</b> hasta que <b>dos personas
+    con roles distintos la aprueben</b>. Lo que falta no es técnico: son definiciones que sólo la
+    SEU puede dar.
+  </div>
+
+  <h2>1 · Revisión de borradores (lo más importante)</h2>
+  <div class="card full">
+    <h3><span class="num">1</span> Agendar o realizar la sesión de revisión de muestras</h3>
+    <p class="para-que">Es la evidencia central que falta: que una persona de la SEU lea las piezas y decida.</p>
+    <ul>
+      <li><b>Qué se revisa:</b> 9 piezas sintéticas — 3 gacetillas y, por cada actividad, un post de Instagram y uno de LinkedIn (paquete PDF adjunto, formulario rellenable).</li>
+      <li><b>Quién:</b> A/c Juan Manuel Gonzalez Chipont (titular designado) o VS «ec» Tomás de Vergara (suplente).</li>
+      <li><b>Cuánto lleva:</b> ~30–45 min. Se puntúa precisión de hechos, tono, adecuación al canal, gramática, longitud y ausencia de datos no respaldados.</li>
+      <li><b>Fecha propuesta:</b> <span class="resp"></span></li>
+    </ul>
+  </div>
+
+  <h2>2 · Criterios editoriales por canal</h2>
+  <div class="card full">
+    <h3><span class="num">2</span> Criterios de comunicación para Instagram y LinkedIn</h3>
+    <p class="para-que">Hoy estos valores son provisionales del equipo técnico. Si algo no está definido, alcanza con escribir «pendiente» o «no aplica» — eso también queda registrado.</p>
+    <table>
+      <tr><th style="width:26%">Criterio</th><th>Instagram</th><th>LinkedIn</th></tr>
+      <tr><td>Registro lingüístico (voseo, tuteo, otro)</td><td></td><td></td></tr>
+      <tr><td>Tono y estilo</td><td></td><td></td></tr>
+      <tr><td>Extensión máxima</td><td></td><td></td></tr>
+      <tr><td>Hashtags autorizados y cantidad</td><td></td><td></td></tr>
+      <tr><td>Llamados a la acción / inscripción</td><td></td><td></td></tr>
+      <tr><td>Emojis</td><td></td><td></td></tr>
+      <tr><td>Reels u otro apoyo textual</td><td></td><td></td></tr>
+    </table>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3><span class="num">3</span> Dos preguntas de tono (respuesta rápida)</h3>
+      <p class="para-que">El control automático hoy rechaza ambas cosas; necesitamos saber si eso es correcto.</p>
+      <ul>
+        <li><b>¿Puede un post nombrar «la jornada» / «el taller»</b> o debe decir sólo «esta propuesta»?<span class="resp"></span></li>
+        <li><b>¿Se acepta el voseo</b> («descubrí», «podés», «sumate») o debe ser impersonal?<span class="resp"></span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3><span class="num">4</span> Nota institucional / gacetilla</h3>
+      <p class="para-que">Ya nos confirmaron que no hay plantilla oficial; para piezas elevadas a DGE/SGE se usa nota con logos superiores. Falta el material.</p>
+      <ul>
+        <li><b>Logos autorizados</b> y reglas de uso (orden, tamaño, resguardo).<span class="resp"></span></li>
+        <li><b>Encabezado, pie, firma y cargo</b> que corresponden.<span class="resp"></span></li>
+        <li><b>Un ejemplo sanitizado</b> o instructivo de referencia.<span class="resp"></span></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>3 · Confirmaciones de inscripción (HU-012)</h2>
+  <div class="card full">
+    <h3><span class="num">5</span> Orígenes de datos de inscripción, por cada sistema</h3>
+    <p class="para-que">Sin esta tabla el sistema queda bloqueado por diseño: no puede enviar ninguna confirmación real. Si falta un dato, se puede responder «pendiente» con quién lo define.</p>
+    <table>
+      <tr>
+        <th style="width:15%">Origen</th><th style="width:17%">Qué actividades cubre</th>
+        <th style="width:17%">Qué datos tiene (nombre, mail, actividad…)</th><th style="width:14%">En qué estado se puede avisar</th>
+        <th style="width:14%">Responsable del dato</th><th>Consentimiento / retención</th>
+      </tr>
+      <tr><td>SIU Guaraní</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>SIU Guaraní Extensión</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Google Forms</td><td></td><td></td><td></td><td></td><td></td></tr>
+    </table>
+    <ul style="margin-top:8px">
+      <li><b>Regla de aprobación:</b> ¿cada confirmación se aprueba una por una o se preaprueba la plantilla?<span class="resp"></span></li>
+      <li><b>Canal autorizado</b> para enviarlas (correo institucional, otro).<span class="resp"></span></li>
+    </ul>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3><span class="num">6</span> Certificados (nuevo)</h3>
+      <p class="para-que">Ya existe un prototipo que emite PDF con doble aprobación humana. Faltan los insumos institucionales.</p>
+      <ul>
+        <li><b>Plantilla institucional</b> del certificado (o modelo de referencia).<span class="resp"></span></li>
+        <li><b>A quién y cómo se entrega</b> el certificado emitido.<span class="resp"></span></li>
+        <li><b>Firma digital / sello:</b> ¿corresponde? ¿Quién firma?<span class="resp"></span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3><span class="num">7</span> Prueba de uso con una persona real</h3>
+      <p class="para-que">Para validar el canal de pedidos en lenguaje natural interno.</p>
+      <ul>
+        <li><b>Un voluntario de la SEU</b> para una sesión guiada de ~30 minutos: le pedimos cosas por texto al sistema y observamos si lo entiende.<span class="resp"></span></li>
+        <li><b>Confirmar los roles del circuito de aprobación:</b> quién ejerce la aprobación «de contenido» (semántica) y quién la «de utilidad» (operativa) institucionalmente.<span class="resp"></span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="nopedimos">
+    <h3>Qué NO estamos pidiendo hoy</h3>
+    <ul>
+      <li>Autorización para publicar o enviar algo real.</li>
+      <li>Credenciales, claves o accesos a sistemas.</li>
+      <li>Datos personales de alumnos o inscriptos.</li>
+      <li>Que la SEU evalúe código ni aspectos técnicos.</li>
+      <li>Respuestas definitivas: «pendiente + quién lo define» también sirve.</li>
+      <li>Cambios de proceso: el agente se adapta a lo que la SEU defina.</li>
+    </ul>
+  </div>
+
+  <div class="pie">
+    <span>Agente 1 — Extensión Bot · Proyecto Centenario · FIE/UNDEF</span>
+    <span>Toda pieza permanece «BORRADOR — NO PUBLICAR» hasta doble aprobación humana registrada.</span>
+  </div>
+
+</div>
+
+</body>
+</html>
