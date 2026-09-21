@@ -7,7 +7,8 @@
 
 - Validación sintáctica del destinatario.
 - Render determinista de asunto y cuerpo con marcador de borrador.
-- Estados `PENDIENTE_VALIDACION`, `APROBADA`, `RECHAZADA` y `ENVIADA_SIMULADA`.
+- Estados `PENDIENTE_VALIDACION`, `APROBADA_SEMANTICA`, `APROBADA_UTILITARIA`, `APROBADA`, `RECHAZADA`, `ENVIO_RESERVADO`, `ENVIADA_SIMULADA`, `FALLIDA` y `ENVIO_INDETERMINADO`.
+- Circuito de doble aprobación (CU10 del bible): la semántica del Responsable de Gestión del Conocimiento y la utilitaria del Coordinador de Extensión, ambas obligatorias y en cualquier orden.
 - Idempotency key determinista y rechazo de duplicados.
 - Auditoría con hashes, sin email, nombre, asunto ni cuerpo en claro.
 - Entrega exclusivamente en memoria mediante `DestinoConfirmacionesFake`.
@@ -23,6 +24,6 @@
 
 ## Fronteras de seguridad
 
-El asunto es fijo y provisional. El destinatario rechaza CR/LF y formatos inválidos. El cuerpo se renderiza sin LLM: cualquier texto con apariencia de prompt injection permanece como dato literal y no puede activar un envío. El flag de envío falla cerrado sin aprobación válida y sin un fake explícito.
+El asunto es fijo y provisional. El destinatario rechaza CR/LF y formatos inválidos. El cuerpo se renderiza sin LLM: cualquier texto con apariencia de prompt injection permanece como dato literal y no puede activar un envío. El flag de envío falla cerrado sin las dos aprobaciones registradas y sin un fake explícito; un rol fuera del circuito invalida la decisión.
 
 Agregar un transporte real requiere una decisión separada, autorización institucional, gestión de secretos, pruebas de revocación y un nuevo gate de revisión.

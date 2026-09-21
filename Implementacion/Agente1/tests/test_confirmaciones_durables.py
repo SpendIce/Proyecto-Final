@@ -2,7 +2,8 @@
 una reserva interrumpida se cierra sin volver a entregar.
 
 El registro en memoria alcanza para una corrida; el que importa es el que
-aguanta una caída entre reservar el envío y saber el resultado."""
+aguanta una caída entre reservar el envío y saber el resultado —o entre una
+aprobación y la otra, porque el circuito exige las dos."""
 
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -14,6 +15,8 @@ from agente1.confirmaciones import (
     AprobacionHumana,
     DestinoConfirmacionesFake,
     RegistroConfirmacionesArchivo,
+    ROL_APROBACION_SEMANTICA,
+    ROL_APROBACION_UTILITARIA,
     SolicitudConfirmacion,
     procesar_confirmacion,
     reconciliar_envios_reservados,
@@ -35,13 +38,21 @@ def solicitud(**cambios: str) -> SolicitudConfirmacion:
     return SolicitudConfirmacion(**datos)
 
 
-def aprobacion(*, aprobada: bool = True) -> AprobacionHumana:
+def aprobacion(*, aprobada: bool = True, rol: str) -> AprobacionHumana:
     return AprobacionHumana(
         aprobada=aprobada,
         validador="Validador SEU de prueba",
-        rol="ROL_SIMULADO_NO_INSTITUCIONAL",
+        rol=rol,
         fecha_iso="2026-08-17T18:00:00-03:00",
     )
+
+
+def semantica(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBACION_SEMANTICA, **kwargs)
+
+
+def utilitaria(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBACION_UTILITARIA, **kwargs)
 
 
 def registro_en(tmp_path: Path) -> RegistroConfirmacionesArchivo:
@@ -57,20 +68,27 @@ def procesar(tmp_path: Path, registro, **extra):
     )
 
 
+def aprobar_ambos(tmp_path: Path, registro) -> None:
+    procesar(tmp_path, registro, aprobacion=semantica())
+    procesar(tmp_path, registro, aprobacion=utilitaria())
+
+
 # --- Estados observables -----------------------------------------------------
 
 
-def test_generacion_aprobacion_reserva_y_entrega_son_estados_distintos(tmp_path):
+def test_generacion_aprobaciones_reserva_y_entrega_son_estados_distintos(
+    tmp_path,
+):
     registro = registro_en(tmp_path)
     destino = DestinoConfirmacionesFake()
 
     generada = procesar(tmp_path, registro)
-    aprobada = procesar(tmp_path, registro, aprobacion=aprobacion())
-    entregada = procesar(
-        tmp_path, registro, aprobacion=aprobacion(), destino=destino, enviar=True
-    )
+    semantica_parcial = procesar(tmp_path, registro, aprobacion=semantica())
+    aprobada = procesar(tmp_path, registro, aprobacion=utilitaria())
+    entregada = procesar(tmp_path, registro, destino=destino, enviar=True)
 
     assert generada.estado == "PENDIENTE_VALIDACION"
+    assert semantica_parcial.estado == "APROBADA_SEMANTICA"
     assert aprobada.estado == "APROBADA"
     assert entregada.estado == "ENVIADA_SIMULADA"
     # La reserva no es un estado que el llamador pida: es el paso intermedio que
@@ -84,19 +102,17 @@ def test_generacion_aprobacion_reserva_y_entrega_son_estados_distintos(tmp_path)
 def test_la_idempotencia_sobrevive_a_reiniciar_el_proceso(tmp_path):
     """El caso que el registro en memoria no cubre.
 
-    Si al reiniciar no queda rastro de la aprobación, un reintento vuelve a
+    Si al reiniciar no queda rastro de las aprobaciones, un reintento vuelve a
     entregar. Acá el segundo registro es un objeto nuevo sobre el mismo
     directorio, que es lo que ve un proceso recién arrancado.
     """
 
     primero = registro_en(tmp_path)
-    procesar(tmp_path, primero, aprobacion=aprobacion())
+    aprobar_ambos(tmp_path, primero)
 
     segundo = registro_en(tmp_path)
     destino = DestinoConfirmacionesFake()
-    reintento = procesar(
-        tmp_path, segundo, aprobacion=aprobacion(), destino=destino, enviar=True
-    )
+    reintento = procesar(tmp_path, segundo, destino=destino, enviar=True)
 
     assert reintento.estado == "ENVIADA_SIMULADA"
     assert len(destino.entregas) == 1
@@ -104,21 +120,47 @@ def test_la_idempotencia_sobrevive_a_reiniciar_el_proceso(tmp_path):
     tercero = registro_en(tmp_path)
     otro_destino = DestinoConfirmacionesFake()
     duplicado = procesar(
-        tmp_path, tercero, aprobacion=aprobacion(), destino=otro_destino, enviar=True
+        tmp_path, tercero, destino=otro_destino, enviar=True
     )
 
     assert duplicado.estado == "DUPLICADA"
     assert otro_destino.entregas == []
 
 
-def test_un_rechazo_sobrevive_al_reinicio_y_no_se_puede_aprobar_despues(tmp_path):
-    procesar(tmp_path, registro_en(tmp_path), aprobacion=aprobacion(aprobada=False))
+def test_una_aprobacion_parcial_sobrevive_al_reinicio(tmp_path):
+    """La primera de las dos aprobaciones también es durable.
+
+    Si el proceso muere entre la aprobación semántica y la utilitaria, el
+    reinicio encuentra el estado parcial y la segunda aprobación completa el
+    circuito sin repetir la primera.
+    """
+
+    procesar(tmp_path, registro_en(tmp_path), aprobacion=semantica())
+
+    reanudado = registro_en(tmp_path)
+    segunda = procesar(tmp_path, reanudado, aprobacion=utilitaria())
+    assert segunda.estado == "APROBADA"
+
+    destino = DestinoConfirmacionesFake()
+    envio = procesar(tmp_path, registro_en(tmp_path), destino=destino, enviar=True)
+    assert envio.estado == "ENVIADA_SIMULADA"
+    assert len(destino.entregas) == 1
+
+
+def test_un_rechazo_sobrevive_al_reinicio_y_no_se_puede_aprobar_despues(
+    tmp_path,
+):
+    procesar(
+        tmp_path,
+        registro_en(tmp_path),
+        aprobacion=semantica(aprobada=False),
+    )
 
     destino = DestinoConfirmacionesFake()
     reintento = procesar(
         tmp_path,
         registro_en(tmp_path),
-        aprobacion=aprobacion(),
+        aprobacion=utilitaria(),
         destino=destino,
         enviar=True,
     )
@@ -127,7 +169,9 @@ def test_un_rechazo_sobrevive_al_reinicio_y_no_se_puede_aprobar_despues(tmp_path
     assert destino.entregas == []
 
 
-def test_el_registro_durable_guarda_el_estado_con_permisos_restrictivos(tmp_path):
+def test_el_registro_durable_guarda_el_estado_con_permisos_restrictivos(
+    tmp_path,
+):
     registro = registro_en(tmp_path)
     procesar(tmp_path, registro)
 
@@ -148,9 +192,11 @@ def test_una_clave_que_no_es_un_hash_no_elige_donde_se_escribe(tmp_path):
         registro.crear("../escape", "Asunto", "Cuerpo")
 
 
-def test_un_registro_corrupto_se_trata_como_ausente_y_no_habilita_entrega(tmp_path):
+def test_un_registro_corrupto_se_trata_como_ausente_y_no_habilita_entrega(
+    tmp_path,
+):
     registro = registro_en(tmp_path)
-    procesar(tmp_path, registro, aprobacion=aprobacion())
+    procesar(tmp_path, registro, aprobacion=semantica())
     (archivo,) = list((tmp_path / "registro").glob("*.json"))
     archivo.write_text("{ esto no es json", encoding="utf-8")
     clave = archivo.stem
@@ -164,6 +210,16 @@ def test_un_registro_corrupto_se_trata_como_ausente_y_no_habilita_entrega(tmp_pa
 # --- Reconciliación ----------------------------------------------------------
 
 
+def _llevar_a_reserva(tmp_path):
+    """Aprueba con los dos roles y reserva el envío, sin entregar."""
+    registro = registro_en(tmp_path)
+    aprobar_ambos(tmp_path, registro)
+    (archivo,) = list((tmp_path / "registro").glob("*.json"))
+    clave = archivo.stem
+    assert registro.transicionar(clave, frozenset({"APROBADA"}), "ENVIO_RESERVADO")
+    return registro, clave
+
+
 def test_una_reserva_interrumpida_se_reconcilia_sin_volver_a_entregar(tmp_path):
     """El proceso murió entre reservar y saber el resultado.
 
@@ -172,11 +228,7 @@ def test_una_reserva_interrumpida_se_reconcilia_sin_volver_a_entregar(tmp_path):
     decisión humana y no entrega nada.
     """
 
-    registro = registro_en(tmp_path)
-    procesar(tmp_path, registro, aprobacion=aprobacion())
-    (archivo,) = list((tmp_path / "registro").glob("*.json"))
-    clave = archivo.stem
-    assert registro.transicionar(clave, frozenset({"APROBADA"}), "ENVIO_RESERVADO")
+    registro, clave = _llevar_a_reserva(tmp_path)
 
     reconciliadas = reconciliar_envios_reservados(registro_en(tmp_path))
 
@@ -186,15 +238,12 @@ def test_una_reserva_interrumpida_se_reconcilia_sin_volver_a_entregar(tmp_path):
 
 
 def test_desde_indeterminado_el_pipeline_no_vuelve_a_entregar(tmp_path):
-    registro = registro_en(tmp_path)
-    procesar(tmp_path, registro, aprobacion=aprobacion())
-    (archivo,) = list((tmp_path / "registro").glob("*.json"))
-    registro.transicionar(archivo.stem, frozenset({"APROBADA"}), "ENVIO_RESERVADO")
+    registro, _ = _llevar_a_reserva(tmp_path)
     reconciliar_envios_reservados(registro)
 
     destino = DestinoConfirmacionesFake()
     reintento = procesar(
-        tmp_path, registro, aprobacion=aprobacion(), destino=destino, enviar=True
+        tmp_path, registro, aprobacion=semantica(), destino=destino, enviar=True
     )
 
     assert reintento.estado == "DUPLICADA"
@@ -204,22 +253,22 @@ def test_desde_indeterminado_el_pipeline_no_vuelve_a_entregar(tmp_path):
 def test_reconciliar_no_toca_los_estados_terminales(tmp_path):
     registro = registro_en(tmp_path)
     destino = DestinoConfirmacionesFake()
-    procesar(
-        tmp_path, registro, aprobacion=aprobacion(), destino=destino, enviar=True
-    )
+    aprobar_ambos(tmp_path, registro)
+    procesar(tmp_path, registro, destino=destino, enviar=True)
 
     assert reconciliar_envios_reservados(registro) == ()
     (archivo,) = list((tmp_path / "registro").glob("*.json"))
     assert registro.obtener(archivo.stem).estado == "ENVIADA_SIMULADA"
 
 
-def test_una_entrega_fallida_queda_fallida_y_no_es_una_reserva_colgada(tmp_path):
+def test_una_entrega_fallida_queda_fallida_y_no_es_una_reserva_colgada(
+    tmp_path,
+):
     registro = registro_en(tmp_path)
+    aprobar_ambos(tmp_path, registro)
     destino = DestinoConfirmacionesFake(error="fallo sintético del fake")
 
-    resultado = procesar(
-        tmp_path, registro, aprobacion=aprobacion(), destino=destino, enviar=True
-    )
+    resultado = procesar(tmp_path, registro, destino=destino, enviar=True)
 
     assert resultado.estado == "FALLIDA"
     assert reconciliar_envios_reservados(registro) == ()
@@ -230,7 +279,7 @@ def test_una_entrega_fallida_queda_fallida_y_no_es_una_reserva_colgada(tmp_path)
 
 def test_varias_entregas_en_paralelo_producen_una_sola(tmp_path):
     registro = registro_en(tmp_path)
-    procesar(tmp_path, registro, aprobacion=aprobacion())
+    aprobar_ambos(tmp_path, registro)
     destino = DestinoConfirmacionesFake()
 
     def entregar(indice: int):
@@ -238,7 +287,6 @@ def test_varias_entregas_en_paralelo_producen_una_sola(tmp_path):
             solicitud=solicitud(),
             directorio_salida=tmp_path / f"salida-{indice}",
             registro=registro_en(tmp_path),
-            aprobacion=aprobacion(),
             destino=destino,
             enviar=True,
         )
@@ -292,16 +340,27 @@ def test_una_solicitud_invalida_no_deja_rastro_en_el_registro(
     assert list((tmp_path / "registro").glob("*.json")) == []
 
 
+def test_un_envio_sin_registro_previo_no_crea_nada(tmp_path):
+    registro = registro_en(tmp_path)
+
+    resultado = procesar(
+        tmp_path, registro, destino=DestinoConfirmacionesFake(), enviar=True
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approval_required"
+    assert list((tmp_path / "registro").glob("*.json")) == []
+
+
 # --- Auditoría y adapters ----------------------------------------------------
 
 
 def test_la_auditoria_no_copia_destinatarios_ni_cuerpos(tmp_path):
     registro = registro_en(tmp_path)
     destino = DestinoConfirmacionesFake()
+    aprobar_ambos(tmp_path, registro)
 
-    resultado = procesar(
-        tmp_path, registro, aprobacion=aprobacion(), destino=destino, enviar=True
-    )
+    resultado = procesar(tmp_path, registro, destino=destino, enviar=True)
 
     registrado = resultado.log_path.read_text(encoding="utf-8")
     assert "ana.perez@example.test" not in registrado
@@ -317,7 +376,7 @@ def test_ningun_adapter_productivo_de_correo_queda_habilitado(tmp_path):
     resultado = procesar(
         tmp_path,
         registro_en(tmp_path),
-        aprobacion=aprobacion(),
+        aprobacion=semantica(),
         destino=DestinoQueParecePeroNoEs(),
         enviar=True,
     )

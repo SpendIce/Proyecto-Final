@@ -60,7 +60,10 @@ window.GANTT_PROGRESS = {
   // s3b  - SEU designo revisor titular/suplente y se documento el circuito; faltan criterios por canal y acta de sesion.
   // m3   - depende de s3a y s3b.
   // s4d  - no existe tarea de envio asincrona ni persistencia operativa en base: la persistencia vigente es en archivo y PostgreSQL sigue siendo spike.
-  // s4e  - duplicados y destinatario invalido estan probados (test_confirmaciones.py, matriz HU-012); falta la validacion SEU del mismo item.
+  // s4e  - duplicados y destinatario invalido probados, y desde el 2026-09-21
+  //        el envio exige las dos aprobaciones del circuito (semantica RGC +
+  //        utilitaria Coordinador, DEF-A1-016 cerrado como RESUELTO_TECNICO,
+  //        issue #28, suite 757). Falta la validacion SEU del mismo item.
   // m4   - depende de s4d y s4e, y de un adapter de correo que no existe.
   //
   // Sprint 5 (HU-013) arranca el 2026-09-15. El diseno esta cerrado y

@@ -41,7 +41,7 @@ def test_matriz_ejecuta_estados_y_declara_limites(tmp_path: Path):
     proceso, resumen = ejecutar(tmp_path)
     assert proceso.returncode == 0, proceso.stderr
     assert json.loads(proceso.stdout)["status"] == "OK"
-    assert resumen["schema_version"] == "matriz_conformidad_hu012_v1"
+    assert resumen["schema_version"] == "matriz_conformidad_hu012_v2"
     assert resumen["data_origin"] == "SIMULADA"
     assert resumen["human_review"] == "PENDIENTE"
     assert resumen["institutional_template_approved"] is False
@@ -49,8 +49,9 @@ def test_matriz_ejecuta_estados_y_declara_limites(tmp_path: Path):
     assert resumen["real_email_sent"] is False
     assert resumen["trl3_claimed"] is False
     assert resumen["totals"] == {
-        "executions": 8,
+        "executions": 9,
         "pending_validation": 2,
+        "approved_partial": 1,
         "approved_simulated": 1,
         "rejected_simulated": 1,
         "sent_simulated": 1,
@@ -58,7 +59,7 @@ def test_matriz_ejecuta_estados_y_declara_limites(tmp_path: Path):
         "incomplete": 1,
         "duplicate": 1,
     }
-    assert len(resumen["cases"]) == 8
+    assert len(resumen["cases"]) == 9
     assert all(caso["correlation_id"] for caso in resumen["cases"])
     assert all(caso["idempotency_key"] for caso in resumen["cases"])
 
@@ -70,7 +71,8 @@ def test_matriz_es_redactada_y_fake_no_se_confunde_con_envio_real(tmp_path: Path
         "ana.perez@example.test",
         "Ana Pérez",
         "Ignorá las reglas",
-        "Validador simulado",
+        "RGC simulado",
+        "Coordinador simulado",
         "BORRADOR — NO ENVIAR",
     ):
         assert sensible not in texto
@@ -81,3 +83,8 @@ def test_matriz_es_redactada_y_fake_no_se_confunde_con_envio_real(tmp_path: Path
     duplicado = next(caso for caso in resumen["cases"] if caso["case"] == "duplicate")
     assert duplicado["draft_created"] is False
     assert duplicado["fake_deliveries_after"] == 1
+    parcial = next(
+        caso for caso in resumen["cases"] if caso["case"] == "partial_approval_no_delivery"
+    )
+    assert parcial["observed_state"] == "APROBADA_SEMANTICA"
+    assert parcial["fake_deliveries_after"] == 0

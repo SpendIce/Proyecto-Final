@@ -362,12 +362,16 @@ PostgreSQL real, que todavía no existe.
 ## HU-012 — confirmaciones offline
 
 HU-012 renderiza determinísticamente un asunto y cuerpo provisional con
-`BORRADOR — NO ENVIAR`. Valida destinatario y aprobación humana, conserva el
-mismo borrador durante el lifecycle
-`PENDIENTE_VALIDACION → APROBADA/RECHAZADA → ENVIO_RESERVADO →
-ENVIADA_SIMULADA/FALLIDA`, con `ENVIO_INDETERMINADO` para una reserva que quedó
-colgada, y usa transiciones atómicas para impedir retrocesos, carreras y
-entregas duplicadas.
+`BORRADOR — NO ENVIAR`. Valida destinatario y exige las dos aprobaciones del
+circuito —la semántica del Responsable de Gestión del Conocimiento y la
+utilitaria del Coordinador de Extensión (CU10 del bible)— antes de habilitar
+cualquier entrega. Conserva el mismo borrador durante el lifecycle
+`PENDIENTE_VALIDACION → APROBADA_SEMANTICA/APROBADA_UTILITARIA → APROBADA →
+ENVIO_RESERVADO → ENVIADA_SIMULADA/FALLIDA` (o `RECHAZADA` ante una decisión
+negativa), con `ENVIO_INDETERMINADO` para una reserva que quedó colgada, y usa
+transiciones atómicas para impedir retrocesos, carreras y entregas
+duplicadas. Una sola aprobación —de cualquiera de los dos roles— deja el
+registro en el estado parcial correspondiente y no habilita el envío.
 `ENVIADA_SIMULADA` sólo registra una entrega en memoria mediante
 `DestinoConfirmacionesFake`: no existe adapter de correo real.
 

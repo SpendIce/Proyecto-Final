@@ -19,7 +19,7 @@ No se codifica una restricción rígida origen/tipo hasta confirmar excepciones 
 
 ## Estados y seguridad
 
-El v2 no agrega un trigger ni un destino real. Conserva el recorrido controlado actual: `RECIBIDA` → `BORRADOR` → `PENDIENTE_VALIDACION` → `APROBADA` o `RECHAZADA`; los estados posteriores `ENVIO_RESERVADO` y `ENVIADA_SIMULADA` sólo pertenecen al fake y no representan un envío real. La clave de idempotencia debe incluir el origen además del ID institucional cuando se implemente el adapter.
+El v2 no agrega un trigger ni un destino real. Conserva el recorrido controlado actual: `RECIBIDA` → `BORRADOR` → `PENDIENTE_VALIDACION` → `APROBADA_SEMANTICA`/`APROBADA_UTILITARIA` → `APROBADA` o `RECHAZADA` —`APROBADA` exige las dos aprobaciones del circuito (semántica del RGC y utilitaria del Coordinador de Extensión)—; los estados posteriores `ENVIO_RESERVADO` y `ENVIADA_SIMULADA` sólo pertenecen al fake y no representan un envío real. La clave de idempotencia debe incluir el origen además del ID institucional cuando se implemente el adapter.
 
 No deben persistirse en el contrato de trazabilidad enlaces de pago, credenciales, secretos ni más datos personales que los estrictamente necesarios para la confirmación aprobada.
 

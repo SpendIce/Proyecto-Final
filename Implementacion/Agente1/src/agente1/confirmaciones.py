@@ -13,7 +13,10 @@ destinatario válido no hay borrador, un reintento no duplica— antes de que
 exista la capacidad técnica de enviar. Cuando la SEU habilite el correo, lo que
 se agrega es un adapter, no la lógica de control.
 
-Estados: `PENDIENTE_VALIDACION` → `APROBADA` | `RECHAZADA`, y de `APROBADA` →
+Estados: `PENDIENTE_VALIDACION` → `APROBADA_SEMANTICA` | `APROBADA_UTILITARIA`
+según cuál de las dos aprobaciones llega primero, y de ahí → `APROBADA` cuando
+llega la complementaria; cualquier decisión negativa lleva a `RECHAZADA`.
+Sólo desde `APROBADA` —las dos aprobaciones registradas— se puede pasar a
 `ENVIO_RESERVADO` → `ENVIADA_SIMULADA` | `FALLIDA`. El paso intermedio
 `ENVIO_RESERVADO` existe para que una caída durante la entrega no deje el
 registro en un estado que habilite reintentar y mandar dos veces.
@@ -59,6 +62,41 @@ REQUIRED_FIELDS = (
     "contacto",
 )
 
+# La bible exige dos aprobaciones independientes antes de habilitar un envío:
+# la semántica, a cargo del Responsable de Gestión del Conocimiento, y la
+# utilitaria, del Coordinador de Extensión (CU10 "Aprobar Borrador", bloque
+# "Human in the Loop"; CP18/CP19 del Plan de Pruebas Unitarias). El conjunto
+# de roles es cerrado: una decisión con otro rol no es una aprobación. Es un
+# catálogo provisional —la identidad real de quien decide sigue pendiente de
+# la identidad institucional (DEF-A1-001, issue #15)— pero la exigencia de
+# dos decisiones distintas ya aplica.
+ROL_APROBACION_SEMANTICA = "RESPONSABLE_GESTION_CONOCIMIENTO"
+ROL_APROBACION_UTILITARIA = "COORDINADOR_EXTENSION"
+ROLES_APROBACION = frozenset(
+    {ROL_APROBACION_SEMANTICA, ROL_APROBACION_UTILITARIA}
+)
+
+# Estados parciales de aprobación: el nombre declara la aprobación que ya
+# quedó registrada, así que la que falta para habilitar el envío es la otra.
+ESTADO_APROBADA_SEMANTICA = "APROBADA_SEMANTICA"
+ESTADO_APROBADA_UTILITARIA = "APROBADA_UTILITARIA"
+ESTADOS_PARCIALES_APROBACION = frozenset(
+    {ESTADO_APROBADA_SEMANTICA, ESTADO_APROBADA_UTILITARIA}
+)
+
+# Por rol: el estado en que queda un borrador pendiente cuando ese rol
+# aprueba, y el estado parcial del que parte para completar el par.
+_PARCIAL_POR_ROL = {
+    ROL_APROBACION_SEMANTICA: (
+        ESTADO_APROBADA_SEMANTICA,
+        ESTADO_APROBADA_UTILITARIA,
+    ),
+    ROL_APROBACION_UTILITARIA: (
+        ESTADO_APROBADA_UTILITARIA,
+        ESTADO_APROBADA_SEMANTICA,
+    ),
+}
+
 
 @dataclass(frozen=True)
 class SolicitudConfirmacion:
@@ -74,11 +112,13 @@ class SolicitudConfirmacion:
 
 @dataclass(frozen=True)
 class AprobacionHumana:
-    """Decisión humana registrada. Sin esto no hay envío posible.
+    """Decisión humana registrada. Sin las dos del circuito no hay envío.
 
     Exige quién decidió (`validador`), con qué rol y cuándo, con zona horaria
     obligatoria: una aprobación sin responsable identificable no sirve como
-    evidencia. Sólo se guarda su hash en el log, no los datos de la persona.
+    evidencia. `rol` pertenece a `ROLES_APROBACION`: la semántica y la
+    utilitaria son decisiones de roles distintos y hacen falta las dos.
+    Sólo se guarda su hash en el log, no los datos de la persona.
     """
 
     aprobada: bool
@@ -442,23 +482,15 @@ def procesar_confirmacion(
             estado="INVALIDA",
             error="approval_invalid",
         )
-    if enviar and aprobacion is None:
-        return _resultado(
-            log_path=log_path,
-            solicitud=solicitud,
-            correlation_id=correlation_id,
-            idempotency_key=idempotency_key,
-            estado="INVALIDA",
-            error="approval_required",
-        )
-    # Control central de la HU: sólo se entrega a un fake. Se compara el tipo
-    # exacto y no con isinstance, para que una subclase que sí mande correo no
-    # pueda pasar por acá. Es el candado que permite tener el ciclo de vida
-    # completo implementado sin capacidad real de envío.
+    # Control central de la HU: todo pedido de envío que pueda terminar en una
+    # entrega exige el fake explícito. Se compara el tipo exacto y no con
+    # isinstance, para que una subclase que sí mande correo no pueda pasar por
+    # acá. Es el candado que permite tener el ciclo de vida completo
+    # implementado sin capacidad real de envío. Una decisión de rechazo no
+    # entrega nunca, así que no exige destino.
     if (
         enviar
-        and aprobacion is not None
-        and aprobacion.aprobada
+        and (aprobacion is None or aprobacion.aprobada)
         and type(destino) is not DestinoConfirmacionesFake
     ):
         return _resultado(
@@ -471,24 +503,46 @@ def procesar_confirmacion(
         )
 
     existente = registro.obtener(idempotency_key)
-    creado = existente is None
-    if existente is None:
-        asunto_nuevo, cuerpo_nuevo = _renderizar(solicitud)
-        if registro.crear(idempotency_key, asunto_nuevo, cuerpo_nuevo):
-            existente = BorradorRegistrado(
-                estado="PENDIENTE_VALIDACION",
-                asunto=asunto_nuevo,
-                cuerpo=cuerpo_nuevo,
-            )
-        else:
-            creado = False
-            existente = registro.obtener(idempotency_key)
-    if existente is None:
-        raise RuntimeError("registro de idempotencia inconsistente")
-    asunto, cuerpo = existente.asunto, existente.cuerpo
 
     if aprobacion is None:
-        if not creado:
+        if enviar:
+            # Entrega sin decisión nueva: la autoriza el estado APROBADA, que
+            # sólo se alcanza con las dos aprobaciones registradas. Un pedido
+            # de envío sin registro o sobre uno todavía en validación es
+            # inválido y no crea ni mueve nada; sobre un registro que ya pasó
+            # de ese punto —entregada, fallida, rechazada, indeterminada— es
+            # un reintento y se responde como duplicado.
+            if existente is None or existente.estado in (
+                {"PENDIENTE_VALIDACION"} | ESTADOS_PARCIALES_APROBACION
+            ):
+                return _resultado(
+                    log_path=log_path,
+                    solicitud=solicitud,
+                    correlation_id=correlation_id,
+                    idempotency_key=idempotency_key,
+                    estado="INVALIDA",
+                    error="approval_required",
+                )
+            if existente.estado != "APROBADA":
+                return _duplicada(
+                    log_path, solicitud, correlation_id, idempotency_key
+                )
+            return _entregar(
+                registro=registro,
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                destino=destino,
+                asunto=existente.asunto,
+                cuerpo=existente.cuerpo,
+            )
+        if existente is not None:
+            return _duplicada(
+                log_path, solicitud, correlation_id, idempotency_key
+            )
+        asunto_nuevo, cuerpo_nuevo = _renderizar(solicitud)
+        if not registro.crear(idempotency_key, asunto_nuevo, cuerpo_nuevo):
             return _duplicada(
                 log_path, solicitud, correlation_id, idempotency_key
             )
@@ -498,13 +552,31 @@ def procesar_confirmacion(
             correlation_id=correlation_id,
             idempotency_key=idempotency_key,
             estado="PENDIENTE_VALIDACION",
-            asunto=asunto,
-            cuerpo=cuerpo,
+            asunto=asunto_nuevo,
+            cuerpo=cuerpo_nuevo,
         )
+
+    # A partir de acá hay una decisión humana que registrar. Si el borrador
+    # todavía no existe, la decisión lo materializa primero.
+    if existente is None:
+        asunto_nuevo, cuerpo_nuevo = _renderizar(solicitud)
+        if registro.crear(idempotency_key, asunto_nuevo, cuerpo_nuevo):
+            existente = BorradorRegistrado(
+                estado="PENDIENTE_VALIDACION",
+                asunto=asunto_nuevo,
+                cuerpo=cuerpo_nuevo,
+            )
+        else:
+            existente = registro.obtener(idempotency_key)
+    if existente is None:
+        raise RuntimeError("registro de idempotencia inconsistente")
+    asunto, cuerpo = existente.asunto, existente.cuerpo
 
     if not aprobacion.aprobada:
         if not registro.transicionar(
-            idempotency_key, frozenset({"PENDIENTE_VALIDACION"}), "RECHAZADA"
+            idempotency_key,
+            frozenset({"PENDIENTE_VALIDACION"} | ESTADOS_PARCIALES_APROBACION),
+            "RECHAZADA",
         ):
             return _duplicada(
                 log_path, solicitud, correlation_id, idempotency_key
@@ -520,60 +592,96 @@ def procesar_confirmacion(
             aprobacion=aprobacion,
         )
 
-    if existente.estado == "PENDIENTE_VALIDACION":
-        if not registro.transicionar(
-            idempotency_key, frozenset({"PENDIENTE_VALIDACION"}), "APROBADA"
-        ):
-            return _duplicada(log_path, solicitud, correlation_id, idempotency_key)
-    elif existente.estado != "APROBADA":
+    # Cada rol deja su propio estado parcial; la aprobación del otro rol es la
+    # única que completa el circuito. Dos compare-and-set en cadena cierran la
+    # carrera entre aprobaciones simultáneas de roles distintos.
+    parcial_propia, parcial_ajena = _PARCIAL_POR_ROL[aprobacion.rol]
+    if registro.transicionar(
+        idempotency_key, frozenset({"PENDIENTE_VALIDACION"}), parcial_propia
+    ):
+        estado_actual = parcial_propia
+    elif registro.transicionar(
+        idempotency_key, frozenset({parcial_ajena}), "APROBADA"
+    ):
+        estado_actual = "APROBADA"
+    else:
         return _duplicada(log_path, solicitud, correlation_id, idempotency_key)
 
-    if not enviar:
+    if not enviar or estado_actual != "APROBADA":
+        # Si se pidió enviar pero falta la otra aprobación, el estado devuelto
+        # lo dice explícitamente: la decisión quedó registrada y no se entregó.
         return _finalizar(
             log_path=log_path,
             solicitud=solicitud,
             correlation_id=correlation_id,
             idempotency_key=idempotency_key,
-            estado="APROBADA",
+            estado=estado_actual,
             asunto=asunto,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
         )
 
-    # Reserva del envío antes de intentarlo: si el proceso muere en la entrega,
-    # el registro queda en ENVIO_RESERVADO y un reintento no vuelve a entregar,
-    # porque ya no está en APROBADA. Se prefiere una confirmación no enviada a
-    # una enviada dos veces.
+    return _entregar(
+        registro=registro,
+        log_path=log_path,
+        solicitud=solicitud,
+        correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
+        destino=destino,
+        asunto=asunto,
+        cuerpo=cuerpo,
+        aprobacion=aprobacion,
+    )
+
+
+def _entregar(
+    *,
+    registro: RegistroConfirmaciones,
+    log_path: Path,
+    solicitud: SolicitudConfirmacion,
+    correlation_id: str,
+    idempotency_key: str,
+    destino: DestinoConfirmaciones,
+    asunto: str,
+    cuerpo: str,
+    aprobacion: AprobacionHumana | None = None,
+) -> ResultadoConfirmacion:
+    """Reserva el envío antes de intentarlo, desde `APROBADA` solamente.
+
+    Si el proceso muere en la entrega, el registro queda en ENVIO_RESERVADO y
+    un reintento no vuelve a entregar, porque ya no está en APROBADA. Se
+    prefiere una confirmación no enviada a una enviada dos veces.
+    """
+
     if not registro.transicionar(
         idempotency_key,
         frozenset({"APROBADA"}),
         "ENVIO_RESERVADO",
     ):
         return _duplicada(log_path, solicitud, correlation_id, idempotency_key)
-    if enviar:
-        assert type(destino) is DestinoConfirmacionesFake
-        try:
-            destino.entregar(
-                idempotency_key=idempotency_key,
-                destinatario=solicitud.email_destinatario,
-                asunto=asunto,
-                cuerpo=cuerpo,
-            )
-        except Exception:
-            registro.transicionar(
-                idempotency_key, frozenset({"ENVIO_RESERVADO"}), "FALLIDA"
-            )
-            return _resultado(
-                log_path=log_path,
-                solicitud=solicitud,
-                correlation_id=correlation_id,
-                idempotency_key=idempotency_key,
-                estado="FALLIDA",
-                error="fake_delivery_failed",
-                asunto=asunto,
-                cuerpo=cuerpo,
-                aprobacion=aprobacion,
-            )
+    assert type(destino) is DestinoConfirmacionesFake
+    try:
+        destino.entregar(
+            idempotency_key=idempotency_key,
+            destinatario=solicitud.email_destinatario,
+            asunto=asunto,
+            cuerpo=cuerpo,
+        )
+    except Exception:
+        registro.transicionar(
+            idempotency_key, frozenset({"ENVIO_RESERVADO"}), "FALLIDA"
+        )
+        return _resultado(
+            log_path=log_path,
+            solicitud=solicitud,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            estado="FALLIDA",
+            error="fake_delivery_failed",
+            asunto=asunto,
+            cuerpo=cuerpo,
+            aprobacion=aprobacion,
+        )
     registro.transicionar(
         idempotency_key, frozenset({"ENVIO_RESERVADO"}), "ENVIADA_SIMULADA"
     )
@@ -699,7 +807,7 @@ def _aprobacion_valida(aprobacion: AprobacionHumana) -> bool:
         not isinstance(aprobacion.validador, str)
         or not isinstance(aprobacion.rol, str)
         or not aprobacion.validador.strip()
-        or not aprobacion.rol.strip()
+        or aprobacion.rol not in ROLES_APROBACION
     ):
         return False
     try:
@@ -767,6 +875,9 @@ def _resultado(
         )
         if aprobacion is not None
         else None,
+        # El rol queda en claro para poder evidenciar que las dos aprobaciones
+        # vinieron de roles distintos; no es un dato personal.
+        "approval_role": aprobacion.rol if aprobacion is not None else None,
         "delivery_mode": "fake" if estado == "ENVIADA_SIMULADA" else "none",
     }
     log_path.parent.mkdir(parents=True, exist_ok=True)

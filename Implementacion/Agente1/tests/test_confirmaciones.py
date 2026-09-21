@@ -1,6 +1,12 @@
-"""Ciclo de vida de HU-012: sin aprobación no hay envío, un destino que no sea
-exactamente el fake se rechaza, los reintentos no duplican y cada transición
-de estado queda registrada."""
+"""Ciclo de vida de HU-012: sin las dos aprobaciones no hay envío, un destino
+que no sea exactamente el fake se rechaza, los reintentos no duplican y cada
+transición de estado queda registrada.
+
+La bible exige dos decisiones independientes —la semántica del Responsable de
+Gestión del Conocimiento y la utilitaria del Coordinador de Extensión— antes
+de habilitar el envío (CU10 "Aprobar Borrador"). Ninguna de las dos sola
+alcanza y el orden de llegada es indistinto.
+"""
 
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -13,6 +19,8 @@ from agente1.confirmaciones import (
     AprobacionHumana,
     DestinoConfirmacionesFake,
     RegistroConfirmacionesMemoria,
+    ROL_APROBACION_SEMANTICA,
+    ROL_APROBACION_UTILITARIA,
     SolicitudConfirmacion,
     procesar_confirmacion,
 )
@@ -36,12 +44,42 @@ def solicitud(**cambios: str) -> SolicitudConfirmacion:
     return SolicitudConfirmacion(**datos)
 
 
-def aprobacion(*, aprobada: bool = True) -> AprobacionHumana:
+def aprobacion(
+    *, aprobada: bool = True, rol: str, validador: str
+) -> AprobacionHumana:
     return AprobacionHumana(
         aprobada=aprobada,
-        validador="Validador SEU de prueba",
-        rol="ROL_SIMULADO_NO_INSTITUCIONAL",
+        validador=validador,
+        rol=rol,
         fecha_iso="2026-08-17T18:00:00-03:00",
+    )
+
+
+def semantica(**kwargs) -> AprobacionHumana:
+    return aprobacion(
+        rol=ROL_APROBACION_SEMANTICA, validador="RGC simulado", **kwargs
+    )
+
+
+def utilitaria(**kwargs) -> AprobacionHumana:
+    return aprobacion(
+        rol=ROL_APROBACION_UTILITARIA, validador="Coordinador simulado", **kwargs
+    )
+
+
+def aprobar_ambos(tmp_path: Path, registro, solicitud_: SolicitudConfirmacion):
+    """Registra las dos aprobaciones del circuito sobre el mismo borrador."""
+    procesar_confirmacion(
+        solicitud=solicitud_,
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=semantica(),
+    )
+    procesar_confirmacion(
+        solicitud=solicitud_,
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=utilitaria(),
     )
 
 
@@ -66,18 +104,94 @@ def test_crea_borrador_determinista_pendiente_sin_enviar(tmp_path: Path):
     assert len(resultado.idempotency_key) == 64
 
 
-def test_aprobacion_valida_no_envia_sin_solicitud_explicita(tmp_path: Path):
+def test_una_sola_aprobacion_no_aprueba_del_todo_ni_envia(tmp_path: Path):
+    """Ni la semántica ni la utilitaria por sí solas habilitan nada."""
+    for rol, estado_parcial, fabrica in (
+        (ROL_APROBACION_SEMANTICA, "APROBADA_SEMANTICA", semantica),
+        (ROL_APROBACION_UTILITARIA, "APROBADA_UTILITARIA", utilitaria),
+    ):
+        destino = DestinoConfirmacionesFake()
+        resultado = procesar_confirmacion(
+            solicitud=solicitud(),
+            directorio_salida=tmp_path / rol,
+            registro=RegistroConfirmacionesMemoria(),
+            destino=destino,
+            aprobacion=fabrica(),
+            enviar=True,
+        )
+
+        assert resultado.estado == estado_parcial
+        assert resultado.error is None
+        assert destino.entregas == []
+
+
+def test_las_dos_aprobaciones_completan_en_cualquier_orden(tmp_path: Path):
+    for primero, segundo, parcial in (
+        (semantica, utilitaria, "APROBADA_SEMANTICA"),
+        (utilitaria, semantica, "APROBADA_UTILITARIA"),
+    ):
+        registro = RegistroConfirmacionesMemoria()
+        primera = procesar_confirmacion(
+            solicitud=solicitud(),
+            directorio_salida=tmp_path / primero().rol,
+            registro=registro,
+            aprobacion=primero(),
+        )
+        segunda = procesar_confirmacion(
+            solicitud=solicitud(),
+            directorio_salida=tmp_path / primero().rol,
+            registro=registro,
+            aprobacion=segundo(),
+        )
+
+        assert primera.estado == parcial
+        assert segunda.estado == "APROBADA"
+
+
+def test_la_segunda_aprobacion_del_mismo_rol_no_completa_el_circuito(
+    tmp_path: Path,
+):
+    registro = RegistroConfirmacionesMemoria()
     destino = DestinoConfirmacionesFake()
+    procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=semantica(),
+    )
+    repetida = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=semantica(),
+        destino=destino,
+        enviar=True,
+    )
+    envio = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        destino=destino,
+        enviar=True,
+    )
+
+    assert repetida.estado == "DUPLICADA"
+    assert envio.estado == "INVALIDA"
+    assert envio.error == "approval_required"
+    assert destino.entregas == []
+
+
+def test_un_rol_fuera_del_circuito_no_produce_aprobacion(tmp_path: Path):
     resultado = procesar_confirmacion(
         solicitud=solicitud(),
         directorio_salida=tmp_path,
         registro=RegistroConfirmacionesMemoria(),
-        destino=destino,
-        aprobacion=aprobacion(),
+        aprobacion=aprobacion(
+            rol="ROL_SIMULADO_NO_INSTITUCIONAL", validador="Validador simulado"
+        ),
     )
-
-    assert resultado.estado == "APROBADA"
-    assert destino.entregas == []
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approval_invalid"
 
 
 def test_rechazo_humano_no_envia(tmp_path: Path):
@@ -87,7 +201,7 @@ def test_rechazo_humano_no_envia(tmp_path: Path):
         directorio_salida=tmp_path,
         registro=RegistroConfirmacionesMemoria(),
         destino=destino,
-        aprobacion=aprobacion(aprobada=False),
+        aprobacion=semantica(aprobada=False),
         enviar=True,
     )
 
@@ -95,20 +209,73 @@ def test_rechazo_humano_no_envia(tmp_path: Path):
     assert destino.entregas == []
 
 
-def test_envio_solo_es_simulado_explicito_y_con_aprobacion(tmp_path: Path):
+def test_rechazo_desde_aprobacion_parcial_cierra_el_borrador(tmp_path: Path):
+    registro = RegistroConfirmacionesMemoria()
+    procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=semantica(),
+    )
+    rechazo = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=utilitaria(aprobada=False),
+    )
+    envio = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        destino=DestinoConfirmacionesFake(),
+        enviar=True,
+    )
+
+    assert rechazo.estado == "RECHAZADA"
+    # El pedido ya fue dirimido: reintentar el envío es un duplicado, no una
+    # aprobación faltante.
+    assert envio.estado == "DUPLICADA"
+
+
+def test_envio_solo_es_simulado_explicito_y_con_doble_aprobacion(tmp_path: Path):
+    registro = RegistroConfirmacionesMemoria()
     destino = DestinoConfirmacionesFake()
+    aprobar_ambos(tmp_path, registro, solicitud())
+
     resultado = procesar_confirmacion(
         solicitud=solicitud(),
         directorio_salida=tmp_path,
-        registro=RegistroConfirmacionesMemoria(),
+        registro=registro,
         destino=destino,
-        aprobacion=aprobacion(),
         enviar=True,
     )
 
     assert resultado.estado == "ENVIADA_SIMULADA"
     assert len(destino.entregas) == 1
     assert destino.entregas[0].idempotency_key == resultado.idempotency_key
+
+
+def test_la_segunda_aprobacion_puede_disparar_la_entrega(tmp_path: Path):
+    registro = RegistroConfirmacionesMemoria()
+    destino = DestinoConfirmacionesFake()
+    procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=utilitaria(),
+    )
+
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=semantica(),
+        destino=destino,
+        enviar=True,
+    )
+
+    assert resultado.estado == "ENVIADA_SIMULADA"
+    assert len(destino.entregas) == 1
 
 
 def test_intento_de_envio_sin_aprobacion_falla_cerrado(tmp_path: Path):
@@ -124,6 +291,28 @@ def test_intento_de_envio_sin_aprobacion_falla_cerrado(tmp_path: Path):
     assert resultado.estado == "INVALIDA"
     assert resultado.error == "approval_required"
     assert destino.entregas == []
+
+
+def test_envio_sobre_borrador_pendiente_falla_cerrado_sin_crear_nada(
+    tmp_path: Path,
+):
+    registro = RegistroConfirmacionesMemoria()
+    procesar_confirmacion(
+        solicitud=solicitud(), directorio_salida=tmp_path, registro=registro
+    )
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        destino=DestinoConfirmacionesFake(),
+        enviar=True,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approval_required"
+    assert registro.obtener(resultado.idempotency_key).estado == (
+        "PENDIENTE_VALIDACION"
+    )
 
 
 @pytest.mark.parametrize(
@@ -170,12 +359,12 @@ def test_datos_incompletos_no_generan(campo: str, tmp_path: Path):
 def test_duplicado_no_regenera_ni_envia(tmp_path: Path):
     registro = RegistroConfirmacionesMemoria()
     destino = DestinoConfirmacionesFake()
+    aprobar_ambos(tmp_path, registro, solicitud())
     primera = procesar_confirmacion(
         solicitud=solicitud(),
         directorio_salida=tmp_path,
         registro=registro,
         destino=destino,
-        aprobacion=aprobacion(),
         enviar=True,
     )
     segunda = procesar_confirmacion(
@@ -183,7 +372,6 @@ def test_duplicado_no_regenera_ni_envia(tmp_path: Path):
         directorio_salida=tmp_path,
         registro=registro,
         destino=destino,
-        aprobacion=aprobacion(),
         enviar=True,
     )
 
@@ -194,9 +382,29 @@ def test_duplicado_no_regenera_ni_envia(tmp_path: Path):
     assert len(destino.entregas) == 1
 
 
+def test_una_decision_extra_sobre_registro_aprobado_es_duplicada(
+    tmp_path: Path,
+):
+    registro = RegistroConfirmacionesMemoria()
+    destino = DestinoConfirmacionesFake()
+    aprobar_ambos(tmp_path, registro, solicitud())
+    tercera = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=semantica(),
+        destino=destino,
+        enviar=True,
+    )
+
+    assert tercera.estado == "DUPLICADA"
+    assert destino.entregas == []
+
+
 def test_reserva_idempotente_es_atomica_ante_concurrencia(tmp_path: Path):
     registro = RegistroConfirmacionesMemoria()
     destino = DestinoConfirmacionesFake()
+    aprobar_ambos(tmp_path, registro, solicitud())
 
     def ejecutar(_: int):
         return procesar_confirmacion(
@@ -204,7 +412,6 @@ def test_reserva_idempotente_es_atomica_ante_concurrencia(tmp_path: Path):
             directorio_salida=tmp_path,
             registro=registro,
             destino=destino,
-            aprobacion=aprobacion(),
             enviar=True,
         )
 
@@ -216,88 +423,63 @@ def test_reserva_idempotente_es_atomica_ante_concurrencia(tmp_path: Path):
     assert len(destino.entregas) == 1
 
 
-def test_borrador_puede_transicionar_a_aprobado_y_envio_fake_sin_regenerar(tmp_path: Path):
-    registro = RegistroConfirmacionesMemoria()
-    destino = DestinoConfirmacionesFake()
-    pendiente = procesar_confirmacion(
-        solicitud=solicitud(), directorio_salida=tmp_path, registro=registro
-    )
-    aprobada = procesar_confirmacion(
-        solicitud=solicitud(),
-        directorio_salida=tmp_path,
-        registro=registro,
-        aprobacion=aprobacion(),
-    )
-    enviada = procesar_confirmacion(
-        solicitud=solicitud(),
-        directorio_salida=tmp_path,
-        registro=registro,
-        aprobacion=aprobacion(),
-        destino=destino,
-        enviar=True,
-    )
-    duplicada = procesar_confirmacion(
-        solicitud=solicitud(),
-        directorio_salida=tmp_path,
-        registro=registro,
-        aprobacion=aprobacion(),
-        destino=destino,
-        enviar=True,
-    )
-
-    assert [pendiente.estado, aprobada.estado, enviada.estado, duplicada.estado] == [
-        "PENDIENTE_VALIDACION",
-        "APROBADA",
-        "ENVIADA_SIMULADA",
-        "DUPLICADA",
-    ]
-    assert aprobada.cuerpo == pendiente.cuerpo
-    assert enviada.cuerpo == pendiente.cuerpo
-    assert duplicada.cuerpo is None
-    assert len(destino.entregas) == 1
-
-
-def test_no_admite_retroceso_de_aprobada_a_rechazada(tmp_path: Path):
-    registro = RegistroConfirmacionesMemoria()
-    procesar_confirmacion(
-        solicitud=solicitud(), directorio_salida=tmp_path, registro=registro
-    )
-    aprobada = procesar_confirmacion(
-        solicitud=solicitud(),
-        directorio_salida=tmp_path,
-        registro=registro,
-        aprobacion=aprobacion(),
-    )
-    retroceso = procesar_confirmacion(
-        solicitud=solicitud(),
-        directorio_salida=tmp_path,
-        registro=registro,
-        aprobacion=aprobacion(aprobada=False),
-    )
-    assert aprobada.estado == "APROBADA"
-    assert retroceso.estado == "DUPLICADA"
-    assert retroceso.cuerpo is None
-
-
-def test_decisiones_concurrentes_sobre_pendiente_tienen_un_solo_ganador(tmp_path: Path):
+def test_aprobaciones_concurrentes_de_roles_distintos_completan_el_circuito(
+    tmp_path: Path,
+):
     registro = RegistroConfirmacionesMemoria()
     procesar_confirmacion(
         solicitud=solicitud(), directorio_salida=tmp_path, registro=registro
     )
 
-    def decidir(valor: bool):
+    def decidir(decision: AprobacionHumana):
         return procesar_confirmacion(
             solicitud=solicitud(),
             directorio_salida=tmp_path,
             registro=registro,
-            aprobacion=aprobacion(aprobada=valor),
+            aprobacion=decision,
         )
 
     with ThreadPoolExecutor(max_workers=2) as pool:
-        resultados = list(pool.map(decidir, (True, False)))
+        resultados = list(pool.map(decidir, (semantica(), utilitaria())))
 
-    assert sum(r.estado == "DUPLICADA" for r in resultados) == 1
-    assert sum(r.estado in {"APROBADA", "RECHAZADA"} for r in resultados) == 1
+    estados = sorted(r.estado for r in resultados)
+    assert estados == ["APROBADA", "APROBADA_SEMANTICA"] or estados == [
+        "APROBADA",
+        "APROBADA_UTILITARIA",
+    ]
+    clave = resultados[0].idempotency_key
+    assert registro.obtener(clave).estado == "APROBADA"
+
+
+def test_decisiones_concurrentes_aprobar_y_rechazar_tienen_un_final_coherente(
+    tmp_path: Path,
+):
+    registro = RegistroConfirmacionesMemoria()
+    procesar_confirmacion(
+        solicitud=solicitud(), directorio_salida=tmp_path, registro=registro
+    )
+
+    def decidir(decision: AprobacionHumana):
+        return procesar_confirmacion(
+            solicitud=solicitud(),
+            directorio_salida=tmp_path,
+            registro=registro,
+            aprobacion=decision,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        resultados = list(
+            pool.map(decidir, (semantica(), utilitaria(aprobada=False)))
+        )
+
+    estados = [r.estado for r in resultados]
+    assert estados.count("RECHAZADA") == 1
+    # Si el rechazo llegó primero la aprobación es duplicada; si la aprobación
+    # llegó primero quedó parcial y el rechazo la cerró. En ambos casos el
+    # estado final es RECHAZADA.
+    assert "DUPLICADA" in estados or "APROBADA_SEMANTICA" in estados
+    clave = resultados[0].idempotency_key
+    assert registro.obtener(clave).estado == "RECHAZADA"
 
 
 def test_injection_es_dato_literal_y_no_activa_envio(tmp_path: Path):
@@ -316,43 +498,54 @@ def test_injection_es_dato_literal_y_no_activa_envio(tmp_path: Path):
 
 
 def test_error_del_destino_fake_falla_sin_marcar_enviada(tmp_path: Path):
+    registro = RegistroConfirmacionesMemoria()
+    aprobar_ambos(tmp_path, registro, solicitud())
     destino = DestinoConfirmacionesFake(error="fake_delivery_failed")
     resultado = procesar_confirmacion(
         solicitud=solicitud(),
         directorio_salida=tmp_path,
-        registro=RegistroConfirmacionesMemoria(),
+        registro=registro,
         destino=destino,
-        aprobacion=aprobacion(),
         enviar=True,
     )
     assert resultado.estado == "FALLIDA"
     assert resultado.error == "fake_delivery_failed"
 
 
-def test_auditoria_no_expone_email_nombre_cuerpo_asunto_ni_validador(tmp_path: Path):
+def test_auditoria_no_expone_email_nombre_cuerpo_asunto_ni_validador(
+    tmp_path: Path,
+):
+    registro = RegistroConfirmacionesMemoria()
+    aprobar_ambos(tmp_path, registro, solicitud())
     resultado = procesar_confirmacion(
         solicitud=solicitud(),
         directorio_salida=tmp_path,
-        registro=RegistroConfirmacionesMemoria(),
-        aprobacion=aprobacion(),
+        registro=registro,
+        destino=DestinoConfirmacionesFake(),
+        enviar=True,
     )
     texto = resultado.log_path.read_text(encoding="utf-8")
-    registro = json.loads(texto)
+    lineas = [json.loads(linea) for linea in texto.splitlines()]
 
     for sensible in (
         "ana.perez@example.test",
         "Ana Pérez",
         "Taller de robótica educativa",
-        "Validador SEU de prueba",
+        "RGC simulado",
+        "Coordinador simulado",
         "Confirmación de inscripción",
     ):
         assert sensible not in texto
-    assert registro["hu"] == "HU-012"
-    assert registro["estado"] == "APROBADA"
-    assert registro["policy_status"] == "PROVISIONAL_NO_INSTITUCIONAL"
-    assert len(registro["input_hash"]) == 64
-    assert len(registro["output_hash"]) == 64
-    assert len(registro["recipient_hash"]) == 64
+    roles = [linea["approval_role"] for linea in lineas]
+    assert ROL_APROBACION_SEMANTICA in roles
+    assert ROL_APROBACION_UTILITARIA in roles
+    ultima = lineas[-1]
+    assert ultima["hu"] == "HU-012"
+    assert ultima["estado"] == "ENVIADA_SIMULADA"
+    assert ultima["policy_status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+    assert len(ultima["input_hash"]) == 64
+    assert len(ultima["output_hash"]) == 64
+    assert len(ultima["recipient_hash"]) == 64
 
 
 def test_aprobacion_incompleta_es_invalida(tmp_path: Path):
@@ -373,11 +566,13 @@ def test_aprobacion_incompleta_es_invalida(tmp_path: Path):
 
 
 @pytest.mark.parametrize("campo", ["validador", "rol"])
-def test_aprobacion_con_campos_no_string_falla_cerrado(tmp_path: Path, campo: str):
+def test_aprobacion_con_campos_no_string_falla_cerrado(
+    tmp_path: Path, campo: str
+):
     datos = {
         "aprobada": True,
         "validador": "Validador simulado",
-        "rol": "ROL_SIMULADO",
+        "rol": ROL_APROBACION_SEMANTICA,
         "fecha_iso": "2026-08-17T18:00:00-03:00",
     }
     datos[campo] = None
@@ -417,7 +612,7 @@ def test_no_acepta_un_adapter_que_no_sea_el_fake_explicito(tmp_path: Path):
         directorio_salida=tmp_path,
         registro=RegistroConfirmacionesMemoria(),
         destino=destino,
-        aprobacion=aprobacion(),
+        aprobacion=semantica(),
         enviar=True,
     )
     assert resultado.estado == "INVALIDA"
@@ -435,7 +630,7 @@ def test_error_fake_se_normaliza_y_no_filtra_contenido(tmp_path: Path):
         directorio_salida=tmp_path,
         registro=RegistroConfirmacionesMemoria(),
         destino=FakeHostil(),
-        aprobacion=aprobacion(),
+        aprobacion=semantica(),
         enviar=True,
     )
     assert resultado.estado == "INVALIDA"
