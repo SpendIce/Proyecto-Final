@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.24.0 (TeX Live 2026/Arch Linux)  (format=lualatex 2026.5.31)  22 JUN 2026 09:25
+This is LuaHBTeX, Version 1.24.0 (TeX Live 2026/Arch Linux)  (format=lualatex 2026.8.24)  21 SEP 2026 10:34
  restricted system commands enabled.
 **Anteproyecto-PPS-Juan-Ignacio-Gone.tex
 (./Anteproyecto-PPS-Juan-Ignacio-Gone.tex
@@ -1109,26 +1109,26 @@ Package: fancyhdr 2025/02/07 v5.2 Extensive control of page headers and footers
  (./Anteproyecto-PPS-Juan-Ignacio-Gone.aux)
 \openout1 = Anteproyecto-PPS-Juan-Ignacio-Gone.aux
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 86.
-LaTeX Font Info:    ... okay on input line 86.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 88.
+LaTeX Font Info:    ... okay on input line 88.
 
 Package fontspec Info: 
 (fontspec)             Adjusting the maths setup (use [no-math] to avoid
@@ -1136,57 +1136,57 @@ Package fontspec Info:
 
 \symlegacymaths=\mathgroup6
 LaTeX Font Info:    Overwriting symbol font `legacymaths' in version `bold'
-(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 86.
-LaTeX Font Info:    Redeclaring math accent \acute on input line 86.
-LaTeX Font Info:    Redeclaring math accent \grave on input line 86.
-LaTeX Font Info:    Redeclaring math accent \ddot on input line 86.
-LaTeX Font Info:    Redeclaring math accent \tilde on input line 86.
-LaTeX Font Info:    Redeclaring math accent \bar on input line 86.
-LaTeX Font Info:    Redeclaring math accent \breve on input line 86.
-LaTeX Font Info:    Redeclaring math accent \check on input line 86.
-LaTeX Font Info:    Redeclaring math accent \hat on input line 86.
-LaTeX Font Info:    Redeclaring math accent \dot on input line 86.
-LaTeX Font Info:    Redeclaring math accent \mathring on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \colon on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Delta on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Theta on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Xi on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Pi on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Phi on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Psi on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \Omega on input line 86.
-LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 86.
-LaTeX Font Info:    Redeclaring symbol font `operators' on input line 86.
+(Font)                  OT1/cmr/m/n --> OT1/cmr/bx/n on input line 88.
+LaTeX Font Info:    Redeclaring math accent \acute on input line 88.
+LaTeX Font Info:    Redeclaring math accent \grave on input line 88.
+LaTeX Font Info:    Redeclaring math accent \ddot on input line 88.
+LaTeX Font Info:    Redeclaring math accent \tilde on input line 88.
+LaTeX Font Info:    Redeclaring math accent \bar on input line 88.
+LaTeX Font Info:    Redeclaring math accent \breve on input line 88.
+LaTeX Font Info:    Redeclaring math accent \check on input line 88.
+LaTeX Font Info:    Redeclaring math accent \hat on input line 88.
+LaTeX Font Info:    Redeclaring math accent \dot on input line 88.
+LaTeX Font Info:    Redeclaring math accent \mathring on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \colon on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Gamma on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Delta on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Theta on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Lambda on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Xi on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Pi on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Sigma on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Upsilon on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Phi on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Psi on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \Omega on input line 88.
+LaTeX Font Info:    Redeclaring math symbol \mathdollar on input line 88.
+LaTeX Font Info:    Redeclaring symbol font `operators' on input line 88.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `normal' on input line 86.
+(Font)              `operators' in the math version `normal' on input line 88.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
-(Font)                  OT1/cmr/m/n --> TU/lmr/m/n on input line 86.
+(Font)                  OT1/cmr/m/n --> TU/lmr/m/n on input line 88.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `bold' on input line 86.
+(Font)              `operators' in the math version `bold' on input line 88.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  OT1/cmr/bx/n --> TU/lmr/m/n on input line 86.
+(Font)                  OT1/cmr/bx/n --> TU/lmr/m/n on input line 88.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
-(Font)                  TU/lmr/m/n --> TU/lmr/m/n on input line 86.
+(Font)                  TU/lmr/m/n --> TU/lmr/m/n on input line 88.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
-(Font)                  OT1/cmr/m/it --> TU/lmr/m/it on input line 86.
+(Font)                  OT1/cmr/m/it --> TU/lmr/m/it on input line 88.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
-(Font)                  OT1/cmr/bx/n --> TU/lmr/b/n on input line 86.
+(Font)                  OT1/cmr/bx/n --> TU/lmr/b/n on input line 88.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 86.
+(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 88.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 86.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 88.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  TU/lmr/m/n --> TU/lmr/b/n on input line 86.
+(Font)                  TU/lmr/m/n --> TU/lmr/b/n on input line 88.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
-(Font)                  OT1/cmr/bx/it --> TU/lmr/b/it on input line 86.
+(Font)                  OT1/cmr/bx/it --> TU/lmr/b/it on input line 88.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 86.
+(Font)                  OT1/cmss/bx/n --> TU/lmss/b/n on input line 88.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 86.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/b/n on input line 88.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: luatex
@@ -1222,13 +1222,13 @@ LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Info: Redefining \microtypecontext on input line 86.
-Package microtype Info: Applying patch `item' on input line 86.
-Package microtype Info: Applying patch `toc' on input line 86.
-Package microtype Info: Applying patch `eqnum' on input line 86.
-Package microtype Info: Applying patch `footnote' on input line 86.
-Package microtype Info: Applying patch `verbatim' on input line 86.
-LaTeX Info: Redefining \microtypesetup on input line 86.
+LaTeX Info: Redefining \microtypecontext on input line 88.
+Package microtype Info: Applying patch `item' on input line 88.
+Package microtype Info: Applying patch `toc' on input line 88.
+Package microtype Info: Applying patch `eqnum' on input line 88.
+Package microtype Info: Applying patch `footnote' on input line 88.
+Package microtype Info: Applying patch `verbatim' on input line 88.
+LaTeX Info: Redefining \microtypesetup on input line 88.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using default protrusion set `alltext'.
@@ -1266,7 +1266,7 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
 \c@lstlisting=\count490
-Package hyperref Info: Link coloring ON on input line 86.
+Package hyperref Info: Link coloring ON on input line 88.
 
 (./Anteproyecto-PPS-Juan-Ignacio-Gone.out)
 (./Anteproyecto-PPS-Juan-Ignacio-Gone.out)
@@ -1294,12 +1294,12 @@ Package biblatex Info: ... file 'Anteproyecto-PPS-Juan-Ignacio-Gone.bbl' found.
 
 
 (./Anteproyecto-PPS-Juan-Ignacio-Gone.bbl)
-Package biblatex Info: Reference section=0 on input line 86.
-Package biblatex Info: Reference segment=0 on input line 86.
+Package biblatex Info: Reference section=0 on input line 88.
+Package biblatex Info: Reference segment=0 on input line 88.
 
 Package polyglossia Info: totalhyphenmin:'5'
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 108
+LaTeX Font Info:    Trying to load font information for U+msa on input line 110
 .
 
 (/usr/share/texmf-dist/tex/latex/amsfonts/umsa.fd
@@ -1308,7 +1308,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (/usr/share/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 108
+LaTeX Font Info:    Trying to load font information for U+msb on input line 110
 .
 
 (/usr/share/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -1335,142 +1335,369 @@ warning  (pdf backend): ignoring duplicate destination with the name 'page.1'
 \openout6 = Anteproyecto-PPS-Juan-Ignacio-Gone.toc
  [2]
 Package acronym Info: Label `acro:A1' newly defined as it shall be overridden
-although it is yet undefined on input line 129.
+although it is yet undefined on input line 134.
 Package acronym Info: Label `acro:P100' newly defined as it shall be overridden
 
-although it is yet undefined on input line 129.
+although it is yet undefined on input line 134.
 Package acronym Info: Label `acro:FIE' newly defined as it shall be overridden
-although it is yet undefined on input line 129.
+although it is yet undefined on input line 134.
 Package acronym Info: Label `acro:SEU' newly defined as it shall be overridden
-although it is yet undefined on input line 129.
+although it is yet undefined on input line 134.
 Package acronym Info: Label `acro:TRL' newly defined as it shall be overridden
-although it is yet undefined on input line 131.
+although it is yet undefined on input line 136.
 Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmtt' (encoding: TU).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
  [3] [4]
 LaTeX Font Info:    Font shape `TU/lmtt/bx/n' in size <12> not available
-(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 194.
+(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 199.
 Package acronym Info: Label `acro:BPM' newly defined as it shall be overridden
-although it is yet undefined on input line 207.
+although it is yet undefined on input line 212.
  [5]
 Package acronym Info: Label `acro:CONEAU' newly defined as it shall be overridd
 en
-although it is yet undefined on input line 222.
+although it is yet undefined on input line 227.
 
-Underfull \hbox (badness 1005) in paragraph at lines 222--223
+Underfull \hbox (badness 1005) in paragraph at lines 227--228
 \TU/lmr/m/n/12 inscripciones, eventos), las comunicaciones se retrasan o simplif
 ican, perdiéndose
  []
 
 
-Underfull \hbox (badness 1762) in paragraph at lines 222--223
+Underfull \hbox (badness 1762) in paragraph at lines 227--228
 \TU/lmr/m/n/12 la trazabilidad requerida por [][]Comisión Nacional de Evaluaci
 ón y Acreditación
  []
 
 [6] [7]
 Package acronym Info: Label `acro:LLM' newly defined as it shall be overridden
-although it is yet undefined on input line 261.
+although it is yet undefined on input line 266.
 Package acronym Info: Label `acro:RACI' newly defined as it shall be overridden
 
-although it is yet undefined on input line 269.
+although it is yet undefined on input line 274.
 Package acronym Info: Label `acro:DoD' newly defined as it shall be overridden
-although it is yet undefined on input line 269.
+although it is yet undefined on input line 274.
  [8]
 Package acronym Info: Label `acro:RRSS' newly defined as it shall be overridden
 
-although it is yet undefined on input line 295.
+although it is yet undefined on input line 300.
  [9] [10]
 Package acronym Info: Label `acro:MVP' newly defined as it shall be overridden
-although it is yet undefined on input line 339.
+although it is yet undefined on input line 344.
  [11] [12]
 Package acronym Info: Label `acro:KPI' newly defined as it shall be overridden
-although it is yet undefined on input line 393.
+although it is yet undefined on input line 398.
+ [13]
 Package acronym Info: Label `acro:UNDEF' newly defined as it shall be overridde
 n
-although it is yet undefined on input line 400.
- [13]
+although it is yet undefined on input line 406.
 Package acronym Info: Label `acro:PDCA' newly defined as it shall be overridden
 
-although it is yet undefined on input line 418.
+although it is yet undefined on input line 424.
+ [14]
 Package acronym Info: Label `acro:CMDB' newly defined as it shall be overridden
 
-although it is yet undefined on input line 430.
+although it is yet undefined on input line 436.
 Package acronym Info: Label `acro:NHI' newly defined as it shall be overridden
-although it is yet undefined on input line 430.
- [14]
+although it is yet undefined on input line 436.
 Package acronym Info: Label `acro:HITL' newly defined as it shall be overridden
 
-although it is yet undefined on input line 432.
-
-Underfull \hbox (badness 2452) in paragraph at lines 451--451
+although it is yet undefined on input line 438.
+ [15]
+Underfull \hbox (badness 2452) in paragraph at lines 457--457
 []|\TU/lmr/m/n/12 Operación real con integración completa de agentes A2--A5.
  []
 
 
-Underfull \hbox (badness 1622) in paragraph at lines 459--460
+Underfull \hbox (badness 1622) in paragraph at lines 465--466
 []\TU/lmr/m/n/12 Se adopta un enfoque \TU/lmr/bx/n/12 iterativo-incremental \TU
 /lmr/m/n/12 alineado con los cinco pasos
  []
 
-[15]
+[16]
 Package acronym Info: Label `acro:HU' newly defined as it shall be overridden
-although it is yet undefined on input line 583.
- [16] [17] [18]
-Underfull \hbox (badness 1087) in paragraph at lines 699--699
+although it is yet undefined on input line 589.
+ [17] [18] [19]
+Underfull \hbox (badness 1087) in paragraph at lines 706--706
 \TU/lmr/m/n/10 posts, correos, certificados); consistencia en el mensaje institu
 cional;
  []
 
-[19]
-ignored: Infinite glue shrinkage found in box being split [20]
+[20] [21]
+ignored: Infinite glue shrinkage found in box being split [22]
 Package acronym Info: Label `acro:CIS' newly defined as it shall be overridden
-although it is yet undefined on input line 755.
+although it is yet undefined on input line 762.
 Package acronym Info: Label `acro:OWASP' newly defined as it shall be overridde
 n
-although it is yet undefined on input line 755.
- [21]
+although it is yet undefined on input line 762.
+ [23]
 Package acronym Info: Label `acro:RBAC' newly defined as it shall be overridden
 
-although it is yet undefined on input line 762.
+although it is yet undefined on input line 769.
 Package acronym Info: Label `acro:PoLP' newly defined as it shall be overridden
 
-although it is yet undefined on input line 766.
- [22]
-Underfull \hbox (badness 2662) in paragraph at lines 782--783
+although it is yet undefined on input line 773.
+ [24]
+Underfull \hbox (badness 2662) in paragraph at lines 789--790
 \TU/lmr/m/n/12 mantenibilidad y usabilidad de la norma ([]International Organiza
 tion for
  []
 
-[23] [24] [25]
+[25] [26] [27]
 Package acronym Info: Label `acro:EPIC' newly defined as it shall be overridden
 
-although it is yet undefined on input line 950.
+although it is yet undefined on input line 957.
 Package acronym Info: Label `acro:SP' newly defined as it shall be overridden
-although it is yet undefined on input line 950.
- [26] [27] [28] [29]
+although it is yet undefined on input line 957.
+ [28] [29]
+
+Package tabularx Warning: X Columns too narrow (table too wide)
+(tabularx)                 on input line 1024.
+
+
+Overfull \hbox (10.01472pt too wide) in paragraph at lines 1024--1024
+[]|\TU/lmr/bx/n/12 Uso 
+ []
+
+
+Overfull \hbox (7.48393pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/bx/n/12 por 
+ []
+
+
+Overfull \hbox (37.92097pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/bx/n/12 Agente 1|  
+ []
+
+
+Overfull \hbox (29.92337pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 Agente 1 
+ []
+
+
+Overfull \hbox (29.65396pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 consulta 
+ []
+
+
+Overfull \hbox (4.7429pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 por 
+ []
+
+
+Overfull \hbox (25.77557pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 período 
+ []
+
+
+Overfull \hbox (30.6888pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/bx/n/12 redacta 
+ []
+
+
+Overfull \hbox (35.65154pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 efeméride 
+ []
+
+
+Overfull \hbox (9.18626pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 post 
+ []
+
+
+Overfull \hbox (23.52724pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 alusivo. 
+ []
+
+
+Overfull \hbox (1.65024pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 A2 
+ []
+
+
+Overfull \hbox (24.78409pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 entrega 
+ []
+
+
+Overfull \hbox (18.12915pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 piezas 
+ []
+
+
+Overfull \hbox (41.8138pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 redactadas 
+ []
+
+
+Overfull \hbox (40.1909pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 efemérides 
+ []
+
+
+Overfull \hbox (41.50926pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 elaboradas|  
+ []
+
+
+Overfull \hbox (29.80684pt too wide) in paragraph at lines 1024--1024
+[]|\TU/lmr/m/n/12 Difusión 
+ []
+
+
+Overfull \hbox (37.04189pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 congresos, 
+ []
+
+
+Overfull \hbox (32.185pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 jornadas, 
+ []
+
+
+Overfull \hbox (35.70793pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 convenios 
+ []
+
+
+Overfull \hbox (41.16699pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 detectados 
+ []
+
+
+Overfull \hbox (4.7429pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 por 
+ []
+
+
+Overfull \hbox (1.95024pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 A3|  
+ []
+
+
+Overfull \hbox (16.74911pt too wide) in paragraph at lines 1024--1024
+[]|\TU/lmr/m/n/12 Texto 
+ []
+
+
+Overfull \hbox (50.12816pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 institucional 
+ []
+
+
+Overfull \hbox (29.59515pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 material 
+ []
+
+
+Overfull \hbox (34.82835pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 respuesta 
+ []
+
+
+Overfull \hbox (10.40282pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 para 
+ []
+
+
+Overfull \hbox (5.59296pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 que 
+ []
+
+
+Overfull \hbox (1.54224pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 A4 
+ []
+
+
+Overfull \hbox (28.02867pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 resuelva 
+ []
+
+
+Overfull \hbox (5.27545pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 con 
+ []
+
+
+Overfull \hbox (10.40282pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 tono 
+ []
+
+
+Overfull \hbox (17.43532pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 oficial 
+ []
+
+
+Overfull \hbox (13.1861pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 (flujo 
+ []
+
+
+Overfull \hbox (55.81999pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 bidireccional)|  
+ []
+
+
+Overfull \hbox (23.18593pt too wide) in paragraph at lines 1024--1024
+[]|\TU/lmr/m/n/12 Mejora 
+ []
+
+
+Overfull \hbox (23.83276pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 calidad 
+ []
+
+
+Overfull \hbox (47.62326pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 consistencia 
+ []
+
+
+Overfull \hbox (54.59695pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 publicaciones 
+ []
+
+
+Overfull \hbox (13.96489pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 antes 
+ []
+
+
+Overfull \hbox (27.4078pt too wide) in paragraph at lines 1024--1024
+\TU/lmr/m/n/12 difusión|  
+ []
+
+
+Overfull \hbox (65.74823pt too wide) in alignment at lines 1024--1024
+[][][]
+ []
+
+[30]
+Overfull \vbox (231.15933pt too high) has occurred while \output is active []
+
+
+[31] [32]
 Package acronym Info: Label `acro:EDT' newly defined as it shall be overridden
-although it is yet undefined on input line 1115.
- [30] [31]
-ignored: Infinite glue shrinkage found in box being split [32]
-ignored: Infinite glue shrinkage found in box being split [33]
-ignored: Infinite glue shrinkage found in box being split [34] [35]
-Underfull \hbox (badness 1383) in paragraph at lines 1323--1323
+although it is yet undefined on input line 1124.
+ [33] [34] [35] [36] [37] [38]
+Underfull \hbox (badness 1383) in paragraph at lines 1342--1342
 [][]\TU/lmr/m/n/12 Comisión Nacional de Evaluación y Acreditación Universitar
 ia (2020). \TU/lmr/m/it/12 Guía de
  []
 
+[39]
 Module polyglossia Warning: Language spanish not found in language.dat.lua on in
-put line 1323
+put line 1342
 Module polyglossia Warning: Language spanish not found in language.dat.lua on in
-put line 1323
+put line 1342
 Module polyglossia Warning: Language spanish not found in language.dat.lua on in
-put line 1323
+put line 1342
 Module polyglossia Warning: Language spanish not found in language.dat.lua on in
-put line 1323
-[36] (./Anteproyecto-PPS-Juan-Ignacio-Gone.aux)
+put line 1342
+[40] (./Anteproyecto-PPS-Juan-Ignacio-Gone.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -1485,14 +1712,15 @@ n.xml'.
 )
 
 Here is how much of LuaTeX's memory you used:
- 39541 strings out of 476076
+ 39546 strings out of 476076
  100000,1648299 words of node,token memory allocated
- 645 words of node memory still in use:
-   4 hlist, 1 vlist, 1 rule, 1 local_par, 4 glue, 4 kern, 1 penalty, 3 glyph, 15
- attribute, 69 glue_spec, 15 attribute_list, 2 write, 6 pdf_action nodes
-   avail lists: 1:2,2:3381,3:1943,4:250,5:395,6:178,7:8707,8:57,9:1422,10:18,11:
+ 656 words of node memory still in use:
+   4 hlist, 1 vlist, 1 rule, 1 local_par, 4 glue, 4 kern, 1 penalty, 1 margin_ke
+rn, 4 glyph, 15 attribute, 69 glue_spec, 15 attribute_list, 2 write, 6 pdf_actio
+n nodes
+   avail lists: 1:2,2:3381,3:1943,4:249,5:442,6:177,7:8539,8:57,9:1332,10:18,11:
 51
- 60917 multiletter control sequences out of 65536+600000
+ 60918 multiletter control sequences out of 65536+600000
  75 fonts using 6093911 bytes
  84i,13n,100p,1911b,2110s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf-dist/fonts/opentype/public/lm/lmroman8-italic.otf></usr/share/
@@ -1501,21 +1729,21 @@ dist/fonts/opentype/public/lm/lmmono8-regular.otf></usr/share/texmf-dist/fonts/o
 pentype/public/lm/lmroman8-bold.otf></usr/share/texmf-dist/fonts/opentype/public
 /lm/lmmono10-regular.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman
 10-italic.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman10-bold.otf
-></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman8-regular.otf></usr/shar
-e/texmf-dist/fonts/opentype/public/lm/lmroman12-italic.otf></usr/share/texmf-dis
-t/fonts/opentype/public/lm/lmmonolt10-bold.otf></usr/share/texmf-dist/fonts/open
-type/public/lm/lmmono12-regular.otf></usr/share/texmf-dist/fonts/opentype/public
-/lm/lmroman10-regular.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroma
+></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman12-italic.otf></usr/shar
+e/texmf-dist/fonts/opentype/public/lm/lmmonolt10-bold.otf></usr/share/texmf-dist
+/fonts/opentype/public/lm/lmmono12-regular.otf></usr/share/texmf-dist/fonts/open
+type/public/lm/lmroman10-regular.otf></usr/share/texmf-dist/fonts/opentype/publi
+c/lm/lmroman8-regular.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroma
 n12-regular.otf></usr/share/texmf-dist/fonts/opentype/public/lm/lmroman12-bold.o
 tf></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/
 texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texmf-dist/font
 s/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texmf-dist/fonts/type1/public/a
 msfonts/cm/cmsy10.pfb>
-Output written on Anteproyecto-PPS-Juan-Ignacio-Gone.pdf (37 pages, 243623 bytes
+Output written on Anteproyecto-PPS-Juan-Ignacio-Gone.pdf (41 pages, 257238 bytes
 ).
 
-PDF statistics: 781 PDF objects out of 1000 (max. 8388607)
- 689 compressed objects within 7 object streams
- 182 named destinations out of 1000 (max. 1048576)
+PDF statistics: 809 PDF objects out of 1000 (max. 8388607)
+ 711 compressed objects within 8 object streams
+ 186 named destinations out of 1000 (max. 1048576)
  528 words of extra memory for PDF output out of 10000 (max. 100000000)
 
