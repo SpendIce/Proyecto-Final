@@ -227,6 +227,34 @@ def test_prompt_versionado_solo_solicita_un_borrador(tmp_path):
     assert "No apruebes, publiques ni envíes" in generator.prompt
 
 
+def test_el_ejemplo_no_enseña_meta_lenguaje_de_proceso(tmp_path):
+    """La prosa del ejemplo no puede filtrar estados internos del sistema.
+
+    `gacetilla_v3` cerraba su CUERPO de ejemplo con «con revisión humana» y el
+    modelo lo copiaba al borrador (DEF-A1-017). La redacción del ejemplo es lo
+    que el modelo imita: tiene que ser prosa de lectura pública, sin procesos
+    internos ni estados del pipeline.
+    """
+    csv_path = tmp_path / "actividades.csv"
+    csv_path.write_text(
+        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
+        "SYN-001,Taller,Descripción,2026-08-05,Público,Equipo,contacto@example.invalid,Sintética,Aula\n",
+        encoding="utf-8",
+    )
+    generator = GeneratorQueCapturaPrompt()
+
+    procesar_fila_csv(
+        csv_path=csv_path,
+        id_solicitud="SYN-001",
+        directorio_salida=tmp_path / "salida",
+        generator=generator,
+    )
+
+    ejemplo = generator.prompt.split("--- EJEMPLO ---")[1].split("--- FIN EJEMPLO ---")[0]
+    for termino in ("revisión", "validación", "aprobación", "borrador", "pendiente"):
+        assert termino not in ejemplo.lower(), f"el ejemplo contiene meta-lenguaje: {termino}"
+
+
 def test_id_solicitud_no_permite_salir_del_directorio_de_borradores(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(

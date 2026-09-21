@@ -15,4 +15,4 @@ pruebas@example.invalid
 Actividad para probar el flujo.
 
 ## CUERPO
-El Equipo de prueba invita a la Comunidad universitaria con revisión humana.
+El Equipo de prueba invita a la Comunidad universitaria.

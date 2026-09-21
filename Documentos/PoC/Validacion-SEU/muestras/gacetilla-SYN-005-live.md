@@ -14,4 +14,4 @@ contacto@example.invalid
 Actividad sintética para la comunidad universitaria.
 
 ## CUERPO
-El Área de prueba organiza un seminario remoto para la comunidad universitaria.
+El Área de prueba organiza un seminario remoto.

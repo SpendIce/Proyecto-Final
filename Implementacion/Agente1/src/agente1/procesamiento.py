@@ -63,7 +63,7 @@ HU = "HU-010"
 # Estas tres versiones se escriben en cada línea del log. Si alguna cambia hay
 # que subirle el número: es lo que permite explicar, meses después, por qué dos
 # ejecuciones de la misma fila dieron textos distintos.
-PROMPT_VERSION = "gacetilla_v3"
+PROMPT_VERSION = "gacetilla_v4"
 CONTRACT_VERSION = "gacetilla_input_v1"
 MAX_BORRADOR_CHARS = 5000
 # Límites de extensión de la gacetilla. Son técnicos y provisionales: se

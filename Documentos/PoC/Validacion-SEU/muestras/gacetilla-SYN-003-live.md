@@ -11,7 +11,7 @@ Organiza: Equipo de prueba
 pruebas@example.invalid
 
 ## BAJADA
-Actividad de prueba de estructura.
+Actividad de prueba
 
 ## CUERPO
-El Equipo de prueba invita al Público ficticio con revisión humana.
+El Equipo de prueba invita al Público ficticio.
