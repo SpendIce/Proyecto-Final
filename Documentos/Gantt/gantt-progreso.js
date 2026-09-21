@@ -45,6 +45,7 @@ window.GANTT_PROGRESS = {
   "s4c": { done: true, at: "2026-08-26", nota: "Plantilla provisional y puerto de entrega fake verificados; Gmail/Workspace y plantilla institucional continuan BLOQUEADO_EXTERNO (DEF-A1-001, DEF-A1-002)" },
 
   "s5b": { done: true, at: "2026-09-09", nota: "Modulo agente1/interpretacion.py: clasificacion deterministica contra catalogo cerrado (intenciones_v1), resolucion difusa de actividad sobre el indice de enumerar(), repregunta con candidatas y estado entre turnos, y fallback con LLM local cuyo presupuesto se deriva del contrato y se aplica fail-closed. Sin LangGraph y sin dependencias de runtime. Ocho tickets (#19-#26), suite 588 -> 749. No incluye s5a (autenticacion) ni la validacion SEU" },
+  "s5c": { done: true, at: "2026-09-09", nota: "Tarea reformulada el 2026-09-21: el plan original decia 'persistir transcript' y contradecia la spec de HU-013 (#18), que prohibe conservar la prosa escrita por las personas. Lo implementado es el fallback fuera de alcance (#26) mas la persistencia del solo derivado estructurado: la pendiente de repregunta guarda orden, id, titulo y fecha de cada candidata, la intencion y el vencimiento (#25), con una prueba que falla si aparece prosa. Hecho en el mismo corte que s5b" },
 
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
@@ -124,8 +125,10 @@ window.GANTT_PROGRESS = {
   //                  Suite 702 -> 749.
   //
   // Con #26 cerrado, HU-013 tiene sus ocho tickets integrados. De las cuatro
-  // tareas del sprint 5 solo s5b se marca. Las otras tres NO, y conviene que
-  // conste por que, porque dos de ellas no se completan con mas codigo:
+  // tareas del sprint 5 quedan marcadas s5b y s5c; s5c se reformulo el
+  // 2026-09-21 porque el plan original ("persistir transcript") contradecia
+  // la spec de HU-013, y la tarea del .mmd quedo reescrita acorde. Las otras
+  // dos NO se marcan, porque no se completan con mas codigo:
   //
   // s5a  - "Chat interno con autenticacion de personal SEU". El canal existe
   //        (#24: puerto, fake y adapter de planilla offline) pero la identidad
@@ -134,21 +137,17 @@ window.GANTT_PROGRESS = {
   //        institucional sigue BLOQUEADO_EXTERNO (DEF-A1-001, issue #15). La
   //        evidencia de #24 no acredita control de acceso y no hay que leerla
   //        asi.
-  // s5c  - "Fallback fuera de alcance y persistir transcript". La primera
-  //        mitad esta hecha; la segunda **se decidio no hacer** y esta en
-  //        conflicto con el plan: la spec de HU-013 exige que el registro no
-  //        conserve la prosa escrita por las personas (#18, historia 19 del
-  //        auditor), para que la trazabilidad no cree un deposito de datos
-  //        personales. Se persiste solo el derivado estructurado, y hay
-  //        pruebas que fallan si aparece prosa. La tarea del cronograma
-  //        deberia reformularse en lugar de marcarse.
-  // s5d  - "Probar solicitudes validas, fuera de alcance y usabilidad". Las
-  //        dos primeras estan cubiertas por la regresion. La usabilidad no:
-  //        exige la prueba guiada con una persona de la SEU, cuyo recorrido
-  //        quedo documentado en #24
-  //        (evidencias/recorrido-prueba-guiada-canal-planilla.md) pero todavia
-  //        no se ejecuto con nadie.
-  // m5   - "HU-013 operativa con DoD": depende de s5a, s5c y s5d.
+  // s5d  - renombrada el 2026-09-21 a "Regresion de solicitudes y prueba
+  //        guiada de usabilidad con SEU". La mitad automatizable ya existe:
+  //        las solicitudes validas y las fuera de alcance tienen cobertura de
+  //        regresion desde los tickets #19-#26. La mitad humana sigue
+  //        PENDIENTE DE EJECUCION: la prueba guiada de usabilidad exige una
+  //        persona real de la SEU y su disponibilidad es un bloqueante
+  //        externo. El recorrido quedo documentado en #24
+  //        (evidencias/recorrido-prueba-guiada-canal-planilla.md) pero no se
+  //        ejecuto con nadie; tener el protocolo escrito no cuenta como
+  //        prueba hecha.
+  // m5   - "HU-013 operativa con DoD": depende de s5a y s5d.
   //
   // Nota de alcance: cerrar los ocho tickets NO acredita validacion
   // institucional ni nivel TRL, como dice #18 explicitamente. La evidencia es
