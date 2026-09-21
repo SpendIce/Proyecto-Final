@@ -65,3 +65,8 @@ verdes**: las 513 del corte 2026-09-06, más 15 regresiones de `DEF-A1-013`, 6
 de `DEF-A1-014`, 36 del seam de Historia Viva y 18 de la recuperación durable
 de HU-012. Los conteos 451, 457, 513 y 534 que aparecen arriba son históricos y
 no describen la candidata vigente.
+
+La regresión vigente al 2026-09-09 (`8824b5e`, reverificada el 2026-09-21) es de
+**749 pruebas verdes**: las 588 del corte 2026-09-08 más las 161 de la capa de
+interpretación HU-013 (issues #19 a #26). El conteo de 588 sigue describiendo el
+corte 2026-09-08 y no el estado actual.

@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-08
+updated: 2026-09-21
 ---
 
 # Proyecto Final — Estado
@@ -16,6 +16,8 @@ Proyecto Centenario (P100) — sistema multiagente de inteligencia artificial pa
 - [x] Elaborar anteproyecto vigente en LaTeX para Juan Ignacio Gone.
 - [x] Sanear el worktree heredado en commits tematicos revisables (issues #2, #3, #8 cerrados).
 - [x] Cerrar `DEF-A1-013` y `DEF-A1-014` con regresion (issues #4, #5, #6 cerrados).
+- [x] Implementar la capa de interpretacion en lenguaje natural HU-013 (issues #19 a #26 cerrados; suite 588 -> 749).
+- [ ] Corregir la maquina de estados de HU-012 para exigir doble aprobacion, semantica mas utilitaria (`DEF-A1-016`, registrado via issue #21).
 - [ ] Validar el anteproyecto contra la bible, criterios Cicerchia y lineamientos de catedra (issue #10).
 - [ ] Registrar fechas oficiales de entrega cuando Nacho las confirme.
 
@@ -26,7 +28,7 @@ _(pendiente: verificar con Nacho o con consignas oficiales antes de asumir fecha
 - Procedencia del repo: copia clonada desde el trabajo de Ignacio Becerra Mas Roca; esta copia se adapto para Juan Ignacio Gone y Agente 1.
 - Estado de versionado: la adaptacion y agregados actuales pueden estar sin commit; no tratar borrados/renombres de archivos de Becerra como accidentales sin verificar.
 - Foco actual: implementacion del MVP del Agente 1 en `Implementacion/Agente1/` (Python, sin framework web). La nota previa "no implementacion de software" quedo obsoleta.
-- Estado de implementacion al 2026-09-08 (`32a79d9`): suite de 588 pruebas verdes con `uv run pytest -q`. HU-010 y HU-011 producen borradores offline y con Ollama local (`llama3.2:3b`, constrained decoding por JSON Schema); HU-012 es slice offline. Toda salida queda `BORRADOR — NO PUBLICAR` y `PENDIENTE_VALIDACION`. Los cortes de 513 (2026-09-06) y 534 son historicos: la diferencia son las regresiones de `DEF-A1-013` y `DEF-A1-014`, el seam de Historia Viva y la recuperacion durable de HU-012.
+- Estado de implementacion al 2026-09-21, verificado sobre `8824b5e`: suite de 749 pruebas verdes con `uv run pytest -q` en 29,85 s. HU-010 y HU-011 producen borradores offline y con Ollama local (`llama3.2:3b`, constrained decoding por JSON Schema); HU-012 es slice offline con recuperacion durable; HU-013 despacha solicitudes en lenguaje natural a los pipelines de gacetilla y post. Toda salida queda `BORRADOR — NO PUBLICAR` y `PENDIENTE_VALIDACION`. Los cortes de 513 (2026-09-06), 534 y 588 (2026-09-08) son historicos: la diferencia son las regresiones de `DEF-A1-013` y `DEF-A1-014`, el seam de Historia Viva, la recuperacion durable de HU-012 y los 161 tests de HU-013.
 - Politica de redes HU-011 versionada como inventario de reglas verificables en `Implementacion/Agente1/src/agente1/politicas/politica_redes_provisional_v1.json`: 20 reglas, 14 `ACTIVA` con codigo de gate y caso negativo obligatorio, 5 `NO_APLICADA_PENDIENTE_SEU`, 1 `NO_MECANIZABLE`. La suite falla si se agrega una regla activa sin regresion. Doc: `Documentos/PoC/Politica-Redes-Reglas-Verificables-v1.md`.
 - Matriz operativa HU-012 por origen en `src/agente1/contracts/matriz_origenes_inscripcion_v1.json` + `origenes_inscripcion.py`: cuatro origenes, procedencia por campo, decision de envio fail-closed. Ningun campo esta `CONFIRMADO_SEU` y ningun origen habilita envio. Doc: `Documentos/PoC/Matriz-Operativa-HU-012-Origenes-Inscripcion-v1.md`.
 - Prueba de capacidad del 2026-08-26 (`evidencias/benchmark-capacidad-a1-2026-08-26.md`): el volumen informado por la SEU (12 publicaciones/mes = 36 generaciones) cuesta ~12 min de computo local. El cuello de botella NO es la latencia sino la conformidad de contenido.
@@ -51,3 +53,6 @@ _(pendiente: verificar con Nacho o con consignas oficiales antes de asumir fecha
 - HU-012 con recuperacion durable desde el 2026-09-08 (issue #9): `RegistroConfirmacionesArchivo` conserva estado en disco -un archivo por clave, publicado con `os.link` desde un temporal- y `reconciliar_envios_reservados` cierra las reservas colgadas hacia `ENVIO_INDETERMINADO` sin volver a entregar. Una reserva interrumpida es indeterminada: reintentar seria apostar a que la entrega no ocurrio. Sigue sin existir adapter de correo productivo.
 - Seam de Historia Viva preparado el 2026-09-08 en `Implementacion/Agente1/src/agente1/historia_viva.py` (issue #11): puerto unico con buscar/ampliar/aportar, A1 siempre inicia, precision de fecha como control (`expresion_temporal` no devuelve fecha exacta si la precision es mes/anio/decada), efemeride compuesta del lado de A1 y `HistoriaVivaFake` sin red ni credenciales. El transporte definitivo depende del issue #17 y del contrato con Ignacio; `insumos_agentes.py` sigue versionado como envelope candidato inbound y no se consume.
 - Restricciones criticas: no reemplazar personal, no publicar sin validacion humana, no usar infraestructura de alto costo, no agregar integraciones externas complejas no definidas.
+- El 2026-09-09 se envio por correo a Cesar Cicerchia la nota `Documentos/PoC/Nota-Consulta-Direccion-Gate-G2-y-Contradicciones-Agente-1.md`, con consultas sobre el criterio del Gate G2 y tres definiciones de alcance del Agente 1. Queda pendiente la respuesta de Cesar.
+- HU-013 integrada el 2026-09-09 (issues #19 a #26): `src/agente1/interpretacion.py` clasifica contra el catalogo cerrado `intenciones_v1`, resuelve actividad por coincidencia difusa sobre `enumerar()`, repregunta con candidatas via `RegistroPendientes` en memoria (vencimiento 15 min, nunca persiste prosa) y cae al LLM local solo para extraer terminos, validado contra el catalogo y fail-closed. La identidad llega AFIRMADA por el canal (`identidad_verificada: false`, ADR 0002): s5a sigue bloqueada por #15. Decision abierta: issue #27 sobre si el modelo puede recuperar un pedido cuando falla la clasificacion deterministica (hoy no, por ADR 0001).
+- El 2026-09-21 se reconcilio el worktree: se quitaron los worktrees efimeros de `.claude/worktrees/` y las ramas de tickets ya mergeadas. `main` queda commits adelante de `myfork/main`; la sincronizacion del remoto es parte del issue #7 y queda a decision de Juan.
