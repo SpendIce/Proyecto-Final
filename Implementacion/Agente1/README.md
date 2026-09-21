@@ -1,8 +1,9 @@
 # Agente 1 — MVP técnico controlado
 
 Este directorio reúne la implementación incremental del Agente 1: HU-010 para
-gacetillas, HU-011 para borradores de redes sociales y el slice offline de
-HU-012 para confirmaciones. También contiene preparación contractual de
+gacetillas, HU-011 para borradores de redes sociales, el slice offline de
+HU-012 para confirmaciones y el slice offline de HU-014 para certificados.
+También contiene preparación contractual de
 Workspace, persistencia y operaciones. Ningún flujo publica o envía contenido
 real sin una autorización humana e institucional externa al repositorio.
 
@@ -44,6 +45,8 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/workspace_e2e.py`: runner Sheets→procesamiento→Drive, offline por defecto y live con doble opt-in.
 - `src/agente1/persistencia.py` y `migrations/`: puerto en memoria y SQL del spike PostgreSQL, ya ejecutado contra un contenedor efímero.
 - `src/agente1/confirmaciones.py`: lifecycle offline de HU-012 con entrega únicamente fake.
+- `src/agente1/certificados.py`: lifecycle offline de HU-014 con generación de PDF determinista (stdlib, sin dependencias nuevas) y emisión únicamente fake; reusa el circuito de doble aprobación y el registro durable de HU-012.
+- `scripts/matriz_hu014.py`: matriz reproducible de HU-014, con emisión simulada y reconciliación de reservas colgadas.
 - `src/agente1/politicas/politica_redes_provisional_v1.json` y `src/agente1/politica_redes.py`: política de redes de HU-011 como inventario de reglas verificables, con sus parámetros por canal y el estado de cada regla (`ACTIVA`, `NO_APLICADA_PENDIENTE_SEU`, `NO_MECANIZABLE`).
 - `src/agente1/contracts/matriz_origenes_inscripcion_v1.json` y `src/agente1/origenes_inscripcion.py`: matriz operativa de HU-012 por origen de inscripción y decisión de envío fail-closed; ningún origen habilita envío.
 - `scripts/medir_capacidad_hu011.py`: prueba de capacidad local contra el volumen de referencia informado por la SEU; mide latencia fría y caliente y tasa de conformidad, y proyecta el mes.
@@ -77,6 +80,7 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué el generador sólo acepta loopback | `src/agente1/ollama.py`, docstring de módulo y `_validar_base_url` |
 | Por qué HU-012 modela un envío que no se hace | `src/agente1/confirmaciones.py`, docstring de módulo |
 | Por qué la cola de envíos es una pista de trabajo y no la autoridad | `confirmaciones.py`, docstrings de `ColaEnvios`, `ColaEnviosArchivo` y `drenar_envios` |
+| Por qué HU-014 modela una emisión que no se hace y por qué el PDF es stdlib | `src/agente1/certificados.py`, docstring de módulo |
 | Por qué no se borra nada, sólo se marca | `persistencia.py`, `eliminar_logicamente_anteriores` |
 | Qué prueba y qué no prueba la auditoría de seguridad | `src/agente1/auditoria_d2.py`, `auditar_manifest` |
 | Por qué los límites de redes son provisionales | `src/agente1/politica_redes.py`, docstring de módulo (DEF-A1-007) |
@@ -449,6 +453,39 @@ sintéticos o provisionales. Consultar
 `evidencias/limites-hu012-offline.md`; no hay envío institucional, validación
 SEU ni evidencia de TRL 3.
 
+## HU-014 — certificados offline
+
+HU-014 renderiza determinísticamente el texto canónico de un certificado de
+`ASISTENCIA` o `APROBACION` (catálogo cerrado en `certificado_emision_v1`) y
+genera un PDF mínimo con stdlib, sin dependencias nuevas: estructura fija,
+offsets de xref calculados y sin timestamps ni IDs, de modo que mismas líneas
+producen los mismos bytes. Todo PDF previo a la aprobación completa lleva la
+marca `BORRADOR — NO EMITIR`; el documento emitido (simulado) ya no la lleva.
+
+El circuito de decisión es el de HU-012 reutilizado por importación: las dos
+aprobaciones (semántica del RGC y utilitaria del Coordinador de Extensión) son
+obligatorias en cualquier orden, el rechazo alcanza desde pendiente o parcial
+y `EMITIDA_SIMULADA` sólo registra una emisión en memoria mediante
+`DestinoCertificadosFake`. El registro durable es el mismo archivo-por-clave;
+`reconciliar_emisiones_reservadas` cierra reservas colgadas en
+`EMISION_INDETERMINADA` sin reemitir. La línea de auditoría agrega
+`pdf_hash`: el rastro de cada certificado emitido, sin datos personales en
+claro. El módulo no se reexporta desde `agente1`: se importa como
+`agente1.certificados`.
+
+```bash
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python scripts/matriz_hu014.py --salida salida/matriz-hu014
+
+PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
+  python -m pytest -q tests/test_certificados.py \
+    tests/test_certificados_durables.py tests/test_matriz_hu014.py
+```
+
+La plantilla institucional, la firma digital y el destino de emisión real
+quedan `PENDIENTE_SEU`. Consultar `evidencias/limites-hu014-offline.md`; no
+hay emisión institucional, validación SEU ni evidencia de TRL 3.
+
 ## Operaciones seguras D2/D3
 
 El tooling operativo consume manifests sanitizados y no modifica recursos. Los
@@ -606,5 +643,5 @@ necesidad operativa. Luego corresponde completar la baseline documental de
 HU-012 y, sólo con autorización, correr Workspace D2 live. En paralelo,
 DSI/SEU deben provisionar identidad, recursos y permisos, aprobar
 plantilla/criterios y completar el paquete de validación. Hasta entonces
-HU-010, HU-011 y HU-012 continúan parciales y el Gate G2 / TRL 3 permanece
-pendiente.
+HU-010, HU-011, HU-012 y HU-014 continúan parciales y el Gate G2 / TRL 3
+permanece pendiente.

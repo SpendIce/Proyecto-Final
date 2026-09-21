@@ -1,0 +1,22 @@
+TEMPLATE_VERSION: certificado_provisional_v1
+POLICY_STATUS: PROVISIONAL_NO_INSTITUCIONAL
+
+BORRADOR — NO EMITIR
+
+{{encabezado}}
+
+{{organiza}} certifica que
+{{nombre_titular}} (documento {{documento_titular}})
+{{verbo}} la actividad: {{actividad}}.
+Fecha: {{fecha}}
+Referencia: {{id_certificado}}
+Firma: {{firmante}}
+
+Documento provisional sin firma digital ni validez institucional.
+
+LÍMITES:
+- El render es determinista; no se entrega este contenido a un LLM.
+- No existe emisión real ni firma digital en HU-014 offline.
+- La marca BORRADOR — NO EMITIR aparece en todo PDF previo a la aprobación completa.
+- Sólo un fake explícito puede simular emisión y exige las dos aprobaciones del circuito.
+- La plantilla institucional definitiva y los firmantes reales quedan PENDIENTE_SEU.
