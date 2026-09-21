@@ -29,3 +29,6 @@
 
 # Snapshots nuevos de navegador; los del corte historico siguen versionados
 /.playwright-mcp/
+
+# Worktrees efimeros de subagentes: checkouts completos del repo, no contenido
+/.claude/worktrees/
