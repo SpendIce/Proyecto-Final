@@ -488,11 +488,28 @@ publicado.
 permite forzar la falla de una operación por separado. El transporte definitivo
 depende del contrato con Ignacio, que sigue abierto.
 
-Prueba focalizada:
+`historia_viva_cliente.py` es la capa cliente de ese seam: `ClienteHistoriaViva`
+implementa el puerto sobre un `TransporteHistoriaViva` inyectado que devuelve
+cuerpos crudos, y valida cada respuesta contra el contrato candidato
+`contracts/historia_viva_cliente_candidate_v1.schema.json` antes de producir los
+objetos del dominio. Lo que el contrato no contempla se rechaza con
+`historia_viva_response_invalid`; lo que falta no se inventa. El timeout y los
+reintentos son objetos de configuración (`PoliticaCliente`): las consultas
+idempotentes reintentan ante fallas transitorias y `POST /aportes` no reintenta
+por default, porque la deduplicación por `Idempotency-Key` sigue siendo
+`PROPUESTA_NO_ACORDADA` en el issue #17. No hay adapter HTTP productivo ni
+identidad por token: ambos quedan declarados como pendientes del acuerdo. Para
+uso programático, importar desde `agente1.historia_viva_cliente`; no se
+reexporta en `agente1`.
+
+Pruebas focalizadas:
 
 ```bash
-uv run pytest -q tests/test_historia_viva.py
+uv run pytest -q tests/test_historia_viva.py tests/test_cliente_historia_viva.py
 ```
+
+Los límites del slice están declarados en
+`evidencias/limites-historia-viva-cliente.md`.
 
 ## Paquete pendiente de validación SEU
 

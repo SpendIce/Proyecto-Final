@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:candidate:historia-viva-cliente-v1",
+  "title": "Contrato candidato del cliente pull de Agente 1 hacia Historia Viva",
+  "description": "Forma de las respuestas que A1 acepta del acervo de A2 y del aporte que envía. Es la posición unilateral de A1 documentada en respuesta-nacho.md y en el paquete de cierre del issue #17: no es un contrato acordado ni aprobado institucionalmente. El enum de tipo de pieza queda abierto a propósito: este repositorio no define valores normativos y cerrarlo por supuesto sería decidir por la fuente.",
+  "x-contract-version": "historia_viva_cliente_candidate_v1",
+  "x-status": "CANDIDATO_NO_INSTITUCIONAL",
+  "x-issue": 17,
+  "x-pending-agreement": "El OpenAPI 3.1 canónico vive en el repositorio de A2; este archivo fija la forma que el cliente de A1 valida hasta que #17 cierre.",
+  "oneOf": [
+    {"$ref": "#/$defs/respuesta_fragmentos"},
+    {"$ref": "#/$defs/respuesta_pieza"},
+    {"$ref": "#/$defs/respuesta_aporte"}
+  ],
+  "$defs": {
+    "identificador": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "fecha_iso": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "rango_historico": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desde", "hasta", "precision_fecha"],
+      "properties": {
+        "desde": {"$ref": "#/$defs/fecha_iso"},
+        "hasta": {"$ref": "#/$defs/fecha_iso"},
+        "precision_fecha": {
+          "description": "Precisión declarada y obligatoria. Con mes, anio o decada el cliente nunca presenta una fecha exacta.",
+          "enum": ["dia", "mes", "anio", "decada"]
+        }
+      }
+    },
+    "fragmento": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fragmento_id",
+        "pieza_id",
+        "texto",
+        "rango",
+        "tipo",
+        "resumen_pieza",
+        "url_original",
+        "validada_el"
+      ],
+      "properties": {
+        "fragmento_id": {
+          "$ref": "#/$defs/identificador",
+          "description": "Identificador estable del pasaje, no del documento. Sin él la cita no se puede verificar contra la fuente."
+        },
+        "pieza_id": {"$ref": "#/$defs/identificador"},
+        "texto": {"type": "string", "minLength": 1},
+        "rango": {"$ref": "#/$defs/rango_historico"},
+        "tipo": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Enum pendiente de acuerdo con A2; A1 sólo exige valor declarado."
+        },
+        "resumen_pieza": {"type": "string"},
+        "url_original": {"type": "string", "minLength": 1},
+        "validada_el": {"$ref": "#/$defs/fecha_iso"},
+        "ubicacion": {
+          "type": "string",
+          "minLength": 1,
+          "x-required": false,
+          "description": "Lugar interno de la pieza (pagina, seccion o equivalente) cuando existe."
+        }
+      }
+    },
+    "pieza": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pieza_id",
+        "titulo",
+        "resumen",
+        "rango",
+        "tipo",
+        "url_original",
+        "validada_el",
+        "fragmentos"
+      ],
+      "properties": {
+        "pieza_id": {"$ref": "#/$defs/identificador"},
+        "titulo": {"type": "string", "minLength": 1},
+        "resumen": {"type": "string"},
+        "rango": {"$ref": "#/$defs/rango_historico"},
+        "tipo": {"type": "string", "minLength": 1},
+        "url_original": {"type": "string", "minLength": 1},
+        "validada_el": {"$ref": "#/$defs/fecha_iso"},
+        "fragmentos": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {"$ref": "#/$defs/fragmento"}
+        }
+      }
+    },
+    "respuesta_fragmentos": {
+      "description": "Cuerpo de GET /v1/fragmentos. Una consulta sin resultados responde 200 con la lista vacía.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "fragmentos"],
+      "properties": {
+        "schema": {"const": "historia_viva.fragmentos.v1"},
+        "fragmentos": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {"$ref": "#/$defs/fragmento"}
+        }
+      }
+    },
+    "respuesta_pieza": {
+      "description": "Cuerpo de GET /v1/piezas/{pieza_id}. La respuesta es completa y cerrada: 'todos sus campos' no alcanza para generar cliente ni mock. Una pieza inexistente o no validada no produce este cuerpo: produce ausencia (404 indistinguible).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "pieza"],
+      "properties": {
+        "schema": {"const": "historia_viva.pieza.v1"},
+        "pieza": {"$ref": "#/$defs/pieza"}
+      }
+    },
+    "solicitud_aporte": {
+      "description": "Cuerpo que A1 envía en POST /v1/aportes; la clave de idempotencia viaja en el header Idempotency-Key, no en el cuerpo. fecha_publicacion y url_publicacion no existen: el aporte nace aprobado-pendiente, no publicado.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tipo_contenido",
+        "canal",
+        "titulo",
+        "cuerpo",
+        "piezas_fuente"
+      ],
+      "properties": {
+        "tipo_contenido": {
+          "enum": ["gacetilla", "post", "newsletter", "mail"]
+        },
+        "canal": {
+          "enum": ["instagram", "linkedin", "web", "correo", "ninguno"]
+        },
+        "titulo": {"type": "string", "minLength": 1},
+        "cuerpo": {"type": "string", "minLength": 1},
+        "piezas_fuente": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/identificador"}
+        }
+      }
+    },
+    "respuesta_aporte": {
+      "description": "Cuerpo de POST /v1/aportes. El único estado que A1 acepta es PENDIENTE_VALIDACION: una recepción que declare validado o publicado está fuera de contrato. Misma clave y mismo payload devuelven el mismo aporte_id con duplicado=true; misma clave con payload distinto es conflicto.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "aporte_id", "estado", "duplicado"],
+      "properties": {
+        "schema": {"const": "historia_viva.aporte.v1"},
+        "aporte_id": {"$ref": "#/$defs/identificador"},
+        "estado": {"const": "PENDIENTE_VALIDACION"},
+        "duplicado": {"type": "boolean"}
+      }
+    }
+  }
+}
