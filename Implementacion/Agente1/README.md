@@ -76,6 +76,7 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué el encabezado de la planilla debe ser exacto (y qué implica para Google Forms) | `google_workspace.py`, `_parsear_filas` |
 | Por qué el generador sólo acepta loopback | `src/agente1/ollama.py`, docstring de módulo y `_validar_base_url` |
 | Por qué HU-012 modela un envío que no se hace | `src/agente1/confirmaciones.py`, docstring de módulo |
+| Por qué la cola de envíos es una pista de trabajo y no la autoridad | `confirmaciones.py`, docstrings de `ColaEnvios`, `ColaEnviosArchivo` y `drenar_envios` |
 | Por qué no se borra nada, sólo se marca | `persistencia.py`, `eliminar_logicamente_anteriores` |
 | Qué prueba y qué no prueba la auditoría de seguridad | `src/agente1/auditoria_d2.py`, `auditar_manifest` |
 | Por qué los límites de redes son provisionales | `src/agente1/politica_redes.py`, docstring de módulo (DEF-A1-007) |
@@ -413,11 +414,37 @@ persona decida con el registro a la vista.
 uv run pytest -q tests/test_confirmaciones_durables.py
 ```
 
+### Cola de envío asíncrono (s4d)
+
+El envío también puede diferirse: `procesar_confirmacion(..., asincrono=True,
+cola=...)` mueve el registro de `APROBADA` a `ENVIO_ENCOLADO` y deja un ítem
+en la cola en lugar de entregar. El camino síncrono (`enviar=True`) no cambia.
+No hay Celery ni Redis: el puerto `ColaEnvios` tiene una implementación en
+memoria (`ColaEnviosMemoria`) y una durable en archivo (`ColaEnviosArchivo`)
+con el mismo patrón atómico del registro (un archivo por ítem publicado con
+`os.link`, orden FIFO por una secuencia tomada bajo `flock`).
+
+`drenar_envios(registro=..., cola=..., destino=..., directorio_salida=...)` es
+el worker: procesa los ítems debidos una vez por corrida, reserva con el
+mismo compare-and-set (`ENVIO_ENCOLADO` → `ENVIO_RESERVADO` →
+`ENVIADA_SIMULADA`/`FALLIDA`) y reintenta con un presupuesto fijo de 3
+intentos; cada intento queda auditado en el mismo JSONL con `evento` e
+`intento`. Un ítem cuyo registro ya no está en `ENVIO_ENCOLADO` se descarta
+sin re-entregar, y una reserva colgada sigue yendo a `ENVIO_INDETERMINADO`
+por la reconciliación existente. Sin el fake explícito el worker no procesa
+nada: **sigue sin existir adapter de correo real, el encolado sólo cambia
+cuándo se entrega, no qué se entrega**.
+
+```bash
+uv run pytest -q tests/test_cola_envios.py
+```
+
 Las APIs primarias (`SolicitudConfirmacion`, `AprobacionHumana`,
 `ResultadoConfirmacion`, `RegistroConfirmacionesMemoria`,
 `RegistroConfirmacionesArchivo`, `reconciliar_envios_reservados`,
 `DestinoConfirmacionesFake` y `procesar_confirmacion`) se exportan desde
-`agente1`. Contrato, plantilla, aprobaciones de la matriz y destinatarios son
+`agente1`, al igual que la cola (`ItemEnvio`, `ColaEnviosMemoria`,
+`ColaEnviosArchivo`, `ResultadoEnvioEncolado` y `drenar_envios`). Contrato, plantilla, aprobaciones de la matriz y destinatarios son
 sintéticos o provisionales. Consultar
 `evidencias/limites-hu012-offline.md`; no hay envío institucional, validación
 SEU ni evidencia de TRL 3.

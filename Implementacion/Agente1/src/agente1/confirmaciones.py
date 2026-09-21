@@ -21,6 +21,16 @@ Sólo desde `APROBADA` —las dos aprobaciones registradas— se puede pasar a
 `ENVIO_RESERVADO` existe para que una caída durante la entrega no deje el
 registro en un estado que habilite reintentar y mandar dos veces.
 
+Desde `APROBADA` también se puede encolar la entrega con `asincrono=True` y
+una `ColaEnvios` inyectada (s4d): el registro pasa a `ENVIO_ENCOLADO` y un
+worker separado, `drenar_envios`, reserva y entrega después con reintentos
+acotados. La cola es una pista de trabajo, no la autoridad: el estado que
+habilita o descarta una entrega vive siempre en el registro, así que un ítem
+encolado cuyo registro ya no está pendiente se descarta sin re-entregar. No
+hay broker externo (Celery y Redis quedaron diferidos por decisión
+documentada) y la entrega sigue siendo exclusivamente contra el fake: el
+encolado cambia cuándo se entrega, no qué se entrega.
+
 Qué falta para que esto sea utilizable, y por qué no está: los orígenes de
 inscripción reales no están definidos por la SEU. `origenes_inscripcion.py`
 enumera exactamente qué falta por cada origen y bloquea el envío en todos.
@@ -83,6 +93,19 @@ ESTADO_APROBADA_UTILITARIA = "APROBADA_UTILITARIA"
 ESTADOS_PARCIALES_APROBACION = frozenset(
     {ESTADO_APROBADA_SEMANTICA, ESTADO_APROBADA_UTILITARIA}
 )
+
+# Camino asíncrono (s4d): la confirmación ya aprobada por las dos decisiones
+# espera en cola hasta que `drenar_envios` la tome. `ENVIO_ENCOLADO` es un
+# estado propio, no se reusa `APROBADA`, para que el registro refleje que el
+# envío ya tiene una intención registrada: un segundo pedido, síncrono o
+# encolado, es duplicado y no puede producir otra entrega.
+ESTADO_ENVIO_ENCOLADO = "ENVIO_ENCOLADO"
+
+# Presupuesto fijo de intentos por ítem: una falla transitoria del destino
+# reintenta en el próximo drenaje, pero un ítem no puede reintentar para
+# siempre. Tres intentos alcanzan para distinguir transitorio de definitivo
+# sin convertir la cola en un bucle.
+REINTENTOS_ENVIO_MAX = 3
 
 # Por rol: el estado en que queda un borrador pendiente cuando ese rol
 # aprueba, y el estado parcial del que parte para completar el par.
@@ -228,6 +251,86 @@ class RegistroConfirmacionesMemoria:
             return True
 
 
+@dataclass(frozen=True)
+class ItemEnvio:
+    """Unidad de trabajo de la cola de envíos.
+
+    El ítem porta lo que la entrega necesita y el registro no guarda: el
+    destinatario (el registro conserva asunto y cuerpo, no el correo) y el
+    hash de la solicitud para que cada intento del worker quede correlacionado
+    con la auditoría del encolado. `intentos` cuenta los intentos ya
+    consumidos; el asunto y el cuerpo NO viajan en el ítem porque el registro
+    es la fuente de verdad y el worker los lee de ahí al drenar.
+    """
+
+    idempotency_key: str
+    destinatario: str
+    input_hash: str
+    intentos: int = 0
+
+
+class ColaEnvios(Protocol):
+    """Puerto de la cola de envío asíncrono.
+
+    La cola es una pista de trabajo, no la autoridad: la decisión de entregar
+    la toma el registro con el compare-and-set `ENVIO_ENCOLADO` →
+    `ENVIO_RESERVADO`. Por eso el puerto no necesita semántica transaccional:
+    `encolar` es idempotente por clave, `pendientes` respeta el orden de
+    llegada, `reemplazar` actualiza el ítem conservando su lugar y `descartar`
+    lo quita. Ninguna operación de la cola entrega nada por sí sola.
+    """
+
+    def encolar(self, item: ItemEnvio) -> bool:
+        """Agrega el ítem; `False` si la clave ya tenía uno."""
+        ...
+
+    def pendientes(self) -> tuple[ItemEnvio, ...]:
+        """Ítems vigentes en orden de llegada."""
+        ...
+
+    def reemplazar(self, item: ItemEnvio) -> bool:
+        """Actualiza el ítem de esa clave conservando su lugar; `False` si no existe."""
+        ...
+
+    def descartar(self, idempotency_key: str) -> bool:
+        """Quita el ítem de esa clave; `False` si no existía."""
+        ...
+
+
+class ColaEnviosMemoria:
+    """Cola en proceso para pruebas y corridas locales."""
+
+    def __init__(self) -> None:
+        # El dict preserva el orden de inserción y `reemplazar` reasigna sobre
+        # la misma clave, así que un reintento conserva su lugar en la fila.
+        self._items: dict[str, ItemEnvio] = {}
+        self._lock = Lock()
+
+    def encolar(self, item: ItemEnvio) -> bool:
+        _validar_clave_cola(item.idempotency_key)
+        with self._lock:
+            if item.idempotency_key in self._items:
+                return False
+            self._items[item.idempotency_key] = item
+            return True
+
+    def pendientes(self) -> tuple[ItemEnvio, ...]:
+        with self._lock:
+            return tuple(self._items.values())
+
+    def reemplazar(self, item: ItemEnvio) -> bool:
+        _validar_clave_cola(item.idempotency_key)
+        with self._lock:
+            if item.idempotency_key not in self._items:
+                return False
+            self._items[item.idempotency_key] = item
+            return True
+
+    def descartar(self, idempotency_key: str) -> bool:
+        with self._lock:
+            return self._items.pop(idempotency_key, None) is not None
+
+
 class RegistroConfirmacionesArchivo:
     """Registro durable: la idempotencia sobrevive al reinicio del proceso.
 
@@ -333,6 +436,171 @@ class RegistroConfirmacionesArchivo:
         return tuple(encontradas)
 
 
+class ColaEnviosArchivo:
+    """Cola durable: los envíos encolados sobreviven al reinicio del proceso.
+
+    Sigue el mismo patrón que el registro porque vale el mismo argumento: si
+    la cola viviera sólo en memoria, una caída con trabajo encolado perdería
+    los ítems y las confirmaciones quedarían en `ENVIO_ENCOLADO` sin que
+    nadie las drene.
+
+    Decisiones que no se ven en el código:
+
+    - **Un archivo por ítem, publicado con `os.link`.** El nombre se deriva
+      sólo de la clave (`{clave}.json`), así que `link` da el create-once:
+      dos encolados de la misma clave, incluso entre procesos, producen un
+      solo ítem. El orden de llegada NO está en el nombre: va en el campo
+      `secuencia`, asignado bajo `flock` sobre `secuencia.lock`. Si el nombre
+      llevara la secuencia, dos encolados de la misma clave tendrían nombres
+      distintos y la idempotencia se perdería.
+    - **La secuencia puede tener huecos.** Dos procesos que compiten por la
+      misma clave consumen dos números y sólo uno gana el `link`; el hueco no
+      rompe el orden porque `pendientes` ordena por `secuencia`.
+    - **Sin lock por escritura en `reemplazar`/`descartar`.** La cola es una
+      pista de trabajo: el compare-and-set que protege la entrega vive en el
+      registro (`ENVIO_ENCOLADO` → `ENVIO_RESERVADO`). Dos workers que pisan
+      un ítem no duplican la entrega porque sólo uno gana la reserva.
+    - **Un ítem ilegible queda en disco.** `pendientes` lo omite y ninguna
+      operación de la API lo toca: borrar un archivo que no se pudo
+      interpretar sería destruir evidencia. Queda para revisión humana.
+    - **Permisos restrictivos.** El ítem lleva el correo del destinatario en
+      claro (el registro no lo guarda y la entrega lo necesita). El directorio
+      queda `0700` y cada archivo `0600`, como el registro.
+    """
+
+    def __init__(self, directorio: Path) -> None:
+        self._directorio = Path(directorio)
+        self._directorio.mkdir(parents=True, exist_ok=True, mode=0o700)
+
+    def _ruta(self, idempotency_key: str) -> Path:
+        _validar_clave_cola(idempotency_key)
+        return self._directorio / f"{idempotency_key}.json"
+
+    def _proxima_secuencia(self) -> int:
+        """Número siguiente bajo lock; los huecos son aceptables, no hay reuse."""
+
+        candado = self._directorio / "secuencia.lock"
+        descriptor = os.open(candado, os.O_CREAT | os.O_RDWR, 0o600)
+        with os.fdopen(descriptor, "r+", encoding="utf-8") as archivo:
+            fcntl.flock(archivo.fileno(), fcntl.LOCK_EX)
+            ruta = self._directorio / "secuencia"
+            try:
+                secuencia = int(ruta.read_text(encoding="utf-8").strip())
+            except FileNotFoundError:
+                secuencia = 0
+            except ValueError:
+                raise ValueError("cola de envíos corrupta: secuencia ilegible")
+            secuencia += 1
+            ruta.write_text(str(secuencia), encoding="utf-8")
+            return secuencia
+
+    def encolar(self, item: ItemEnvio) -> bool:
+        ruta = self._ruta(item.idempotency_key)
+        secuencia = self._proxima_secuencia()
+        temporal = ruta.with_name(f"{ruta.stem}.{uuid.uuid4().hex}.tmp")
+        descriptor = os.open(temporal, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as archivo:
+                archivo.write(_serializar_item(item, secuencia))
+                archivo.flush()
+                os.fsync(archivo.fileno())
+            try:
+                os.link(temporal, ruta)
+            except FileExistsError:
+                return False
+            return True
+        finally:
+            temporal.unlink(missing_ok=True)
+
+    def pendientes(self) -> tuple[ItemEnvio, ...]:
+        items = []
+        for ruta in sorted(self._directorio.glob("*.json")):
+            leido = _leer_item(ruta.read_text(encoding="utf-8"))
+            if leido is not None:
+                items.append(leido)
+        items.sort(key=lambda par: par[0])
+        return tuple(item for _, item in items)
+
+    def reemplazar(self, item: ItemEnvio) -> bool:
+        ruta = self._ruta(item.idempotency_key)
+        try:
+            leido = _leer_item(ruta.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return False
+        # Un ítem corrupto se trata como ausente, igual que en el registro:
+        # reemplazarlo sería tapar evidencia y encima adjudicarle una
+        # secuencia que no sabemos cuál era.
+        if leido is None:
+            return False
+        _escribir_texto_atomico(ruta, _serializar_item(item, leido[0]))
+        return True
+
+    def descartar(self, idempotency_key: str) -> bool:
+        # Una clave que no es un hash no construye path: devolver `False` es
+        # fail-closed, la API nunca borra un archivo fuera del patrón.
+        if CLAVE_REGISTRO_RE.fullmatch(idempotency_key) is None:
+            return False
+        try:
+            self._ruta(idempotency_key).unlink()
+            return True
+        except FileNotFoundError:
+            return False
+
+
+def _validar_clave_cola(idempotency_key: str) -> None:
+    if not CLAVE_REGISTRO_RE.fullmatch(idempotency_key):
+        raise ValueError("clave de idempotencia inválida")
+
+
+def _serializar_item(item: ItemEnvio, secuencia: int) -> str:
+    return json.dumps(
+        {**asdict(item), "secuencia": secuencia},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
+def _leer_item(contenido: str) -> tuple[int, ItemEnvio] | None:
+    """Un ítem ilegible se trata como ausente y queda en disco como evidencia.
+
+    Se exige la clave con formato de hash por la misma razón que en el
+    registro: una clave arbitraria no debe poder dirigir escrituras ni
+    borrados. El destinatario no se valida acá porque el worker es quien
+    decide qué hacer con un ítem semánticamente inválido (lo descarta sin
+    entregar y lo audita).
+    """
+
+    try:
+        datos = json.loads(contenido)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(datos, dict):
+        return None
+    clave, destinatario, input_hash = (
+        datos.get("idempotency_key"),
+        datos.get("destinatario"),
+        datos.get("input_hash"),
+    )
+    intentos, secuencia = datos.get("intentos"), datos.get("secuencia")
+    if not all(
+        isinstance(valor, str) for valor in (clave, destinatario, input_hash)
+    ):
+        return None
+    if CLAVE_REGISTRO_RE.fullmatch(clave) is None:
+        return None
+    if any(
+        not isinstance(valor, int) or isinstance(valor, bool) or valor < 0
+        for valor in (intentos, secuencia)
+    ):
+        return None
+    return secuencia, ItemEnvio(
+        idempotency_key=clave,
+        destinatario=destinatario,
+        input_hash=input_hash,
+        intentos=intentos,
+    )
+
+
 def _serializar_registro(registro: BorradorRegistrado) -> str:
     return json.dumps(asdict(registro), ensure_ascii=False, sort_keys=True)
 
@@ -363,12 +631,16 @@ def _leer_registro(contenido: str) -> BorradorRegistrado | None:
 
 
 def _escribir_atomico(ruta: Path, registro: BorradorRegistrado) -> None:
-    """Escribe por reemplazo para que nadie lea un registro a medio escribir."""
+    _escribir_texto_atomico(ruta, _serializar_registro(registro))
+
+
+def _escribir_texto_atomico(ruta: Path, contenido: str) -> None:
+    """Escribe por reemplazo para que nadie lea un archivo a medio escribir."""
 
     temporal = ruta.with_suffix(".json.tmp")
     descriptor = os.open(temporal, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as archivo:
-        archivo.write(_serializar_registro(registro))
+        archivo.write(contenido)
         archivo.flush()
         os.fsync(archivo.fileno())
     os.replace(temporal, ruta)
@@ -409,6 +681,315 @@ def reconciliar_envios_reservados(
 
 
 @dataclass(frozen=True)
+class ResultadoEnvioEncolado:
+    """Qué pasó con un ítem de la cola durante un drenaje.
+
+    `intento` es el número de intento de entrega realizado en este drenaje
+    (0 si el ítem se resolvió sin llamar al destino). `estado_registro` es el
+    estado del registro al terminar, o el estado encontrado cuando el ítem
+    se descartó. `resolucion` es el código cerrado: `entregada`,
+    `reintento_pendiente`, `fallida`, `descartada_sin_entrega` o `pendiente`
+    (la reserva no se pudo tomar en esta corrida y el ítem sigue en cola).
+    """
+
+    idempotency_key: str
+    intento: int
+    estado_registro: str
+    resolucion: str
+
+
+def drenar_envios(
+    *,
+    registro: RegistroConfirmaciones,
+    cola: ColaEnvios,
+    destino: DestinoConfirmaciones,
+    directorio_salida: Path,
+    max_intentos: int = REINTENTOS_ENVIO_MAX,
+) -> tuple[ResultadoEnvioEncolado, ...]:
+    """Worker del envío asíncrono: procesa los ítems debidos de la cola.
+
+    Cada ítem se intenta una vez por drenaje. El ciclo respeta el mismo
+    lifecycle que la entrega síncrona (`ENVIO_ENCOLADO` → `ENVIO_RESERVADO` →
+    `ENVIADA_SIMULADA` | `FALLIDA`) porque la reserva sigue siendo lo que
+    protege contra una doble entrega si el proceso muere a mitad de camino:
+    una reserva colgada la cierra `reconciliar_envios_reservados` hacia
+    `ENVIO_INDETERMINADO`, y el ítem que le corresponde se descarta en el
+    próximo drenaje porque el registro ya no está pendiente.
+
+    Reintentos: una falla del destino devuelve el registro a `ENVIO_ENCOLADO`
+    y deja el ítem en cola con `intentos` incrementado, así el próximo
+    drenaje lo reintenta. Al agotar `max_intentos` el registro queda
+    `FALLIDA` y el ítem sale de la cola. Cada intento (y cada descarte) deja
+    una línea de auditoría en el mismo log que `procesar_confirmacion`.
+
+    Fail-closed en ambas puntas: sin el fake explícito el worker no procesa
+    nada (devuelve vacío y la cola queda intacta), y un ítem cuyo registro ya
+    no está en `ENVIO_ENCOLADO` (entregada, fallida, rechazada, indeterminada
+    o ausente) se descarta sin re-entregar.
+    """
+
+    if (
+        not isinstance(max_intentos, int)
+        or isinstance(max_intentos, bool)
+        or max_intentos < 1
+    ):
+        raise ValueError("presupuesto de reintentos inválido")
+    # El mismo candado que `procesar_confirmacion`: la entrega sólo existe
+    # contra el fake explícito. Acá no hay Invalida que devolver porque el
+    # worker no procesa solicitudes: simplemente no trabaja.
+    if type(destino) is not DestinoConfirmacionesFake:
+        return ()
+    log_path = Path(directorio_salida) / "logs" / "confirmaciones-hu012.jsonl"
+
+    resultados = []
+    for item in cola.pendientes():
+        clave = item.idempotency_key
+        correlation_id = str(uuid.uuid4())
+        # Un ítem mal formado (clave que no es hash, destinatario inválido o
+        # contador negativo) no llega ni al registro ni al destino: se
+        # descarta y el registro queda intacto para revisión humana.
+        if (
+            CLAVE_REGISTRO_RE.fullmatch(clave) is None
+            or not _email_valido(item.destinatario)
+            or item.intentos < 0
+        ):
+            cola.descartar(clave)
+            _auditar_drenaje(
+                log_path,
+                correlation_id=correlation_id,
+                item=item,
+                intento=0,
+                estado="ITEM_INVALIDO",
+                resultado="queue_item_invalid",
+                asunto="",
+                cuerpo="",
+            )
+            resultados.append(
+                ResultadoEnvioEncolado(
+                    idempotency_key=clave,
+                    intento=0,
+                    estado_registro="DESCONOCIDO",
+                    resolucion="descartada_sin_entrega",
+                )
+            )
+            continue
+
+        actual = registro.obtener(clave)
+        if actual is None or actual.estado != ESTADO_ENVIO_ENCOLADO:
+            cola.descartar(clave)
+            encontrado = actual.estado if actual is not None else "AUSENTE"
+            _auditar_drenaje(
+                log_path,
+                correlation_id=correlation_id,
+                item=item,
+                intento=0,
+                estado=encontrado,
+                resultado="queue_item_discarded",
+                asunto=actual.asunto if actual is not None else "",
+                cuerpo=actual.cuerpo if actual is not None else "",
+            )
+            resultados.append(
+                ResultadoEnvioEncolado(
+                    idempotency_key=clave,
+                    intento=0,
+                    estado_registro=encontrado,
+                    resolucion="descartada_sin_entrega",
+                )
+            )
+            continue
+
+        # Presupuesto ya consumido en corridas anteriores: no se intenta de
+        # nuevo, la confirmación queda FALLIDA y el ítem sale de la cola.
+        if item.intentos >= max_intentos:
+            registro.transicionar(
+                clave, frozenset({ESTADO_ENVIO_ENCOLADO}), "FALLIDA"
+            )
+            cola.descartar(clave)
+            _auditar_drenaje(
+                log_path,
+                correlation_id=correlation_id,
+                item=item,
+                intento=item.intentos,
+                estado="FALLIDA",
+                resultado="delivery_budget_exhausted",
+                asunto=actual.asunto,
+                cuerpo=actual.cuerpo,
+            )
+            resultados.append(
+                ResultadoEnvioEncolado(
+                    idempotency_key=clave,
+                    intento=item.intentos,
+                    estado_registro="FALLIDA",
+                    resolucion="fallida",
+                )
+            )
+            continue
+
+        # La reserva es el compare-and-set que impide la doble entrega entre
+        # workers. Si no se toma (otro proceso ganó o el registro falló) el
+        # ítem queda en cola: el próximo drenaje lo reintenta si sigue
+        # encolado o lo descarta si el estado ya cambió.
+        if not registro.transicionar(
+            clave, frozenset({ESTADO_ENVIO_ENCOLADO}), "ENVIO_RESERVADO"
+        ):
+            _auditar_drenaje(
+                log_path,
+                correlation_id=correlation_id,
+                item=item,
+                intento=0,
+                estado=ESTADO_ENVIO_ENCOLADO,
+                resultado="reservation_lost",
+                asunto=actual.asunto,
+                cuerpo=actual.cuerpo,
+            )
+            resultados.append(
+                ResultadoEnvioEncolado(
+                    idempotency_key=clave,
+                    intento=0,
+                    estado_registro=ESTADO_ENVIO_ENCOLADO,
+                    resolucion="pendiente",
+                )
+            )
+            continue
+
+        intento = item.intentos + 1
+        try:
+            destino.entregar(
+                idempotency_key=clave,
+                destinatario=item.destinatario,
+                asunto=actual.asunto,
+                cuerpo=actual.cuerpo,
+            )
+        except Exception:
+            if intento >= max_intentos:
+                registro.transicionar(
+                    clave, frozenset({"ENVIO_RESERVADO"}), "FALLIDA"
+                )
+                cola.descartar(clave)
+                _auditar_drenaje(
+                    log_path,
+                    correlation_id=correlation_id,
+                    item=item,
+                    intento=intento,
+                    estado="FALLIDA",
+                    resultado="delivery_failed_budget_exhausted",
+                    asunto=actual.asunto,
+                    cuerpo=actual.cuerpo,
+                )
+                resultados.append(
+                    ResultadoEnvioEncolado(
+                        idempotency_key=clave,
+                        intento=intento,
+                        estado_registro="FALLIDA",
+                        resolucion="fallida",
+                    )
+                )
+            else:
+                # Vuelve a la cola con el presupuesto descontado: el registro
+                # regresa a ENVIO_ENCOLADO, nunca a APROBADA, para que un
+                # pedido síncrono concurrente no pueda re-entregar.
+                registro.transicionar(
+                    clave,
+                    frozenset({"ENVIO_RESERVADO"}),
+                    ESTADO_ENVIO_ENCOLADO,
+                )
+                cola.reemplazar(
+                    ItemEnvio(
+                        idempotency_key=clave,
+                        destinatario=item.destinatario,
+                        input_hash=item.input_hash,
+                        intentos=intento,
+                    )
+                )
+                _auditar_drenaje(
+                    log_path,
+                    correlation_id=correlation_id,
+                    item=item,
+                    intento=intento,
+                    estado=ESTADO_ENVIO_ENCOLADO,
+                    resultado="delivery_failed_retry_pending",
+                    asunto=actual.asunto,
+                    cuerpo=actual.cuerpo,
+                )
+                resultados.append(
+                    ResultadoEnvioEncolado(
+                        idempotency_key=clave,
+                        intento=intento,
+                        estado_registro=ESTADO_ENVIO_ENCOLADO,
+                        resolucion="reintento_pendiente",
+                    )
+                )
+            continue
+
+        registro.transicionar(
+            clave, frozenset({"ENVIO_RESERVADO"}), "ENVIADA_SIMULADA"
+        )
+        cola.descartar(clave)
+        _auditar_drenaje(
+            log_path,
+            correlation_id=correlation_id,
+            item=item,
+            intento=intento,
+            estado="ENVIADA_SIMULADA",
+            resultado="ok",
+            asunto=actual.asunto,
+            cuerpo=actual.cuerpo,
+        )
+        resultados.append(
+            ResultadoEnvioEncolado(
+                idempotency_key=clave,
+                intento=intento,
+                estado_registro="ENVIADA_SIMULADA",
+                resolucion="entregada",
+            )
+        )
+    return tuple(resultados)
+
+
+def _auditar_drenaje(
+    log_path: Path,
+    *,
+    correlation_id: str,
+    item: ItemEnvio,
+    intento: int,
+    estado: str,
+    resultado: str,
+    asunto: str,
+    cuerpo: str,
+) -> None:
+    """Constancia por intento del worker, con el mismo formato que el pipeline.
+
+    La línea no lleva destinatario ni texto en claro: `recipient_hash` e
+    `input_hash` permiten correlacionarla con la línea del encolado, y
+    `evento`/`intento` distinguen cada pasada del worker.
+    """
+
+    auditoria = {
+        "hu": HU,
+        "contract_version": CONTRACT_VERSION,
+        "template_version": TEMPLATE_VERSION,
+        "policy_status": POLICY_STATUS,
+        "correlation_id": correlation_id,
+        "idempotency_key": item.idempotency_key,
+        "evento": "drenaje_cola_envios",
+        "intento": intento,
+        "estado": estado,
+        "resultado": resultado,
+        "input_hash": item.input_hash,
+        "recipient_hash": _hash(item.destinatario),
+        "output_hash": _hash(asunto + "\n" + cuerpo),
+        "human_decision_present": False,
+        "human_decision_hash": None,
+        "approval_role": None,
+        "delivery_mode": "fake" if estado == "ENVIADA_SIMULADA" else "none",
+        "origen_envio": "asincrono",
+    }
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8") as archivo:
+        archivo.write(json.dumps(auditoria, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+@dataclass(frozen=True)
 class ResultadoConfirmacion:
     estado: str
     idempotency_key: str
@@ -427,6 +1008,8 @@ def procesar_confirmacion(
     aprobacion: AprobacionHumana | None = None,
     destino: DestinoConfirmaciones | None = None,
     enviar: bool = False,
+    asincrono: bool = False,
+    cola: ColaEnvios | None = None,
 ) -> ResultadoConfirmacion:
     """Genera y opcionalmente entrega sólo a un fake, bajo aprobación explícita.
 
@@ -439,6 +1022,14 @@ def procesar_confirmacion(
     Sin `aprobacion` el resultado máximo es `PENDIENTE_VALIDACION`: generar el
     texto no es aprobarlo. Con `aprobacion.aprobada = False` la confirmación
     queda `RECHAZADA` y el borrador ya no puede aprobarse después.
+
+    `asincrono=True` (s4d) es en sí mismo un pedido de envío: en lugar de
+    entregar, la confirmación `APROBADA` pasa a `ENVIO_ENCOLADO` y queda un
+    ítem en `cola`, que es obligatoria en esta vía. `destino` no se usa
+    porque la entrega la hace `drenar_envios` con el suyo. Sin las dos
+    aprobaciones nada entra a la cola: una aprobación parcial deja el estado
+    parcial como siempre y un pedido sobre un registro no aprobado es
+    `INVALIDA`.
     """
 
 
@@ -488,24 +1079,34 @@ def procesar_confirmacion(
     # acá. Es el candado que permite tener el ciclo de vida completo
     # implementado sin capacidad real de envío. Una decisión de rechazo no
     # entrega nunca, así que no exige destino.
-    if (
-        enviar
-        and (aprobacion is None or aprobacion.aprobada)
-        and type(destino) is not DestinoConfirmacionesFake
-    ):
-        return _resultado(
-            log_path=log_path,
-            solicitud=solicitud,
-            correlation_id=correlation_id,
-            idempotency_key=idempotency_key,
-            estado="INVALIDA",
-            error="offline_destination_required",
-        )
+    # En la vía encolada el candado equivalente es `drenar_envios`, que exige
+    # el mismo tipo exacto recién al entregar; lo que se exige acá es la cola
+    # inyectada, porque encolar sin cola no tiene adónde ir.
+    pide_envio = enviar or asincrono
+    if pide_envio and (aprobacion is None or aprobacion.aprobada):
+        if asincrono and cola is None:
+            return _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="INVALIDA",
+                error="queue_required",
+            )
+        if not asincrono and type(destino) is not DestinoConfirmacionesFake:
+            return _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="INVALIDA",
+                error="offline_destination_required",
+            )
 
     existente = registro.obtener(idempotency_key)
 
     if aprobacion is None:
-        if enviar:
+        if pide_envio:
             # Entrega sin decisión nueva: la autoriza el estado APROBADA, que
             # sólo se alcanza con las dos aprobaciones registradas. Un pedido
             # de envío sin registro o sobre uno todavía en validación es
@@ -526,6 +1127,17 @@ def procesar_confirmacion(
             if existente.estado != "APROBADA":
                 return _duplicada(
                     log_path, solicitud, correlation_id, idempotency_key
+                )
+            if asincrono:
+                return _encolar(
+                    registro=registro,
+                    cola=cola,
+                    log_path=log_path,
+                    solicitud=solicitud,
+                    correlation_id=correlation_id,
+                    idempotency_key=idempotency_key,
+                    asunto=existente.asunto,
+                    cuerpo=existente.cuerpo,
                 )
             return _entregar(
                 registro=registro,
@@ -607,7 +1219,7 @@ def procesar_confirmacion(
     else:
         return _duplicada(log_path, solicitud, correlation_id, idempotency_key)
 
-    if not enviar or estado_actual != "APROBADA":
+    if not pide_envio or estado_actual != "APROBADA":
         # Si se pidió enviar pero falta la otra aprobación, el estado devuelto
         # lo dice explícitamente: la decisión quedó registrada y no se entregó.
         return _finalizar(
@@ -621,6 +1233,18 @@ def procesar_confirmacion(
             aprobacion=aprobacion,
         )
 
+    if asincrono:
+        return _encolar(
+            registro=registro,
+            cola=cola,
+            log_path=log_path,
+            solicitud=solicitud,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            asunto=asunto,
+            cuerpo=cuerpo,
+            aprobacion=aprobacion,
+        )
     return _entregar(
         registro=registro,
         log_path=log_path,
@@ -628,6 +1252,58 @@ def procesar_confirmacion(
         correlation_id=correlation_id,
         idempotency_key=idempotency_key,
         destino=destino,
+        asunto=asunto,
+        cuerpo=cuerpo,
+        aprobacion=aprobacion,
+    )
+
+
+def _encolar(
+    *,
+    registro: RegistroConfirmaciones,
+    cola: ColaEnvios,
+    log_path: Path,
+    solicitud: SolicitudConfirmacion,
+    correlation_id: str,
+    idempotency_key: str,
+    asunto: str,
+    cuerpo: str,
+    aprobacion: AprobacionHumana | None = None,
+) -> ResultadoConfirmacion:
+    """Deja la entrega encolada sin entregar: `APROBADA` → `ENVIO_ENCOLADO`.
+
+    El compare-and-set garantiza que el encolado ocurre una sola vez por
+    confirmación: un segundo pedido, síncrono o encolado, ya no encuentra el
+    registro en `APROBADA` y es duplicado. Si el proceso muere entre la
+    transición y `cola.encolar`, el registro queda `ENVIO_ENCOLADO` sin ítem:
+    no entrega nunca y queda visible para revisión humana, la misma
+    preferencia de siempre (una confirmación no enviada antes que una
+    enviada dos veces).
+    """
+
+    if not registro.transicionar(
+        idempotency_key,
+        frozenset({"APROBADA"}),
+        ESTADO_ENVIO_ENCOLADO,
+    ):
+        return _duplicada(log_path, solicitud, correlation_id, idempotency_key)
+    # El ítem lleva el destinatario porque el registro no lo guarda, y el hash
+    # de la solicitud para correlacionar los intentos del worker con esta
+    # línea de auditoría. Si ya existía un ítem con la clave (sólo posible con
+    # una cola precargada por fuera del pipeline) se respeta el existente.
+    cola.encolar(
+        ItemEnvio(
+            idempotency_key=idempotency_key,
+            destinatario=solicitud.email_destinatario,
+            input_hash=_hash_solicitud(solicitud),
+        )
+    )
+    return _finalizar(
+        log_path=log_path,
+        solicitud=solicitud,
+        correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
+        estado=ESTADO_ENVIO_ENCOLADO,
         asunto=asunto,
         cuerpo=cuerpo,
         aprobacion=aprobacion,
@@ -836,6 +1512,17 @@ def _idempotency_key(solicitud: SolicitudConfirmacion) -> str:
     return _hash(canonico)
 
 
+def _hash_solicitud(solicitud: SolicitudConfirmacion) -> str:
+    return _hash(
+        json.dumps(
+            asdict(solicitud),
+            ensure_ascii=False,
+            sort_keys=True,
+            default=lambda valor: f"<invalid:{type(valor).__name__}>",
+        )
+    )
+
+
 def _resultado(
     *,
     log_path: Path,
@@ -848,12 +1535,6 @@ def _resultado(
     cuerpo: str | None = None,
     aprobacion: AprobacionHumana | None = None,
 ) -> ResultadoConfirmacion:
-    entrada = json.dumps(
-        asdict(solicitud),
-        ensure_ascii=False,
-        sort_keys=True,
-        default=lambda valor: f"<invalid:{type(valor).__name__}>",
-    )
     # La línea de auditoría no lleva ni el correo del destinatario ni el texto:
     # sólo hashes. `recipient_hash` permite verificar después que se confirmó a
     # la persona correcta, sin guardar el dato personal en un segundo lugar.
@@ -866,7 +1547,7 @@ def _resultado(
         "idempotency_key": idempotency_key,
         "estado": estado,
         "resultado": error or "ok",
-        "input_hash": _hash(entrada),
+        "input_hash": _hash_solicitud(solicitud),
         "recipient_hash": _hash(solicitud.email_destinatario),
         "output_hash": _hash((asunto or "") + "\n" + (cuerpo or "")),
         "human_decision_present": aprobacion is not None,
