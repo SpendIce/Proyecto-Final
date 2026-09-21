@@ -3,9 +3,9 @@
   "estado": "PENDIENTE",
   "referencias": [
     {"id": "REF-001", "path": "Implementacion/Agente1/data/actividades_sinteticas.csv"},
-    {"id": "REF-002", "path": "Implementacion/Agente1/golden/SYN-001.md"},
-    {"id": "REF-003", "path": "Implementacion/Agente1/golden/SYN-003.md"},
-    {"id": "REF-004", "path": "Implementacion/Agente1/golden/SYN-005.md"},
+    {"id": "REF-002", "path": "Documentos/PoC/Validacion-SEU/muestras/gacetilla-SYN-001-live.md"},
+    {"id": "REF-003", "path": "Documentos/PoC/Validacion-SEU/muestras/gacetilla-SYN-003-live.md"},
+    {"id": "REF-004", "path": "Documentos/PoC/Validacion-SEU/muestras/gacetilla-SYN-005-live.md"},
     {"id": "REF-005", "path": "Implementacion/Agente1/golden/posts/SYN-001-instagram.md"},
     {"id": "REF-006", "path": "Implementacion/Agente1/golden/posts/SYN-001-linkedin.md"},
     {"id": "REF-007", "path": "Implementacion/Agente1/golden/posts/SYN-003-instagram.md"},

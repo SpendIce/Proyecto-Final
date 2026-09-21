@@ -1,0 +1,18 @@
+# BORRADOR — NO PUBLICAR
+
+## TÍTULO
+Taller sintético de vinculación
+
+## DATOS DE LA ACTIVIDAD
+Fecha: 2026-08-05
+Organiza: Equipo de prueba
+Lugar: Aula de prueba
+
+## CONTACTO
+pruebas@example.invalid
+
+## BAJADA
+Actividad para probar el flujo.
+
+## CUERPO
+El Equipo de prueba invita a la Comunidad universitaria con revisión humana.
