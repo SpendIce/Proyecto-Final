@@ -72,4 +72,7 @@ interpretación HU-013 (issues #19 a #26). El conteo de 588 sigue describiendo e
 corte 2026-09-08 y no el estado actual.
 
 Con el cierre técnico de `DEF-A1-016` el 2026-09-21 (issue #28), la regresión
-pasa a **757 pruebas verdes** en el mismo entorno.
+pasa a **757 pruebas verdes** en el mismo entorno. Más tarde el mismo día se
+integraron la cola de envío asíncrono de HU-012 (s4d), el slice offline de
+HU-014 (issue #29) y el cliente pull candidato de Historia Viva: la regresión
+vigente queda en **895 pruebas verdes**.

@@ -47,6 +47,14 @@ window.GANTT_PROGRESS = {
   "s5b": { done: true, at: "2026-09-09", nota: "Modulo agente1/interpretacion.py: clasificacion deterministica contra catalogo cerrado (intenciones_v1), resolucion difusa de actividad sobre el indice de enumerar(), repregunta con candidatas y estado entre turnos, y fallback con LLM local cuyo presupuesto se deriva del contrato y se aplica fail-closed. Sin LangGraph y sin dependencias de runtime. Ocho tickets (#19-#26), suite 588 -> 749. No incluye s5a (autenticacion) ni la validacion SEU" },
   "s5c": { done: true, at: "2026-09-09", nota: "Tarea reformulada el 2026-09-21: el plan original decia 'persistir transcript' y contradecia la spec de HU-013 (#18), que prohibe conservar la prosa escrita por las personas. Lo implementado es el fallback fuera de alcance (#26) mas la persistencia del solo derivado estructurado: la pendiente de repregunta guarda orden, id, titulo y fecha de cada candidata, la intencion y el vencimiento (#25), con una prueba que falla si aparece prosa. Hecho en el mismo corte que s5b" },
 
+  "s4d": { done: true, at: "2026-09-21", nota: "Cola de envio propia sin Celery/Redis (merge feature/s4d-envio-asincrono): estado ENVIO_ENCOLADO tras la doble aprobacion, ColaEnviosMemoria y ColaEnviosArchivo con encolado idempotente y orden FIFO, worker drenar_envios con un intento por item por corrida y presupuesto de reintentos (3) hacia FALLIDA. Sigue sin adapter de correo real ni broker: el destino es el fake. 28 pruebas nuevas" },
+
+  "s6a": { done: true, at: "2026-09-21", nota: "Slice offline de HU-014 (issue #29, merge feature/hu014-certificados): plantilla provisional de certificado y maquina de estados HITL con el mismo circuito de doble aprobacion de HU-012 (semantica + utilitaria). La plantilla institucional real queda PENDIENTE_SEU" },
+  "s6b": { done: true, at: "2026-09-21", nota: "PDF determinista generado con stdlib pura (sin dependencias nuevas): el borrador lleva la marca BORRADOR - NO EMITIR y el emitido no; bytes reproducibles verificados en regresion" },
+  "s6c": { done: true, at: "2026-09-21", nota: "Emision bloqueada sin las dos aprobaciones registradas (mismo circuito que HU-012); el destino es DestinoCertificadosFake y la emision real sigue pendiente de SEU/DSI" },
+  "s6d": { done: true, at: "2026-09-21", nota: "62 pruebas nuevas cubren datos faltantes, rechazo, rol invalido, duplicados, recuperacion durable y emision simulada controlada (matriz_conformidad_hu014_v1, 12 casos)" },
+  "s6e": { done: true, at: "2026-09-21", nota: "Log de emision con hashes (pdf_hash) sin datos personales en claro, reconciliacion de EMISION_RESERVADA hacia EMISION_INDETERMINADA y doc de limites en evidencias/limites-hu014-offline.md" },
+
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
   //
@@ -60,7 +68,9 @@ window.GANTT_PROGRESS = {
   // s3a  - paquete de gestion DSI redactado (issue #15), pero identidad, permisos y recursos siguen sin otorgarse.
   // s3b  - SEU designo revisor titular/suplente y se documento el circuito; faltan criterios por canal y acta de sesion.
   // m3   - depende de s3a y s3b.
-  // s4d  - no existe tarea de envio asincrona ni persistencia operativa en base: la persistencia vigente es en archivo y PostgreSQL sigue siendo spike.
+  // m6   - "HU-014 operativa con DoD": el slice offline esta hecho (s6a-s6e),
+  //        pero el DoD exige plantilla institucional de la SEU y validacion
+  //        humana real: ambas siguen BLOQUEADO_EXTERNO.
   // s4e  - duplicados y destinatario invalido probados, y desde el 2026-09-21
   //        el envio exige las dos aprobaciones del circuito (semantica RGC +
   //        utilitaria Coordinador, DEF-A1-016 cerrado como RESUELTO_TECNICO,
