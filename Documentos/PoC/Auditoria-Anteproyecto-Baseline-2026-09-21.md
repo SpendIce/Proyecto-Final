@@ -154,3 +154,33 @@ Ninguno está presentado como resuelto en el `.tex`; se listan para seguimiento,
 ---
 
 *Auditoría documental sin modificación del entregable. Toda afirmación no rastreable a fuente institucional o evidencia del repo quedó marcada `SIN_FUENTE` o `PENDIENTE_EXTERNO`.*
+
+---
+
+## 6. Addendum: correcciones aplicadas el 2026-09-21
+
+Tras la auditoría se corrigió la fuente `.tex` en el mismo día. Estado resultante por hallazgo:
+
+| ID | Resultado |
+|---|---|
+| H-01 | **Aplicado.** Además el código quedó corregido: `DEF-A1-016` cerrado como `RESUELTO_TECNICO` (issue #28, commit `976c1f3`). El `.tex` ahora describe la doble aprobación en OE3, alcance HU-012, tabla de HU, trazabilidad, EDT y exclusiones; el paso 6 del storyboard registra ambas aprobaciones por rol. |
+| H-02 | **Aplicado.** Overrides de `\companeroNombre`/`\companeroEmail` a Becerra Mas Roca en las líneas 81–82. |
+| H-03 | **Aplicado.** El resumen ya no llama código abierto a Google Workspace y remite a §13 para los componentes diferidos o previstos. |
+| H-04 | **Aplicado.** TRL 3 y TRL 4 quedan como objetivos condicionados a la decisión del gate. |
+| H-05 | **Aplicado.** La nota de estado pasa al corte 2026-09-21: incorpora HU-013 como slice offline, la doble aprobación de HU-012 verificada en regresión y la suite de 757 pruebas verdes; agrega la prueba guiada de usabilidad con SEU a los no demostrados. |
+| H-06 | **Aplicado.** §7 declara la sugerencia de 7–8B de la bibliografía y la evidencia efectiva con `llama3.2:3b` en CPU. |
+| H-07 | **Aplicado.** `deepagents` queda marcado como previsto y sin uso efectivo en glosario, antecedentes, §9.1, tabla de plataforma, nota de §13, §14.1, tabla de costos y BMC. |
+| H-08 | **Aplicado.** El canal de HU-013 queda señalado como adoptado y pendiente de confirmación por Dirección en OE4, alcance, tabla de HU, trazabilidad y EDT. |
+| H-09 | **Aplicado.** La exclusión de HU-015 explicita la doble definición de la bible y su elevación pendiente. |
+| H-10 | **Aplicado.** "nueve procesos (estratégicos, sustantivos y de soporte)". |
+| H-11 | **Aplicado.** Se retiró la cuantificación "> 30 minutos"; el efecto queda pendiente de medición de línea base. |
+| H-12 | **Aplicado.** Storyboard y figura rotulan FastAPI, LangGraph, Celery, Redis y PostgreSQL como diferidos. |
+| H-13 | **Aplicado.** Python PSF License; Redis RSALv2/SSPLv1 o AGPLv3; Cron según implementación; Ubuntu GPL predominantemente. |
+| H-14 | **Aplicado.** Cron marcado como previsto, sin uso al corte. |
+| H-15 | **Aplicado.** El DoD de HU-012 incorpora la confirmación de recepción. |
+| H-16 | **Aplicado.** §15.1 declara persistencia vigente en archivos; PostgreSQL y Sheets como opciones previstas. |
+| H-17 | **Aplicado.** El storyboard lo reformula como objetivo de duración. |
+
+Verificación de compilación: `lualatex` en dos pasadas sobre directorio temporal, sin errores ni referencias indefinidas (41 páginas). **Los artefactos generados en `Documentos/Anteproyecto/` no se regeneraron** (regla del repo): el PDF existente sigue siendo el del 22-06-2026 y debe recompilarse antes de cualquier entrega.
+
+**Pendientes que no se resuelven editando el `.tex`:** las respuestas externas de la sección 5 (issues #14, #15, #16, #17, #27, canal de HU-013, doble definición de HU-015) y la firma/validación formal del documento, que sigue en el issue #10.
