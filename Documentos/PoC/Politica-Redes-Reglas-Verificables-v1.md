@@ -71,7 +71,7 @@ control.
 | `RED-EXT-03` | Extensión | `CONFIRMADO_SEU` 22/09: «sin límite» en ambos canales —los parámetros pueden conservar un techo técnico interno sin alterar el criterio | 4.1.1 |
 | `RED-HTG-05` | Hashtags | `CONFIRMADO_SEU` 22/09: IG máx. 5 y LI sin tope; palabras clave `#FIE #UNDEF #Ingenieria #Cursos #inscripciones` | 4.1.3 |
 | `RED-REG-02` | Registro | `CONFIRMADO_SEU` 22/09: voseo aceptable | 4.1.4 |
-| `RED-TON-03` | Tono | `CONFIRMADO_SEU` 22/09 para IG: académico, con audiencia diferenciada (profesionales en cursos/congresos, más joven en carreras); LI sin respuesta. `NO_MECANIZABLE`: ningún control léxico la reemplaza | 4.1.5 |
+| `RED-TON-03` | Tono | `CONFIRMADO_SEU` 22/09: académico en ambos canales, IG con audiencia diferenciada (profesionales en cursos/congresos, más joven en carreras) y LI orientado a público más profesional sin diferenciación fuerte entre plataformas. `NO_MECANIZABLE`: ningún control léxico la reemplaza | 4.1.5 |
 | `RED-CTA-03` | CTA | `CONFIRMADO_SEU` 22/09: IG link en el perfil, LI link en el post | 4.1.7 y consulta 5.1 |
 | `RED-ALC-03` | Alcance | Si la SEU requiere apoyo para reels, qué producto textual corresponde y con qué validación. **No se consultó el 22/09**: sigue abierto y fuera de alcance por `RED-ALC-02` | 4.1 |
 

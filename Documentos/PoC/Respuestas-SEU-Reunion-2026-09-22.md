@@ -22,7 +22,7 @@
 
 | Criterio | Instagram | LinkedIn |
 |---|---|---|
-| Tono | Académico; apuntando a profesionales en cursos/congresos, a perfiles más jóvenes/estudiantes en carreras | *(sin respuesta registrada)* |
+| Tono | Académico; apuntando a profesionales en cursos/congresos, a perfiles más jóvenes/estudiantes en carreras | Mismo criterio que Instagram, orientado a público más profesional; sin diferenciación fuerte entre plataformas *(precisión posterior, ver §6)* |
 | Extensión | Sin límite | Sin límite |
 | Hashtags | Máx. 5; según publicación, palabras clave: `#FIE`, `#UNDEF`, `#Ingenieria`, `#Cursos`, `#inscripciones` | Sin tope; mismas palabras clave |
 | CTA | Link en el perfil | Link en el post |
@@ -59,7 +59,7 @@ actualizar los parámetros y la regla del gate en un incremento posterior.
 |---|---|---|
 | SIU Guaraní | Carreras, diplomaturas y cursos según carga horaria (>90 h) | Nombre, apellido, DNI, mail, teléfono, título, colegio (en carreras) |
 | SIU Guaraní Extensión | Talleres, seminarios, actividades culturales y de extensión en general | Nombre, apellido, DNI, mail |
-| Google Forms | *(sin respuesta registrada)* | *(sin respuesta registrada)* |
+| Google Forms | **Se depreca**: las inscripciones pasan a SIU Guaraní *(precisión posterior, ver §6)* | Queda irrelevante para el estado destino; el detalle de la migración sigue pendiente |
 
 | Campo transversal | Respuesta registrada |
 |---|---|
@@ -91,7 +91,8 @@ actualizar los parámetros y la regla del gate en un incremento posterior.
 ## 5. Pendientes que sigue debiendo la SEU
 
 - Sesión de revisión de las nueve muestras (ahora asincrónica, paquete PDF).
-- Fila Google Forms de la matriz HU-012 completa.
+- Detalle de la migración de Google Forms a SIU Guaraní (plazo, a cuál de los
+  dos entornos migra cada tipo de actividad, tratamiento transitorio).
 - Estado de preinscripción habilitante, responsable del dato y política de
   consentimiento/retención por origen.
 - Registro/tono y estructura/extensión de la gacetilla/nota; encabezado, pie,
@@ -99,4 +100,19 @@ actualizar los parámetros y la regla del gate en un incremento posterior.
 - Ejemplos de notas/gacetillas de este año (prometidos) y plantilla de
   certificado (declarada existente).
 - Ejemplos de posts aprobados por canal.
-- Confirmación escrita de todo lo registrado en esta reunión.
+- Ratificación escrita cortesía de lo registrado (solicitada en el correo
+  asincrónico; no condiciona la validez del acta).
+
+## 6. Precisiones comunicadas tras el cierre del instrumento
+
+El mismo 22/09, al revisar el acta consolidada, la SEU precisó dos puntos que
+el instrumento había dejado sin respuesta. Se registran aquí porque no están
+en el export JSON; cuentan como `CONFIRMADO_SEU` por provenir del referente
+designado, comunicados a Juan Ignacio en la misma fecha:
+
+- **Tono de LinkedIn:** es el mismo criterio que Instagram (académico), solo
+  que orientado a un público más profesional; en la práctica no hay una
+  diferenciación fuerte entre plataformas.
+- **Google Forms:** se va a deprecar y las inscripciones pasan a SIU Guaraní.
+  El detalle de la migración (plazo, destino dentro de SIU por tipo de
+  actividad) sigue pendiente —ver §5.

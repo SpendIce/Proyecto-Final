@@ -21,7 +21,8 @@ hacerse por este medio, cuando te quede cómodo.
   extensión, hasta 5 hashtags con palabras clave como #FIE, #UNDEF,
   #Ingenieria, #Cursos e #inscripciones, el llamado a la acción va por el link
   del perfil y los emojis casi no se usan (salvo para hora, día, consultas o
-  inscripción). En LinkedIn los hashtags no tienen tope y el link va en el
+  inscripción). En LinkedIn el tono es el mismo criterio, orientado a un
+  público más profesional; los hashtags no tienen tope y el link va en el
   post.
 - **Tono:** los posts pueden nombrar la actividad («la jornada», «el taller») y
   el voseo es aceptable.
@@ -65,8 +66,9 @@ la decisión general de la revisión.
 
 ## 3. Pendientes para completar cuando puedas
 
-- La fila de **Google Forms** (webinars e Ingeniería Por Un Día): qué campos
-  tiene, quién administra la planilla y quién es responsable del dato.
+- La migración de **Google Forms a SIU Guaraní**: me comentaste que Forms se
+  va a deprecar — ¿para cuándo está previsto y a cuál de los dos entornos SIU
+  pasan los webinars e Ingeniería Por Un Día mientras tanto?
 - Qué **estado de inscripción habilita** enviar una confirmación en cada
   sistema, y la política de consentimiento y retención de los datos.
 - El registro, la estructura y la firma de la **gacetilla/nota institucional**;

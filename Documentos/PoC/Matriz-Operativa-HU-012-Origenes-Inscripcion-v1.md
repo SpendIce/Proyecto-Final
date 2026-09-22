@@ -36,11 +36,12 @@ para el gate:
 
 Al corte del 22/09 siguen sin confirmarse los campos que habilitan una
 confirmación real: identificador estable, estados de preinscripción,
-responsable del dato y política de consentimiento/retención por origen, más la
-fila completa de Google Forms. Sí están confirmados los tipos de actividad, los
-campos disponibles de ambos SIU, la regla de aprobación (plantilla
-preaprobada), el canal (correo) y el tratamiento (personal) —pero ningún
-origen habilita envío mientras falten los primeros.
+responsable del dato y política de consentimiento/retención por origen, más el
+detalle de la migración de Google Forms a SIU Guaraní (deprecación comunicada
+el 22/09). Sí están confirmados los tipos de actividad, los campos disponibles
+de ambos SIU, la regla de aprobación (plantilla preaprobada), el canal (correo)
+y el tratamiento (personal) —pero ningún origen habilita envío mientras falten
+los primeros.
 
 ## 3. Matriz por origen
 
@@ -74,13 +75,14 @@ origen habilita envío mientras falten los primeros.
 
 | Aspecto | Estado |
 |---|---|
-| Hecho comunicado | Se usa habitualmente para eventos gratuitos y de mayor asistencia (`CONFIRMADO_SEU`) |
-| Tipos de actividad | `WEBINAR`, `INGENIERIA_POR_UN_DIA` (`CONFIRMADO_SEU`) |
-| Responsable del dato | SEU (`SUPUESTO_TECNICO`). **Dato crítico faltante:** quién es dueño del formulario y de la planilla de respuestas, necesario tanto para permisos como para responsabilidad sobre datos personales |
+| Hecho comunicado | Se usa habitualmente para eventos gratuitos y de mayor asistencia (`CONFIRMADO_SEU`). El 22/09 la SEU comunicó que **Forms se deprecará y las inscripciones pasan a SIU Guaraní** (`CONFIRMADO_SEU`, precisión posterior a la reunión) |
+| Trayectoria | `EN_DEPRECACION`: el origen deja de ser destino; la migración a SIU Guaraní (plazo, a cuál de los dos entornos migra cada tipo, tratamiento transitorio) sigue `DESCONOCIDO` |
+| Tipos de actividad | `WEBINAR`, `INGENIERIA_POR_UN_DIA` (`CONFIRMADO_SEU`); tras la migración se reasignan según la partición de SIU |
+| Responsable del dato | SEU (`SUPUESTO_TECNICO`). La pregunta del dueño del formulario pierde criticidad en el estado destino, pero sigue abierta mientras el origen exista |
 | Campos disponibles | Igual perfil que 3.1 |
 | Estado de preinscripción | Sin definir. Un formulario no expone estados por sí mismo |
 | PDF informativo | `DESCONOCIDO`: al ser gratuitos no habría enlace de pago, pero no se confirmó si igual se envía material |
-| Adapter | `NO_DEFINIDO` |
+| Adapter | `NO_DEFINIDO` —y ya no corresponde especificarlo: el esfuerzo va al adapter SIU destino |
 | Regla de envío | `PROHIBIDO` |
 
 ### 3.4 `CORREO_CURSOS_COMPLEMENTARIOS` — canal posterior, no origen
