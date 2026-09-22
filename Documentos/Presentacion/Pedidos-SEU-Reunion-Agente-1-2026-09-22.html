@@ -379,7 +379,32 @@
         </select>
         <textarea data-g2="g2_propuesta_detalle"></textarea></div>
     </div>
-    <div class="grid2">
+    <label class="campo"><b>Detalle por bloqueante</b> — tratamiento acordado, responsable y fecha</label>
+    <table>
+      <tr><th style="width:30%">Bloqueante institucional</th><th style="width:26%">Tratamiento</th>
+          <th>Responsable</th><th style="width:16%">Fecha</th></tr>
+      <tr><td>Revisión editorial SEU (checklist de muestras)</td>
+          <td><select data-g2="blq_seu_trat"><option value="">—</option><option>Bloquea G2</option><option>Riesgo aceptado</option><option>Resuelto hoy</option></select></td>
+          <td><input type="text" data-g2="blq_seu_resp"></td>
+          <td><input type="text" data-g2="blq_seu_fecha"></td></tr>
+      <tr><td>Identidad y permisos Google Workspace (DSI)</td>
+          <td><select data-g2="blq_dsi_trat"><option value="">—</option><option>Bloquea G2</option><option>Riesgo aceptado</option><option>Resuelto hoy</option></select></td>
+          <td><input type="text" data-g2="blq_dsi_resp"></td>
+          <td><input type="text" data-g2="blq_dsi_fecha"></td></tr>
+      <tr><td>Plantilla institucional (nota / certificado)</td>
+          <td><select data-g2="blq_plant_trat"><option value="">—</option><option>Bloquea G2</option><option>Riesgo aceptado</option><option>Resuelto hoy</option></select></td>
+          <td><input type="text" data-g2="blq_plant_resp"></td>
+          <td><input type="text" data-g2="blq_plant_fecha"></td></tr>
+      <tr><td>Criterios de contenido por canal</td>
+          <td><select data-g2="blq_crit_trat"><option value="">—</option><option>Bloquea G2</option><option>Riesgo aceptado</option><option>Resuelto hoy</option></select></td>
+          <td><input type="text" data-g2="blq_crit_resp"></td>
+          <td><input type="text" data-g2="blq_crit_fecha"></td></tr>
+      <tr><td>Orígenes de inscripción (HU-012)</td>
+          <td><select data-g2="blq_orig_trat"><option value="">—</option><option>Bloquea G2</option><option>Riesgo aceptado</option><option>Resuelto hoy</option></select></td>
+          <td><input type="text" data-g2="blq_orig_resp"></td>
+          <td><input type="text" data-g2="blq_orig_fecha"></td></tr>
+    </table>
+    <div class="grid2" style="margin-top:10px">
       <div><label class="campo"><b>Decisión del gate (go / no-go)</b></label>
         <select data-g2="g2_decision">
           <option value="">—</option>
