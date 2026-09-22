@@ -2,210 +2,538 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Qué necesitamos de la SEU — Agente 1 · Reunión 2026-09-22</title>
+<title>Reunión SEU — instrumento de registro · Agente 1 · 2026-09-22</title>
 <style>
   :root{
-    --papel:#FFFFFF;
-    --tinta:#1B2A41;
-    --tinta2:#33465F;
-    --gris:#6B7A8D;
-    --linea:#DCD6CB;
-    --azul:#2C5282;
-    --azul-claro:#EDF2F9;
-    --ambar:#B87D22;
-    --ambar-claro:#FCF3E1;
-    --rojo:#9B2C2C;
-    --rojo-claro:#FBEDEA;
-    --verde:#2F6B4F;
-    --verde-claro:#EDF5F0;
+    --papel:#FFFFFF; --tinta:#1B2A41; --tinta2:#33465F; --gris:#6B7A8D;
+    --linea:#DCD6CB; --azul:#2C5282; --azul-claro:#EDF2F9; --ambar:#B87D22;
+    --ambar-claro:#FCF3E1; --rojo:#9B2C2C; --rojo-claro:#FBEDEA;
+    --verde:#2F6B4F; --verde-claro:#EDF5F0;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#8A8A8A;font-family:"Noto Sans","Liberation Sans",sans-serif;color:var(--tinta);
-       -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.45}
-  .hoja{width:1240px;min-height:1754px;background:var(--papel);padding:44px 68px 34px;
-        margin:0 auto 24px;position:relative;display:flex;flex-direction:column}
+  body{background:#EDEDEA;font-family:"Noto Sans","Liberation Sans",sans-serif;
+       color:var(--tinta);font-size:15px;line-height:1.45;padding-bottom:90px}
+  .hoja{max-width:1100px;background:var(--papel);padding:40px 52px;margin:0 auto 20px;
+        box-shadow:0 1px 4px rgba(0,0,0,.18)}
   .membrete{display:flex;justify-content:space-between;align-items:flex-start;
             border-bottom:2.5px solid var(--tinta);padding-bottom:11px;margin-bottom:18px}
   .membrete .org{font-size:12.5px;font-weight:700;letter-spacing:.09em;line-height:1.65;
-                 text-transform:uppercase;color:var(--tinta)}
+                 text-transform:uppercase}
   .membrete .doc{text-align:right;font-size:11.5px;color:var(--gris);line-height:1.6}
-  h1{font-size:26px;letter-spacing:.01em;margin-bottom:4px}
-  .sub{color:var(--tinta2);font-size:14px;margin-bottom:16px}
-  h2{font-size:16px;text-transform:uppercase;letter-spacing:.08em;color:var(--azul);
-     border-bottom:1.5px solid var(--linea);padding-bottom:5px;margin:20px 0 10px}
+  h1{font-size:24px;margin-bottom:4px}
+  .sub{color:var(--tinta2);font-size:14px;margin-bottom:14px}
+  h2{font-size:15.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--azul);
+     border-bottom:1.5px solid var(--linea);padding-bottom:5px;margin:26px 0 10px}
   .intro{background:var(--azul-claro);border-left:4px solid var(--azul);
-         padding:12px 16px;font-size:14px;color:var(--tinta2);margin-bottom:6px}
-  .intro b{color:var(--tinta)}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .card{border:1.5px solid var(--linea);border-radius:8px;padding:14px 16px 12px;
-        page-break-inside:avoid}
-  .card.full{grid-column:1/-1}
-  .card h3{font-size:15px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+         padding:12px 16px;font-size:13.5px;color:var(--tinta2)}
+  .card{border:1.5px solid var(--linea);border-radius:8px;padding:14px 16px;
+        margin-bottom:14px}
+  .card h3{font-size:14.5px;margin-bottom:4px;display:flex;align-items:center;gap:8px}
   .card h3 .num{display:inline-flex;align-items:center;justify-content:center;
-                width:24px;height:24px;border-radius:50%;background:var(--azul);
-                color:#fff;font-size:13px;font-weight:700;flex:none}
-  .card .para-que{font-size:12.5px;color:var(--gris);margin-bottom:8px;font-style:italic}
-  .card ul{list-style:none;font-size:13.5px}
-  .card li{padding:4px 0 4px 22px;position:relative;border-bottom:1px dotted var(--linea)}
-  .card li:last-child{border-bottom:none}
-  .card li::before{content:"";position:absolute;left:2px;top:9px;width:11px;height:11px;
-                   border:1.6px solid var(--azul);border-radius:2.5px;background:#fff}
-  .card li b{color:var(--azul)}
-  .card li .resp{display:block;margin-top:3px;height:14px;
-                 border-bottom:1px solid var(--linea)}
-  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
-  th{background:var(--azul-claro);color:var(--tinta);text-align:left;
-     padding:6px 8px;border:1px solid var(--linea);font-size:12.5px}
-  td{padding:9px 8px;border:1px solid var(--linea);vertical-align:top;min-height:26px}
-  td.vacio{color:var(--gris);font-size:12px}
-  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;
-        padding:2px 9px;border-radius:10px;text-transform:uppercase}
-  .pill.pend{background:var(--ambar-claro);color:var(--ambar)}
-  .pill.ok{background:var(--verde-claro);color:var(--verde)}
-  .nopedimos{background:var(--rojo-claro);border:1.5px solid var(--rojo);border-radius:8px;
-             padding:14px 16px;margin-top:20px}
-  .nopedimos h3{color:var(--rojo);font-size:14px;text-transform:uppercase;
-                letter-spacing:.07em;margin-bottom:8px}
-  .nopedimos ul{list-style:none;font-size:13.5px;columns:2;column-gap:28px}
-  .nopedimos li{padding:3px 0 3px 18px;position:relative}
+                width:22px;height:22px;border-radius:50%;background:var(--azul);
+                color:#fff;font-size:12px;font-weight:700;flex:none}
+  .para-que{font-size:12px;color:var(--gris);font-style:italic;margin-bottom:8px}
+  label.campo{display:block;font-size:13.5px;margin:8px 0 2px}
+  label.campo b{color:var(--azul)}
+  input[type=text],input[type=datetime-local],textarea,select{
+    width:100%;border:1px solid var(--linea);border-radius:5px;padding:6px 9px;
+    font:inherit;font-size:13.5px;background:#FCFCFB;color:var(--tinta)}
+  input[type=text]:focus,textarea:focus,select:focus{
+    outline:none;border-color:var(--azul);background:#fff}
+  textarea{min-height:44px;resize:vertical}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  th{background:var(--azul-claro);text-align:left;padding:6px 8px;
+     border:1px solid var(--linea);font-size:12.5px}
+  td{padding:4px 6px;border:1px solid var(--linea);vertical-align:top}
+  td input,td textarea{font-size:12.5px;padding:4px 6px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .muestra{border:1.5px solid var(--linea);border-radius:8px;margin-bottom:12px;
+           overflow:hidden}
+  .muestra>header{background:var(--azul-claro);padding:8px 14px;display:flex;
+                  justify-content:space-between;align-items:center}
+  .muestra>header b{font-size:13.5px}
+  .muestra>header .tag{font-size:11px;color:var(--gris)}
+  .muestra .cuerpo{padding:10px 14px}
+  .crit-grid{display:grid;grid-template-columns:180px repeat(4,52px) 1fr;
+             gap:3px 8px;align-items:center;font-size:12.5px;margin:6px 0}
+  .crit-grid .cab{font-size:11px;color:var(--gris);text-align:center;font-weight:700}
+  .crit-grid .nom{font-size:12.5px}
+  .crit-grid input[type=radio]{transform:scale(1.25)}
+  .crit-grid .radio-cell{text-align:center}
+  .controles{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;margin:8px 0}
+  .controles label{display:flex;gap:6px;align-items:center;cursor:pointer}
+  .controles input[type=checkbox]{transform:scale(1.2)}
+  .fila-muestra{display:grid;grid-template-columns:220px 1fr;gap:10px;
+                align-items:start;margin-top:8px}
+  .aviso{border-left:4px solid var(--ambar);background:var(--ambar-claro);
+         padding:8px 12px;font-size:12.5px;margin:8px 0;display:none}
+  .muestra.incompleta .aviso{display:block}
+  .nopedimos{background:var(--rojo-claro);border:1.5px solid var(--rojo);
+             border-radius:8px;padding:12px 16px;margin-top:18px}
+  .nopedimos h3{color:var(--rojo);font-size:13px;text-transform:uppercase;
+                letter-spacing:.07em;margin-bottom:6px}
+  .nopedimos ul{list-style:none;font-size:13px;columns:2;column-gap:26px}
+  .nopedimos li{padding:2px 0 2px 16px;position:relative}
   .nopedimos li::before{content:"✕";position:absolute;left:0;color:var(--rojo);
-                        font-weight:700;font-size:12px}
-  .pie{margin-top:auto;padding-top:14px;border-top:1.5px solid var(--linea);
-       font-size:11.5px;color:var(--gris);display:flex;justify-content:space-between}
-  .nota{font-size:12px;color:var(--gris);margin-top:8px}
-  @media print{body{background:#fff}.hoja{margin:0;min-height:auto}}
+                        font-weight:700;font-size:11.5px}
+  .barra{position:fixed;bottom:0;left:0;right:0;background:var(--tinta);
+         color:#fff;padding:10px 24px;display:flex;gap:14px;align-items:center;
+         font-size:13px;z-index:10}
+  .barra .progreso{flex:1}
+  .barra button{background:var(--azul);color:#fff;border:none;border-radius:6px;
+                padding:7px 16px;font:inherit;font-size:13px;cursor:pointer}
+  .barra button.sec{background:transparent;border:1px solid #8FA6C4}
+  .barra button:hover{filter:brightness(1.15)}
+  .barra .estado-guardado{color:#9DB4CE;font-size:11.5px}
+  .decision-global{background:var(--verde-claro);border:1.5px solid var(--verde);
+                   border-radius:8px;padding:14px 16px;margin-top:14px}
+  @media print{.barra{display:none}body{padding-bottom:0}}
 </style>
 </head>
 <body>
 
 <div class="hoja">
-
   <div class="membrete">
     <div class="org">Facultad de Ingeniería del Ejército · UNDEF<br>
       Proyecto Centenario — Agente 1 «Extensión Bot»</div>
-    <div class="doc">Reunión de trabajo con la SEU<br>
+    <div class="doc">Instrumento de reunión con la SEU<br>
       Juan Ignacio Goñe · PPS · 2026-09-22</div>
   </div>
 
-  <h1>Qué necesitamos que la SEU nos defina</h1>
-  <p class="sub">Solicitudes concretas para que el prototipo pueda avanzar de entorno controlado a validación institucional.</p>
+  <h1>Reunión con la SEU — registro de respuestas</h1>
+  <p class="sub">Completar durante la reunión. Se autoguarda en este navegador; al final, «Exportar JSON» genera el archivo con el acta y las respuestas de gestión.</p>
 
   <div class="intro">
-    <b>Estado actual:</b> el prototipo genera borradores de gacetillas y posts, confirmaciones de
-    inscripción y certificados, todo en entorno controlado y con datos sintéticos. Nada se publica ni
-    se envía: cada pieza queda marcada <b>«BORRADOR — NO PUBLICAR»</b> hasta que <b>dos personas
-    con roles distintos la aprueben</b>. Lo que falta no es técnico: son definiciones que sólo la
-    SEU puede dar.
+    <b>Regla de cierre:</b> una respuesta cuenta cuando queda escrita acá y se confirma por
+    correo o acta firmada. Lo que quede sin responder se anota como <i>pendiente + quién lo
+    define + fecha</i>.
   </div>
 
-  <h2>1 · Revisión de borradores (lo más importante)</h2>
-  <div class="card full">
-    <h3><span class="num">1</span> Agendar o realizar la sesión de revisión de muestras</h3>
-    <p class="para-que">Es la evidencia central que falta: que una persona de la SEU lea las piezas y decida.</p>
-    <ul>
-      <li><b>Qué se revisa:</b> 9 piezas sintéticas — 3 gacetillas y, por cada actividad, un post de Instagram y uno de LinkedIn (paquete PDF adjunto, formulario rellenable).</li>
-      <li><b>Quién:</b> A/c Juan Manuel Gonzalez Chipont (titular designado) o VS «ec» Tomás de Vergara (suplente).</li>
-      <li><b>Cuánto lleva:</b> ~30–45 min. Se puntúa precisión de hechos, tono, adecuación al canal, gramática, longitud y ausencia de datos no respaldados.</li>
-      <li><b>Fecha propuesta:</b> <span class="resp"></span></li>
-    </ul>
+  <!-- ======================= SECCIÓN A: PEDIDOS ======================= -->
+
+  <h2>A · Sesión de revisión de las 9 muestras</h2>
+  <div class="card">
+    <h3><span class="num">1</span> Estado de la sesión</h3>
+    <p class="para-que">El paquete impreso tiene las nueve piezas. Si la sesión se hace hoy, se completa la sección B de abajo; si no, se agenda.</p>
+    <div class="grid2">
+      <div>
+        <label class="campo"><b>¿Se realiza la sesión hoy?</b></label>
+        <select data-g="sesion_realizada">
+          <option value="">—</option>
+          <option>Sí, en esta reunión</option>
+          <option>No, queda agendada</option>
+          <option>Parcial (se revisó una parte)</option>
+        </select>
+      </div>
+      <div>
+        <label class="campo"><b>Fecha/hora comprometida si queda agendada</b></label>
+        <input type="text" data-g="sesion_fecha_comprometida" placeholder="ej.: jueves 25, 14 h">
+      </div>
+      <div>
+        <label class="campo"><b>Persona revisora que participa (participó)</b></label>
+        <input type="text" data-g="sesion_revisora" placeholder="nombre y cómo se verifica la identidad">
+      </div>
+      <div>
+        <label class="campo"><b>Suplente presente, si aplica</b></label>
+        <input type="text" data-g="sesion_suplente">
+      </div>
+    </div>
   </div>
 
-  <h2>2 · Criterios editoriales por canal</h2>
-  <div class="card full">
-    <h3><span class="num">2</span> Criterios de comunicación para Instagram y LinkedIn</h3>
-    <p class="para-que">Hoy estos valores son provisionales del equipo técnico. Si algo no está definido, alcanza con escribir «pendiente» o «no aplica» — eso también queda registrado.</p>
+  <h2>B · Criterios editoriales por canal</h2>
+  <div class="card">
+    <h3><span class="num">2</span> Criterios de comunicación</h3>
+    <p class="para-que">«Pendiente», «no definido» o «no aplica» también son respuestas: anotarlas con quién las define.</p>
     <table>
-      <tr><th style="width:26%">Criterio</th><th>Instagram</th><th>LinkedIn</th></tr>
-      <tr><td>Registro lingüístico (voseo, tuteo, otro)</td><td></td><td></td></tr>
-      <tr><td>Tono y estilo</td><td></td><td></td></tr>
-      <tr><td>Extensión máxima</td><td></td><td></td></tr>
-      <tr><td>Hashtags autorizados y cantidad</td><td></td><td></td></tr>
-      <tr><td>Llamados a la acción / inscripción</td><td></td><td></td></tr>
-      <tr><td>Emojis</td><td></td><td></td></tr>
-      <tr><td>Reels u otro apoyo textual</td><td></td><td></td></tr>
+      <tr><th style="width:24%">Criterio</th><th>Instagram</th><th>LinkedIn</th></tr>
+      <tr><td>Registro lingüístico (voseo, tuteo, otro)</td>
+          <td><textarea data-g="crit_registro_ig"></textarea></td>
+          <td><textarea data-g="crit_registro_li"></textarea></td></tr>
+      <tr><td>Tono y estilo</td>
+          <td><textarea data-g="crit_tono_ig"></textarea></td>
+          <td><textarea data-g="crit_tono_li"></textarea></td></tr>
+      <tr><td>Extensión máxima</td>
+          <td><input type="text" data-g="crit_extension_ig"></td>
+          <td><input type="text" data-g="crit_extension_li"></td></tr>
+      <tr><td>Hashtags autorizados y cantidad</td>
+          <td><textarea data-g="crit_hashtags_ig"></textarea></td>
+          <td><textarea data-g="crit_hashtags_li"></textarea></td></tr>
+      <tr><td>Llamados a la acción / inscripción</td>
+          <td><textarea data-g="crit_cta_ig"></textarea></td>
+          <td><textarea data-g="crit_cta_li"></textarea></td></tr>
+      <tr><td>Emojis</td>
+          <td><input type="text" data-g="crit_emojis_ig"></td>
+          <td><input type="text" data-g="crit_emojis_li"></td></tr>
+      <tr><td>Reels u otro apoyo textual</td>
+          <td><textarea data-g="crit_reels_ig"></textarea></td>
+          <td><textarea data-g="crit_reels_li"></textarea></td></tr>
     </table>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <h3><span class="num">3</span> Dos preguntas de tono (respuesta rápida)</h3>
-      <p class="para-que">El control automático hoy rechaza ambas cosas; necesitamos saber si eso es correcto.</p>
-      <ul>
-        <li><b>¿Puede un post nombrar «la jornada» / «el taller»</b> o debe decir sólo «esta propuesta»?<span class="resp"></span></li>
-        <li><b>¿Se acepta el voseo</b> («descubrí», «podés», «sumate») o debe ser impersonal?<span class="resp"></span></li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <h3><span class="num">4</span> Nota institucional / gacetilla</h3>
-      <p class="para-que">Ya nos confirmaron que no hay plantilla oficial; para piezas elevadas a DGE/SGE se usa nota con logos superiores. Falta el material.</p>
-      <ul>
-        <li><b>Logos autorizados</b> y reglas de uso (orden, tamaño, resguardo).<span class="resp"></span></li>
-        <li><b>Encabezado, pie, firma y cargo</b> que corresponden.<span class="resp"></span></li>
-        <li><b>Un ejemplo sanitizado</b> o instructivo de referencia.<span class="resp"></span></li>
-      </ul>
+  <div class="card">
+    <h3><span class="num">3</span> Las dos preguntas de tono</h3>
+    <p class="para-que">El control automático hoy rechaza ambas cosas; necesitamos saber si eso es lo que la SEU quiere.</p>
+    <div class="grid2">
+      <div>
+        <label class="campo"><b>¿Un post puede nombrar «la jornada» / «el taller»?</b></label>
+        <select data-g="tono_nombra_actividad">
+          <option value="">—</option><option>Sí, puede nombrarla</option>
+          <option>No, debe decir «esta propuesta» u otro genérico</option>
+          <option>Pendiente — lo define:</option>
+        </select>
+        <input type="text" data-g="tono_nombra_detalle" placeholder="detalle / quién define">
+      </div>
+      <div>
+        <label class="campo"><b>¿Se acepta el voseo? («descubrí», «podés», «sumate»)</b></label>
+        <select data-g="tono_voseo">
+          <option value="">—</option><option>Sí, voseo aceptable</option>
+          <option>No, registro impersonal</option><option>Depende del canal</option>
+          <option>Pendiente — lo define:</option>
+        </select>
+        <input type="text" data-g="tono_voseo_detalle" placeholder="detalle / quién define">
+      </div>
     </div>
   </div>
 
-  <h2>3 · Confirmaciones de inscripción (HU-012)</h2>
-  <div class="card full">
-    <h3><span class="num">5</span> Orígenes de datos de inscripción, por cada sistema</h3>
-    <p class="para-que">Sin esta tabla el sistema queda bloqueado por diseño: no puede enviar ninguna confirmación real. Si falta un dato, se puede responder «pendiente» con quién lo define.</p>
+  <div class="card">
+    <h3><span class="num">4</span> Nota institucional / gacetilla</h3>
+    <p class="para-que">Ya confirmado: no hay plantilla oficial; para DGE/SGE se usa nota con logos superiores. Falta el material.</p>
+    <div class="grid2">
+      <div><label class="campo"><b>Logos autorizados y reglas de uso</b> (quién los provee / dónde están)</label>
+        <textarea data-g="nota_logos"></textarea></div>
+      <div><label class="campo"><b>Encabezado, pie, firma y cargo</b> que corresponden</label>
+        <textarea data-g="nota_firma"></textarea></div>
+      <div><label class="campo"><b>Ejemplo sanitizado o instructivo</b> de referencia (cómo se recibe)</label>
+        <textarea data-g="nota_ejemplo"></textarea></div>
+      <div><label class="campo"><b>Destino autorizado</b> de la pieza final</label>
+        <textarea data-g="nota_destino"></textarea></div>
+    </div>
+  </div>
+
+  <h2>C · Confirmaciones de inscripción (HU-012)</h2>
+  <div class="card">
+    <h3><span class="num">5</span> Orígenes de datos, por sistema</h3>
+    <p class="para-que">Sin esta tabla el sistema queda bloqueado por diseño. Celda vacía = pendiente con responsable.</p>
     <table>
-      <tr>
-        <th style="width:15%">Origen</th><th style="width:17%">Qué actividades cubre</th>
-        <th style="width:17%">Qué datos tiene (nombre, mail, actividad…)</th><th style="width:14%">En qué estado se puede avisar</th>
-        <th style="width:14%">Responsable del dato</th><th>Consentimiento / retención</th>
-      </tr>
-      <tr><td>SIU Guaraní</td><td></td><td></td><td></td><td></td><td></td></tr>
-      <tr><td>SIU Guaraní Extensión</td><td></td><td></td><td></td><td></td><td></td></tr>
-      <tr><td>Google Forms</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><th style="width:13%">Origen</th><th>Qué actividades cubre</th>
+          <th>Datos disponibles</th><th>Estado que habilita avisar</th>
+          <th>Responsable del dato</th><th>Consentimiento / retención</th></tr>
+      <tr><td>SIU Guaraní</td>
+          <td><textarea data-g="o_guarani_actividades"></textarea></td>
+          <td><textarea data-g="o_guarani_campos"></textarea></td>
+          <td><input type="text" data-g="o_guarani_estado"></td>
+          <td><input type="text" data-g="o_guarani_responsable"></td>
+          <td><textarea data-g="o_guarani_datos"></textarea></td></tr>
+      <tr><td>SIU Guaraní Extensión</td>
+          <td><textarea data-g="o_gext_actividades"></textarea></td>
+          <td><textarea data-g="o_gext_campos"></textarea></td>
+          <td><input type="text" data-g="o_gext_estado"></td>
+          <td><input type="text" data-g="o_gext_responsable"></td>
+          <td><textarea data-g="o_gext_datos"></textarea></td></tr>
+      <tr><td>Google Forms</td>
+          <td><textarea data-g="o_forms_actividades"></textarea></td>
+          <td><textarea data-g="o_forms_campos"></textarea></td>
+          <td><input type="text" data-g="o_forms_estado"></td>
+          <td><input type="text" data-g="o_forms_responsable"></td>
+          <td><textarea data-g="o_forms_datos"></textarea></td></tr>
     </table>
-    <ul style="margin-top:8px">
-      <li><b>Regla de aprobación:</b> ¿cada confirmación se aprueba una por una o se preaprueba la plantilla?<span class="resp"></span></li>
-      <li><b>Canal autorizado</b> para enviarlas (correo institucional, otro).<span class="resp"></span></li>
-    </ul>
+    <div class="grid2" style="margin-top:8px">
+      <div><label class="campo"><b>Regla de aprobación:</b> ¿una por una o plantilla preaprobada?</label>
+        <textarea data-g="o_regla_aprobacion"></textarea></div>
+      <div><label class="campo"><b>Canal autorizado</b> para enviarlas</label>
+        <input type="text" data-g="o_canal_autorizado"></div>
+    </div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <h3><span class="num">6</span> Certificados (nuevo)</h3>
-      <p class="para-que">Ya existe un prototipo que emite PDF con doble aprobación humana. Faltan los insumos institucionales.</p>
-      <ul>
-        <li><b>Plantilla institucional</b> del certificado (o modelo de referencia).<span class="resp"></span></li>
-        <li><b>A quién y cómo se entrega</b> el certificado emitido.<span class="resp"></span></li>
-        <li><b>Firma digital / sello:</b> ¿corresponde? ¿Quién firma?<span class="resp"></span></li>
-      </ul>
+  <h2>D · Certificados, roles y prueba de uso</h2>
+  <div class="card">
+    <h3><span class="num">6</span> Certificados (HU-014)</h3>
+    <div class="grid2">
+      <div><label class="campo"><b>Plantilla institucional</b> o modelo de referencia</label>
+        <textarea data-g="cert_plantilla"></textarea></div>
+      <div><label class="campo"><b>A quién y cómo se entrega</b> el certificado</label>
+        <textarea data-g="cert_entrega"></textarea></div>
+      <div><label class="campo"><b>Firma digital / sello:</b> ¿corresponde? ¿quién firma?</label>
+        <textarea data-g="cert_firma"></textarea></div>
+      <div><label class="campo"><b>Qué datos lleva</b> (nombre, actividad, horas, fecha…)</label>
+        <textarea data-g="cert_datos"></textarea></div>
     </div>
+  </div>
 
-    <div class="card">
-      <h3><span class="num">7</span> Prueba de uso con una persona real</h3>
-      <p class="para-que">Para validar el canal de pedidos en lenguaje natural interno.</p>
-      <ul>
-        <li><b>Un voluntario de la SEU</b> para una sesión guiada de ~30 minutos: le pedimos cosas por texto al sistema y observamos si lo entiende.<span class="resp"></span></li>
-        <li><b>Confirmar los roles del circuito de aprobación:</b> quién ejerce la aprobación «de contenido» (semántica) y quién la «de utilidad» (operativa) institucionalmente.<span class="resp"></span></li>
-      </ul>
+  <div class="card">
+    <h3><span class="num">7</span> Circuito de aprobación y prueba de uso</h3>
+    <div class="grid2">
+      <div><label class="campo"><b>Aprobación de contenido (semántica):</b> quién la ejerce institucionalmente</label>
+        <input type="text" data-g="rol_semantica" placeholder="el bible dice «Responsable de Gestión del Conocimiento»"></div>
+      <div><label class="campo"><b>Aprobación operativa (utilitaria):</b> quién la ejerce</label>
+        <input type="text" data-g="rol_utilitaria" placeholder="el bible dice «Coordinador de Extensión»"></div>
+      <div><label class="campo"><b>Voluntario para prueba de uso HU-013</b> (~30 min, pedir cosas por texto)</label>
+        <input type="text" data-g="voluntario_hu013"></div>
+      <div><label class="campo"><b>Fecha tentativa de esa prueba</b></label>
+        <input type="text" data-g="voluntario_fecha"></div>
     </div>
+    <label class="campo"><b>Otras definiciones / observaciones de la reunión</b></label>
+    <textarea data-g="otras_notas" style="min-height:70px"></textarea>
+  </div>
+
+  <!-- ==================== SECCIÓN B: SESIÓN DE REVISIÓN ==================== -->
+
+  <h2>E · Sesión de revisión — nueve muestras</h2>
+  <p class="sub">La SEU lee las piezas impresas; acá se anotan puntajes, controles y decisión.
+     Escala: 1 deficiente · 2 insuficiente · 3 adecuado con observaciones · 4 adecuado.
+     <b>Todo puntaje 1 o 2 exige observación.</b></p>
+
+  <div class="card">
+    <h3>Datos de la sesión</h3>
+    <div class="grid2">
+      <div><label class="campo"><b>Identificador de sesión</b></label>
+        <input type="text" id="identificador_sesion" value="SEU-REVISION-2026-09-22"></div>
+      <div><label class="campo"><b>Fecha y hora</b> (se exporta con zona -03:00)</label>
+        <input type="datetime-local" id="fecha_hora"></div>
+      <div><label class="campo"><b>Persona revisora</b> (identidad verificable)</label>
+        <input type="text" id="persona_revisora"></div>
+      <div><label class="campo"><b>Rol / área</b></label>
+        <input type="text" id="rol_area"></div>
+      <div><label class="campo"><b>Referencia de evidencia</b> (acta firmada, correo, archivo)</label>
+        <input type="text" id="referencia_evidencia"></div>
+    </div>
+  </div>
+
+  <div id="muestras"></div>
+
+  <div class="decision-global">
+    <h3 style="margin-bottom:8px">Decisión global de la revisión</h3>
+    <div class="grid2">
+      <div>
+        <label class="campo"><b>Decisión</b></label>
+        <select id="decision">
+          <option value="PENDIENTE">PENDIENTE — sesión incompleta o sin realizar</option>
+          <option value="APROBADO_COMO_BORRADOR">APROBADO_COMO_BORRADOR — las nueve aprobadas (requiere todo ≥3 y controles ✓)</option>
+          <option value="REQUIERE_AJUSTES">REQUIERE_AJUSTES — hay correcciones necesarias</option>
+          <option value="RECHAZADO">RECHAZADO — el material no es base utilizable</option>
+        </select>
+      </div>
+      <div>
+        <label class="campo"><b>Motivo de la decisión</b> (obligatorio si ajustes o rechazo)</label>
+        <textarea id="motivo_decision"></textarea>
+      </div>
+    </div>
+    <label class="campo"><b>Si una pieza se considera oficial:</b> registrar acá la elevación a aprobación/corrección institucional (la revisión editorial sola no la sustituye)</label>
+    <textarea id="elevacion_institucional" placeholder="dejar vacío si no aplica"></textarea>
   </div>
 
   <div class="nopedimos">
-    <h3>Qué NO estamos pidiendo hoy</h3>
+    <h3>Recordatorio — esto no se pidió ni se registró hoy</h3>
     <ul>
       <li>Autorización para publicar o enviar algo real.</li>
       <li>Credenciales, claves o accesos a sistemas.</li>
       <li>Datos personales de alumnos o inscriptos.</li>
       <li>Que la SEU evalúe código ni aspectos técnicos.</li>
-      <li>Respuestas definitivas: «pendiente + quién lo define» también sirve.</li>
-      <li>Cambios de proceso: el agente se adapta a lo que la SEU defina.</li>
     </ul>
   </div>
-
-  <div class="pie">
-    <span>Agente 1 — Extensión Bot · Proyecto Centenario · FIE/UNDEF</span>
-    <span>Toda pieza permanece «BORRADOR — NO PUBLICAR» hasta doble aprobación humana registrada.</span>
-  </div>
-
 </div>
 
+<div class="barra">
+  <span class="progreso" id="progreso">Muestras completas: 0/9</span>
+  <span class="estado-guardado" id="estado-guardado">sin cambios</span>
+  <button class="sec" onclick="importar()">Importar JSON</button>
+  <input type="file" id="archivo-import" accept=".json" style="display:none" onchange="cargarArchivo(this)">
+  <button class="sec" onclick="if(confirm('¿Borrar todas las respuestas cargadas?')) limpiar()">Limpiar</button>
+  <button onclick="exportar()">Exportar JSON</button>
+</div>
+
+<script>
+const CRITERIOS = [
+  ["precision","Precisión de los hechos"],
+  ["tono","Tono institucional"],
+  ["ajuste_canal","Adecuación al canal"],
+  ["gramatica","Gramática y claridad"],
+  ["longitud","Longitud"],
+  ["alucinaciones","Sin información no respaldada"],
+];
+const CONTROLES = [
+  ["hechos_contrastados","Hechos contrastados con el insumo"],
+  ["sin_claim_publicacion","Sin indicio de publicación/envío"],
+  ["sin_datos_innecesarios","Sin datos innecesarios"],
+];
+const MUESTRAS = [
+  ["M-001","SYN-001 · Gacetilla","HU-010"],
+  ["M-002","SYN-001 · Instagram","HU-011"],
+  ["M-003","SYN-001 · LinkedIn","HU-011"],
+  ["M-004","SYN-003 · Gacetilla","HU-010"],
+  ["M-005","SYN-003 · Instagram","HU-011"],
+  ["M-006","SYN-003 · LinkedIn","HU-011"],
+  ["M-007","SYN-005 · Gacetilla","HU-010"],
+  ["M-008","SYN-005 · Instagram","HU-011"],
+  ["M-009","SYN-005 · LinkedIn","HU-011"],
+];
+const CLAVE_LS = "reunion-seu-2026-09-22";
+
+function armarMuestras(){
+  const cont = document.getElementById("muestras");
+  for(const [id,nombre,hu] of MUESTRAS){
+    const div = document.createElement("div");
+    div.className = "muestra"; div.id = "card-"+id;
+    let crit = "";
+    for(const [k,nom] of CRITERIOS){
+      crit += `<div class="nom">${nom}</div>`;
+      for(let v=1; v<=4; v++)
+        crit += `<div class="radio-cell"><input type="radio" name="${id}_${k}" value="${v}"></div>`;
+      crit += `<div></div>`;
+    }
+    let ctrl = "";
+    for(const [k,nom] of CONTROLES)
+      ctrl += `<label><input type="checkbox" id="${id}_${k}"> ${nom}</label>`;
+    div.innerHTML = `
+      <header><b>${id} — ${nombre}</b><span class="tag">${hu} · datos sintéticos</span></header>
+      <div class="cuerpo">
+        <div class="aviso">Hay puntajes menores a 3 sin observación, o decisión de ajuste/rechazo sin observación.</div>
+        <div class="crit-grid">
+          <div></div><div class="cab">1</div><div class="cab">2</div><div class="cab">3</div><div class="cab">4</div><div></div>
+          ${crit}
+        </div>
+        <div class="controles">${ctrl}</div>
+        <div class="fila-muestra">
+          <div>
+            <label class="campo"><b>Decisión de la muestra</b></label>
+            <select id="${id}_decision">
+              <option value="PENDIENTE">PENDIENTE</option>
+              <option value="APROBADO_COMO_BORRADOR">APROBADO_COMO_BORRADOR</option>
+              <option value="REQUIERE_AJUSTES">REQUIERE_AJUSTES</option>
+              <option value="RECHAZADO">RECHAZADO</option>
+            </select>
+          </div>
+          <div>
+            <label class="campo"><b>Observaciones</b> (obligatorias si hay puntaje 1–2, ajuste o rechazo)</label>
+            <textarea id="${id}_obs"></textarea>
+          </div>
+        </div>
+      </div>`;
+    cont.appendChild(div);
+  }
+}
+
+function recolectar(){
+  const data = {gestion:{}, muestras:{}, sesion:{}};
+  document.querySelectorAll("[data-g]").forEach(el=>{ data.gestion[el.dataset.g]=el.value; });
+  for(const id2 of ["identificador_sesion","fecha_hora","persona_revisora","rol_area",
+                    "referencia_evidencia","decision","motivo_decision","elevacion_institucional"])
+    data.sesion[id2] = document.getElementById(id2).value;
+  for(const [id] of MUESTRAS){
+    const m = {decision:document.getElementById(id+"_decision").value,
+               puntajes:{}, controles_obligatorios:{},
+               observaciones:document.getElementById(id+"_obs").value};
+    for(const [k] of CRITERIOS){
+      const sel=document.querySelector(`input[name="${id}_${k}"]:checked`);
+      if(sel) m.puntajes[k]=parseInt(sel.value,10);
+    }
+    for(const [k] of CONTROLES)
+      m.controles_obligatorios[k]=document.getElementById(id+"_"+k).checked;
+    data.muestras[id]=m;
+  }
+  return data;
+}
+
+function restaurar(data){
+  if(!data) return;
+  if(data.gestion) for(const [k,v] of Object.entries(data.gestion)){
+    const el=document.querySelector(`[data-g="${k}"]`); if(el) el.value=v;
+  }
+  if(data.sesion) for(const [k,v] of Object.entries(data.sesion)){
+    const el=document.getElementById(k); if(el) el.value=v;
+  }
+  if(data.muestras) for(const [id,m] of Object.entries(data.muestras)){
+    if(!m) continue;
+    for(const [k,v] of Object.entries(m.puntajes||{})){
+      const r=document.querySelector(`input[name="${id}_${k}"][value="${v}"]`);
+      if(r) r.checked=true;
+    }
+    for(const [k,v] of Object.entries(m.controles_obligatorios||{})){
+      const c=document.getElementById(id+"_"+k); if(c) c.checked=!!v;
+    }
+    const d=document.getElementById(id+"_decision"); if(d) d.value=m.decision||"PENDIENTE";
+    const o=document.getElementById(id+"_obs"); if(o) o.value=m.observaciones||"";
+  }
+  actualizar();
+}
+
+function actualizar(){
+  const data=recolectar();
+  let hechas=0;
+  for(const [id] of MUESTRAS){
+    const m=data.muestras[id];
+    const card=document.getElementById("card-"+id);
+    const bajos=Object.values(m.puntajes).some(v=>v<3);
+    const faltaObs=bajos && !m.observaciones.trim();
+    const ajusteSinMotivo=["REQUIERE_AJUSTES","RECHAZADO"].includes(m.decision)&&!m.observaciones.trim();
+    card.classList.toggle("incompleta",faltaObs||ajusteSinMotivo);
+    if(m.decision!=="PENDIENTE"&&Object.keys(m.puntajes).length===6) hechas++;
+  }
+  document.getElementById("progreso").textContent=`Muestras completas: ${hechas}/9`;
+  localStorage.setItem(CLAVE_LS,JSON.stringify(data));
+  document.getElementById("estado-guardado").textContent=
+    "guardado "+new Date().toLocaleTimeString("es-AR");
+}
+
+function isoConZona(valor){
+  if(!valor) return "";
+  return valor.length===16 ? valor+":00-03:00" : valor+"-03:00";
+}
+
+function exportar(){
+  const d=recolectar();
+  const cerrada=d.sesion.decision!=="PENDIENTE";
+  const acta={
+    schema_version:"acta_validacion_seu_v1",
+    estado:cerrada?"CERRADA":"PENDIENTE",
+    identificador_sesion:d.sesion.identificador_sesion,
+    persona_revisora:d.sesion.persona_revisora,
+    rol_area:d.sesion.rol_area,
+    fecha_hora:isoConZona(d.sesion.fecha_hora),
+    decision:d.sesion.decision,
+    motivo_decision:d.sesion.motivo_decision,
+    referencia_evidencia:d.sesion.referencia_evidencia,
+    muestras:MUESTRAS.map(([id])=>({id,...d.muestras[id]})),
+  };
+  if(d.sesion.elevacion_institucional.trim())
+    acta.elevacion_institucional=d.sesion.elevacion_institucional;
+  const salida={
+    tipo:"reunion_seu_agente_1",
+    generado_en:new Date().toISOString(),
+    acta,
+    gestion:d.gestion,
+  };
+  const blob=new Blob([JSON.stringify(salida,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`reunion-seu-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+function importar(){ document.getElementById("archivo-import").click(); }
+function cargarArchivo(input){
+  const f=input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+      const j=JSON.parse(r.result);
+      restaurar(j.acta?{gestion:j.gestion,sesion:{
+        identificador_sesion:j.acta.identificador_sesion||"",
+        fecha_hora:(j.acta.fecha_hora||"").replace(/:00-03:00$/,"").replace(/-03:00$/,""),
+        persona_revisora:j.acta.persona_revisora||"",rol_area:j.acta.rol_area||"",
+        referencia_evidencia:j.acta.referencia_evidencia||"",decision:j.acta.decision||"PENDIENTE",
+        motivo_decision:j.acta.motivo_decision||"",
+        elevacion_institucional:j.acta.elevacion_institucional||""},
+        muestras:Object.fromEntries((j.acta.muestras||[]).map(m=>[m.id,m]))}:j);
+    }catch(e){alert("No se pudo leer el JSON");} };
+  r.readAsText(f); input.value="";
+}
+
+function limpiar(){ localStorage.removeItem(CLAVE_LS); location.reload(); }
+
+armarMuestras();
+restaurar(JSON.parse(localStorage.getItem(CLAVE_LS)||"null"));
+document.addEventListener("input",actualizar);
+document.addEventListener("change",actualizar);
+</script>
 </body>
 </html>
