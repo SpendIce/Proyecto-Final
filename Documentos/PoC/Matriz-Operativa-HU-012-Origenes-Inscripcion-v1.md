@@ -30,17 +30,17 @@ para el gate:
 
 | Procedencia | Significado |
 |---|---|
-| `CONFIRMADO_SEU` | Comunicado por escrito por la Secretaría |
-| `REGISTRADO_REUNION` | Anotado en el instrumento de la reunión del 22/09 ([`Respuestas-SEU-Reunion-2026-09-22.md`](Respuestas-SEU-Reunion-2026-09-22.md)); pendiente de confirmación escrita para pasar a `CONFIRMADO_SEU` |
+| `CONFIRMADO_SEU` | Comunicado por escrito por la Secretaría, **o confirmado por su referente designado en una reunión registrada en acta recuperable** —el acta del 22/09 es el export del instrumento ([`Respuestas-SEU-Reunion-2026-09-22.md`](Respuestas-SEU-Reunion-2026-09-22.md)) |
 | `SUPUESTO_TECNICO` | Propuesto por el equipo técnico; requiere confirmación |
 | `DESCONOCIDO` | Ni comunicado ni supuesto con fundamento suficiente |
 
-Al corte del 22/09 **ningún campo contractual necesario para emitir una
-confirmación está en `CONFIRMADO_SEU`**. Hay metadatos de contexto confirmados
-en el cuarto registro y respuestas `REGISTRADO_REUNION` sobre tipos de
-actividad, campos, regla de aprobación, canal y tratamiento —todo pendiente de
-confirmación escrita—, pero sigue sin alcanzar para habilitar una confirmación
-ni un envío.
+Al corte del 22/09 siguen sin confirmarse los campos que habilitan una
+confirmación real: identificador estable, estados de preinscripción,
+responsable del dato y política de consentimiento/retención por origen, más la
+fila completa de Google Forms. Sí están confirmados los tipos de actividad, los
+campos disponibles de ambos SIU, la regla de aprobación (plantilla
+preaprobada), el canal (correo) y el tratamiento (personal) —pero ningún
+origen habilita envío mientras falten los primeros.
 
 ## 3. Matriz por origen
 
@@ -49,9 +49,9 @@ ni un envío.
 | Aspecto | Estado |
 |---|---|
 | Hecho comunicado | La inscripción a cursos y diplomaturas se realiza en SIU Guaraní (`CONFIRMADO_SEU`) |
-| Tipos de actividad | `CURSO`, `DIPLOMATURA` (`CONFIRMADO_SEU`); el 22/09 se registró que también cubre **carreras** y que la partición entre orígenes va por carga horaria (>90 h → Guaraní) (`REGISTRADO_REUNION`) |
+| Tipos de actividad | `CURSO`, `DIPLOMATURA` (`CONFIRMADO_SEU`); el 22/09 se registró que también cubre **carreras** y que la partición entre orígenes va por carga horaria (>90 h → Guaraní) (`CONFIRMADO_SEU`, acta de reunión 22/09) |
 | Responsable del dato | Departamento de Cursos Complementarios (`SUPUESTO_TECNICO`: fue descripto como puerta de entrada de la solicitud, no como administrador del padrón) |
-| Campos disponibles | Registrado 22/09 (`REGISTRADO_REUNION`): nombre, apellido, DNI, mail, teléfono, título y —en carreras— colegio de origen. `id_inscripcion`, `lugar` y `estado_preinscripcion`: `DESCONOCIDO` |
+| Campos disponibles | Registrado 22/09 (`CONFIRMADO_SEU`, acta de reunión 22/09): nombre, apellido, DNI, mail, teléfono, título y —en carreras— colegio de origen. `id_inscripcion`, `lugar` y `estado_preinscripcion`: `DESCONOCIDO` |
 | Estado de preinscripción | Sin lista validada ni criterio de qué estado habilita confirmar |
 | PDF informativo | `DESCONOCIDO` en este origen: el PDF se comunicó asociado al correo posterior |
 | Adapter | `NO_DEFINIDO` |
@@ -62,9 +62,9 @@ ni un envío.
 | Aspecto | Estado |
 |---|---|
 | Hecho comunicado | Los talleres se inscriben en un SIU Guaraní de Extensión, con dominio diferente al inscribirse; luego se accede desde la misma web (`CONFIRMADO_SEU`) |
-| Tipos de actividad | `TALLER` (`CONFIRMADO_SEU`); el 22/09 se registró además seminarios, actividades culturales y de extensión en general (`REGISTRADO_REUNION`) |
+| Tipos de actividad | `TALLER` (`CONFIRMADO_SEU`); el 22/09 se registró además seminarios, actividades culturales y de extensión en general (`CONFIRMADO_SEU`, acta de reunión 22/09) |
 | Responsable del dato | SEU (`SUPUESTO_TECNICO`: no se comunicó administrador ni referente técnico del entorno) |
-| Campos disponibles | Registrado 22/09 (`REGISTRADO_REUNION`): nombre, apellido, DNI, mail —subconjunto de los de 3.1, sin teléfono ni datos académicos— |
+| Campos disponibles | Registrado 22/09 (`CONFIRMADO_SEU`, acta de reunión 22/09): nombre, apellido, DNI, mail —subconjunto de los de 3.1, sin teléfono ni datos académicos— |
 | Estado de preinscripción | Sin definir |
 | PDF informativo | `DESCONOCIDO` |
 | Adapter | `NO_DEFINIDO`: sin endpoint, permisos ni contrato de extracción |
@@ -110,7 +110,7 @@ tenerlo.
 | `origen_sin_adapter` | Endpoint, permisos y contrato de extracción por origen |
 | `combinacion_origen_tipo_no_confirmada` | Confirmación de qué tipos se inscriben por cada origen, con sus excepciones |
 | `estado_preinscripcion_no_confirmado` | Lista de estados y cuál habilita emitir una confirmación |
-| `regla_de_aprobacion_no_definida` | El 22/09 se registró **plantilla preaprobada** igual para todos, canal **correo** y tratamiento personal preferido (`REGISTRADO_REUNION`); resta la confirmación escrita y quién aprueba la plantilla |
+| `regla_de_aprobacion_no_definida` | El 22/09 se registró **plantilla preaprobada** igual para todos, canal **correo** y tratamiento personal preferido (`CONFIRMADO_SEU`, acta de reunión 22/09); resta confirmar quién aprueba la plantilla |
 | `politica_datos_personales_no_definida` | Tratamiento, consentimiento, retención, borrado y canal autorizado |
 | `canal_no_es_origen_de_inscripcion` | No corresponde levantarlo: es una clasificación, no una brecha |
 

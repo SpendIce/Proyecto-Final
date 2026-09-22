@@ -93,8 +93,9 @@ para realizar la revisión.
 
 ## Registro posterior esperado
 
-Cuando el PDF vuelva completado: transcribir puntajes, controles, decisiones y
-datos de sesión a `acta-validacion.json`, guardar el PDF recibido como
-`referencia_evidencia`, regenerar el manifest, y marcar las respuestas
-`REGISTRADO_REUNION` como `CONFIRMADO_SEU` sólo sobre lo que el correo de
-respuesta confirme por escrito.
+Las respuestas de la sección 1 ya cuentan como `CONFIRMADO_SEU` por el acta de
+la reunión; la respuesta del correo sirve de ratificación y de corrección de
+cualquier malentendido. Cuando el PDF vuelva completado: transcribir puntajes,
+controles, decisiones y datos de sesión a `acta-validacion.json`, guardar el
+PDF recibido como `referencia_evidencia`, regenerar el manifest y resolver los
+pendientes que el correo responda por escrito.

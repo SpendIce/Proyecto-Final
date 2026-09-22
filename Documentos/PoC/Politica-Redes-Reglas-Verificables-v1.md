@@ -68,17 +68,18 @@ control.
 
 | ID | Dimensión | Qué falta | Punto de la nota SEU |
 |---|---|---|---|
-| `RED-EXT-03` | Extensión | Registrado 22/09: «sin límite» en ambos canales (`REGISTRADO_REUNION`, pendiente de confirmación escrita) | 4.1.1 |
-| `RED-HTG-05` | Hashtags | Registrado 22/09: IG máx. 5 y LI sin tope; palabras clave `#FIE #UNDEF #Ingenieria #Cursos #inscripciones` (`REGISTRADO_REUNION`) | 4.1.3 |
-| `RED-REG-02` | Registro | Registrado 22/09: voseo aceptable (`REGISTRADO_REUNION`) | 4.1.4 |
-| `RED-TON-03` | Tono | Registrado 22/09 para IG: académico, con audiencia diferenciada (profesionales en cursos/congresos, más joven en carreras); LI sin respuesta. `NO_MECANIZABLE`: ningún control léxico la reemplaza | 4.1.5 |
-| `RED-CTA-03` | CTA | Registrado 22/09: IG link en el perfil, LI link en el post (`REGISTRADO_REUNION`) | 4.1.7 y consulta 5.1 |
+| `RED-EXT-03` | Extensión | `CONFIRMADO_SEU` 22/09: «sin límite» en ambos canales —los parámetros pueden conservar un techo técnico interno sin alterar el criterio | 4.1.1 |
+| `RED-HTG-05` | Hashtags | `CONFIRMADO_SEU` 22/09: IG máx. 5 y LI sin tope; palabras clave `#FIE #UNDEF #Ingenieria #Cursos #inscripciones` | 4.1.3 |
+| `RED-REG-02` | Registro | `CONFIRMADO_SEU` 22/09: voseo aceptable | 4.1.4 |
+| `RED-TON-03` | Tono | `CONFIRMADO_SEU` 22/09 para IG: académico, con audiencia diferenciada (profesionales en cursos/congresos, más joven en carreras); LI sin respuesta. `NO_MECANIZABLE`: ningún control léxico la reemplaza | 4.1.5 |
+| `RED-CTA-03` | CTA | `CONFIRMADO_SEU` 22/09: IG link en el perfil, LI link en el post | 4.1.7 y consulta 5.1 |
 | `RED-ALC-03` | Alcance | Si la SEU requiere apoyo para reels, qué producto textual corresponde y con qué validación. **No se consultó el 22/09**: sigue abierto y fuera de alcance por `RED-ALC-02` | 4.1 |
 
-Las respuestas «registrado 22/09» provienen del instrumento de la reunión
-(`Validacion-SEU/reunion-seu-2026-09-22.json`, consolidado en
-`Respuestas-SEU-Reunion-2026-09-22.md`). No modifican parámetros ni pasan a
-`CONFIRMADO_SEU` hasta la confirmación escrita solicitada por correo.
+Las respuestas del 22/09 provienen del acta de la reunión con el referente
+designado (`Validacion-SEU/reunion-seu-2026-09-22.json`, consolidado en
+`Respuestas-SEU-Reunion-2026-09-22.md`) y cuentan como `CONFIRMADO_SEU`. El
+paso siguiente es de datos, no de arquitectura: actualizar los parámetros y las
+reglas del artefacto con su regresión en un incremento propio.
 
 ## 4. Parámetros vigentes por canal
 

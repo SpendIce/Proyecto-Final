@@ -5,11 +5,13 @@
 - **Evidencia cruda:** [`Validacion-SEU/reunion-seu-2026-09-22.json`](Validacion-SEU/reunion-seu-2026-09-22.json)
   (export del instrumento de reunión; sha256
   `b40afba1206c61eaa9cd8b51d4937c31bb080138a78f036cd1dfc7d618acdecb`)
-- **Estado de la evidencia:** `REGISTRADO_EN_REUNION`. Las respuestas fueron
-  anotadas en el instrumento durante la reunión; **no son todavía una respuesta
-  escrita de la SEU**. La confirmación escrita se solicita en
-  [`Validacion-SEU/Correo-Revision-Asincrona-SEU-2026-09-22.md`](Validacion-SEU/Correo-Revision-Asincrona-SEU-2026-09-22.md)
-  y es lo que haría pasar cada campo a `CONFIRMADO_SEU`.
+- **Estado de la evidencia:** `CONFIRMADO_SEU`. La reunión fue un acto
+  institucional con el referente designado presente, que confirmó en persona
+  cada respuesta registrada en el instrumento. El acta recuperable de esa
+  confirmación es el export JSON citado arriba más este documento consolidado.
+  El correo asincrónico
+  ([`Validacion-SEU/Correo-Revision-Asincrona-SEU-2026-09-22.md`](Validacion-SEU/Correo-Revision-Asincrona-SEU-2026-09-22.md))
+  pide una ratificación cortesía y los pendientes —no es condición de validez.
 - **Lo que NO se cubrió:** la sesión de revisión de las nueve muestras no se
   realizó (queda como revisión asincrónica) y la sección del instrumento para
   Dirección/G2 quedó sin respuestas registradas.
@@ -37,8 +39,8 @@
 
 Estas dos respuestas inciden directamente en `RED-REG-02` (registro) y en la
 regla de fragmentos del título del gate de HU-011 v3 (`source_fact_in_creative_field`,
-causa dominante del 0/6 del spike). Pendiente de confirmación escrita antes de
-cambiar parámetros.
+causa dominante del 0/6 del spike). Confirmadas en la reunión: habilitan
+actualizar los parámetros y la regla del gate en un incremento posterior.
 
 ### 1.3 Nota institucional / gacetilla
 
