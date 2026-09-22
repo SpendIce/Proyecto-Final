@@ -106,10 +106,12 @@
   <h2>A · Sesión de revisión de las 9 muestras</h2>
   <div class="card">
     <h3><span class="num">1</span> Estado de la sesión</h3>
-    <p class="para-que">El paquete impreso tiene las nueve piezas. Si la sesión se hace hoy, se completa la sección B de abajo; si no, se agenda.</p>
-    <div class="grid2">
+    <p class="para-que">El paquete impreso tiene las nueve piezas. Si la sesión se hace hoy, se completa la sección E de abajo; si no, se agenda.</p>
+    <label class="campo"><b>Participantes de la SEU</b> (quienes responden y avalan las definiciones de esta reunión)</label>
+    <textarea data-g="participantes" placeholder="nombres y roles de los presentes"></textarea>
+    <div class="grid2" style="margin-top:8px">
       <div>
-        <label class="campo"><b>¿Se realiza la sesión hoy?</b></label>
+        <label class="campo"><b>¿Se realiza la sesión de revisión hoy?</b></label>
         <select data-g="sesion_realizada">
           <option value="">—</option>
           <option>Sí, en esta reunión</option>
@@ -120,14 +122,6 @@
       <div>
         <label class="campo"><b>Fecha/hora comprometida si queda agendada</b></label>
         <input type="text" data-g="sesion_fecha_comprometida" placeholder="ej.: jueves 25, 14 h">
-      </div>
-      <div>
-        <label class="campo"><b>Persona revisora que participa (participó)</b></label>
-        <input type="text" data-g="sesion_revisora" placeholder="nombre y cómo se verifica la identidad">
-      </div>
-      <div>
-        <label class="campo"><b>Suplente presente, si aplica</b></label>
-        <input type="text" data-g="sesion_suplente">
       </div>
     </div>
   </div>
