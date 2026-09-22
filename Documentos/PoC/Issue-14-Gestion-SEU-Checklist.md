@@ -37,12 +37,12 @@ El paquete se apoya en estos artefactos ya preparados:
 
 | Criterio del issue | Estado legítimo al corte | Evidencia de cierre que debe obtener Juan |
 |---|---|---|
-| Validadores titulares y suplentes por rol | `PARCIAL`: existe una comunicación escrita sobre referentes; la participación efectiva y el acta siguen pendientes | Acta o respuesta institucional con titular, suplente, rol/área, fecha y alcance de la revisión |
-| Tono, longitud, CTA, hashtags y uso de canales | `PENDIENTE_EXTERNO`: los valores del código son provisionales del equipo técnico | Guía o respuesta escrita por canal, incluidos valores “no definido” cuando corresponda |
-| Activos, reglas y destino autorizado de la nota institucional/gacetilla | `PARCIAL`: SEU comunicó que no hay plantilla oficial y describió una nota institucional candidata; faltan activos y reglas | Respuesta del área competente con logos, orden, variantes, reglas, ejemplos o instructivo, destino y permisos |
-| Revisión de muestra HU-010/HU-011 | `PENDIENTE_EXTERNO`: el acta y los nueve registros están vacíos | Checklist completo por muestra, fecha, puntaje, observaciones, decisión y referencia al manifest |
-| Orígenes, campos, estados, responsable, aprobación y política de datos de HU-012 | `PARCIAL`: se conocen orígenes de alto nivel; el contrato permanece candidato y ningún origen habilita envío | Matriz escrita origen por origen con campos, estados habilitantes, responsable, regla de aprobación, consentimiento, retención y canal autorizado |
-| Evidencia durable versionada y sanitizada | `PREPARADO`: el paquete registra hashes/IDs y evita copiar borradores o secretos | Incorporar sólo acta y respuesta sanitizadas; mantener identidades o datos sensibles fuera del issue público y de los manifests públicos |
+| Validadores titulares y suplentes por rol | `PARCIAL`: existe una comunicación escrita sobre referentes; el 22/09 se registraron Juan Manuel (aprobación semántica) y Sebastián Moreira (aprobación utilitaria y firma final como Secretario de Extensión); la participación efectiva y el acta siguen pendientes | Acta o respuesta institucional con titular, suplente, rol/área, fecha y alcance de la revisión |
+| Tono, longitud, CTA, hashtags y uso de canales | `PARCIAL`: el 22/09 se registraron respuestas de la SEU para la mayoría de las dimensiones ([`Respuestas-SEU-Reunion-2026-09-22.md`](Respuestas-SEU-Reunion-2026-09-22.md)); **pendiente de confirmación escrita** para pasar a `CONFIRMADO_SEU` | Guía o respuesta escrita por canal, incluidos valores “no definido” cuando corresponda |
+| Activos, reglas y destino autorizado de la nota institucional/gacetilla | `PARCIAL`: el 22/09 se registró que los logos se leen de ejemplos, que se entregarán ejemplos de este año y que el destino varía según tipo de gacetilla; faltan firma/cargo, registro-tono y estructura | Respuesta del área competente con logos, orden, variantes, reglas, ejemplos o instructivo, destino y permisos |
+| Revisión de muestra HU-010/HU-011 | `PENDIENTE_EXTERNO`: la sesión no se realizó en la reunión; el 22/09 se preparó el circuito asincrónico con el paquete PDF rellenable y el correo [`Validacion-SEU/Correo-Revision-Asincrona-SEU-2026-09-22.md`](Validacion-SEU/Correo-Revision-Asincrona-SEU-2026-09-22.md) | Checklist completo por muestra, fecha, puntaje, observaciones, decisión y referencia al manifest |
+| Orígenes, campos, estados, responsable, aprobación y política de datos de HU-012 | `PARCIAL`: el 22/09 se registraron tipos de actividad y campos para SIU Guaraní y SIU Guaraní Extensión, plantilla preaprobada, canal correo y tratamiento personal; Google Forms, estados habilitantes, responsables del dato y política de datos siguen abiertos | Matriz escrita origen por origen con campos, estados habilitantes, responsable, regla de aprobación, consentimiento, retención y canal autorizado |
+| Evidencia durable versionada y sanitizada | `PREPARADO`: el paquete registra hashes/IDs y evita copiar borradores o secretos; el export de la reunión quedó versionado con hash en `Validacion-SEU/reunion-seu-2026-09-22.json` | Incorporar sólo acta y respuesta sanitizadas; mantener identidades o datos sensibles fuera del issue público y de los manifests públicos |
 
 Mientras exista una fila `PENDIENTE_EXTERNO` o `PARCIAL`, el issue no tiene
 evidencia suficiente para cerrarse. En particular, `APROBADO_COMO_BORRADOR` no
@@ -67,11 +67,11 @@ responder un valor, `no definido`, `no aplica` o indicar quién debe decidirlo.
 
 | Campo | Respuesta de la SEU |
 |---|---|
-| Titular de revisión editorial y criterios de redes (rol/área) | |
-| Suplente (rol/área) | |
-| Responsable de corrección/diseño de la nota institucional | |
-| Responsable de aprobación institucional, si corresponde | |
-| Alcance de cada rol | |
+| Titular de revisión editorial y criterios de redes (rol/área) | A/c Juan Manuel Gonzalez Chipont (comunicado 26/08); registrado 22/09 como aprobación de contenido |
+| Suplente (rol/área) | VS “ec” Tomás de Vergara (comunicado 26/08) |
+| Responsable de corrección/diseño de la nota institucional | *(pendiente)* |
+| Responsable de aprobación institucional, si corresponde | Sebastián Moreira — aprobación utilitaria y firma final como Secretario de Extensión (registrado 22/09) |
+| Alcance de cada rol | *(pendiente)* |
 
 La identidad de quien efectivamente revise las muestras, la fecha y la
 referencia de evidencia se completan en el acta privada de la sesión, no se
@@ -81,9 +81,13 @@ infieren de esta tabla.
 
 | Canal | Registro lingüístico | Tono | Longitud | Hashtags autorizados | CTA | Emojis | ¿Reel u otro apoyo textual? |
 |---|---|---|---|---|---|---|---|
-| Instagram | | | | | | | |
-| LinkedIn | | | | | | | |
+| Instagram | voseo aceptable (reg. 22/09) | académico; profesionales en cursos/congresos, más joven en carreras (reg. 22/09) | sin límite (reg. 22/09) | máx. 5; #FIE #UNDEF #Ingenieria #Cursos #inscripciones (reg. 22/09) | link en el perfil (reg. 22/09) | no / muy pocos (reg. 22/09) | *(no consultado)* |
+| LinkedIn | voseo aceptable (reg. 22/09) | *(pendiente)* | sin límite (reg. 22/09) | sin tope; mismas palabras clave (reg. 22/09) | link en el post (reg. 22/09) | no / muy pocos (reg. 22/09) | *(no consultado)* |
 | Otro canal (indicar) | | | | | | | |
+
+Todos los valores marcados «reg. 22/09» provienen del registro de la reunión
+(`Validacion-SEU/reunion-seu-2026-09-22.json`) y **no** pasan a
+`CONFIRMADO_SEU` hasta la confirmación escrita solicitada por correo.
 
 Si un criterio todavía no existe, debe registrarse como pendiente y mantenerse
 provisional en el código. La respuesta no habilita por sí sola la publicación.
@@ -116,9 +120,9 @@ Para cada origen, solicitar explícitamente:
 
 | Origen | Tipos de actividad | Identificador estable | Campos disponibles | Estado que habilita | Responsable del dato | Regla de aprobación | Consentimiento/retención | Canal autorizado |
 |---|---|---|---|---|---|---|---|---|
-| SIU Guaraní | | | | | | | | |
-| SIU Guaraní de Extensión | | | | | | | | |
-| Google Forms | | | | | | | | |
+| SIU Guaraní | carreras, diplomaturas y cursos >90 h (reg. 22/09) | *(pendiente)* | nombre, apellido, DNI, mail, teléfono, título, colegio (reg. 22/09) | *(pendiente)* | *(pendiente)* | plantilla preaprobada (reg. 22/09) | *(pendiente)* | correo (reg. 22/09) |
+| SIU Guaraní de Extensión | talleres, seminarios, actividades culturales y de extensión (reg. 22/09) | *(pendiente)* | nombre, apellido, DNI, mail (reg. 22/09) | *(pendiente)* | *(pendiente)* | plantilla preaprobada (reg. 22/09) | *(pendiente)* | correo (reg. 22/09) |
+| Google Forms | *(pendiente)* | *(pendiente)* | *(pendiente)* | *(pendiente)* | *(pendiente)* | *(pendiente)* | *(pendiente)* | *(pendiente)* |
 
 El correo posterior de Cursos Complementarios debe clasificarse como canal
 posterior o confirmarse como otra cosa; no se lo debe tratar automáticamente

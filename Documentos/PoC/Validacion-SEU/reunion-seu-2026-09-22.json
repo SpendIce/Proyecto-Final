@@ -1,0 +1,207 @@
+{
+  "tipo": "reuniones_agente_1",
+  "generado_en": "2026-09-22T15:53:46.858Z",
+  "acta": {
+    "schema_version": "acta_validacion_seu_v1",
+    "estado": "PENDIENTE",
+    "identificador_sesion": "SEU-REVISION-2026-09-22",
+    "persona_revisora": "",
+    "rol_area": "",
+    "fecha_hora": "",
+    "decision": "PENDIENTE",
+    "motivo_decision": "",
+    "referencia_evidencia": "",
+    "muestras": [
+      {
+        "id": "M-001",
+        "decision": "PENDIENTE",
+        "puntajes": {},
+        "controles_obligatorios": {
+          "hechos_contrastados": false,
+          "sin_claim_publicacion": false,
+          "sin_datos_innecesarios": false
+        },
+        "observaciones": ""
+      },
+      {
+        "id": "M-002",
+        "decision": "PENDIENTE",
+        "puntajes": {},
+        "controles_obligatorios": {
+          "hechos_contrastados": false,
+          "sin_claim_publicacion": false,
+          "sin_datos_innecesarios": false
+        },
+        "observaciones": ""
+      },
+      {
+        "id": "M-003",
+        "decision": "PENDIENTE",
+        "puntajes": {},
+        "controles_obligatorios": {
+          "hechos_contrastados": false,
+          "sin_claim_publicacion": false,
+          "sin_datos_innecesarios": false
+        },
+        "observaciones": ""
+      },
+      {
+        "id": "M-004",
+        "decision": "PENDIENTE",
+        "puntajes": {},
+        "controles_obligatorios": {
+          "hechos_contrastados": false,
+          "sin_claim_publicacion": false,
+          "sin_datos_innecesarios": false
+        },
+        "observaciones": ""
+      },
+      {
+        "id": "M-005",
+        "decision": "PENDIENTE",
+        "puntajes": {},
+        "controles_obligatorios": {
+          "hechos_contrastados": false,
+          "sin_claim_publicacion": false,
+          "sin_datos_innecesarios": false
+        },
+        "observaciones": ""
+      },
+      {
+        "id": "M-006",
+        "decision": "PENDIENTE",
+        "puntajes": {},
+        "controles_obligatorios": {
+          "hechos_contrastados": false,
+          "sin_claim_publicacion": false,
+          "sin_datos_innecesarios": false
+        },
+        "observaciones": ""
+      },
+      {
+        "id": "M-007",
+        "decision": "PENDIENTE",
+        "puntajes": {},
+        "controles_obligatorios": {
+          "hechos_contrastados": false,
+          "sin_claim_publicacion": false,
+          "sin_datos_innecesarios": false
+        },
+        "observaciones": ""
+      },
+      {
+        "id": "M-008",
+        "decision": "PENDIENTE",
+        "puntajes": {},
+        "controles_obligatorios": {
+          "hechos_contrastados": false,
+          "sin_claim_publicacion": false,
+          "sin_datos_innecesarios": false
+        },
+        "observaciones": ""
+      },
+      {
+        "id": "M-009",
+        "decision": "PENDIENTE",
+        "puntajes": {},
+        "controles_obligatorios": {
+          "hechos_contrastados": false,
+          "sin_claim_publicacion": false,
+          "sin_datos_innecesarios": false
+        },
+        "observaciones": ""
+      }
+    ]
+  },
+  "gestion": {
+    "participantes": "Juan Manuel ",
+    "sesion_realizada": "",
+    "sesion_fecha_comprometida": "",
+    "crit_registro_ig": "",
+    "crit_registro_li": "",
+    "crit_tono_ig": "Academico, buscando profesionales en el caso de curso/congreso; en carreras a perfiles mas joven, estudiantes",
+    "crit_tono_li": "",
+    "crit_extension_ig": "sin limite",
+    "crit_extension_li": "sin limite",
+    "crit_hashtags_ig": "max 5/ segun publicacion, palabras claves, #FIE, #UNDEF, #Ingenieria, #Cursos, #inscripciones, ",
+    "crit_hashtags_li": "no hay tope/segun publicacion, palabras claves, #FIE, #UNDEF, #Ingenieria, #Cursos, #inscripciones, ",
+    "crit_cta_ig": "Link en el perfil",
+    "crit_cta_li": "Link en el post",
+    "crit_emojis_ig": "No/muy pocos (hora/dia/consultas/inscripcion)",
+    "crit_emojis_li": "No/muy pocos (hora/dia/consultas/inscripcion)",
+    "crit_ejemplo_ig": "",
+    "crit_ejemplo_li": "",
+    "tono_nombra_actividad": "Sí, puede nombrarla",
+    "tono_nombra_detalle": "",
+    "tono_voseo": "Sí, voseo aceptable",
+    "tono_voseo_detalle": "",
+    "nota_logos": "Se lee de ejemplos. ",
+    "nota_firma": "",
+    "nota_ejemplo": "se van a entregar ejemplos de este año",
+    "nota_destino": "Hay distintas gacetillas segun destino. Generalmente interno, un caso particular cursos, incluye destinatarios externos; publico institucional",
+    "nota_registro_tono": "",
+    "nota_extension": "",
+    "o_guarani_actividades": "Carreras y diplomaturas y cursos segun carga horaria (>90hs)",
+    "o_guarani_campos": "Nombre, apellido, DNI, mail, telefono, titulo, de que colegio en caso de carreras",
+    "o_guarani_estado": "",
+    "o_guarani_responsable": "",
+    "o_guarani_datos": "",
+    "o_gext_actividades": "Talleres, seminarios, acividades culturales, actividades de extension en general",
+    "o_gext_campos": "Nombre, apellido, DNI, mail",
+    "o_gext_estado": "",
+    "o_gext_responsable": "",
+    "o_gext_datos": "",
+    "o_forms_actividades": "",
+    "o_forms_campos": "",
+    "o_forms_estado": "",
+    "o_forms_responsable": "",
+    "o_forms_datos": "",
+    "o_regla_aprobacion": "Plantilla preaprobada, igual para todos, que levante docentes o info del curso/lo que sea, avisar que llega un mail, desde donde, despues pidiendo pago",
+    "o_canal_autorizado": "Correo",
+    "o_texto_tipo": "Plantilla",
+    "o_tratamiento": "Si puede ser personal mejor; \"Hola -name-, te mandamos la informacion del curso\" o asi",
+    "cert_plantilla": "Hay una plantilla. ",
+    "cert_entrega": "por mail a quien tomo el curso, lo manda el mail de cursos",
+    "cert_firma": "Firmado por secretario de extension y decano, imagen de la firma",
+    "cert_datos": "Nombre apellido DNI, curso realizado, tratamiento en caso, horas de duracion",
+    "rol_semantica": "Juan Manuel ",
+    "rol_utilitaria": "Sebastian Moreira",
+    "voluntario_hu013": "Juan Manuel",
+    "voluntario_fecha": "Viernes",
+    "otras_notas": "Firma final con Sebastian Moreira, Secretario Extension"
+  },
+  "gestion_g2": {
+    "g2_evidencia_minima": "",
+    "g2_seu_condicion": "",
+    "g2_seu_condicion_detalle": "",
+    "g2_bloqueantes": "",
+    "g2_bloqueantes_detalle": "",
+    "g2_firmante": "",
+    "g2_formato": "",
+    "g2_formato_detalle": "",
+    "g2_propuesta_resultado": "",
+    "g2_propuesta_detalle": "",
+    "blq_seu_trat": "",
+    "blq_seu_resp": "",
+    "blq_seu_fecha": "",
+    "blq_dsi_trat": "",
+    "blq_dsi_resp": "",
+    "blq_dsi_fecha": "",
+    "blq_plant_trat": "",
+    "blq_plant_resp": "",
+    "blq_plant_fecha": "",
+    "blq_crit_trat": "",
+    "blq_crit_resp": "",
+    "blq_crit_fecha": "",
+    "blq_orig_trat": "",
+    "blq_orig_resp": "",
+    "blq_orig_fecha": "",
+    "g2_decision": "",
+    "g2_motivo": "",
+    "alc_canal_hu013": "",
+    "alc_hu013_aprobacion": "",
+    "alc_fastapi_celery": "",
+    "alc_hu015": "",
+    "pendientes": ""
+  }
+}

@@ -68,12 +68,17 @@ control.
 
 | ID | Dimensión | Qué falta | Punto de la nota SEU |
 |---|---|---|---|
-| `RED-EXT-03` | Extensión | Extensión diferenciada por canal. Hoy Instagram y LinkedIn comparten 1.000 caracteres, lo que evidencia un marcador de posición | 4.1.1 |
-| `RED-HTG-05` | Hashtags | Etiquetas institucionales reales que reemplacen a las cuatro genéricas provisionales | 4.1.3 |
-| `RED-REG-02` | Registro | Decisión entre voseo rioplatense, tuteo neutro o tercera persona | 4.1.4 |
-| `RED-TON-03` | Tono | Adecuación editorial del tono por canal. `NO_MECANIZABLE`: ningún control léxico la reemplaza | 4.1.5 |
-| `RED-CTA-03` | CTA | CTA admisible cuando exista circuito de inscripción, y su destino autorizado | 4.1.7 y consulta 5.1 |
-| `RED-ALC-03` | Alcance | Si la SEU requiere apoyo para reels, qué producto textual corresponde y con qué validación | 4.1 |
+| `RED-EXT-03` | Extensión | Registrado 22/09: «sin límite» en ambos canales (`REGISTRADO_REUNION`, pendiente de confirmación escrita) | 4.1.1 |
+| `RED-HTG-05` | Hashtags | Registrado 22/09: IG máx. 5 y LI sin tope; palabras clave `#FIE #UNDEF #Ingenieria #Cursos #inscripciones` (`REGISTRADO_REUNION`) | 4.1.3 |
+| `RED-REG-02` | Registro | Registrado 22/09: voseo aceptable (`REGISTRADO_REUNION`) | 4.1.4 |
+| `RED-TON-03` | Tono | Registrado 22/09 para IG: académico, con audiencia diferenciada (profesionales en cursos/congresos, más joven en carreras); LI sin respuesta. `NO_MECANIZABLE`: ningún control léxico la reemplaza | 4.1.5 |
+| `RED-CTA-03` | CTA | Registrado 22/09: IG link en el perfil, LI link en el post (`REGISTRADO_REUNION`) | 4.1.7 y consulta 5.1 |
+| `RED-ALC-03` | Alcance | Si la SEU requiere apoyo para reels, qué producto textual corresponde y con qué validación. **No se consultó el 22/09**: sigue abierto y fuera de alcance por `RED-ALC-02` | 4.1 |
+
+Las respuestas «registrado 22/09» provienen del instrumento de la reunión
+(`Validacion-SEU/reunion-seu-2026-09-22.json`, consolidado en
+`Respuestas-SEU-Reunion-2026-09-22.md`). No modifican parámetros ni pasan a
+`CONFIRMADO_SEU` hasta la confirmación escrita solicitada por correo.
 
 ## 4. Parámetros vigentes por canal
 
