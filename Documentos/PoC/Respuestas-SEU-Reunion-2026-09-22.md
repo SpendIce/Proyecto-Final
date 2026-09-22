@@ -138,3 +138,15 @@ medir la conformidad del contrato v3 con prompts v4 para ver si el cuello
 sigue siendo el modelo o ya no; (c) decisión explícita sobre infraestructura.
 La alternativa barata para la personalización ya está en el camino actual:
 few-shot con los ejemplos aprobados dentro del prompt, sin entrenar.
+
+También el mismo 22/09, en una segunda ronda de precisiones del referente:
+
+- **Google Forms ya no opera como origen**: no es una migración futura sino un
+  corte ya decidido. Webinars, cursos e Ingeniería Por Un Día pasan a
+  **SIU Guaraní Extensión** (ver matriz §3.3, trayectoria `DEPRECADO`).
+- **Estado habilitante para confirmar:** «inscripto confirmado». El nombre
+  interno de ese estado dentro de SIU no está confirmado.
+- **Consentimiento:** ya se toma consentimiento para enviar correos en la
+  inscripción.
+- **Retención:** el sistema no retiene datos (coherente con la decisión de
+  minimización registrada en la matriz).

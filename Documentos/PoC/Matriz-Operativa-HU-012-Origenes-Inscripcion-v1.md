@@ -34,14 +34,15 @@ para el gate:
 | `SUPUESTO_TECNICO` | Propuesto por el equipo técnico; requiere confirmación |
 | `DESCONOCIDO` | Ni comunicado ni supuesto con fundamento suficiente |
 
-Al corte del 22/09 siguen sin confirmarse los campos que habilitan una
-confirmación real: identificador estable, estados de preinscripción,
-responsable del dato y política de consentimiento/retención por origen, más el
-detalle de la migración de Google Forms a SIU Guaraní (deprecación comunicada
-el 22/09). Sí están confirmados los tipos de actividad, los campos disponibles
-de ambos SIU, la regla de aprobación (plantilla preaprobada), el canal (correo)
-y el tratamiento (personal) —pero ningún origen habilita envío mientras falten
-los primeros.
+Al corte del 22/09 quedan confirmados los tipos de actividad, los campos
+disponibles de ambos SIU, la regla de aprobación (plantilla preaprobada), el
+canal (correo), el tratamiento (personal), el estado habilitante («inscripto
+confirmado», nombre interno SIU por confirmar), el consentimiento tomado en la
+inscripción y la no retención de datos por el sistema. Google Forms quedó
+descartado como origen: sus tipos pasan a Guaraní Extensión. Siguen sin
+confirmarse el identificador estable (`id_inscripcion`), el nombre interno del
+estado en SIU, el administrador del padrón de cada entorno y el canal correo
+como medio autorizado por la institución.
 
 ## 3. Matriz por origen
 
@@ -53,7 +54,7 @@ los primeros.
 | Tipos de actividad | `CURSO`, `DIPLOMATURA` (`CONFIRMADO_SEU`); el 22/09 se registró que también cubre **carreras** y que la partición entre orígenes va por carga horaria (>90 h → Guaraní) (`CONFIRMADO_SEU`, acta de reunión 22/09) |
 | Responsable del dato | La lista de inscriptos sale del propio SIU (`SUPUESTO_TECNICO` de diseño, registrado 22/09: la extracción se pide al administrador del entorno —quien administra el padrón sigue `DESCONOCIDO`) |
 | Campos disponibles | Registrado 22/09 (`CONFIRMADO_SEU`, acta de reunión 22/09): nombre, apellido, DNI, mail, teléfono, título y —en carreras— colegio de origen. `id_inscripcion`, `lugar` y `estado_preinscripcion`: `DESCONOCIDO` |
-| Estado de preinscripción | Sin lista validada ni criterio de qué estado habilita confirmar |
+| Estado de preinscripción | Habilita confirmar el estado «inscripto confirmado» (`CONFIRMADO_SEU`, precisión posterior al acta 22/09); el nombre interno del estado en SIU sigue `DESCONOCIDO` |
 | PDF informativo | `DESCONOCIDO` en este origen: el PDF se comunicó asociado al correo posterior |
 | Adapter | `NO_DEFINIDO` |
 | Regla de envío | `PROHIBIDO` |
@@ -63,10 +64,10 @@ los primeros.
 | Aspecto | Estado |
 |---|---|
 | Hecho comunicado | Los talleres se inscriben en un SIU Guaraní de Extensión, con dominio diferente al inscribirse; luego se accede desde la misma web (`CONFIRMADO_SEU`) |
-| Tipos de actividad | `TALLER` (`CONFIRMADO_SEU`); el 22/09 se registró además seminarios, actividades culturales y de extensión en general (`CONFIRMADO_SEU`, acta de reunión 22/09) |
+| Tipos de actividad | `TALLER` (`CONFIRMADO_SEU`); el 22/09 se registró además seminarios, actividades culturales y de extensión en general (`CONFIRMADO_SEU`, acta de reunión 22/09). En precisión posterior del mismo día: **también recibe lo que antes entraba por Forms: webinars, cursos e Ingeniería Por Un Día** (`CONFIRMADO_SEU`) |
 | Responsable del dato | SEU (`SUPUESTO_TECNICO`: no se comunicó administrador ni referente técnico del entorno) |
 | Campos disponibles | Registrado 22/09 (`CONFIRMADO_SEU`, acta de reunión 22/09): nombre, apellido, DNI, mail —subconjunto de los de 3.1, sin teléfono ni datos académicos— |
-| Estado de preinscripción | Sin definir |
+| Estado de preinscripción | Habilita confirmar el estado «inscripto confirmado» (`CONFIRMADO_SEU`, precisión posterior al acta 22/09); el nombre interno del estado en SIU sigue `DESCONOCIDO` |
 | PDF informativo | `DESCONOCIDO` |
 | Adapter | `NO_DEFINIDO`: sin endpoint, permisos ni contrato de extracción |
 | Regla de envío | `PROHIBIDO` |
@@ -75,10 +76,10 @@ los primeros.
 
 | Aspecto | Estado |
 |---|---|
-| Hecho comunicado | Se usa habitualmente para eventos gratuitos y de mayor asistencia (`CONFIRMADO_SEU`). El 22/09 la SEU comunicó que **Forms se deprecará y las inscripciones pasan a SIU Guaraní** (`CONFIRMADO_SEU`, precisión posterior a la reunión) |
-| Trayectoria | `EN_DEPRECACION`: el origen deja de ser destino; la migración a SIU Guaraní (plazo, a cuál de los dos entornos migra cada tipo, tratamiento transitorio) sigue `DESCONOCIDO` |
-| Tipos de actividad | `WEBINAR`, `INGENIERIA_POR_UN_DIA` (`CONFIRMADO_SEU`); tras la migración se reasignan según la partición de SIU |
-| Responsable del dato | SEU (`SUPUESTO_TECNICO`). La pregunta del dueño del formulario pierde criticidad en el estado destino, pero sigue abierta mientras el origen exista |
+| Hecho comunicado | Se usaba habitualmente para eventos gratuitos y de mayor asistencia (`CONFIRMADO_SEU`). El 22/09 la SEU comunicó que Forms se deprecaba y las inscripciones pasaban a SIU Guaraní; en precisión posterior del mismo día quedó en que **Forms ya no opera como origen: sus tipos pasan a Guaraní Extensión** (`CONFIRMADO_SEU`) |
+| Trayectoria | `DEPRECADO`: el origen deja de existir para A1; webinars, cursos e Ingeniería Por Un Día se inscriben en `SIU_GUARANI_EXTENSION` (§3.2) |
+| Tipos de actividad | `WEBINAR`, `INGENIERIA_POR_UN_DIA` (`CONFIRMADO_SEU`); reasignados a `SIU_GUARANI_EXTENSION` |
+| Responsable del dato | `NO_APLICA`: el origen dejó de operar; el padrón es el de Guaraní Extensión (§3.2) |
 | Campos disponibles | Igual perfil que 3.1 |
 | Estado de preinscripción | Sin definir. Un formulario no expone estados por sí mismo |
 | PDF informativo | `DESCONOCIDO`: al ser gratuitos no habría enlace de pago, pero no se confirmó si igual se envía material |
@@ -111,9 +112,9 @@ tenerlo.
 |---|---|
 | `origen_sin_adapter` | Endpoint, permisos y contrato de extracción por origen |
 | `combinacion_origen_tipo_no_confirmada` | Confirmación de qué tipos se inscriben por cada origen, con sus excepciones |
-| `estado_preinscripcion_no_confirmado` | Lista de estados y cuál habilita emitir una confirmación |
+| `estado_preinscripcion_no_confirmado` | Habilita el estado «inscripto confirmado» (`CONFIRMADO_SEU`, precisión posterior al acta 22/09); queda confirmar el nombre interno del estado en cada SIU |
 | `regla_de_aprobacion_no_definida` | El 22/09 se registró **plantilla preaprobada** igual para todos, canal **correo** y tratamiento personal preferido (`CONFIRMADO_SEU`, acta de reunión 22/09); resta confirmar quién aprueba la plantilla |
-| `politica_datos_personales_no_definida` | Tratamiento, consentimiento, retención, borrado y canal autorizado. Decisión de diseño registrada 22/09: **minimización** —los datos del inscripto llegan con el envío y no se persisten en registros durables; queda confirmar consentimiento del inscripto y que el canal correo esté autorizado |
+| `politica_datos_personales_no_definida` | Resuelta en lo principal el 22/09: el consentimiento para enviar correos **ya se toma en la inscripción** y **el sistema no retiene los datos** (minimización: los datos llegan con el envío y no se persisten en registros durables) (`CONFIRMADO_SEU`, precisión posterior al acta). Queda confirmar que el canal correo sea el medio autorizado por la institución |
 | `canal_no_es_origen_de_inscripcion` | No corresponde levantarlo: es una clasificación, no una brecha |
 
 Los estados de preinscripción candidatos —`PREINSCRIPTO`, `INSCRIPTO`,
