@@ -143,30 +143,35 @@
   <h2>B · Criterios editoriales por canal</h2>
   <div class="card">
     <h3><span class="num">2</span> Criterios de comunicación</h3>
-    <p class="para-que">«Pendiente», «no definido» o «no aplica» también son respuestas: anotarlas con quién las define.</p>
+    <p class="para-que">Una respuesta útil es un valor verificable («máx 150 palabras», «ningún hashtag»)
+      o un <b>ejemplo de post aprobado</b>. «Pendiente», «no definido» o «a criterio de X» también
+      son respuestas: anotar quién lo define.</p>
     <table>
       <tr><th style="width:24%">Criterio</th><th>Instagram</th><th>LinkedIn</th></tr>
-      <tr><td>Registro lingüístico (voseo, tuteo, otro)</td>
-          <td><textarea data-g="crit_registro_ig"></textarea></td>
-          <td><textarea data-g="crit_registro_li"></textarea></td></tr>
+      <tr><td>Registro lingüístico</td>
+          <td><textarea data-g="crit_registro_ig" placeholder="ej.: voseo / tuteo / impersonal"></textarea></td>
+          <td><textarea data-g="crit_registro_li" placeholder="ej.: voseo / tuteo / impersonal"></textarea></td></tr>
       <tr><td>Tono y estilo</td>
-          <td><textarea data-g="crit_tono_ig"></textarea></td>
-          <td><textarea data-g="crit_tono_li"></textarea></td></tr>
+          <td><textarea data-g="crit_tono_ig" placeholder="ej.: cercano pero institucional"></textarea></td>
+          <td><textarea data-g="crit_tono_li" placeholder="ej.: formal"></textarea></td></tr>
       <tr><td>Extensión máxima</td>
-          <td><input type="text" data-g="crit_extension_ig"></td>
-          <td><input type="text" data-g="crit_extension_li"></td></tr>
+          <td><input type="text" data-g="crit_extension_ig" placeholder="ej.: 150 palabras / sin límite"></td>
+          <td><input type="text" data-g="crit_extension_li" placeholder="ej.: 150 palabras / sin límite"></td></tr>
       <tr><td>Hashtags autorizados y cantidad</td>
-          <td><textarea data-g="crit_hashtags_ig"></textarea></td>
-          <td><textarea data-g="crit_hashtags_li"></textarea></td></tr>
+          <td><textarea data-g="crit_hashtags_ig" placeholder="ej.: #FIE #Extension, máx 5 / ninguno"></textarea></td>
+          <td><textarea data-g="crit_hashtags_li" placeholder="ej.: #FIE #Extension, máx 5 / ninguno"></textarea></td></tr>
       <tr><td>Llamados a la acción / inscripción</td>
-          <td><textarea data-g="crit_cta_ig"></textarea></td>
-          <td><textarea data-g="crit_cta_li"></textarea></td></tr>
+          <td><textarea data-g="crit_cta_ig" placeholder="ej.: siempre link de inscripción / ninguno"></textarea></td>
+          <td><textarea data-g="crit_cta_li" placeholder="ej.: siempre link de inscripción / ninguno"></textarea></td></tr>
       <tr><td>Emojis</td>
-          <td><input type="text" data-g="crit_emojis_ig"></td>
-          <td><input type="text" data-g="crit_emojis_li"></td></tr>
-      <tr><td>Reels u otro apoyo textual</td>
-          <td><textarea data-g="crit_reels_ig"></textarea></td>
-          <td><textarea data-g="crit_reels_li"></textarea></td></tr>
+          <td><input type="text" data-g="crit_emojis_ig" placeholder="sí / no / cuáles"></td>
+          <td><input type="text" data-g="crit_emojis_li" placeholder="sí / no / cuáles"></td></tr>
+      <tr><td>Reels: ¿se espera texto de apoyo (copy, guion) para los reels que produce la SEU? El agente no genera video ni audio</td>
+          <td><textarea data-g="crit_reels_ig" placeholder="no / sí, qué texto y quién lo aprueba"></textarea></td>
+          <td><textarea data-g="crit_reels_li" placeholder="no aplica / sí, qué texto"></textarea></td></tr>
+      <tr><td>Ejemplo de post aprobado (pegar texto o referencia)</td>
+          <td><textarea data-g="crit_ejemplo_ig"></textarea></td>
+          <td><textarea data-g="crit_ejemplo_li"></textarea></td></tr>
     </table>
   </div>
 
@@ -207,6 +212,10 @@
         <textarea data-g="nota_ejemplo"></textarea></div>
       <div><label class="campo"><b>Destino autorizado</b> de la pieza final</label>
         <textarea data-g="nota_destino"></textarea></div>
+      <div><label class="campo"><b>Registro y tono del texto</b> (formal, impersonal, ¿«la Secretaría invita»?)</label>
+        <textarea data-g="nota_registro_tono" placeholder="ej.: impersonal formal, tercera persona"></textarea></div>
+      <div><label class="campo"><b>Extensión habitual y estructura</b> (título, bajada, cuerpo: ¿límites?)</label>
+        <textarea data-g="nota_extension" placeholder="ej.: media carilla, sin bajada en notas a SGE"></textarea></div>
     </div>
   </div>
 
@@ -242,6 +251,10 @@
         <textarea data-g="o_regla_aprobacion"></textarea></div>
       <div><label class="campo"><b>Canal autorizado</b> para enviarlas</label>
         <input type="text" data-g="o_canal_autorizado"></div>
+      <div><label class="campo"><b>Texto de la confirmación:</b> ¿hay un texto tipo aprobado? ¿quién lo define?</label>
+        <textarea data-g="o_texto_tipo" placeholder="ej.: texto fijo por actividad, lo aprueba X"></textarea></div>
+      <div><label class="campo"><b>Tratamiento al inscripto</b> (usted / vos / impersonal)</label>
+        <input type="text" data-g="o_tratamiento"></div>
     </div>
   </div>
 
