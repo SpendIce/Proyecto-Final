@@ -116,3 +116,25 @@ designado, comunicados a Juan Ignacio en la misma fecha:
 - **Google Forms:** se va a deprecar y las inscripciones pasan a SIU Guaraní.
   El detalle de la migración (plazo, destino dentro de SIU por tipo de
   actividad) sigue pendiente —ver §5.
+
+## 7. Sugerencias registradas fuera del instrumento
+
+El mismo 22/09 quedó registrada una sugerencia de estrategia de modelo
+(comunicada por Juan Ignacio; origen de la sugerencia por confirmar):
+
+- **Entrenar el modelo como comunicador de base y luego personalizarlo:**
+  fine-tuning con datasets de newsletters y posteos de redes para que el
+  modelo sea un buen comunicador de base, y después darle ejemplos de
+  gacetillas y contexto de la organización para adaptarlo al caso SEU/FIE.
+
+**Estado:** registrada como *opción candidata*, no como requerimiento
+adoptado. Implica un cambio de escala (dataset curado, pipeline de
+entrenamiento, artefacto de pesos versionado y re-ejecución de toda la
+evidencia de conformidad) que hoy está fuera del MVP y de las restricciones
+declaradas (sin infraestructura de alto costo). Condiciones razonables para
+evaluarla: (a) que la SEU entregue ejemplos aprobados / archivo de publicaciones
+—el mismo pedido pendiente de §5 sirve como insumo de personalización—; (b)
+medir la conformidad del contrato v3 con prompts v4 para ver si el cuello
+sigue siendo el modelo o ya no; (c) decisión explícita sobre infraestructura.
+La alternativa barata para la personalización ya está en el camino actual:
+few-shot con los ejemplos aprobados dentro del prompt, sin entrenar.
