@@ -4,11 +4,14 @@ versión exportada del Google Doc fuente.
 
 Fuentes posibles (en orden de prioridad):
   --src <path>    Markdown ya exportado (el .md que baja Nacho del Doc)
-  --doc-id <id>   Exporta el Google Doc directamente (requiere link-shared;
-                  usa pandoc para convertir docx->md. OJO: puede cambiar el
-                  estilo del markdown y generar diffs ruidosos — preferir
-                  siempre el mismo exportador para diffs limpios)
+  --doc-id <id>   Baja el Google Doc directamente con el export nativo
+                  `export?format=md` (requiere que el doc sea link-shared)
   (default)       Auto-detecta el "Procesos y Agentes*.md" más nuevo en ~/Downloads
+
+Modo polling:
+  --doc-id <id> --check   Descarga `export?format=txt` (probe liviano), compara
+                          el hash contra ~/.cache/bible-watch/<id>.hash y solo
+                          sincroniza/notifica si el documento cambió.
 
 Qué hace:
   1. Extrae imágenes base64 inline a Contenido/bible/assets/procesos-y-agentes/
@@ -22,9 +25,7 @@ Qué hace:
 import argparse
 import base64
 import difflib
-import glob
 import hashlib
-import os
 import re
 import subprocess
 import sys
@@ -57,12 +58,24 @@ def die(msg: str, code: int = 1):
     sys.exit(code)
 
 
+def fetch(url: str, dest: Path, timeout: int = 60) -> bool:
+    r = subprocess.run(
+        ["curl", "-sfL", "--max-time", str(timeout), url, "-o", str(dest)],
+        capture_output=True,
+    )
+    return r.returncode == 0 and dest.stat().st_size > 100
+
+
 def resolve_source(args) -> tuple[Path, str]:
     if args.src:
         p = Path(args.src).expanduser()
         return (p if p.is_file() else die(f"no existe {p}")), "archivo local"
     if args.doc_id:
-        return export_docx(args.doc_id), f"export doc-id {args.doc_id}"
+        md = Path(tempfile.mkdtemp(prefix="bible-export-")) / "doc.md"
+        url = f"https://docs.google.com/document/d/{args.doc_id}/export?format=md"
+        if not fetch(url, md):
+            die("export falló (¿el doc es link-shared? ¿hay conexión?)")
+        return md, f"export doc-id {args.doc_id}"
     cands = sorted(
         DOWNLOADS.glob("Procesos y Agentes*.md"),
         key=lambda p: p.stat().st_mtime,
@@ -73,21 +86,22 @@ def resolve_source(args) -> tuple[Path, str]:
     return cands[0], f"auto-detectado ({cands[0].name})"
 
 
-def export_docx(doc_id: str) -> Path:
-    url = f"https://docs.google.com/document/d/{doc_id}/export?format=docx"
-    tmp = Path(tempfile.mkdtemp(prefix="bible-export-"))
-    docx = tmp / "doc.docx"
-    r = subprocess.run(["curl", "-sfL", url, "-o", str(docx)], capture_output=True)
-    if r.returncode != 0 or docx.stat().st_size < 1000:
-        die("export falló (¿el doc es link-shared?). HTTP auth requerida de lo contrario")
-    if subprocess.run(["command", "-v", "pandoc"], shell=True, capture_output=True).returncode != 0:
-        die("falta pandoc para el modo --doc-id (yay -S pandoc)")
-    md = tmp / "doc.md"
-    subprocess.run(
-        ["pandoc", "-t", "gfm", f"--extract-media={tmp/'media'}", str(docx), "-o", str(md)],
-        check=True,
-    )
-    return md
+def check_changed(doc_id: str) -> bool:
+    """Probe liviano con format=txt. True si el doc cambió o no hay baseline."""
+    state = Path.home() / ".cache" / "bible-watch"
+    state.mkdir(parents=True, exist_ok=True)
+    hashfile = state / f"{doc_id}.hash"
+    probe = Path(tempfile.mkdtemp(prefix="bible-probe-")) / "doc.txt"
+    url = f"https://docs.google.com/document/d/{doc_id}/export?format=txt"
+    if not fetch(url, probe, timeout=30):
+        print("warning: probe falló, se omite este ciclo", file=sys.stderr)
+        return False
+    h = hashlib.md5(probe.read_bytes()).hexdigest()
+    prev = hashfile.read_text().strip() if hashfile.exists() else ""
+    if h == prev:
+        return False
+    hashfile.write_text(h)
+    return True
 
 
 def extract_images(text: str) -> str:
@@ -132,22 +146,23 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--src", help="path al .md exportado")
     ap.add_argument("--doc-id", help="ID del Google Doc (requiere link-shared)")
+    ap.add_argument("--check", action="store_true",
+                    help="modo polling: solo sincroniza si el doc cambió (requiere --doc-id)")
     ap.add_argument("--quiet", action="store_true", help="sin notify-send")
     args = ap.parse_args()
+
+    if args.check:
+        if not args.doc_id:
+            die("--check requiere --doc-id")
+        if not check_changed(args.doc_id):
+            sys.exit(0)
+        print("documento modificado — sincronizando")
 
     src, origen = resolve_source(args)
     print(f"fuente: {origen}")
 
     raw = src.read_text(encoding="utf-8")
     new = extract_images(raw)
-    if args.doc_id:
-        # pandoc extrae a media/imageN.png -> rewire a assets/
-        media = src.parent / "media"
-        if media.is_dir():
-            for img in media.rglob("image*.*"):
-                (ASSETS / img.name).write_bytes(img.read_bytes())
-            new = re.sub(r"\([^)]*media/([^)]+)\)",
-                         r"(assets/procesos-y-agentes/\1)", new)
 
     old_lines = baseline()
     new_lines = new.splitlines(keepends=True)
