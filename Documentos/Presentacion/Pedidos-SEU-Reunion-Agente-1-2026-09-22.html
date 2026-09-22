@@ -320,6 +320,95 @@
 
 </div>
 
+<!-- ==================== SEGUNDA REUNIÓN: DIRECCIÓN / GATE G2 ==================== -->
+
+<div class="hoja">
+  <div class="membrete">
+    <div class="org">Facultad de Ingeniería del Ejército · UNDEF<br>
+      Proyecto Centenario — Agente 1 «Extensión Bot»</div>
+    <div class="doc">Instrumento de reunión con Dirección<br>
+      Juan Ignacio Goñe · PPS · 2026-09-22</div>
+  </div>
+
+  <h1>Reunión con Dirección — Gate G2 / TRL 3</h1>
+  <p class="sub">Retoma la nota del 9/09 ya enviada. Estado al día: 895 pruebas aprobadas, reproducible desde Git; cinco puntos institucionales pendientes (revisión SEU, identidad/permisos Workspace, plantilla, criterios por canal, orígenes de inscripción).</p>
+
+  <div class="intro">
+    <b>Qué es G2:</b> el gate que certifica TRL 3 — <i>«funciona en entorno controlado, caso simple
+    validado, sin necesidad de robustez total»</i>. No es «¿está todo terminado?» sino
+    «¿alcanza la evidencia actual para TRL 3, con los bloqueantes externos documentados?».
+    Lo que falta no es evidencia técnica sino el criterio formal de cierre.
+  </div>
+
+  <h2>1 · Criterio de cierre del gate</h2>
+  <div class="card">
+    <div class="grid2">
+      <div><label class="campo"><b>1. Evidencia mínima exigida</b> (el anteproyecto pide: gacetilla y post generados, logs, checklist SEU, mediciones de tiempo, informe de avance)</label>
+        <textarea data-g2="g2_evidencia_minima"></textarea></div>
+      <div><label class="campo"><b>2. ¿La revisión de la SEU es condición de G2 o corresponde a G4?</b></label>
+        <select data-g2="g2_seu_condicion">
+          <option value="">—</option>
+          <option>Condición obligatoria de G2</option>
+          <option>Puede quedar como entrada de G4</option>
+          <option>Otra / condicionada (detallar)</option>
+        </select>
+        <input type="text" data-g2="g2_seu_condicion_detalle" placeholder="detalle"></div>
+      <div><label class="campo"><b>3. Los cinco bloqueantes institucionales: ¿bloquean G2 o quedan como riesgos aceptados?</b></label>
+        <select data-g2="g2_bloqueantes">
+          <option value="">—</option>
+          <option>Bloquean el gate</option>
+          <option>Riesgos aceptados con responsable y fecha</option>
+          <option>Mixto (detallar cuáles)</option>
+        </select>
+        <textarea data-g2="g2_bloqueantes_detalle" placeholder="cuáles bloquean / responsable y fecha de cada riesgo aceptado"></textarea></div>
+      <div><label class="campo"><b>4. ¿Quién aprueba y firma el cierre de G2?</b></label>
+        <input type="text" data-g2="g2_firmante"></div>
+      <div><label class="campo"><b>5. ¿Alcanza acta breve + paquete de evidencia?</b></label>
+        <select data-g2="g2_formato">
+          <option value="">—</option>
+          <option>Sí, acta breve + paquete</option>
+          <option>No, se requiere otro formato (detallar)</option>
+        </select>
+        <input type="text" data-g2="g2_formato_detalle" placeholder="formato requerido"></div>
+      <div><label class="campo"><b>Propuesta presentada:</b> cerrar G2 con evidencia de entorno controlado, validación SEU como entrada de G4, acta explícita de que no acredita aceptación institucional. <b>¿Se acepta?</b></label>
+        <select data-g2="g2_propuesta_resultado">
+          <option value="">—</option>
+          <option>Aceptada</option>
+          <option>Aceptada con condiciones (detallar)</option>
+          <option>No aceptada (detallar)</option>
+        </select>
+        <textarea data-g2="g2_propuesta_detalle"></textarea></div>
+    </div>
+    <div class="grid2">
+      <div><label class="campo"><b>Decisión del gate (go / no-go)</b></label>
+        <select data-g2="g2_decision">
+          <option value="">—</option>
+          <option>GO — G2 aprobado</option>
+          <option>NO-GO — falta evidencia o condiciones</option>
+          <option>Queda pendiente de definición</option>
+        </select></div>
+      <div><label class="campo"><b>Motivo / condiciones registradas</b></label>
+        <textarea data-g2="g2_motivo"></textarea></div>
+    </div>
+  </div>
+
+  <h2>2 · Definiciones de alcance (documento Procesos y Agentes)</h2>
+  <div class="card">
+    <div class="grid2">
+      <div><label class="campo"><b>Canal de HU-013:</b> Sheet/Doc · email que invita a chatear · interfaz web con login (DSI2/Figma). <b>¿Cuál rige?</b></label>
+        <textarea data-g2="alc_canal_hu013"></textarea></div>
+      <div><label class="campo"><b>¿HU-013 incluye aprobar los contenidos de las demás HU?</b> (lectura actual: no — el CU transversal de validación no la lista)</label>
+        <textarea data-g2="alc_hu013_aprobacion"></textarea></div>
+      <div><label class="campo"><b>¿FastAPI y Celery son obligatorios o referencia?</b> (hoy diferidos por falta de necesidad validada)</label>
+        <textarea data-g2="alc_fastapi_celery"></textarea></div>
+      <div><label class="campo"><b>HU-015:</b> ceremonial/protocolo asignado a otro agente vs. certificados/triggers en A1 — <b>¿cómo se interpreta?</b></label>
+        <textarea data-g2="alc_hu015"></textarea></div>
+    </div>
+    <label class="campo"><b>Pendientes acordados</b> (qué + quién + fecha) y otras definiciones</label>
+    <textarea data-g2="pendientes" style="min-height:70px"></textarea>
+  </div>
+</div>
+
 <div class="barra">
   <span class="progreso" id="progreso">Muestras completas: 0/9</span>
   <span class="estado-guardado" id="estado-guardado">sin cambios</span>
@@ -401,8 +490,9 @@ function armarMuestras(){
 }
 
 function recolectar(){
-  const data = {gestion:{}, muestras:{}, sesion:{}};
+  const data = {gestion:{}, gestion_g2:{}, muestras:{}, sesion:{}};
   document.querySelectorAll("[data-g]").forEach(el=>{ data.gestion[el.dataset.g]=el.value; });
+  document.querySelectorAll("[data-g2]").forEach(el=>{ data.gestion_g2[el.dataset.g2]=el.value; });
   for(const id2 of ["identificador_sesion","fecha_hora","persona_revisora","rol_area",
                     "referencia_evidencia","decision","motivo_decision","elevacion_institucional"])
     data.sesion[id2] = document.getElementById(id2).value;
@@ -425,6 +515,9 @@ function restaurar(data){
   if(!data) return;
   if(data.gestion) for(const [k,v] of Object.entries(data.gestion)){
     const el=document.querySelector(`[data-g="${k}"]`); if(el) el.value=v;
+  }
+  if(data.gestion_g2) for(const [k,v] of Object.entries(data.gestion_g2)){
+    const el=document.querySelector(`[data-g2="${k}"]`); if(el) el.value=v;
   }
   if(data.sesion) for(const [k,v] of Object.entries(data.sesion)){
     const el=document.getElementById(k); if(el) el.value=v;
@@ -485,15 +578,16 @@ function exportar(){
   if(d.sesion.elevacion_institucional.trim())
     acta.elevacion_institucional=d.sesion.elevacion_institucional;
   const salida={
-    tipo:"reunion_seu_agente_1",
+    tipo:"reuniones_agente_1",
     generado_en:new Date().toISOString(),
     acta,
     gestion:d.gestion,
+    gestion_g2:d.gestion_g2,
   };
   const blob=new Blob([JSON.stringify(salida,null,2)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download=`reunion-seu-${new Date().toISOString().slice(0,10)}.json`;
+  a.download=`reuniones-agente1-${new Date().toISOString().slice(0,10)}.json`;
   a.click(); URL.revokeObjectURL(a.href);
 }
 
@@ -503,7 +597,7 @@ function cargarArchivo(input){
   const r=new FileReader();
   r.onload=()=>{ try{
       const j=JSON.parse(r.result);
-      restaurar(j.acta?{gestion:j.gestion,sesion:{
+      restaurar(j.acta?{gestion:j.gestion,gestion_g2:j.gestion_g2,sesion:{
         identificador_sesion:j.acta.identificador_sesion||"",
         fecha_hora:(j.acta.fecha_hora||"").replace(/:00-03:00$/,"").replace(/-03:00$/,""),
         persona_revisora:j.acta.persona_revisora||"",rol_area:j.acta.rol_area||"",
