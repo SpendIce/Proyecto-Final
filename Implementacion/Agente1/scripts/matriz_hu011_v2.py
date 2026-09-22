@@ -37,14 +37,14 @@ CREATIVIDAD = {
     "instagram": {
         "gancho": "Una propuesta para aprender y compartir.",
         "prosa": "Sumate a una experiencia pensada para la comunidad.",
-        "cta": "Consultá los datos y participá.",
-        "hashtags": ["#Aprender", "#Comunidad"],
+        "cta": "Encontrá el enlace en nuestro perfil.",
+        "hashtags": ["#FIE", "#UNDEF"],
     },
     "linkedin": {
         "gancho": "Una oportunidad para conectar conocimientos.",
         "prosa": "Te invitamos a ser parte de una experiencia de intercambio.",
-        "cta": "Conocé los datos y sumate.",
-        "hashtags": ["#Conocimiento", "#Comunidad"],
+        "cta": "Más información en el enlace de esta publicación.",
+        "hashtags": ["#FIE", "#Ingenieria"],
     },
 }
 

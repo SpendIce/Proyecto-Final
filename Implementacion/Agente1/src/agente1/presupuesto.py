@@ -51,14 +51,19 @@ FECHA_MEDICION = "2026-09-08"
 # verificar contra lo observado en vez de contra sí misma, y
 # `scripts/medir_presupuesto_decodificacion.py` puede comparar una corrida
 # nueva con este registro. Caracteres y tokens del documento máximo del
-# contrato v3, por estilo de redacción.
+# contrato v3, por estilo de redacción. La columna de caracteres corresponde
+# al contrato vigente (923): la allowlist institucional de hashtags achicó el
+# documento en un carácter respecto de la corrida original. La de tokens quedó
+# medida sobre la revisión anterior (924 caracteres): re-medirla requiere
+# Ollama y queda pendiente; el sentido del cambio es conservador, porque menos
+# caracteres con los mismos tokens da un ratio más estricto.
 MEDICION_DOCUMENTO_MAXIMO_V3 = {
-    "prosa institucional": (924, 233),
-    "prosa con acentuacion densa": (924, 228),
-    "palabras de una y dos letras": (924, 308),
-    "mayusculas y signos": (924, 482),
+    "prosa institucional": (923, 233),
+    "prosa con acentuacion densa": (923, 228),
+    "palabras de una y dos letras": (923, 308),
+    "mayusculas y signos": (923, 482),
 }
-# Extremo malo de esa medición, redondeado hacia abajo: 924/482 da 1,917 y se
+# Extremo malo de esa medición, redondeado hacia abajo: 923/482 da 1,914 y se
 # versiona como 1,91, para que el presupuesto derivado nunca quede por debajo
 # de lo que la medición ya observó. Bajarlo sin volver a medir convierte una
 # cota en una suposición.

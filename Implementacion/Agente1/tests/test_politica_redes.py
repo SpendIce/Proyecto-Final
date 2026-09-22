@@ -51,7 +51,7 @@ CREATIVIDAD_CONFORME = {
         "puedas intercambiar experiencias y aprender junto a otras personas."
     ),
     "cta": "Sumate y participá de la propuesta.",
-    "hashtags": ["#Aprender", "#Comunidad"],
+    "hashtags": ["#FIE", "#UNDEF"],
 }
 
 
@@ -87,11 +87,14 @@ def _errores(resultado) -> list[str]:
 CASOS_NEGATIVOS: dict[str, dict[str, object]] = {
     "RED-EXT-01": {"politica": {"max_chars": 120}},
     "RED-EXT-02": {"creatividad": {"gancho": "Muy corto"}},
+    "RED-EXT-03": {"politica": {"max_chars": 80}},
     "RED-HTG-01": {"creatividad": {"hashtags": []}},
     "RED-HTG-02": {"creatividad": {"hashtags": ["#EtiquetaInventada"]}},
-    "RED-HTG-03": {"creatividad": {"hashtags": ["#Aprender", "#aprender"]}},
-    "RED-HTG-04": {"creatividad": {"hashtags": ["Aprender"]}},
+    "RED-HTG-03": {"creatividad": {"hashtags": ["#FIE", "#fie"]}},
+    "RED-HTG-04": {"creatividad": {"hashtags": ["FIE"]}},
+    "RED-HTG-05": {"creatividad": {"hashtags": ["#Aprender"]}},
     "RED-REG-01": {"creatividad": {"cta": "Únete a esta propuesta abierta."}},
+    "RED-REG-02": {"creatividad": {"prosa": "Descubre una propuesta abierta para compartir experiencias con otras personas."}},
     "RED-TON-01": {
         "creatividad": {
             "prosa": (
@@ -141,7 +144,8 @@ def test_regla_activa_declara_codigo_y_regla_pendiente_no_lo_simula() -> None:
     for aplicacion in ("NO_APLICADA_PENDIENTE_SEU", "NO_MECANIZABLE"):
         for item in reglas_por_aplicacion(aplicacion):
             assert item["codigo_gate"] is None, item["id"]
-            assert item["origen_valor"] == "SIN_DEFINICION_INSTITUCIONAL", item["id"]
+    for item in reglas_por_aplicacion("NO_APLICADA_PENDIENTE_SEU"):
+        assert item["origen_valor"] == "SIN_DEFINICION_INSTITUCIONAL", item["id"]
 
 
 def test_toda_regla_activa_tiene_caso_negativo_de_regresion() -> None:

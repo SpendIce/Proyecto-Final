@@ -11,6 +11,6 @@ Fecha: 2026-08-09
 Organiza: Área de prueba
 Contacto: contacto@example.invalid
 
-Conocé los datos y sumate.
+Más información en el enlace de esta publicación.
 HASHTAGS:
-#Conocimiento #Comunidad
+#FIE #Ingenieria

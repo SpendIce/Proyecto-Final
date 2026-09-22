@@ -51,7 +51,7 @@ los primeros.
 |---|---|
 | Hecho comunicado | La inscripción a cursos y diplomaturas se realiza en SIU Guaraní (`CONFIRMADO_SEU`) |
 | Tipos de actividad | `CURSO`, `DIPLOMATURA` (`CONFIRMADO_SEU`); el 22/09 se registró que también cubre **carreras** y que la partición entre orígenes va por carga horaria (>90 h → Guaraní) (`CONFIRMADO_SEU`, acta de reunión 22/09) |
-| Responsable del dato | Departamento de Cursos Complementarios (`SUPUESTO_TECNICO`: fue descripto como puerta de entrada de la solicitud, no como administrador del padrón) |
+| Responsable del dato | La lista de inscriptos sale del propio SIU (`SUPUESTO_TECNICO` de diseño, registrado 22/09: la extracción se pide al administrador del entorno —quien administra el padrón sigue `DESCONOCIDO`) |
 | Campos disponibles | Registrado 22/09 (`CONFIRMADO_SEU`, acta de reunión 22/09): nombre, apellido, DNI, mail, teléfono, título y —en carreras— colegio de origen. `id_inscripcion`, `lugar` y `estado_preinscripcion`: `DESCONOCIDO` |
 | Estado de preinscripción | Sin lista validada ni criterio de qué estado habilita confirmar |
 | PDF informativo | `DESCONOCIDO` en este origen: el PDF se comunicó asociado al correo posterior |
@@ -113,7 +113,7 @@ tenerlo.
 | `combinacion_origen_tipo_no_confirmada` | Confirmación de qué tipos se inscriben por cada origen, con sus excepciones |
 | `estado_preinscripcion_no_confirmado` | Lista de estados y cuál habilita emitir una confirmación |
 | `regla_de_aprobacion_no_definida` | El 22/09 se registró **plantilla preaprobada** igual para todos, canal **correo** y tratamiento personal preferido (`CONFIRMADO_SEU`, acta de reunión 22/09); resta confirmar quién aprueba la plantilla |
-| `politica_datos_personales_no_definida` | Tratamiento, consentimiento, retención, borrado y canal autorizado |
+| `politica_datos_personales_no_definida` | Tratamiento, consentimiento, retención, borrado y canal autorizado. Decisión de diseño registrada 22/09: **minimización** —los datos del inscripto llegan con el envío y no se persisten en registros durables; queda confirmar consentimiento del inscripto y que el canal correo esté autorizado |
 | `canal_no_es_origen_de_inscripcion` | No corresponde levantarlo: es una clasificación, no una brecha |
 
 Los estados de preinscripción candidatos —`PREINSCRIPTO`, `INSCRIPTO`,

@@ -39,8 +39,8 @@ def salida_post_v2_cli() -> str:
         {
             "gancho": "Una propuesta para aprender y compartir.",
             "prosa": "Sumate a una experiencia pensada para la comunidad.",
-            "cta": "Consultá los datos y participá.",
-            "hashtags": ["#Aprender", "#Comunidad"],
+            "cta": "Encontrá el enlace en nuestro perfil.",
+            "hashtags": ["#FIE", "#UNDEF"],
         },
         ensure_ascii=False,
     )

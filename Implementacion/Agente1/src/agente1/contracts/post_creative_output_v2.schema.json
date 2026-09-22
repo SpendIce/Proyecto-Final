@@ -5,12 +5,13 @@
   "description": "Contrato técnico provisional. Los hechos institucionales no son generados por el LLM y se agregan mediante un renderer determinista.",
   "x-contract-version": "post_creative_output_v2",
   "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
-  "x-provisional-creative-catalog-version": "post_creative_catalog_v2",
+  "x-provisional-creative-catalog-version": "post_creative_catalog_v3",
   "x-provisional-safety-hashtags": [
-    "#Aprender",
-    "#Comunidad",
-    "#Conocimiento",
-    "#Participación"
+    "#FIE",
+    "#UNDEF",
+    "#Ingenieria",
+    "#Cursos",
+    "#inscripciones"
   ],
   "x-provisional-creative-catalog-by-channel": {
     "instagram": {
@@ -23,8 +24,8 @@
         "Te invitamos a compartir una nueva experiencia."
       ],
       "cta": [
-        "Consultá los datos y participá.",
-        "Conocé los datos y sumate."
+        "Encontrá el enlace en nuestro perfil.",
+        "Más información en el enlace del perfil."
       ]
     },
     "linkedin": {
@@ -37,8 +38,8 @@
         "Sumate a una experiencia pensada para la comunidad."
       ],
       "cta": [
-        "Conocé los datos y sumate.",
-        "Consultá los datos y participá."
+        "Más información en el enlace de esta publicación.",
+        "El enlace acompaña esta publicación."
       ]
     }
   },
@@ -68,8 +69,10 @@
     "cta": {
       "type": "string",
       "enum": [
-        "Consultá los datos y participá.",
-        "Conocé los datos y sumate."
+        "Encontrá el enlace en nuestro perfil.",
+        "Más información en el enlace del perfil.",
+        "Más información en el enlace de esta publicación.",
+        "El enlace acompaña esta publicación."
       ],
       "minLength": 1,
       "maxLength": 160
@@ -79,10 +82,11 @@
       "items": {
         "type": "string",
         "enum": [
-          "#Aprender",
-          "#Comunidad",
-          "#Conocimiento",
-          "#Participación"
+          "#FIE",
+          "#UNDEF",
+          "#Ingenieria",
+          "#Cursos",
+          "#inscripciones"
         ]
       },
       "uniqueItems": true

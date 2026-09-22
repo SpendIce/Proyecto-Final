@@ -11,6 +11,6 @@ Fecha: 2026-08-07
 Organiza: Equipo de prueba
 Contacto: pruebas@example.invalid
 
-Consultá los datos y participá.
+Encontrá el enlace en nuestro perfil.
 HASHTAGS:
-#Aprender #Comunidad
+#FIE #UNDEF

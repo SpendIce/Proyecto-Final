@@ -675,12 +675,18 @@ PATRON_CIRCUITO_NO_AUTORIZADO = re.compile(
     flags=re.IGNORECASE,
 )
 # Formas verbales de tuteo peninsular ("inscríbete", "únete"). Los modelos
-# abiertos las producen por defecto; el registro institucional local usa voseo o
-# formas impersonales. Es un control de registro, no de calidad: la lista es
-# corta a propósito y cubre los imperativos que aparecen en la práctica.
+# abiertos las producen por defecto; el registro institucional confirmado por
+# la SEU (22/09) es rioplatense con voseo o formas impersonales. Es un control
+# de registro, no de calidad: la lista cubre los imperativos y las segundas
+# personas del singular que aparecen en la práctica —incluidos "descubre" y
+# "puedes", falsos negativos detectados en el spike v3— y evita las formas
+# átonas que coinciden con el voseo ("enterate", "animate").
 PATRON_TUTEO = re.compile(
     r"\b(?:inscr[ií]bete|reg[ií]strate|[uú]nete|participa|comp[aá]rtelo|"
-    r"desc[uú]brelo|aprovecha|con[ée]ctate)\b",
+    r"desc[uú]brelo|aprovecha|con[ée]ctate|"
+    r"descubre|comparte|aprende|conoce|explora|disfruta|"
+    r"suscríbete|entérate|anímate|prepárate|"
+    r"puedes|tienes|quieres|sabes|eres|descubres|encuentras)\b",
     flags=re.IGNORECASE,
 )
 # Eco de vocabulario de prompting en la salida. Si aparece, o el modelo está
@@ -772,7 +778,7 @@ CONTRATO_CREATIVO_V2 = _construir_contrato_creativo(
 CONTRATO_CREATIVO_V3 = _construir_contrato_creativo(
     CONTRATO_SALIDA_ESTRUCTURADA_V3,
     renderer_version="post_deterministic_renderer_v3",
-    prompt_suffix="v3",
+    prompt_suffix="v4",
     borrador_suffix="-v3",
 )
 # Detecta referencias a lugares genéricos en minúscula ("en el aula", "desde la
@@ -1323,6 +1329,41 @@ def _contiene_hecho(texto: str, hecho: str) -> bool:
     return patron is not None and patron.search(_normalizar_hecho(texto)) is not None
 
 
+# Sustantivos genéricos de tipo de actividad. La SEU confirmó el 22/09 que un
+# post puede nombrar la actividad («la jornada», «el taller»): repetir el tipo
+# en el texto creativo ya no cuenta como fragmento del título. Las palabras
+# distintivas del título («sintético», «vinculación») siguen rechazadas: los
+# hechos los agrega el renderer en secciones fijas.
+SUSTANTIVOS_GENERICOS_ACTIVIDAD = frozenset(
+    {
+        "actividad",
+        "actividades",
+        "jornada",
+        "jornadas",
+        "taller",
+        "talleres",
+        "seminario",
+        "seminarios",
+        "curso",
+        "cursos",
+        "diplomatura",
+        "diplomaturas",
+        "congreso",
+        "congresos",
+        "charla",
+        "charlas",
+        "webinar",
+        "webinars",
+        "encuentro",
+        "encuentros",
+        "conferencia",
+        "conferencias",
+        "propuesta",
+        "propuestas",
+    }
+)
+
+
 def _contiene_fragmento_significativo(texto: str, hecho: str) -> bool:
     """Detecta fragmentos de hechos sin confundir artículos o preposiciones.
 
@@ -1330,12 +1371,18 @@ def _contiene_fragmento_significativo(texto: str, hecho: str) -> bool:
     fuente: el renderer los agrega en secciones fijas. Comparar sólo la frase
     completa dejaba pasar, por ejemplo, ``Taller`` cuando el título era
     ``Taller sintético de vinculación``. Se rechazan palabras de al menos cinco
-    caracteres que no sean conectores; sigue siendo un control mecánico
-    conservador y la revisión semántica corresponde a la SEU.
+    caracteres que no sean conectores ni sustantivos genéricos de actividad
+    (`SUSTANTIVOS_GENERICOS_ACTIVIDAD`, confirmado por la SEU el 22/09); sigue
+    siendo un control mecánico conservador y la revisión semántica corresponde
+    a la SEU.
     """
     palabras = re.findall(r"[^\W_]+", _normalizar_hecho(hecho), flags=re.UNICODE)
     for palabra in palabras:
-        if len(palabra) < 5 or palabra in {"desde", "hasta", "sobre", "entre"}:
+        if (
+            len(palabra) < 5
+            or palabra in {"desde", "hasta", "sobre", "entre"}
+            or palabra in SUSTANTIVOS_GENERICOS_ACTIVIDAD
+        ):
             continue
         patron = re.compile(r"(?<!\w)" + re.escape(palabra) + r"(?!\w)")
         if patron.search(_normalizar_hecho(texto)) is not None:

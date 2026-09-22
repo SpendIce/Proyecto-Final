@@ -34,7 +34,7 @@ CREATIVIDAD_LIBRE = {
         "puedas intercambiar experiencias y aprender junto a otras personas."
     ),
     "cta": "Sumate y participá de la propuesta.",
-    "hashtags": ["#Aprender", "#Comunidad"],
+    "hashtags": ["#FIE", "#UNDEF"],
 }
 
 
@@ -65,6 +65,44 @@ def test_v3_acepta_redaccion_original_fuera_de_todo_catalogo(tmp_path: Path) -> 
     borrador = resultado.borrador_path.read_text(encoding="utf-8")
     assert "BORRADOR — NO PUBLICAR" in borrador
     assert CREATIVIDAD_LIBRE["gancho"] in borrador
+
+
+@pytest.mark.parametrize(
+    "prosa",
+    [
+        "La jornada propone un espacio abierto para compartir experiencias.",
+        "El taller invita a intercambiar saberes junto a otras personas.",
+        "Esta propuesta del seminario convoca a la comunidad a participar.",
+    ],
+)
+def test_v3_acepta_sustantivos_genericos_de_actividad(
+    prosa: str, tmp_path: Path
+) -> None:
+    """La SEU confirmó (22/09) que el post puede nombrar la actividad de forma
+    genérica; sólo los fragmentos distintivos del título siguen rechazados."""
+    creatividad = dict(CREATIVIDAD_LIBRE)
+    creatividad["prosa"] = prosa
+
+    resultado = _generar(creatividad, CONTRATO_CREATIVO_V3, tmp_path)
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+
+
+@pytest.mark.parametrize(
+    "cta",
+    [
+        "Enterate de los datos en el enlace del perfil.",
+        "Animate a participar; el enlace está en el perfil.",
+    ],
+)
+def test_v3_acepta_voseo_rioplatense(cta: str, tmp_path: Path) -> None:
+    """Voseo confirmado por la SEU (22/09): el gate sólo rechaza tuteo."""
+    creatividad = dict(CREATIVIDAD_LIBRE)
+    creatividad["cta"] = cta
+
+    resultado = _generar(creatividad, CONTRATO_CREATIVO_V3, tmp_path)
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
 
 
 def test_v2_sigue_rechazando_texto_fuera_del_catalogo(tmp_path: Path) -> None:
@@ -100,7 +138,7 @@ def test_v3_conserva_el_gate_de_hechos(tmp_path: Path) -> None:
         ("prosa", "Un seminario remoto para seguir aprendiendo junto a otras personas.", "unauthorized_fact_claim"),
         ("cta", "Inscribite ahora y asegurá tu lugar en esta propuesta.", "unauthorized_call_to_action"),
         ("cta", "Inscríbete y conocé nuevas propuestas para participar.", "non_rioplatense_register"),
-        ("prosa", "Este taller propone un espacio abierto para compartir experiencias.", "source_fact_in_creative_field"),
+        ("prosa", "Este taller sintético propone un espacio abierto para compartir experiencias.", "source_fact_in_creative_field"),
     ],
 )
 def test_v3_rechaza_riesgos_linguisticos_y_fragmentos_de_hechos(
@@ -137,7 +175,7 @@ def test_v3_audita_su_propia_version_de_contrato_y_prompt(tmp_path: Path) -> Non
     )
 
     assert registro["output_contract_version"] == "post_creative_output_v3"
-    assert registro["prompt_version"] == "post_instagram_structured_v3"
+    assert registro["prompt_version"] == "post_instagram_structured_v4"
     assert registro["creative_catalog_version"] is None
 
 

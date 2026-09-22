@@ -20,7 +20,7 @@ Límites técnicos provisionales:
 - gancho: 1 a 160 caracteres;
 - prosa: 1 a 500 caracteres;
 - cta: 1 a 160 caracteres;
-- hashtags: entre {min_hashtags} y {max_hashtags}, elegidos solamente de #Aprender, #Comunidad, #Conocimiento y #Participación;
+- hashtags: entre {min_hashtags} y {max_hashtags}, elegidos solamente de #FIE, #UNDEF, #Ingenieria, #Cursos e #inscripciones;
 - el post renderizado no puede superar {max_chars} caracteres.
 
 DATOS_JSON_INICIO

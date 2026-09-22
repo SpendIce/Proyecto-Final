@@ -584,21 +584,27 @@ def test_recorrido_completo_funciona_sin_modelo_configurado(tmp_path: Path) -> N
 # --- 8. Post de HU-011 despachado desde este seam (#22) ----------------------
 #
 # `generar_post` comparte el pipeline de gacetilla en todo salvo un dato: el
-# canal. `_POST_CONFORME` es una creatividad válida para el contrato v2 por
-# defecto (`CONTRATO_CREATIVO_V2`) en *ambos* canales soportados —gancho,
-# prosa y cta pertenecen al catálogo cerrado de Instagram y de LinkedIn a la
-# vez, ver `post_creative_output_v2.schema.json`— así que un mismo fixture
-# alcanza para las pruebas de los dos canales.
+# canal. `_post_conforme` devuelve una creatividad válida para el contrato v2
+# por defecto (`CONTRATO_CREATIVO_V2`). Gancho y prosa son compartidos entre
+# canales; el CTA cambia porque el catálogo confirmado por la SEU ubica el
+# enlace en el perfil para Instagram y en la publicación para LinkedIn.
 
-_POST_CONFORME = json.dumps(
-    {
-        "gancho": "Una propuesta para aprender y compartir.",
-        "prosa": "Sumate a una experiencia pensada para la comunidad.",
-        "cta": "Consultá los datos y participá.",
-        "hashtags": ["#Aprender", "#Comunidad"],
-    },
-    ensure_ascii=False,
-)
+_CTAS_POR_CANAL = {
+    "instagram": "Encontrá el enlace en nuestro perfil.",
+    "linkedin": "Más información en el enlace de esta publicación.",
+}
+
+
+def _post_conforme(canal: str = "instagram") -> str:
+    return json.dumps(
+        {
+            "gancho": "Una propuesta para aprender y compartir.",
+            "prosa": "Sumate a una experiencia pensada para la comunidad.",
+            "cta": _CTAS_POR_CANAL[canal],
+            "hashtags": ["#FIE", "#UNDEF"],
+        },
+        ensure_ascii=False,
+    )
 
 
 @pytest.mark.parametrize(
@@ -612,7 +618,7 @@ def test_pedido_de_post_con_canal_explicito_produce_borrador(
     canal: str, texto: str, tmp_path: Path
 ) -> None:
     resultado = _interpretar(
-        tmp_path, texto, generator=FakeGenerator(_POST_CONFORME)
+        tmp_path, texto, generator=FakeGenerator(_post_conforme(canal))
     )
 
     assert resultado.estado == "PENDIENTE_VALIDACION"
@@ -630,7 +636,7 @@ def test_respuesta_de_post_trae_puntero_y_resumen_nunca_el_texto_completo(
     resultado = _interpretar(
         tmp_path,
         "Quiero un post de instagram para SYN-001",
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
 
     assert resultado.resumen is not None
@@ -644,7 +650,7 @@ def test_post_generado_conserva_marca_y_estado_pendiente(tmp_path: Path) -> None
     resultado = _interpretar(
         tmp_path,
         "Post de instagram para SYN-001",
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
 
     contenido = resultado.borrador_path.read_text(encoding="utf-8")
@@ -660,7 +666,7 @@ def test_post_sin_canal_indicado_devuelve_incompleta_sin_decidir_por_defecto(
     resultado = _interpretar(
         tmp_path,
         "Necesito un post para la actividad SYN-001",
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
 
     assert resultado.estado == "INCOMPLETA"
@@ -680,7 +686,7 @@ def test_post_con_los_dos_canales_a_la_vez_tampoco_decide_por_defecto(
     resultado = _interpretar(
         tmp_path,
         "Necesito un post de instagram y linkedin para la actividad SYN-001",
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
 
     assert resultado.estado == "INCOMPLETA"
@@ -743,7 +749,7 @@ def test_post_con_identificador_explicito_inexistente_no_genera_borrador(
     resultado = _interpretar(
         tmp_path,
         "Post de instagram para la actividad ZZZ-999",
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
 
     assert resultado.estado == "INVALIDA"
@@ -753,7 +759,7 @@ def test_post_con_identificador_explicito_inexistente_no_genera_borrador(
 def test_post_registra_solo_derivado_estructurado_nunca_prosa(tmp_path: Path) -> None:
     texto = "Necesito un post de instagram para SYN-001, es urgente y personal"
 
-    resultado = _interpretar(tmp_path, texto, generator=FakeGenerator(_POST_CONFORME))
+    resultado = _interpretar(tmp_path, texto, generator=FakeGenerator(_post_conforme()))
 
     contenido_log = resultado.log_path.read_text(encoding="utf-8")
     assert texto not in contenido_log
@@ -769,7 +775,7 @@ def test_recorrido_de_post_funciona_sin_modelo_configurado(tmp_path: Path) -> No
     resultado = _interpretar(
         tmp_path,
         "Necesito un post de linkedin para SYN-001",
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme("linkedin")),
     )
 
     assert resultado.estado == "PENDIENTE_VALIDACION"
@@ -1063,7 +1069,7 @@ def test_pedido_de_post_sin_identificador_resuelve_la_actividad_por_similitud(
     resultado = _interpretar(
         tmp_path,
         "Necesito un post de instagram del taller de vinculacion",
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
 
     assert resultado.estado == "PENDIENTE_VALIDACION"
@@ -1084,7 +1090,7 @@ def test_post_sin_identificador_ni_canal_reporta_el_canal_faltante(
     resultado = _interpretar(
         tmp_path,
         "Necesito un post del taller de vinculacion",
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
 
     assert resultado.estado == "INCOMPLETA"
@@ -1431,7 +1437,7 @@ def test_referencia_a_pendiente_de_post_toma_el_canal_del_mensaje_del_turno(
         solicitante=identidad,
         fuente=_FuenteConActividadesAmbiguas(),
         registro_pendientes=registro_pendientes,
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
     assert ambiguo.estado == "PENDIENTE_DESAMBIGUACION"
     assert ambiguo.intencion == "generar_post"
@@ -1442,7 +1448,7 @@ def test_referencia_a_pendiente_de_post_toma_el_canal_del_mensaje_del_turno(
         solicitante=identidad,
         fuente=_FuenteConActividadesAmbiguas(),
         registro_pendientes=registro_pendientes,
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
     # Resolver la referencia consume la pendiente igual que un identificador
     # explícito sin canal: falta un dato del pipeline de post, no de la
@@ -1461,7 +1467,7 @@ def test_referencia_a_pendiente_de_post_toma_el_canal_del_mensaje_del_turno(
         solicitante=identidad,
         fuente=_FuenteConActividadesAmbiguas(),
         registro_pendientes=registro_pendientes,
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
     con_canal = _interpretar(
         tmp_path,
@@ -1469,7 +1475,7 @@ def test_referencia_a_pendiente_de_post_toma_el_canal_del_mensaje_del_turno(
         solicitante=identidad,
         fuente=_FuenteConActividadesAmbiguas(),
         registro_pendientes=registro_pendientes,
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
     )
     assert con_canal.intencion == "generar_post"
     registro_con_canal = _ultima_linea(con_canal.log_path)
@@ -2012,7 +2018,7 @@ def test_el_canal_faltante_de_un_post_registra_que_intervino_el_modelo(
     resultado = _interpretar(
         tmp_path,
         "Necesito un post de la de vinculasion",
-        generator=FakeGenerator(_POST_CONFORME),
+        generator=FakeGenerator(_post_conforme()),
         interprete=interprete,
     )
 

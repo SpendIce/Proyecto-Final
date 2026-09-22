@@ -12,6 +12,6 @@ Organiza: Equipo de prueba
 Lugar: Aula de prueba
 Contacto: pruebas@example.invalid
 
-Consultá los datos y participá.
+Encontrá el enlace en nuestro perfil.
 HASHTAGS:
-#Aprender #Comunidad
+#FIE #UNDEF

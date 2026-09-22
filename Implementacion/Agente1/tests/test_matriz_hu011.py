@@ -97,7 +97,9 @@ def test_runner_compara_seis_borradores_y_no_genera_para_incompletos(tmp_path: P
             assert caso["policy_limits"] == {
                 "max_chars": 1000,
                 "min_hashtags": 1,
-                "max_hashtags": 10,
+                # La SEU confirmó hasta 5 hashtags en Instagram; el de
+                # LinkedIn es un techo técnico, no editorial.
+                "max_hashtags": 5 if canal == "instagram" else 10,
             }
             assert caso["prompt_version"] == f"post_{canal}_v1"
             assert caso["correlation_id"]

@@ -7,7 +7,7 @@
   "x-hu": "HU-011",
   "x-proceso-bpm": "P4",
   "x-defecto-asociado": "DEF-A1-007",
-  "x-origen": "Equipo técnico del PPS. Ningún valor de este artefacto fue aprobado por la SEU.",
+  "x-origen": "Equipo técnico del PPS con criterios confirmados por la SEU el 2026-09-22 (acta de reunión con el referente designado; ver Documentos/PoC/Respuestas-SEU-Reunion-2026-09-22.md). Quedan provisionales los valores no consultados.",
   "x-referencia-solicitud": "Documentos/PoC/Nota-Solicitud-SEU-Agente-1-PPS-Juan-Ignacio-Gone.md, punto 4.1",
   "description": "Traduce la política de redes a reglas identificadas, parametrizadas y verificables. Cada regla declara si está aplicada mecánicamente por el gate de HU-011, con qué código de validación se observa, de dónde sale su valor y qué punto de la nota a la SEU la reemplazaría por criterio institucional. Una regla ACTIVA debe tener regresión automática; una regla no aplicada no debe presentarse como cumplida.",
 
@@ -32,11 +32,12 @@
       "policy_version": "post_instagram_policy_provisional_v1",
       "max_chars": 1000,
       "min_hashtags": 1,
-      "max_hashtags": 10,
-      "max_emojis": 3,
+      "max_hashtags": 5,
+      "max_emojis": 2,
       "max_exclamaciones": 2,
-      "tono_declarado": "Cercano, cálido y breve, en registro rioplatense.",
-      "origen_valores": "EQUIPO_TECNICO_PROVISIONAL"
+      "tono_declarado": "Académico, con audiencia diferenciada: profesionales en cursos y congresos, perfiles más jóvenes en carreras. Registro rioplatense con voseo.",
+      "origen_valores": "CONFIRMADO_SEU_2026-09-22",
+      "observacion": "Extensión sin límite editorial: max_chars es un techo técnico interno, no un criterio SEU. Emojis casi nunca, sólo para datos puntuales (hora, día, consultas, inscripción): se conserva un tope interno de 2. CTA: el enlace va en el perfil."
     },
     "linkedin": {
       "policy_version": "post_linkedin_policy_provisional_v1",
@@ -45,16 +46,18 @@
       "max_hashtags": 10,
       "max_emojis": 0,
       "max_exclamaciones": 0,
-      "tono_declarado": "Profesional y sobrio, orientado a vinculación académica e institucional.",
-      "origen_valores": "EQUIPO_TECNICO_PROVISIONAL"
+      "tono_declarado": "Académico, orientado a público más profesional; mismo criterio que Instagram, sin diferenciación fuerte entre plataformas. Registro rioplatense.",
+      "origen_valores": "CONFIRMADO_SEU_2026-09-22",
+      "observacion": "Sin tope editorial de hashtags: max_hashtags queda como techo técnico interno. CTA: el enlace va en el post."
     }
   },
 
   "hashtags_autorizados_provisionales": [
-    "#Aprender",
-    "#Comunidad",
-    "#Conocimiento",
-    "#Participación"
+    "#FIE",
+    "#UNDEF",
+    "#Ingenieria",
+    "#Cursos",
+    "#inscripciones"
   ],
 
   "lexico_promocional_prohibido": [
@@ -100,14 +103,13 @@
     {
       "id": "RED-EXT-03",
       "dimension": "extension",
-      "enunciado": "La extensión debe diferenciarse por canal según criterio editorial institucional.",
+      "enunciado": "Sin límite editorial por canal: la SEU confirmó «sin límite» para ambos; el sistema conserva max_chars como techo técnico interno.",
       "canales": ["instagram", "linkedin"],
       "parametro": "max_chars",
-      "aplicacion": "NO_APLICADA_PENDIENTE_SEU",
-      "codigo_gate": null,
-      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
-      "punto_nota_seu": "4.1.1",
-      "observacion": "Hoy ambos canales comparten 1000 caracteres, lo que evidencia un marcador de posición y no un criterio."
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "length_out_of_range",
+      "origen_valor": "CONFIRMADO_SEU_2026-09-22",
+      "punto_nota_seu": "4.1.1"
     },
     {
       "id": "RED-HTG-01",
@@ -156,14 +158,14 @@
     {
       "id": "RED-HTG-05",
       "dimension": "hashtags",
-      "enunciado": "Las etiquetas institucionales reales de la Facultad deben reemplazar a la allowlist provisional.",
+      "enunciado": "La allowlist es la lista institucional confirmada por la SEU: #FIE, #UNDEF, #Ingenieria, #Cursos, #inscripciones —según la publicación—; Instagram admite hasta 5 y LinkedIn no tiene tope editorial.",
       "canales": ["instagram", "linkedin"],
       "parametro": "hashtags_autorizados_provisionales",
-      "aplicacion": "NO_APLICADA_PENDIENTE_SEU",
-      "codigo_gate": null,
-      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "hashtag_not_in_provisional_safety_allowlist",
+      "origen_valor": "CONFIRMADO_SEU_2026-09-22",
       "punto_nota_seu": "4.1.3",
-      "observacion": "Las cuatro etiquetas vigentes son genéricas y fueron propuestas por el equipo técnico."
+      "observacion": "El código del gate conserva su nombre histórico; la lista ya no es provisional en origen, sólo en clave del artefacto."
     },
     {
       "id": "RED-REG-01",
@@ -179,14 +181,13 @@
     {
       "id": "RED-REG-02",
       "dimension": "registro",
-      "enunciado": "El registro institucional definitivo —voseo rioplatense, tuteo neutro o tercera persona— debe ser decidido por la SEU.",
+      "enunciado": "El registro institucional es rioplatense con voseo aceptable, confirmado por la SEU; el gate rechaza tuteo peninsular o neutro.",
       "canales": ["instagram", "linkedin"],
       "parametro": "registro",
-      "aplicacion": "NO_APLICADA_PENDIENTE_SEU",
-      "codigo_gate": null,
-      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
-      "punto_nota_seu": "4.1.4",
-      "observacion": "El rechazo de tuteo es una decisión técnica conservadora, no un criterio editorial aprobado."
+      "aplicacion": "ACTIVA",
+      "codigo_gate": "non_rioplatense_register",
+      "origen_valor": "CONFIRMADO_SEU_2026-09-22",
+      "punto_nota_seu": "4.1.4"
     },
     {
       "id": "RED-TON-01",
@@ -214,14 +215,14 @@
     {
       "id": "RED-TON-03",
       "dimension": "tono",
-      "enunciado": "La adecuación editorial del tono a la identidad institucional por canal.",
+      "enunciado": "Tono académico en ambos canales; Instagram con audiencia diferenciada (profesionales en cursos/congresos, perfiles más jóvenes en carreras) y LinkedIn orientado a público más profesional, sin diferenciación fuerte entre plataformas.",
       "canales": ["instagram", "linkedin"],
       "parametro": "tono_declarado",
       "aplicacion": "NO_MECANIZABLE",
       "codigo_gate": null,
-      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
+      "origen_valor": "CONFIRMADO_SEU_2026-09-22",
       "punto_nota_seu": "4.1.5",
-      "observacion": "Ningún control léxico decide calidad ni adecuación; requiere revisión humana registrada."
+      "observacion": "El criterio ya está definido; la adecuación sigue siendo juicio editorial y requiere revisión humana registrada."
     },
     {
       "id": "RED-EMO-01",
@@ -260,14 +261,14 @@
     {
       "id": "RED-CTA-03",
       "dimension": "cta",
-      "enunciado": "El CTA admisible cuando exista circuito de inscripción real, con su destino autorizado.",
+      "enunciado": "El CTA se resuelve por canal: Instagram remite al enlace del perfil y LinkedIn al enlace incluido en el post. Confirmado por la SEU el 22/09.",
       "canales": ["instagram", "linkedin"],
       "parametro": "cta",
-      "aplicacion": "NO_APLICADA_PENDIENTE_SEU",
+      "aplicacion": "NO_MECANIZABLE",
       "codigo_gate": null,
-      "origen_valor": "SIN_DEFINICION_INSTITUCIONAL",
+      "origen_valor": "CONFIRMADO_SEU_2026-09-22",
       "punto_nota_seu": "4.1.7",
-      "observacion": "Depende también de la consulta 5.1 sobre la existencia del circuito de inscripción."
+      "observacion": "La ubicación del enlace no es verificable mecánicamente: queda codificada en el catálogo v2 y en los prompts; la adecuación final la revisa la SEU."
     },
     {
       "id": "RED-ALC-01",

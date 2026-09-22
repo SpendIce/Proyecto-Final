@@ -8,13 +8,19 @@
   "x-supersedes": "post_creative_output_v2",
   "x-rationale": "El enum de v2 se introdujo para resolver el HTTP 400 de compilación de grammar observado en v3-experimental, es decir un problema de transporte. Como efecto colateral redujo el espacio de salida a ocho combinaciones por canal, de las cuales la corrida live del 2026-08-17 utilizó una sola. Ver DEF-A1-011.",
   "x-provisional-safety-hashtags": [
-    "#Aprender",
-    "#Comunidad",
-    "#Conocimiento",
-    "#Participación"
+    "#FIE",
+    "#UNDEF",
+    "#Ingenieria",
+    "#Cursos",
+    "#inscripciones"
   ],
   "type": "object",
-  "required": ["gancho", "prosa", "cta", "hashtags"],
+  "required": [
+    "gancho",
+    "prosa",
+    "cta",
+    "hashtags"
+  ],
   "properties": {
     "gancho": {
       "type": "string",
@@ -36,10 +42,11 @@
       "items": {
         "type": "string",
         "enum": [
-          "#Aprender",
-          "#Comunidad",
-          "#Conocimiento",
-          "#Participación"
+          "#FIE",
+          "#UNDEF",
+          "#Ingenieria",
+          "#Cursos",
+          "#inscripciones"
         ]
       },
       "uniqueItems": true
