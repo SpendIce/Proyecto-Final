@@ -70,6 +70,9 @@ window.GANTT_PROGRESS = {
   //        activas, prompts v4, catalogo v3, paquete regenerado). La mitad
   //        humana sigue BLOQUEADO_EXTERNO: revision asincronica del paquete
   //        en curso (DEF-A1-005). DEF-A1-007 quedo EN_CORRECCION.
+  //        Medicion live del 22/09: 1/6 conforme con y sin reintento
+  //        (issue #37 mergeado): la brecha residual es obediencia del
+  //        modelo 3B, no del gate ni del pipeline.
   // m2   - Gate TRL 3 PENDIENTE: falta criterio formal (DEF-A1-006) y validacion SEU.
   // s3a  - paquete de gestion DSI redactado (issue #15), pero identidad, permisos y recursos siguen sin otorgarse.
   // s3b  - SEU designo revisor titular/suplente y se documento el circuito; el
