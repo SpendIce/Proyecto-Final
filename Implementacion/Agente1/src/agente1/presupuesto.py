@@ -11,17 +11,18 @@ el documento JSON más grande que el esquema admite y se lo convierte a tokens
 con la relación de caracteres por token menos favorable que se haya medido
 sobre el mismo tokenizador.
 
-**Medición del 2026-09-08**, `llama3.2:3b` local, vía `/api/generate` con
-`raw: true` y `num_predict: 1`, leyendo `prompt_eval_count` —que tokeniza el
-texto enviado sin aplicar plantilla de chat—, sobre el documento máximo del
-contrato v3 (924 caracteres):
+**Medición del 2026-09-08, re-medida el 2026-09-22**, `llama3.2:3b` local,
+vía `/api/generate` con `raw: true` y `num_predict: 1`, leyendo
+`prompt_eval_count` —que tokeniza el texto enviado sin aplicar plantilla de
+chat—, sobre el documento máximo del contrato v3 (923 caracteres tras la
+allowlist institucional de hashtags):
 
 | Estilo del texto | tokens | caracteres por token |
 |---|---|---|
-| Prosa institucional | 233 | 3,966 |
-| Prosa con acentuación densa | 228 | 4,053 |
-| Palabras de una y dos letras | 308 | 3,000 |
-| Mayúsculas y signos de puntuación | 482 | 1,917 |
+| Prosa institucional | 236 | 3,911 |
+| Prosa con acentuación densa | 231 | 3,996 |
+| Palabras de una y dos letras | 311 | 2,968 |
+| Mayúsculas y signos de puntuación | 485 | 1,903 |
 
 Los mismos números están en `MEDICION_DOCUMENTO_MAXIMO_V3`, para que la
 constante se pueda verificar contra la medición y no contra sí misma.
@@ -46,28 +47,26 @@ import math
 
 
 TOKENIZADOR_MEDIDO = "llama3.2:3b"
-FECHA_MEDICION = "2026-09-08"
+FECHA_MEDICION = "2026-09-22"
 # La medición queda como dato y no sólo como prosa: así la constante se puede
 # verificar contra lo observado en vez de contra sí misma, y
 # `scripts/medir_presupuesto_decodificacion.py` puede comparar una corrida
 # nueva con este registro. Caracteres y tokens del documento máximo del
-# contrato v3, por estilo de redacción. La columna de caracteres corresponde
-# al contrato vigente (923): la allowlist institucional de hashtags achicó el
-# documento en un carácter respecto de la corrida original. La de tokens quedó
-# medida sobre la revisión anterior (924 caracteres): re-medirla requiere
-# Ollama y queda pendiente; el sentido del cambio es conservador, porque menos
-# caracteres con los mismos tokens da un ratio más estricto.
+# contrato v3, por estilo de redacción. Caracteres y tokens corresponden al
+# contrato vigente (923): la allowlist institucional de hashtags achicó el
+# documento en un carácter y la columna de tokens se re-midió el 2026-09-22
+# sobre esa revisión.
 MEDICION_DOCUMENTO_MAXIMO_V3 = {
-    "prosa institucional": (923, 233),
-    "prosa con acentuacion densa": (923, 228),
-    "palabras de una y dos letras": (923, 308),
-    "mayusculas y signos": (923, 482),
+    "prosa institucional": (923, 236),
+    "prosa con acentuacion densa": (923, 231),
+    "palabras de una y dos letras": (923, 311),
+    "mayusculas y signos": (923, 485),
 }
-# Extremo malo de esa medición, redondeado hacia abajo: 923/482 da 1,914 y se
-# versiona como 1,91, para que el presupuesto derivado nunca quede por debajo
+# Extremo malo de esa medición, redondeado hacia abajo: 923/485 da 1,903 y se
+# versiona como 1,90, para que el presupuesto derivado nunca quede por debajo
 # de lo que la medición ya observó. Bajarlo sin volver a medir convierte una
 # cota en una suposición.
-CHARS_POR_TOKEN_MENOS_FAVORABLE = 1.91
+CHARS_POR_TOKEN_MENOS_FAVORABLE = 1.90
 
 
 # El resultado y el mensaje viven acá, con la excepción, porque los dos
