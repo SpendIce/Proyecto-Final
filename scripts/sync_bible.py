@@ -3,7 +3,7 @@
 versión exportada del Google Doc fuente.
 
 Fuentes posibles (en orden de prioridad):
-  --src <path>    Markdown ya exportado (el .md que baja Nacho del Doc)
+  --src <path>    Markdown ya exportado (el .md que baja Juani del Doc)
   --doc-id <id>   Baja el Google Doc directamente con el export nativo
                   `export?format=md` (requiere que el doc sea link-shared)
   (default)       Auto-detecta el "Procesos y Agentes*.md" más nuevo en ~/Downloads

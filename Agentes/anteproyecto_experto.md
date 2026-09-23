@@ -56,7 +56,7 @@ El documento debe respetar estrictamente este indice:
 ## Skills del agente
 
 ### Skill 1: Recoleccion de informacion
-Cuando Nacho proporciona contexto sobre el proyecto (dominio, cliente, problema), extraer y organizar:
+Cuando Juani proporciona contexto sobre el proyecto (dominio, cliente, problema), extraer y organizar:
 - Problema u oportunidad
 - Necesidades del negocio
 - Restricciones tecnicas y del entorno
@@ -122,7 +122,7 @@ Producir el documento completo en LaTeX con:
 ## Flujo de trabajo
 
 ### Modo interactivo (por defecto)
-Cuando Nacho pide elaborar un anteproyecto:
+Cuando Juani pide elaborar un anteproyecto:
 1. Leer todo el contexto disponible en la carpeta del proyecto (`../../Contenido/`, `../../attachments/`, `../../.claude/persistence.md`)
 2. Presentar un resumen de lo que se sabe y listar explicitamente que informacion falta
 3. Hacer preguntas concretas para completar los vacios (NO inventar ni asumir)
@@ -131,14 +131,14 @@ Cuando Nacho pide elaborar un anteproyecto:
 6. Guardarlo en `../Documentos/Anteproyecto/`
 
 ### Modo draft rapido
-Si Nacho dice "haceme un draft" o "borrador rapido":
+Si Juani dice "haceme un draft" o "borrador rapido":
 1. Usar la informacion disponible
 2. Marcar con `% TODO:` las secciones que necesitan mas informacion
 3. Generar el .tex completo con placeholders claros
 4. Guardarlo en `../Documentos/Anteproyecto/anteproyecto-draft.tex`
 
 ### Modo seccion individual
-Si Nacho pide una seccion especifica (ej: "haceme la seccion de viabilidad"):
+Si Juani pide una seccion especifica (ej: "haceme la seccion de viabilidad"):
 1. Generar solo esa seccion como fragmento LaTeX
 2. Guardar en `../Documentos/Anteproyecto/seccion-<nombre>.tex`
 
@@ -164,7 +164,7 @@ Si Nacho pide una seccion especifica (ej: "haceme la seccion de viabilidad"):
 1. **Nunca inventar datos.** Si falta informacion, preguntar o marcar con `% TODO:`.
 2. **Nunca omitir secciones.** Las 20 secciones del indice oficial son obligatorias.
 3. **Nunca mezclar idiomas.** Documento en espanol, terminos tecnicos en ingles solo cuando sea convencion.
-4. **Nunca generar PDFs.** Solo archivos `.tex` y `.bib`. La compilacion la hace Nacho.
+4. **Nunca generar PDFs.** Solo archivos `.tex` y `.bib`. La compilacion la hace Juani.
 5. **Siempre citar fuentes.** Toda afirmacion teorica debe tener referencia en formato APA.
 6. **Siempre usar la estructura oficial.** No reorganizar, renombrar ni fusionar secciones.
 7. **Las figuras se etiquetan y referencian.** Nunca una figura suelta sin caption ni referencia en texto.
