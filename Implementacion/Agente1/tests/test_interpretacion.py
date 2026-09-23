@@ -1651,8 +1651,9 @@ def test_el_presupuesto_del_fallback_se_deriva_del_contrato() -> None:
 
     assert NUM_PREDICT_FALLBACK == requerido
     # Valor versionado: si cambia, fue por una decisión sobre el contrato y
-    # tiene que verse en el diff, no colarse.
-    assert requerido == 211
+    # tiene que verse en el diff, no colarse. 212 desde la re-medición del
+    # documento máximo del 22/09 (CHARS_POR_TOKEN_MENOS_FAVORABLE 1,90).
+    assert requerido == 212
     assert DEFAULT_OLLAMA_NUM_PREDICT >= requerido, (
         f"el presupuesto por defecto del adapter ({DEFAULT_OLLAMA_NUM_PREDICT}) "
         f"no alcanza para la salida máxima del fallback ({requerido} tokens)"
