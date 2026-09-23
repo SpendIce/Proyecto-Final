@@ -4,7 +4,7 @@
 **Autor del PPS:** Juan Ignacio Gone  
 **Artefacto:** evaluacion del proyecto de desarrollo y plan de riesgos  
 **Estado:** borrador academico trazable  
-**Ultima actualizacion:** 2026-05-18
+**Ultima actualizacion:** 2026-09-22
 
 ## 1. Proposito
 
@@ -42,9 +42,10 @@ Tambien se integraron tres lecturas read-only realizadas por subagentes: alcance
 
 1. El alcance evaluado corresponde al Agente 1 durante el primer ano academico 2026, hasta TRL 4.
 2. El Semestre 1 cubre el MVP: HU-010 generacion de gacetillas y HU-011 generacion de posts para redes sociales.
-3. El Semestre 2 incorpora HU-012 confirmaciones automaticas, HU-013 interaccion interna iniciada por email con invitacion a chat y HU-014 certificados con validacion humana.
+3. El Semestre 2 incorpora HU-012 notificaciones automaticas (la version del 2026-09-22 la amplio a inscripcion, participacion, situacion de pagos y aprobacion), HU-013 interaccion interna iniciada por email con invitacion a chat y HU-014 certificados con validacion humana.
 4. S3 y S4 de 2027 se consideran continuidad del P100 completo, no compromiso actual del PPS de Juan Ignacio Gone.
-5. El Agente 1 se mantiene dentro del Proceso 4 - Comunicacion y Difusion Institucional. Puede recibir insumos de A2, A3, A4 y A5, pero no es orquestador, no hace scraping, no hace analitica, no construye dashboards, no atiende masivamente al publico y no reemplaza personal.
+5. HU-016 (BD de consultas con clasificacion semantica) y HU-017 (Disposiciones Decanales), agregadas a la epica E2 en la version del 2026-09-22, quedan fuera de este alcance provisionalmente, pendiente de aclaracion con Direccion (issue #34).
+6. El Agente 1 se mantiene dentro del Proceso 4 - Comunicacion y Difusion Institucional. Puede recibir insumos de A2, A3, A4 y A5, pero no es orquestador, no hace scraping, no hace analitica, no construye dashboards, no atiende masivamente al publico y no reemplaza personal.
 
 ## 4. Evaluacion sintetica del proyecto
 
@@ -98,6 +99,31 @@ Se adopta una escala simple, consistente con el material DSI2 de gestion de ries
 | R-ADOP-01 | Personal SEU no participa en codiseno y validacion -> baja adopcion, tono desalineado y TRL sin usuarios reales | Adopcion | 3 | 3 | 9 | Alto | P4, validacion SEU, checklist 1-4 | Coordinador de Extension |
 | R-EVAL-01 | Se declaran metricas o mejoras sin baseline -> beneficios no demostrables ante evaluacion | Evaluacion | 3 | 2 | 6 | Alto | M3, M4, M5, evidencia TRL | Juan Ignacio Gone |
 | R-CAL-01 | Checklist, registro de defectos e indice de evidencias no estan operativos -> retrabajo tardio y gates incompletos | Calidad | 3 | 3 | 9 | Alto | Plan de calidad, G2/G4 | Juan Ignacio Gone |
+
+### 6.1 Correspondencia con la matriz oficial del P100 (bible sincronizada 2026-09-22)
+
+La version vigente de `Contenido/bible/Procesos y Agentes.md` incorpora una matriz de riesgos de programa (R-01 a R-31, metodo PMBOK con disposicion ROAM). El registro local de arriba es el del PPS del Agente 1; esta tabla vincula ambos identificadores para que la lectura institucional y la del proyecto no diverjan. La correspondencia es orientativa: varios riesgos de la bible son de nivel programa (multi-equipo, presupuesto P100) y no bajan tal cual al registro del Agente 1.
+
+| Riesgo local (PPS A1) | Riesgo(s) bible P100 | Comentario |
+|---|---|---|
+| R-ALC-01, R-ALC-02 | R-02, R-14 | Desviacion de alcance y sobre-documentacion; la entrada de HU-016/HU-017 a E2 el 22/09 es una materializacion concreta de R-02, gestionada como exclusion provisional (issue #34) |
+| R-GOB-01 | R-08 | Alineacion entre equipos/areas; los roles nominales quedaron confirmados el 22/09 (J. Manuel semantica, S. Moreira utilitaria/firma) |
+| R-HITL-01 | R-19, R-27 | Autonomia sin control y acciones fuera de autorizacion |
+| R-REQ-01 | R-16 | Requisitos/diseno no validados oficialmente |
+| R-CRO-01, R-CRO-02 | R-03, R-15 | Dependencia entre fases y cronograma subestimado |
+| R-DAT-01 | R-26 | Integridad de datos; R-26 agrega la lectura de fuga de PII |
+| R-LLM-01 | R-19, R-24, R-07 | Alucinaciones/tono: expectativa del motor sin control, inyeccion indirecta via RAG y contenido que no cumple DoD |
+| R-SEG-01 | R-23, R-24 | Spoofing e inyeccion de prompts (R-24 es el unico critico de la matriz bible) |
+| R-SEG-02 | R-26, R-29 | Fuga de PII y credenciales hardcodeadas/compartidas |
+| R-TRA-01 | R-25 | Repudio: imposibilidad de determinar error vs ataque |
+| R-TEC-01 | R-18, R-31 | Inmadurez del stack IA local e inestabilidad de Ollama |
+| R-INT-01 | R-10, R-11 | Dependencia de servicios cloud y demora de infraestructura |
+| R-INT-02 | R-01, R-04 | Incompatibilidad de contratos A1<->A2..A5 y subestimacion de integracion |
+| R-ADOP-01 | R-09 | Baja adopcion del personal de Extension |
+| R-EVAL-01 | R-07 | Evidencia/DoD debil llegando a validacion |
+| R-CAL-01 | R-06, R-07 | Identificacion incompleta de riesgos y DoD no cumplido en validacion |
+
+Riesgos de la bible sin equivalente local directo (nivel programa, se registran aca para no perderlos): R-05 (costo de hardware especializado), R-12 (rotacion de estudiantes), R-13 (perfil insuficiente del equipo), R-17 (inmadurez del proceso multi-equipo), R-21 (respaldo institucional para escalar al Centenario), R-22 (apoyo politico sostenido), R-28 (poisoning de datos de entrenamiento/RAG — relevante si se adopta la opcion candidata de fine-tuning registrada el 22/09) y R-30 (saturacion por rafaga de solicitudes).
 
 ## 7. Planes de mitigacion y contingencia
 

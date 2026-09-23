@@ -131,11 +131,12 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 |----|-----------|-----|---------|
 | HU-010 | P0 | 8 | Como Secretaria, quiero generar automaticamente gacetillas para reducir tiempos de redaccion |
 | HU-011 | P0 | 5 | Como sistema, quiero generar posts para redes para difundir actividades |
-| HU-012 | P1 | 5 | Como Secretaria, quiero enviar confirmaciones automaticas de inscripcion para evitar tareas manuales |
+| HU-012 | P1 | 5 | Como Aux de Curso, quiero enviar notificaciones automaticas de inscripcion, participacion, situacion de pagos y aprobacion para cada curso (ampliada el 22/09: absorbe los mensajes a deudores) |
 | HU-013 | P1 | 3 | Como usuario interno, quiero interactuar con el agente en lenguaje natural para generar contenido rapidamente |
 | HU-014 | P2 | 8 | Como Secretaria, quiero generar certificados automaticos para agilizar cierres de actividades |
-| HU-015 | P3/P5/P6 | 8 | Como Coordinador de la SEU, quiero que A1 detecte un **curso** en estado "Aprobado" y genere certificados + borrador de difusion automaticamente |
-| HU-016 | P3/P5/P6 | 8 | Como Coordinador de la SEU, quiero que A1 detecte un **evento** en estado "Aprobado" y genere certificados + borrador de difusion automaticamente (extiende HU-015 a eventos) |
+| HU-015 | P3/P5/P6 | 8 | Como Coordinador de la SEU, quiero que A1 detecte un curso/actividad en estado "Aprobado" (Bus de Sheets) y genere certificados + borrador de difusion automaticamente |
+| HU-016 | P2/P3/P5/P6 | 13 | (Nueva en la bible del 22/09) Como usuario SEU interno o actor externo, quiero interactuar en lenguaje natural para generar estructuras de BD seguras o registrarme en consultas, con clasificacion semantica por proceso (P2/P3/P5/P6), campos de calidad obligatorios por proceso, validaciones de formato y declaracion de proteccion de datos |
+| HU-017 | — | — | (Nueva en la bible del 22/09) Como Coordinador/a o Secretario/a de SEU, quiero que el sistema genere el borrador de Disposicion Decanal con esqueleto legal estandar e inyeccion condicional por proceso (P2/P3/P5/P6), con bandeja de autoridad y edicion humana antes de firma |
 
 #### DoD por historia
 
@@ -149,8 +150,8 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 - Texto limpio y coherente
 - Longitud configurable
 
-**HU-012 — Confirmaciones de inscripcion**
-- Trigger al registrar inscripcion
+**HU-012 — Notificaciones de inscripcion, participacion, pagos y aprobacion**
+- Trigger al registrar inscripcion (y, desde la bible del 22/09, tambien notificaciones de participacion, situacion de pagos y aprobacion — la fuente del dato de pagos sigue DESCONOCIDO hasta respuesta SEU)
 - Email generado automaticamente
 - Registro de envio
 
@@ -164,16 +165,23 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 - Generacion de PDF
 - Validacion humana previa obligatoria
 
-**HU-015 — Certificados y triggers por Curso**
-- El bot detecta automaticamente el cambio de estado a "Aprobado" en un curso (Bus de Sheets)
+**HU-015 — Certificados y triggers por evento/curso**
+- El bot detecta automaticamente el cambio de estado a "Aprobado" en el Bus de Sheets
 - Redacta el borrador de difusion y genera los PDFs de certificados en base a la lista de alumnos
 - El bot NO publica nada directamente: deja los entregables en la carpeta Drive "Revision Humana" y notifica por correo al RGC
 
-**HU-016 — Certificados y triggers por Evento**
-- Igual que HU-015 pero disparada por el cambio de estado de un **evento** (no un curso)
-- Mismo DoD: entregables en carpeta "Revision Humana", notificacion al RGC, sin publicacion directa
+**HU-016 — BD de consultas con clasificacion semantica (nueva, 13 SP)**
+- Clasifica el prompt contra la matriz semantica de procesos (P2 vinculacion, P3 actividades/UNDEX, P5 programas/cursos, P6 eventos) y exige confirmacion visual obligatoria antes de generar
+- Inyecta columnas obligatorias de control de calidad por proceso y validaciones nativas de formato (email, DNI, CUIT, telefono, fechas DD/MM/AAAA, montos)
+- Adjunta la clausula de proteccion de datos y bloquea la BD si se suprime
+- DoD declara >=95% de precision en la clasificacion y omnicanalidad (staff interno + formularios externos)
 
-> **Nota de consistencia (bible vigente, 2026-08-18):** el PDF actualizado titula tanto a HU-015 como a HU-016 "Generación de Certificados y Triggers por Eventos" — es un error de copiado del documento fuente; el contenido real distingue curso (HU-015) vs evento (HU-016). Ademas, el ID "HU-015" ya estaba usado en el backlog de Agente 3 para "Gestión de Ceremonial y Protocolo" (ver `Contenido/bible/Procesos y Agentes.md`). Hay colision de numeracion de HU entre epicas en la bible; senalar esto si se convierte en tarea de Jira real.
+**HU-017 — Disposiciones Decanales (nueva)**
+- Redacta el borrador de DD con el esqueleto legal estandar (Visto/Considerandos/Articulado) e inyeccion condicional segun el proceso
+- Bandeja exclusiva para Coordinacion/Secretario; edicion humana del borrador antes del circuito de firma del Decano
+- Ningun proyecto se guarda si faltan los anexos obligatorios del proceso
+
+> **Nota de consistencia (bible sincronizada 2026-09-22):** la nueva version renumero el backlog de E2: la vieja HU-016 (certificados/triggers por evento) quedo absorbida en HU-015; HU-016 es ahora la BD de consultas y HU-017 las Disposiciones Decanales. Persiste la colision del ID "HU-015" con la HU de ceremonial y protocolo de Agente 3. HU-016 y HU-017 son alcance del Agente 1 en el P100 pero quedan **fuera del PPS de Gone provisionalmente** (decision del 22/09, pendiente de confirmacion con Direccion — issue #34).
 
 #### DoD especifico para historias de Generacion de Contenido
 - Texto generado coherente, sin errores gramaticales criticos

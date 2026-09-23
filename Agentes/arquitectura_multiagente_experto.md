@@ -324,9 +324,10 @@ La bible vigente agrega una capa de soporte para tareas administrativas ajenas a
 - HU-025 — registro e integridad CONEAU/SIU/repositorio (A5)
 - HU-052 — ventanilla virtual de egresados (A4)
 - HU-060 — optimizacion burocratica de soporte administrativo (interfaz de soporte)
-- HU-016 (agregada 2026-08-18, A1/E2) — certificados y difusion disparados por cambio de estado de un **evento** (extiende HU-015 de A1, que cubre cursos)
+- HU-016 (nueva en la bible del 2026-09-22, A1/E2, 13 SP) — BD de consultas con clasificacion semantica P2/P3/P5/P6, campos de calidad obligatorios, validaciones de formato y proteccion de datos. Fuera del PPS de Gone provisionalmente (issue #34).
+- HU-017 (nueva en la bible del 2026-09-22, A1/E2) — Disposiciones Decanales automatizadas con esqueleto legal estandar e inyeccion condicional por proceso. Fuera del PPS de Gone provisionalmente (issue #34).
 
-**Colision de numeracion detectada (2026-08-18):** el ID "HU-015" aparece dos veces en la bible con contenido distinto: gestion de ceremonial y protocolo (A3, listado arriba) y certificados/triggers por curso (A1, ver `Agentes/extension_bot_experto.md`). Ademas el PDF titula tanto HU-015 como la nueva HU-016 de A1 como "por Eventos" aunque el contenido de HU-015 es sobre cursos — error de copiado en el documento fuente. No renumerar sin validarlo con la SEU; solo senalarlo.
+**Renumeracion de la bible del 2026-09-22:** la HU-016 anterior (certificados/triggers por evento, A1) quedo absorbida en HU-015; HU-016 paso a ser la BD de consultas y se agrego HU-017. Persiste la colision del ID "HU-015" entre la HU de ceremonial y protocolo (A3) y la de certificados/triggers (A1/E2). Ademas, HU-012 quedo ampliada a notificaciones de inscripcion, participacion, situacion de pagos y aprobacion (absorbe mensajes a deudores).
 
 ### Dependencias clave
 - HU-001 → base de datos (prerequisito de todo)
