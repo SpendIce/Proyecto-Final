@@ -24,6 +24,12 @@
     "fecha": {"type": "string", "minLength": 1},
     "lugar": {"type": "string", "x-required": false},
     "organiza": {"type": "string", "minLength": 1},
-    "contacto": {"type": "string", "minLength": 1}
+    "contacto": {"type": "string", "minLength": 1},
+    "tipo_notificacion": {
+      "type": "string",
+      "enum": ["inscripcion", "participacion", "situacion_pagos", "aprobacion"],
+      "default": "inscripcion",
+      "description": "Tipo de notificación según el catálogo cerrado tipos_notificacion_v1 (ampliación HU-012 de la bible del 22/09). Opcional: una entrada sin el campo se interpreta como inscripción, el único tipo que existía antes. situacion_pagos está declarada pero el pipeline la rechaza fail-closed mientras no haya origen confirmado para el dato de deuda."
+    }
   }
 }

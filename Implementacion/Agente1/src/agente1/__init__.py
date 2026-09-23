@@ -10,7 +10,7 @@ Guía rápida de módulos:
 
 - `procesamiento`  HU-010, gacetillas.
 - `posts`          HU-011, posts por canal con contrato creativo y renderer.
-- `confirmaciones` HU-012, confirmaciones de inscripción (offline, sin envío).
+- `confirmaciones` HU-012, notificaciones a inscriptos (offline, sin envío).
 - `fuentes` / `destinos`      puertos de entrada y salida.
 - `google_workspace`          adapters de Sheets, Drive y Docs.
 - `workspace_e2e`             runner con idempotencia y manifests.
@@ -23,6 +23,7 @@ Guía rápida de módulos:
 - `insumos_agentes`           contrato candidato de insumos de A2-A5.
 - `historia_viva`             puerto de consulta al acervo de A2 (offline).
 - `origenes_inscripcion`      matriz de orígenes de inscripción (HU-012).
+- `tipos_notificacion`        catálogo de tipos de notificación (HU-012).
 - `interpretacion`            HU-013, interpretación en lenguaje natural (#20, #22).
 - `canal`                     HU-013, puerto de canal y bucle de atención (#24).
 - `canal_planilla`            HU-013, adapter de planilla offline del canal (#24).

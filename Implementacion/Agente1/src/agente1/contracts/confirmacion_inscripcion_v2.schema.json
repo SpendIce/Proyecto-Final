@@ -48,6 +48,12 @@
       "type": "string",
       "minLength": 1,
       "description": "Identificador o referencia recuperable de la aprobación de la actividad; su obligatoriedad queda pendiente de confirmación SEU."
+    },
+    "tipo_notificacion": {
+      "type": "string",
+      "enum": ["inscripcion", "participacion", "situacion_pagos", "aprobacion"],
+      "default": "inscripcion",
+      "description": "Tipo de notificación según el catálogo cerrado tipos_notificacion_v1. situacion_pagos está declarada pero queda sin producción mientras no haya origen confirmado para el dato de deuda."
     }
   }
 }
