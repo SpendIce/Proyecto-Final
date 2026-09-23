@@ -41,7 +41,7 @@ El paquete se apoya en estos artefactos ya preparados:
 | Tono, longitud, CTA, hashtags y uso de canales | `PARCIAL`: `CONFIRMADO_SEU` por acta de reunión del 22/09 y precisión posterior para la mayoría de las dimensiones ([`Respuestas-SEU-Reunion-2026-09-22.md`](Respuestas-SEU-Reunion-2026-09-22.md)); pendientes: ejemplos aprobados y reels (no consultado) | Guía o respuesta escrita por canal, incluidos valores “no definido” cuando corresponda |
 | Activos, reglas y destino autorizado de la nota institucional/gacetilla | `PARCIAL`: el 22/09 se registró que los logos se leen de ejemplos, que se entregarán ejemplos de este año y que el destino varía según tipo de gacetilla; faltan firma/cargo, registro-tono y estructura | Respuesta del área competente con logos, orden, variantes, reglas, ejemplos o instructivo, destino y permisos |
 | Revisión de muestra HU-010/HU-011 | `PENDIENTE_EXTERNO`: la sesión no se realizó en la reunión; el 22/09 se preparó el circuito asincrónico con el paquete PDF rellenable y el correo [`Validacion-SEU/Correo-Revision-Asincrona-SEU-2026-09-22.md`](Validacion-SEU/Correo-Revision-Asincrona-SEU-2026-09-22.md) | Checklist completo por muestra, fecha, puntaje, observaciones, decisión y referencia al manifest |
-| Orígenes, campos, estados, responsable, aprobación y política de datos de HU-012 | `PARCIAL`: el 22/09 se confirmaron tipos de actividad y campos para SIU Guaraní y SIU Guaraní Extensión, plantilla preaprobada, canal correo y tratamiento personal; Google Forms quedó declarado en deprecación con migración a SIU Guaraní; estados habilitantes, responsables del dato, política de datos y detalle de la migración siguen abiertos | Matriz escrita origen por origen con campos, estados habilitantes, responsable, regla de aprobación, consentimiento, retención y canal autorizado |
+| Orígenes, campos, estados, responsable, aprobación y política de datos de HU-012 | `PARCIAL`: el 22/09 se confirmaron tipos de actividad y campos para SIU Guaraní y SIU Guaraní Extensión, plantilla preaprobada, canal correo y tratamiento personal; Google Forms quedó declarado en deprecación con migración a SIU Guaraní; estados habilitantes, responsables del dato, política de datos, detalle de la migración y **fuente del dato de deuda/saldo para el tipo `situacion_pagos`** siguen abiertos | Matriz escrita origen por origen con campos, estados habilitantes, responsable, regla de aprobación, consentimiento, retención y canal autorizado |
 | Evidencia durable versionada y sanitizada | `PREPARADO`: el paquete registra hashes/IDs y evita copiar borradores o secretos; el export de la reunión quedó versionado con hash en `Validacion-SEU/reunion-seu-2026-09-22.json` | Incorporar sólo acta y respuesta sanitizadas; mantener identidades o datos sensibles fuera del issue público y de los manifests públicos |
 
 Mientras exista una fila `PENDIENTE_EXTERNO` o `PARCIAL`, el issue no tiene
@@ -129,6 +129,21 @@ posterior o confirmarse como otra cosa; no se lo debe tratar automáticamente
 como origen de inscripción. Hasta completar esta tabla y obtener los permisos
 correspondientes, HU-012 mantiene envío prohibido y sólo puede ejecutar el
 slice offline con destino fake.
+
+> **Nota (bible 22/09 — tipo `situacion_pagos`):** la ampliación de HU-012
+> incorpora notificaciones de situación de pagos (ex-HU de mensajes a
+> deudores). El dato que la distingue —la deuda o el saldo del inscripto—
+> **no es un dato de la inscripción y no entra por esta tabla**: necesita su
+> propia definición. Para habilitar el tipo la SEU debe indicar, como mínimo:
+> de qué fuente sale la situación de pagos (SIU Guaraní, planilla de
+> cobranzas u otro sistema) y quién la administra; qué campos expone esa
+> fuente (concepto, monto, vencimiento, estado) y cuáles puede usar la
+> notificación sin persistir datos de pago; y qué evento la dispara (deuda
+> detectada, vencimiento próximo, pago acreditado). Mientras tanto el tipo
+> queda bloqueado `fail-closed`: una solicitud `situacion_pagos` no produce
+> ni borrador ni envío (`notification_type_blocked`). Ver
+> [`Matriz-Operativa-HU-012-Origenes-Inscripcion-v1.md`](Matriz-Operativa-HU-012-Origenes-Inscripcion-v1.md)
+> §6 y `contracts/tipos_notificacion_v1.json` (`preguntas_abiertas`).
 
 ## Registro posterior a la gestión
 
