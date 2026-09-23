@@ -363,7 +363,7 @@ def test_identidad_no_verificada_queda_explicito_en_el_registro(tmp_path: Path) 
 
 
 def test_identidad_del_solicitante_nunca_se_persiste_en_claro(tmp_path: Path) -> None:
-    identidad = _identidad(identificador="nacho.gone@fie.undef.edu.ar")
+    identidad = _identidad(identificador="jgone@fie.undef.edu.ar")
 
     resultado = _interpretar(tmp_path, "Gacetilla de SYN-001", solicitante=identidad)
 
