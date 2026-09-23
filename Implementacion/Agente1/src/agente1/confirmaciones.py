@@ -34,6 +34,19 @@ encolado cambia cuándo se entrega, no qué se entrega.
 Qué falta para que esto sea utilizable, y por qué no está: los orígenes de
 inscripción reales no están definidos por la SEU. `origenes_inscripcion.py`
 enumera exactamente qué falta por cada origen y bloquea el envío en todos.
+
+Tipos de notificación (bible 22/09): HU-012 cubre cuatro tipos —
+`inscripcion`, `participacion`, `situacion_pagos` y `aprobacion`— declarados
+en el catálogo cerrado `contracts/tipos_notificacion_v1.json` que expone
+`tipos_notificacion.py`. El tipo viaja en la solicitud (con default
+`inscripcion`, el único que existía), entra a la clave de idempotencia —una
+notificación de participación sobre la misma inscripción es otra
+comunicación, no un duplicado— y elige la frase del evento en el cuerpo.
+Todo lo demás del pipeline es idéntico para todos los tipos: misma doble
+aprobación, misma cola, mismo fake. El control por tipo es fail-closed y se
+evalúa antes de tocar el registro: un tipo fuera del catálogo es `INVALIDA`,
+y `situacion_pagos` —declarada pero sin origen confirmado para el dato de
+deuda— se rechaza siempre sin producir borrador ni envío.
 """
 
 from __future__ import annotations
@@ -50,12 +63,19 @@ from threading import Lock
 from typing import Protocol
 import uuid
 
+from .tipos_notificacion import (
+    TIPOS_NOTIFICACION,
+    TIPO_NOTIFICACION_PREDETERMINADO,
+    campos_requeridos,
+    descripcion_tipo,
+    evaluar_tipo,
+)
+
 
 HU = "HU-012"
 CONTRACT_VERSION = "confirmacion_inscripcion_v1"
 TEMPLATE_VERSION = "confirmacion_inscripcion_provisional_v1"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
-ASUNTO_BORRADOR = "[BORRADOR — NO ENVIAR] Confirmación de inscripción"
 MARCADOR_BORRADOR = "BORRADOR — NO ENVIAR"
 EMAIL_LOCAL_RE = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}\Z")
 EMAIL_DOMAIN_LABEL_RE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\Z")
@@ -63,6 +83,11 @@ ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
 # Las claves del registro durable son sha256 en hexadecimal. Se validan igual
 # antes de construir un path: una clave no debe poder elegir dónde se escribe.
 CLAVE_REGISTRO_RE = re.compile(r"[0-9a-f]{64}\Z")
+# Conjunto base de campos exigidos, el que siempre tuvo `inscripcion` —que
+# era el único tipo. La fuente vigente por tipo es el catálogo
+# (`campos_requeridos(tipo)`); esta constante queda como baseline fijado por
+# fuera del catálogo para que cualquier cambio de los campos de `inscripcion`
+# sea una decisión visible en el diff, no un arrastre silencioso.
 REQUIRED_FIELDS = (
     "id_inscripcion",
     "nombre_destinatario",
@@ -123,6 +148,16 @@ _PARCIAL_POR_ROL = {
 
 @dataclass(frozen=True)
 class SolicitudConfirmacion:
+    """Entrada del pipeline de HU-012.
+
+    `tipo_notificacion` pertenece al catálogo cerrado de
+    `tipos_notificacion.py` y por omisión es `inscripcion`, el único tipo que
+    existía antes de la ampliación de la bible del 22/09 —así las entradas
+    anteriores conservan su significado sin declararlo. El tipo forma parte
+    de la identidad de la comunicación: entra al hash de idempotencia, así
+    que dos tipos distintos sobre la misma inscripción no colisionan.
+    """
+
     id_inscripcion: str
     nombre_destinatario: str
     email_destinatario: str
@@ -131,6 +166,7 @@ class SolicitudConfirmacion:
     lugar: str
     organiza: str
     contacto: str
+    tipo_notificacion: str = TIPO_NOTIFICACION_PREDETERMINADO
 
 
 @dataclass(frozen=True)
@@ -1046,6 +1082,19 @@ def procesar_confirmacion(
             estado="INVALIDA",
             error="input_contract_invalid",
         )
+    # El catálogo de tipos es cerrado: un tipo que no está en él es un pedido
+    # mal formado, igual que un campo que no es string. Va acá, entre los
+    # controles de la solicitud en sí, porque evaluar un tipo desconocido
+    # haría cualquier decisión posterior ilegible.
+    if solicitud.tipo_notificacion not in TIPOS_NOTIFICACION:
+        return _resultado(
+            log_path=log_path,
+            solicitud=solicitud,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            estado="INVALIDA",
+            error="notification_type_invalid",
+        )
     if not _email_valido(solicitud.email_destinatario):
         return _resultado(
             log_path=log_path,
@@ -1063,6 +1112,24 @@ def procesar_confirmacion(
             idempotency_key=idempotency_key,
             estado="INCOMPLETA",
             error="required_fields_missing",
+        )
+    # Segundo control por tipo, ya con la solicitud bien formada: un tipo
+    # declarado pero sin origen confirmado para sus datos (`situacion_pagos`)
+    # no produce ni borrador ni envío, tenga o no aprobación humana. Los
+    # motivos quedan en la línea de auditoría para que el pedido pendiente a
+    # la SEU sea puntual.
+    decision_tipo = evaluar_tipo(solicitud.tipo_notificacion)
+    if not decision_tipo.habilitado:
+        return _resultado(
+            log_path=log_path,
+            solicitud=solicitud,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            estado="INVALIDA",
+            error="notification_type_blocked",
+            auditoria_extra={
+                "motivos_bloqueo_tipo": sorted(decision_tipo.motivos)
+            },
         )
     if aprobacion is not None and not _aprobacion_valida(aprobacion):
         return _resultado(
@@ -1416,11 +1483,16 @@ def _finalizar(
 def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     """Arma asunto y cuerpo desde una plantilla fija. No interviene el modelo.
 
-    La confirmación de una inscripción es un texto administrativo: no hay nada
-    que redactar y sí un riesgo concreto si un modelo altera un dato. Por eso
-    HU-012 es puramente determinista.
+    La notificación es un texto administrativo: no hay nada que redactar y sí
+    un riesgo concreto si un modelo altera un dato. Por eso HU-012 es
+    puramente determinista. La SEU confirmó una única plantilla preaprobada
+    para todos los tipos; lo único que varía por tipo es el asunto base y la
+    frase del evento, declaradas en el catálogo `tipos_notificacion_v1`. Para
+    `inscripcion` el resultado es idéntico al de siempre: su `asunto_base`
+    reproduce el asunto que el módulo tenía fijado antes del catálogo.
     """
 
+    plantilla = descripcion_tipo(solicitud.tipo_notificacion)["plantilla"]
     # Un lugar vacío se completa con una frase explícita en vez de dejarse en
     # blanco: el destinatario tiene que ver que el dato falta, no un renglón
     # cortado que parezca un error de sistema.
@@ -1428,23 +1500,30 @@ def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     cuerpo = (
         f"{MARCADOR_BORRADOR}\n\n"
         f"Hola {solicitud.nombre_destinatario.strip()},\n\n"
-        f"Registramos tu inscripción a: {solicitud.actividad.strip()}.\n"
+        f"Registramos {plantilla['frase_evento']}: {solicitud.actividad.strip()}.\n"
         f"Fecha: {solicitud.fecha.strip()}\n"
         f"Lugar: {lugar}\n"
         f"Organiza: {solicitud.organiza.strip()}\n\n"
         "Este texto es una plantilla provisional y requiere validación humana antes de cualquier envío.\n"
         f"Contacto: {solicitud.contacto.strip()}\n"
     )
-    return ASUNTO_BORRADOR, cuerpo
+    return f"[{MARCADOR_BORRADOR}] {plantilla['asunto_base']}", cuerpo
 
 
 def _campos_completos(solicitud: SolicitudConfirmacion) -> bool:
-    if ID_RE.fullmatch(solicitud.id_inscripcion) is None:
+    """Los campos que exige el tipo, según el catálogo, presentes y con texto.
+
+    `getattr` con default cierra el caso de un campo declarado en el catálogo
+    que la solicitud no tenga: se cuenta como faltante en vez de explotar.
+    """
+    if not isinstance(solicitud.id_inscripcion, str) or ID_RE.fullmatch(
+        solicitud.id_inscripcion
+    ) is None:
         return False
     return all(
-        isinstance(getattr(solicitud, campo), str)
+        isinstance(getattr(solicitud, campo, None), str)
         and bool(getattr(solicitud, campo).strip())
-        for campo in REQUIRED_FIELDS
+        for campo in campos_requeridos(solicitud.tipo_notificacion)
     )
 
 
@@ -1534,10 +1613,15 @@ def _resultado(
     asunto: str | None = None,
     cuerpo: str | None = None,
     aprobacion: AprobacionHumana | None = None,
+    auditoria_extra: dict[str, object] | None = None,
 ) -> ResultadoConfirmacion:
     # La línea de auditoría no lleva ni el correo del destinatario ni el texto:
     # sólo hashes. `recipient_hash` permite verificar después que se confirmó a
     # la persona correcta, sin guardar el dato personal en un segundo lugar.
+    # `tipo_notificacion` no es dato personal y queda en claro porque la
+    # evidencia tiene que distinguir qué clase de notificación se procesó; si
+    # llegara con un tipo no string (pedido mal formado) se serializa con la
+    # misma marca defensiva que `_hash` para que la auditoría no explote.
     auditoria = {
         "hu": HU,
         "contract_version": CONTRACT_VERSION,
@@ -1545,6 +1629,9 @@ def _resultado(
         "policy_status": POLICY_STATUS,
         "correlation_id": correlation_id,
         "idempotency_key": idempotency_key,
+        "tipo_notificacion": solicitud.tipo_notificacion
+        if isinstance(solicitud.tipo_notificacion, str)
+        else f"<invalid:{type(solicitud.tipo_notificacion).__name__}>",
         "estado": estado,
         "resultado": error or "ok",
         "input_hash": _hash_solicitud(solicitud),
@@ -1561,6 +1648,10 @@ def _resultado(
         "approval_role": aprobacion.rol if aprobacion is not None else None,
         "delivery_mode": "fake" if estado == "ENVIADA_SIMULADA" else "none",
     }
+    # Motivos de bloqueo por tipo u otra evidencia puntual del control que
+    # produjo el resultado; nunca datos personales ni texto en claro.
+    if auditoria_extra:
+        auditoria.update(auditoria_extra)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("a", encoding="utf-8") as archivo:
         archivo.write(json.dumps(auditoria, ensure_ascii=False, sort_keys=True) + "\n")

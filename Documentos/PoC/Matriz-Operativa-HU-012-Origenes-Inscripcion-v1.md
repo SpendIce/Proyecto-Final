@@ -7,6 +7,9 @@
 - **Artefacto:** `Implementacion/Agente1/src/agente1/contracts/matriz_origenes_inscripcion_v1.json`
 - **Módulo:** `Implementacion/Agente1/src/agente1/origenes_inscripcion.py`
 - **Regresión:** `Implementacion/Agente1/tests/test_matriz_origenes_inscripcion.py`
+- **Artefacto adicional (tipos, 22/09):** `Implementacion/Agente1/src/agente1/contracts/tipos_notificacion_v1.json`
+- **Módulo adicional (tipos):** `Implementacion/Agente1/src/agente1/tipos_notificacion.py`
+- **Regresión adicional (tipos):** `Implementacion/Agente1/tests/test_tipos_notificacion.py`
 - **Antecedente:** `Diseno-HU-012-Origenes-Inscripcion-v2.md`
 - **Clasificación:** diseño técnico candidato, sin credenciales, URLs privadas ni datos personales reales; requiere confirmación escrita de la SEU.
 
@@ -133,7 +136,64 @@ origen.
 definiciones de la sección 4 más el acceso. Mientras tanto HU-012 conserva su
 baseline offline con contrato v1, destino fake y aprobación humana explícita.
 
-## 6. Criterio de actualización
+## 6. Tipos de notificación (ampliación de la bible del 22/09)
+
+La bible sincronizada el 22/09 amplió HU-012: de «confirmaciones de
+inscripción» a «notificaciones automáticas de **inscripción, participación,
+situación de pagos y aprobación**» para cada curso, absorbiendo la HU previa
+de mensajes a deudores. La matriz por origen (secciones 1–5) responde *de
+dónde sale el inscripto*; el catálogo
+`contracts/tipos_notificacion_v1.json` —expuesto por
+`tipos_notificacion.py`— responde el eje nuevo: *qué clase de notificación
+es*, qué campos exige, de qué orígenes puede provenir el destinatario y qué
+dato específico necesita el evento.
+
+| Tipo | Evento gatillo | Dato específico | Procedencia | ¿Entra al pipeline? |
+|---|---|---|---|---|
+| `inscripcion` | Alta en estado «inscripto confirmado» (nombre interno SIU pendiente) | — | — | Sí (es el default; comportamiento intacto) |
+| `participacion` | Participación del inscripto en la actividad (evento concreto sin definir) | `constancia_participacion` | `SUPUESTO_TECNICO` (se supone el mismo SIU) | Sí |
+| `situacion_pagos` | Aviso sobre deuda/saldo (ex-HU de mensajes a deudores; evento sin definir) | `situacion_deuda_o_saldo` | **`DESCONOCIDO`** | **No** — fail-closed |
+| `aprobacion` | Aprobación del inscripto en la actividad (fuente sin definir) | `condicion_aprobada` | `SUPUESTO_TECNICO` (se supone el mismo SIU) | Sí |
+
+Reglas que fija el catálogo y verifica la regresión:
+
+- **El catálogo es cerrado.** Un tipo fuera de él vuelve `INVALIDA` con
+  `notification_type_invalid`; no hay modo de colar una clase de aviso no
+  declarada.
+- **`situacion_pagos` existe pero no produce nada.** El contacto del
+  inscripto tiene origen confirmado; lo que no tiene origen es el dato que
+  distingue al tipo (la deuda). Una solicitud de ese tipo —con o sin
+  aprobación humana, por la vía síncrona o encolada— vuelve `INVALIDA` con
+  `notification_type_blocked`, sin crear borrador ni registro, y la línea de
+  auditoría declara el motivo (`dato_especifico_sin_origen_confirmado`).
+- **Habilitado ≠ autorizado.** Que un tipo entre al pipeline sólo significa
+  que puede generar borrador y seguir el circuito: la doble aprobación
+  semántica + utilitaria aplica a todos los tipos, la entrega sigue siendo
+  exclusivamente contra el fake, y los bloqueos de la matriz de orígenes
+  (sección 4) no se levantan —son dos controles distintos.
+- **`SUPUESTO_TECNICO` no bloquea el tipo, `DESCONOCIDO` sí.** El supuesto es
+  una hipótesis declarada para que la SEU la corrija sobre algo concreto
+  (mismo criterio que los campos de la matriz); `DESCONOCIDO` no admite ni
+  siquiera modelado honesto.
+- **La plantilla es una sola, como confirmó la SEU.** El render sigue siendo
+  determinista y provisional; lo único que varía por tipo es el asunto base y
+  la frase del evento («tu inscripción a», «tu participación en», «tu
+  aprobación de»), declaradas en el catálogo. Para `inscripcion` el borrador
+  resulta byte a byte idéntico al golden versionado.
+- **El tipo es parte de la identidad de la comunicación:** entra al hash de
+  idempotencia, así una notificación de participación sobre la misma
+  inscripción no colisiona con la confirmación —es otra comunicación.
+
+Para habilitar `situacion_pagos` la SEU tiene que responder, como mínimo: de
+qué fuente sale la situación de pagos de un inscripto (SIU Guaraní, planilla
+de cobranzas, otro sistema) y quién la administra; qué campos expone
+(concepto, monto, vencimiento, estado) y cuáles puede usar la notificación
+sin persistir datos de pago; y qué evento la dispara (deuda detectada,
+vencimiento próximo, pago acreditado). Quedan en `preguntas_abiertas` del
+contrato, junto con cómo se acredita participación y aprobación y si la
+plantilla única alcanza para los cuatro tipos.
+
+## 7. Criterio de actualización
 
 Un campo pasa a `CONFIRMADO_SEU` únicamente con una respuesta escrita
 recuperable, no con una conversación informal. Al cambiar la procedencia de un
