@@ -23,7 +23,7 @@
 // "Guardar progreso" del visor, que reescribe este mismo archivo.
 
 window.GANTT_PROGRESS = {
-  // Corte de revision: 2026-09-22. Contrastado contra la suite vigente (904
+  // Corte de revision: 2026-09-22. Contrastado contra la suite vigente (932
   // pruebas verdes), el Registro de Defectos, la matriz HU-DoD y el acta de la
   // reunion SEU del 22/09 (Respuestas-SEU-Reunion-2026-09-22.md).
 
@@ -85,8 +85,10 @@ window.GANTT_PROGRESS = {
   //        utilitaria Coordinador, DEF-A1-016 cerrado como RESUELTO_TECNICO,
   //        issue #28, suite 757). Falta la validacion SEU del mismo item.
   //        El 22/09 la bible amplio HU-012 a notificaciones de participacion,
-  //        situacion de pagos y aprobacion: extension modelada en el issue #33;
-  //        la fuente de datos de pagos sigue DESCONOCIDO hasta respuesta SEU.
+  //        situacion de pagos y aprobacion: extension implementada y mergeada
+  //        el mismo 22/09 (issue #33, catalogo tipos_notificacion_v1) con
+  //        situacion_pagos bloqueada fail-closed; la fuente de datos de pagos
+  //        sigue DESCONOCIDO hasta respuesta SEU.
   // m4   - depende de s4d y s4e, y de un adapter de correo que no existe.
   //
   // Sprint 5 (HU-013) arranca el 2026-09-15. El diseno esta cerrado y
