@@ -176,8 +176,9 @@ class GeneradorMedicion:
     `stream: false`, `done_reason == "length"` -> `PresupuestoAgotadoError`)
     pero deja elegir `temperature`, `num_predict`, `format` y una
     transformación del prompt. La lista `capturas` guarda cada respuesta en el
-    orden en que llegó: como el pipeline llama `generar` una sola vez por caso,
-    la última captura corresponde al caso en curso.
+    orden en que llegó: con el reintento del pipeline un caso puede producir
+    más de una captura, así que el consumidor toma todas las nuevas por caso y
+    trabaja sobre la última.
     """
 
     def __init__(
@@ -484,25 +485,30 @@ def main() -> int:
                 registro = json.loads(
                     resultado.log_path.read_text(encoding="utf-8").splitlines()[-1]
                 )
-                captura = (
-                    generator.capturas[indice_captura]
-                    if espera_generacion and indice_captura < len(generator.capturas)
-                    else None
+                # Con el reintento del pipeline un caso puede consumir más de
+                # una captura: se toman todas las nuevas y el detalle se hace
+                # sobre la última, que es la salida que produjo el registro
+                # terminal que se reporta.
+                capturas_caso = (
+                    generator.capturas[indice_captura:]
+                    if espera_generacion
+                    else []
                 )
-                if espera_generacion:
-                    indice_captura += 1
+                indice_captura = len(generator.capturas)
+                captura = capturas_caso[-1] if capturas_caso else None
                 errores = list(registro.get("validation_errors") or [])
                 detalle = None
                 if espera_generacion and captura is not None:
                     detalle = _literales_disparadores(captura.contenido, _fila(fuente, id_solicitud))
                     if args.guardar_respuestas:
-                        destino = (
-                            salida
-                            / "respuestas-crudas"
-                            / f"rep{repeticion}-{id_solicitud}-{canal}.txt"
-                        )
-                        destino.parent.mkdir(parents=True, exist_ok=True)
-                        destino.write_text(captura.contenido, encoding="utf-8")
+                        for nro_intento, captura_intento in enumerate(capturas_caso, start=1):
+                            destino = (
+                                salida
+                                / "respuestas-crudas"
+                                / f"rep{repeticion}-{id_solicitud}-{canal}-intento{nro_intento}.txt"
+                            )
+                            destino.parent.mkdir(parents=True, exist_ok=True)
+                            destino.write_text(captura_intento.contenido, encoding="utf-8")
                 resultados.append(
                     {
                         "repeticion": repeticion,
@@ -518,6 +524,7 @@ def main() -> int:
                         "draft_created": resultado.borrador_path is not None,
                         "latency_s": round(latencia_s, 6),
                         "resultado": registro.get("resultado"),
+                        "intentos": registro.get("intento"),
                         "validation_errors": errores,
                         "categorias": sorted(
                             {CATEGORIA_POR_CODIGO.get(c, "otro") for c in errores}
@@ -525,7 +532,16 @@ def main() -> int:
                         "reglas_politica": sorted(
                             {CODIGO_A_REGLA[c] for c in errores if c in CODIGO_A_REGLA}
                         ),
-                        "eval_count": captura.eval_count if captura else None,
+                        # Los tokens emitidos suman los intentos del caso: es
+                        # el costo real del reintento, no sólo del intento que
+                        # terminó aceptado o rechazado.
+                        "eval_count": (
+                            sum(
+                                c.eval_count or 0 for c in capturas_caso
+                            )
+                            if capturas_caso
+                            else None
+                        ),
                         "done_reason": captura.done_reason if captura else None,
                         "input_sha256": registro.get("input_hash"),
                         "output_sha256": registro.get("output_hash"),
