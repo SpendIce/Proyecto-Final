@@ -23,8 +23,9 @@
 // "Guardar progreso" del visor, que reescribe este mismo archivo.
 
 window.GANTT_PROGRESS = {
-  // Corte de revision: 2026-09-09. Contrastado contra la suite vigente (749
-  // pruebas verdes), el Registro de Defectos y la matriz HU-DoD.
+  // Corte de revision: 2026-09-22. Contrastado contra la suite vigente (904
+  // pruebas verdes), el Registro de Defectos, la matriz HU-DoD y el acta de la
+  // reunion SEU del 22/09 (Respuestas-SEU-Reunion-2026-09-22.md).
 
   "s0a": { done: true, at: "2026-07-06", nota: "Ollama user-local restaurado, llama3.2:3b descargado (.claude/persistence.md)" },
   "s0c": { done: true, at: "2026-07-10", nota: "Esqueleto del proyecto y logging basico verificados por la suite de pruebas" },
@@ -63,10 +64,18 @@ window.GANTT_PROGRESS = {
   // s1c  - adapter de Docs/Drive verificado offline; falta plantilla institucional aprobada (DEF-A1-002) y corrida live.
   // s1e  - validacion SEU de gacetillas: BLOQUEADO_EXTERNO (DEF-A1-005). Paquete de nueve muestras listo, acta pendiente.
   // m1   - el DoD de HU-010 incluye Sheets, Docs, plantilla y validacion humana: tres de esos cuatro siguen abiertos.
-  // s2d  - validacion SEU de posts y criterios definitivos por canal: BLOQUEADO_EXTERNO (DEF-A1-005, DEF-A1-007).
+  // s2d  - validacion SEU de posts y criterios definitivos por canal: la mitad
+  //        tecnica se hizo el 22/09 — la SEU confirmo los criterios por canal
+  //        (acta) y se implementaron el mismo dia (politica v1 con 17 reglas
+  //        activas, prompts v4, catalogo v3, paquete regenerado). La mitad
+  //        humana sigue BLOQUEADO_EXTERNO: revision asincronica del paquete
+  //        en curso (DEF-A1-005). DEF-A1-007 quedo EN_CORRECCION.
   // m2   - Gate TRL 3 PENDIENTE: falta criterio formal (DEF-A1-006) y validacion SEU.
   // s3a  - paquete de gestion DSI redactado (issue #15), pero identidad, permisos y recursos siguen sin otorgarse.
-  // s3b  - SEU designo revisor titular/suplente y se documento el circuito; faltan criterios por canal y acta de sesion.
+  // s3b  - SEU designo revisor titular/suplente y se documento el circuito; el
+  //        22/09 quedaron confirmados los roles nominales (semantica: Juan
+  //        Manuel; utilitaria y firma final: Sebastian Moreira, Secretario de
+  //        Extension). Falta la revision de las muestras (asincronica en curso).
   // m3   - depende de s3a y s3b.
   // m6   - "HU-014 operativa con DoD": el slice offline esta hecho (s6a-s6e),
   //        pero el DoD exige plantilla institucional de la SEU y validacion
@@ -75,6 +84,9 @@ window.GANTT_PROGRESS = {
   //        el envio exige las dos aprobaciones del circuito (semantica RGC +
   //        utilitaria Coordinador, DEF-A1-016 cerrado como RESUELTO_TECNICO,
   //        issue #28, suite 757). Falta la validacion SEU del mismo item.
+  //        El 22/09 la bible amplio HU-012 a notificaciones de participacion,
+  //        situacion de pagos y aprobacion: extension modelada en el issue #33;
+  //        la fuente de datos de pagos sigue DESCONOCIDO hasta respuesta SEU.
   // m4   - depende de s4d y s4e, y de un adapter de correo que no existe.
   //
   // Sprint 5 (HU-013) arranca el 2026-09-15. El diseno esta cerrado y
@@ -150,13 +162,11 @@ window.GANTT_PROGRESS = {
   // s5d  - renombrada el 2026-09-21 a "Regresion de solicitudes y prueba
   //        guiada de usabilidad con SEU". La mitad automatizable ya existe:
   //        las solicitudes validas y las fuera de alcance tienen cobertura de
-  //        regresion desde los tickets #19-#26. La mitad humana sigue
-  //        PENDIENTE DE EJECUCION: la prueba guiada de usabilidad exige una
-  //        persona real de la SEU y su disponibilidad es un bloqueante
-  //        externo. El recorrido quedo documentado en #24
-  //        (evidencias/recorrido-prueba-guiada-canal-planilla.md) pero no se
-  //        ejecuto con nadie; tener el protocolo escrito no cuenta como
-  //        prueba hecha.
+  //        regresion desde los tickets #19-#26. La mitad humana tiene fecha:
+  //        Juan Manuel confirmo la prueba guiada para el viernes 25/09
+  //        (instrumento de sesion en el issue #32). El recorrido quedo
+  //        documentado en #24
+  //        (evidencias/recorrido-prueba-guiada-canal-planilla.md).
   // m5   - "HU-013 operativa con DoD": depende de s5a y s5d.
   //
   // Nota de alcance: cerrar los ocho tickets NO acredita validacion
@@ -168,6 +178,13 @@ window.GANTT_PROGRESS = {
   // pedido cuya clasificacion deterministica fallo. Hoy no puede, por ADR
   // 0001. Mueve el limite de confianza del modelo, asi que es decision
   // institucional.
+  //
+  // Nota de alcance bible 22/09: la nueva version de Procesos y Agentes agrega
+  // HU-016 (BD de consultas, 13 SP) y HU-017 (Disposiciones Decanales) dentro
+  // de Epica E2 = Agente 1. Decision provisional: fuera del PPS, pendiente de
+  // charla con Cicerchia (issue #34). El .mmd no se rebaselinea: conserva las
+  // fechas de plan y este archivo registra el avance real — Sprint 6 (HU-014)
+  // quedo completo una semana antes de su inicio planificado.
   //
   // Ninguno de estos tickets acredita s5a: esa tarea pide autenticacion de
   // personal SEU y la identidad institucional sigue BLOQUEADO_EXTERNO. El
