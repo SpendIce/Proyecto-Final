@@ -76,7 +76,6 @@ HU = "HU-012"
 CONTRACT_VERSION = "confirmacion_inscripcion_v1"
 TEMPLATE_VERSION = "confirmacion_inscripcion_provisional_v1"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
-ASUNTO_BORRADOR = "[BORRADOR — NO ENVIAR] Confirmación de inscripción"
 MARCADOR_BORRADOR = "BORRADOR — NO ENVIAR"
 EMAIL_LOCAL_RE = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}\Z")
 EMAIL_DOMAIN_LABEL_RE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\Z")
@@ -1489,8 +1488,8 @@ def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     puramente determinista. La SEU confirmó una única plantilla preaprobada
     para todos los tipos; lo único que varía por tipo es el asunto base y la
     frase del evento, declaradas en el catálogo `tipos_notificacion_v1`. Para
-    `inscripcion` el resultado es idéntico al de siempre: su `asunto_base` es
-    el que ya tenía `ASUNTO_BORRADOR`.
+    `inscripcion` el resultado es idéntico al de siempre: su `asunto_base`
+    reproduce el asunto que el módulo tenía fijado antes del catálogo.
     """
 
     plantilla = descripcion_tipo(solicitud.tipo_notificacion)["plantilla"]
