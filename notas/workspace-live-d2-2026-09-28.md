@@ -5,7 +5,9 @@ real, con la cuenta institucional provista por DSI/FIE.
 
 ## Identidad y recursos
 
-- **Identidad:** cuenta de usuario institucional (no service account).
+- **Identidad:** cuenta técnica dedicada creada para el Agente 1 por
+  DSI/FIE (corresponde a la Alternativa A del paquete del issue #15). El
+  correo de la identidad se mantiene fuera del repo por política.
   Token OAuth efímero (~1h) obtenido vía OAuth 2.0 Playground, entregado al
   proceso por `AGENTE1_WORKSPACE_ACCESS_TOKEN`. No persiste en el repo ni en
   logs; la config vive en `~/.config/agente1/workspace-d2.env` (chmod 600,
@@ -51,11 +53,14 @@ volcado). El agente no compartió, publicó ni envió nada.
   capacidad del host, no del contrato.
 - **No se probó revocación:** retirar el permiso y reintentar requiere al
   admin de la org; queda `PENDIENTE_DSI` en la matriz del issue #15.
-- **Identidad provisional:** el token efímero de Playground no es el
-  mecanismo definitivo. Recomendación para producción (Alternativa B del
-  paquete #15): service account con carpeta compartida a su email — mintea
-  tokens por JWT sin humano ni caducidad horaria; compatible con el flujo
-  `files.copy` + `parents=[carpeta]` porque la SA carece de My Drive propio.
+- **Credencial provisional:** la identidad es la definitiva (cuenta técnica
+  dedicada del Agente 1), pero el token efímero de Playground no es el
+  mecanismo definitivo: caduca ~1h y requiere consentimiento manual. Para
+  producción quedan dos caminos compatibles con el puerto
+  `AccessTokenProvider`: refresh token de app OAuth internal, o service
+  account con carpeta compartida (mintea tokens por JWT sin humano ni
+  caducidad; compatible con `files.copy` + `parents=[carpeta]` porque la SA
+  carece de My Drive propio). La elección es decisión DSI del issue #15.
 - **Plantilla provisional:** la definitiva sigue `PENDIENTE_SEU`.
 - Esto acredita el camino técnico live en D2. **No** cierra el issue #15
   (faltan decisiones formales: admin titular, matriz de scopes aprobada,

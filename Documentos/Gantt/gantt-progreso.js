@@ -26,12 +26,15 @@ window.GANTT_PROGRESS = {
   // Corte de revision: 2026-09-22. Contrastado contra la suite vigente (932
   // pruebas verdes), el Registro de Defectos, la matriz HU-DoD y el acta de la
   // reunion SEU del 22/09 (Respuestas-SEU-Reunion-2026-09-22.md).
+  // Actualizado al 2026-09-28 con la primera corrida live de Workspace D2.
 
   "s0a": { done: true, at: "2026-07-06", nota: "Ollama user-local restaurado, llama3.2:3b descargado (.claude/persistence.md)" },
+  "s0b": { done: true, at: "2026-09-28", nota: "Cuenta tecnica dedicada del Agente 1 (institucional DSI/FIE) con OAuth2 verificado en vivo: scopes drive/documents/spreadsheets concedidos y lectura de la carpeta autorizada confirmada. Credencial de hoy: token efimero; el mecanismo definitivo sigue con DSI (issue #15). Evidencia: notas/workspace-live-d2-2026-09-28.md" },
   "s0c": { done: true, at: "2026-07-10", nota: "Esqueleto del proyecto y logging basico verificados por la suite de pruebas" },
   "m0":  { done: true, at: "2026-07-10", nota: "Entorno offline suficiente para construir el MVP. Conexion Workspace live sigue BLOQUEADO_EXTERNO (DEF-A1-001)" },
 
   "s1a": { done: true, at: "2026-07-15", nota: "Pipeline de gacetilla offline funcional. Reforzado el 2026-09-08 con la plantilla gacetilla_v3, que decide la linea de lugar por caso y cierra DEF-A1-014" },
+  "s1b": { done: true, at: "2026-09-28", nota: "Adapter de Sheets verificado live: lectura real de la planilla sintetica D2 por API (lectura_confirmada) y consumo dentro del E2E. Negativos live: source_request_not_found y workspace_auth_unavailable sin tocar red. Evidencia: notas/workspace-live-d2-2026-09-28.md" },
   "s1d": { done: true, at: "2026-09-08", nota: "Cinco casos sinteticos ejecutados: tres completos generan borrador y dos incompletos se rechazan sin invocar al modelo (matriz-conformidad-hu010-2026-07-20.md). Reverificado live tras DEF-A1-014: 6/6 borradores en dos intentos, identicos byte a byte, mas cuatro casos negativos de lugar. Regresion en test_matriz_hu010.py. No incluye validacion SEU (s1e) ni Workspace live (s1b, s1c)" },
 
   "s2a": { done: true, at: "2026-08-07", nota: "Contrato/politicas de canal offline resueltas en 537402a (DEF-A1-004 RESUELTO_TECNICO)" },
@@ -59,11 +62,13 @@ window.GANTT_PROGRESS = {
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
   //
-  // s0b  - Workspace/OAuth2 institucional: BLOQUEADO_EXTERNO (DEF-A1-001).
-  // s1b  - adapter de Sheets verificado offline; falta OAuth y corrida live.
-  // s1c  - adapter de Docs/Drive verificado offline; falta plantilla institucional aprobada (DEF-A1-002) y corrida live.
+  // s1c  - copia de plantilla y volcado en Docs verificados live el 28/09
+  //        (doc real en la carpeta autorizada); lo que falta es la plantilla
+  //        institucional aprobada (DEF-A1-002) — la usada es provisional.
   // s1e  - validacion SEU de gacetillas: BLOQUEADO_EXTERNO (DEF-A1-005). Paquete de nueve muestras listo, acta pendiente.
-  // m1   - el DoD de HU-010 incluye Sheets, Docs, plantilla y validacion humana: tres de esos cuatro siguen abiertos.
+  // m1   - el DoD de HU-010 incluye Sheets, Docs, plantilla y validacion
+  //        humana: Sheets y Docs ya corrieron live el 28/09; quedan abiertas
+  //        la plantilla institucional y la validacion SEU.
   // s2d  - validacion SEU de posts y criterios definitivos por canal: la mitad
   //        tecnica se hizo el 22/09 — la SEU confirmo los criterios por canal
   //        (acta) y se implementaron el mismo dia (politica v1 con 17 reglas
@@ -72,9 +77,20 @@ window.GANTT_PROGRESS = {
   //        en curso (DEF-A1-005). DEF-A1-007 quedo EN_CORRECCION.
   //        Medicion live del 22/09: 1/6 conforme con y sin reintento
   //        (issue #37 mergeado): la brecha residual es obediencia del
-  //        modelo 3B, no del gate ni del pipeline.
+  //        modelo 3B, no del gate ni del pipeline. El 23/09 se midio una
+  //        variante de prompt con solo instrucciones positivas: mismo 1/6
+  //        con fallas dispersas en 7 codigos (evidencia
+  //        medicion-hu011-v3-positivo-2026-09-23.md). Misma noche,
+  //        comparacion de modelos (evidencia
+  //        medicion-hu011-v3-modelos-2026-09-23.md): llama3.1:8b da 4/6
+  //        y mistral:7b da 0/6 — el modelo concreto importa, no solo el
+  //        tamano.
   // m2   - Gate TRL 3 PENDIENTE: falta criterio formal (DEF-A1-006) y validacion SEU.
-  // s3a  - paquete de gestion DSI redactado (issue #15), pero identidad, permisos y recursos siguen sin otorgarse.
+  // s3a  - D2 provisionado y verificado live el 28/09: cuenta tecnica
+  //        dedicada, carpeta autorizada, planilla y plantilla sinteticas, y
+  //        E2E completo con borrador real. Pendientes con DSI: D3, mecanismo
+  //        de identidad definitivo, revocacion/rotacion y host (issue #15
+  //        sigue abierto).
   // s3b  - SEU designo revisor titular/suplente y se documento el circuito; el
   //        22/09 quedaron confirmados los roles nominales (semantica: Juan
   //        Manuel; utilitaria y firma final: Sebastian Moreira, Secretario de
