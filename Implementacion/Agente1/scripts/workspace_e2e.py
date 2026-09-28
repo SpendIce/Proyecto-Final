@@ -25,9 +25,9 @@ import sys
 from agente1.ollama import OllamaGenerator
 from agente1.posts import CONTRATO_SALIDA_ESTRUCTURADA
 from agente1.procesamiento import FakeGenerator
+from agente1.workspace_auth import construir_token_provider
 from agente1.workspace_config import (
     ConfiguracionWorkspaceError,
-    TokenEntornoProvider,
     cargar_configuracion_workspace,
 )
 from agente1.workspace_e2e import (
@@ -118,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
                 habilitar_live=True,
                 confirmar_escritura=args.confirm_write_workspace,
                 config=config,
-                token_provider=TokenEntornoProvider(),
+                token_provider=construir_token_provider(timeout_s=config.timeout_s),
             )
             generator = _crear_generator_live(tipo=args.tipo, modelo=args.modelo)
             ambiente = config.ambiente

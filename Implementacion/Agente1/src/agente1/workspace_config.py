@@ -54,7 +54,16 @@ _REQUIRED_KEYS = frozenset(
         "AGENTE1_WORKSPACE_MAX_RESPONSE_BYTES",
     }
 )
-_ALLOWED_KEYS = _REQUIRED_KEYS | {TOKEN_ENV}
+# Las tres credenciales OAuth de `OAuthRefreshTokenProvider` (Alternativa A
+# del issue #15) son aceptadas para que el loader no las rechace como
+# desconocidas, pero nunca entran al objeto de configuración: las lee el
+# provider directo del entorno, igual que `TOKEN_ENV`.
+_ALLOWED_KEYS = _REQUIRED_KEYS | {
+    TOKEN_ENV,
+    "AGENTE1_WORKSPACE_OAUTH_CLIENT_ID",
+    "AGENTE1_WORKSPACE_OAUTH_CLIENT_SECRET",
+    "AGENTE1_WORKSPACE_OAUTH_REFRESH_TOKEN",
+}
 _ID_RE = re.compile(r"[A-Za-z0-9_-]{1,256}\Z")
 # Rango A1 completo y acotado: exige nombre de hoja y celdas inicial y final
 # (`'Respuestas'!A1:I500`). No se admite un rango abierto —ni una hoja entera—

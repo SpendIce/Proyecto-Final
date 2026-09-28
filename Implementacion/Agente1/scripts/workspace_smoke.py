@@ -18,9 +18,9 @@ import uuid
 
 from agente1.fuentes import FuenteSolicitudesError
 from agente1.google_workspace import GoogleSheetsFuenteSolicitudes
+from agente1.workspace_auth import construir_token_provider
 from agente1.workspace_config import (
     ConfiguracionWorkspaceError,
-    TokenEntornoProvider,
     cargar_configuracion_workspace,
 )
 
@@ -81,12 +81,14 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        # Falla antes de abrir red y diferencia configuración/auth de HTTP remoto.
-        TokenEntornoProvider().obtener_access_token()
+        # Diferencia configuración/auth de HTTP remoto. Con el provider de
+        # refresh token esta llamada ya mintea contra el endpoint OAuth.
+        proveedor = construir_token_provider(timeout_s=config.timeout_s)
+        proveedor.obtener_access_token()
         fuente = GoogleSheetsFuenteSolicitudes(
             spreadsheet_id=config.spreadsheet_id,
             rango_a1=config.rango_a1,
-            token_provider=TokenEntornoProvider(),
+            token_provider=proveedor,
             timeout_s=config.timeout_s,
         )
         fuente.obtener(args.id_solicitud)
