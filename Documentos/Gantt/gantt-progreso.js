@@ -88,9 +88,11 @@ window.GANTT_PROGRESS = {
   // m2   - Gate TRL 3 PENDIENTE: falta criterio formal (DEF-A1-006) y validacion SEU.
   // s3a  - D2 provisionado y verificado live el 28/09: cuenta tecnica
   //        dedicada, carpeta autorizada, planilla y plantilla sinteticas, y
-  //        E2E completo con borrador real. Pendientes con DSI: D3, mecanismo
-  //        de identidad definitivo, revocacion/rotacion y host (issue #15
-  //        sigue abierto).
+  //        E2E completo con borrador real. El mecanismo de credencial ya
+  //        existe y esta verificado: refresh token OAuth sobre proyecto
+  //        dentro del tenant FIE (consent Internal, durable). Pendientes
+  //        con DSI: aval formal del mecanismo, D3, revocacion/rotacion
+  //        probada y host (issue #15 sigue abierto).
   // s3b  - SEU designo revisor titular/suplente y se documento el circuito; el
   //        22/09 quedaron confirmados los roles nominales (semantica: Juan
   //        Manuel; utilitaria y firma final: Sebastian Moreira, Secretario de
