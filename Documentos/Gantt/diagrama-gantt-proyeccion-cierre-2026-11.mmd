@@ -1,0 +1,35 @@
+gantt
+    title Agente 1 Extension Bot - proyeccion de cierre a release candidata (30 sep - 30 nov 2026)
+    dateFormat  YYYY-MM-DD
+    axisFormat  %d %b
+    tickInterval 1week
+    todayMarker stroke-width:2px,stroke:#0f766e,opacity:0.6
+
+    section Alcance redefinido (decision 30/09)
+    HU-015 triggers-certificados / HU-016 BD consultas / HU-017 Disp. Decanales / toda HU posterior a HU-014 delegadas a alumnos de 4to :crit, done, out1, 2026-09-30, 1d
+    Expansiones de HU-010..HU-014 siguen en scope - ej. situacion de pagos en HU-012 ya mergeada :done, out2, 2026-09-30, 1d
+
+    section Frente institucional (bloqueantes externos - no dependen de codigo)
+    Prueba guiada HU-013 con Juan Manuel y acta - fecha 25/09 cayo y hay que reagendar :ext1, 2026-10-01, 2026-10-09
+    Revision SEU de muestras gacetillas y posts - asincrona abierta desde el 22/09 :ext2, 2026-10-01, 2026-10-23
+    Plantillas institucionales de gacetilla y certificado - SEU :ext3, 2026-10-01, 2026-10-23
+    Fuente de datos de situacion de pagos - SEU; si no llega queda fail-closed documentado :ext4, 2026-10-01, 2026-10-30
+    Aval DSI del mecanismo OAuth durable y host y ambiente D3 - issue 15 :ext5, 2026-10-01, 2026-10-30
+    Criterio formal del Gate G2 - Cicerchia; nota enviada 09/09 sin respuesta :ext6, 2026-10-01, 2026-10-16
+    Autenticacion de personal SEU para canal interno HU-013 - s5a :ext7, 2026-10-19, 2026-11-06
+
+    section Frente tecnico (octubre con slack heredado de HU-014 adelantada)
+    Decision de modelo HU-011 y remedicion - candidato llama3.1 8b con 4/6 vs 1/6 :t1, 2026-10-01, 2026-10-09
+    Adapter de correo real HU-012 via cuenta dedicada - condicionado a aval DSI :t2, 2026-10-12, 2026-10-23
+    Contratos y mocks con A2-A5 sin orquestar - s7a; seam Historia Viva ya existe :t3, 2026-10-26, 2026-10-30
+    Integracion progresiva de insumos A2-A5 - s7b; depende del contrato con Ignacio issue 17 :t4, 2026-10-30, 2026-11-06
+    Pruebas unitarias e integracion y E2E - s7c :t5, 2026-11-02, 2026-11-10
+    Seguridad y permisos y prompt injection - s7d :t6, 2026-11-09, 2026-11-13
+    Suite de pruebas en verde y cobertura registrada - m7 :milestone, m7p, 2026-11-13, 0d
+
+    section Cierre - validacion SEU y release (sin cambios respecto del plan)
+    Validar con usuarios SEU con checklist 1-4 y trazabilidad - c1 :c1, 2026-11-16, 2026-11-20
+    Cerrar defectos criticos y regresion completa - c2 :c2, 2026-11-18, 2026-11-24
+    Release candidata y paquete de evidencias - c3 :c3, 2026-11-23, 2026-11-27
+    Auditoria go/no-go e informe de avance final - c4 :c4, 2026-11-25, 2026-11-30
+    Entrega de version a fin de noviembre - Gate TRL 4 si la evidencia externa cerro :milestone, m8p, 2026-11-30, 0d
