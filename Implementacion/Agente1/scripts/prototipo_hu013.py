@@ -45,7 +45,12 @@ $('#send').onclick=submit;$('#pedido').addEventListener('keydown',e=>{if(e.key==
 
 
 class GeneradorDemo:
-    """Salidas fijas válidas para ensayar la interfaz sin Ollama."""
+    """Salidas deterministas válidas para ensayar la interfaz sin Ollama.
+
+    La gacetilla se arma desde el bloque DATOS FUENTE del propio prompt: el
+    gate de hechos compara título/fecha/organiza/lugar/contacto contra la
+    fila, así que un texto fijo sólo pasaría para SYN-001.
+    """
 
     modelo = "demo-determinista"
     num_predict = None
@@ -57,13 +62,42 @@ class GeneradorDemo:
     def generar(self, prompt: str) -> str:
         if '"gancho"' in prompt or "gancho" in prompt.lower():
             canal = "linkedin" if "linkedin" in prompt.lower() else "instagram"
-            cta = (
-                "Más información en el enlace de esta publicación."
-                if canal == "linkedin"
-                else "Encontrá el enlace en nuestro perfil."
-            )
-            return json.dumps({"gancho":"Una propuesta para aprender y compartir.","prosa":"Sumate a una experiencia pensada para la comunidad.","cta":cta,"hashtags":["#FIE","#UNDEF"]},ensure_ascii=False)
-        return self.gacetilla
+            if canal == "linkedin":
+                return json.dumps({"gancho":"Una oportunidad para conectar conocimientos.","prosa":"Te invitamos a ser parte de una experiencia de intercambio.","cta":"Más información en el enlace de esta publicación.","hashtags":["#FIE","#UNDEF","#Ingenieria"]},ensure_ascii=False)
+            return json.dumps({"gancho":"Un espacio para encontrarnos y participar.","prosa":"Te invitamos a compartir una nueva experiencia.","cta":"Encontrá el enlace en nuestro perfil.","hashtags":["#FIE","#UNDEF","#inscripciones"]},ensure_ascii=False)
+        datos = self._datos_fuente(prompt)
+        if not datos:
+            return self.gacetilla
+        lineas = [f"Fecha: {datos.get('fecha', '')}", f"Organiza: {datos.get('organiza', '')}"]
+        if datos.get("lugar"):
+            lineas.append(f"Lugar: {datos['lugar']}")
+        bajada = datos.get("descripcion", "")
+        if len(bajada.split()) > 12:
+            bajada = ""
+        if not bajada:
+            bajada = "Nueva propuesta de extensión universitaria."
+        cuerpo = f"Propuesta organizada por {datos.get('organiza', '')}."
+        if len(cuerpo.split()) > 12:
+            cuerpo = "Propuesta de extensión abierta a la comunidad."
+        return "\n\n".join([
+            "## TÍTULO\n" + datos.get("titulo", ""),
+            "## DATOS DE LA ACTIVIDAD\n" + "\n".join(lineas),
+            "## CONTACTO\n" + datos.get("contacto", ""),
+            "## BAJADA\n" + bajada,
+            "## CUERPO\n" + cuerpo,
+        ])
+
+    @staticmethod
+    def _datos_fuente(prompt: str) -> dict[str, str]:
+        if "--- DATOS FUENTE ---" not in prompt:
+            return {}
+        bloque = prompt.split("--- DATOS FUENTE ---")[-1].split("--- FIN DATOS FUENTE ---")[0]
+        datos = {}
+        for linea in bloque.strip().splitlines():
+            campo, _, valor = linea.partition(":")
+            if campo.strip():
+                datos[campo.strip()] = valor.strip()
+        return datos
 
 
 class Handler(BaseHTTPRequestHandler):
