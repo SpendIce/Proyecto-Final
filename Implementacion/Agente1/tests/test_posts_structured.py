@@ -94,7 +94,7 @@ def test_v2_renderiza_hechos_literalmente_y_audita_versiones(
     assert registro["output_contract_version"] == "post_creative_output_v2"
     assert registro["prompt_version"] == f"post_{canal}_structured_v2"
     assert registro["renderer_version"] == "post_deterministic_renderer_v2"
-    assert registro["creative_catalog_version"] == "post_creative_catalog_v3"
+    assert registro["creative_catalog_version"] == "post_creative_catalog_v4"
 
 
 def test_v2_omite_lugar_cuando_fuente_no_lo_informa(tmp_path: Path):

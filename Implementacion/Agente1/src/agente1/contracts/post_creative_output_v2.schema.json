@@ -5,7 +5,7 @@
   "description": "Contrato técnico provisional. Los hechos institucionales no son generados por el LLM y se agregan mediante un renderer determinista.",
   "x-contract-version": "post_creative_output_v2",
   "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
-  "x-provisional-creative-catalog-version": "post_creative_catalog_v3",
+  "x-provisional-creative-catalog-version": "post_creative_catalog_v4",
   "x-provisional-safety-hashtags": [
     "#FIE",
     "#UNDEF",
@@ -17,29 +17,41 @@
     "instagram": {
       "gancho": [
         "Una propuesta para aprender y compartir.",
-        "Un espacio para encontrarnos y participar."
+        "Un espacio para encontrarnos y participar.",
+        "¡La FIE te espera con una nueva propuesta!",
+        "Se acerca una nueva propuesta para la comunidad.",
+        "Hay una nueva actividad pensada para compartir."
       ],
       "prosa": [
         "Sumate a una experiencia pensada para la comunidad.",
-        "Te invitamos a compartir una nueva experiencia."
+        "Te invitamos a compartir una nueva experiencia.",
+        "Sumate a una experiencia pensada para compartir, aprender y proyectar tu futuro junto a docentes y estudiantes.",
+        "Te esperamos para compartir una propuesta que acerca la ingeniería a tu futuro. ¡Si es ingeniería, la FIE te espera!"
       ],
       "cta": [
         "Encontrá el enlace en nuestro perfil.",
-        "Más información en el enlace del perfil."
+        "Más información en el enlace del perfil.",
+        "La FIE te espera. El enlace está en nuestro perfil.",
+        "Toda la info y el enlace para sumarte están en nuestro perfil."
       ]
     },
     "linkedin": {
       "gancho": [
         "Una oportunidad para conectar conocimientos.",
-        "Una propuesta para aprender y compartir."
+        "Una propuesta para aprender y compartir.",
+        "Nueva propuesta de extensión abierta a la comunidad.",
+        "Se acerca una nueva actividad de extensión universitaria."
       ],
       "prosa": [
         "Te invitamos a ser parte de una experiencia de intercambio.",
-        "Sumate a una experiencia pensada para la comunidad."
+        "Sumate a una experiencia pensada para la comunidad.",
+        "Una propuesta para compartir, aprender y proyectar el futuro profesional junto a la comunidad académica.",
+        "Te invitamos a una experiencia de intercambio junto a docentes, estudiantes y graduados."
       ],
       "cta": [
         "Más información en el enlace de esta publicación.",
-        "El enlace acompaña esta publicación."
+        "El enlace acompaña esta publicación.",
+        "Toda la información está en el enlace de esta publicación."
       ]
     }
   },
@@ -51,7 +63,12 @@
       "enum": [
         "Una propuesta para aprender y compartir.",
         "Un espacio para encontrarnos y participar.",
-        "Una oportunidad para conectar conocimientos."
+        "Una oportunidad para conectar conocimientos.",
+        "¡La FIE te espera con una nueva propuesta!",
+        "Se acerca una nueva propuesta para la comunidad.",
+        "Hay una nueva actividad pensada para compartir.",
+        "Nueva propuesta de extensión abierta a la comunidad.",
+        "Se acerca una nueva actividad de extensión universitaria."
       ],
       "minLength": 1,
       "maxLength": 160
@@ -61,7 +78,11 @@
       "enum": [
         "Sumate a una experiencia pensada para la comunidad.",
         "Te invitamos a compartir una nueva experiencia.",
-        "Te invitamos a ser parte de una experiencia de intercambio."
+        "Te invitamos a ser parte de una experiencia de intercambio.",
+        "Sumate a una experiencia pensada para compartir, aprender y proyectar tu futuro junto a docentes y estudiantes.",
+        "Te esperamos para compartir una propuesta que acerca la ingeniería a tu futuro. ¡Si es ingeniería, la FIE te espera!",
+        "Una propuesta para compartir, aprender y proyectar el futuro profesional junto a la comunidad académica.",
+        "Te invitamos a una experiencia de intercambio junto a docentes, estudiantes y graduados."
       ],
       "minLength": 1,
       "maxLength": 500
@@ -72,7 +93,10 @@
         "Encontrá el enlace en nuestro perfil.",
         "Más información en el enlace del perfil.",
         "Más información en el enlace de esta publicación.",
-        "El enlace acompaña esta publicación."
+        "El enlace acompaña esta publicación.",
+        "La FIE te espera. El enlace está en nuestro perfil.",
+        "Toda la info y el enlace para sumarte están en nuestro perfil.",
+        "Toda la información está en el enlace de esta publicación."
       ],
       "minLength": 1,
       "maxLength": 160
