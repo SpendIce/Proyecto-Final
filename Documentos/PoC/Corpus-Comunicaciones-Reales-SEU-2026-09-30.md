@@ -81,25 +81,46 @@ y el núcleo `interpretacion.py`:
    fuente). Corregido: `GeneradorDemo` arma la ficha desde el bloque
    `DATOS FUENTE` del prompt.
 4. El contrato creativo vigente del pipeline (`post_creative_output_v2` +
-   catálogo v3) usa **catálogo cerrado** por campo: el modelo elige entre 2
+   catálogo) usa **catálogo cerrado** por campo: el modelo elige entre
    opciones fijas de gancho/prosa/cta por canal. Esa es la causa profunda
-   de la «simplicidad» del demo — no es el LLM, es el catálogo.
+   de la «simplicidad» del demo — no es el LLM, es el catálogo. Resuelto
+   el mismo día: catálogo enriquecido a `post_creative_catalog_v4` (ver §4).
 5. Gates que sí se comportaron como se esperaba: rechazo fuera de alcance
    (newsletter), `INCOMPLETA` por canal ausente en el pedido inicial,
    `INCOMPLETA` por contacto faltante (SYN-002), id explícito SYN-001.
+6. **«En la FIE» dispara el gate de lugares.** El eslogan literal «Si es
+   ingeniería, es en la FIE» fue rechazado por `unauthorized_place`
+   (`PATRON_LUGAR_PROPIO` lee «en la + NombrePropio» como lugar inventado).
+   Solución adoptada sin tocar el gate: variante «¡Si es ingeniería, la FIE
+   te espera!» que conserva el cierre real sin el patrón. Si la SEU quiere
+   el eslogan literal, habría que revisar el gate — decisión institucional.
 
-## 4. Uso propuesto del corpus
+## 4. Uso del corpus — estado
 
-- **Corto plazo (esta semana):** enriquecer el catálogo creativo v3 con
-  opciones inspiradas en el corpus real (eslogan FIE, cierre «¡La FIE te
-  espera!», ganchos con mención/auspicio) — es data del contrato, no código
-  nuevo. Requiere decisión: el catálogo es `x-provisional-*`, diseñado para
-  esto.
-- **Mediano:** evaluar `gacetilla_v5` con forma mail real (asunto + bajada
-  emocional + invitación + fecha destacada + CTA inscripción + consultas +
-  firma) o, más seguro, un **renderer mail determinista** que envuelva la
-  ficha v4 con firma/consultas/CTA — mantiene el gate de hechos intacto y
-  produce la pieza que SEU reconoce.
-- **Preguntas para SEU** (cuando haya canal): ¿hashtags temáticos libres o
-  set cerrado? ¿CTA puede decir «inscripción»? ¿el dato va dentro de la
-  prosa o adjunto por sistema? ¿eslogan y firma fijos oficiales?
+- **Catálogo creativo (implementado 30/09):** `post_creative_catalog_v4` en
+  `post_creative_output_v2.schema.json` agrega opciones inspiradas en el
+  corpus real — ganchos «¡La FIE te espera con una nueva propuesta!» /
+  «Se acerca una nueva propuesta para la comunidad.», prosa con
+  «…proyectar tu futuro junto a docentes y estudiantes» y la variante del
+  eslogan «¡Si es ingeniería, la FIE te espera!», CTAs «La FIE te espera.
+  El enlace está en nuestro perfil.». Diseño: los `!` quedaron sólo en
+  gancho/prosa (ningún cta) para que ninguna combinación supere el tope
+  interno de 2 exclamaciones. Verificación exhaustiva: las 80+48
+  combinaciones posibles pasan todos los gates del pipeline.
+- **Vista mail del prototipo (implementado 30/09):** el prototipo web
+  adjunta `borrador_mail`, una envoltura determinista e ilustrativa de la
+  ficha técnica con forma FIE Informa (asunto = título, bajada, cuerpo,
+  datos, «Consultas:» y firma institucional completa del corpus). El
+  artefacto auditado sigue siendo la ficha; la vista mail muestra cómo
+  quedaría la pieza que la SEU reconoce. No es `gacetilla_v5`: no toca el
+  contrato ni el gate.
+- **Casos del instrumento (actualizado 30/09):** las consignas C1–C4 del
+  instrumento de prueba guiada se reformularon con prosa natural del
+  dominio («Necesito avisar de la actividad…», «Tenemos que avisar… en
+  LinkedIn») y la nota de C3 documenta las dos limitaciones observadas.
+- **Pendiente real, no implementado:** un `gacetilla_v5` o renderer mail
+  del pipeline productivo (el del prototipo es sólo vista). Y las
+  preguntas para SEU siguen abiertas: ¿hashtags temáticos libres o set
+  cerrado? ¿CTA puede decir «inscripción»? ¿el dato va dentro de la prosa
+  o adjunto por sistema? ¿eslogan literal («en la FIE») permitido o la
+  variante alcanza?
