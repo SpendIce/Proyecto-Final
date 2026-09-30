@@ -204,8 +204,11 @@ window.GANTT_PROGRESS = {
   //
   // Nota de alcance bible 22/09: la nueva version de Procesos y Agentes agrega
   // HU-016 (BD de consultas, 13 SP) y HU-017 (Disposiciones Decanales) dentro
-  // de Epica E2 = Agente 1. Decision provisional: fuera del PPS, pendiente de
-  // charla con Cicerchia (issue #34). El .mmd no se rebaselinea: conserva las
+  // de Epica E2 = Agente 1. Decision confirmada el 2026-09-30: fuera del PPS,
+  // delegadas a los alumnos de 4to ano que continuan el P100 (issue #34), igual
+  // que la lectura A1 de HU-015 y cualquier HU posterior a HU-014. Las
+  // expansiones de HU-010..HU-014 (ej.: situacion de pagos en HU-012) si son
+  // alcance del PPS. El .mmd no se rebaselinea: conserva las
   // fechas de plan y este archivo registra el avance real — Sprint 6 (HU-014)
   // quedo completo una semana antes de su inicio planificado.
   //

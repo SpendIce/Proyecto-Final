@@ -181,7 +181,7 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 - Bandeja exclusiva para Coordinacion/Secretario; edicion humana del borrador antes del circuito de firma del Decano
 - Ningun proyecto se guarda si faltan los anexos obligatorios del proceso
 
-> **Nota de consistencia (bible sincronizada 2026-09-22):** la nueva version renumero el backlog de E2: la vieja HU-016 (certificados/triggers por evento) quedo absorbida en HU-015; HU-016 es ahora la BD de consultas y HU-017 las Disposiciones Decanales. Persiste la colision del ID "HU-015" con la HU de ceremonial y protocolo de Agente 3. HU-016 y HU-017 son alcance del Agente 1 en el P100 pero quedan **fuera del PPS de Gone provisionalmente** (decision del 22/09, pendiente de confirmacion con Direccion — issue #34).
+> **Nota de consistencia (bible sincronizada 2026-09-22):** la nueva version renumero el backlog de E2: la vieja HU-016 (certificados/triggers por evento) quedo absorbida en HU-015; HU-016 es ahora la BD de consultas y HU-017 las Disposiciones Decanales. Persiste la colision del ID "HU-015" con la HU de ceremonial y protocolo de Agente 3. HU-015 (en su lectura de certificados/triggers), HU-016, HU-017 y cualquier historia nueva posterior a HU-014 son alcance del Agente 1 en el P100 pero quedan **fuera del PPS de Gone**: delegadas a los alumnos de cuarto ano que continuaran el P100 (decision de Direccion comunicada el 2026-09-30; issue #34). Las ampliaciones de HU-010 a HU-014 si pertenecen al PPS — ejemplo: HU-012 ampliada con notificaciones de situacion de pagos.
 
 #### DoD especifico para historias de Generacion de Contenido
 - Texto generado coherente, sin errores gramaticales criticos
