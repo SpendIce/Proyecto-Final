@@ -39,7 +39,7 @@ HTML = r'''<!doctype html>
 <script>
 const $=s=>document.querySelector(s), turns=[];let busy=false;
 async function submit(){if(busy)return;const text=$('#pedido').value.trim();if(!text)return;busy=true;$('#send').disabled=true;$('#send').textContent='Procesando…';try{const r=await fetch('/api/pedido',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:text})});const d=await r.json();if(!r.ok)throw Error(d.error||'No se pudo procesar');turns.push({...d,feedback:null});render();$('#pedido').value='';}catch(e){alert(e.message)}finally{busy=false;$('#send').disabled=false;$('#send').textContent='Enviar pedido';}}
-function render(){const root=$('#turns');root.innerHTML='';turns.forEach((t,i)=>{const last=i===turns.length-1;const el=document.createElement(last?'article':'details');el.className='turn'+(last?' latest':'');const title=document.createElement(last?'div':'summary');title.className='turn-num';const pista=(t.resumen||t.error||'').slice(0,70);title.textContent=`RESPUESTA ${i+1} · ${t.estado}${last?' · nueva':pista?' — '+pista:''}`;el.append(title);const body=document.createElement('div');const ans=document.createElement('div');ans.className='answer';ans.textContent=t.resumen||t.error||'El agente no devolvió un detalle.';body.append(ans);if(t.candidatas?.length){const ul=document.createElement('ol');t.candidatas.forEach(c=>{const li=document.createElement('li');li.textContent=`${c.titulo} (${c.fecha||'fecha no informada'})`;ul.append(li)});body.append(ul)}if(t.borrador){const b=document.createElement('details');const s=document.createElement('summary');s.textContent='Ver borrador generado';const pre=document.createElement('pre');pre.className='draft';pre.textContent=t.borrador;b.append(s,pre);body.append(b)}const f=document.createElement('div');f.className='feedback';f.innerHTML='<strong>Antes de seguir: ¿se entendió esta respuesta?</strong><div class="row"><label><input type="radio" name="understood-'+i+'" value="si"> Sí</label><label><input type="radio" name="understood-'+i+'" value="no"> No / con dudas</label></div><label for="next-'+i+'">¿Qué harías ahora?</label><input id="next-'+i+'" placeholder="Anotá la respuesta en forma resumida, sin copiar el pedido">';f.querySelectorAll('input[type=radio]').forEach(x=>{if(t.feedback?.entendida===x.value)x.checked=true;x.addEventListener('change',()=>{t.feedback={entendida:f.querySelector('input[type=radio]:checked')?.value||null,siguiente:$('#next-'+i).value};})});const nxt=f.querySelector('input:not([type=radio])');nxt.value=t.feedback?.siguiente||'';nxt.addEventListener('input',e=>{t.feedback={entendida:f.querySelector('input[type=radio]:checked')?.value||null,siguiente:e.target.value};});body.append(f);el.append(body);root.append(el)});if(turns.length)root.lastElementChild.scrollIntoView({behavior:'smooth',block:'start'});$('#mode').textContent=window.MODE;$('#mode').classList.toggle('fake',window.MODE.startsWith('SIMULADO'));}
+function render(){const root=$('#turns');root.innerHTML='';turns.forEach((t,i)=>{const last=i===turns.length-1;const el=document.createElement(last?'article':'details');el.className='turn'+(last?' latest':'');const title=document.createElement(last?'div':'summary');title.className='turn-num';const pista=(t.resumen||t.error||'').slice(0,70);title.textContent=`RESPUESTA ${i+1} · ${t.estado}${last?' · nueva':pista?' — '+pista:''}`;el.append(title);const body=document.createElement('div');const ans=document.createElement('div');ans.className='answer';ans.textContent=t.resumen||t.error||'El agente no devolvió un detalle.';body.append(ans);if(t.candidatas?.length){const ul=document.createElement('ol');t.candidatas.forEach(c=>{const li=document.createElement('li');li.textContent=`${c.titulo} (${c.fecha||'fecha no informada'})`;ul.append(li)});body.append(ul)}if(t.borrador){const b=document.createElement('details');const s=document.createElement('summary');s.textContent='Ver borrador generado';const pre=document.createElement('pre');pre.className='draft';pre.textContent=t.borrador;b.append(s,pre);body.append(b)}if(t.borrador_mail){const bm=document.createElement('details');const sm=document.createElement('summary');sm.textContent='Ver como mail institucional (vista ilustrativa)';const pm=document.createElement('pre');pm.className='draft';pm.textContent=t.borrador_mail;bm.append(sm,pm);body.append(bm)}const f=document.createElement('div');f.className='feedback';f.innerHTML='<strong>Antes de seguir: ¿se entendió esta respuesta?</strong><div class="row"><label><input type="radio" name="understood-'+i+'" value="si"> Sí</label><label><input type="radio" name="understood-'+i+'" value="no"> No / con dudas</label></div><label for="next-'+i+'">¿Qué harías ahora?</label><input id="next-'+i+'" placeholder="Anotá la respuesta en forma resumida, sin copiar el pedido">';f.querySelectorAll('input[type=radio]').forEach(x=>{if(t.feedback?.entendida===x.value)x.checked=true;x.addEventListener('change',()=>{t.feedback={entendida:f.querySelector('input[type=radio]:checked')?.value||null,siguiente:$('#next-'+i).value};})});const nxt=f.querySelector('input:not([type=radio])');nxt.value=t.feedback?.siguiente||'';nxt.addEventListener('input',e=>{t.feedback={entendida:f.querySelector('input[type=radio]:checked')?.value||null,siguiente:e.target.value};});body.append(f);el.append(body);root.append(el)});if(turns.length)root.lastElementChild.scrollIntoView({behavior:'smooth',block:'start'});$('#mode').textContent=window.MODE;$('#mode').classList.toggle('fake',window.MODE.startsWith('SIMULADO'));}
 $('#send').onclick=submit;$('#pedido').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();submit()}});$('#download').onclick=()=>{const rows=turns.map((t,i)=>({interaccion:i+1,estado:t.estado,intencion:t.intencion,entendida:t.feedback?.entendida||'sin_respuesta',siguiente_parafraseado:t.feedback?.siguiente||''}));const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({prototipo:true,modo:window.MODE,interacciones:rows},null,2)],{type:'application/json'}));a.download='resumen-sesion-hu013.json';a.click();URL.revokeObjectURL(a.href)};render();
 </script></body></html>'''
 
@@ -63,8 +63,8 @@ class GeneradorDemo:
         if '"gancho"' in prompt or "gancho" in prompt.lower():
             canal = "linkedin" if "linkedin" in prompt.lower() else "instagram"
             if canal == "linkedin":
-                return json.dumps({"gancho":"Una oportunidad para conectar conocimientos.","prosa":"Te invitamos a ser parte de una experiencia de intercambio.","cta":"Más información en el enlace de esta publicación.","hashtags":["#FIE","#UNDEF","#Ingenieria"]},ensure_ascii=False)
-            return json.dumps({"gancho":"Un espacio para encontrarnos y participar.","prosa":"Te invitamos a compartir una nueva experiencia.","cta":"Encontrá el enlace en nuestro perfil.","hashtags":["#FIE","#UNDEF","#inscripciones"]},ensure_ascii=False)
+                return json.dumps({"gancho":"Nueva propuesta de extensión abierta a la comunidad.","prosa":"Te invitamos a una experiencia de intercambio junto a docentes, estudiantes y graduados.","cta":"Toda la información está en el enlace de esta publicación.","hashtags":["#FIE","#UNDEF","#Ingenieria"]},ensure_ascii=False)
+            return json.dumps({"gancho":"¡La FIE te espera con una nueva propuesta!","prosa":"Te esperamos para compartir una propuesta que acerca la ingeniería a tu futuro. ¡Si es ingeniería, la FIE te espera!","cta":"La FIE te espera. El enlace está en nuestro perfil.","hashtags":["#FIE","#UNDEF","#inscripciones"]},ensure_ascii=False)
         datos = self._datos_fuente(prompt)
         if not datos:
             return self.gacetilla
@@ -100,6 +100,46 @@ class GeneradorDemo:
         return datos
 
 
+def _vista_mail(ficha: str) -> str | None:
+    """Envoltura ilustrativa de la ficha técnica como mail estilo FIE Informa.
+
+    El artefacto auditado sigue siendo la ficha; esta vista sólo muestra cómo
+    quedaría la pieza al estilo de los correos reales de la SEU (corpus
+    2026-09-30): asunto = título, bajada, cuerpo, datos, consultas y firma
+    institucional.
+    """
+    import re
+
+    match = re.match(
+        r"(?:# BORRADOR[^\n]*\n+)?## TÍTULO\n(?P<titulo>.+?)\n\n## DATOS DE LA ACTIVIDAD\n(?P<datos>.+?)\n\n## CONTACTO\n(?P<contacto>.+?)\n\n## BAJADA\n(?P<bajada>.+?)\n\n## CUERPO\n(?P<cuerpo>.+)\Z",
+        ficha,
+        flags=re.DOTALL,
+    )
+    if match is None:
+        return None
+    return "\n".join(
+        [
+            f"Asunto: {match.group('titulo').strip()}",
+            "",
+            match.group("bajada").strip(),
+            "",
+            match.group("cuerpo").strip(),
+            "",
+            match.group("datos").strip(),
+            "",
+            f"Consultas: {match.group('contacto').strip()}",
+            "",
+            "--",
+            "Facultad de Ingeniería del Ejército",
+            '"Grl Div Manuel N Savio"',
+            "UNDEF",
+            "Tel: (011) 4779-3300",
+            "Av. Cabildo 15 – CABA",
+            "www.fie.undef.edu.ar",
+        ]
+    )
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path == "/":
@@ -120,7 +160,8 @@ class Handler(BaseHTTPRequestHandler):
         borrador = None
         if resultado.borrador_path and resultado.borrador_path.exists():
             borrador = resultado.borrador_path.read_text(encoding="utf-8")
-        self._json(200,{"estado":resultado.estado,"intencion":resultado.intencion,"resumen":resultado.resumen,"error":resultado.error,"candidatas":[{"titulo":c.titulo,"fecha":c.fecha} for c in resultado.candidatas],"borrador":borrador})
+        borrador_mail = _vista_mail(borrador) if borrador else None
+        self._json(200,{"estado":resultado.estado,"intencion":resultado.intencion,"resumen":resultado.resumen,"error":resultado.error,"candidatas":[{"titulo":c.titulo,"fecha":c.fecha} for c in resultado.candidatas],"borrador":borrador,"borrador_mail":borrador_mail})
 
     def _json(self, estado: int, objeto: dict) -> None:
         data = json.dumps(objeto,ensure_ascii=False).encode(); self.send_response(estado); self.send_header("Content-Type","application/json; charset=utf-8"); self.send_header("Content-Length",str(len(data))); self.end_headers(); self.wfile.write(data)
