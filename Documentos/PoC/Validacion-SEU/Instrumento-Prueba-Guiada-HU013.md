@@ -1,4 +1,4 @@
-# Instrumento — prueba guiada de usabilidad HU-013 (canal de lenguaje natural)
+# Instrumento — sesión combinada HU-013: prueba guiada de usabilidad + revisión editorial de lo generado
 
 - **Fecha:** a confirmar con la SEU (la sesión agendada para el 2026-09-25 no
   se concretó; la nueva fecha se registra aquí cuando se cierre)
@@ -15,11 +15,22 @@
 
 ## 1. Objetivo y alcance
 
-Verificar que una persona de la SEU puede operar al Agente 1 escribiendo en
-prosa suelta en una planilla: pedir piezas, responder repreguntas y entender
-las respuestas (borrador, pedido de aclaración o rechazo). Es una prueba de
-**usabilidad e interacción**, no de calidad editorial de los borradores — eso
-lo cubre la revisión asincrónica del paquete.
+La sesión combina dos bloques con criterios separados:
+
+- **Bloque A — usabilidad (lo que acredita `s5d`).** Verificar que una
+  persona de la SEU puede operar al Agente 1 escribiendo en prosa suelta:
+  pedir piezas, responder repreguntas y entender las respuestas (borrador,
+  pedido de aclaración o rechazo). Prueba de **interacción**, no editorial.
+- **Bloque B — revisión editorial guiada (observaciones, no acredita).**
+  El participante revisa los borradores que el propio Bloque A generó,
+  contrastándolos con las piezas reales del corpus
+  (`Corpus-Comunicaciones-Reales-SEU-2026-09-30.md`). Produce devoluciones
+  accionables para calibrar contratos y, de paso, respuestas a las
+  preguntas abiertas de ese documento. No es una aprobación institucional:
+  todo lo visto está marcado `BORRADOR — NO PUBLICAR`.
+
+Si el tiempo no alcanza para el Bloque B, la revisión editorial vuelve al
+plan original: paquete de ejemplos por mail, revisión asincrónica.
 
 **Qué no acredita:** control de acceso (la identidad es afirmada por el canal,
 no verificada — ADR 0002, `identidad_verificada: false` en toda la auditoría)
@@ -61,10 +72,13 @@ dataset es sintético (`data/actividades_sinteticas.csv`).
 - El participante escribe sus pedidos en sus propias palabras; los casos de la
   sección 3 son guía, no guion obligatorio — si propone pedidos propios, mejor
   evidencia de usabilidad.
+- **Para el Bloque B:** tener a mano `Corpus-Comunicaciones-Reales-SEU-2026-09-30.md`
+  (o las 7 capturas de `Adjuntos/imagenes-flat-finch/`) para contrastar lo
+  generado con las piezas reales durante la misma sesión.
 - Roles habilitados provisionales para la fila: `coordinador_seu` o
   `auxiliar_seu`.
 
-## 3. Casos guionados
+## 3. Bloque A — casos guionados
 
 | # | Consigna para el participante | Comportamiento esperado |
 |---|---|---|
@@ -76,6 +90,35 @@ dataset es sintético (`data/actividades_sinteticas.csv`).
 | C6 | «Mandame el newsletter de la semana» u otro pedido fuera del catálogo | Rechazo con `intencion_sin_pipeline` / `fuera_de_alcance`, sin aproximación |
 | C7 | Una fila con rol no habilitado (p.ej. `visitante`) | `RECHAZADA` + línea de auditoría con el intento |
 | C8 | Pedido redactado de forma que el clasificador determinístico no lo resuelva (opcional) | Fallback con modelo local: sólo extrae términos contra el catálogo, fail-closed; si tampoco resuelve, rechazo limpio |
+
+### Bloque B — revisión editorial guiada de lo generado
+
+Al terminar el Bloque A, el participante ya tiene borradores reales de la
+sesión (ficha de gacetilla, *vista mail ilustrativa* y posts). Quien conduce
+los repasa uno por uno contra las piezas reales del corpus, con estas
+preguntas fijas por pieza (para que la devolución sea comparable y no una
+opinión suelta):
+
+| # | Pregunta | Qué capta |
+|---|----------|-----------|
+| B1 | ¿Reconocés esta pieza como una comunicación de la FIE? (sí / parcial / no) | Realismo percibido del formato y el tono |
+| B2 | ¿Qué le falta para poder mandarla? | Datos o secciones ausentes (hora, lugar, imagen, links…) |
+| B3 | ¿Qué le sobra o suena raro? | Elementos artificiales del formato técnico (`## TÍTULO`, líneas `Fecha:` en posts, etc.) |
+| B4 | ¿La marca «BORRADOR — NO PUBLICAR» se entiende y alcanza? | Comprensión del ciclo de validación humana |
+
+Y las preguntas abiertas ya registradas en el corpus §4 — la sesión es la
+primera oportunidad de tenerlas respondidas por la SEU:
+
+- ¿Hashtags temáticos libres (`#radio`, `#vozpropia`…) o set cerrado?
+- ¿El CTA puede decir «inscripción»? (hoy está prohibida en campos creativos)
+- ¿Los datos van dentro de la prosa del post o en líneas aparte como hoy?
+- ¿El eslogan literal «¡Si es ingeniería, es en la FIE!» es válido? (la
+  variante «…la FIE te espera!» se adoptó porque el literal choca con el
+  gate de lugares)
+- ¿La firma institucional completa de la vista mail es la correcta?
+
+Las respuestas se anotan parafraseadas y alimentan `Registro-Defectos-Agente-1.md`
+(observaciones) o los contratos (decisiones de calibración), según aplique.
 
 ### Demo live opcional — la conduce quien presenta, no es caso del participante
 
@@ -91,7 +134,7 @@ usabilidad no depende de ella.
 
 ## 4. Qué se registra y qué no
 
-Por cada caso, en una tabla de registro de la sesión:
+Por cada caso del **Bloque A**, en una tabla de registro de la sesión:
 
 - **Estado observado** vs esperado (`PENDIENTE_VALIDACION`, `INCOMPLETA`,
   `RECHAZADA`, repregunta).
@@ -99,6 +142,12 @@ Por cada caso, en una tabla de registro de la sesión:
   parafraseada).
 - **Tiempo percibido** y cualquier confusión o fricción.
 - **Devoluciones del participante** en forma parafraseada.
+
+Del **Bloque B**, por pieza revisada:
+
+- Respuesta a B1–B4 (sí/parcial/no + observación parafraseada).
+- Respuestas a las preguntas abiertas del corpus, parafraseadas, con la
+  pieza o sección a la que refieren.
 
 Nunca se registra la prosa literal del pedido: la especificación de HU-013
 prohíbe conservar lo que escribe la persona, y la evidencia respeta la misma
@@ -113,10 +162,15 @@ es digital o a Markdown consolidado si es en papel.
 
 `s5d` queda acreditable si:
 
-- El participante completó al menos C1–C6 (C7–C8 deseables).
+- El participante completó al menos C1–C6 del Bloque A (C7–C8 deseables).
 - Cada desviación del comportamiento esperado quedó registrada como defecto
   nuevo en `Registro-Defectos-Agente-1.md` o como observación de usabilidad.
 - El acta quedó recuperable en `Documentos/PoC/Validacion-SEU/`.
+
+El Bloque B no forma parte del criterio de `s5d`: sus devoluciones son
+insumo de calibración (catálogo, contratos, preguntas para la SEU) y quedan
+registradas como observaciones. Si el Bloque B no se realiza, la revisión
+editorial pasa al paquete de ejemplos por mail sin afectar `s5d`.
 
 Si la sesión no se realiza o se corta, `s5d` sigue sin marcar: protocolo
 escrito no cuenta como prueba hecha.
