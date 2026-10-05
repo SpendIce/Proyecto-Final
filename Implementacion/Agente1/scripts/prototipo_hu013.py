@@ -76,7 +76,10 @@ class GeneradorDemo:
             bajada = ""
         if not bajada:
             bajada = "Nueva propuesta de extensión universitaria."
-        cuerpo = f"Propuesta organizada por {datos.get('organiza', '')}."
+        if datos.get("organiza") and datos.get("publico"):
+            cuerpo = f"{datos['organiza']} invita a {datos['publico']}."
+        else:
+            cuerpo = f"Propuesta organizada por {datos.get('organiza', '')}."
         if len(cuerpo.split()) > 12:
             cuerpo = "Propuesta de extensión abierta a la comunidad."
         return "\n\n".join([
@@ -117,15 +120,23 @@ def _vista_mail(ficha: str) -> str | None:
     )
     if match is None:
         return None
+    datos = match.group("datos").strip()
+    fecha = re.search(r"^Fecha: (.+)$", datos, flags=re.MULTILINE)
+    fecha_larga = _fecha_larga(fecha.group(1).strip()) if fecha else None
+    if fecha_larga:
+        datos = datos.replace(f"Fecha: {fecha.group(1).strip()}", f"📅 {fecha_larga}")
     return "\n".join(
         [
             f"Asunto: {match.group('titulo').strip()}",
+            "",
+            "La Facultad de Ingeniería del Ejército invita a su Comunidad "
+            "Académica a participar de la siguiente actividad.",
             "",
             match.group("bajada").strip(),
             "",
             match.group("cuerpo").strip(),
             "",
-            match.group("datos").strip(),
+            datos,
             "",
             f"Consultas: {match.group('contacto').strip()}",
             "",
@@ -138,6 +149,25 @@ def _vista_mail(ficha: str) -> str | None:
             "www.fie.undef.edu.ar",
         ]
     )
+
+
+_MESES_ES = (
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)
+_DIAS_ES = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+
+
+def _fecha_larga(iso: str) -> str | None:
+    """«2026-08-05» → «miércoles 5 de agosto de 2026» (formato de los correos
+    reales). Misma fecha, otra escritura: no agrega ningún dato."""
+    try:
+        from datetime import date
+
+        fecha = date.fromisoformat(iso)
+    except ValueError:
+        return None
+    return f"{_DIAS_ES[fecha.weekday()]} {fecha.day} de {_MESES_ES[fecha.month - 1]} de {fecha.year}"
 
 
 class Handler(BaseHTTPRequestHandler):
