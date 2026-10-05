@@ -59,15 +59,17 @@ llamados; el agente debe copiar el registro, no los errores.
 Hechos verificados contra `Implementacion/Agente1/scripts/prototipo_hu013.py`
 y el núcleo `interpretacion.py`:
 
-1. **La repregunta no conserva el canal del pedido original.** «Post de
-   linkedin para la jornada» → repregunta por actividad (correcto) →
-   responder «la 1» resuelve la actividad pero el pipeline re-lee el canal
-   del texto del turno nuevo → `INCOMPLETA «No se reconoció un canal»`.
-   `InteraccionPendiente` guarda intención + candidatas, no los parámetros ya
-   resueltos. Impacta directamente los casos C3+C4 del instrumento de
-   prueba guiada. **Defecto candidato** (registrar en
-   `Registro-Defectos-Agente-1.md` si se confirma que la spec espera
-   conservarlo).
+1. **La repregunta no conservaba el canal del pedido original — corregido
+   el 05/10.** «Post de linkedin para la jornada» → repregunta por
+   actividad → responder «la 1» resolvía la actividad pero el pipeline
+   re-leía el canal del texto del turno nuevo → `INCOMPLETA`. Ahora
+   `InteraccionPendiente` conserva además el `canal` ya resuelto (sigue sin
+   guardar prosa): el canal nombrado en el turno de respuesta gana si está
+   («la 1, para linkedin» corrige un pedido de instagram); si el pedido
+   original nunca resolvió canal, el despacho sigue dando `INCOMPLETA` —
+   no hay default silencioso. Verificado end-to-end en el prototipo:
+   repregunta → «la 1» → `PENDIENTE_VALIDACION` con el post linkedin de la
+   actividad elegida.
 2. **Responder la repregunta era más frágil de lo documentado — corregido
    el 30/09.** `_referencia_por_rasgo` exigía un rasgo presente en una sola
    candidata: cualquier token compartido («sintética», «agosto», «2026»)
@@ -77,8 +79,7 @@ y el núcleo `interpretacion.py`:
    respuestas naturales, incluida la que la repregunta sugiere. Reescrita
    como intersección con dominancia estricta: gana la candidata con más
    rasgos en común sólo si la ventaja es única; el empate sigue sin
-   resolver. Queda sin resolver el defecto del punto 1 (el canal del pedido
-   original no se conserva tras la repregunta para posts).
+   resolver.
 3. El demo anterior devolvía siempre el golden SYN-001 → **toda gacetilla
    de otra actividad salía `FALLIDA`** (los hechos no coinciden con la
    fuente). Corregido: `GeneradorDemo` arma la ficha desde el bloque
