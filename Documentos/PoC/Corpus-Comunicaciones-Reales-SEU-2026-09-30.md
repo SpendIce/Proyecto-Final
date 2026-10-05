@@ -107,20 +107,31 @@ y el núcleo `interpretacion.py`:
   gancho/prosa (ningún cta) para que ninguna combinación supere el tope
   interno de 2 exclamaciones. Verificación exhaustiva: las 80+48
   combinaciones posibles pasan todos los gates del pipeline.
-- **Vista mail del prototipo (implementado 30/09):** el prototipo web
-  adjunta `borrador_mail`, una envoltura determinista e ilustrativa de la
-  ficha técnica con forma FIE Informa (asunto = título, bajada, cuerpo,
-  datos, «Consultas:» y firma institucional completa del corpus). El
-  artefacto auditado sigue siendo la ficha; la vista mail muestra cómo
-  quedaría la pieza que la SEU reconoce. No es `gacetilla_v5`: no toca el
-  contrato ni el gate.
+- **Borrador mail durable (implementado 30/09, reemplaza a la vista
+  ilustrativa):** el pipeline de gacetilla adoptó el mismo patrón que los
+  posts — el modelo produce una ficha validada (título, hechos, contacto,
+  bajada, cuerpo) y un renderer determinista
+  (`gacetilla_mail_renderer_v1`, `PROMPT_VERSION = gacetilla_v5`) arma el
+  correo en forma FIE Informa: `Asunto:`, línea de invitación institucional
+  con el público, bajada y cuerpo del modelo, `📅` con la fecha en formato
+  largo, `🕒` opcional, `Organiza:`/`Lugar:`/`Inscripción:`/`Consultas:`
+  desde la fila, y la firma institucional completa del corpus. **El
+  artefacto durable auditado es el mail**, no la ficha; el control
+  posterior (`_validar_render_mail`) verifica que ningún hecho de la fila
+  se haya perdido en el render. Los topes de prosa quedaron calibrados
+  contra este corpus (bajada ≤ 40 palabras, cuerpo ≤ 120, varias oraciones
+  permitidas) en lugar del techo arbitrario de 12; y la prosa no puede
+  contener números, correos, enlaces ni montos — esos datos los pone el
+  renderer desde la fuente (`unauthorized_fact_in_prose`). `hora` y
+  `enlace` se renderizan sólo si la fuente los trae: agregarlos al CSV es
+  una decisión institucional pendiente (`COLUMNAS_GACETILLA` es el contrato
+  de entrada vigente).
 - **Casos del instrumento (actualizado 30/09):** las consignas C1–C4 del
   instrumento de prueba guiada se reformularon con prosa natural del
   dominio («Necesito avisar de la actividad…», «Tenemos que avisar… en
   LinkedIn») y la nota de C3 documenta las dos limitaciones observadas.
-- **Pendiente real, no implementado:** un `gacetilla_v5` o renderer mail
-  del pipeline productivo (el del prototipo es sólo vista). Y las
-  preguntas para SEU siguen abiertas: ¿hashtags temáticos libres o set
-  cerrado? ¿CTA puede decir «inscripción»? ¿el dato va dentro de la prosa
-  o adjunto por sistema? ¿eslogan literal («en la FIE») permitido o la
-  variante alcanza?
+- **Pendiente:** las preguntas para SEU siguen abiertas: ¿hashtags
+  temáticos libres o set cerrado? ¿CTA puede decir «inscripción»? ¿el dato
+  va dentro de la prosa o adjunto por sistema? ¿eslogan literal («en la
+  FIE») permitido o la variante alcanza? ¿agregar `hora` y `enlace` al
+  contrato de entrada?

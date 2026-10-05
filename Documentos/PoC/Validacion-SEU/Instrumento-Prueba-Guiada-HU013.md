@@ -82,7 +82,7 @@ dataset es sintético (`data/actividades_sinteticas.csv`).
 
 | # | Consigna para el participante | Comportamiento esperado |
 |---|---|---|
-| C1 | «Necesito avisar de la actividad SYN-001, ¿me armás la gacetilla?» (id explícito) | `PENDIENTE_VALIDACION` + borrador en `borradores/` (en el prototipo web se muestra también como *vista mail ilustrativa* con firma institucional; el artefacto auditado es la ficha) |
+| C1 | «Necesito avisar de la actividad SYN-001, ¿me armás la gacetilla?» (id explícito) | `PENDIENTE_VALIDACION` + borrador en `borradores/` — el artefacto auditado es el **mail en forma FIE Informa** (asunto, invitación, fecha en formato largo, firma institucional), renderizado determinísticamente desde la ficha validada |
 | C2 | «Tenemos que avisar del taller de vinculación» (sin id, prosa suelta) | Resolución difusa sobre el índice de actividades: borrador si hay coincidencia única, si no repregunta con candidatas |
 | C3 | Tras una repregunta: responder con la elección en el turno siguiente | La pendiente guarda candidatas (orden, id, título, fecha) y el turno siguiente despacha el pedido. **Nota de ensayo (30/09):** responder con número u ordinal («la 1», «la primera») funciona; responder con el título completo puede no resolver si comparte un token con otras candidatas (en el dataset todas son «…sintética…») — conviene que la respuesta use un rasgo distintivo. Y si el pedido era un **post**, la respuesta debe repetir el canal («la 1, para LinkedIn»): la pendiente no conserva los parámetros ya resueltos — defecto candidato registrado en `Corpus-Comunicaciones-Reales-SEU-2026-09-30.md` §3 |
 | C4 | «Tenemos que avisar la jornada sintética en LinkedIn, ¿me preparás el post?» | `PENDIENTE_VALIDACION` con post del canal LinkedIn |
@@ -94,7 +94,7 @@ dataset es sintético (`data/actividades_sinteticas.csv`).
 ### Bloque B — revisión editorial guiada de lo generado
 
 Al terminar el Bloque A, el participante ya tiene borradores reales de la
-sesión (ficha de gacetilla, *vista mail ilustrativa* y posts). Quien conduce
+sesión (mail de gacetilla y posts). Quien conduce
 los repasa uno por uno contra las piezas reales del corpus, con estas
 preguntas fijas por pieza (para que la devolución sea comparable y no una
 opinión suelta):
@@ -115,7 +115,7 @@ primera oportunidad de tenerlas respondidas por la SEU:
 - ¿El eslogan literal «¡Si es ingeniería, es en la FIE!» es válido? (la
   variante «…la FIE te espera!» se adoptó porque el literal choca con el
   gate de lugares)
-- ¿La firma institucional completa de la vista mail es la correcta?
+- ¿La firma institucional completa del borrador mail es la correcta?
 
 Las respuestas se anotan parafraseadas y alimentan `Registro-Defectos-Agente-1.md`
 (observaciones) o los contratos (decisiones de calibración), según aplique.
