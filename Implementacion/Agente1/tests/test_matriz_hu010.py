@@ -46,7 +46,13 @@ def test_fixtures_definen_tres_validos_dos_incompletos_y_golden_por_valido():
     assert {caso for caso, fila in filas.items() if fila["fecha"] and fila["contacto"]} == (
         CASOS_VALIDOS
     )
-    assert {path.stem for path in (ROOT / "golden").glob("SYN-*.md")} == CASOS_VALIDOS
+    # Los goldens SYN-*.md son los artefactos durables (el mail renderizado);
+    # los .ficha.md son las salidas del modelo que el pipeline valida.
+    assert {
+        path.stem
+        for path in (ROOT / "golden").glob("SYN-*.md")
+        if not path.name.endswith(".ficha.md")
+    } == CASOS_VALIDOS
     assert "Lugar:" not in (ROOT / "golden" / "SYN-003.md").read_text(encoding="utf-8")
     assert "Lugar:" not in (ROOT / "golden" / "SYN-005.md").read_text(encoding="utf-8")
 
@@ -107,6 +113,8 @@ def test_resumen_no_copia_datos_contactos_prompts_ni_borradores(tmp_path):
     for prohibido in (
         "pruebas@example.invalid",
         "contacto@example.invalid",
+        "cursos@fie.undef.edu.ar",
+        "comunicacion@fie.undef.edu.ar",
         "Taller sintético de vinculación",
         "PROMPT_VERSION:",
         "## CUERPO",

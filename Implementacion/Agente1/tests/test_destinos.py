@@ -96,8 +96,27 @@ def test_core_usa_destino_inyectado_despues_del_gate(tmp_path):
     assert resultado.borrador_path is None
     assert resultado.referencia_borrador is not None
     assert resultado.referencia_borrador.referencia == "ref-opaca"
+    # Lo que recibe el destino es el mail renderizado (no la ficha): la ficha
+    # validada es la entrada intermedia del renderer determinista.
+    mail_esperado = (
+        "Asunto: Actividad destino\n\n"
+        "La Facultad de Ingeniería del Ejército invita a Comunidad ficticia "
+        "a participar de la siguiente actividad.\n\n"
+        "Caso sintético controlado.\n\n"
+        "La actividad requiere validación humana.\n\n"
+        "📅 miércoles 5 de agosto de 2026\n"
+        "Organiza: Equipo de prueba\n\n"
+        "Consultas: pruebas@example.invalid\n\n"
+        "--\n"
+        "Facultad de Ingeniería del Ejército\n"
+        '"Grl Div Manuel N Savio"\n'
+        "UNDEF\n"
+        "Tel: (011) 4779-3300\n"
+        "Av. Cabildo 15 – CABA\n"
+        "www.fie.undef.edu.ar"
+    )
     assert destino.llamadas == [
-        ("SYN-DESTINO", BORRADOR_MARKER + contenido_generado + "\n")
+        ("SYN-DESTINO", BORRADOR_MARKER + mail_esperado + "\n")
     ]
     registro_serializado = resultado.log_path.read_text(encoding="utf-8")
     registro = json.loads(registro_serializado)

@@ -8,12 +8,11 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 salida_dir="${1:-${repo_dir}/salida/smoke}"
-fake_output="$(python - "${repo_dir}/golden/SYN-001.md" <<'PY'
+fake_output="$(python - "${repo_dir}/golden/SYN-001.ficha.md" <<'PY'
 from pathlib import Path
 import sys
 
-documento = Path(sys.argv[1]).read_text(encoding="utf-8")
-print(documento.removeprefix("# BORRADOR — NO PUBLICAR\n\n").strip())
+print(Path(sys.argv[1]).read_text(encoding="utf-8").strip())
 PY
 )"
 

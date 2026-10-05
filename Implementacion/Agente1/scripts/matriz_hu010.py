@@ -64,7 +64,9 @@ def main() -> int:
         golden_path = ROOT / "golden" / f"{caso_id}.md"
         if estado_esperado == "PENDIENTE_VALIDACION":
             golden = golden_path.read_text(encoding="utf-8")
-            contenido = golden.removeprefix("# BORRADOR — NO PUBLICAR\n\n").strip()
+            contenido = (ROOT / "golden" / f"{caso_id}.ficha.md").read_text(
+                encoding="utf-8"
+            ).strip()
             generator = FakeGenerator(contenido)
         else:
             golden = None

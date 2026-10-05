@@ -29,25 +29,25 @@ from pathlib import Path
 
 from agente1.canal import atender_canal
 from agente1.canal_planilla import CanalPlanillaOffline
-from agente1.destinos import BORRADOR_MARKER
 from agente1.fuentes import CsvFuenteSolicitudes
 from agente1.procesamiento import FakeGenerator
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_DEFAULT = ROOT / "data" / "actividades_sinteticas.csv"
-GOLDEN_SYN_001 = ROOT / "golden" / "SYN-001.md"
+FICHA_SYN_001 = ROOT / "golden" / "SYN-001.ficha.md"
 
 
 def _fake_output_desde_golden() -> str:
-    """Contenido fake ya validado como golden para `SYN-001`.
+    """Ficha golden ya validada que simula la salida del modelo para `SYN-001`.
 
-    Se lee del golden en lugar de duplicar el texto acá, para que este runner
-    nunca quede desalineado con el contrato de HU-010 si el golden cambia.
+    Se lee de la ficha golden —la salida del modelo que el pipeline valida— en
+    lugar de duplicar el texto acá, para que este runner nunca quede
+    desalineado con el contrato de HU-010 si la ficha cambia. El artefacto
+    durable (`SYN-001.md`) es el mail renderizado, no esta ficha.
     """
 
-    documento = GOLDEN_SYN_001.read_text(encoding="utf-8")
-    return documento.removeprefix(BORRADOR_MARKER).strip()
+    return FICHA_SYN_001.read_text(encoding="utf-8").strip()
 
 
 def main(argv: list[str] | None = None) -> int:

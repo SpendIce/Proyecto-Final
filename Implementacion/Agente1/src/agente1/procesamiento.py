@@ -63,14 +63,20 @@ HU = "HU-010"
 # Estas tres versiones se escriben en cada línea del log. Si alguna cambia hay
 # que subirle el número: es lo que permite explicar, meses después, por qué dos
 # ejecuciones de la misma fila dieron textos distintos.
-PROMPT_VERSION = "gacetilla_v4"
+PROMPT_VERSION = "gacetilla_v5"
 CONTRACT_VERSION = "gacetilla_input_v1"
+RENDERER_VERSION = "gacetilla_mail_renderer_v1"
 MAX_BORRADOR_CHARS = 5000
-# Límites de extensión de la gacetilla. Son técnicos y provisionales: se
-# eligieron para que el modelo no se extienda en prosa no verificable, no
-# porque la SEU haya fijado una longitud editorial (ver DEF-A1-007).
-MAX_CUERPO_WORDS = 12
-MAX_BAJADA_WORDS = 12
+# Límites de extensión de la prosa de la gacetilla. Son técnicos y
+# provisionales (DEF-A1-007): calibrados contra el corpus de correos reales
+# FIE Informa (Corpus-Comunicaciones-Reales-SEU-2026-09-30), donde la bajada
+# de una pieza ronda las 15-20 palabras y el cuerpo es un párrafo corto.
+# La prosa no puede llevar datos concretos (números, fechas, correos,
+# enlaces, montos): esos van en las secciones de hechos y los pone el
+# renderer desde la fila.
+MAX_CUERPO_WORDS = 120
+MAX_BAJADA_WORDS = 40
+PATRON_PROSA_SIN_DATOS = re.compile(r"\d|@|https?://|www\.|\$")
 CONTRATO_ENTRADA = json.loads(
     files("agente1")
     .joinpath("contracts", "gacetilla_input_v1.schema.json")
@@ -371,9 +377,29 @@ def procesar_solicitud(
             validation_errors=validation_errors,
         )
 
+    # El artefacto durable es el correo en forma FIE Informa, no la ficha:
+    # la ficha validada es la entrada del renderer determinista que arma el
+    # mail con los hechos de la fila (mismo patrón que los posts).
+    match_borrador = PATRON_BORRADOR.fullmatch(contenido)
+    assert match_borrador is not None  # garantizado por _validar_salida
+    contenido_mail = _renderizar_mail(fila, match_borrador)
+    errores_render = _validar_render_mail(contenido_mail, fila)
+    if errores_render:
+        return _resultado_fallido(
+            fila=fila,
+            id_solicitud=id_solicitud,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=latencia_s,
+            resultado="salida_no_conforme",
+            error="La salida generada no cumple el contrato mínimo",
+            validation_errors=errores_render,
+        )
+
     # La marca se antepone recién acá, después de que la salida pasó el
     # contrato: nada que no haya sido validado llega a tener forma de borrador.
-    borrador = f"{BORRADOR_MARKER}{contenido}\n"
+    borrador = f"{BORRADOR_MARKER}{contenido_mail}\n"
     destino_efectivo = destino or MarkdownDestinoBorradores(directorio_salida)
     try:
         referencia_borrador = destino_efectivo.guardar(id_solicitud, borrador)
@@ -413,6 +439,7 @@ def procesar_solicitud(
             "modelo": generator.modelo,
             "num_predict": _num_predict(generator),
             "prompt_version": PROMPT_VERSION,
+            "renderer_version": RENDERER_VERSION,
             "latencia_s": latencia_s,
             "estado": "PENDIENTE_VALIDACION",
             "resultado": "borrador_generado",
@@ -761,9 +788,118 @@ def _validar_salida(contenido: str, fila: dict[str, str]) -> list[str]:
         errores.append("bajada_too_long")
     if len(cuerpo.split()) > MAX_CUERPO_WORDS:
         errores.append("cuerpo_too_long")
-    if re.fullmatch(r"[^.!?]+[.!?]", cuerpo, flags=re.DOTALL) is None:
+    # El cuerpo es un párrafo corto (varias oraciones permitidas) pero tiene
+    # que cerrar con puntuación: un corte de generación deja el borrador
+    # truncado y nadie debería tener que descubrirlo en el mail final.
+    if re.search(r"[.!?]$", cuerpo) is None:
         errores.append("cuerpo_sentence_invalid")
+    # La prosa no puede llevar datos concretos: cualquier número, correo,
+    # enlace o monto que el correo necesite lo agrega el renderer desde la
+    # fila, no el modelo. Esto elimina de raíz la invención de hechos en la
+    # parte creativa.
+    if PATRON_PROSA_SIN_DATOS.search(bajada) or PATRON_PROSA_SIN_DATOS.search(cuerpo):
+        errores.append("unauthorized_fact_in_prose")
     return errores
+
+
+_MESES_ES = (
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)
+_DIAS_ES = (
+    "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo",
+)
+
+# Firma constante observada en los correos FIE Informa del corpus real
+# (Documentos/PoC/Corpus-Comunicaciones-Reales-SEU-2026-09-30.md). Es parte
+# del renderer: ningún texto generado puede alterarla ni omitirla.
+_FIRMA_INSTITUCIONAL = (
+    "Facultad de Ingeniería del Ejército\n"
+    '"Grl Div Manuel N Savio"\n'
+    "UNDEF\n"
+    "Tel: (011) 4779-3300\n"
+    "Av. Cabildo 15 – CABA\n"
+    "www.fie.undef.edu.ar"
+)
+
+
+def _fecha_larga(iso: str) -> str | None:
+    """«2026-08-05» → «miércoles 5 de agosto de 2026», el formato de fecha de
+    los correos reales. Misma fecha, otra escritura: no agrega ningún dato."""
+
+    try:
+        fecha_dt = datetime.strptime(iso.strip(), "%Y-%m-%d")
+    except (ValueError, AttributeError):
+        return None
+    return (
+        f"{_DIAS_ES[fecha_dt.weekday()]} {fecha_dt.day} de "
+        f"{_MESES_ES[fecha_dt.month - 1]} de {fecha_dt.year}"
+    )
+
+
+def _renderizar_mail(fila: dict[str, str], ficha: "re.Match[str]") -> str:
+    """Arma el correo FIE Informa a partir de la ficha validada y la fila.
+
+    Función pura y determinista (mismo patrón que `_renderizar_post_estructurado`
+    de posts): la prosa viene de la ficha que ya pasó el gate, y los hechos
+    —fecha, hora, organiza, lugar, enlace, contacto— se copian de la fila,
+    nunca del texto generado. Los campos opcionales se omiten si la fuente no
+    los informa.
+    """
+
+    secciones = ficha.groupdict()
+    lineas = [f"Asunto: {fila['titulo'].strip()}", ""]
+    publico = fila.get("publico", "").strip()
+    if publico:
+        lineas += [
+            "La Facultad de Ingeniería del Ejército invita a "
+            f"{publico} a participar de la siguiente actividad.",
+            "",
+        ]
+    lineas += [
+        secciones["bajada"].strip(),
+        "",
+        secciones["cuerpo"].strip(),
+        "",
+        f"📅 {_fecha_larga(fila['fecha']) or fila['fecha'].strip()}",
+    ]
+    hora = fila.get("hora", "").strip()
+    if hora:
+        lineas.append(f"🕒 {hora}")
+    lineas.append(f"Organiza: {fila['organiza'].strip()}")
+    if fila.get("lugar", "").strip():
+        lineas.append(f"Lugar: {fila['lugar'].strip()}")
+    if fila.get("enlace", "").strip():
+        lineas.append(f"Inscripción: {fila['enlace'].strip()}")
+    lineas += ["", f"Consultas: {fila['contacto'].strip()}", "", "--", _FIRMA_INSTITUCIONAL]
+    return "\n".join(lineas)
+
+
+def _validar_render_mail(contenido_mail: str, fila: dict[str, str]) -> list[str]:
+    """Control posterior al render: cada hecho de la fila que el correo declara
+    tiene que aparecer literal en el artefacto. Detecta que el renderer haya
+    perdido o alterado un dato entre la ficha validada y el documento guardado.
+    """
+
+    normalizado = _normalizar_texto(contenido_mail)
+    faltantes = [
+        campo
+        for campo in ("titulo", "organiza", "contacto")
+        if _normalizar_texto(fila[campo]) not in normalizado
+    ]
+    # La fecha se imprime en formato largo («miércoles 5 de agosto de 2026»);
+    # se acepta esa escritura o la ISO literal de la fila.
+    fecha_iso = fila["fecha"].strip()
+    if (
+        _normalizar_texto(fecha_iso) not in normalizado
+        and _normalizar_texto(_fecha_larga(fecha_iso) or "") not in normalizado
+    ):
+        faltantes.append("fecha")
+    for opcional in ("lugar", "hora", "enlace"):
+        valor = fila.get(opcional, "").strip()
+        if valor and _normalizar_texto(valor) not in normalizado:
+            faltantes.append(opcional)
+    return ["renderer_fact_missing"] if faltantes else []
 
 
 def _num_predict(generator: Generator) -> int | None:

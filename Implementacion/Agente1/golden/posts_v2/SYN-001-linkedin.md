@@ -8,9 +8,9 @@ Te invitamos a ser parte de una experiencia de intercambio.
 
 Título: Taller sintético de vinculación
 Fecha: 2026-08-05
-Organiza: Equipo de prueba
-Lugar: Aula de prueba
-Contacto: pruebas@example.invalid
+Organiza: Departamento de Cursos Complementarios
+Lugar: Aula 12, Av. Cabildo 15
+Contacto: cursos@fie.undef.edu.ar
 
 Más información en el enlace de esta publicación.
 HASHTAGS:

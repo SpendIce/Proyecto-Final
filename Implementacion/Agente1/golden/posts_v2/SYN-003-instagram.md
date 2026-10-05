@@ -8,8 +8,8 @@ Sumate a una experiencia pensada para la comunidad.
 
 Título: Jornada sintética
 Fecha: 2026-08-07
-Organiza: Equipo de prueba
-Contacto: pruebas@example.invalid
+Organiza: Secretaría de Extensión Universitaria
+Contacto: comunicacion@fie.undef.edu.ar
 
 Encontrá el enlace en nuestro perfil.
 HASHTAGS:

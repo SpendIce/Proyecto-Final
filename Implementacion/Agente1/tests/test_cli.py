@@ -19,8 +19,12 @@ ROOT = Path(__file__).parents[1]
 
 
 def contenido_golden_syn001() -> str:
-    documento = (ROOT / "golden" / "SYN-001.md").read_text(encoding="utf-8")
-    return documento.removeprefix("# BORRADOR — NO PUBLICAR\n\n").strip()
+    """Ficha golden que simula la salida del modelo para SYN-001.
+
+    `golden/SYN-001.md` es el artefacto durable ya renderizado (el mail); la
+    salida que valida el pipeline es la ficha intermedia, guardada aparte.
+    """
+    return (ROOT / "golden" / "SYN-001.ficha.md").read_text(encoding="utf-8").strip()
 
 
 def salida_conforme_cli() -> str:
@@ -126,7 +130,7 @@ def test_cli_fake_procesa_una_fila_de_forma_reproducible(tmp_path):
     assert respuesta["estado"] == "PENDIENTE_VALIDACION"
     assert (tmp_path / "salida" / "borradores" / "SYN-CLI-001.md").read_text(
         encoding="utf-8"
-    ).endswith("publicarse.\n")
+    ).endswith("www.fie.undef.edu.ar\n")
 
 
 def test_dataset_versionado_produce_el_golden_por_cli(tmp_path):
@@ -382,7 +386,8 @@ def test_cli_post_mantiene_gacetilla_default_y_exige_canal(tmp_path):
             "--fake-output",
             (
                 "CANAL: linkedin\nTEXTO:\nTaller sintético de vinculación, 2026-08-05, "
-                "Equipo de prueba, pruebas@example.invalid, Aula de prueba.\n"
+                "Departamento de Cursos Complementarios, cursos@fie.undef.edu.ar, "
+                "Aula 12, Av. Cabildo 15.\n"
                 "HASHTAGS:\n#Actividad #Extension"
             ),
             "--post-max-chars",

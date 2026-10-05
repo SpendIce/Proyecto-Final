@@ -1,6 +1,6 @@
 id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar
-SYN-001,Taller sintético de vinculación,Taller de práctica para acercar la ingeniería a la comunidad.,2026-08-05,Comunidad universitaria ficticia,Equipo de prueba,pruebas@example.invalid,Dataset sintético versionado,Aula de prueba
-SYN-002,Actividad sintética incompleta,Propuesta de prueba sin contacto informado.,2026-08-06,Público ficticio,Equipo de prueba,,Dataset sintético versionado,
-SYN-003,Jornada sintética,Jornada de puertas abiertas con recorrida por laboratorios.,2026-08-07,Público ficticio,Equipo de prueba,pruebas@example.invalid,Dataset sintético versionado,
+SYN-001,Taller sintético de vinculación,Taller de práctica para acercar la ingeniería a la comunidad con propuestas de extensión abiertas.,2026-08-05,estudiantes de todas las carreras,Departamento de Cursos Complementarios,cursos@fie.undef.edu.ar,Dataset sintético versionado,"Aula 12, Av. Cabildo 15"
+SYN-002,Actividad sintética incompleta,Propuesta de difusión con datos pendientes de completar.,2026-08-06,Público ficticio,Equipo de prueba,,Dataset sintético versionado,
+SYN-003,Jornada sintética,Jornada de puertas abiertas con recorrida por laboratorios y charlas con docentes.,2026-08-07,"aspirantes, estudiantes y familias",Secretaría de Extensión Universitaria,comunicacion@fie.undef.edu.ar,Dataset sintético versionado,
 SYN-004,Encuentro sintético incompleto,Encuentro de prueba sin fecha informada.,,Público ficticio,Equipo de prueba,pruebas@example.invalid,Dataset sintético versionado,Aula ficticia
-SYN-005,Seminario sintético remoto,Seminario introductorio con encuentros remotos abiertos.,2026-08-09,Comunidad universitaria ficticia,Área de prueba,contacto@example.invalid,Dataset sintético versionado,
+SYN-005,Seminario sintético remoto,Seminario introductorio con encuentros remotos y material de lectura.,2026-08-09,graduados y profesionales,Departamento de Cursos Complementarios,cursos@fie.undef.edu.ar,Dataset sintético versionado,

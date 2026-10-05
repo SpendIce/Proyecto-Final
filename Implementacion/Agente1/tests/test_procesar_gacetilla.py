@@ -8,7 +8,12 @@ import json
 import pytest
 
 from agente1 import FakeGenerator, procesar_fila_csv
-from agente1.procesamiento import PROMPT_VERSION
+from agente1.procesamiento import (
+    PATRON_BORRADOR,
+    PROMPT_VERSION,
+    _renderizar_mail,
+    _validar_render_mail,
+)
 from agente1.presupuesto import PresupuestoAgotadoError
 
 
@@ -109,8 +114,30 @@ def test_fila_completa_genera_borrador_pendiente_y_log(tmp_path):
 
     assert resultado.estado == "PENDIENTE_VALIDACION"
     assert resultado.borrador_path is not None
+    # El artefacto durable es el mail renderizado, no la ficha intermedia que
+    # emitió el modelo: el mail se arma determinísticamente con los hechos de
+    # la fila (fecha en formato largo, firma institucional) más la prosa
+    # validada (bajada/cuerpo).
     assert resultado.borrador_path.read_text(encoding="utf-8") == (
-        f"# BORRADOR — NO PUBLICAR\n\n{contenido}\n"
+        "# BORRADOR — NO PUBLICAR\n\n"
+        "Asunto: Taller sintético de vinculación\n\n"
+        "La Facultad de Ingeniería del Ejército invita a "
+        "Comunidad universitaria ficticia a participar de la siguiente "
+        "actividad.\n\n"
+        "Borrador sintético para validar el flujo técnico.\n\n"
+        "La actividad requiere revisión humana antes de cualquier "
+        "publicación.\n\n"
+        "📅 miércoles 5 de agosto de 2026\n"
+        "Organiza: Equipo de prueba\n"
+        "Lugar: Aula de prueba\n\n"
+        "Consultas: pruebas@example.invalid\n\n"
+        "--\n"
+        "Facultad de Ingeniería del Ejército\n"
+        '"Grl Div Manuel N Savio"\n'
+        "UNDEF\n"
+        "Tel: (011) 4779-3300\n"
+        "Av. Cabildo 15 – CABA\n"
+        "www.fie.undef.edu.ar\n"
     )
     registro = json.loads(resultado.log_path.read_text(encoding="utf-8"))
     assert registro["id_solicitud"] == "SYN-001"
@@ -466,14 +493,7 @@ def test_hechos_extensos_no_cuentan_como_limite_de_prosa(tmp_path):
     assert resultado.borrador_path is not None
 
 
-@pytest.mark.parametrize(
-    "cuerpo",
-    [
-        "Primera oración completa. Segunda oración no permitida.",
-        "Una salida con exactamente trece palabras distintas supera el máximo mecánico permitido ahora.",
-    ],
-)
-def test_cuerpo_debe_ser_una_oracion_de_hasta_12_palabras(tmp_path, cuerpo):
+def _procesar_con_cuerpo(tmp_path: Path, cuerpo: str):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
         "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
@@ -489,16 +509,58 @@ def test_cuerpo_debe_ser_una_oracion_de_hasta_12_palabras(tmp_path, cuerpo):
     ).replace(
         "La actividad requiere revisión humana antes de cualquier publicación.", cuerpo
     )
-
-    resultado = procesar_fila_csv(
+    return procesar_fila_csv(
         csv_path=csv_path,
         id_solicitud="SYN-CUERPO",
         directorio_salida=tmp_path / "salida",
         generator=FakeGenerator(contenido),
     )
 
+
+def test_cuerpo_puede_ser_un_parrafo_corto_de_varias_oraciones(tmp_path):
+    # El cuerpo ya no está limitado a una oración de 12 palabras: el correo
+    # real de FIE Informa lleva un párrafo breve de varias oraciones, y el
+    # tope mecánico quedó calibrado contra ese corpus (DEF-A1-007).
+    cuerpo = (
+        "La facultad propone una instancia abierta para acercar la ingeniería "
+        "a la comunidad. Habrá espacio para consultas y para recorrer las "
+        "propuestas de extensión en conjunto."
+    )
+    resultado = _procesar_con_cuerpo(tmp_path, cuerpo)
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    assert resultado.borrador_path is not None
+    assert cuerpo in resultado.borrador_path.read_text(encoding="utf-8")
+
+
+def test_cuerpo_no_puede_exceder_el_tope_calibrado_del_corpus(tmp_path):
+    cuerpo = " ".join(["palabra"] * 121) + "."
+    resultado = _procesar_con_cuerpo(tmp_path, cuerpo)
+
     assert resultado.estado == "FALLIDA"
     assert resultado.borrador_path is None
+    registro = json.loads(resultado.log_path.read_text(encoding="utf-8"))
+    assert "cuerpo_too_long" in registro["validation_errors"]
+
+
+@pytest.mark.parametrize(
+    "cuerpo",
+    [
+        "La actividad es el día 15 de agosto.",
+        "Consultas a secretaria@fie.undef.edu.ar.",
+        "Inscripción en https://forms.gle/abc123.",
+        "Se pide una contribución de $5000.",
+    ],
+)
+def test_prosa_sin_datos_concretos_inventables(tmp_path, cuerpo):
+    # Números, correos, enlaces y montos son hechos: los agrega el renderer
+    # desde la fila. Si el modelo los escribe en la prosa, puede inventarlos.
+    resultado = _procesar_con_cuerpo(tmp_path, cuerpo)
+
+    assert resultado.estado == "FALLIDA"
+    assert resultado.borrador_path is None
+    registro = json.loads(resultado.log_path.read_text(encoding="utf-8"))
+    assert "unauthorized_fact_in_prose" in registro["validation_errors"]
 
 
 @pytest.mark.parametrize("mutacion", ["preambulo", "duplicada", "hechos_cruzados"])
@@ -831,3 +893,75 @@ def test_omitir_el_lugar_informado_sigue_siendo_un_hecho_faltante(tmp_path):
     assert resultado.estado == "FALLIDA"
     registro = json.loads(resultado.log_path.read_text(encoding="utf-8"))
     assert "place_missing" in registro["validation_errors"]
+
+
+# --- Renderer del correo durable (gacetilla_mail_renderer_v1) ----------------
+
+
+def test_fecha_larga_convierte_iso_al_formato_de_los_correos_reales():
+    from agente1.procesamiento import _fecha_larga
+
+    assert _fecha_larga("2026-08-05") == "miércoles 5 de agosto de 2026"
+    assert _fecha_larga("2026-08-07") == "viernes 7 de agosto de 2026"
+    # Una fecha no-ISO no se inventa: el renderer cae al literal de la fila.
+    assert _fecha_larga("a confirmar") is None
+
+
+def _fila_y_ficha(**extra):
+    fila = {
+        "titulo": "Jornada de prueba",
+        "fecha": "2026-08-05",
+        "publico": "Comunidad ficticia",
+        "organiza": "Equipo de prueba",
+        "contacto": "pruebas@example.invalid",
+        "lugar": "Aula de prueba",
+    }
+    fila.update(extra)
+    ficha = (
+        "## TÍTULO\nJornada de prueba\n\n"
+        "## DATOS DE LA ACTIVIDAD\nFecha: 2026-08-05\n"
+        "Organiza: Equipo de prueba\nLugar: Aula de prueba\n\n"
+        "## CONTACTO\npruebas@example.invalid\n\n"
+        "## BAJADA\nBajada breve de prueba.\n\n"
+        "## CUERPO\nCuerpo breve de prueba."
+    )
+    return fila, PATRON_BORRADOR.fullmatch(ficha)
+
+
+def test_render_incluye_hora_y_enlace_solo_cuando_la_fuente_los_informa():
+    fila, match = _fila_y_ficha(hora="15:00 h", enlace="https://forms.gle/abc")
+    mail = _renderizar_mail(fila, match)
+
+    assert "🕒 15:00 h" in mail
+    assert "Inscripción: https://forms.gle/abc" in mail
+    assert _validar_render_mail(mail, fila) == []
+
+
+def test_render_omite_los_opcionales_ausentes_sin_dejar_huecos():
+    fila, match = _fila_y_ficha(lugar="")
+    fila.pop("hora", None)
+    fila.pop("enlace", None)
+    mail = _renderizar_mail(fila, match)
+
+    assert "🕒" not in mail
+    assert "Lugar:" not in mail
+    assert "Inscripción:" not in mail
+    # La firma institucional completa siempre cierra el correo.
+    assert mail.endswith("www.fie.undef.edu.ar")
+    assert _validar_render_mail(mail, fila) == []
+
+
+def test_validar_render_detecta_hecho_perdido_por_el_renderer():
+    fila, match = _fila_y_ficha()
+    mail = _renderizar_mail(fila, match).replace("Aula de prueba", "Aula distinta")
+
+    assert _validar_render_mail(mail, fila) == ["renderer_fact_missing"]
+
+
+def test_render_no_toma_hechos_de_la_prosa_sino_de_la_fila():
+    # Aunque la ficha llevara otro contacto en su sección CONTACTO (ya
+    # validado contra la fila), el mail imprime el contacto de la fuente.
+    fila, match = _fila_y_ficha()
+    mail = _renderizar_mail(fila, match)
+
+    assert "Consultas: pruebas@example.invalid" in mail
