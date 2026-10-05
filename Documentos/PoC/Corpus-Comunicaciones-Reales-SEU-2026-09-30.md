@@ -68,14 +68,17 @@ y el núcleo `interpretacion.py`:
    prueba guiada. **Defecto candidato** (registrar en
    `Registro-Defectos-Agente-1.md` si se confirma que la spec espera
    conservarlo).
-2. **Responder la repregunta con el título completo puede no resolver.**
-   «la jornada sintética» no resolvió: `_referencia_por_rasgo` exige rasgo
-   que aparezca en una sola candidata, y «sintética» está en todas las
-   actividades del dataset → 5 coincidencias → `RECHAZADA`. Con «la
-   jornada» sí resuelve. Limitación amplificada por el dataset sintético
-   (todas comparten el apellido «sintética»); con títulos reales el rasgo
-   funciona. Conviene aclararlo en el instrumento o quien conduce lo va a
-   leer como rechazo arbitrario.
+2. **Responder la repregunta era más frágil de lo documentado — corregido
+   el 30/09.** `_referencia_por_rasgo` exigía un rasgo presente en una sola
+   candidata: cualquier token compartido («sintética», «agosto», «2026»)
+   envenenaba la resolución aunque otro token fuera perfectamente
+   discriminatorio. Fallaban el título («la jornada sintética»), la fecha
+   ISO («2026-08-07») y la fecha en letras («la del 7 de agosto») — tres
+   respuestas naturales, incluida la que la repregunta sugiere. Reescrita
+   como intersección con dominancia estricta: gana la candidata con más
+   rasgos en común sólo si la ventaja es única; el empate sigue sin
+   resolver. Queda sin resolver el defecto del punto 1 (el canal del pedido
+   original no se conserva tras la repregunta para posts).
 3. El demo anterior devolvía siempre el golden SYN-001 → **toda gacetilla
    de otra actividad salía `FALLIDA`** (los hechos no coinciden con la
    fuente). Corregido: `GeneradorDemo` arma la ficha desde el bloque
@@ -126,6 +129,18 @@ y el núcleo `interpretacion.py`:
   `enlace` se renderizan sólo si la fuente los trae: agregarlos al CSV es
   una decisión institucional pendiente (`COLUMNAS_GACETILLA` es el contrato
   de entrada vigente).
+- **Descripción de la actividad en el post (implementado 30/09, renderer
+  `post_deterministic_renderer_v4`):** observación de ensayo — el post IG
+  «no decía nada de la actividad» porque los campos creativos son genéricos
+  por contrato y la `descripcion` nunca llegaba a la pieza. El renderer
+  ahora inserta la descripción de la fuente como párrafo entre la prosa
+  creativa y el bloque de hechos, colapsada a una línea para no inyectar
+  saltos en la estructura. No es prosa del modelo: es el dato institucional
+  copiado, como `Título:`/`Fecha:`. Pendiente editorial: si la SEU quiere
+  prosa creativa que describa la actividad (como I1: «podrás conocer la
+  oferta académica, explorar los laboratorios y participar en charlas»), el
+  contrato creativo tendría que admitir un campo de prosa anclada a la
+  fuente — hoy los campos creativos no pueden mencionar la actividad.
 - **Casos del instrumento (actualizado 30/09):** las consignas C1–C4 del
   instrumento de prueba guiada se reformularon con prosa natural del
   dominio («Necesito avisar de la actividad…», «Tenemos que avisar… en
@@ -134,4 +149,5 @@ y el núcleo `interpretacion.py`:
   temáticos libres o set cerrado? ¿CTA puede decir «inscripción»? ¿el dato
   va dentro de la prosa o adjunto por sistema? ¿eslogan literal («en la
   FIE») permitido o la variante alcanza? ¿agregar `hora` y `enlace` al
-  contrato de entrada?
+  contrato de entrada? ¿prosa creativa anclada a la descripción de la
+  actividad, o alcanza con el párrafo literal del renderer?
