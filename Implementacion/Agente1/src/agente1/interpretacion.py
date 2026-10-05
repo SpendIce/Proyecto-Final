@@ -876,15 +876,19 @@ class CandidataActividad:
 class InteraccionPendiente:
     """Estado entre turnos: qué preguntó el agente y qué espera de la respuesta.
 
-    Conserva únicamente candidatas (ver `CandidataActividad`), la intención
-    ya clasificada y el instante de vencimiento — nunca la prosa del pedido
-    original. Es, por diseño, todo lo que el mecanismo de repregunta necesita
-    para resolver el turno siguiente sin volver a interpretar texto externo.
+    Conserva candidatas (ver `CandidataActividad`), la intención ya
+    clasificada, los parámetros ya resueltos del pedido original (`canal`,
+    para `generar_post`) y el instante de vencimiento — nunca la prosa del
+    pedido original. Es, por diseño, todo lo que el mecanismo de repregunta
+    necesita para resolver el turno siguiente sin volver a interpretar texto
+    externo: si el canal ya había quedado claro, pedirlo de nuevo en la
+    respuesta sería hacer repreguntar algo que no se preguntó.
     """
 
     intencion: str
     candidatas: tuple[CandidataActividad, ...]
     vencimiento: datetime
+    canal: str | None = None
 
     def __post_init__(self) -> None:
         if self.intencion not in INTENCIONES_CON_DESPACHO:
@@ -899,6 +903,8 @@ class InteraccionPendiente:
             raise ValueError("candidatas de la pendiente con orden duplicado")
         if self.vencimiento.tzinfo is None:
             raise ValueError("vencimiento de la pendiente sin zona horaria")
+        if self.canal is not None and self.canal not in ("instagram", "linkedin"):
+            raise ValueError("canal de la pendiente fuera del conjunto soportado")
 
 
 # Vencimiento fijo de la interacción pendiente (spec #25). No se calibra como
@@ -1280,6 +1286,17 @@ def _interpretar_solicitud_sin_guarda(
                     intencion=intencion_efectiva,
                     candidatas=candidatas,
                     vencimiento=ahora_fn() + VENCIMIENTO_PENDIENTE,
+                    # Y los parámetros que ya quedaron resueltos en este
+                    # turno: si el pedido era «un post de instagram para la
+                    # jornada», responder «la 1» no debería tener que
+                    # repetir el canal. Si en este turno no se resolvió,
+                    # queda en None y la respuesta sí va a tener que
+                    # nombrarlo (o el despacho dará INCOMPLETA, como antes).
+                    canal=(
+                        _resolver_canal(texto)
+                        if intencion_efectiva == "generar_post"
+                        else None
+                    ),
                 ),
             )
             return _finalizar(
@@ -1339,11 +1356,16 @@ def _interpretar_solicitud_sin_guarda(
     # `generar_post` comparten la misma forma de despacho (pipeline ->
     # resumen a partir de la fuente) pero difieren en un dato de entrada: el
     # post necesita además el canal, resuelto acá mismo con código
-    # determinístico (`_resolver_canal`), nunca por el modelo — y siempre a
-    # partir del mensaje de este turno, nunca de uno anterior: el canal no
-    # es parte de lo que conserva una interacción pendiente.
+    # determinístico (`_resolver_canal`), nunca por el modelo. Si este turno
+    # no lo nombra pero vino de una pendiente que sí lo tenía resuelto, se
+    # usa el de la pendiente — la respuesta a una repregunta no debería
+    # tener que repetir un dato que ya se dio. El canal nombrado en este
+    # turno siempre gana: la persona puede corregirlo («la 1, para
+    # linkedin»).
     if intencion_efectiva == "generar_post":
         canal = _resolver_canal(texto)
+        if canal is None and pendiente_vigente is not None:
+            canal = pendiente_vigente.canal
         if canal is None:
             return _finalizar(
                 log_path=log_path,

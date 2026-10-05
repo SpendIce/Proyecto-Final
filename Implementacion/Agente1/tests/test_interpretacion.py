@@ -939,6 +939,22 @@ class _FuenteConActividadesAmbiguas:
         ]
 
 
+class _FuenteAmbiguasCompletas(_FuenteConActividadesAmbiguas):
+    """Mismo empate de candidatas pero con los datos que el pipeline de post
+    exige: sirve para que una referencia resuelta llegue hasta el borrador."""
+
+    _FILA_BASE = {
+        "descripcion": "Actividad de prueba para el taller ambiguo.",
+        "publico": "Comunidad universitaria",
+        "contacto": "pruebas@example.invalid",
+        "fuente": "https://example.invalid/taller",
+        "lugar": "Aula de prueba",
+        "titulo": "Taller de robótica educativa",
+        "fecha": "2026-09-01",
+        "organiza": "Equipo ambiguo",
+    }
+
+
 def test_pedido_con_coincidencia_multiple_no_genera_borrador(tmp_path: Path) -> None:
     """Coincidencia múltiple: no genera un borrador de una — desde #25,
     produce una repregunta con las dos candidatas empatadas (sección 11)."""
@@ -1156,7 +1172,8 @@ def test_pendiente_guardada_conserva_solo_lo_que_produjo_el_agente_nunca_prosa(
 ) -> None:
     """La pendiente que queda en el registro tiene exactamente los campos que
     pide la spec (#25): candidatas (orden, identificador, título, fecha),
-    intención y vencimiento. Nunca la prosa del pedido que la originó."""
+    intención, vencimiento y los parámetros ya resueltos del pedido (`canal`,
+    para `generar_post`). Nunca la prosa del pedido que la originó."""
     registro_pendientes = RegistroPendientesMemoria()
     identidad = _identidad(identificador="persona-pendiente-shape")
     texto_original = "Quiero la gacetilla del taller de robotica educativa, es urgente"
@@ -1176,6 +1193,7 @@ def test_pendiente_guardada_conserva_solo_lo_que_produjo_el_agente_nunca_prosa(
         "intencion",
         "candidatas",
         "vencimiento",
+        "canal",
     }
     assert {campo.name for campo in CandidataActividad.__dataclass_fields__.values()} == {
         "orden",
@@ -1422,12 +1440,12 @@ def test_pedido_nuevo_y_completo_descarta_la_pendiente(tmp_path: Path) -> None:
     assert registro_pendientes.obtener(identidad.identificador) is None
 
 
-def test_referencia_a_pendiente_de_post_toma_el_canal_del_mensaje_del_turno(
+def test_pendiente_de_post_conserva_el_canal_resuelto_en_el_pedido(
     tmp_path: Path,
 ) -> None:
-    """La pendiente no conserva canal: si el mensaje que resuelve la
-    referencia también lo menciona, el despacho lo toma de ahí, nunca de un
-    dato guardado en el turno anterior."""
+    """Responder la repregunta no exige repetir un dato ya dado: si el pedido
+    original nombró el canal, la pendiente lo conserva y «el primero»
+    alcanza para despachar el post."""
     registro_pendientes = RegistroPendientesMemoria()
     identidad = _identidad(identificador="persona-post-pendiente")
 
@@ -1435,13 +1453,75 @@ def test_referencia_a_pendiente_de_post_toma_el_canal_del_mensaje_del_turno(
         tmp_path,
         "Necesito un post de instagram del taller de robotica educativa",
         solicitante=identidad,
-        fuente=_FuenteConActividadesAmbiguas(),
+        fuente=_FuenteAmbiguasCompletas(),
         registro_pendientes=registro_pendientes,
         generator=FakeGenerator(_post_conforme()),
     )
     assert ambiguo.estado == "PENDIENTE_DESAMBIGUACION"
     assert ambiguo.intencion == "generar_post"
 
+    resuelto = _interpretar(
+        tmp_path,
+        "El primero",
+        solicitante=identidad,
+        fuente=_FuenteAmbiguasCompletas(),
+        registro_pendientes=registro_pendientes,
+        generator=FakeGenerator(_post_conforme()),
+    )
+    assert resuelto.estado == "PENDIENTE_VALIDACION"
+    registro = _ultima_linea(resuelto.log_path)
+    assert registro["id_actividad"] == "AMB-001"
+    # El canal no es dato del registro de interpretación: se ve en el
+    # borrador generado, cuyo nombre lo lleva.
+    assert "instagram" in resuelto.borrador_path.name
+    assert registro_pendientes.obtener(identidad.identificador) is None
+
+
+def test_canal_nombrado_en_el_turno_gana_al_de_la_pendiente(
+    tmp_path: Path,
+) -> None:
+    """La persona puede corregir el canal al responder: «el primero, para
+    linkedin» despacha por linkedin aunque el pedido pedía instagram."""
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-post-corrige-canal")
+
+    _interpretar(
+        tmp_path,
+        "Necesito un post de instagram del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteAmbiguasCompletas(),
+        registro_pendientes=registro_pendientes,
+        generator=FakeGenerator(_post_conforme()),
+    )
+    resuelto = _interpretar(
+        tmp_path,
+        "El primero, para linkedin",
+        solicitante=identidad,
+        fuente=_FuenteAmbiguasCompletas(),
+        registro_pendientes=registro_pendientes,
+        generator=FakeGenerator(_post_conforme(canal="linkedin")),
+    )
+    registro = _ultima_linea(resuelto.log_path)
+    assert registro["id_actividad"] == "AMB-001"
+    assert "linkedin" in resuelto.borrador_path.name
+
+
+def test_pendiente_de_post_sin_canal_sigue_pidiendolo(
+    tmp_path: Path,
+) -> None:
+    """Si el pedido original nunca resolvió canal, responder la repregunta
+    no lo inventa: el despacho sigue dando INCOMPLETA."""
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-post-sin-canal")
+
+    _interpretar(
+        tmp_path,
+        "Necesito un post del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+        generator=FakeGenerator(_post_conforme()),
+    )
     sin_canal = _interpretar(
         tmp_path,
         "El primero",
@@ -1450,36 +1530,11 @@ def test_referencia_a_pendiente_de_post_toma_el_canal_del_mensaje_del_turno(
         registro_pendientes=registro_pendientes,
         generator=FakeGenerator(_post_conforme()),
     )
-    # Resolver la referencia consume la pendiente igual que un identificador
-    # explícito sin canal: falta un dato del pipeline de post, no de la
-    # resolución de actividad.
     assert sin_canal.estado == "INCOMPLETA"
     registro_sin_canal = _ultima_linea(sin_canal.log_path)
     assert registro_sin_canal["resultado"] == "canal_no_encontrado"
     assert registro_sin_canal["id_actividad"] == "AMB-001"
     assert registro_pendientes.obtener(identidad.identificador) is None
-
-    # Repitiendo la pendiente y resolviendo con el canal en el mismo mensaje,
-    # el despacho sí llega a generar el borrador.
-    _interpretar(
-        tmp_path,
-        "Necesito un post de instagram del taller de robotica educativa",
-        solicitante=identidad,
-        fuente=_FuenteConActividadesAmbiguas(),
-        registro_pendientes=registro_pendientes,
-        generator=FakeGenerator(_post_conforme()),
-    )
-    con_canal = _interpretar(
-        tmp_path,
-        "El primero, en instagram",
-        solicitante=identidad,
-        fuente=_FuenteConActividadesAmbiguas(),
-        registro_pendientes=registro_pendientes,
-        generator=FakeGenerator(_post_conforme()),
-    )
-    assert con_canal.intencion == "generar_post"
-    registro_con_canal = _ultima_linea(con_canal.log_path)
-    assert registro_con_canal["id_actividad"] == "AMB-001"
 
 
 def test_perder_la_pendiente_no_rompe_nada(tmp_path: Path) -> None:
