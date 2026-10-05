@@ -465,7 +465,7 @@ def test_cli_post_usa_structured_v2_por_default_seguro(tmp_path):
     assert Path(respuesta["borrador"]).name == "SYN-001-instagram-v2.md"
     registro = json.loads(Path(respuesta["log"]).read_text(encoding="utf-8"))
     assert registro["output_contract_version"] == "post_creative_output_v2"
-    assert registro["renderer_version"] == "post_deterministic_renderer_v2"
+    assert registro["renderer_version"] == "post_deterministic_renderer_v4"
 
 
 def test_cli_post_v2_ollama_envia_schema_exacto_y_audita_solo_hash(tmp_path):

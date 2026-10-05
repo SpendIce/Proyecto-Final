@@ -619,23 +619,30 @@ def _referencia_por_orden(
 def _referencia_por_rasgo(
     tokens_mensaje: frozenset[str], candidatas: tuple["CandidataActividad", ...]
 ) -> "CandidataActividad | None":
-    """Resuelve por un rasgo distintivo (título parcial, fecha, día de la
-    semana) que sólo aparezca en una de las candidatas.
+    """Resuelve por rasgos distintivos (título, fecha, día de la semana).
 
-    Intersección de tokens, no puntaje: el universo de candidatas es chico y
-    cerrado, así que alcanza con que el mensaje mencione algo que distinga a
-    una sola de ellas. Si el rasgo aparece en más de una candidata —dos
-    títulos parecidos entre sí, por ejemplo— no hay forma de saber cuál
-    quiso decir la persona, y no se elige ninguna.
+    Intersección de tokens con dominancia estricta: gana la candidata que
+    comparte más rasgos con el mensaje, sólo si esa ventaja es única. Un
+    token compartido ("sintética", el mes, el año) no descalifica nada —
+    pesa más el rasgo que distingue ("jornada", "7", "martes")— y un empate
+    en el máximo sigue sin resolverse, porque ahí no hay forma de saber cuál
+    quiso decir la persona. Así responden igual "la jornada sintética" (el
+    título), "2026-08-07" (la fecha ISO que la repregunta sugiere) y "la del
+    7 de agosto".
     """
 
-    coincidencias = [
-        candidata
+    puntajes = [
+        (len(_tokens_distintivos(candidata) & tokens_mensaje), candidata)
         for candidata in candidatas
-        if _tokens_distintivos(candidata) & tokens_mensaje
     ]
-    if len(coincidencias) == 1:
-        return coincidencias[0]
+    if not puntajes:
+        return None
+    mejor_puntaje = max(puntaje for puntaje, _ in puntajes)
+    if mejor_puntaje == 0:
+        return None
+    mejores = [candidata for puntaje, candidata in puntajes if puntaje == mejor_puntaje]
+    if len(mejores) == 1:
+        return mejores[0]
     return None
 
 

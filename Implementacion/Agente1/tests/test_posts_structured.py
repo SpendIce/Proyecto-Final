@@ -88,12 +88,15 @@ def test_v2_renderiza_hechos_literalmente_y_audita_versiones(
         "HASHTAGS:",
     ):
         assert borrador.count(etiqueta) == 1
-    assert "Actividad ficticia para probar el flujo." not in borrador
+    # La descripción de la actividad sí va en el post desde el renderer v4:
+    # sin ella el texto quedaba genérico (observación de ensayo 30/09). Es un
+    # hecho más copiado de la fuente, no prosa del modelo.
+    assert "Actividad ficticia para probar el flujo." in borrador
     registro = json.loads(resultado.log_path.read_text(encoding="utf-8"))
     assert registro["contract_version"] == "post_input_v1"
     assert registro["output_contract_version"] == "post_creative_output_v2"
     assert registro["prompt_version"] == f"post_{canal}_structured_v2"
-    assert registro["renderer_version"] == "post_deterministic_renderer_v2"
+    assert registro["renderer_version"] == "post_deterministic_renderer_v4"
     assert registro["creative_catalog_version"] == "post_creative_catalog_v4"
 
 

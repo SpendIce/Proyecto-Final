@@ -88,7 +88,10 @@ from .procesamiento import Generator, ResultadoProceso
 HU = "HU-011"
 CONTRACT_VERSION = "post_input_v1"
 STRUCTURED_OUTPUT_CONTRACT_VERSION = "post_creative_output_v2"
-STRUCTURED_RENDERER_VERSION = "post_deterministic_renderer_v2"
+# v4 agrega el párrafo de descripción de la actividad al bloque renderizado;
+# la versión etiqueta el formato del render, compartido por los contratos
+# creativos v2 (catálogo) y v3 (prosa libre).
+STRUCTURED_RENDERER_VERSION = "post_deterministic_renderer_v4"
 CANALES = frozenset(CANALES_SOPORTADOS)
 # Campos cuyo contenido el renderer sí puede poner en el post. Son también los
 # que se buscan dentro del texto creativo para rechazarlo: si el modelo
@@ -963,7 +966,7 @@ CONTRATO_CREATIVO_V2 = _construir_contrato_creativo(
 )
 CONTRATO_CREATIVO_V3 = _construir_contrato_creativo(
     CONTRATO_SALIDA_ESTRUCTURADA_V3,
-    renderer_version="post_deterministic_renderer_v3",
+    renderer_version=STRUCTURED_RENDERER_VERSION,
     prompt_suffix="v4",
     borrador_suffix="-v3",
 )
@@ -1146,6 +1149,16 @@ def _renderizar_post_estructurado(
         "",
         str(creatividad["prosa"]),
         "",
+    ]
+    # La descripción es el "qué" de la actividad: sin ella el post queda
+    # genérico. Se copia de la fuente como cualquier otro hecho — el modelo
+    # no la escribe, así que no puede deformarla ni inventarla. Se colapsa a
+    # una sola línea: es un campo de prosa larga, pero no puede inyectar
+    # líneas nuevas en la estructura del post.
+    descripcion = " ".join(fila.get("descripcion", "").split())
+    if descripcion:
+        lineas += [descripcion, ""]
+    lineas += [
         f"Título: {fila['titulo']}",
         f"Fecha: {fila['fecha']}",
         f"Organiza: {fila['organiza']}",

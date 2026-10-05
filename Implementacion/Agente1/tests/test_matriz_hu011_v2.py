@@ -32,4 +32,4 @@ def test_matriz_hu011_v2_es_reproducible_y_no_publica(tmp_path: Path):
     completos = [caso for caso in resumen["cases"] if caso["draft_created"]]
     assert len(completos) == 6
     assert all(caso["output_contract_version"] == "post_creative_output_v2" for caso in completos)
-    assert all(caso["renderer_version"] == "post_deterministic_renderer_v2" for caso in completos)
+    assert all(caso["renderer_version"] == "post_deterministic_renderer_v4" for caso in completos)

@@ -6,6 +6,8 @@ Una oportunidad para conectar conocimientos.
 
 Te invitamos a ser parte de una experiencia de intercambio.
 
+Taller de práctica para acercar la ingeniería a la comunidad con propuestas de extensión abiertas.
+
 Título: Taller sintético de vinculación
 Fecha: 2026-08-05
 Organiza: Departamento de Cursos Complementarios

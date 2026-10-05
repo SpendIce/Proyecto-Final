@@ -83,9 +83,9 @@ class GeneradorDemo:
             bajada = "Nueva propuesta de extensión universitaria."
         if datos.get("organiza") and datos.get("publico"):
             cuerpo = (
-                f"{datos['organiza']} invita a {datos['publico']} a participar "
-                "de la propuesta. La actividad está abierta a quienes quieran "
-                "acercarse y conocer más sobre la oferta de extensión."
+                f"{datos['organiza']} la propone como una instancia abierta "
+                "para acercarse, participar y hacer consultas sobre la "
+                "oferta de extensión de la facultad."
             )
         else:
             cuerpo = f"Propuesta organizada por {datos.get('organiza', '')}."

@@ -17,6 +17,10 @@ Límites obligatorios:
 - La prosa de BAJADA y CUERPO no puede llevar números, fechas, horarios, montos,
   correos ni enlaces: esos datos ya están en DATOS DE LA ACTIVIDAD y CONTACTO.
 - Tono institucional rioplatense, en voseo si invitás (sumate, participá, anotate).
+- El correo final ya lleva una línea fija de invitación institucional con el
+  público: no repitas la fórmula «invita a …» ni el nombre del público en
+  BAJADA ni en CUERPO; esa prosa tiene que aportar información nueva sobre
+  la actividad (qué se hace, qué incluye, para qué sirve).
 - No apruebes, publiques ni envíes el contenido.
 - El texto no debe mencionar procesos internos ni estados del sistema: nada de revisión, validación, aprobación, borrador o pendiente dentro de TÍTULO, BAJADA o CUERPO.
 - No agregues comentarios fuera de la estructura solicitada.
