@@ -129,12 +129,14 @@ COL_DECISION = 4
 TIPO_PUBLICACION = "publicacion"
 TIPO_PLANTILLA = "plantilla"
 TIPO_LOTE = "lote"
+TIPO_LINEA_DESCRIPTIVA = "linea_descriptiva"
 
 DECISION_PUBLIQUE = "publique"
 DECISION_DESCARTE = "descarte"
 DECISION_APRUEBO_SEMANTICA = "apruebo_semantica"
 DECISION_APRUEBO_UTILITARIA = "apruebo_utilitaria"
 DECISION_APRUEBO_LOTE = "apruebo_lote"
+DECISION_APROBACION_LINEA = "aprobacion_linea_descriptiva"
 
 DECISIONES_POR_TIPO: dict[str, frozenset[str]] = {
     TIPO_PUBLICACION: frozenset({DECISION_PUBLIQUE, DECISION_DESCARTE}),
@@ -142,6 +144,10 @@ DECISIONES_POR_TIPO: dict[str, frozenset[str]] = {
         {DECISION_APRUEBO_SEMANTICA, DECISION_APRUEBO_UTILITARIA}
     ),
     TIPO_LOTE: frozenset({DECISION_APRUEBO_LOTE}),
+    # La línea descriptiva del certificado (#74) se aprueba por el mismo
+    # Form con una sola decisión de catalogo; la completitud de los dos
+    # roles la exige el consumidor (#75) leyendo `procesadas()`.
+    TIPO_LINEA_DESCRIPTIVA: frozenset({DECISION_APROBACION_LINEA}),
 }
 TIPOS_DECISION = frozenset(DECISIONES_POR_TIPO)
 
@@ -159,6 +165,9 @@ ROLES_POR_DECISION: dict[tuple[str, str], frozenset[str]] = {
         {ROL_APROBACION_UTILITARIA}
     ),
     (TIPO_LOTE, DECISION_APRUEBO_LOTE): frozenset({ROL_APROBACION_UTILITARIA}),
+    # Igual que la plantilla: responde cada rol designado; el consumidor
+    # exige una aprobación por rol para dar la línea por validada.
+    (TIPO_LINEA_DESCRIPTIVA, DECISION_APROBACION_LINEA): ROLES_APROBACION,
 }
 
 # Resultados y códigos de rechazo del registro. `rechazada` lleva siempre
@@ -183,6 +192,13 @@ VERSION_PENDIENTES = "decisiones_pendientes_v1"
 VERSION_PROCESADAS = "decisiones_procesadas_v1"
 
 _HASH_ID_RE = re.compile(r"[0-9a-f]{64}\Z")
+
+# Id del objeto de una decisión: más amplio que `ID_RE` de
+# `google_workspace` (que valida ids de recursos de Google y sigue igual de
+# estricto) porque el objeto admite un espacio de nombres con `:` y `.`,
+# como `linea_descriptiva:<id_actividad>:<hash_linea>` del contrato #74.
+# Sigue siendo un token de una línea, sin espacios ni separadores de ruta.
+OBJETO_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,255}\Z")
 _DETALLE_CLAVE_RE = re.compile(r"[a-z0-9_]{1,64}\Z")
 
 # Configuración por entorno del segundo Form: mismo patrón que
@@ -406,7 +422,7 @@ class RegistroDecisiones:
 
         if tipo not in TIPOS_DECISION:
             raise DecisionesFormError("decision_tipo_invalid")
-        if ID_RE.fullmatch(objeto_id) is None:
+        if OBJETO_ID_RE.fullmatch(objeto_id) is None:
             raise DecisionesFormError("decision_objeto_invalid")
         if self.es_pendiente(tipo=tipo, objeto_id=objeto_id):
             return
@@ -478,7 +494,7 @@ class RegistroDecisiones:
                 or linea.get("version") != VERSION_PENDIENTES
                 or linea.get("tipo") not in TIPOS_DECISION
                 or not isinstance(linea.get("objeto_id"), str)
-                or ID_RE.fullmatch(linea["objeto_id"]) is None
+                or OBJETO_ID_RE.fullmatch(linea["objeto_id"]) is None
             ):
                 raise DecisionesFormError("decisiones_registry_invalid")
         return lineas
@@ -578,7 +594,7 @@ class EnlacesDecisiones:
         if (
             tipo not in DECISIONES_POR_TIPO
             or decision not in DECISIONES_POR_TIPO[tipo]
-            or ID_RE.fullmatch(objeto_id) is None
+            or OBJETO_ID_RE.fullmatch(objeto_id) is None
         ):
             raise DecisionesFormError("decision_link_invalid")
         return (
@@ -761,7 +777,7 @@ class CanalFormDecisiones:
             return RECHAZO_TIPO_DESCONOCIDO
         if respuesta.decision not in DECISIONES_POR_TIPO[respuesta.tipo]:
             return RECHAZO_DECISION_FUERA_DE_CATALOGO
-        if ID_RE.fullmatch(respuesta.objeto) is None:
+        if OBJETO_ID_RE.fullmatch(respuesta.objeto) is None:
             return RECHAZO_OBJETO_INVALIDO
         if not self._registro.es_pendiente(
             tipo=respuesta.tipo, objeto_id=respuesta.objeto
@@ -832,6 +848,7 @@ __all__ = [
     "CanalFormDecisiones",
     "ConfiguracionFormDecisiones",
     "DECISIONES_POR_TIPO",
+    "DECISION_APROBACION_LINEA",
     "DECISION_APRUEBO_LOTE",
     "DECISION_APRUEBO_SEMANTICA",
     "DECISION_APRUEBO_UTILITARIA",
@@ -841,6 +858,7 @@ __all__ = [
     "EnlacesDecisiones",
     "FORM_DECISIONES_PREFIX",
     "IDENTIDAD_CANAL",
+    "OBJETO_ID_RE",
     "PENDIENTES_NOMBRE",
     "PROCESADAS_NOMBRE",
     "RECHAZO_DECISION_FUERA_DE_CATALOGO",
@@ -854,6 +872,7 @@ __all__ = [
     "ROLES_POR_DECISION",
     "RegistroDecisiones",
     "ResultadoDecision",
+    "TIPO_LINEA_DESCRIPTIVA",
     "TIPO_LOTE",
     "TIPO_PLANTILLA",
     "TIPO_PUBLICACION",

@@ -48,6 +48,7 @@ from agente1.decisiones_form import (
     CanalFormDecisiones,
     DecisionesFormError,
     EnlacesDecisiones,
+    OBJETO_ID_RE,
     PROCESADAS_NOMBRE,
     PENDIENTES_NOMBRE,
     RegistroDecisiones,
@@ -56,7 +57,6 @@ from agente1.decisiones_form import (
     crear_lector_decisiones,
 )
 from agente1.fuentes import FuenteSolicitudesError
-from agente1.google_workspace import ID_RE
 from agente1.workspace_auth import construir_token_provider
 from agente1.workspace_config import ConfiguracionWorkspaceError
 from agente1.workspace_e2e import RunnerWorkspaceError
@@ -98,7 +98,7 @@ def _parsear_declaracion(declaracion: str) -> tuple[str, str]:
     if (
         not separador
         or tipo not in TIPOS_DECISION
-        or ID_RE.fullmatch(objeto_id) is None
+        or OBJETO_ID_RE.fullmatch(objeto_id) is None
     ):
         raise RunnerWorkspaceError("runner_declaracion_invalid")
     return tipo, objeto_id
