@@ -47,7 +47,10 @@ procedencia declarada — conforme al contrato versionado
 origen de inscripción (D10) y las novedades replican la pestaña «Novedades de
 pago» de la planilla D2 según `contracts/novedades_pago_v1.json`. Los tres
 loaders fallan cerrado: lo que el contrato no contempla se rechaza con código,
-no se ignora.
+no se ignora. Las mismas tres fuentes pueden leerse de las pestañas de la
+planilla D2 para la demo en vivo — `pagos_sheets.GoogleSheetsFuentePagos` —
+porque la interpretación de las filas está separada del soporte y es la misma
+para los dos caminos.
 
 Lo que falta para el alcance completo de HU-012 pagos: el lote diario de
 recordatorios con su plantilla preaprobada. Esta interfaz lo recibirá como
@@ -385,9 +388,19 @@ def cargar_plan_pagos_csv(path: Path) -> PlanPago:
     rompe la secuencia 1..N son un rechazo con código, no un dato ignorado.
     """
 
-    filas = _leer_filas(
-        path, COLUMNAS_PLAN_OBLIGATORIAS, COLUMNAS_PLAN, "plan"
+    return _plan_desde_filas(
+        _leer_filas(path, COLUMNAS_PLAN_OBLIGATORIAS, COLUMNAS_PLAN, "plan")
     )
+
+
+def _plan_desde_filas(filas: list[dict[str, str]]) -> PlanPago:
+    """Interpreta las filas `campo/valor/procedencia/evidencia` como plan.
+
+    Es la parte compartida de los dos caminos de lectura del plan — el CSV y
+    la pestaña «Plan de pagos» de la planilla D2 — para que ambos produzcan
+    exactamente el mismo `PlanPago` sobre la misma tabla.
+    """
+
     datos: dict[str, str] = {}
     procedencias: dict[str, str] = {}
     evidencias: dict[str, str] = {}
@@ -468,9 +481,19 @@ def cargar_padron_csv(path: Path, *, actividad_id: str) -> list[Preinscripto]:
     dato a corregir por el agente.
     """
 
-    filas = _leer_filas(
-        path, COLUMNAS_PADRON_OBLIGATORIAS, COLUMNAS_PADRON, "padron"
+    return _padron_desde_filas(
+        _leer_filas(
+            path, COLUMNAS_PADRON_OBLIGATORIAS, COLUMNAS_PADRON, "padron"
+        ),
+        actividad_id,
     )
+
+
+def _padron_desde_filas(
+    filas: list[dict[str, str]], actividad_id: str
+) -> list[Preinscripto]:
+    """Interpreta las filas del padrón, común al CSV y a la pestaña de D2."""
+
     padron: list[Preinscripto] = []
     ids_vistos: set[str] = set()
     for fila in filas:
@@ -508,9 +531,16 @@ def cargar_novedades_csv(path: Path) -> list[NovedadPago]:
     informe tiene que mostrar, no un motivo para abortar la corrida.
     """
 
-    filas = _leer_filas(
-        path, COLUMNAS_NOVEDADES, COLUMNAS_NOVEDADES, "novedades"
+    return _novedades_desde_filas(
+        _leer_filas(path, COLUMNAS_NOVEDADES, COLUMNAS_NOVEDADES, "novedades")
     )
+
+
+def _novedades_desde_filas(filas: list[dict[str, str]]) -> list[NovedadPago]:
+    """Interpreta las filas de la pestaña «Novedades de pago», común al CSV y
+    a la planilla. `fila` numera desde 2: el encabezado es la fila 1 en ambos
+    soportes, así una persona ubica la novedad en la fuente que sea."""
+
     return [
         NovedadPago(
             id_inscripcion=fila["id_inscripcion"].strip(),
@@ -930,18 +960,89 @@ def _leer_filas(
 
     with Path(path).open(encoding="utf-8", newline="") as archivo:
         reader = csv.DictReader(archivo)
-        encabezados = reader.fieldnames or []
-        if (
-            tuple(encabezados[: len(obligatorias)]) != obligatorias
-            or set(encabezados) - set(permitidas)
-            or len(encabezados) != len(set(encabezados))
-        ):
-            raise ControlPagosError(f"{nombre}_encabezado_invalid")
+        _validar_encabezado(
+            reader.fieldnames or [], obligatorias, permitidas, nombre
+        )
         filas: list[dict[str, str]] = []
         for fila in reader:
             if None in fila or any(v is None for v in fila.values()):
                 raise ControlPagosError(f"{nombre}_fila_invalid")
             filas.append(dict(fila))
+    return filas
+
+
+def _validar_encabezado(
+    encabezados: Sequence[str],
+    obligatorias: tuple[str, ...],
+    permitidas: tuple[str, ...],
+    nombre: str,
+) -> None:
+    """La regla del encabezado, única para los dos soportes tabulares.
+
+    Empieza con las columnas obligatorias en ese orden exacto y sólo puede
+    seguir con columnas declaradas en el contrato del recurso, sin repetir.
+    Un encabezado distinto es un rechazo explícito — `*_encabezado_invalid` —
+    nunca una lectura silenciosa de una tabla que podría ser otra cosa.
+    """
+
+    if (
+        tuple(encabezados[: len(obligatorias)]) != obligatorias
+        or set(encabezados) - set(permitidas)
+        or len(encabezados) != len(set(encabezados))
+    ):
+        raise ControlPagosError(f"{nombre}_encabezado_invalid")
+
+
+def _filas_desde_tabla(
+    tabla: list[object],
+    obligatorias: tuple[str, ...],
+    permitidas: tuple[str, ...],
+    nombre: str,
+) -> list[dict[str, str]]:
+    """Convierte el `values` de una pestaña en las mismas filas que un CSV.
+
+    Es la contraparte de `_leer_filas` para la planilla D2: la primera fila
+    de `tabla` es el encabezado y se valida con la misma regla posicional, así
+    una pestaña con encabezado distinto falla con el mismo `*_encabezado_invalid`
+    del CSV. Las diferencias de forma entre los dos soportes se traducen acá:
+
+    - Sheets recorta las celdas vacías del final de cada fila; se completan
+      con vacíos, que es lo mismo que vale una línea CSV terminada en `,,,`.
+    - Una fila `[]` es el equivalente de la línea en blanco que `DictReader`
+      salta: se ignora. Una fila de celdas vacías (`["", ""]`) se conserva —
+      igual que en el CSV `,,` — y la rechaza la validación de dominio.
+    - Una fila más larga que el encabezado, que no sea una lista o que traiga
+      celdas que no sean texto, se rechaza: es el `*_fila_invalid` del CSV.
+    """
+
+    if (
+        not tabla
+        or not isinstance(tabla[0], list)
+        or any(not isinstance(celda, str) for celda in tabla[0])
+    ):
+        raise ControlPagosError(f"{nombre}_encabezado_invalid")
+    encabezados = tabla[0]
+    _validar_encabezado(encabezados, obligatorias, permitidas, nombre)
+
+    filas: list[dict[str, str]] = []
+    for fila_cruda in tabla[1:]:
+        if fila_cruda == []:
+            continue
+        if (
+            not isinstance(fila_cruda, list)
+            or len(fila_cruda) > len(encabezados)
+            or any(not isinstance(celda, str) for celda in fila_cruda)
+        ):
+            raise ControlPagosError(f"{nombre}_fila_invalid")
+        filas.append(
+            dict(
+                zip(
+                    encabezados,
+                    [*fila_cruda, *([""] * (len(encabezados) - len(fila_cruda)))],
+                    strict=True,
+                )
+            )
+        )
     return filas
 
 
