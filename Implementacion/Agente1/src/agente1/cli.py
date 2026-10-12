@@ -24,10 +24,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
+from .cli_pagos import main as main_control_pagos
 from .ollama import (
     DEFAULT_OLLAMA_BASE_URL,
     DEFAULT_OLLAMA_NUM_PREDICT,
@@ -47,6 +49,13 @@ from .posts import (
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Punto de entrada. Devuelve el código de salida del proceso."""
+
+    # Subcomandos acotados: el primer argumento nombra el flujo y el resto se
+    # despacha a su propio parser. La ruta histórica (sin subcomando) sigue
+    # intacta, así que los scripts y la evidencia existentes no cambian.
+    args_list = list(sys.argv[1:] if argv is None else argv)
+    if args_list[:1] == ["control-pagos"]:
+        return main_control_pagos(args_list[1:])
 
     parser = argparse.ArgumentParser(
         description="Genera un borrador local HU-010/HU-011 desde una fila CSV sintética."

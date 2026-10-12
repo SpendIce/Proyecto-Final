@@ -27,6 +27,8 @@ Guía rápida de módulos:
 - `interpretacion`            HU-013, interpretación en lenguaje natural (#20, #22).
 - `canal`                     HU-013, puerto de canal y bucle de atención (#24).
 - `canal_planilla`            HU-013, adapter de planilla offline del canal (#24).
+- `pagos`                     HU-012, corrida de control de pagos (offline).
+- `buzon`                     puerto del buzón propio del agente (ADR 0004).
 """
 
 from .confirmaciones import (
@@ -52,12 +54,17 @@ from .interpretacion import (
     ResultadoInterpretacion,
     interpretar_solicitud,
 )
+from .buzon import BuzonPropio, BuzonPropioEml, BuzonPropioMemoria
 from .ollama import OllamaGenerator
+from .pagos import correr_control_pagos
 from .procesamiento import FakeGenerator, ResultadoProceso, procesar_fila_csv
 from .posts import PoliticaPost, procesar_post, procesar_post_estructurado
 
 __all__ = [
     "AprobacionHumana",
+    "BuzonPropio",
+    "BuzonPropioEml",
+    "BuzonPropioMemoria",
     "ColaEnviosArchivo",
     "ColaEnviosMemoria",
     "DestinoConfirmacionesFake",
@@ -76,6 +83,7 @@ __all__ = [
     "ResultadoInterpretacion",
     "ResultadoProceso",
     "SolicitudConfirmacion",
+    "correr_control_pagos",
     "drenar_envios",
     "interpretar_solicitud",
     "procesar_confirmacion",
