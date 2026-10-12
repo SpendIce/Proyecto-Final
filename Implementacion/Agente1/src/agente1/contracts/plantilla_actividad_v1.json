@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:plantilla-actividad:v1",
+  "title": "Contrato de la plantilla de correo por actividad (HU-012, #73)",
+  "description": "Catálogo cerrado de variables y límites de la plantilla de correo que el agente genera para una actividad. El modelo redacta sólo la prosa descriptiva; todos los datos dinámicos —destinatario, montos, cuotas, fechas, horarios, enlaces y datos personales— viajan como variables {{...}} que el render determinista completa por destinatario desde la fila de la actividad y el plan de pago. Una salida que incumple el catálogo se descarta entera: nunca se recorta ni se repara.",
+  "x-contract-version": "plantilla_actividad_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-hu": "HU-012",
+  "x-issue": "#73",
+  "x-origen": "Equipo tecnico del PPS. El catálogo de variables, la plantilla base y los límites no fueron aprobados por la SEU.",
+
+  "campos_fila_obligatorios": ["titulo", "fecha_inicio", "contacto"],
+
+  "variables_requeridas": [
+    "nombre_destinatario",
+    "actividad",
+    "fecha_inicio",
+    "contacto"
+  ],
+
+  "variables_opcionales_fila": [
+    "descripcion",
+    "fecha_fin",
+    "fecha_limite_inscripcion",
+    "hora",
+    "modalidad",
+    "duracion_horas",
+    "lugar",
+    "organiza",
+    "publico",
+    "enlace_inscripcion"
+  ],
+
+  "variables_plan_requeridas": ["detalle_cuotas", "medios_pago"],
+  "variables_plan_opcionales": ["bonificaciones"],
+
+  "max_plantilla_chars": 4000,
+  "min_prosa_palabras": 8,
+  "max_plantilla_palabras": 250
+}
