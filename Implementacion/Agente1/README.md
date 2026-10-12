@@ -121,7 +121,7 @@ Un identificador rechazado o una solicitud inexistente finaliza en `INVALIDA` co
 
 ## Adapter contractual de Google Sheets
 
-El seam `FuenteSolicitudes` permite que el core procese la misma forma contractual desde CSV o Sheets. El adapter Sheets implementa y prueba offline una solicitud `spreadsheets.values.get` hacia el host oficial fijo, con rango A1 percent-encoded, `majorDimension=ROWS`, `valueRenderOption=FORMATTED_VALUE`, deadline total y respuesta limitada a 1 MiB. Exige las columnas exactas de `gacetilla_input_v1`, valores string e identificadores únicos; completa únicamente las celdas finales vacías que la API puede omitir.
+El seam `FuenteSolicitudes` permite que el core procese la misma forma contractual desde CSV o Sheets. El adapter Sheets implementa y prueba offline una solicitud `spreadsheets.values.get` hacia el host oficial fijo, con rango A1 percent-encoded, `majorDimension=ROWS`, `valueRenderOption=FORMATTED_VALUE`, deadline total y respuesta limitada a 1 MiB. Exige las columnas exactas del contrato v2 de la planilla de actividades (`COLUMNAS_ACTIVIDADES_V2`, el mismo que usa el adapter CSV), valores string e identificadores únicos; completa únicamente las celdas finales vacías que la API puede omitir.
 
 Las pruebas usan un token provider y un transporte fake inyectados. **No existe todavía un flujo OAuth real, credenciales, spreadsheet ID/rango institucional, permisos ni ejecución live contra Google Workspace.** El token no se acepta como flag de CLI y nunca debe persistirse en logs o mensajes de error. Por lo tanto, este incremento demuestra el contrato y el aislamiento técnico, no una integración institucional operativa.
 
@@ -207,7 +207,7 @@ El smoke real deja sus resultados en un subdirectorio temporal de `salida/`, ign
 ## HU-011 — matriz contractual provisional
 
 HU-011 reutiliza los puertos de fuente y destino para producir borradores
-separados de Instagram y LinkedIn. El contrato `post_input_v1`, las políticas
+separados de Instagram y LinkedIn. El contrato `post_input_v2`, las políticas
 de canal y los prompts están marcados como `PROVISIONAL_NO_INSTITUCIONAL`.
 Toda salida exitosa conserva `BORRADOR — NO PUBLICAR` y
 `PENDIENTE_VALIDACION`; el agente no comparte, envía ni publica contenido y no

@@ -27,14 +27,20 @@ from agente1.workspace_config import ConfiguracionWorkspace
 
 
 FILA = {
-    "id_solicitud": "SYN-001",
+    "id_actividad": "SYN-001",
     "titulo": "Taller sintético de vinculación",
     "descripcion": "Actividad ficticia para probar el flujo.",
-    "fecha": "2026-08-05",
+    "fecha_inicio": "2026-08-05",
+    "fecha_fin": "",
+    "fecha_limite_inscripcion": "",
+    "hora": "",
+    "modalidad": "",
+    "duracion_horas": "",
     "publico": "Comunidad universitaria ficticia",
     "organiza": "Equipo de prueba",
     "contacto": "pruebas@example.invalid",
     "fuente": "Dataset sintético versionado",
+    "enlace_inscripcion": "",
     "lugar": "Aula de prueba",
 }
 GACETILLA = """## TÍTULO
@@ -86,8 +92,8 @@ def test_compone_gacetilla_y_emite_un_manifest_seguro(tmp_path: Path) -> None:
     assert manifest["core_correlation_id"] == resultado.correlation_id
     assert manifest["HU"] == "HU-010"
     assert manifest["pipeline_version"] == "workspace_hu010_gacetilla_v1"
-    assert manifest["contract_version"] == "gacetilla_input_v1"
-    assert manifest["renderer_version"] == "gacetilla_generator_render_v2"
+    assert manifest["contract_version"] == "gacetilla_input_v2"
+    assert manifest["renderer_version"] == "gacetilla_generator_render_v3"
     assert manifest["destination"]["status"] == "COMPLETE"
     serializado = json.dumps(manifest, ensure_ascii=False)
     for secreto in ("SYN-001", "Taller sintético", "pruebas@example.invalid", "Aula de prueba"):
@@ -99,8 +105,8 @@ def test_compone_post_y_exige_canal(tmp_path: Path) -> None:
     assert resultado.estado == "PENDIENTE_VALIDACION"
     manifest = json.loads(resultado.manifest_path.read_text(encoding="utf-8"))
     assert manifest["pipeline_version"] == "workspace_hu011_structured_v2"
-    assert manifest["contract_version"] == "post_input_v1+post_creative_output_v2"
-    assert manifest["renderer_version"] == "post_deterministic_renderer_v4"
+    assert manifest["contract_version"] == "post_input_v2+post_creative_output_v2"
+    assert manifest["renderer_version"] == "post_deterministic_renderer_v5"
 
     with pytest.raises(RunnerWorkspaceError, match="runner_channel_required"):
         _run(tmp_path / "otro", tipo="post", canal=None, respuesta=POST)
@@ -240,7 +246,7 @@ class _Transport:
 
 def _config() -> ConfiguracionWorkspace:
     return ConfiguracionWorkspace(
-        ambiente="D2", spreadsheet_id="sheet-private", rango_a1="Datos!A1:I10",
+        ambiente="D2", spreadsheet_id="sheet-private", rango_a1="Datos!A1:O10",
         folder_id="folder-private", template_id="template-private",
         timeout_s=10.0, max_response_bytes=1_048_576,
     )
@@ -259,7 +265,7 @@ def test_live_requiere_doble_opt_in_y_token_valido() -> None:
         )
 
     config_invalida = ConfiguracionWorkspace(
-        ambiente="D2", spreadsheet_id="sheet-private", rango_a1="Datos!A1:I10",
+        ambiente="D2", spreadsheet_id="sheet-private", rango_a1="Datos!A1:O10",
         folder_id="folder-private", template_id="template-private",
         timeout_s=10.0, max_response_bytes=42,
     )

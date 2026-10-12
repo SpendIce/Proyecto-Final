@@ -84,17 +84,19 @@ def test_cli_fake_procesa_una_fila_de_forma_reproducible(tmp_path):
         writer = csv.DictWriter(
             archivo,
             fieldnames=[
-                "id_solicitud", "titulo", "descripcion", "fecha", "publico",
-                "organiza", "contacto", "fuente", "lugar",
+                "id_actividad", "titulo", "descripcion", "fecha_inicio",
+                "fecha_fin", "fecha_limite_inscripcion", "hora", "modalidad",
+                "duracion_horas", "publico", "organiza", "contacto", "fuente",
+                "enlace_inscripcion", "lugar",
             ],
         )
         writer.writeheader()
         writer.writerow(
             {
-                "id_solicitud": "SYN-CLI-001",
+                "id_actividad": "SYN-CLI-001",
                 "titulo": "Actividad sintética CLI",
                 "descripcion": "Caso ficticio reproducible.",
-                "fecha": "2026-08-08",
+                "fecha_inicio": "2026-08-08",
                 "publico": "Público ficticio",
                 "organiza": "Equipo de prueba",
                 "contacto": "pruebas@example.invalid",
@@ -169,7 +171,9 @@ def test_dataset_versionado_produce_el_golden_por_cli(tmp_path):
 def test_cli_rechaza_id_invalido_con_json_seguro_sin_traceback(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,"
+        "fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,"
+        "organiza,contacto,fuente,enlace_inscripcion\n",
         encoding="utf-8",
     )
     entorno = os.environ.copy()
@@ -465,7 +469,7 @@ def test_cli_post_usa_structured_v2_por_default_seguro(tmp_path):
     assert Path(respuesta["borrador"]).name == "SYN-001-instagram-v2.md"
     registro = json.loads(Path(respuesta["log"]).read_text(encoding="utf-8"))
     assert registro["output_contract_version"] == "post_creative_output_v2"
-    assert registro["renderer_version"] == "post_deterministic_renderer_v4"
+    assert registro["renderer_version"] == "post_deterministic_renderer_v5"
 
 
 def test_cli_post_v2_ollama_envia_schema_exacto_y_audita_solo_hash(tmp_path):

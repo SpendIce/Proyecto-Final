@@ -44,8 +44,8 @@ from agente1.procesamiento import PROMPT_VERSION  # noqa: E402
 # Si alguna cambia, el corte deja de ser el mismo aunque el resultado se parezca.
 FUENTES = (
     "data/actividades_sinteticas.csv",
-    "src/agente1/contracts/gacetilla_input_v1.schema.json",
-    "src/agente1/contracts/post_input_v1.schema.json",
+    "src/agente1/contracts/gacetilla_input_v2.schema.json",
+    "src/agente1/contracts/post_input_v2.schema.json",
     "src/agente1/contracts/post_creative_output_v2.schema.json",
     "src/agente1/contracts/post_creative_output_v3.schema.json",
     "src/agente1/politicas/politica_redes_provisional_v1.json",
