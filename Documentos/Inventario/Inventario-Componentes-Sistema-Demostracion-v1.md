@@ -174,8 +174,9 @@ Módulos de `src/agente1/` que no integran el sistema de demostración en esta b
 | Módulo | Justificación |
 |---|---|
 | `persistencia.py` | Puerto de persistencia auditable con adapter en memoria y esquema SQL del spike PostgreSQL (`migrations/`). No está cableado a los pipelines: la persistencia del sistema de demostración la producen el registro durable de `confirmaciones.py`, el log JSONL de `procesamiento.py` y los manifests y reservas de `workspace_e2e.py`. |
-| `historia_viva.py` | Puerto de consulta a Historia Viva (A2) y composición de efemérides del lado de A1. Seam offline sin adapter de transporte: el contrato A1↔A2 es candidato no institucional y el issue #17 sigue abierto. El hilo de demostración no lo invoca. |
+| `historia_viva.py` | Puerto de consulta a Historia Viva (A2) y composición de efemérides del lado de A1. Seam offline sin adapter de transporte: el contrato A1↔A2 es candidato no institucional y el issue #17 sigue abierto. Lo consume `posts_efemeride.py` (#85); el hilo de demostración no lo invoca. |
 | `historia_viva_cliente.py` | Cliente pull sobre transporte inyectado de ese mismo puerto; misma justificación: sin transporte ni contrato cerrado, no forma parte del recorrido. |
+| `posts_efemeride.py` | Pipeline del post de efeméride HU-011 desde el puerto `HistoriaViva` (#85): compone el material con `componer_material_efemeride` y genera el borrador con citas `pieza / fragmento (expresión temporal)` por el carril estructurado de `posts.py`, con procedencia declarada en auditoría y borrador. Recorrido offline con `HistoriaVivaFake` y sin intención de efeméride en `intenciones_v3`: el transporte depende del contrato con A2 (#17, bloqueado por #12) y el hilo de demostración no lo invoca. |
 
 No son módulos de `src/agente1/` y quedan fuera por definición: `scripts/` (matrices, mediciones, smokes, wizards), `tests/`, `migrations/`, `data/`, `golden/`, `evidencias/` y `run-demo.sh` (respaldo offline declarado).
 
@@ -219,6 +220,7 @@ No son módulos de `src/agente1/` y quedan fuera por definición: `scripts/` (ma
 | `plantillas_actividad.py` | Generación |
 | `politica_redes.py` | Gates |
 | `posts.py` | Generación |
+| `posts_efemeride.py` | Fuera del sistema (justificado) |
 | `presupuesto.py` | Generación |
 | `procesamiento.py` | Generación |
 | `recordatorios.py` | Control de pagos |

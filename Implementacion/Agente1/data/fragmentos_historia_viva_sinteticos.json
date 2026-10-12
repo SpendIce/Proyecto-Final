@@ -1,0 +1,50 @@
+{
+  "descripcion": "Fragmentos sintéticos del acervo para el recorrido offline del post de efeméride HU-011 desde Historia Viva (#85). No son material institucional: tienen la forma del contrato candidato de Historia Viva y se cargan en HistoriaVivaFake por scripts/post_efemeride_demo.py con procedencia synthetic_test.",
+  "fragmentos": [
+    {
+      "fragmento_id": "frg-sint-001",
+      "pieza_id": "pie-sint-acta-001",
+      "texto": "El acta del período consigna la apertura de los primeros cursos de extensión ante la comunidad.",
+      "rango": {
+        "desde": "1926-08-07",
+        "hasta": "1926-08-07",
+        "precision": "dia"
+      },
+      "tipo": "acta",
+      "resumen_pieza": "Acta sintética de prueba sobre la apertura de cursos",
+      "url_original": "https://ejemplo.invalid/acervo/pie-sint-acta-001",
+      "validada_el": "2026-01-15",
+      "ubicacion": "página 3"
+    },
+    {
+      "fragmento_id": "frg-sint-002",
+      "pieza_id": "pie-sint-acta-001",
+      "texto": "En la misma sesión se acuerda convocar a los talleres abiertos del segundo cuatrimestre.",
+      "rango": {
+        "desde": "1926-08-07",
+        "hasta": "1926-08-07",
+        "precision": "dia"
+      },
+      "tipo": "acta",
+      "resumen_pieza": "Acta sintética de prueba sobre la apertura de cursos",
+      "url_original": "https://ejemplo.invalid/acervo/pie-sint-acta-001",
+      "validada_el": "2026-01-15",
+      "ubicacion": "página 4"
+    },
+    {
+      "fragmento_id": "frg-sint-003",
+      "pieza_id": "pie-sint-gacetilla-002",
+      "texto": "La gacetilla interna anuncia la primera cursada con inscripción abierta a la comunidad.",
+      "rango": {
+        "desde": "1926-08-01",
+        "hasta": "1926-08-31",
+        "precision": "mes"
+      },
+      "tipo": "gacetilla",
+      "resumen_pieza": "Gacetilla interna sintética de prueba",
+      "url_original": "https://ejemplo.invalid/acervo/pie-sint-gacetilla-002",
+      "validada_el": "2026-01-20",
+      "ubicacion": null
+    }
+  ]
+}

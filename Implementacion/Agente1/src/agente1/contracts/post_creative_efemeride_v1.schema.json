@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:post-creative-efemeride:v1",
+  "title": "Salida creativa redactada para el post de efeméride (HU-011 desde Historia Viva)",
+  "description": "Contrato técnico provisional para la zona creativa del post de efeméride (#85). El modelo redacta gancho, prosa y CTA; los hechos históricos —texto del fragmento, cita con identidad de pieza y de fragmento, y expresión temporal exacta— los inserta el renderer determinista y el gate de validación rechaza que el modelo los reproduzca o invente.",
+  "x-contract-version": "post_creative_efemeride_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-rationale": "La pieza es una efeméride con material de Historia Viva (A2), no una actividad de extensión: comparte la forma del contrato creativo v3 (prosa libre, sin catálogo) pero lleva su propia allowlist provisional de hashtags, acorde a una pieza conmemorativa.",
+  "x-provisional-safety-hashtags": [
+    "#FIE",
+    "#UNDEF",
+    "#Efemerides",
+    "#Historia",
+    "#Centenario"
+  ],
+  "type": "object",
+  "required": [
+    "gancho",
+    "prosa",
+    "cta",
+    "hashtags"
+  ],
+  "properties": {
+    "gancho": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 160
+    },
+    "prosa": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 500
+    },
+    "cta": {
+      "type": "string",
+      "minLength": 15,
+      "maxLength": 160
+    },
+    "hashtags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "#FIE",
+          "#UNDEF",
+          "#Efemerides",
+          "#Historia",
+          "#Centenario"
+        ]
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

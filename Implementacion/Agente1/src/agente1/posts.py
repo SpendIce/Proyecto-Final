@@ -815,7 +815,12 @@ INSTRUCCION_REINTENTO_POR_CODIGO = {
 CODIGOS_REINTENTABLES = frozenset(INSTRUCCION_REINTENTO_POR_CODIGO)
 
 
-def _prompt_con_feedback_reglas(prompt: str, errores: list[str]) -> str:
+def _prompt_con_feedback_reglas(
+    prompt: str,
+    errores: list[str],
+    *,
+    instrucciones: dict[str, str] | None = None,
+) -> str:
     """Compone el prompt del reintento sin tocar la plantilla versionada.
 
     El bloque se inserta antes de `DATOS_JSON_INICIO` —la misma técnica que
@@ -829,18 +834,24 @@ def _prompt_con_feedback_reglas(prompt: str, errores: list[str]) -> str:
     cita el literal rechazado: escribir «sintético» o «inscríbete» en la
     corrección le estaría sugiriendo al modelo la palabra que tiene que
     evitar.
+
+    `instrucciones` permite redactar el feedback en el vocabulario de la
+    pieza —`posts_efemeride` habla de textos citados y de la fecha de la
+    efeméride, no de «la actividad»— sin cambiar los códigos del gate: las
+    claves siguen siendo las de `INSTRUCCION_REINTENTO_POR_CODIGO`.
     """
 
-    instrucciones = [
-        f"[{codigo}] {INSTRUCCION_REINTENTO_POR_CODIGO[codigo]}"
+    tabla = instrucciones or INSTRUCCION_REINTENTO_POR_CODIGO
+    instrucciones_efectivas = [
+        f"[{codigo}] {tabla[codigo]}"
         for codigo in dict.fromkeys(errores)
-        if codigo in INSTRUCCION_REINTENTO_POR_CODIGO
+        if codigo in tabla
     ]
     bloque = (
         "CORRECCION_OBLIGATORIA: la respuesta anterior a este mismo pedido fue "
         "rechazada por incumplir estas reglas. Corregí sólo eso y conservá el "
         "formato JSON pedido:\n"
-        + "\n".join(f"- {linea}" for linea in instrucciones)
+        + "\n".join(f"- {linea}" for linea in instrucciones_efectivas)
     )
     marcador = "\nDATOS_JSON_INICIO"
     if marcador in prompt:
@@ -1021,6 +1032,7 @@ def _parsear_creatividad_estructurada(
     canal: str,
     politica: PoliticaPost,
     contrato: ContratoCreativo,
+    hechos_extra: tuple[str, ...] = (),
 ) -> tuple[dict[str, object] | None, list[str]]:
     """Parsea el JSON del modelo y le aplica el gate de hechos.
 
@@ -1031,6 +1043,11 @@ def _parsear_creatividad_estructurada(
     2. **Contenido**: que las piezas creativas no contengan ningún hecho —ni de
        la fila ni inventado—, ni llamados a la acción que impliquen un circuito
        de inscripción que la SEU no definió, ni registro ajeno al institucional.
+
+    `hechos_extra` extiende la lista de hechos de fuente que la zona creativa
+    no puede repetir: `posts_efemeride` lo usa para declarar los textos
+    citados, las citas y la expresión temporal del material de Historia Viva,
+    que no viajan en una fila de planilla.
 
     Devuelve `(creatividad, errores)`. La creatividad puede venir acompañada de
     errores: el llamador sólo renderiza si la lista está vacía. Los códigos se
@@ -1113,11 +1130,21 @@ def _parsear_creatividad_estructurada(
     # Cualquier dígito se rechaza sin más análisis: separar un número inocente
     # de una cifra inventada exigiría entender el texto, y todos los números
     # legítimos del post (fecha, cupos, horarios) los pone el renderer.
-    if any(
-        _contiene_hecho(texto_creativo, fila.get(campo, ""))
-        for campo in CAMPOS_SEMANTICOS_AUTORIZADOS
-        if fila.get(campo, "").strip()
-    ) or _contiene_fragmento_significativo(texto_creativo, fila.get("titulo", "")):
+    if (
+        any(
+            _contiene_hecho(texto_creativo, fila.get(campo, ""))
+            for campo in CAMPOS_SEMANTICOS_AUTORIZADOS
+            if fila.get(campo, "").strip()
+        )
+        or _contiene_fragmento_significativo(
+            texto_creativo, fila.get("titulo", "")
+        )
+        or any(
+            _contiene_hecho(texto_creativo, hecho)
+            for hecho in hechos_extra
+            if hecho.strip()
+        )
+    ):
         errores.append("source_fact_in_creative_field")
     if PATRON_FECHA.search(texto_creativo):
         errores.append("unauthorized_date")
