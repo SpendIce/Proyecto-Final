@@ -52,6 +52,14 @@ Qué hace la corrida, en el orden de §4.2 y §6.2 del diseño:
    una planificación: encolarlo es decisión del circuito por lote de
    `recordatorios.py`, que exige la plantilla preaprobada y la aprobación
    utilitaria que lista sus ítems (D3).
+7. **Enumera los candidatos a confirmación.** `planificar_confirmaciones`
+   devuelve los preinscriptos cuya cuota 1 quedó `PAGO_CONFIRMADO` o
+   `BONIFICADA` — los dos estados que, según D9, habilitan la confirmación
+   de inscripción. `COMPROBANTE_PRESENTADO` no alcanza: la Fundación es la
+   que verifica el ingreso (D1). También es sólo planificación: el borrador
+   lo emite el circuito por envío de `confirmaciones.py` con el tipo
+   `inscripcion`, bajo la doble aprobación de siempre, y la idempotencia
+   del registro evita la segunda confirmación si la corrida se repite.
 
 El plan se lee de un CSV en formato largo — una fila por dato, cada uno con su
 procedencia declarada — conforme al contrato versionado
@@ -420,6 +428,34 @@ class ItemRecordatorio:
     idempotency_key: str
 
 
+# Los estados de la cuota 1 que convierten al preinscripto en candidato a
+# confirmación de inscripción (D9): la confirmación de la Fundación o la
+# bonificación. `COMPROBANTE_PRESENTADO` queda afuera a propósito — un
+# comprobante no es un pago (D1): la Fundación verifica el ingreso.
+ESTADOS_CONFIRMAN_INSCRIPCION = frozenset(
+    {ESTADO_PAGO_CONFIRMADO, ESTADO_BONIFICADA}
+)
+
+
+@dataclass(frozen=True)
+class CandidatoConfirmacion:
+    """Un preinscripto cuya cuota 1 habilita el borrador de confirmación.
+
+    Es una planificación, no un envío: la corrida enumera para quién habría
+    que generar el borrador de confirmación de inscripción (tipo
+    `inscripcion` del circuito por envío), con la razón cerrada que lo
+    habilita — `PAGO_CONFIRMADO` o `BONIFICADA`. El estado sigue sin
+    persistirse por persona (ADR 0003): otra corrida sobre las mismas
+    fuentes reproduce los mismos candidatos, y el registro de HU-012 es el
+    que impide el segundo envío cuando alguien los tramita.
+    """
+
+    id_inscripcion: str
+    nombre_destinatario: str
+    email_destinatario: str
+    razon: str
+
+
 @dataclass(frozen=True)
 class LoteRecordatorios:
     """El conjunto planeado de recordatorios del día, antes de aprobarse.
@@ -450,6 +486,7 @@ class InformeCorridaPagos:
     novedades_aplicadas: tuple[NovedadPago, ...]
     novedades_con_error: tuple[NovedadConError, ...]
     recordatorios: LoteRecordatorios
+    candidatos_confirmacion: tuple[CandidatoConfirmacion, ...]
 
 
 def clave_item_recordatorio(
@@ -830,7 +867,39 @@ def correr_control_pagos(
         recordatorios=planificar_recordatorios(
             plan=plan, situaciones=situaciones, hoy=hoy
         ),
+        candidatos_confirmacion=planificar_confirmaciones(situaciones),
     )
+
+
+def planificar_confirmaciones(
+    situaciones: Sequence[SituacionPreinscripto],
+) -> tuple[CandidatoConfirmacion, ...]:
+    """Los preinscriptos cuya cuota 1 habilita la confirmación (D9).
+
+    Sólo `PAGO_CONFIRMADO` —que sale de la novedad `CONFIRMADO_FUNDACION`—
+    o `BONIFICADA` habilitan el borrador de confirmación de inscripción:
+    un `COMPROBANTE_PRESENTADO` no alcanza porque la Fundación es quien
+    verifica el ingreso (D1). Función pura, como `planificar_recordatorios`:
+    no toca registro ni cola — producir el borrador es decisión del
+    circuito por envío y la doble aprobación es de la persona que la emite.
+    """
+
+    candidatos: list[CandidatoConfirmacion] = []
+    for situacion in situaciones:
+        cuota_1 = next(
+            (c for c in situacion.cuotas if c.nro_cuota == 1), None
+        )
+        if cuota_1 is None or cuota_1.estado not in ESTADOS_CONFIRMAN_INSCRIPCION:
+            continue
+        candidatos.append(
+            CandidatoConfirmacion(
+                id_inscripcion=situacion.id_inscripcion,
+                nombre_destinatario=situacion.nombre_destinatario,
+                email_destinatario=situacion.email_destinatario,
+                razon=cuota_1.estado,
+            )
+        )
+    return tuple(candidatos)
 
 
 @dataclass
