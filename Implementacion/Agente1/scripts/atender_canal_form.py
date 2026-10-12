@@ -26,6 +26,12 @@ Dos modos, como en `workspace_e2e.py`:
   el token de su propia variable. Nada de eso se pasa por argv, porque los
   argumentos quedan visibles en la lista de procesos.
 
+El correo de «borrador listo» adjunta además los links «lo publiqué / lo
+descarté» del segundo Form, «Registro de decisiones» (#72): en offline con
+ids de mentira y el registro en `<directorio>/estado-decisiones/`; en live
+sólo si el entorno declara `AGENTE1_FORM_DECISIONES_*`. Las respuestas de
+ese Form las procesa `scripts/registrar_form_decisiones.py`.
+
 La salida es un JSON por pedido más un resumen: estados, códigos y hashes,
 nunca prosa ni correos en claro.
 """
@@ -34,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -47,6 +54,12 @@ from agente1.canal_form import (
     cargar_configuracion_canal_form,
     cargar_padron_roles_csv,
     crear_lector_respuestas,
+)
+from agente1.decisiones_form import (
+    EnlacesDecisiones,
+    FORM_DECISIONES_PREFIX,
+    RegistroDecisiones,
+    cargar_configuracion_form_decisiones,
 )
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
 from agente1.gmail_envio import GmailDestinoConfirmaciones, GmailEnvioError
@@ -133,6 +146,38 @@ def _cargar_padron(args: argparse.Namespace) -> PadronRoles:
     return PadronRoles.desde_entorno()
 
 
+def _enlaces_decisiones(
+    directorio: Path,
+    *,
+    config=None,
+) -> EnlacesDecisiones:
+    """Puente al segundo Form (#72): declara pendientes y mintea links.
+
+    En offline los ids del Form son de mentira —el contrato se ensaya igual—
+    y el registro comparte directorio con `scripts/registrar_form_decisiones.py`
+    para que la decisión encuentre después el objeto declarado. En live la
+    config sale del entorno y se exige completa: un link con un entry mal
+    cargado produciría decisiones que no validan.
+    """
+
+    registro = RegistroDecisiones(directorio)
+    if config is None:
+        return EnlacesDecisiones(
+            registro=registro,
+            form_id="form_decisiones_offline",
+            entry_tipo="entry.000000021",
+            entry_objeto="entry.000000022",
+            entry_decision="entry.000000023",
+        )
+    return EnlacesDecisiones(
+        registro=registro,
+        form_id=config.form_id,
+        entry_tipo=config.entry_tipo,
+        entry_objeto=config.entry_objeto,
+        entry_decision=config.entry_decision,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _ParserSeguro(
         description=(
@@ -173,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
             raise RunnerWorkspaceError("runner_offline_csv_required")
 
         directorio_estado = args.directorio / "estado-canal-form"
+        directorio_decisiones = args.directorio / "estado-decisiones"
 
         if args.live:
             config_ws = cargar_configuracion_workspace()
@@ -188,6 +234,18 @@ def main(argv: list[str] | None = None) -> int:
             if not isinstance(token, str) or not token.strip():
                 raise RunnerWorkspaceError("runner_live_auth_unavailable")
             padron = _cargar_padron(args)
+            # El segundo Form (#72) es opt-in en live: si el entorno declara
+            # `AGENTE1_FORM_DECISIONES_*` el correo de borrador listo trae los
+            # links «lo publiqué / lo descarté»; si no hay nada configurado el
+            # canal de pedidos corre igual, sin enlaces de decisión.
+            decisiones_live = None
+            if any(
+                clave.startswith(FORM_DECISIONES_PREFIX) for clave in os.environ
+            ):
+                decisiones_live = _enlaces_decisiones(
+                    directorio_decisiones,
+                    config=cargar_configuracion_form_decisiones(),
+                )
             canal = CanalFormPedidos(
                 lector=crear_lector_respuestas(
                     config=config_form,
@@ -201,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
                 directorio_estado=directorio_estado,
                 form_id=config_form.form_id,
                 entry_id=config_form.entry_id,
+                decisiones=decisiones_live,
             )
             fuente = GoogleSheetsFuenteSolicitudes(
                 spreadsheet_id=config_ws.spreadsheet_id,
@@ -218,6 +277,9 @@ def main(argv: list[str] | None = None) -> int:
             resumen_config: dict[str, object] = {
                 "workspace": config_ws.resumen_seguro(),
                 "canal_form": config_form.resumen_seguro(),
+                "form_decisiones": (
+                    decisiones_live is not None
+                ),
             }
             modo = "live_write_opt_in"
         else:
@@ -231,6 +293,10 @@ def main(argv: list[str] | None = None) -> int:
                 directorio_estado=directorio_estado,
                 form_id="form_offline_demo",
                 entry_id="entry.000000001",
+                # Offline el circuito completo se ensaya siempre: el aviso
+                # trae los links del Form de decisiones y el objeto queda
+                # declarado para `registrar_form_decisiones.py`.
+                decisiones=_enlaces_decisiones(directorio_decisiones),
             )
             fuente = CsvFuenteSolicitudes(args.csv)
             destino = None  # MarkdownDestinoBorradores por defecto del núcleo

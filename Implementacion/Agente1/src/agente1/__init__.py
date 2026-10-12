@@ -31,6 +31,9 @@ Guía rápida de módulos:
 - `canal_planilla`            HU-013, adapter de planilla offline del canal (#24).
 - `canal_form`                HU-013, adapter del canal de pedidos por Google
                               Form con padrón de roles y aviso por Gmail (#71).
+- `decisiones_form`           HU-013, registro de decisiones por el segundo
+                              Form (publicación, plantilla y lote) con padrón
+                              de roles y auditoría append-only (#72).
 - `pagos`                     HU-012, corrida de control de pagos (offline).
 - `recordatorios`             HU-012, circuito por lote de `recordatorio_pago`.
 - `buzon`                     puerto del buzón propio del agente (ADR 0004).
