@@ -34,6 +34,10 @@ Guía rápida de módulos:
 - `decisiones_form`           HU-013, registro de decisiones por el segundo
                               Form (publicación, plantilla y lote) con padrón
                               de roles y auditoría append-only (#72).
+- `certificados_emision`      HU-014, emisión del lote de certificados sobre
+                              la lista de cierre: aprobaciones por el Form de
+                              decisiones y entrega por Gmail con lista de
+                              prueba (#75).
 - `pagos`                     HU-012, corrida de control de pagos (offline).
 - `recordatorios`             HU-012, circuito por lote de `recordatorio_pago`.
 - `buzon`                     puerto del buzón propio del agente (ADR 0004).

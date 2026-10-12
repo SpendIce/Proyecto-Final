@@ -160,6 +160,7 @@ def test_catalogo_declara_exactamente_las_intenciones_de_la_spec() -> None:
     assert IDS_INTENCIONES == {
         "generar_gacetilla",
         "generar_post",
+        "emitir_certificados",
         "fuera_de_alcance",
         "ajustar_borrador",
         "generar_newsletter",
@@ -167,6 +168,7 @@ def test_catalogo_declara_exactamente_las_intenciones_de_la_spec() -> None:
     }
     assert INTENCIONES_POR_ID["generar_gacetilla"]["aplicacion"] == "ACTIVA"
     assert INTENCIONES_POR_ID["generar_post"]["aplicacion"] == "ACTIVA"
+    assert INTENCIONES_POR_ID["emitir_certificados"]["aplicacion"] == "ACTIVA"
     assert INTENCIONES_POR_ID["fuera_de_alcance"]["aplicacion"] == "ACTIVA"
     assert (
         INTENCIONES_POR_ID["ajustar_borrador"]["aplicacion"]

@@ -181,11 +181,15 @@ REF_PEDIDO_CORTA = 12
 _KEYWORD_POR_INTENCION = {
     "generar_gacetilla": "gacetilla",
     "generar_post": "post",
+    "emitir_certificados": "certificados",
 }
 
 _FRASES_ASUNTO = {
     "PENDIENTE_VALIDACION": "tu borrador está listo",
     "PENDIENTE_DESAMBIGUACION": "elegí la actividad",
+    "PENDIENTE_APROBACION": "espera la aprobación del lote",
+    "EMITIDA": "certificados emitidos",
+    "EMITIDA_PARCIAL": "certificados emitidos con entregas fallidas",
     "INCOMPLETA": "faltan datos",
     "INVALIDA": "pedido inválido",
     "FALLIDA": "el pedido falló",
@@ -194,6 +198,11 @@ _FRASES_ASUNTO = {
 # El cuerpo conjuga distinto que el asunto ("Tu pedido ... fue rechazado" vs.
 # "Pedido: rechazado"), así que tiene su propio mapa de frases.
 _FRASES_CUERPO = {
+    "PENDIENTE_APROBACION": (
+        "quedó pendiente de la aprobación del lote de cierre"
+    ),
+    "EMITIDA": "emitió los certificados del lote de cierre",
+    "EMITIDA_PARCIAL": "emitió certificados con entregas fallidas",
     "INCOMPLETA": "no se pudo completar: faltan datos",
     "INVALIDA": "no es un pedido válido",
     "FALLIDA": "falló por un error",
