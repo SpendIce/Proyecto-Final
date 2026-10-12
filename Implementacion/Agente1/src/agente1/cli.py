@@ -31,6 +31,7 @@ from typing import Sequence
 
 from .cli_insumos import main as main_insumos
 from .cli_pagos import main as main_control_pagos
+from .cli_scheduler import main as main_scheduler
 from .fuentes import CsvFuenteSolicitudes
 from .ollama import (
     DEFAULT_OLLAMA_BASE_URL,
@@ -59,6 +60,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return main_control_pagos(args_list[1:])
     if args_list[:1] == ["insumos-agentes"]:
         return main_insumos(args_list[1:])
+    if args_list[:1] == ["scheduler"]:
+        return main_scheduler(args_list[1:])
 
     parser = argparse.ArgumentParser(
         description="Genera un borrador local HU-010/HU-011 desde una fila CSV sintética."

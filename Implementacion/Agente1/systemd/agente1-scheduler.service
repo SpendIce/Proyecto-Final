@@ -1,0 +1,39 @@
+# Unidad `systemd --user` PLANTILLA del disparo programado del Agente 1 (#84).
+#
+# Es el mecanismo natural en el host de la demo: el `.timer` la dispara cada
+# intervalo y este oneshot corre UN tick de la agenda y termina. El disparo
+# automático sólo produce borradores `PENDIENTE_VALIDACION`; nunca publica
+# ni envía nada, y la validación humana no cambia.
+#
+# ANTES DE INSTALAR (ver Documentos/PlanDespliegue/Runbook-Scheduler-Agente-1.md):
+#
+# 1. Reemplazar `__CHECKOUT__` por la raíz del checkout en el host. Es la
+#    misma ruta que va en `AGENTE1_SCHEDULER_REPO` dentro del env file.
+# 2. Crear `%h/.config/agente1/scheduler.env` con `AGENTE1_WORKSPACE_*`,
+#    `AGENTE1_INSUMOS_RANGO_A1` y las `AGENTE1_SCHEDULER_*` (intervalo,
+#    ventana, zona, repo, registro de confirmaciones). Nunca versionar ese
+#    archivo: lleva credenciales.
+# 3. Ajustar el `ExecStart` al comando de corrida vigente: el de abajo
+#    replica la invocación live documentada en el README (doble opt-in y
+#    modelo Ollama). En un ensayo offline cambiar `--live` por `--tabla`.
+# 4. `DIRECTORIO_SALIDA` es donde viven el registro de idempotencia, los
+#    borradores locales, el lock y `logs/scheduler-corridas.jsonl`.
+#
+# Instalación manual del operador designado (ADR 0007): copiar esta unidad
+# y `agente1-scheduler.timer` a `~/.config/systemd/user/` y habilitar el
+# timer. El repo NO instala ni activa unidades.
+
+[Unit]
+Description=Agente 1: un disparo de la corrida programada de insumos (#84)
+# La lectura de la pestaña y la generación salen a la red del host.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__CHECKOUT__/Implementacion/Agente1
+EnvironmentFile=-%h/.config/agente1/scheduler.env
+# `bash -lc` carga el PATH del usuario (uv suele vivir en ~/.local/bin).
+# El comando es exactamente el de la corrida manual más `--una-corrida`:
+# mismos flags, mismo contrato, mismo doble opt-in.
+ExecStart=/usr/bin/env bash -lc 'uv run python -m agente1 scheduler --una-corrida --directorio %h/agente1/salida --live --confirm-write-workspace --ollama-model __MODELO_OLLAMA__'
