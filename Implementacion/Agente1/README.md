@@ -35,7 +35,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/medir_cobertura_sin_inferencia.py`: mide qué porcentaje de un corpus resuelve sin invocar ningún modelo.
 - `scripts/atender_canal_planilla.py`: corrida guiada del canal de planilla offline, sin credenciales. Ver `evidencias/recorrido-prueba-guiada-canal-planilla.md`.
 - `src/agente1/canal_form.py`: adapter del canal de pedidos sobre el Google Form restringido al dominio (correo verificado + `PadronRoles` externo por `AGENTE1_PADRON_ROLES_PATH`, ADR 0005), con aviso por `gmail.send` bajo lista de prueba; el correo de «borrador listo» adjunta los links «lo publiqué / lo descarté» del Form de decisiones (#72). Runner: `scripts/atender_canal_form.py` (offline con CSV, live con doble opt-in).
-- `src/agente1/decisiones_form.py`: registro de decisiones humanas por el segundo Google Form (#72, ADR 0008): catálogo cerrado de pares tipo/decisión (`publicacion`: `publique`/`descarte`; `plantilla`: `apruebo_semantica`/`apruebo_utilitaria`; `lote`: `apruebo_lote`), validación por rol del padrón, anti-tamper por registro de objetos pendientes y auditoría append-only sin correo en claro. Registrar no dispara ninguna acción. Runner: `scripts/registrar_form_decisiones.py`.
+- `src/agente1/decisiones_form.py`: registro de decisiones humanas por el segundo Google Form (#72, ADR 0008): catálogo cerrado de pares tipo/decisión (`publicacion`: `publique`/`descarte`; `plantilla`: `apruebo_semantica`/`apruebo_utilitaria`; `lote`: `apruebo_lote`; `linea_descriptiva`: `apruebo_semantica`/`apruebo_utilitaria`, #74), validación por rol del padrón, anti-tamper por registro de objetos pendientes y auditoría append-only sin correo en claro. Registrar no dispara ninguna acción. Runner: `scripts/registrar_form_decisiones.py`.
 - `src/agente1/fuentes.py`: puerto `FuenteSolicitudes` (lectura por id y enumeración del catálogo completo) y adapter CSV compatible con el flujo local.
 - `src/agente1/destinos.py`: puerto `DestinoBorradores` y adapter Markdown que preserva la salida local.
 - `src/agente1/google_workspace.py`: contratos HTTP de lectura Google Sheets y creación de borradores Google Docs; sólo están verificados offline con token y transporte fake.
@@ -48,8 +48,9 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/workspace_e2e.py`: runner Sheets→procesamiento→Drive, offline por defecto y live con doble opt-in.
 - `src/agente1/persistencia.py` y `migrations/`: puerto en memoria y SQL del spike PostgreSQL, ya ejecutado contra un contenedor efímero.
 - `src/agente1/confirmaciones.py`: lifecycle por envío de HU-012 con entrega al fake o al adapter Gmail con lista de prueba (D12); rechaza con `notification_mode_mismatch` los tipos cuyo modo de circuito no es `por_envio`.
-- `src/agente1/certificados.py`: lifecycle offline de HU-014 con generación de PDF determinista (stdlib, sin dependencias nuevas) y emisión únicamente fake; reusa el circuito de doble aprobación y el registro durable de HU-012.
-- `scripts/matriz_hu014.py`: matriz reproducible de HU-014, con emisión simulada y reconciliación de reservas colgadas.
+- `src/agente1/certificados.py`: lifecycle offline de HU-014 con generación de PDF determinista (stdlib, sin dependencias nuevas) y emisión únicamente fake; reusa el circuito de doble aprobación y el registro durable de HU-012. Desde `certificado_emision_v2` (#74) la solicitud puede traer la línea descriptiva de la actividad y las variables del registro (`id_actividad`, `modalidad`, `carga_horaria`), y la emisión con línea exige las precondiciones del Form de decisiones.
+- `src/agente1/linea_descriptiva.py` y `src/agente1/prompts/linea_descriptiva_v1.txt`: pipeline de la línea descriptiva del certificado (#74): generación con campos acotados de la fila, gates deterministas, derivación del objeto de decisión `linea_descriptiva-<id_actividad>-<hash>` y verificación de las dos aprobaciones por actividad más la `apruebo_lote` del lote de cierre.
+- `scripts/matriz_hu014.py`: matriz reproducible de HU-014, con emisión simulada, reconciliación de reservas colgadas y el circuito completo de la línea descriptiva (`matriz_conformidad_hu014_v2`).
 - `src/agente1/politicas/politica_redes_provisional_v1.json` y `src/agente1/politica_redes.py`: política de redes de HU-011 como inventario de reglas verificables, con sus parámetros por canal y el estado de cada regla (`ACTIVA`, `NO_APLICADA_PENDIENTE_SEU`, `NO_MECANIZABLE`).
 - `src/agente1/contracts/matriz_origenes_inscripcion_v1.json` y `src/agente1/origenes_inscripcion.py`: matriz operativa de HU-012 por origen de inscripción y decisión de envío fail-closed; ningún origen habilita envío.
 - `src/agente1/contracts/plan_pagos_actividad_v1.json`, `src/agente1/contracts/novedades_pago_v1.json`, `src/agente1/pagos.py` y `src/agente1/buzon.py`: corrida de control de pagos de HU-012 — contrato del plan de pago con procedencia por dato, puerto de buzón propio con adapter de carpeta `.eml`, catálogo cerrado de novedades del Departamento (confirmación de la Fundación, comprobante rechazado, comprobante que cubre N cuotas, dirección alternativa, bonificado) con precedencia sobre lo derivado del buzón, y función pura que informa el «k de N» desglosado por preinscripto, las respuestas no asociadas y las novedades aplicadas o con error. La misma corrida planifica el lote diario de `recordatorio_pago`: anticipaciones por actividad (`7|2` por omisión, `SUPUESTO_TECNICO`), regla `hoy = fecha_referencia − anticipación` en `America/Argentina/Buenos_Aires`, nunca después de la referencia, e idempotencia por actividad, inscripción, cuota y anticipación. Subcomando `python -m agente1 control-pagos` con `--novedades` y `--fecha` opcionales.
@@ -90,6 +91,9 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué HU-012 modela un envío que no se hace | `src/agente1/confirmaciones.py`, docstring de módulo |
 | Por qué la cola de envíos es una pista de trabajo y no la autoridad | `confirmaciones.py`, docstrings de `ColaEnvios`, `ColaEnviosArchivo` y `drenar_envios` |
 | Por qué HU-014 modela una emisión que no se hace y por qué el PDF es stdlib | `src/agente1/certificados.py`, docstring de módulo |
+| Por qué la línea descriptiva se aprueba una vez por actividad y no por certificado | `src/agente1/linea_descriptiva.py`, docstring de módulo y `declarar_linea_pendiente` |
+| Por qué el objeto de la línea usa guiones y no `:` | `linea_descriptiva.py`, docstring de módulo y `objeto_id_linea_descriptiva` |
+| Por qué el prompt de la línea no recibe fecha, carga ni modalidad | `linea_descriptiva.py`, comentario de `CAMPOS_PROMPT` |
 | Por qué no se borra nada, sólo se marca | `persistencia.py`, `eliminar_logicamente_anteriores` |
 | Qué prueba y qué no prueba la auditoría de seguridad | `src/agente1/auditoria_d2.py`, `auditar_manifest` |
 | Por qué los límites de redes son provisionales | `src/agente1/politica_redes.py`, docstring de módulo (DEF-A1-007) |
@@ -554,7 +558,7 @@ uv run pytest -q tests/test_recordatorios_pagos.py tests/test_matriz_hu012.py
 ## HU-014 — certificados offline
 
 HU-014 renderiza determinísticamente el texto canónico de un certificado de
-`ASISTENCIA` o `APROBACION` (catálogo cerrado en `certificado_emision_v1`) y
+`ASISTENCIA` o `APROBACION` (catálogo cerrado en `certificado_emision_v2`) y
 genera un PDF mínimo con stdlib, sin dependencias nuevas: estructura fija,
 offsets de xref calculados y sin timestamps ni IDs, de modo que mismas líneas
 producen los mismos bytes. Todo PDF previo a la aprobación completa lleva la
@@ -571,13 +575,61 @@ y `EMITIDA_SIMULADA` sólo registra una emisión en memoria mediante
 claro. El módulo no se reexporta desde `agente1`: se importa como
 `agente1.certificados`.
 
+### Línea descriptiva por actividad (#74)
+
+El certificado sigue con la plantilla fija y suma **una línea descriptiva por
+actividad** que redacta el modelo. Título, carga horaria y modalidad son
+variables del registro que la plantilla interpola, nunca texto del modelo:
+`linea_descriptiva.py` sólo le pasa al prompt `titulo`, `descripcion` y
+`publico`, de modo que no pueda copiar un hecho que nunca vio. Los gates de
+`validar_linea_descriptiva` rechazan de forma determinista: más de una línea,
+extensión fuera de 20 a 200 caracteres, cualquier dígito, fechas en números o
+en letras, duraciones (`horas`, `hs`), modalidad, lugares, organizadores,
+importes, correos, URLs, actos institucionales, tuteo peninsular, eco de
+instrucciones y repetición de las palabras distintivas del título. El mismo
+gate se reejecuta en la entrada de `procesar_certificado`: la barrera no
+confía en que el llamador haya pasado por la generación.
+
+**Clave de decisión (contrato estable para #75).** La línea se aprueba **una
+vez por actividad** por el Form de decisiones, igual que una plantilla:
+
+- Tipo: `linea_descriptiva`.
+- Objeto: `linea_descriptiva-<id_actividad>-<sha256 de la línea normalizada>`,
+  derivado sólo con `objeto_id_linea_descriptiva`. La notación del ticket con
+  `:` no entra en `ID_RE`; la forma con guiones codifica los mismos tres
+  elementos. `id_actividad` admite hasta 45 caracteres para que el objeto
+  complete entre en el identificador de 128.
+- Decisiones: `apruebo_semantica` (rol `RESPONSABLE_GESTION_CONOCIMIENTO`) y
+  `apruebo_utilitaria` (rol `COORDINADOR_EXTENSION`).
+- `declarar_linea_pendiente(enlaces, id_actividad=..., linea=...)` abre el
+  objeto y devuelve los dos links prellenados para el correo al par de roles.
+
+Para emitir con línea, `procesar_certificado` exige además del circuito
+normal dos argumentos que no son datos del documento sino contexto de
+autorización: `decisiones` (el `RegistroDecisiones` compartido donde quedó la
+auditoría del Form) y `lote_cierre` (el objeto del lote de cierre con
+`apruebo_lote` registrada). Los códigos distinguen cada falta:
+`decisions_registry_required`, `closing_batch_required`,
+`descriptive_line_unapproved` (ausente o parcial: una sola de las dos no
+habilita) y `closing_batch_unapproved`. La aprobación ata el texto exacto:
+modificar la línea después de aprobarla produce otro objeto, sin decisiones.
+La auditoría registra `descriptive_line_hash`, `linea_objeto_id` y
+`closing_batch_id`, nunca el texto de la línea.
+
+#75 consume esta clave con el mismo `RegistroDecisiones` y compone la
+solicitud con `id_actividad`, `linea_descriptiva` y las variables del
+registro (`modalidad`, `carga_horaria`): la lista de participantes y su
+emisión en vivo son de ese ticket. El recorrido guiado del circuito está en
+`evidencias/recorrido-linea-descriptiva-hu014.md`.
+
 ```bash
 PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
   python scripts/matriz_hu014.py --salida salida/matriz-hu014
 
 PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
   python -m pytest -q tests/test_certificados.py \
-    tests/test_certificados_durables.py tests/test_matriz_hu014.py
+    tests/test_certificados_durables.py tests/test_linea_descriptiva.py \
+    tests/test_matriz_hu014.py
 ```
 
 La plantilla institucional, la firma digital y el destino de emisión real

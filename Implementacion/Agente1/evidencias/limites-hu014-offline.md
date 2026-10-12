@@ -12,6 +12,7 @@
 - Idempotency key determinista, rechazo de duplicados y registro durable por archivo que sobrevive al reinicio, con reconciliación de reservas colgadas hacia `EMISION_INDETERMINADA` sin reemitir.
 - Auditoría con hashes, sin nombre, documento, título ni texto del certificado en claro; `pdf_hash` registra el artefacto emitido.
 - Emisión exclusivamente en memoria mediante `DestinoCertificadosFake`.
+- Desde `certificado_emision_v2` (#74), la línea descriptiva por actividad redactada por el modelo con gates deterministas, su aprobación una vez por actividad por el Form de decisiones (`linea_descriptiva-<id_actividad>-<hash>`, `apruebo_semantica` + `apruebo_utilitaria` por rol) y la precondición del lote de cierre (`apruebo_lote`) antes de cualquier emisión con línea. Las variables `id_actividad`, `modalidad` y `carga_horaria` son datos del registro interpolados por la plantilla, nunca texto del modelo.
 
 ## Qué no demuestra
 
@@ -21,6 +22,8 @@
 - No se probó validez del PDF contra un lector institucional ni accesibilidad; es un artefacto de texto mínimo para verificar el pipeline.
 - Las aprobaciones utilizadas en tests y matriz son simuladas y no institucionales.
 - No existe lista institucional de titulares ni fuente live conectada (el trigger por estado "Aprobado" es HU-015/HU-016, fuera de este slice).
+- La emisión en vivo del certificado y la lista de participantes del lote de cierre son alcance de #75: este slice sólo deja verificable la precondición de autorización en el `RegistroDecisiones`. El recorrido live con el Form real queda para la ejecución del operador en D2, como en #72.
+- La línea descriptiva se ensayó offline con generador fake y decisiones simuladas en la auditoría del registro; no hay línea generada por un modelo en producción ni aprobación institucional real.
 - No acredita Gate G2 ni TRL 3.
 
 ## Fronteras de seguridad

@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-30
+updated: 2026-10-12
 ---
 
 # Proyecto Final — Estado
@@ -26,6 +26,7 @@ Proyecto Centenario (P100) — sistema multiagente de inteligencia artificial pa
 - [x] Reintento acotado con feedback de regla en posts (issue #37, mergeado el 22/09): max 2 intentos, solo camino estructurado, solo codigos de contenido; bloque CORRECCION_OBLIGATORIA sin citar el literal rechazado; auditoria con campo `intento` y resultado `reintento_pendiente`. Medicion live: el mecanismo funciona pero sigue 1/6 — llama3.2:3b reincide en tuteo y fragmentos del titulo. La brecha residual es obediencia del modelo; few-shot/otro modelo/fine-tuning son decision aparte, condicionada a los ejemplos aprobados SEU (#14).
 - [x] Ejecutar el camino Workspace D2 live con la cuenta tecnica dedicada del Agente 1 (2026-09-28): planilla + plantilla provisionadas por API en la carpeta autorizada, smoke `lectura_confirmada`, negativos OK, E2E gacetilla `PENDIENTE_VALIDACION` con borrador real en Drive (`notas/workspace-live-d2-2026-09-28.md`). La identidad es la definitiva (cuenta dedicada, no personal); la credencial OAuth efimera no lo es — el mecanismo durable (service account u OAuth internal) queda con DSI en el issue #15.
 - [x] Decidir con Cesar si HU-016/HU-017 entran al PPS (issue #34): la decision llego el 2026-09-30 — no entran. HU-015 (lectura certificados/triggers), HU-016, HU-017 y toda HU posterior a HU-014 quedan delegadas a los alumnos de 4to ano que continuan el P100; las expansiones de HU-010..HU-014 (ej.: notificacion de situacion de pagos en HU-012) si son alcance del PPS. Anteproyecto, Plan de Riesgos, perfiles expertos y Gantt actualizados.
+- [ ] Mergear `ticket/74-linea-descriptiva-cert` (issue #74, 2026-10-12): línea descriptiva por actividad en el certificado HU-014 — `linea_descriptiva.py` con generación acotada y gates deterministas, objeto de decisión `linea_descriptiva-<id_actividad>-<sha256>` (los `:` no entran en `ID_RE`), doble aprobación una vez por actividad en el Form de decisiones, precondición de `apruebo_lote` del lote de cierre al emitir con línea; `certificado_emision_v2` + `certificado_provisional_v2`, matriz `matriz_conformidad_hu014_v2` con 20 casos, recorrido `evidencias/recorrido-linea-descriptiva-hu014.md`. Suite 1522 verdes. La emisión en vivo y la lista de participantes quedan en #75 (`ticket/75-emision-certificados-d2`, en paralelo); el segundo merge reconcilia `certificados.py` y el render del PDF.
 - [ ] Ejecutar la prueba guiada HU-013 con Juan Manuel y registrar acta (la fecha original 2026-09-25 no se concreto; nueva fecha a confirmar — issue #32).
 - [ ] Validar el anteproyecto contra la bible, criterios Cicerchia y lineamientos de catedra (issue #10).
 - [ ] Registrar fechas oficiales de entrega cuando Juani las confirme.
