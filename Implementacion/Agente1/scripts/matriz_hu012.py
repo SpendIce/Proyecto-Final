@@ -3,13 +3,17 @@
 
 Recorre el ciclo de vida completo de una confirmación —pendiente, aprobación
 parcial por rol, aprobada por las dos decisiones, rechazada, duplicada, envío
-simulado— contra el destino fake, y después el circuito por lote del tipo
-``recordatorio_pago``: planificación desde el estado derivado (sin registro
-propio de pagos), plantilla aprobada una sola vez, aprobación utilitaria del
-lote con su lista exacta de ítems, encolado, entrega fake e idempotencia.
-Es la evidencia de que la secuencia de autorización con doble aprobación
-(semántica del RGC y utilitaria del Coordinador de Extensión, CU10 del
-bible) se cumple antes de que exista capacidad real de enviar correo.
+simulado— contra el destino fake, y después los circuitos del diseño de
+control de pagos: el lote del tipo ``recordatorio_pago`` (planificación
+desde el estado derivado, plantilla aprobada una sola vez, aprobación
+utilitaria del lote, encolado, entrega fake e idempotencia) y el corte 4 —
+el borrador de ``instrucciones_pago`` con el ``asunto_preinscripcion`` del
+plan, la asociación de la respuesta por ese asunto, los candidatos a
+confirmación que la cuota 1 ``PAGO_CONFIRMADO`` o ``BONIFICADA`` habilita
+(D9) y el comprobante presentado que no alcanza (D1). Es la evidencia de
+que la secuencia de autorización con doble aprobación (semántica del RGC y
+utilitaria del Coordinador de Extensión, CU10 del bible) se cumple antes de
+que exista capacidad real de enviar correo.
 """
 
 from __future__ import annotations
@@ -18,6 +22,8 @@ import argparse
 import csv
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
+from email.message import EmailMessage
+from email.utils import format_datetime
 import hashlib
 import json
 from pathlib import Path
@@ -38,7 +44,13 @@ from agente1.confirmaciones import (  # noqa: E402
     SolicitudConfirmacion,
     procesar_confirmacion,
 )
+from agente1.instrucciones_pago import (  # noqa: E402
+    solicitud_confirmacion_inscripcion,
+    solicitud_instrucciones_pago,
+)
 from agente1.pagos import (  # noqa: E402
+    NOVEDAD_CONFIRMADO_FUNDACION,
+    NovedadPago,
     cargar_padron_csv,
     cargar_plan_pagos_csv,
     clave_item_recordatorio,
@@ -190,6 +202,10 @@ def main() -> int:
             "Las anticipaciones [7, 2] de los recordatorios son SUPUESTO_TECNICO pendiente de confirmación con la SEU (D15).",
             "La plantilla de recordatorio_pago es provisional y su aprobación en la matriz es simulada.",
             "Los medios de pago del ejemplo viajan en el cuerpo del recordatorio; la auditoría no copia links ni datos bancarios.",
+            "El asunto del borrador de instrucciones_pago es el asunto_preinscripcion del plan —sin la marca de borrador— porque la respuesta con el comprobante se asocia por ese asunto normalizado (§4.2); la marca viaja en el cuerpo.",
+            "La plantilla de instrucciones_pago es provisional y requiere validación humana; su aprobación en la matriz es simulada.",
+            "La confirmación de inscripción se emite con el tipo inscripcion cuando la cuota 1 queda PAGO_CONFIRMADO o BONIFICADA (D9); un comprobante presentado no alcanza (D1).",
+            "La corrida sólo planifica candidatos a confirmación: el borrador nace de una solicitud del circuito por envío con doble aprobación humana.",
             "La matriz no acredita validación institucional, Gate G2 ni TRL 3.",
         ],
     }
@@ -271,12 +287,13 @@ def _ejecutar_pagos(salida: Path) -> tuple[list[dict[str, object]], dict[str, ob
     plan = cargar_plan_pagos_csv(plan_path)
     padron = cargar_padron_csv(padron_path, actividad_id=plan.actividad_id)
 
-    def corrida(hoy: date, plan_local=None, padron_local=None):
+    def corrida(hoy: date, plan_local=None, padron_local=None, novedades=(), buzon_dir=None):
         return correr_control_pagos(
             plan=plan_local or plan,
             padron=padron_local or padron,
-            buzon=BuzonPropioEml(buzon),
+            buzon=BuzonPropioEml(buzon_dir or buzon),
             hoy=hoy,
+            novedades=novedades,
         )
 
     def caso_planificacion(nombre: str, informe, **extra) -> None:
@@ -430,6 +447,242 @@ def _ejecutar_pagos(salida: Path) -> tuple[list[dict[str, object]], dict[str, ob
         fake_deliveries_after=len(destino.entregas),
     )
 
+    # --- Corte 4: instrucciones de pago y confirmación (D8/D9) -----------
+    # El correo de preinscripción con el plan de pago tramita por el circuito
+    # por envío de siempre; su asunto es el `asunto_preinscripcion` del plan
+    # —sin marca— porque la respuesta con el comprobante se asocia por ese
+    # asunto normalizado. La cuota 1 `PAGO_CONFIRMADO` o `BONIFICADA` produce
+    # un candidato a confirmación: una planificación, no un envío — el
+    # borrador lo emite el tipo `inscripcion` bajo la doble aprobación.
+    salida_corte4 = salida_lote / "corte4"
+    matilde = next(p for p in padron if p.id_inscripcion == "MAT-001")
+    pedido_instrucciones = solicitud_instrucciones_pago(
+        plan=plan, preinscripto=matilde, contacto="extension@example.test"
+    )
+    registro_instr = RegistroConfirmacionesMemoria()
+    destino_instr = DestinoConfirmacionesFake()
+
+    def caso_envio(nombre: str, resultado, **extra) -> None:
+        casos.append(
+            {
+                "case": nombre,
+                "observed_state": resultado.estado,
+                "observed_result": resultado.error or "ok",
+                "correlation_id": resultado.correlation_id,
+                "idempotency_key": resultado.idempotency_key,
+                "draft_created": resultado.cuerpo is not None,
+                "delivery_mode": "fake" if extra.get("enviada") else "none",
+                "real_delivery": False,
+            }
+            | {k: v for k, v in extra.items() if k != "enviada"}
+        )
+
+    borrador_instr = procesar_confirmacion(
+        solicitud=pedido_instrucciones,
+        directorio_salida=salida_corte4 / "borrador",
+        registro=registro_instr,
+    )
+    caso_envio(
+        "pagos_instrucciones_borrador",
+        borrador_instr,
+        # El asunto del borrador es el del plan, exacto y sin marca.
+        asunto_igual_al_plan=borrador_instr.asunto == plan.asunto_preinscripcion,
+    )
+    procesar_confirmacion(
+        solicitud=pedido_instrucciones,
+        directorio_salida=salida_corte4 / "aprobadas",
+        registro=registro_instr,
+        aprobacion=semantica,
+    )
+    procesar_confirmacion(
+        solicitud=pedido_instrucciones,
+        directorio_salida=salida_corte4 / "aprobadas",
+        registro=registro_instr,
+        aprobacion=utilitaria,
+    )
+    caso_envio(
+        "pagos_instrucciones_aprobada_fake",
+        procesar_confirmacion(
+            solicitud=pedido_instrucciones,
+            directorio_salida=salida_corte4 / "fake",
+            registro=registro_instr,
+            destino=destino_instr,
+            enviar=True,
+        ),
+        enviada=True,
+        fake_deliveries_after=len(destino_instr.entregas),
+        asunto_igual_al_plan=(
+            destino_instr.entregas[-1].asunto == plan.asunto_preinscripcion
+        ),
+    )
+    caso_envio(
+        "pagos_instrucciones_mal_formada",
+        procesar_confirmacion(
+            solicitud=replace(pedido_instrucciones, datos_pago="no es un plan"),
+            directorio_salida=salida_corte4 / "mal_formada",
+            registro=RegistroConfirmacionesMemoria(),
+        ),
+    )
+
+    # La respuesta al asunto del plan se asocia; otro asunto, no (§4.2).
+    buzon_corte4 = insumos / "buzon-corte4"
+    buzon_corte4.mkdir(exist_ok=True)
+    _escribir_eml(
+        buzon_corte4,
+        "respuesta.eml",
+        remitente="matilde.ruiz@example.test",
+        asunto=f"Re: {plan.asunto_preinscripcion}",
+        adjuntos=(("comprobante.pdf", "application/pdf", b"%PDF-1.4 matriz"),),
+    )
+    informe_comprobante = corrida(
+        referencia - timedelta(days=1), buzon_dir=buzon_corte4
+    )
+    casos.append(
+        {
+            "case": "pagos_asociacion_asunto_respuesta",
+            "observed_state": informe_comprobante.situaciones[0].cuotas[0].estado,
+            "observed_result": "ok",
+            "respuestas_no_asociadas": len(informe_comprobante.no_asociadas),
+            "candidatos": len(informe_comprobante.candidatos_confirmacion),
+            "delivery_mode": "none",
+            "real_delivery": False,
+        }
+    )
+    buzon_otro_asunto = insumos / "buzon-otro-asunto"
+    buzon_otro_asunto.mkdir(exist_ok=True)
+    _escribir_eml(
+        buzon_otro_asunto,
+        "respuesta.eml",
+        remitente="matilde.ruiz@example.test",
+        asunto="Re: consulta por el curso",
+        adjuntos=(("comprobante.pdf", "application/pdf", b"%PDF-1.4 matriz"),),
+    )
+    informe_otro_asunto = corrida(
+        referencia - timedelta(days=1), buzon_dir=buzon_otro_asunto
+    )
+    casos.append(
+        {
+            "case": "pagos_asunto_distinto_no_asocia",
+            "observed_state": "NO_ASOCIADA"
+            if informe_otro_asunto.no_asociadas
+            else "ASOCIADA",
+            "observed_result": (
+                informe_otro_asunto.no_asociadas[0].motivo
+                if informe_otro_asunto.no_asociadas
+                else "ok"
+            ),
+            "candidatos": len(informe_otro_asunto.candidatos_confirmacion),
+            "delivery_mode": "none",
+            "real_delivery": False,
+        }
+    )
+
+    def caso_candidato(nombre: str, informe, **extra) -> None:
+        casos.append(
+            {
+                "case": nombre,
+                "observed_state": "PLANIFICADO"
+                if informe.candidatos_confirmacion
+                else "VACIO",
+                "observed_result": "ok",
+                "candidatos": len(informe.candidatos_confirmacion),
+                "razones": sorted(
+                    {c.razon for c in informe.candidatos_confirmacion}
+                ),
+                "delivery_mode": "none",
+                "real_delivery": False,
+            }
+            | extra
+        )
+
+    novedad_confirmada = NovedadPago(
+        id_inscripcion="MAT-001",
+        tipo=NOVEDAD_CONFIRMADO_FUNDACION,
+        valor="1",
+        fecha="2026-09-28",
+        responsable="Departamento Cursos Complementarios",
+        fila=2,
+    )
+    buzon_vacio = insumos / "buzon-vacio"
+    buzon_vacio.mkdir(exist_ok=True)
+    informe_confirmado = corrida(
+        referencia - timedelta(days=1),
+        buzon_dir=buzon_vacio,
+        novedades=(novedad_confirmada,),
+    )
+    caso_candidato("pagos_candidato_pago_confirmado", informe_confirmado)
+
+    padron_bonificada = cargar_padron_csv(
+        _escribir_padron_pagos(
+            insumos, nombre="padron-bonificada.csv", bonificados=("MAT-001",)
+        ),
+        actividad_id=plan.actividad_id,
+    )
+    caso_candidato(
+        "pagos_candidato_bonificada",
+        corrida(
+            referencia - timedelta(days=1),
+            padron_local=padron_bonificada,
+            buzon_dir=buzon_vacio,
+        ),
+    )
+    # Un comprobante presentado no es un pago (D1): no genera candidato.
+    caso_candidato("pagos_sin_candidato_comprobante", informe_comprobante)
+
+    # El candidato produce la solicitud de confirmación —tipo `inscripcion`—
+    # y tramita con doble aprobación y entrega fake. Otra corrida lo repite
+    # y el registro absorbe el duplicado.
+    registro_conf = RegistroConfirmacionesMemoria()
+    destino_conf = DestinoConfirmacionesFake()
+    [candidato] = informe_confirmado.candidatos_confirmacion
+    solicitud_conf = solicitud_confirmacion_inscripcion(
+        plan=plan,
+        candidato=candidato,
+        contacto="extension@example.test",
+        organiza="Secretaría de Extensión Universitaria",
+    )
+    for decision in (semantica, utilitaria):
+        procesar_confirmacion(
+            solicitud=solicitud_conf,
+            directorio_salida=salida_corte4 / "confirmacion-aprobadas",
+            registro=registro_conf,
+            aprobacion=decision,
+        )
+    caso_envio(
+        "pagos_confirmacion_inscripcion_fake",
+        procesar_confirmacion(
+            solicitud=solicitud_conf,
+            directorio_salida=salida_corte4 / "confirmacion-fake",
+            registro=registro_conf,
+            destino=destino_conf,
+            enviar=True,
+        ),
+        enviada=True,
+        fake_deliveries_after=len(destino_conf.entregas),
+        tipo_notificacion=solicitud_conf.tipo_notificacion,
+    )
+    informe_confirmado_2 = corrida(
+        referencia - timedelta(days=1),
+        buzon_dir=buzon_vacio,
+        novedades=(novedad_confirmada,),
+    )
+    caso_envio(
+        "pagos_confirmacion_idempotente_segunda_corrida",
+        procesar_confirmacion(
+            solicitud=solicitud_confirmacion_inscripcion(
+                plan=plan,
+                candidato=informe_confirmado_2.candidatos_confirmacion[0],
+                contacto="extension@example.test",
+                organiza="Secretaría de Extensión Universitaria",
+            ),
+            directorio_salida=salida_corte4 / "confirmacion-duplicada",
+            registro=registro_conf,
+            destino=destino_conf,
+            enviar=True,
+        ),
+        fake_deliveries_after=len(destino_conf.entregas),
+    )
+
     sensibles = (
         "CBU 0000000000000000000001",
         "mp.link",
@@ -467,6 +720,19 @@ def _ejecutar_pagos(salida: Path) -> tuple[list[dict[str, object]], dict[str, ob
         "batch_approval_role": ROL_APROBACION_UTILITARIA,
         "entrega": "fake",
         "audit_clean": audit_clean,
+        "instrucciones_pago": {
+            "tipo_notificacion": "instrucciones_pago",
+            "circuito": "por_envio",
+            "template_version": "instrucciones_pago_provisional_v1",
+            "asunto_borrador": "asunto_preinscripcion_del_plan",
+            "entrega": "fake",
+        },
+        "confirmacion_inscripcion": {
+            "tipo_notificacion": "inscripcion",
+            "gatilla": "cuota_1 PAGO_CONFIRMADO o BONIFICADA",
+            "excluye": "COMPROBANTE_PRESENTADO",
+            "entrega": "fake",
+        },
         "totals": {
             "executions": len(casos),
             "planned_items": sum(int(c.get("items_count") or 0) for c in casos),
@@ -510,11 +776,39 @@ def _escribir_plan_pagos(
     return ruta
 
 
+def _escribir_eml(
+    directorio: Path,
+    nombre: str,
+    *,
+    remitente: str,
+    asunto: str,
+    adjuntos: tuple[tuple[str, str, bytes], ...] = (),
+) -> Path:
+    """Un `.eml` de respuesta sintético: metadatos controlados, cuerpo mínimo."""
+    mensaje = EmailMessage()
+    mensaje["From"] = remitente
+    mensaje["Subject"] = asunto
+    mensaje["Date"] = format_datetime(
+        datetime(2026, 9, 28, 10, 0, tzinfo=timezone.utc)
+    )
+    mensaje["Message-ID"] = f"<{nombre}@example.test>"
+    mensaje.set_content("Adjunto el comprobante.")
+    for nombre_adjunto, tipo, datos in adjuntos:
+        principal, subtipo = tipo.split("/")
+        mensaje.add_attachment(
+            datos, maintype=principal, subtype=subtipo, filename=nombre_adjunto
+        )
+    ruta = directorio / nombre
+    ruta.write_bytes(mensaje.as_bytes())
+    return ruta
+
+
 def _escribir_padron_pagos(
     directorio: Path,
     *,
     nombre: str = "padron.csv",
     con_bonificado: bool = True,
+    bonificados: tuple[str, ...] = (),
 ) -> Path:
     ruta = directorio / nombre
     columnas = [
@@ -534,7 +828,7 @@ def _escribir_padron_pagos(
         ):
             fila = [id_inscripcion, "EJEMPLO-MATRIZ-PAGOS", nombre_dest, email]
             if con_bonificado:
-                fila.append("no")
+                fila.append("si" if id_inscripcion in bonificados else "no")
             writer.writerow(fila)
     return ruta
 

@@ -7,7 +7,7 @@
   "x-hu": "HU-012",
   "x-proceso-bpm": "P5 con apoyo de P4",
   "x-contrato-asociado": "confirmacion_inscripcion_v1",
-  "x-fuente": "Bible «Procesos y Agentes» sincronizada el 22/09: HU-012 pasó de «confirmaciones de inscripción» a «notificaciones automáticas de inscripción, participación, situación de pagos y aprobación», absorbiendo la HU previa de mensajes a deudores. Diseño HU-012 control de pagos v1 (D1-D16): la situación de pagos deja de depender del dato DESCONOCIDO situacion_deuda_o_saldo y pasa a derivarse del plan de pago, el padrón, el buzón propio y las novedades; el recordatorio de pago entra como tipo propio con circuito por lote (D3).",
+  "x-fuente": "Bible «Procesos y Agentes» sincronizada el 22/09: HU-012 pasó de «confirmaciones de inscripción» a «notificaciones automáticas de inscripción, participación, situación de pagos y aprobación», absorbiendo la HU previa de mensajes a deudores. Diseño HU-012 control de pagos v1 (D1-D16): la situación de pagos deja de depender del dato DESCONOCIDO situacion_deuda_o_saldo y pasa a derivarse del plan de pago, el padrón, el buzón propio y las novedades; el recordatorio de pago entra como tipo propio con circuito por lote (D3). Corte 4 del diseño: instrucciones_pago entra como tipo por envío (D8) y la confirmación de inscripción por pago confirmado o bonificación de la cuota 1 se emite con el tipo inscripcion ya declarado (D9).",
   "x-habilita-envio": false,
   "x-reemplaza": "tipos_notificacion_v1",
   "description": "Catálogo cerrado de los tipos de notificación que HU-012 contempla tras la ampliación del 22/09 y el diseño de control de pagos. Cada tipo declara los campos del contrato que exige, los orígenes de inscripción de los que puede provenir el destinatario, los datos específicos que el evento necesita más allá del contacto y con qué procedencia, y la frase de la plantilla provisional que lo distingue. Que un tipo esté habilitado sólo significa que puede entrar al circuito sin conexión: no levanta los bloqueos de la matriz de orígenes ni autoriza correo real. La decisión es fail-closed: un tipo con un dato específico DESCONOCIDO se puede nombrar y evaluar, pero no produce ni borrador ni envío. Lo no confirmado por la SEU queda declarado como SUPUESTO_TECNICO, que no bloquea. Además cada tipo declara su modo_circuito: los tipos por envío tramitan por procesar_confirmacion con doble aprobación por pieza; el tipo por lote (recordatorio_pago) nunca tramita por solicitud individual — la corrida lo planifica y lo encola sólo con la plantilla aprobada una vez por doble decisión más la aprobación utilitaria del lote que lista sus ítems (D3).",
@@ -157,6 +157,31 @@
       },
       "motivos_de_bloqueo": [],
       "observacion": "Circuito por lote (D3, §5.3): la plantilla se aprueba una sola vez con aprobación semántica y utilitaria; cada lote diario lleva una aprobación utilitaria que lista sus ítems. La solicitud individual por procesar_confirmacion no aplica y se rechaza: el ítem nace de la planificación de la corrida, no de un pedido. Los campos requeridos son los datos de contacto que el ítem consume — provienen del padrón y del plan de pago, no del contrato de solicitud."
+    },
+    {
+      "tipo": "instrucciones_pago",
+      "rotulo": "Instrucciones de pago",
+      "procedencia_tipo": "CONFIRMADO_SEU",
+      "evento_gatillo": "Generación del borrador del correo de preinscripción con las instrucciones de pago de una actividad arancelada, a partir del plan de pago (D8). Quién dispara la generación en la operación —la SEU o el Departamento— queda pendiente de confirmación.",
+      "modo_circuito": "por_envio",
+      "campos_requeridos": [
+        "id_inscripcion",
+        "nombre_destinatario",
+        "email_destinatario",
+        "actividad",
+        "contacto",
+        "datos_pago"
+      ],
+      "origenes_admisibles": ["SIU_GUARANI", "SIU_GUARANI_EXTENSION"],
+      "datos_especificos": {
+        "plan_pago": "SUPUESTO_TECNICO"
+      },
+      "plantilla": {
+        "asunto_base": "<asunto_preinscripcion del plan>",
+        "frase_evento": "las instrucciones de pago de"
+      },
+      "motivos_de_bloqueo": [],
+      "observacion": "El correo de preinscripción que la SEU redacta hoy a mano lo genera el agente como borrador (D8): tramita por solicitud individual con doble aprobación por pieza, igual que los tipos originales. El asunto del borrador es el asunto_preinscripcion del plan, sin ninguna marca: la respuesta del preinscripto con el comprobante se asocia por ese asunto normalizado (§4.2) y un prefijo la rompería; la marca de borrador viaja sólo en el cuerpo, como exige el destino. `datos_pago` —las cuotas con montos y vencimientos, los medios de pago y las bonificaciones del plan— no es un campo del contrato de solicitud de los otros tipos: es la estructura que este tipo consume y la solicitud lo porta como dato específico. La confirmación de inscripción que dispara la cuota 1 en PAGO_CONFIRMADO o BONIFICADA (D9) no es un tipo nuevo: es el tipo inscripcion emitido desde el candidato que planifica la corrida."
     }
   ],
 
@@ -165,6 +190,8 @@
     "¿Alcanza una aprobación utilitaria del lote diario — con la plantilla ya aprobada una vez — o la SEU quiere revisar cada recordatorio? (D3, §5.3)",
     "¿La plantilla preaprobada única cubre los tipos por envío o cada uno requiere una redacción propia aprobada? ¿Y la plantilla del recordatorio la redacta la SEU o el agente a partir de una base?",
     "¿Cómo se acredita la participación del inscripto (asistencia en SIU, lista del docente) y la aprobación (acta, nota)?",
-    "¿Quién carga el plan de pago de cada actividad y dónde (pestaña de la planilla D2 propuesta)?"
+    "¿Quién carga el plan de pago de cada actividad y dónde (pestaña de la planilla D2 propuesta)?",
+    "¿Acepta la SEU que el correo de preinscripción con las instrucciones de pago lo genere el agente como borrador con doble aprobación (D8, §9.15), y quién dispara su generación?",
+    "¿Qué convierte a un preinscripto en inscripto: la confirmación de la Fundación o un estado del SIU? (D9, §9.6 — hoy la confirmación de la cuota 1 o la bonificación disparan el borrador)"
   ]
 }

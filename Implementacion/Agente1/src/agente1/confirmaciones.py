@@ -45,29 +45,40 @@ inscripción reales no están definidos por la SEU. `origenes_inscripcion.py`
 enumera exactamente qué falta por cada origen y bloquea el envío en todos.
 
 Tipos de notificación (bible 22/09 y diseño de control de pagos): HU-012
-cubre cinco tipos —`inscripcion`, `participacion`, `situacion_pagos`,
-`aprobacion` y `recordatorio_pago`— declarados en el catálogo cerrado
-`contracts/tipos_notificacion_v2.json` que expone `tipos_notificacion.py`.
-El tipo viaja en la solicitud (con default `inscripcion`, el único que
-existía), entra a la clave de idempotencia —una notificación de
-participación sobre la misma inscripción es otra comunicación, no un
-duplicado— y elige la frase del evento en el cuerpo. Todo lo demás del
-pipeline es idéntico para todos los tipos por envío: misma doble aprobación,
-misma cola, mismo destino habilitado. El control por tipo es fail-closed y
-se evalúa antes de tocar el registro: un tipo fuera del catálogo es
-`INVALIDA`, un tipo con datos `DESCONOCIDO` es `notification_type_blocked`,
-y un tipo habilitado cuyo `modo_circuito` declarado no es el de solicitud
-individual —`recordatorio_pago`, que tramita por lote (D3)— es
-`notification_mode_mismatch`: ninguno produce borrador ni envío por esta
-vía.
+cubre seis tipos —`inscripcion`, `participacion`, `situacion_pagos`,
+`aprobacion`, `recordatorio_pago` e `instrucciones_pago`— declarados en el
+catálogo cerrado `contracts/tipos_notificacion_v2.json` que expone
+`tipos_notificacion.py`. El tipo viaja en la solicitud (con default
+`inscripcion`, el único que existía), entra a la clave de idempotencia —una
+notificación de participación sobre la misma inscripción es otra
+comunicación, no un duplicado— y elige la frase del evento en el cuerpo.
+Todo lo demás del pipeline es idéntico para todos los tipos por envío:
+misma doble aprobación, misma cola, mismo destino habilitado. El control
+por tipo es fail-closed y se evalúa antes de tocar el registro: un tipo
+fuera del catálogo es `INVALIDA`, un tipo con datos `DESCONOCIDO` es
+`notification_type_blocked`, y un tipo habilitado cuyo `modo_circuito`
+declarado no es el de solicitud individual —`recordatorio_pago`, que
+tramita por lote (D3)— es `notification_mode_mismatch`: ninguno produce
+borrador ni envío por esta vía.
+
+`instrucciones_pago` (D8) es el único tipo por envío que exige un dato
+estructurado además de los campos del contrato: la solicitud lo porta en
+`datos_pago`, un `DatosInstruccionesPago` con el asunto de preinscripción,
+las cuotas, los medios y las bonificaciones del plan. Su render no usa la
+plantilla genérica —el correo lista el plan de pago— y su asunto es el
+`asunto_preinscripcion` del plan sin la marca de borrador, porque la
+respuesta del preinscripto se asocia por ese asunto normalizado (§4.2 del
+diseño de pagos): la marca sigue yendo en el cuerpo, que es donde el
+destino la exige.
 """
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import date, datetime
 import fcntl
 import hashlib
+from importlib.resources import files
 import json
 import os
 from pathlib import Path
@@ -92,6 +103,20 @@ CONTRACT_VERSION = "confirmacion_inscripcion_v1"
 TEMPLATE_VERSION = "confirmacion_inscripcion_provisional_v1"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 MARCADOR_BORRADOR = "BORRADOR — NO ENVIAR"
+
+# El tipo del correo de preinscripción con las instrucciones de pago (D8):
+# se declara en el catálogo v2 y tramita por este circuito con `datos_pago`.
+TIPO_INSTRUCCIONES_PAGO = "instrucciones_pago"
+TEMPLATE_VERSION_INSTRUCCIONES = "instrucciones_pago_provisional_v1"
+
+# El documento de plantilla del correo de instrucciones: la sección central
+# (entre el encabezado de versión y `LÍMITES:`) es el cuerpo que se
+# renderiza; los límites documentan restricciones y no viajan.
+TEXTO_PLANTILLA_INSTRUCCIONES = (
+    files("agente1")
+    .joinpath("prompts", "instrucciones_pago_provisional_v1.txt")
+    .read_text(encoding="utf-8")
+)
 EMAIL_LOCAL_RE = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}\Z")
 EMAIL_DOMAIN_LABEL_RE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\Z")
 ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
@@ -162,6 +187,45 @@ _PARCIAL_POR_ROL = {
 
 
 @dataclass(frozen=True)
+class CuotaInstrucciones:
+    """Una cuota del plan en la forma que viaja por la solicitud.
+
+    `vencimiento` es texto ISO (AAAA-MM-DD) o `None`: el dato viaja
+    serializable para que la clave de idempotencia y el hash de la entrada
+    lo cubran íntegro, como a cualquier otro campo de la solicitud.
+    """
+
+    nro: int
+    monto: int
+    vencimiento: str | None = None
+
+
+@dataclass(frozen=True)
+class DatosInstruccionesPago:
+    """Los datos del plan de pago que el tipo `instrucciones_pago` consume.
+
+    Es el «dato específico» del tipo según el catálogo (`plan_pago`,
+    SUPUESTO_TECNICO): no viene del SIU ni del pedido humano sino del plan
+    de pagos de la actividad, que la corrida de `pagos.py` ya carga con su
+    procedencia. Viaja dentro de la solicitud — no en un archivo aparte —
+    porque es parte de lo que se aprueba: dos borradores de instrucciones
+    con planes distintos son comunicaciones distintas y el hash de la
+    solicitud los separa.
+
+    `asunto_preinscripcion` es el dato crítico: el asunto del borrador sale
+    de ahí, exacto, porque la respuesta del preinscripto con el comprobante
+    se asocia a la actividad por ese asunto normalizado (§4.2 del diseño).
+    """
+
+    asunto_preinscripcion: str
+    cuotas: tuple[CuotaInstrucciones, ...]
+    medios_pago: tuple[str, ...]
+    bonificaciones: tuple[str, ...]
+    fecha_inicio: str | None = None
+    fecha_limite_inscripcion: str | None = None
+
+
+@dataclass(frozen=True)
 class SolicitudConfirmacion:
     """Entrada del pipeline de HU-012.
 
@@ -171,6 +235,11 @@ class SolicitudConfirmacion:
     anteriores conservan su significado sin declararlo. El tipo forma parte
     de la identidad de la comunicación: entra al hash de idempotencia, así
     que dos tipos distintos sobre la misma inscripción no colisionan.
+
+    `datos_pago` es el dato específico que sólo `instrucciones_pago`
+    consume: los demás tipos lo ignoran (el catálogo no lo exige para
+    ellos) y para `instrucciones_pago` es obligatorio — un `None` deja la
+    solicitud `INCOMPLETA`.
     """
 
     id_inscripcion: str
@@ -182,6 +251,7 @@ class SolicitudConfirmacion:
     organiza: str
     contacto: str
     tipo_notificacion: str = TIPO_NOTIFICACION_PREDETERMINADO
+    datos_pago: DatosInstruccionesPago | None = None
 
 
 @dataclass(frozen=True)
@@ -1649,7 +1719,16 @@ def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     frase del evento, declaradas en el catálogo `tipos_notificacion_v2`. Para
     `inscripcion` el resultado es idéntico al de siempre: su `asunto_base`
     reproduce el asunto que el módulo tenía fijado antes del catálogo.
+
+    `instrucciones_pago` es la excepción: su cuerpo sale de
+    `prompts/instrucciones_pago_provisional_v1.txt` con los datos del plan y
+    su asunto es el `asunto_preinscripcion` del plan — sin la marca de
+    borrador — porque la respuesta del preinscripto se asocia por ese
+    asunto normalizado.
     """
+
+    if solicitud.tipo_notificacion == TIPO_INSTRUCCIONES_PAGO:
+        return _renderizar_instrucciones_pago(solicitud)
 
     plantilla = descripcion_tipo(solicitud.tipo_notificacion)["plantilla"]
     # Un lugar vacío se completa con una frase explícita en vez de dejarse en
@@ -1669,25 +1748,182 @@ def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     return f"[{MARCADOR_BORRADOR}] {plantilla['asunto_base']}", cuerpo
 
 
+_PLACEHOLDER_RE = re.compile(r"\{\{[^}]+\}\}")
+
+
+def _renderizar_instrucciones_pago(
+    solicitud: SolicitudConfirmacion,
+) -> tuple[str, str]:
+    """El correo de preinscripción con las instrucciones de pago (D8).
+
+    El asunto es `asunto_preinscripcion` del plan, exacto y sin la marca de
+    borrador: la asociación de respuestas de `pagos.py` compara el asunto
+    normalizado de cada respuesta contra ese valor, así que un prefijo
+    «BORRADOR» en el asunto haría que ningún comprobante se asocie. La
+    marca no falta: va en la primera línea del cuerpo, que es el lugar que
+    el destino habilitado exige (`draft_marker_missing` en Gmail).
+
+    El cuerpo es la sección central del documento de plantilla, con cada
+    `{{...}}` reemplazado por el dato del plan. Un placeholder sin valor es
+    un error de programación — como en `recordatorios.py` — y se rechaza
+    antes de entregar una llave suelta al destinatario. Los medios de pago
+    llegan sólo acá, al cuerpo: la auditoría conserva hashes.
+    """
+
+    datos = solicitud.datos_pago
+    # `datos_pago` ya pasó `_datos_pago_validos` en el control de campos:
+    # llegar acá con `None` sería un bug del pipeline, no un pedido malo.
+    assert isinstance(datos, DatosInstruccionesPago)
+
+    detalle_cuotas = "\n".join(
+        f"- Cuota {cuota.nro}: ${_monto_texto(cuota.monto)}"
+        + (
+            f", vencimiento {cuota.vencimiento}."
+            if cuota.vencimiento
+            else "."
+        )
+        for cuota in datos.cuotas
+    )
+    medios = ", ".join(medio.strip() for medio in datos.medios_pago)
+    bonificaciones = ", ".join(
+        bonificacion.strip() for bonificacion in datos.bonificaciones
+    )
+    valores = {
+        "nombre_destinatario": solicitud.nombre_destinatario.strip(),
+        "actividad": solicitud.actividad.strip(),
+        "linea_fecha_limite": (
+            f"Inscripción abierta hasta: {datos.fecha_limite_inscripcion.strip()}.\n"
+            if datos.fecha_limite_inscripcion
+            else ""
+        ),
+        "fecha_inicio": (
+            datos.fecha_inicio.strip()
+            if datos.fecha_inicio
+            else "A confirmar por la Secretaría de Extensión"
+        ),
+        "detalle_cuotas": detalle_cuotas,
+        "medios_pago": medios or "A confirmar por la Secretaría de Extensión",
+        "linea_bonificaciones": (
+            f"Bonificaciones: {bonificaciones}.\n"
+            if bonificaciones
+            else "Sin bonificaciones declaradas.\n"
+        ),
+        "contacto": solicitud.contacto.strip(),
+    }
+    cuerpo = _seccion_cuerpo(TEXTO_PLANTILLA_INSTRUCCIONES)
+    for clave, valor in valores.items():
+        cuerpo = cuerpo.replace("{{" + clave + "}}", valor)
+    if _PLACEHOLDER_RE.search(cuerpo):
+        raise ValueError("plantilla con placeholders sin renderizar")
+    return datos.asunto_preinscripcion.strip(), cuerpo
+
+
+def _seccion_cuerpo(texto_plantilla: str) -> str:
+    """La parte aprobable del documento de plantilla: entre el encabezado
+    de versión/estado y la sección `LÍMITES`, que documenta restricciones
+    y no viaja al destinatario."""
+
+    sin_limites = texto_plantilla.split("LÍMITES:", 1)[0]
+    lineas = sin_limites.splitlines()
+    # Las dos primeras líneas son TEMPLATE_VERSION y POLICY_STATUS.
+    return "\n".join(lineas[2:]).strip("\n") + "\n"
+
+
+def _monto_texto(monto: int) -> str:
+    """El importe con separador de miles rioplatense («20.000»)."""
+
+    return f"{monto:,}".replace(",", ".")
+
+
 def _campos_completos(solicitud: SolicitudConfirmacion) -> bool:
     """Los campos que exige el tipo, según el catálogo, presentes y con texto.
 
     `getattr` con default cierra el caso de un campo declarado en el catálogo
     que la solicitud no tenga: se cuenta como faltante en vez de explotar.
+    `datos_pago` es el único campo estructurado: no alcanza con que exista,
+    tiene que traer el plan completo que el render consume
+    (`_datos_pago_validos`).
     """
     if not isinstance(solicitud.id_inscripcion, str) or ID_RE.fullmatch(
         solicitud.id_inscripcion
     ) is None:
         return False
+    for campo in campos_requeridos(solicitud.tipo_notificacion):
+        valor = getattr(solicitud, campo, None)
+        if campo == "datos_pago":
+            if not _datos_pago_validos(valor):
+                return False
+            continue
+        if not isinstance(valor, str) or not valor.strip():
+            return False
+    return True
+
+
+def _datos_pago_validos(datos: object) -> bool:
+    """La estructura del dato específico de `instrucciones_pago`.
+
+    Un `datos_pago` sin asunto de preinscripción o sin cuotas no puede
+    renderizar el correo: el asunto es la llave que asocia las respuestas
+    con el comprobante y las cuotas son la instrucción misma. Medios y
+    bonificaciones sí pueden venir vacíos — un plan puede no declararlos —
+    y el cuerpo lo dice explícito en vez de dejar un renglón cortado.
+    """
+
+    if not isinstance(datos, DatosInstruccionesPago):
+        return False
+    if not datos.asunto_preinscripcion.strip():
+        return False
+    if not datos.cuotas:
+        return False
+    for cuota in datos.cuotas:
+        if (
+            not isinstance(cuota.nro, int)
+            or isinstance(cuota.nro, bool)
+            or cuota.nro < 1
+            or not isinstance(cuota.monto, int)
+            or isinstance(cuota.monto, bool)
+            or cuota.monto < 1
+            or (
+                cuota.vencimiento is not None
+                and (
+                    not isinstance(cuota.vencimiento, str)
+                    or not _es_fecha_iso(cuota.vencimiento)
+                )
+            )
+        ):
+            return False
+    for fecha in (datos.fecha_inicio, datos.fecha_limite_inscripcion):
+        if fecha is not None and (
+            not isinstance(fecha, str) or not _es_fecha_iso(fecha)
+        ):
+            return False
     return all(
-        isinstance(getattr(solicitud, campo, None), str)
-        and bool(getattr(solicitud, campo).strip())
-        for campo in campos_requeridos(solicitud.tipo_notificacion)
+        isinstance(texto, str) and bool(texto.strip())
+        for texto in (*datos.medios_pago, *datos.bonificaciones)
     )
 
 
+def _es_fecha_iso(valor: str) -> bool:
+    try:
+        date.fromisoformat(valor)
+    except ValueError:
+        return False
+    return True
+
+
 def _tipos_solicitud_validos(solicitud: SolicitudConfirmacion) -> bool:
-    return all(isinstance(valor, str) for valor in asdict(solicitud).values())
+    """Cada campo con su tipo: `str` para todo el contrato y la estructura
+    cerrada — o `None` — para `datos_pago`."""
+
+    if solicitud.datos_pago is not None and not isinstance(
+        solicitud.datos_pago, DatosInstruccionesPago
+    ):
+        return False
+    return all(
+        isinstance(valor, str)
+        for nombre, valor in asdict(solicitud).items()
+        if nombre != "datos_pago"
+    )
 
 
 def email_valido(email: object) -> bool:

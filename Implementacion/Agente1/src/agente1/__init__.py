@@ -36,6 +36,8 @@ Guía rápida de módulos:
                               de roles y auditoría append-only (#72).
 - `pagos`                     HU-012, corrida de control de pagos (offline).
 - `recordatorios`             HU-012, circuito por lote de `recordatorio_pago`.
+- `instrucciones_pago`        HU-012, builders de `instrucciones_pago` (D8) y
+                              de la confirmación de inscripción por pago (D9).
 - `buzon`                     puerto del buzón propio del agente (ADR 0004).
 """
 
@@ -43,6 +45,8 @@ from .confirmaciones import (
     AprobacionHumana,
     ColaEnviosArchivo,
     ColaEnviosMemoria,
+    CuotaInstrucciones,
+    DatosInstruccionesPago,
     DestinoConfirmacionesFake,
     EntregaRechazadaError,
     ItemEnvio,
@@ -54,6 +58,7 @@ from .confirmaciones import (
     ROL_APROBACION_SEMANTICA,
     ROL_APROBACION_UTILITARIA,
     SolicitudConfirmacion,
+    TIPO_INSTRUCCIONES_PAGO,
     drenar_envios,
     procesar_confirmacion,
     reconciliar_envios_reservados,
@@ -64,8 +69,16 @@ from .interpretacion import (
     interpretar_solicitud,
 )
 from .buzon import BuzonPropio, BuzonPropioEml, BuzonPropioMemoria
+from .instrucciones_pago import (
+    solicitud_confirmacion_inscripcion,
+    solicitud_instrucciones_pago,
+)
 from .ollama import OllamaGenerator
-from .pagos import correr_control_pagos
+from .pagos import (
+    CandidatoConfirmacion,
+    correr_control_pagos,
+    planificar_confirmaciones,
+)
 from .recordatorios import (
     AprobacionLote,
     aprobar_plantilla_recordatorio,
@@ -82,8 +95,11 @@ __all__ = [
     "BuzonPropio",
     "BuzonPropioEml",
     "BuzonPropioMemoria",
+    "CandidatoConfirmacion",
     "ColaEnviosArchivo",
     "ColaEnviosMemoria",
+    "CuotaInstrucciones",
+    "DatosInstruccionesPago",
     "DestinoConfirmacionesFake",
     "EntregaRechazadaError",
     "FakeGenerator",
@@ -101,16 +117,20 @@ __all__ = [
     "ResultadoInterpretacion",
     "ResultadoProceso",
     "SolicitudConfirmacion",
+    "TIPO_INSTRUCCIONES_PAGO",
     "aprobar_plantilla_recordatorio",
     "correr_control_pagos",
     "correr_lote_recordatorios",
     "drenar_envios",
     "encolar_lote_recordatorios",
     "interpretar_solicitud",
+    "planificar_confirmaciones",
     "procesar_confirmacion",
     "procesar_fila_csv",
     "procesar_post",
     "procesar_post_estructurado",
     "reconciliar_envios_reservados",
     "registrar_plantilla_recordatorio",
+    "solicitud_confirmacion_inscripcion",
+    "solicitud_instrucciones_pago",
 ]

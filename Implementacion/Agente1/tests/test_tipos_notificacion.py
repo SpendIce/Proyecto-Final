@@ -1,8 +1,9 @@
 """HU-012 ampliada (bible 22/09 + control de pagos): catálogo de tipos v2.
 
 La HU pasó de «confirmaciones de inscripción» a «notificaciones automáticas
-de inscripción, participación, situación de pagos y aprobación», y el
-diseño de control de pagos agregó `recordatorio_pago` con circuito por lote.
+de inscripción, participación, situación de pagos y aprobación», el
+diseño de control de pagos agregó `recordatorio_pago` con circuito por lote
+y el corte 4 sumó `instrucciones_pago` con circuito por envío (D8).
 Estas pruebas fijan que el catálogo es cerrado y coherente con la matriz de
 orígenes, que los tipos por envío recorren el mismo pipeline con la misma
 doble aprobación —incluida `situacion_pagos`, que en v2 se habilita al
@@ -117,6 +118,7 @@ def test_el_catalogo_es_cerrado_y_tiene_los_tipos_de_la_bible_y_pagos() -> None:
             "situacion_pagos",
             "aprobacion",
             "recordatorio_pago",
+            "instrucciones_pago",
         }
     )
     assert TIPO_NOTIFICACION_PREDETERMINADO == "inscripcion"
@@ -132,8 +134,11 @@ def test_cada_tipo_declara_campos_origenes_plantilla_y_procedencia(
     assert item["procedencia_tipo"] == "CONFIRMADO_SEU"
     assert item["modo_circuito"] in MODOS_CIRCUITO
     assert item["campos_requeridos"]
+    # `datos_pago` es el único campo requerido fuera del contrato plano:
+    # la estructura del plan que `instrucciones_pago` consume.
     assert set(item["campos_requeridos"]) <= set(REQUIRED_FIELDS) | {
-        "email_destinatario"
+        "email_destinatario",
+        "datos_pago",
     }
     assert set(item["origenes_admisibles"]) <= set(ORIGENES_DE_INSCRIPCION)
     assert set(item["datos_especificos"].values()) <= PROCEDENCIAS
@@ -171,6 +176,29 @@ def test_recordatorio_pago_declara_el_modo_lote_y_sus_campos() -> None:
     assert item["motivos_de_bloqueo"] == []
 
 
+def test_instrucciones_pago_declara_envio_con_datos_pago_supuestos() -> None:
+    """El sexto tipo (D8) tramita por solicitud individual y exige el plan
+    de pago como dato estructurado, declarado con procedencia supuesta."""
+    item = descripcion_tipo("instrucciones_pago")
+
+    assert modo_circuito("instrucciones_pago") == MODO_CIRCUITO_POR_ENVIO
+    # El contacto del padrón y el plan de pago: el correo de instrucciones
+    # no usa los campos del evento (`fecha`, `lugar`, `organiza`) — su
+    # asunto y su cuerpo salen de `datos_pago`.
+    assert set(item["campos_requeridos"]) == {
+        "id_inscripcion",
+        "nombre_destinatario",
+        "email_destinatario",
+        "actividad",
+        "contacto",
+        "datos_pago",
+    }
+    assert item["datos_especificos"] == {"plan_pago": "SUPUESTO_TECNICO"}
+    assert item["motivos_de_bloqueo"] == []
+    # El asunto no es una constante de catálogo: lo fija el plan.
+    assert "asunto_preinscripcion" in item["plantilla"]["asunto_base"]
+
+
 def test_situacion_pagos_ya_no_declara_el_dato_desconocido_de_v1() -> None:
     """En v2 la situación de pagos se deriva del plan, el padrón, el buzón y
     las novedades: `situacion_deuda_o_saldo` desaparece del catálogo."""
@@ -199,7 +227,7 @@ def test_la_procedencia_desconocida_es_lo_que_bloquea_un_tipo() -> None:
 
 
 @pytest.mark.parametrize("tipo", sorted(TIPOS_NOTIFICACION))
-def test_los_cinco_tipos_quedan_habilitados_en_v2(tipo: str) -> None:
+def test_los_seis_tipos_quedan_habilitados_en_v2(tipo: str) -> None:
     """En v2 ningún tipo tiene un dato `DESCONOCIDO`: el bloqueo por dato
     sin fundamento sigue en el catálogo pero hoy no se aplica a ninguno."""
     decision = evaluar_tipo(tipo)

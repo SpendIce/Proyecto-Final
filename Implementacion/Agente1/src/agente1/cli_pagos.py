@@ -9,7 +9,9 @@ principal, para poder comparar la salida entre corridas y guardarla como
 evidencia. El informe nombra a cada preinscripto con su «k de N» desglosado,
 marca la bonificación no verificable (D14), lista las respuestas no asociadas
 y las novedades aplicadas junto con las que se informan como error, para que
-una persona las resuelva; no se escribe ningún archivo ni se persiste estado
+una persona las resuelva, y enumera el lote de recordatorios planeado y los
+candidatos a confirmación de inscripción (cuota 1 `PAGO_CONFIRMADO` o
+`BONIFICADA`, D9); no se escribe ningún archivo ni se persiste estado
 (ADR 0003).
 
 La bandera `--planilla` cambia el soporte de las tres fuentes tabulares: en
@@ -158,9 +160,11 @@ def main(
 
 def informe_a_dict(informe: InformeCorridaPagos) -> dict[str, object]:
     """Serializa el informe: el «k de N» por preinscripto con su desglose, la
-    marca de bonificación no verificable, las no asociadas y las novedades —
-    aplicadas y con error —. Metadatos solamente: el contenido de cuerpos y
-    adjuntos no forma parte del modelo, así que no puede aparecer acá."""
+    marca de bonificación no verificable, las no asociadas, las novedades —
+    aplicadas y con error —, el lote planeado de recordatorios y los
+    candidatos a confirmación de inscripción con la razón cerrada que los
+    habilita. Metadatos solamente: el contenido de cuerpos y adjuntos no
+    forma parte del modelo, así que no puede aparecer acá."""
 
     return {
         "estado": "OK",
@@ -223,6 +227,15 @@ def informe_a_dict(informe: InformeCorridaPagos) -> dict[str, object]:
             for error in informe.novedades_con_error
         ],
         "recordatorios": _lote_a_dict(informe.recordatorios),
+        "candidatos_confirmacion": [
+            {
+                "id_inscripcion": candidato.id_inscripcion,
+                "nombre_destinatario": candidato.nombre_destinatario,
+                "email_destinatario": candidato.email_destinatario,
+                "razon": candidato.razon,
+            }
+            for candidato in informe.candidatos_confirmacion
+        ],
     }
 
 
