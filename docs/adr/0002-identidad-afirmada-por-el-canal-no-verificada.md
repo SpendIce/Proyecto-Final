@@ -1,3 +1,7 @@
+---
+status: accepted; reemplazado por ADR 0005 en el canal de formulario de HU-013
+---
+
 # Identidad afirmada por el canal, no verificada
 
 El caso de uso de interaccion interna exige rechazar y registrar el intento cuando quien pide no tiene permisos, y el backlog institucional pide ingreso con credenciales y permisos segun rol. Pero la identidad institucional depende de OAuth y de recursos de infraestructura que son un **bloqueante externo** abierto: no hay forma de verificar a nadie hoy.

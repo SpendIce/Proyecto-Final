@@ -1,0 +1,857 @@
+{
+  "version_registro": "registro_actividad_documental_candidate_v1",
+  "estado": "CANDIDATO_PENDIENTE_VALIDACION",
+  "id_registro_local": "EJEMPLO-NOTEBOOKLM-N2",
+  "id_registro_es_institucional": false,
+  "relacion_documental": {
+    "procedencia": "APORTADA_POR_JUANI",
+    "secuencia": [
+      "PROPUESTA",
+      "INFORME"
+    ],
+    "regla_precedencia": "INFORME_REFERENCIA_VIGENTE_PARA_DIFUSION",
+    "confirmacion_regla": {
+      "procedencia": "CONFIRMACION_JUANI",
+      "fecha": "2026-10-07",
+      "declaracion": "El informe es la referencia vigente para difusión.",
+      "alcance": "Datos para difusión; no acredita aprobación académica ni aprobación de piezas."
+    }
+  },
+  "documentos": [
+    {
+      "documento_id": "PROPUESTA",
+      "tipo": "PROPUESTA",
+      "archivo": "Adjuntos/Actividades-Extension/NotebookLM-Nivel-2/Propuesta-Curso.docx",
+      "nombre_original": "Curso IA nivel 2_2026.docx",
+      "sha256": "54b6323e88619dbdd076f5d23ed425f72a306f522030601de7b9d4b3a680f06f",
+      "version_institucional": null,
+      "aprobacion_institucional": "NO_ACREDITADA"
+    },
+    {
+      "documento_id": "INFORME",
+      "tipo": "INFORME_ACTIVIDAD",
+      "archivo": "Adjuntos/Actividades-Extension/NotebookLM-Nivel-2/Informe-Actividad.pdf",
+      "nombre_original": "Info INTELIGENCIA ARTIFICIAL APLICADA A LA EDUCACIÓN Y GESTIÓN NOTEBOOKLM NIVEL 2.pdf",
+      "sha256": "948bcd4a7c97a2a67e525a0e819596f31fb9065bd6435f75809368964ec37a9b",
+      "version_institucional": null,
+      "aprobacion_institucional": "NO_ACREDITADA"
+    }
+  ],
+  "campos": {
+    "denominacion": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§1",
+          "valor": "INTELIGENCIA ARTIFICIAL APLICADA A LA EDUCACIÓN Y GESTIÓN: NOTEBOOKLM - NIVEL 2."
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 1, título",
+          "valor": "INTELIGENCIA ARTIFICIAL APLICADA A LA EDUCACIÓN Y GESTIÓN: NOTEBOOKLM - NIVEL 2"
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "tipo_actividad": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "Encabezado",
+          "valor": "CURSO"
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "PROPUESTA_COMO_COMPLEMENTO",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "fundamentacion": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§2",
+          "valor": "La propuesta fundamenta el uso de IA en educación y gestión pública, con aplicación a tareas docentes y administrativas."
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "PROPUESTA_COMO_COMPLEMENTO",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "encuadre_institucional_informe": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 1, introducción",
+          "valor": "Referencia al Título V, Capítulo 1, del Convenio Colectivo de Trabajo Sectorial para el Personal Civil y Docente Civil de las Fuerzas Armadas, Decreto 2539/15. No se verifica vigencia ni interpretación normativa en este registro."
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "objetivo_general": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§3",
+          "valor": "Desarrollar competencias en el uso de herramientas de IA para optimizar la planificación educativa, el diseño de ejercicios y evaluaciones, y la gestión escolar, garantizando su aplicación efectiva en el contexto de la enseñanza media y superior."
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "PROPUESTA_COMO_COMPLEMENTO",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "objetivos_especificos_propuesta": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§4",
+          "valor": [
+            "Organización de fuentes por contextos temáticos.",
+            "Generación de cuestionarios, rúbricas e informes con Studio.",
+            "Personalización de roles e instrucciones del chat.",
+            "Integración de NotebookLM con Gemini y Google Workspace."
+          ]
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "PROPUESTA_COMO_COMPLEMENTO",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "objetivos_informe": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 1, OBJETIVOS",
+          "valor": [
+            "Arquitecturas de notebooks por contextos.",
+            "Recursos de comunicación documental y administración.",
+            "Roles y personas avanzadas en el chat.",
+            "Integración con Gemini y Google Workspace para contenidos multiformato."
+          ]
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "perfil_destinatario": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§5",
+          "valor": "Personal de la Administración Pública que desempeñe tareas de gestión de documentos, así como docentes e instructores de unidades académicas y centros de formación interesados en la innovación tecnológica."
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "PROPUESTA_COMO_COMPLEMENTO",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "conocimientos_previos": {
+      "estado": "DIFERENCIA_HISTORICA_APLICA_INFORME",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§5",
+          "valor": "Se requiere haber completado el Nivel 1 o poseer conocimientos equivalentes en el uso básico de NotebookLM."
+        },
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§6",
+          "valor": "Se recomienda tener conocimientos en el uso básico de NotebookLM (no excluyente)."
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 2, REQUISITOS DE ADMISIÓN",
+          "valor": "Se recomienda poseer conocimientos en el uso básico de NotebookLM (no excluyente). No es necesario poseer el Nivel 1 aprobado."
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          2
+        ]
+      }
+    },
+    "recursos_del_participante": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§5 y §6",
+          "valor": [
+            "Computadora con acceso a internet.",
+            "Cuenta de Google activa."
+          ]
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 2, REQUISITOS DE ADMISIÓN",
+          "valor": [
+            "Computadora con acceso a internet.",
+            "Cuenta de Google activa."
+          ]
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "contenidos": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§7",
+          "valor": [
+            "Unidad 1: Arquitectura y Gestión de Fuentes",
+            "Unidad 2: Panel de Studio y Creación de Recursos",
+            "Unidad 3: Ecosistema y Ética en la IA",
+            "Unidad 4: Funciones Pro y Multimedia"
+          ]
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 1 y p. 2, MÓDULOS A DESARROLLAR",
+          "valor": [
+            "Unidad 1: Arquitectura y Gestión de Fuentes",
+            "Unidad 2: Panel de Studio y Creación de Recursos",
+            "Unidad 3: Ecosistema y Ética en la IA",
+            "Unidad 4: Funciones Pro y Multimedia"
+          ]
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "evaluacion": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§8",
+          "valor": "Realización de trabajos prácticos asincrónicos."
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 2, EVALUACIÓN",
+          "valor": "Evaluación diagnóstica, seguimiento de proceso y trabajo final individual integrador."
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "duracion_horas": {
+      "estado": "DIFERENCIA_HISTORICA_APLICA_INFORME",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§9",
+          "valor": 12
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 3, DURACIÓN",
+          "valor": 24
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "distribucion_cursada": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§9",
+          "valor": {
+            "cantidad_clases": 6,
+            "horas_por_clase": 2,
+            "semanas": 3
+          }
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "ANTECEDENTE_NO_CONFIRMADO_VIGENTE",
+        "indices_evidencias": []
+      },
+      "nota": "La distribución de 12 h de la propuesta no se transfiere a la duración vigente de 24 h del informe."
+    },
+    "modalidad": {
+      "estado": "DIFERENCIA_HISTORICA_APLICA_INFORME",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§10",
+          "valor": "A distancia mediante el CAMPUS de la FIE. Autogestionado."
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 2, MODALIDAD Y FECHAS",
+          "valor": "Modalidad virtual tutorada."
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "requisitos_aprobacion": {
+      "estado": "DIFERENCIA_HISTORICA_APLICA_INFORME",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§11",
+          "valor": {
+            "asistencia_minima_porcentaje": 75,
+            "participacion_activa": true,
+            "nota_minima_trabajos_y_final": 7,
+            "arancel_pago": true
+          }
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 3, REQUISITOS DE APROBACIÓN",
+          "valor": {
+            "actividades_practicas_porcentaje": 80,
+            "prueba_final_porcentaje": "superando el 70%"
+          }
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "arancel": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§11",
+          "valor": {
+            "cantidad_cuotas": 1,
+            "importe": 20000,
+            "simbolo_moneda": "$",
+            "codigo_moneda": null
+          }
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 3, CURSO ARANCELADO",
+          "valor": {
+            "cantidad_cuotas": 1,
+            "importe": 20000,
+            "simbolo_moneda": "$",
+            "codigo_moneda": null
+          }
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "bonificacion": {
+      "estado": "DIFERENCIA_HISTORICA_APLICA_INFORME",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§11",
+          "valor": {
+            "categorias": [
+              "personal administrativo FIE",
+              "personal docente FIE",
+              "alumnos FIE"
+            ],
+            "condicion_literal": "Gratuito",
+            "porcentaje_equivalente": 100
+          }
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 3, CURSO ARANCELADO",
+          "valor": {
+            "categorias": [
+              "alumnos FIE",
+              "personal FIE",
+              "egresados FIE"
+            ],
+            "condicion_literal": "Bonificación",
+            "porcentaje": null
+          }
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "creditos_inap": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 3, CRÉDITOS INAP",
+          "valor": 24
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "fecha_limite_inscripcion": {
+      "estado": "INCOMPLETO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 2, MODALIDAD Y FECHAS",
+          "valor": {
+            "literal": "29 de septiembre",
+            "dia": 29,
+            "mes": 9,
+            "anio": null
+          }
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "fecha_inicio": {
+      "estado": "INCOMPLETO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 2, MODALIDAD Y FECHAS",
+          "valor": {
+            "literal": "05 de octubre",
+            "dia": 5,
+            "mes": 10,
+            "anio": null
+          }
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "fecha_finalizacion": {
+      "estado": "INCOMPLETO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 2, MODALIDAD Y FECHAS",
+          "valor": {
+            "literal": "04 de diciembre",
+            "dia": 4,
+            "mes": 12,
+            "anio": null
+          }
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "enlaces_inscripcion": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 2, INSCRIPCIONES",
+          "valor": "https://www.fie.undef.edu.ar/siu/3w/"
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 3, enlace al pie",
+          "valor": "https://www.fie.undef.edu.ar/siu/3w/acceso"
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0,
+          1
+        ]
+      }
+    },
+    "instructores": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 2, INSTRUCTORES",
+          "valor": [
+            "Ing. Bernardo Scorciapino",
+            "Dra. Lidia Ana Otero"
+          ]
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "contacto_informes": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 3, INFORMES",
+          "valor": "cursos@fie.undef.edu.ar"
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "documentacion_admision": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§6",
+          "valor": "Copia del DNI o documento equivalente."
+        },
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 3, condiciones solicitadas vía mail",
+          "valor": [
+            "Fotocopia del DNI digital, foto clara o escaneado.",
+            "Comprobante de pago de la cuota."
+          ]
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          1
+        ]
+      }
+    },
+    "medios_pago": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "INFORME",
+          "ubicacion": "p. 3, condiciones solicitadas vía mail",
+          "valor": [
+            "transferencia",
+            "Mercado Pago"
+          ]
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "INFORME_VIGENTE_PARA_DIFUSION",
+        "indices_evidencias": [
+          0
+        ]
+      }
+    },
+    "condicion_pago_propuesta": {
+      "estado": "OBSERVADO_DOCUMENTO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§6",
+          "valor": "Realizar el pago del arancel correspondiente antes del inicio del curso."
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "ANTECEDENTE_NO_CONFIRMADO_VIGENTE",
+        "indices_evidencias": []
+      },
+      "nota": "Condición histórica de la propuesta; el informe vigente no expresa un vencimiento exacto."
+    },
+    "cronograma_propuesta": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§13, fechas vacías",
+          "valor": null
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "recursos_institucionales": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§14, celda vacía",
+          "valor": null
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "cupos": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§15, celda vacía",
+          "valor": null
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "financiamiento": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "§16, celda vacía",
+          "valor": null
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "coordinacion_academica": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "B.1, celdas vacías",
+          "valor": null
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "tutorias_gestion": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "B.2, sin completar",
+          "valor": null
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "planta_docente_propuesta": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "B.3, celdas vacías",
+          "valor": null
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "presupuesto_total": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [
+        {
+          "documento_id": "PROPUESTA",
+          "ubicacion": "B.4, celdas vacías",
+          "valor": null
+        }
+      ],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "organiza": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "actividad_id_institucional": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "edicion_institucional": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "vencimiento_cuota": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "url_pago": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    },
+    "datos_transferencia": {
+      "estado": "NO_INFORMADO",
+      "evidencias": [],
+      "valor_validado": null,
+      "seleccion_para_difusion": {
+        "criterio": "SIN_DATO_PARA_DIFUSION",
+        "indices_evidencias": []
+      }
+    }
+  },
+  "validacion_datos": {
+    "responsable": null,
+    "fecha": null,
+    "resoluciones": []
+  },
+  "habilitado_como_fuente_comunicacional": false,
+  "notas": [
+    "Los resúmenes de fundamentación y objetivos remiten a las transcripciones completas; no reemplazan el contenido original.",
+    "OBSERVADO_DOCUMENTO no equivale a CONFIRMADO_SEU.",
+    "El año 2026 del nombre original y los metadatos del PDF no completa automáticamente las fechas del cuerpo.",
+    "No hay datos de inscriptos ni comprobantes personales en este registro.",
+    "La selección del informe para difusión responde a la confirmación de Juani del 2026-10-07; valor_validado sigue reservado para la revisión institucional del dato y no se completa con esa confirmación general."
+  ]
+}

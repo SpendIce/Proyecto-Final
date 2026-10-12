@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cuestionarios SEU</title>
+<style>
+  :root{
+    --bg:#f8fafc; --panel:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --teal:#0f766e; --teal-soft:#f0fdfa; --amber:#d97706; --amber-soft:#fffbeb;
+    --green:#15803d; --green-soft:#f0fdf4; --red:#dc2626; --slate-soft:#f1f5f9;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b1220; --panel:#111a2b; --ink:#e2e8f0; --muted:#94a3b8; --line:#1f2a3d;
+      --teal:#2dd4bf; --teal-soft:#0f2a2a; --amber:#fbbf24; --amber-soft:#2a2210;
+      --green:#4ade80; --green-soft:#0f2416; --red:#f87171; --slate-soft:#18233a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b1220; --panel:#111a2b; --ink:#e2e8f0; --muted:#94a3b8; --line:#1f2a3d;
+    --teal:#2dd4bf; --teal-soft:#0f2a2a; --amber:#fbbf24; --amber-soft:#2a2210;
+    --green:#4ade80; --green-soft:#0f2416; --red:#f87171; --slate-soft:#18233a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:var(--bg);font-size:15px;line-height:1.5}
+  header{padding:18px 16px 0;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{margin:0 0 2px;font-size:19px}
+  .sub{color:var(--muted);font-size:13px}
+  nav{display:flex;gap:4px;margin-top:12px;overflow-x:auto}
+  nav button{border:0;background:none;padding:9px 12px;font:inherit;font-size:14px;color:var(--muted);
+    border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+  nav button.on{color:var(--teal);border-bottom-color:var(--teal);font-weight:600}
+  nav .count{font-size:11.5px;background:var(--slate-soft);border-radius:10px;padding:1px 7px;margin-left:6px}
+  main{padding:16px}
+  .intro{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+  .intro h2{margin:0 0 4px;font-size:17px}
+  .intro p{margin:6px 0;font-size:14px}
+  .meta{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:10px}
+  .meta label{font-size:12px;color:var(--muted);display:block}
+  input,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%}
+  input:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:-1px;border-color:transparent}
+  .bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
+  .progress{flex:1 1 220px;height:8px;background:var(--slate-soft);border-radius:6px;overflow:hidden}
+  .progress i{display:block;height:100%;background:var(--teal);width:0}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:7px;padding:6px 11px;font:inherit;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--teal);color:var(--teal)}
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+  .toggle{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .saved{font-size:12px;color:var(--muted);min-width:90px;text-align:right}
+  section.theme{margin:18px 0 6px}
+  section.theme>h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 8px}
+  .q{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+  .q[data-st="respondida"]{border-left-color:var(--green)}
+  .q[data-st="parcial"],.q[data-st="nosabe"]{border-left-color:var(--amber)}
+  .q[data-st="derivada"]{border-left-color:var(--teal)}
+  .qh{display:flex;gap:10px;align-items:flex-start}
+  .qid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:700;color:var(--muted);padding-top:3px;white-space:nowrap}
+  .qt{font-weight:600;font-size:15.5px}
+  .why{font-size:13px;color:var(--muted);margin:4px 0 0}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+  .chip{font-size:12px;border-radius:6px;padding:2px 8px;background:var(--slate-soft);color:var(--muted)}
+  .chip.sup{background:var(--amber-soft);color:var(--amber)}
+  .opts{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+  .opt{border:1px dashed var(--line);background:none;color:var(--ink);border-radius:16px;padding:4px 11px;font:inherit;font-size:13px;cursor:pointer}
+  .opt:hover{border-color:var(--teal);color:var(--teal)}
+  .opt.on{border-style:solid;border-color:var(--teal);background:var(--teal-soft);color:var(--teal);font-weight:600}
+  .q textarea{margin-top:10px;min-height:58px;resize:vertical}
+  .status{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;align-items:center}
+  .status button{border:1px solid var(--line);background:none;color:var(--muted);border-radius:6px;padding:3px 9px;font:inherit;font-size:12.5px;cursor:pointer}
+  .status button.on{color:#fff;border-color:transparent}
+  .status button.on[data-v="respondida"]{background:var(--green)}
+  .status button.on[data-v="parcial"],.status button.on[data-v="nosabe"]{background:var(--amber)}
+  .status button.on[data-v="derivada"]{background:var(--teal)}
+  .status button.on[data-v="pendiente"]{background:var(--muted)}
+  .status input{flex:1 1 180px;width:auto;padding:4px 8px;font-size:13px}
+  .hide{display:none!important}
+  .closing{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:18px}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:24px 16px}
+  @media (max-width:640px){ .meta{grid-template-columns:1fr} .qt{font-size:15px} }
+  @media print{
+    header{position:static} nav,.bar .btn,.toggle,.opts,.status button:not(.on){display:none!important}
+    .q{break-inside:avoid} body{background:#fff}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Cuestionarios para la SEU — Agente 1</h1>
+    <div class="sub">Octubre 2026 · los completa Juani en presencia de cada persona · se guardan solos en este navegador</div>
+    <nav id="tabs"></nav>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<footer>Las respuestas se guardan localmente. Para que cuenten como evidencia, descargá el acta (.md) y versionala en <code>Documentos/PoC/Validacion-SEU/</code>.</footer>
+
+<script>
+const CONTEXTO_COMUN = "El Agente 1 prepara borradores de gacetillas, posts, confirmaciones de inscripción, avisos de pago y certificados; nada sale sin la aprobación de la SEU. El 18/11 se presenta funcionando en la mesa final, ante el profesor de la materia, la Dirección de Carrera y la SEU. Estas preguntas son lo que el equipo técnico no puede decidir solo.";
+
+const PERSONAS = [
+{
+  id:"JM", nombre:"Juan Manuel", rol:"Referente SEU · aprobación semántica (Responsable de Gestión del Conocimiento)",
+  proposito:"Conseguir la validación como usuario real antes del 18/11 y resolver las diferencias entre lo que se confirmó el 22/09 y lo que la SEU publica.",
+  temas:[
+    {titulo:"Validación antes de la mesa final (18/11)", qs:[
+      {id:"A1", t:"¿Qué día puede hacer la prueba guiada de pedir una pieza escribiendo en lenguaje natural?",
+       why:"Es la evidencia de uso real que pide la mesa final. La fecha del 25/09 no se concretó. Lleva unos 30 minutos."},
+      {id:"A2", t:"¿Qué día hacemos la sesión de validación con la planilla de puntaje 1 a 4?",
+       why:"Sin esa sesión no se puede decir que el sistema fue validado por usuarios de la SEU."},
+      {id:"A3", t:"¿Cuándo puede devolver la revisión de las 9 muestras que le enviamos el 22/09 (3 gacetillas y 6 posts)?"},
+      {id:"A4", t:"¿Quién de la SEU va a estar en la mesa del 18/11?"},
+      {id:"A5", t:"¿Podemos usar en la demostración una actividad real ya difundida, como el curso NotebookLM Nivel 2?",
+       why:"Mostrar un caso real convence más que datos inventados. No se usan datos de inscriptos.",
+       opts:["Sí","Sí, con otra actividad","No, usar datos ficticios"]},
+    ]},
+    {titulo:"Ejemplos y formato de la gacetilla (pendientes del 22/09)", qs:[
+      {id:"B1", t:"¿Cuándo nos pueden pasar los ejemplos de gacetillas o notas de este año que quedaron prometidos?"},
+      {id:"B2", t:"¿Y ejemplos de posts aprobados para Instagram y LinkedIn?",
+       why:"Con ejemplos aprobados el texto se acerca al estilo de la SEU sin tocar las reglas."},
+      {id:"B3", t:"El borrador de gacetilla hoy sale armado como el mail de FIE Informa (asunto, invitación, cuerpo, fecha, consultas y firma). ¿Esa estructura es la correcta?",
+       opts:["Sí","Sí, con cambios","No"]},
+      {id:"B4", t:"¿Qué encabezado y qué pie lleva la gacetilla?"},
+      {id:"B5", t:"Para la pantalla de TV, ¿se usa el mismo texto que el mail o una versión más corta?",
+       why:"La historia de la gacetilla pide salida para mail y para pantalla de TV.",
+       opts:["Mismo texto","Versión corta","No se usa la pantalla"]},
+    ]},
+    {titulo:"Diferencias entre lo confirmado y lo que se publica", qs:[
+      {id:"C1", t:"En los posts reales aparecen hashtags temáticos (#radio, #vozpropia). ¿Se pueden usar además de las palabras clave confirmadas?",
+       sup:"Supuesto actual: solo #FIE #UNDEF #Ingenieria #Cursos #inscripciones, hasta 5 en Instagram.",
+       opts:["Sí, temáticos permitidos","No, solo palabras clave","Depende de la publicación"]},
+      {id:"C2", t:"En Instagram la SEU escribe «Link de inscripción en la Bio “Actividades de Extensión”». ¿Ese debe ser el texto de cierre?",
+       sup:"Supuesto actual: «link en el perfil», sin la palabra «inscripción».",
+       opts:["Sí, ese texto","El actual está bien","Otro"]},
+      {id:"C3", t:"¿La fecha, la hora y el lugar van dentro del texto del post o en líneas aparte al final?",
+       why:"En líneas aparte el sistema garantiza que los datos sean exactos; dentro del texto los redacta el modelo.",
+       sup:"Supuesto actual: en líneas aparte.",
+       opts:["Dentro del texto","En líneas aparte","Indistinto"]},
+      {id:"C4", t:"¿Se usa literal el eslogan «¡Si es ingeniería, es en la FIE!»?",
+       sup:"Hoy se usa «¡Si es ingeniería, la FIE te espera!».",
+       opts:["Sí, literal","La variante está bien","No usar eslogan"]},
+      {id:"C5", t:"¿La planilla de actividades puede sumar dos columnas: hora y enlace de inscripción?",
+       opts:["Sí","No","Ya están en otro lado"]},
+    ]},
+  ]
+},
+{
+  id:"SM", nombre:"Sebastián Moreira", rol:"Secretario de Extensión · aprobación utilitaria y firma final",
+  proposito:"Cerrar lo que necesita su autorización: certificados, el circuito de aprobación de correos y qué mensajes puede enviar el agente.",
+  temas:[
+    {titulo:"Certificados", qs:[
+      {id:"A1", t:"¿Nos pueden pasar la plantilla institucional de certificado?",
+       why:"El 22/09 se confirmó que existe. Sin ella la demostración usa una plantilla provisoria."},
+      {id:"A2", t:"En los borradores de prueba, ¿podemos usar la imagen de su firma y la del Decano, o mostramos el espacio de firma vacío?",
+       why:"La demostración es ante una mesa. Una firma real en un borrador de prueba puede no ser conveniente.",
+       opts:["Usar las firmas","Espacio vacío","Marca «borrador» sobre la firma"]},
+      {id:"A3", t:"¿De dónde sale el dato de quién aprobó o asistió a una actividad para emitirle el certificado?"},
+      {id:"A4", t:"Hoy, ¿cómo le llega el certificado a cada participante?",
+       opts:["Por mail","Lo descarga","Impreso","Otro"]},
+    ]},
+    {titulo:"Correos a inscriptos", qs:[
+      {id:"B1", t:"¿El correo electrónico es el medio institucional autorizado para mandar confirmaciones y avisos a inscriptos?",
+       opts:["Sí","Sí, con condiciones","No"]},
+      {id:"B2", t:"¿Desde qué casilla deben salir esos correos?",
+       sup:"Supuesto actual: la cuenta técnica del Agente 1, provista por DSI.",
+       opts:["Cuenta del agente","Casilla de la SEU","Otra"]},
+      {id:"B3", t:"¿Quién aprueba la plantilla del correo de confirmación de inscripción?",
+       sup:"Supuesto actual: Juan Manuel aprueba el contenido y usted aprueba el uso."},
+      {id:"B4", t:"¿Acepta que el correo de preinscripción con las instrucciones de pago lo prepare el agente, con las dos aprobaciones, en lugar de redactarlo a mano?",
+       opts:["Sí","No","Más adelante"]},
+    ]},
+    {titulo:"Avisos de pago", qs:[
+      {id:"C1", t:"Para los recordatorios de pago, ¿alcanza con aprobar la plantilla una vez y después aprobar la lista de cada día?",
+       why:"La alternativa es aprobar cada aviso uno por uno.",
+       opts:["Plantilla + lista diaria","Uno por uno"]},
+      {id:"C2", t:"¿Se mandan avisos después del vencimiento de una cuota?",
+       why:"Después del vencimiento el aviso pasa a ser un reclamo de deuda.",
+       sup:"Supuesto actual: no.", opts:["No","Sí"]},
+      {id:"C3", t:"¿Está bien avisar 7 y 2 días antes del vencimiento?",
+       opts:["Sí","Otros plazos"]},
+    ]},
+  ]
+},
+{
+  id:"DC", nombre:"Departamento Cursos Complementarios", rol:"Aux de Curso · inscripciones, pagos y padrón",
+  proposito:"Entender el circuito real de inscripción y pago para que el agente cuente comprobantes y prepare recordatorios sin equivocarse. El agente no cobra ni verifica pagos.",
+  temas:[
+    {titulo:"Inscripción y verificación del pago", qs:[
+      {id:"A1", t:"¿Qué convierte a un preinscripto en inscripto?",
+       sup:"Supuesto actual: la verificación de la Fundación Savio.",
+       opts:["Mandar el comprobante","Verificación de la Fundación","Cambio en el SIU"]},
+      {id:"A2", t:"¿Cómo les avisa la Fundación Savio que verificó un ingreso?",
+       opts:["Por correo","Con un listado","No avisa","Otro"]},
+      {id:"A3", t:"¿Registran los pagos en SIU Guaraní Extensión?",
+       why:"Si el SIU tiene un estado de pago, el agente lo lee de ahí y no hay que cargarlo a mano.",
+       opts:["Sí","No"]},
+      {id:"A4", t:"¿Qué pasa con quien no pagó al empezar el curso?",
+       why:"Solo para saber dónde termina el aviso. El agente no decide bajas."},
+      {id:"A5", t:"Quien responde con el comprobante, ¿tiene que recibir una respuesta automática de «recibido»?",
+       opts:["Sí","No"]},
+    ]},
+    {titulo:"Plan de pago de cada actividad", qs:[
+      {id:"B1", t:"¿Quién carga el plan de pago de cada actividad (cuotas, montos, vencimientos, bonificaciones)?"},
+      {id:"B2", t:"¿Les sirve cargarlo en una pestaña «Plan de pago» de la planilla?",
+       opts:["Sí","No, en otro lugar"]},
+      {id:"B3", t:"Con cuota única, ¿el aviso se calcula hasta la fecha límite de inscripción o hasta el inicio del curso?",
+       opts:["Fecha límite de inscripción","Inicio del curso"]},
+      {id:"B4", t:"Con varias cuotas, ¿cada una tiene su propio vencimiento?",
+       opts:["Sí","No"]},
+      {id:"B5", t:"¿La bonificación para alumnos, personal y egresados FIE es siempre del 100 %?",
+       opts:["Siempre 100 %","Varía por actividad"]},
+      {id:"B6", t:"¿Cómo se acredita que alguien es alumno, personal o egresado FIE?",
+       opts:["Lo declara en la preinscripción","Se valida contra el SIU","Otro"]},
+      {id:"B7", t:"¿El asunto del correo de preinscripción es siempre el mismo formato, como «Pre-Inscripción <actividad>»?",
+       why:"El agente usa el asunto para saber a qué actividad corresponde cada respuesta.",
+       opts:["Sí, estable","No, varía","Se puede fijar"]},
+    ]},
+    {titulo:"Correo del Departamento", qs:[
+      {id:"C1", t:"¿Pueden configurar en cursoscomplementarios@ un filtro que reenvíe al buzón del agente las respuestas con adjunto a la preinscripción?",
+       why:"Así el agente ve los comprobantes sin tener acceso a la casilla del Departamento.",
+       opts:["Sí","No","Hay que consultarlo"]},
+      {id:"C2", t:"¿Cuánto tiempo pueden quedar esas respuestas en el buzón del agente?",
+       sup:"Supuesto actual: hasta el cierre administrativo de la actividad."},
+    ]},
+    {titulo:"Padrón y SIU", qs:[
+      {id:"D1", t:"¿El SIU puede exportar de forma automática y periódica los preinscriptos de una actividad?",
+       opts:["Sí","No","No sé"]},
+      {id:"D2", t:"¿Quién administra el padrón en SIU Guaraní y en Guaraní Extensión?"},
+      {id:"D3", t:"¿Cómo se llama en el SIU el estado de «inscripto confirmado»?"},
+      {id:"D4", t:"¿Cada inscripción tiene un número o código propio en el SIU?",
+       opts:["Sí","No"]},
+    ]},
+    {titulo:"Datos de las actividades", qs:[
+      {id:"E1", t:"Cuando la propuesta y el informe de una actividad no coinciden, ¿quién decide qué dato vale?"},
+      {id:"E2", t:"¿Cada actividad, y cada edición, tiene un código propio?",
+       opts:["Sí","No"]},
+      {id:"E3", t:"En NotebookLM Nivel 2, ¿en cuántas clases o semanas se reparten las 24 horas?"},
+      {id:"E4", t:"En NotebookLM Nivel 2, ¿qué porcentaje de bonificación corresponde?",
+       why:"El informe nombra las categorías bonificadas pero no el porcentaje."},
+      {id:"E5", t:"En NotebookLM Nivel 2, ¿las fechas del informe (inscripción hasta el 29/09, inicio el 05/10, fin el 04/12) son de 2026?",
+       why:"El informe no dice el año y no lo completamos por suposición.",
+       opts:["Sí, 2026","No"]},
+    ]},
+  ]
+},
+];
+
+const ESTADOS = [["pendiente","Pendiente"],["respondida","Respondida"],["parcial","Parcial"],["nosabe","No sabe"],["derivada","Derivar a…"]];
+const KEY = "cuestionarios-seu-2026-10";
+let datos = {}; let tab = PERSONAS[0].id; let soloPend = false;
+
+function cargar(){ try{ datos = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ datos = {}; } }
+let tGuardar;
+function guardar(){
+  clearTimeout(tGuardar);
+  tGuardar = setTimeout(()=>{
+    const el = document.getElementById("saved");
+    try{ localStorage.setItem(KEY, JSON.stringify(datos)); if(el) el.textContent = "Guardado " + new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}); }
+    catch(e){ if(el) el.textContent = "Sin guardado local: exportá"; }
+  }, 250);
+}
+const P = id => (datos[id] ||= {meta:{fecha:"",presentes:""}, r:{}, extra:""});
+const R = (pid,qid) => (P(pid).r[qid] ||= {estado:"pendiente", texto:"", opt:"", deriva:""});
+const todas = p => p.temas.flatMap(t => t.qs);
+const avance = p => { const qs = todas(p); const n = qs.filter(q => R(p.id,q.id).estado !== "pendiente").length; return [n, qs.length]; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function renderTabs(){
+  document.getElementById("tabs").innerHTML = PERSONAS.map(p => {
+    const [n,t] = avance(p);
+    return `<button class="${p.id===tab?"on":""}" data-tab="${p.id}">${esc(p.nombre)}<span class="count">${n}/${t}</span></button>`;
+  }).join("");
+}
+
+function render(){
+  renderTabs();
+  const p = PERSONAS.find(x => x.id === tab), d = P(p.id), [n,t] = avance(p);
+  let h = `<div class="intro"><h2>${esc(p.nombre)}</h2><div class="sub">${esc(p.rol)}</div>
+    <p><b>Para qué:</b> ${esc(p.proposito)}</p><p class="sub">${esc(CONTEXTO_COMUN)}</p>
+    <p class="sub">Las respuestas parciales y los «no sé» también sirven: mejor marcarlos que saltear la pregunta.</p>
+    <div class="meta"><div><label>Fecha de la reunión</label><input type="date" data-meta="fecha" value="${esc(d.meta.fecha)}"></div>
+    <div><label>Presentes</label><input data-meta="presentes" placeholder="Nombres y roles" value="${esc(d.meta.presentes)}"></div></div></div>
+    <div class="bar"><div class="progress" title="${n} de ${t}"><i style="width:${t?100*n/t:0}%"></i></div>
+    <label class="toggle"><input type="checkbox" id="solo" ${soloPend?"checked":""} style="width:auto"> Solo pendientes</label>
+    <button class="btn primary" data-act="md">Descargar acta (.md)</button>
+    <button class="btn" data-act="json">Exportar todo (.json)</button>
+    <button class="btn" data-act="import">Importar</button>
+    <span class="saved" id="saved"></span></div>`;
+  for(const tema of p.temas){
+    h += `<section class="theme"><h3>${esc(tema.titulo)}</h3>`;
+    for(const q of tema.qs){
+      const r = R(p.id,q.id), oculto = soloPend && r.estado !== "pendiente";
+      h += `<div class="q ${oculto?"hide":""}" data-st="${r.estado}" data-q="${q.id}">
+        <div class="qh"><span class="qid">${p.id}-${q.id}</span><div><div class="qt">${esc(q.t)}</div>
+        ${q.why?`<p class="why">${esc(q.why)}</p>`:""}
+        ${q.sup?`<div class="chips"><span class="chip sup">${esc(q.sup)}</span></div>`:""}</div></div>
+        ${q.opts?`<div class="opts">${q.opts.map(o=>`<button class="opt ${r.opt===o?"on":""}" data-opt="${esc(o)}">${esc(o)}</button>`).join("")}</div>`:""}
+        <textarea data-txt placeholder="Respuesta, en sus palabras">${esc(r.texto)}</textarea>
+        <div class="status">${ESTADOS.map(([v,l])=>`<button data-v="${v}" class="${r.estado===v?"on":""}">${l}</button>`).join("")}
+        <input data-deriva class="${r.estado==="derivada"?"":"hide"}" placeholder="¿A quién?" value="${esc(r.deriva)}"></div></div>`;
+    }
+    h += `</section>`;
+  }
+  h += `<div class="closing"><b>¿Algo más?</b><p class="sub" style="margin:4px 0 8px">¿Hay algo que no preguntamos y deberíamos saber?</p>
+    <textarea data-extra placeholder="Notas libres">${esc(d.extra)}</textarea></div>`;
+  document.getElementById("main").innerHTML = h;
+}
+
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if(!b) return; tab = b.dataset.tab; render(); scrollTo(0,0);
+});
+const main = document.getElementById("main");
+main.addEventListener("click", e => {
+  const card = e.target.closest(".q"), p = PERSONAS.find(x => x.id === tab);
+  if(e.target.matches("[data-act=md]")) return descargar(`acta-${p.id}-${hoy()}.md`, acta(p), "text/markdown");
+  if(e.target.matches("[data-act=json]")) return descargar(`cuestionarios-seu-${hoy()}.json`, JSON.stringify(datos,null,2), "application/json");
+  if(e.target.matches("[data-act=import]")) return importar();
+  if(!card) return;
+  const r = R(tab, card.dataset.q);
+  if(e.target.matches("[data-opt]")){
+    r.opt = r.opt === e.target.dataset.opt ? "" : e.target.dataset.opt;
+    if(r.opt && r.estado === "pendiente") r.estado = "respondida";
+    guardar(); render(); return;
+  }
+  if(e.target.matches(".status button")){ r.estado = e.target.dataset.v; guardar(); render(); }
+});
+main.addEventListener("input", e => {
+  const card = e.target.closest(".q");
+  if(e.target.matches("[data-meta]")) P(tab).meta[e.target.dataset.meta] = e.target.value;
+  else if(e.target.matches("[data-extra]")) P(tab).extra = e.target.value;
+  else if(card && e.target.matches("[data-txt]")){
+    const r = R(tab, card.dataset.q); r.texto = e.target.value;
+    if(r.texto.trim() && r.estado === "pendiente"){ r.estado = "respondida"; card.dataset.st = "respondida";
+      card.querySelectorAll(".status button").forEach(b => b.classList.toggle("on", b.dataset.v === "respondida")); renderTabs(); }
+  }
+  else if(card && e.target.matches("[data-deriva]")) R(tab, card.dataset.q).deriva = e.target.value;
+  guardar();
+});
+main.addEventListener("change", e => { if(e.target.id === "solo"){ soloPend = e.target.checked; render(); } });
+
+function hoy(){ return new Date().toISOString().slice(0,10); }
+function acta(p){
+  const d = P(p.id), [n,t] = avance(p), et = Object.fromEntries(ESTADOS);
+  let s = `# Acta de cuestionario — ${p.nombre}\n\n- **Rol:** ${p.rol}\n- **Fecha de la reunión:** ${d.meta.fecha || "(sin fecha)"}\n- **Presentes:** ${d.meta.presentes || "(sin registrar)"}\n- **Registró:** Juani, en presencia de la persona consultada\n- **Avance:** ${n} de ${t} preguntas con respuesta o estado\n\n> Respuestas registradas durante la reunión. Valen como \`CONFIRMADO_SEU\` por acta de reunión (criterio del 22/09). Lo marcado como parcial, «no sabe» o derivado sigue abierto.\n`;
+  for(const tema of p.temas){
+    s += `\n## ${tema.titulo}\n`;
+    for(const q of tema.qs){
+      const r = R(p.id,q.id);
+      s += `\n### ${p.id}-${q.id} — ${q.t}\n\n- **Estado:** ${et[r.estado]}${r.estado==="derivada"&&r.deriva?` → ${r.deriva}`:""}\n`;
+      if(q.sup) s += `- **Supuesto previo:** ${q.sup.replace(/^Supuesto actual:\s*/,"")}\n`;
+      if(r.opt) s += `- **Opción elegida:** ${r.opt}\n`;
+      s += `- **Respuesta:** ${r.texto.trim() ? r.texto.trim().replace(/\n/g,"\n  ") : "—"}\n`;
+    }
+  }
+  s += `\n## Otros comentarios\n\n${d.extra.trim() || "—"}\n`;
+  return s;
+}
+function descargar(nombre, contenido, tipo){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([contenido], {type:tipo+";charset=utf-8"}));
+  a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function importar(){
+  const i = document.createElement("input"); i.type = "file"; i.accept = "application/json";
+  i.onchange = () => { const f = i.files[0]; if(!f) return;
+    f.text().then(t => { try{ datos = JSON.parse(t); guardar(); render(); }catch(e){ document.getElementById("saved").textContent = "Archivo inválido"; } }); };
+  i.click();
+}
+cargar(); render();
+</script>
+</body>
+</html>

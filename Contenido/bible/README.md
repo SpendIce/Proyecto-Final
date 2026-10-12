@@ -5,7 +5,7 @@ Usar los Markdown como working sources para busqueda y lectura agentica; conserv
 | PDF | Markdown | Paginas | Palabras |
 |---|---|---:|---:|
 | `PROYECTO-FIE 2026-2027 - Cicerchia César.pdf` | `PROYECTO-FIE 2026-2027 - Cicerchia Cesar.md` | 20 | 6405 |
-| `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf` | `Procesos y Agentes.md` | 169 | 34151 |
+| `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).pdf` | `Procesos y Agentes.md` | 169 | 42811 |
 | `Correo de Facultad de Ingeniería del Ejército - Proyecto Agentes IA.pdf` | `Correo de Facultad de Ingenieria del Ejercito - Proyecto Agentes IA.md` | 3 | 933 |
 | `mailinstitucional.pdf` | `mailinstitucional.md` | 3 | 0 |
 | `ANEXO 2 - Planilla de control de impacto y repercusiones Redes sociales FIE (1) IA.xlsx.pdf` | `ANEXO 2 - Planilla de control de impacto y repercusiones Redes sociales FIE.md` | — (planilla) | ~1091 filas |
@@ -18,6 +18,12 @@ Nota (2026-08-18): se incorporaron dos documentos nuevos a la bible.
 2. `ANEXO 2 - Planilla de control de impacto y repercusiones Redes sociales FIE (1) IA.xlsx.pdf` (nuevo). Contiene: (a) el roadmap Año1/Año2 por TRL, ya documentado en `Agentes/arquitectura_multiagente_experto.md`; (b) una historia de usuario SMART detallada para el Agente 5 (extraccion de RRSS); (c) un registro historico real de publicaciones FIE 2025-2026 con el esquema de columnas exacto que exige el formato ANEXO 2. Resumen curado en `Contenido/bible/ANEXO 2 - Planilla de control de impacto y repercusiones Redes sociales FIE.md` (el PDF conserva el detalle fila por fila).
 
 Nota (2026-09-08): `Procesos y Agentes.md` se reemplazo por el export Markdown nativo del documento vivo, en lugar de la extraccion `pdftotext` anterior.
+
+Nota (2026-09-29): se incorporo la exportacion recibida como `Procesos y Agentes SEU - FIE con Backlog técnico (Jira)(1).md` a `Procesos y Agentes.md`. El diff trae ajustes de estructura (encabezados de secciones reinsertados) y del indice/paginacion del material DSI2. En las secciones operativas de Agente 1 revisadas no se identificaron cambios sustantivos de alcance o criterios; el registro detallado esta en `notas/bible-sync-2026-09-29.md`. El export Markdown no permite identificar resaltados amarillos del documento vivo.
+
+Nota (2026-10-07): se incorporo la exportacion `Procesos y Agentes SEU - FIE con Backlog técnico (Jira)(2).md` a `Procesos y Agentes.md`. Frente a la working source vigente, el diff textual agrega encabezados de seccion y reexpresa las 18 imagenes como datos base64; las imagenes coinciden byte a byte con los assets locales. No se detectaron cambios de requisitos, alcance, HU, DoD ni criterios operativos de A1. Detalle: `notas/bible-sync-2026-10-07.md`. Se conservaron referencias a los assets locales para mantener la fuente consultable.
+
+Nota (2026-10-12): se sincronizo la exportacion recibida como `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).md`. El cambio textual respecto de la version del 07/10 agrega encabezados de seccion (incluidos los apartados de Agentes 2-5); no modifica requisitos, HU, DoD ni criterios de A1. La exportacion vuelve a incluir las 18 imagenes en base64; se mantuvieron las referencias a los assets locales para que el Markdown siga siendo legible y buscable. Se elimino del mirror la repeticion inmediata del titulo LÉAME. Se documentaron las HU A2-A5 y sus implicancias posibles para A1 en `Agentes/extension_bot_experto.md`. Detalle: `notas/bible-sync-2026-10-12.md`.
 
 **Que cambio.** Estructura, no definiciones. La extraccion previa tenia **1 heading** y 163 filas de tabla rotas; el export tiene **627 headings** y 378 filas de tabla bien formadas. Se recuperan **~3.121 palabras** (31.030 -> 34.151) que `pdftotext` habia perdido o mezclado, casi todas contenido tabular: las matrices RACI de los nueve procesos, la Matriz de Definicion Tecnica de Procesos, la Matriz de Interacciones y Dependencias, la tabla STRIDE de ciberseguridad y la seccion `Notas Diseno - AI 1 / Diseno de Sistemas Informaticos 2` del Agente 1 (requisitos funcionales y no funcionales, CU01-CU14, CP01-CP22, EP01-EP04, hitos con costos).
 

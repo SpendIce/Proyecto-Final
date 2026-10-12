@@ -57,7 +57,7 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 4. **Generacion de correos institucionales** — redacta mails formales
 5. **Confirmaciones automaticas de inscripcion** — genera y envia emails de confirmacion al registrarse una inscripcion (trigger automatico)
 6. **Procesamiento de documentos** — lee archivos PDF/DOCX para producir resumenes o reutilizar contenido en nuevas piezas
-7. **Interaccion en lenguaje natural (uso interno)** — permite al personal de la SEU interactuar con el agente mediante un email que dispara una invitacion a chat; Google Sheets almacena los datos que el sistema requiera
+7. **Interaccion en lenguaje natural (uso interno)** — permite al personal de la SEU ingresar un prompt en una interfaz simple basada en Sheet o Doc y recibir una respuesta util; Google Sheets almacena los datos que el sistema requiera
 8. **Generacion de certificados (con validacion)** — genera PDFs de certificados a partir de plantilla; requiere validacion humana obligatoria antes de emision
 9. **Comunicaciones para publicos externos especificos** — redacta piezas para egresados, patrocinadores, autoridades o comunidad externa cuando se encuadran en Proceso 4
 10. **Comunicados de fechas fijas** — prepara borradores para dias patrios, aniversarios y eventos institucionales calendarizados
@@ -65,7 +65,7 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 #### Funciones con limite
 | Funcion | Limite |
 |---------|--------|
-| Chat en lenguaje natural | SOLO uso interno (Secretaria, Coordinadores, Docentes). Se inicia mediante email con invitacion a chat. NO es chatbot publico. |
+| Interaccion en lenguaje natural | SOLO uso interno (Secretaria, Coordinadores, Docentes). La bible especifica un prompt en Sheet o Doc y una respuesta usable; NO es chatbot publico. |
 | Procesamiento de archivos | Solo para generar contenido o resumenes. No para analisis. |
 | Certificados automaticos | Generacion: A1. Validacion: humano. Registro: Proceso 5. |
 | Publicacion automatizada | Solo programacion o preparacion de borradores; la publicacion oficial requiere validacion humana previa. |
@@ -156,7 +156,7 @@ La version vigente de `Procesos y Agentes SEU - FIE con Backlog técnico (Jira).
 - Registro de envio
 
 **HU-013 — Interaccion lenguaje natural**
-- Interfaz simple iniciada por email con invitacion a chat
+- Interfaz simple (prompt en Sheet o Doc)
 - Google Sheets registra los datos que el sistema requiera
 - Respuesta generada usable
 
@@ -291,6 +291,18 @@ A1 es el **hub de comunicacion** del sistema: recibe insumos de los demas agente
 | Agente 4 (A4) | Consultas sobre propuestas institucionales y solicitudes de materiales de orientacion; A1 envia material de vuelta a A4 para que resuelva dichas consultas con futuros estudiantes | Proceso 5 y Proceso 9 — Cursos y Atencion |
 | Agente 5 (A5) | Analiticas de contenidos publicados para considerar durante la generacion; limpieza/enriquecimiento de texto de RRSS | Proceso 8 — Mejora Continua |
 
+### HU de A2-A5 con posible impacto en A1
+La bible describe estas historias como capacidades de otros agentes. Sus menciones a una conexion con A1 son dependencias funcionales del P100; no definen por si solas una API, esquema de datos, permisos ni automatizacion aprobada. A1 puede consumir insumos para preparar borradores, conservando su alcance de comunicacion institucional y la validacion humana.
+
+| Agente e historias | Capacidad documentada | Implicancia posible para A1 |
+|--------------------|----------------------|-----------------------------|
+| **A2 — HU-030, HU-031, HU-032** | Ingesta y catalogacion de actividades; recuperacion de memoria institucional; consolidacion de evidencias para acreditacion. | A1 podria recibir hechos historicos, efemerides o evidencia ya recuperada para redactar piezas. HU-032 es principalmente un reporte auditable; no establece que A1 lo publique ni lo transforme automaticamente. |
+| **A3 — HU-040, HU-041** | Deteccion de eventos academicos y reportes de participacion; el perfil de A3 tambien contempla registrar eventos en Sheets. | Los datos aprobados de un evento pueden alimentar gacetillas y posts de A1; los reportes posteriores podrian servir para una resena. La bible menciona triggers hacia A1, pero no fija campos, estados ni responsables de validacion del alta. |
+| **A4 — HU-050, HU-051, HU-052** | Consulta de oferta, respuestas a preguntas frecuentes y ventanilla virtual para egresados. | A4 podria pedir a A1 material institucional complejo o especifico para responder consultas. La salida de A1 sigue siendo contenido sujeto a revision; no convierte a A1 en canal de atencion externa ni habilita respuestas publicas automaticas desde A1. |
+| **A5 — HU-020 a HU-024 y HU-025** | Extraccion y normalizacion de RRSS, ANEXO 2, ejecucion programada, alertas, dashboards y metricas internas de cursos/eventos. | Los datos de impacto o alertas de vacantes podrian orientar borradores de A1, con fuente y periodo identificados. La extraccion, analitica, dashboards y decision de iniciar una campana permanecen en A5 y en los responsables humanos. |
+
+**Puntos pendientes de contrato:** acordar para cada flujo el origen autorizado, campos minimos, estado de validacion, responsable y mecanismo de entrega antes de automatizarlo. La bible contiene dos ambiguedades de identificacion que conviene resolver al ordenar el backlog: **HU-025** aparece para metricas internas de A5 y tambien para integridad CONEAU; **HU-015** aparece tanto en A1 (certificados/triggers) como en A3 (ceremonial y protocolo). Estos ID no deben usarse como clave unica entre epicas sin aclarar su alcance.
+
 ---
 
 ### Flujo de orquestacion principal (Flujo 1 — Actividad → Comunicacion)
@@ -346,7 +358,7 @@ Ademas del flujo automatico, el personal de la Secretaria de Extension puede hac
 | **Seguridad** | Credenciales en variables de entorno (.env), acceso por rol |
 | **Disponibilidad** | Scheduler, reintentos automaticos |
 | **Trazabilidad** | Logs de ejecucion y resultados (CONEAU) |
-| **Usabilidad** | Interaccion simple via email con invitacion a chat; Sheets conserva los datos requeridos por el sistema |
+| **Usabilidad** | Interaccion simple mediante prompt en Sheet o Doc; Sheets conserva los datos requeridos por el sistema |
 | **Hallucinations** | El agente NO debe inventar informacion — validacion humana obligatoria |
 
 ---

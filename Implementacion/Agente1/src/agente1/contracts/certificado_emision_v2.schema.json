@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:p100:agente1:certificado-emision:v2",
+  "title": "Entrada candidata HU-014",
+  "type": "object",
+  "additionalProperties": false,
+  "x-contract-version": "certificado_emision_v2",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "description": "Contrato técnico offline. No constituye autorización de emisión ni criterio aprobado por SEU. La plantilla institucional y la firma digital quedan PENDIENTE_SEU. v2 agrega los campos optativos del circuito de la línea descriptiva (#74): la línea redactada por el modelo y aprobada una vez por actividad por el Form de decisiones, más las variables del registro (id_actividad, modalidad, carga_horaria).",
+  "required": [
+    "id_certificado",
+    "nombre_titular",
+    "documento_titular",
+    "tipo_certificado",
+    "actividad",
+    "fecha",
+    "organiza",
+    "firmante"
+  ],
+  "properties": {
+    "id_certificado": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"},
+    "nombre_titular": {"type": "string", "minLength": 1},
+    "documento_titular": {"type": "string", "minLength": 1},
+    "tipo_certificado": {"type": "string", "enum": ["ASISTENCIA", "APROBACION"]},
+    "actividad": {"type": "string", "minLength": 1},
+    "fecha": {"type": "string", "minLength": 1},
+    "organiza": {"type": "string", "minLength": 1},
+    "firmante": {"type": "string", "minLength": 1},
+    "id_actividad": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"},
+    "linea_descriptiva": {"type": ["string", "null"], "minLength": 1},
+    "modalidad": {"type": ["string", "null"], "minLength": 1},
+    "carga_horaria": {"type": ["string", "null"], "minLength": 1}
+  }
+}

@@ -30,6 +30,13 @@ la persona no los escribe ni los elige. El catálogo vigente:
 - `lote` — aprobación de un lote (incluye la habilitación de envíos de una
   actividad): `apruebo_lote`, decisión utilitaria del Coordinador. El objeto
   es el id del lote.
+- `linea_descriptiva` — aprobación de la línea descriptiva de una actividad
+  para el certificado de HU-014 (#74), una decisión por rol igual que la
+  plantilla: `apruebo_semantica` o `apruebo_utilitaria`. El objeto es
+  `linea_descriptiva-<id_actividad>-<hash>` (los `:` de la notación del
+  ticket no entran en `ID_RE`; la forma elegida la deriva
+  `linea_descriptiva.objeto_id_linea_descriptiva` y está documentada en el
+  README para que #75 la consuma igual).
 
 El rol que cada decisión exige es parte del catálogo (`ROLES_POR_DECISION`)
 y sigue el acta del 22/09: semántica al RGC, utilitaria al Coordinador. La
@@ -129,6 +136,7 @@ COL_DECISION = 4
 TIPO_PUBLICACION = "publicacion"
 TIPO_PLANTILLA = "plantilla"
 TIPO_LOTE = "lote"
+TIPO_LINEA_DESCRIPTIVA = "linea_descriptiva"
 
 DECISION_PUBLIQUE = "publique"
 DECISION_DESCARTE = "descarte"
@@ -142,13 +150,18 @@ DECISIONES_POR_TIPO: dict[str, frozenset[str]] = {
         {DECISION_APRUEBO_SEMANTICA, DECISION_APRUEBO_UTILITARIA}
     ),
     TIPO_LOTE: frozenset({DECISION_APRUEBO_LOTE}),
+    TIPO_LINEA_DESCRIPTIVA: frozenset(
+        {DECISION_APRUEBO_SEMANTICA, DECISION_APRUEBO_UTILITARIA}
+    ),
 }
 TIPOS_DECISION = frozenset(DECISIONES_POR_TIPO)
 
 # Rol del padrón que cada (tipo, decisión) exige. La publicación es la
 # validación de la difusión y la puede dejar cualquiera de los dos roles
 # designados; las aprobaciones de plantilla son una por rol; el lote es
-# decisión utilitaria del Coordinador (habilita envíos de la actividad).
+# decisión utilitaria del Coordinador (habilita envíos de la actividad); la
+# línea descriptiva del certificado sigue el mismo circuito que la plantilla
+# (una aprobación por rol, #74).
 ROLES_POR_DECISION: dict[tuple[str, str], frozenset[str]] = {
     (TIPO_PUBLICACION, DECISION_PUBLIQUE): ROLES_APROBACION,
     (TIPO_PUBLICACION, DECISION_DESCARTE): ROLES_APROBACION,
@@ -159,6 +172,12 @@ ROLES_POR_DECISION: dict[tuple[str, str], frozenset[str]] = {
         {ROL_APROBACION_UTILITARIA}
     ),
     (TIPO_LOTE, DECISION_APRUEBO_LOTE): frozenset({ROL_APROBACION_UTILITARIA}),
+    (TIPO_LINEA_DESCRIPTIVA, DECISION_APRUEBO_SEMANTICA): frozenset(
+        {ROL_APROBACION_SEMANTICA}
+    ),
+    (TIPO_LINEA_DESCRIPTIVA, DECISION_APRUEBO_UTILITARIA): frozenset(
+        {ROL_APROBACION_UTILITARIA}
+    ),
 }
 
 # Resultados y códigos de rechazo del registro. `rechazada` lleva siempre
@@ -593,8 +612,9 @@ class EnlacesDecisiones:
     def enlaces_para(self, *, tipo: str, objeto_id: str) -> dict[str, str]:
         """Un link por decisión del catálogo del tipo.
 
-        Para `plantilla` devuelve el link semántico y el utilitario de la
-        misma versión; para `lote`, el único link de aprobación.
+        Para `plantilla` y `linea_descriptiva` devuelve el link semántico y
+        el utilitario del mismo objeto; para `lote`, el único link de
+        aprobación.
         """
 
         if tipo not in DECISIONES_POR_TIPO:
@@ -854,6 +874,7 @@ __all__ = [
     "ROLES_POR_DECISION",
     "RegistroDecisiones",
     "ResultadoDecision",
+    "TIPO_LINEA_DESCRIPTIVA",
     "TIPO_LOTE",
     "TIPO_PLANTILLA",
     "TIPO_PUBLICACION",

@@ -677,20 +677,35 @@ def test_pdf_es_determinista_tiene_estructura_minima_y_escapa(tmp_path: Path):
 def test_recursos_hu014_son_versionados_provisionales_y_offline():
     contrato = json.loads(
         files("agente1")
-        .joinpath("contracts", "certificado_emision_v1.schema.json")
+        .joinpath("contracts", "certificado_emision_v2.schema.json")
         .read_text(encoding="utf-8")
     )
     plantilla = (
         files("agente1")
-        .joinpath("prompts", "certificado_provisional_v1.txt")
+        .joinpath("prompts", "certificado_provisional_v2.txt")
         .read_text(encoding="utf-8")
     )
-    assert contrato["x-contract-version"] == "certificado_emision_v1"
+    assert contrato["x-contract-version"] == "certificado_emision_v2"
     assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
     assert contrato["properties"]["tipo_certificado"]["enum"] == [
         "ASISTENCIA",
         "APROBACION",
     ]
-    assert "TEMPLATE_VERSION: certificado_provisional_v1" in plantilla
+    # v2 declara los campos optativos del circuito de la línea (#74).
+    for campo in (
+        "id_actividad",
+        "linea_descriptiva",
+        "modalidad",
+        "carga_horaria",
+    ):
+        assert campo in contrato["properties"]
+        assert campo not in contrato["required"]
+    assert "TEMPLATE_VERSION: certificado_provisional_v2" in plantilla
     assert "PENDIENTE_SEU" in plantilla
     assert MARCADOR_BORRADOR in plantilla
+    # La v1 queda como artefacto histórico del camino provisional.
+    assert (
+        files("agente1")
+        .joinpath("contracts", "certificado_emision_v1.schema.json")
+        .is_file()
+    )

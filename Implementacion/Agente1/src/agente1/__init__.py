@@ -32,12 +32,15 @@ Guía rápida de módulos:
 - `canal_form`                HU-013, adapter del canal de pedidos por Google
                               Form con padrón de roles y aviso por Gmail (#71).
 - `decisiones_form`           HU-013, registro de decisiones por el segundo
-                              Form (publicación, plantilla y lote) con padrón
-                              de roles y auditoría append-only (#72).
+                              Form (publicación, plantilla, lote y línea
+                              descriptiva) con padrón de roles y auditoría
+                              append-only (#72, #74).
 - `pagos`                     HU-012, corrida de control de pagos (offline).
 - `recordatorios`             HU-012, circuito por lote de `recordatorio_pago`.
 - `instrucciones_pago`        HU-012, builders de `instrucciones_pago` (D8) y
                               de la confirmación de inscripción por pago (D9).
+- `linea_descriptiva`         HU-014, línea descriptiva del certificado con
+                              gates y aprobación una vez por actividad (#74).
 - `buzon`                     puerto del buzón propio del agente (ADR 0004).
 """
 

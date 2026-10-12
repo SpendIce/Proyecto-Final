@@ -51,6 +51,7 @@ from agente1.decisiones_form import (
     PROCESADAS_NOMBRE,
     RegistroDecisiones,
     ResultadoDecision,
+    TIPO_LINEA_DESCRIPTIVA,
     TIPO_LOTE,
     TIPO_PLANTILLA,
     TIPO_PUBLICACION,
@@ -787,6 +788,88 @@ def test_lote_registra_la_aprobacion_que_habilita_envios(
     assert resultado.rol == ROL_APROBACION_UTILITARIA
     pendiente = _pendientes(tmp_path)[0]
     assert pendiente["detalle"]["actividad"] == "SYN-001"
+
+
+def test_linea_descriptiva_registra_las_dos_aprobaciones_por_rol(
+    tmp_path: Path,
+) -> None:
+    """#74: la línea del certificado se aprueba una vez por actividad con el
+    mismo par de decisiones que una plantilla —la semántica del RGC y la
+    utilitaria del Coordinador— sobre el objeto
+    `linea_descriptiva-<id_actividad>-<hash>`."""
+
+    objeto = "linea_descriptiva-SYN-001-" + "a" * 64
+    _registro(tmp_path).declarar_pendiente(
+        tipo=TIPO_LINEA_DESCRIPTIVA,
+        objeto_id=objeto,
+        detalle={"id_actividad": "SYN-001", "hu": "hu_014"},
+    )
+    canal, _ = _canal(
+        tmp_path,
+        values=[
+            fila_decision(
+                correo=CORREO_RGC,
+                tipo=TIPO_LINEA_DESCRIPTIVA,
+                objeto=objeto,
+                decision=DECISION_APRUEBO_SEMANTICA,
+                marca="2026-10-11 09:00:00",
+            ),
+            fila_decision(
+                correo=CORREO_COORD,
+                tipo=TIPO_LINEA_DESCRIPTIVA,
+                objeto=objeto,
+                decision=DECISION_APRUEBO_UTILITARIA,
+                marca="2026-10-11 09:05:00",
+            ),
+        ],
+    )
+    resultados = canal.atender()
+    assert [r.resultado for r in resultados] == ["registrada", "registrada"]
+    assert {
+        (linea["rol"], linea["decision"]) for linea in _procesadas(tmp_path)
+    } == {
+        (ROL_APROBACION_SEMANTICA, DECISION_APRUEBO_SEMANTICA),
+        (ROL_APROBACION_UTILITARIA, DECISION_APRUEBO_UTILITARIA),
+    }
+
+
+@pytest.mark.parametrize(
+    ("correo", "decision", "rol_esperado", "codigo"),
+    [
+        # El catálogo de la línea no admite «publique» ni «apruebo_lote».
+        (CORREO_RGC, DECISION_PUBLIQUE, ROL_APROBACION_SEMANTICA, "decision_fuera_de_catalogo"),
+        (CORREO_COORD, DECISION_APRUEBO_LOTE, ROL_APROBACION_UTILITARIA, "decision_fuera_de_catalogo"),
+        # La semántica no la da el Coordinador ni la utilitaria el RGC.
+        (CORREO_COORD, DECISION_APRUEBO_SEMANTICA, ROL_APROBACION_UTILITARIA, "rol_no_corresponde"),
+        (CORREO_RGC, DECISION_APRUEBO_UTILITARIA, ROL_APROBACION_SEMANTICA, "rol_no_corresponde"),
+    ],
+)
+def test_linea_descriptiva_rechaza_decision_o_rol_que_no_corresponde(
+    tmp_path: Path,
+    correo: str,
+    decision: str,
+    rol_esperado: str,
+    codigo: str,
+) -> None:
+    objeto = "linea_descriptiva-SYN-001-" + "b" * 64
+    _registro(tmp_path).declarar_pendiente(
+        tipo=TIPO_LINEA_DESCRIPTIVA, objeto_id=objeto
+    )
+    canal, _ = _canal(
+        tmp_path,
+        values=[
+            fila_decision(
+                correo=correo,
+                tipo=TIPO_LINEA_DESCRIPTIVA,
+                objeto=objeto,
+                decision=decision,
+            )
+        ],
+    )
+    (resultado,) = canal.atender()
+    assert resultado.resultado == "rechazada"
+    assert resultado.rechazo_codigo == codigo
+    assert resultado.rol == rol_esperado
 
 
 # --- Circuito completo: pedido -> correo con links -> decisión ----------------

@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Referencia de charla — Dirección (Cicerchia) y DSI (Vera Batista) · Agente 1 · 2026-09-23</title>
+<style>
+  :root{
+    --papel:#FFFFFF; --tinta:#1B2A41; --tinta2:#33465F; --gris:#6B7A8D;
+    --linea:#DCD6CB; --azul:#2C5282; --azul-claro:#EDF2F9; --ambar:#B87D22;
+    --ambar-claro:#FCF3E1; --rojo:#9B2C2C; --rojo-claro:#FBEDEA;
+    --verde:#2F6B4F; --verde-claro:#EDF5F0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#EDEDEA;font-family:"Noto Sans","Liberation Sans",sans-serif;
+       color:var(--tinta);font-size:14.5px;line-height:1.45;padding-bottom:40px}
+  .hoja{max-width:1100px;background:var(--papel);padding:40px 52px;margin:0 auto 20px;
+        box-shadow:0 1px 4px rgba(0,0,0,.18)}
+  .membrete{display:flex;justify-content:space-between;align-items:flex-start;
+            border-bottom:2.5px solid var(--tinta);padding-bottom:11px;margin-bottom:18px}
+  .membrete .org{font-size:12.5px;font-weight:700;letter-spacing:.09em;line-height:1.65;
+                 text-transform:uppercase}
+  .membrete .doc{text-align:right;font-size:11.5px;color:var(--gris);line-height:1.6}
+  h1{font-size:23px;margin-bottom:4px}
+  .sub{color:var(--tinta2);font-size:13.5px;margin-bottom:14px}
+  h2{font-size:15.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--azul);
+     border-bottom:1.5px solid var(--linea);padding-bottom:5px;margin:30px 0 12px;
+     display:flex;justify-content:space-between;align-items:baseline}
+  h2 .quien{font-size:11px;letter-spacing:.05em;color:var(--gris);text-transform:none}
+  h3{font-size:14px;margin:14px 0 6px;color:var(--tinta)}
+  .intro{background:var(--azul-claro);border-left:4px solid var(--azul);
+         padding:12px 16px;font-size:13.5px;color:var(--tinta2)}
+  table{width:100%;border-collapse:collapse;font-size:12.8px;margin:8px 0}
+  th{background:var(--azul-claro);text-align:left;padding:6px 8px;
+     border:1px solid var(--linea);font-size:12px}
+  td{padding:5px 8px;border:1px solid var(--linea);vertical-align:top}
+  .chip{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;
+        padding:1.5px 7px;border-radius:9px;white-space:nowrap}
+  .chip.pend{background:var(--ambar-claro);color:var(--ambar);border:1px solid var(--ambar)}
+  .chip.bloq{background:var(--rojo-claro);color:var(--rojo);border:1px solid var(--rojo)}
+  .chip.ok{background:var(--verde-claro);color:var(--verde);border:1px solid var(--verde)}
+  .chip.info{background:var(--azul-claro);color:var(--azul);border:1px solid var(--azul)}
+  .card{border:1.5px solid var(--linea);border-radius:8px;padding:12px 16px;
+        margin-bottom:12px}
+  .card.destacada{border-left:4px solid var(--ambar);background:var(--ambar-claro)}
+  .card.propuesta{border-left:4px solid var(--verde);background:var(--verde-claro)}
+  ul.puntos{margin:6px 0 6px 20px;font-size:13.5px}
+  ul.puntos li{margin-bottom:5px}
+  ol.preguntas{margin:6px 0 6px 22px;font-size:13.5px}
+  ol.preguntas li{margin-bottom:7px}
+  .nota{font-size:12.5px;color:var(--gris);margin-top:6px}
+  .clave{background:var(--azul-claro);border-radius:6px;padding:10px 14px;
+         font-size:13px;margin:10px 0}
+  .anotar{border-bottom:1px dotted var(--gris);min-height:20px;margin-top:10px;
+          font-size:11px;color:var(--gris)}
+  .mini{font-size:11.5px;color:var(--gris)}
+  code{font-family:"Liberation Mono",monospace;font-size:12px;background:#F4F2EE;
+       padding:1px 4px;border-radius:3px}
+  @media print{body{background:#fff}.hoja{box-shadow:none;margin:0}}
+</style>
+</head>
+<body>
+
+<div class="hoja">
+  <div class="membrete">
+    <div class="org">Facultad de Ingeniería del Ejército · UNDEF<br>
+      Proyecto Centenario — Agente 1 «Extensión Bot»</div>
+    <div class="doc">Referencia de charla — uso personal (mostrable)<br>
+      Juan Ignacio Goñe · PPS · 2026-09-23</div>
+  </div>
+
+  <h1>Charla con César Cicerchia y Fernando Vera Batista</h1>
+  <p class="sub">Tres bloques: las nuevas HU del backlog y su división por agente · la definición del Gate G2 · los accesos que tiene que proveer el DSI.</p>
+
+  <div class="intro">
+    <b>Contexto en una línea:</b> suite 944 pruebas verdes; HU-010 a HU-014 implementadas offline;
+    toda salida queda <code>BORRADOR — NO PUBLICAR</code> / <code>PENDIENTE_VALIDACION</code>.
+    Los bloqueantes abiertos son institucionales, no técnicos — esta charla es con los dos dueños
+    de esos bloqueantes. Regla propia: lo que se defina queda anotado con responsable y fecha;
+    lo que no, queda <i>pendiente + quién lo define</i>.
+  </div>
+
+  <!-- ============ SECCIÓN 1: NUEVAS HU ============ -->
+
+  <h2>1 · Backlog nuevo: división de HU entre agentes <span class="quien">con César — decisión de alcance</span></h2>
+
+  <p style="font-size:13.5px">La versión de la documentación P100 sincronizada el 22/09 reorganizó el
+  backlog técnico en <b>7 épicas</b>. La división vigente:</p>
+
+  <table>
+    <tr><th style="width:70px">Épica</th><th style="width:170px">Agente / capa</th><th>Historias de usuario</th></tr>
+    <tr><td><b>E1</b></td><td>Plataforma base y orquestación <span class="mini">(compartida con Becerra)</span></td>
+        <td>HU-001 estructura Drive/Sheets · HU-002 Apps Script · HU-003 logs</td></tr>
+    <tr><td><b>E2</b></td><td><b>Agente 1 — Extensión Bot</b> <span class="mini">(este PPS)</span></td>
+        <td>HU-010 gacetillas · HU-011 posts · HU-012 notificaciones <b>(ampliada)</b> · HU-013 lenguaje natural · HU-014 certificados · <b>HU-015 certificados+triggers · HU-016 BD consultas · HU-017 Disposiciones Decanales (nuevas)</b></td></tr>
+    <tr><td><b>E3</b></td><td>Agente 5 — Analíticas / Social Data Collector</td>
+        <td>HU-020 extracción RRSS · HU-021 formato ANEXO 2 · HU-022 extracción programada · HU-023 alertas · HU-024 dashboards KPIs · HU-025 datos internos + alertas KPIs</td></tr>
+    <tr><td><b>E4</b></td><td>Agente 2 — Historia Viva <span class="mini">(Becerra)</span></td>
+        <td>HU-030 ingesta/indexación · HU-031 recuperación inteligente · HU-032 reporte CONEAU</td></tr>
+    <tr><td><b>E5</b></td><td>Agente 3 — Vinculación</td><td>HU-040 detectar eventos · HU-041 reportes de participación</td></tr>
+    <tr><td><b>E6</b></td><td>Agente 4 — Atención</td><td>HU-050 consulta de oferta · HU-051 FAQ automático</td></tr>
+    <tr><td><b>E7</b></td><td>Gestión administrativa y soporte (contenedor)</td>
+        <td>HU-060 formularios de gastos · HU-025 (agregado, integridad CONEAU → A5) · HU-052 ventanilla egresados → A4 · HU-015 (agregado, ceremonial → A3)</td></tr>
+  </table>
+
+  <div class="card destacada">
+    <h3>Puntos a mencionar / resolver con César</h3>
+    <ul class="puntos">
+      <li><b>HU-016 y HU-017</b> (issue #34): la fuente las ubica en la épica del Agente 1 pero quedaron
+        <b>excluidas provisionalmente del PPS</b>. Pedir la decisión: ¿quedan fuera, o entran con
+        extensión explícita de alcance y cronograma? Posición propia: backlog P100, no absorción al sprint.</li>
+      <li><b>HU-015 tiene doble definición en la fuente</b>: en E2 es «certificados y triggers por eventos»
+        asignada al A1 (se solapa con HU-014 ya implementada); en E7 es «ceremonial y protocolo» asignada
+        al A3 (excluida en el anteproyecto). Pedir que se aclare/renumere — es una colisión de numeración, no de fondo.</li>
+      <li><b>HU-012 ampliada</b> (inscripción, participación, situación de pagos, aprobación — la de deudores):
+        ya implementada con catálogo cerrado y doble aprobación. <code>situacion_pagos</code> quedó
+        <b>bloqueada fail-closed</b>: el origen del dato de deuda/saldo sigue DESCONOCIDO
+        (pedido ya comentado en el doc fuente). Sin esa definición no hay borrador ni envío.</li>
+      <li><b>Priorización global de la fuente</b>: S1 = E1 completa + E2 (HU-010, HU-011) + E3 (HU-020 a 022);
+        S2 = resto de E2 + dashboards/alertas E3 + inicio de E4. Mi PPS ya cubre el grueso de E2.</li>
+      <li><b>Riesgo registrado R-ALC-03</b> (Alto, materializado el 22/09): ampliación de HU durante la
+        ejecución. Política adoptada: baseline de alcance por HU por gate; todo cambio entra como
+        solicitud evaluada contra el cierre, no como incorporación automática.</li>
+    </ul>
+    <div class="anotar">Anotaciones de la charla:</div>
+    <div class="anotar"></div>
+  </div>
+
+  <!-- ============ SECCIÓN 2: GATE G2 ============ -->
+
+  <h2>2 · Gate G2 (TRL 3): lo que tiene que definir César <span class="quien">DEF-A1-006 · BLOQUEADO_EXTERNO desde el 9/09</span></h2>
+
+  <p style="font-size:13.5px">Nota enviada el 9/09 sin respuesta
+  (<code>Documentos/PoC/Nota-Consulta-Direccion-Gate-G2-y-Contradicciones-Agente-1.md</code>).
+  Reunión G2 no realizada el 22/09. Los cinco puntos a cerrar:</p>
+
+  <ol class="preguntas">
+    <li><b>Evidencia mínima:</b> ¿qué paquete alcanza? (anteproyecto pide gacetilla + post generados,
+      logs, checklist SEU, mediciones de tiempo, informe de avance).</li>
+    <li><b>¿La revisión SEU es condición de G2 o puede quedar como entrada de G4?</b>
+      La bible define TRL 3 como «entorno controlado, caso simple validado, sin robustez total».</li>
+    <li><b>¿Los cinco bloqueantes institucionales bloquean G2 o quedan como riesgos aceptados</b>
+      con responsable y fecha? (Workspace/OAuth, plantilla, validación editorial, criterios por canal,
+      orígenes de inscripción).</li>
+    <li><b>¿Quién aprueba y firma el cierre de G2?</b></li>
+    <li><b>¿Alcanza acta breve + paquete de evidencia adjunto?</b></li>
+  </ol>
+
+  <div class="card propuesta">
+    <h3>Propuesta propia (sujeta a su aprobación)</h3>
+    <p style="font-size:13.5px">Cerrar G2 con la evidencia del prototipo en entorno controlado y dejar la
+    validación SEU como <b>condición de entrada de G4</b>. El acta deja explícito que el cierre no acredita
+    aceptación institucional. La validación humana antes de publicar/enviar sigue siendo obligatoria
+    igual — eso no se negocia.</p>
+  </div>
+
+  <h3>Preguntas de alcance paralelas (misma nota)</h3>
+  <ol class="preguntas">
+    <li><b>Canal de HU-013:</b> la fuente se contradice — «prompt en Sheet o Doc» (backlog técnico),
+      «email que invita a chatear» (supervisión humana), «interfaz web con login + Figma» (bloque DSI2).
+      ¿Cuál rige? La implementación ya está desacoplada del canal; la elección cambia la infraestructura.</li>
+    <li><b>¿HU-013 incluye la aprobación de las demás HU?</b> Lectura propia: no — el caso de uso
+      transversal de validación no la lista entre los que la incluyen. Si la incluye, excede los 3 SP estimados.</li>
+    <li><b>¿FastAPI/Celery son obligatorios o referencia de EP04?</b> Están diferidos por decisión
+      documentada; si se exigen, que quede la justificación.</li>
+    <li><b>Pedido auxiliar:</b> nota de cambios breve en próximas versiones de la documentación
+      (el resaltado amarillo no sobrevive a los exports a PDF/Markdown).</li>
+  </ol>
+  <div class="anotar">Anotaciones de la charla:</div>
+  <div class="anotar"></div>
+
+  <!-- ============ SECCIÓN 3: DSI / VERA ============ -->
+
+  <h2>3 · Accesos: qué pedirle a Fernando Vera / DSI <span class="quien">DEF-A1-001/002/003 · BLOQUEADO_EXTERNO</span></h2>
+
+  <p style="font-size:13.5px">Documento madre (ya en sus manos desde el 22/07):
+  <code>Especificacion-Tecnica-Entornos-Pruebas-Preproduccion-Agente-1.md</code> · nota operativa del 19/08.
+  Objetivo: provisionar <b>D2 — Sandbox Workspace</b> para destrabar el camino a G2.</p>
+
+  <div class="card destacada">
+    <h3>La decisión que ordena todo lo demás — identidad técnica (§3)</h3>
+    <ul class="puntos">
+      <li><b>Alternativa A:</b> cuenta dedicada <code>@fie.undef.edu.ar</code> con consentimiento OAuth
+        (refresh token, custodia, dependencia de una identidad).</li>
+      <li><b>Alternativa B:</b> service account administrada por el DSI sobre Shared Drive
+        (sin dependencia de persona; exige cambio técnico: hoy <code>documents.create</code> no resuelve
+        Shared Drive/carpeta → implementar flujo Drive + prueba de integración).</li>
+      <li><b>Aclaración a llevar:</b> una dirección de email <b>no autentica</b> llamadas a APIs —
+        toda llamada privada lleva OAuth 2.0 por debajo, incluso con service account. Con el mail solo
+        hay identidad; falta proyecto Cloud, consent screen, Client ID y custodia del refresh token.</li>
+    </ul>
+  </div>
+
+  <h3>Pedidos concretos</h3>
+  <ul class="puntos">
+    <li><b>Proyecto Google Cloud para D2</b> — preferentemente exclusivo (compartido solo con aislamiento
+      documentado). APIs: <b>Sheets v4 + Docs v1 obligatorias</b>; Drive v3 condicional (Shared
+      Drive/carpeta/plantilla); <b>Gmail fuera de alcance</b>.</li>
+    <li><b>Si va Alternativa A:</b> pantalla de consentimiento tipo <b>Internal</b> para
+      <code>fie.undef.edu.ar</code> (evita verificación de Google y la expiración de 7 días del refresh
+      token en modo Testing) + OAuth Client ID tipo Desktop + la cuenta hace el consent flow una vez.
+      Definir quién custodia el refresh token.</li>
+    <li><b>Recursos D2 exclusivos:</b> planilla, plantilla y carpeta de pruebas, sin contenido real
+      (la plantilla/carpeta puede venir de la SEU; el DSI coordina permisos).</li>
+    <li><b>Administrador DSI designado</b> — titular + suplente, dueño operativo de proyectos,
+      identidades, secretos, permisos y revocación.</li>
+    <li><b>Scopes a validar por DSI:</b> <code>spreadsheets.readonly</code> (lectura) y
+      <code>drive.file</code> (candidato para crear docs); evitar scopes amplios.</li>
+    <li><b>Host para Ollama:</b> referencia PoC = x86_64 4c/8h, ~16 GiB RAM, CPU. Volumen SEU:
+      36 generaciones/mes ≈ 12 min de cómputo. <b>Dato nuevo:</b> <code>llama3.1:8b</code> da 4/6 en
+      conformidad (vs 1/6 del 3B) pero con 40–160 s por generación en CPU — si se adopta el 8B,
+      el dimensionamiento del host cambia.</li>
+    <li><b>Egress:</b> HTTPS 443 solo a <code>oauth2.googleapis.com</code>, <code>sheets</code>,
+      <code>docs</code> (+ <code>www.googleapis.com</code> si Drive). Sin ingress ni endpoint público;
+      Ollama no se expone a la red.</li>
+    <li><b>Retención:</b> logs, borradores, backups y manifests — plazo, custodia y eliminación
+      pendientes de definición DSI + SEU.</li>
+  </ul>
+
+  <div class="clave">
+    <b>Controles ya comprometidos de mi lado</b> (para mostrar que el pedido es serio): identidad distinta
+    por ambiente · propietario nominal + suplente · acceso solo a archivos autorizados · <b>sin</b>
+    domain-wide delegation · sin API keys para datos privados · sin archivos públicos ni «cualquiera con
+    el enlace» · sin contraseña institucional como credencial · secretos fuera del repo, logs y evidencias.
+    <b>No pido ni recibo contraseñas ni claves por correo.</b>
+  </div>
+
+  <div class="card">
+    <h3>Entregables que debería producir la coordinación (§17)</h3>
+    <p style="font-size:13.5px">1) decisión de identidad + diagrama de acceso · 2) proyectos y APIs por
+    ambiente · 3) inventario de recursos con IDs por canal seguro · 4) matriz de scopes efectivos ·
+    5) procedimiento de alta/rotación/revocación · 6) baseline del host + prueba de conectividad ·
+    7) acta de smoke técnico · 8) pendientes y condiciones de avance a D3.</p>
+    <div class="anotar">Anotaciones de la charla:</div>
+    <div class="anotar"></div>
+  </div>
+
+  <!-- ============ CIERRE ============ -->
+
+  <h2>Cierre · cómo se ve el éxito de la charla</h2>
+  <ul class="puntos">
+    <li>Decisión registrada sobre HU-016/017 (entran con extensión formal o quedan en backlog P100).</li>
+    <li>Criterio G2 definido: evidencia, firmante, formato — o fecha comprometida para la definición.</li>
+    <li>Alternativa de identidad elegida por el DSI + responsable de provisión con fecha.</li>
+    <li>Todo lo no resuelto: <b>pendiente + quién lo define + fecha</b>, igual que con la SEU.</li>
+  </ul>
+  <p class="nota">Estados de referencia — <span class="chip bloq">BLOQUEADO_EXTERNO</span>
+  DEF-A1-001/002/003 (DSI), DEF-A1-006 (G2/Dirección) ·
+  <span class="chip pend">PENDIENTE</span> issue #34 (alcance HU-016/017), DEF-A1-005 (revisión SEU
+  asincrónica) · <span class="chip info">PRÓXIMO</span> prueba guiada HU-013 viernes 25/09 con Juan Manuel.</p>
+
+</div>
+</body>
+</html>

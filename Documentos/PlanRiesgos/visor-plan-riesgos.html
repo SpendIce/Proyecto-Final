@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visor del plan de riesgos - Agente 1 Extension Bot</title>
+<style>
+  :root{
+    --bg:#f8fafc; --panel:#ffffff; --ink:#0f172a; --muted:#64748b;
+    --line:#e2e8f0; --teal:#0f766e;
+    --alto:#dc2626; --medio:#d97706; --bajo:#16a34a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:var(--bg);font-size:14px;line-height:1.45}
+  header{padding:20px 24px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  h1{margin:0 0 4px;font-size:20px}
+  h2{font-size:15px;margin:26px 0 10px}
+  .sub{color:var(--muted);font-size:13px}
+  .wrap{padding:18px 24px 40px;max-width:1200px}
+  code{font-size:12px;background:#f1f5f9;padding:1px 5px;border-radius:4px}
+
+  .banner{display:flex;gap:12px;align-items:flex-start;margin:16px 0 0;padding:14px 16px;
+    background:#fef2f2;border:1px solid #fecaca;border-radius:10px}
+  .banner .dot{width:12px;height:12px;border-radius:50%;background:var(--alto);flex:0 0 auto;margin-top:4px}
+  .banner b{font-size:13.5px}
+  .banner p{margin:4px 0 0;font-size:13px;color:#7f1d1d}
+
+  /* matriz P x I */
+  .matrix-box{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+  .matrix{display:grid;grid-template-columns:26px repeat(3,minmax(150px,1fr));
+    grid-template-rows:repeat(3,78px) 26px;gap:3px;width:min(560px,100%)}
+  .matrix .cell{border-radius:6px;padding:5px 7px;font-size:10.5px;line-height:1.3;
+    display:flex;flex-wrap:wrap;gap:3px;align-content:flex-start;border:1px solid rgba(0,0,0,.06)}
+  .cell.alto{background:#fee2e2}
+  .cell.medio{background:#fef3c7}
+  .cell.bajo{background:#dcfce7}
+  .chip{background:#fff;border:1px solid rgba(0,0,0,.15);border-radius:4px;padding:0 4px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;cursor:pointer;
+    box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .chip:hover{border-color:var(--teal);color:var(--teal)}
+  .chip.mat{border-color:var(--alto);color:var(--alto);font-weight:700}
+  .chip.ace{border-style:dashed;border-color:var(--bajo);color:#15803d}
+  .badge.aceptado{background:#15803d}
+  .axis{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);
+    font-weight:600}
+  .axis-y{writing-mode:vertical-rl;transform:rotate(180deg);grid-row:1/4}
+  .axis-x{grid-column:2/5}
+  .axis-lab{font-size:10px;color:var(--muted)}
+  .scale{font-size:12px;color:var(--muted);max-width:330px}
+  .scale table{border-collapse:collapse;margin-top:6px}
+  .scale td,.scale th{border:1px solid var(--line);padding:4px 8px;font-size:12px;text-align:left}
+  .lvl{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+  /* tabla */
+  table.reg{border-collapse:collapse;width:100%;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .reg th{background:#f1f5f9;font-size:11.5px;text-align:left;padding:7px 9px;
+    border-bottom:1px solid var(--line);white-space:nowrap}
+  .reg td{padding:7px 9px;border-bottom:1px solid #f1f5f9;font-size:12.5px;vertical-align:top}
+  .reg tr.r:hover{background:#f8fafc;cursor:pointer}
+  .reg tr.sel{background:#f0fdfa}
+  .rid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .cat{font-size:11px;color:var(--muted);white-space:nowrap}
+  .num{text-align:center;font-family:ui-monospace,Menlo,monospace}
+  .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:99px;color:#fff}
+  .badge.alto{background:var(--alto)} .badge.medio{background:var(--medio)} .badge.bajo{background:var(--bajo)}
+  .exp{font-weight:700}
+  .matmark{color:var(--alto);font-weight:700;font-size:10.5px;white-space:nowrap}
+
+  /* detalle */
+  .detail{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;margin-top:12px;display:none}
+  .detail.show{display:block}
+  .detail h3{margin:0 0 6px;font-size:14px}
+  .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+  .dcard{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:12.5px}
+  .dcard b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.4px;
+    color:var(--muted);margin-bottom:4px}
+  .traza{font-size:11.5px;color:var(--muted);margin-top:8px}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:820px){.cols{grid-template-columns:1fr}}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .box h3{margin:0 0 8px;font-size:13.5px}
+  .box ol,.box ul{margin:0;padding-left:20px;font-size:12.5px}
+  .box li{margin-bottom:5px}
+  .p0{color:var(--alto);font-weight:700}
+  .p1{color:var(--medio);font-weight:700}
+  footer{color:var(--muted);font-size:12px;margin-top:26px;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Plan de riesgos — Agente 1, Extension Bot</h1>
+  <div class="sub">Proyecto Centenario (P100) · Autor del PPS: Juan Ignacio Goñe · Última actualización: 2026-10-12 ·
+    Fuente: <code>Documentos/PlanRiesgos/Plan-Riesgos-Agente-1-PPS-Juan-Ignacio-Gone.md</code></div>
+</header>
+<div class="wrap">
+
+  <div class="banner">
+    <span class="dot"></span>
+    <div>
+      <b>R-ALC-03 materializado el 22/09 — respuesta aplicada según plan</b>
+      <p>La SEU/Dirección amplió HU-012 a cuatro tipos de notificación, propuso HU nuevas y cambió el sistema
+        origen (Forms → SIU Guaraní). Respuesta ejecutada: exclusión provisional documentada, fail-closed
+        sobre datos DESCONOCIDO (<code>situacion_pagos</code>), absorción solo de lo acotado al sprint (#33).
+        Decisión de Dirección cerrada el 30/09 (#34): expansiones de HU-010..HU-014 quedan en el PPS; HU
+        posteriores a HU-014, fuera y delegadas a continuidad P100.</p>
+    </div>
+  </div>
+
+  <h2>Matriz de exposición (Probabilidad × Impacto)</h2>
+  <div class="matrix-box">
+    <div class="matrix" id="matrix"></div>
+    <div class="scale">
+      Escala: 1 = baja/menor · 2 = media · 3 = alta/bloquea gate.<br>
+      <b>Exposición = P × I</b>
+      <table>
+        <tr><th>Nivel</th><th>Exposición</th><th>Política</th></tr>
+        <tr><td><span class="lvl" style="background:var(--bajo)"></span>Bajo</td><td>1–3</td><td>Monitorear</td></tr>
+        <tr><td><span class="lvl" style="background:var(--medio)"></span>Medio</td><td>4</td><td>Mitigar y revisar en avances</td></tr>
+        <tr><td><span class="lvl" style="background:var(--alto)"></span>Alto</td><td>6–9</td><td>Plan de mitigación, alarma y contingencia</td></tr>
+      </table>
+      <p style="margin-top:10px">Click en un riesgo (matriz o tabla) para ver su plan de mitigación.</p>
+    </div>
+  </div>
+
+  <h2>Registro de riesgos (23)</h2>
+  <table class="reg" id="reg">
+    <thead><tr>
+      <th>ID</th><th>Riesgo (causa → consecuencia)</th><th>Cat.</th>
+      <th>P</th><th>I</th><th>Exp.</th><th>Nivel</th><th>Responsable</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+  <div class="detail" id="detail"></div>
+
+  <div class="cols" style="margin-top:26px">
+    <div class="box">
+      <h3>Criterios de escalamiento (§10)</h3>
+      <ol>
+        <li>Exposición ≥ 6 sin mitigación asignada.</li>
+        <li>Riesgo que bloquea validación humana o trazabilidad.</li>
+        <li><b>Cambio de alcance que amplía/agrega HU o requisitos del propio A1</b> (caso vigente: R-ALC-03).</li>
+        <li>Ausencia de validadores SEU para un gate.</li>
+        <li>Imposibilidad de demostrar TRL 3/4 con evidencia.</li>
+        <li>Necesidad de API externa con datos institucionales.</li>
+        <li>Incidente de seguridad o publicación sin aprobación.</li>
+      </ol>
+    </div>
+    <div class="box">
+      <h3>Acciones inmediatas (§11)</h3>
+      <ul>
+        <li><span class="p0">P0</span> Unificar baseline de cronograma (anteproyecto / plan / Gantt).</li>
+        <li><span class="p0">P0</span> Checklist SEU por tipo de pieza + acta de validación.</li>
+        <li><span class="p0">P0</span> Esquema mínimo de logs y correlation ID.</li>
+        <li><span class="p0">P0</span> Campos mínimos de Sheets y plantillas HU-010/011.</li>
+        <li><span class="p0">P0</span> <b>Control de cambios de alcance</b>: toda HU/requisito nuevo entra como solicitud evaluada contra el cierre, exclusión provisional como default (primer caso: issue #34).</li>
+        <li><span class="p1">P1</span> Spike de Ollama/modelo local con caso real · baseline manual · casos adversariales · contratos A2–A5.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    Visor estático self-contained — no persiste ni edita datos. La fuente de verdad es el
+    <code>.md</code> versionado; este HTML es una vista de lectura para la presentación.
+    Niveles: <b style="color:var(--alto)">Alto = 16 riesgos</b> ·
+    <b style="color:var(--medio)">Medio = 3</b> ·
+    <b style="color:#15803d">Bajo = 4 (todos aceptados ✓)</b>.
+    Exposición máxima del registro: 9 (R-ALC-03, R-GOB-01, R-REQ-01, R-DAT-01, R-LLM-01, R-TRA-01, R-ADOP-01, R-CAL-01).
+  </footer>
+</div>
+
+<script>
+const RIESGOS = [
+ {id:"R-ALC-01",desc:"Mezcla de A1 con analítica, scraping, A4, A5 o soporte general → expansión indebida del alcance y pérdida de defendibilidad",cat:"Alcance",p:2,i:3,traza:"P4, HU-010 a HU-014, exclusiones",resp:"J.I. Goñe / Director",
+  mit:"Revisar backlog contra matriz BPM-HU-DoD en cada gate; rechazar tareas de A4/A5/scraping/analítica como alcance A1",
+  ala:"Nueva HU o texto de informe incorpora dashboards, scraping, atención pública u orquestación",
+  con:"Mover a backlog P100/A2-A5; nota de exclusión y matriz de alcance actualizada",
+  evi:"Matriz BPM-HU-DoD, acta de revisión"},
+ {id:"R-ALC-02",desc:"Newsletters, correos o comunicaciones externas redactados como alcance independiente sin HU específica → sobrepromesa funcional",cat:"Alcance",p:2,i:2,traza:"P4, HU-010, HU-011, HU-012",resp:"J.I. Goñe",
+  mit:"Redactar newsletters/correos como tipos de pieza derivados de HU existentes, no como HU nueva salvo aprobación formal",
+  ala:"Se pide medir cobertura de newsletter como entregable independiente",
+  con:"Reencuadrar como extensión futura o salida de HU-010/HU-012",
+  evi:"Nota de alcance, backlog actualizado"},
+ {id:"R-ALC-03",desc:"La SEU o Dirección amplía HU existentes o incorpora HU/requisitos nuevos durante la ejecución → crecimiento del alcance del PPS, retrabajo y presión sobre el cierre de noviembre",cat:"Alcance",p:3,i:3,traza:"HU-010 a HU-014, matriz de alcance, issues #33/#34",resp:"J.I. Goñe / Director",mat:true,
+  mit:"Baseline de alcance por HU por gate; toda HU/requisito nuevo o ampliación es solicitud de cambio evaluada contra el cierre de noviembre, no incorporación automática",
+  ala:"Nueva versión del backlog amplía una HU vigente, propone HU/requisitos nuevos o cambia un sistema origen de datos",
+  con:"Exclusión provisional documentada y fail-closed sobre datos DESCONOCIDO; absorber solo lo acotado al sprint vigente que no mueva el camino crítico; el resto a backlog P100 con decisión de Dirección",
+  evi:"Nota de exclusión, issue de decisión, matriz de alcance, acta de cambio"},
+ {id:"R-ALC-04",desc:"La continuidad del P100 en S3/S4 de 2027 se confunde con compromiso del PPS → presión de alcance fuera del contrato académico",cat:"Alcance",p:1,i:2,traza:"Anteproyecto, alcance evaluado, matriz de alcance",resp:"J.I. Goñe",aceptado:true,
+  mit:"ACEPTAR. La frontera PPS/continuidad ya está declarada en el anteproyecto y en el alcance evaluado; basta mantener la nota de exclusión visible",
+  ala:"Dirección pide comprometer entregables de 2027 dentro del PPS",
+  con:"Reabrir como riesgo activo y tramitar como solicitud de cambio formal",
+  evi:"Nota de exclusión, matriz de alcance"},
+ {id:"R-GOB-01",desc:"Responsables de validación no confirmados → aprobaciones informales o imposibles de auditar",cat:"Gobernanza",p:3,i:3,traza:"P4/P5, CU-A1-06, DoD validación",resp:"Coordinador de Extensión",
+  mit:"Confirmar roles por HU: Coordinador, Responsable Gestión del Conocimiento, RRSS, cursos, administración y técnico",
+  ala:"Checklist sin responsable o aprobación por chat sin registro",
+  con:"Bloquear validación oficial hasta asignar rol suplente y registrar aprobación",
+  evi:"RACI por flujo, checklist firmado o registrado"},
+ {id:"R-GOB-02",desc:"Responsables nominales siguen pendientes aun con rol suplente → aprobaciones firmadas por suplente en gates",cat:"Gobernanza",p:2,i:1,traza:"CU-A1-06, RACI, checklist de validación",resp:"Coordinador de Extensión",aceptado:true,
+  mit:"ACEPTAR condicionado a que exista rol suplente designado y aprobación registrada por HU",
+  ala:"Un gate queda sin aprobador disponible o el suplente deja de estar disponible",
+  con:"Reabrir como R-GOB-01 activo; bloquear el gate hasta la designación",
+  evi:"RACI, acta de designación de suplente, checklist firmado"},
+ {id:"R-HITL-01",desc:"El flujo human-in-the-loop no queda bloqueado técnicamente → publicación, envío o emisión sin aprobación humana",cat:"Seguridad/calidad",p:2,i:3,traza:"HU-010, HU-011, HU-014, RNF autonomía",resp:"Responsable Técnico IA",
+  mit:"Estados obligatorios: borrador, pendiente, aprobado, rechazado; bloquear publicar/enviar/emitir si no hay aprobación",
+  ala:"Hay botón, script o flujo que envía sin estado aprobado",
+  con:"Deshabilitar automatización, volver a flujo manual y registrar incidente",
+  evi:"Log de estado, aprobador, fecha y versión"},
+ {id:"R-REQ-01",desc:"Campos de Sheets, plantillas y usuarios nominales pendientes → requisitos inestables y pruebas no concluyentes",cat:"Requisitos",p:3,i:3,traza:"HU-010 a HU-014, CU-A1-01 a CU-A1-05",resp:"J.I. Goñe + SEU",
+  mit:"Cerrar G1 solo con campos mínimos, plantillas versionadas, usuarios validadores y criterios de aceptación por HU",
+  ala:"Plantilla «pendiente», campos no definidos o validadores no asignados al iniciar implementación",
+  con:"Implementar solo spike controlado; no declarar TRL hasta cerrar requisito",
+  evi:"Plantilla, esquema Sheets, checklist HU"},
+ {id:"R-CRO-01",desc:"Hitos y fechas difieren entre anteproyecto, plan mensual y Gantt → baseline débil para gates TRL",cat:"Cronograma",p:3,i:2,traza:"Gantt, H3/H5/H6, TRL 3/4",resp:"J.I. Goñe",
+  mit:"Unificar tabla maestra de hitos entre anteproyecto, Gantt y plan mensual; registrar cambios de baseline",
+  ala:"H3/H5/H6 o gates aparecen con fechas distintas",
+  con:"Emitir rebaseline documental y congelar fecha nueva",
+  evi:"Versión de Gantt, tabla de hitos, decisión"},
+ {id:"R-CRO-02",desc:"S2 concentra backend, automatizaciones, persistencia, colas, integración y pruebas → poco margen de retrabajo antes de diciembre 2026",cat:"Cronograma",p:2,i:3,traza:"HU-012, HU-013, HU-014, Gate TRL 4",resp:"J.I. Goñe / Resp. Técnico IA",
+  mit:"Reducir S2 a camino crítico: HU-012/HU-013 antes de HU-014 si el margen se achica; reservar ventana de retrabajo",
+  ala:"Al 2026-10-15 no hay HU-012/HU-013 operativas o logs activos",
+  con:"Postergar integración A2-A5 completa y priorizar TRL 4 de A1 core",
+  evi:"Burndown, reporte de avance, backlog recortado"},
+ {id:"R-DAT-01",desc:"Sheets opera como bus sin esquema cerrado, IDs ni validaciones → duplicados, datos incompletos o contenido incorrecto",cat:"Datos",p:3,i:3,traza:"HU-010 a HU-014, DoD datos",resp:"Responsable Técnico IA",
+  mit:"Definir esquema Sheets por HU con IDs, columnas obligatorias, validación de tipos y estados",
+  ala:"Columnas cambiadas manualmente, filas sin ID o datos incompletos recurrentes",
+  con:"Congelar hoja, restaurar estructura y cargar cola de correcciones manuales",
+  evi:"Diccionario de datos, pruebas de validación"},
+ {id:"R-DAT-02",desc:"El MVP valida con datos de prueba o muestra acotada → la validación no representa el uso real",cat:"Datos",p:2,i:1,traza:"DoD datos, gate TRL 3",resp:"J.I. Goñe + SEU",aceptado:true,
+  mit:"ACEPTAR condicionado a que el gate TRL 3 declare explícitamente la muestra acotada",
+  ala:"Se pretende generalizar los resultados de la muestra a producción o a validación SEU",
+  con:"Reabrir como riesgo activo; exigir muestra ampliada o datos reales",
+  evi:"Declaración en paquete de gate, protocolo de muestra"},
+ {id:"R-LLM-01",desc:"Prompts, RAG o modelo local generan alucinaciones o tono inadecuado → comunicación institucional incorrecta",cat:"IA/calidad",p:3,i:3,traza:"HU-010, HU-011, HU-013",resp:"Resp. Gestión del Conocimiento",
+  mit:"Versionar prompts y plantillas; separar instrucciones de datos; exigir fuente visible y checklist 1-4",
+  ala:"Rechazo de contenidos >20% o aparición de datos no presentes en fuente",
+  con:"Volver a plantilla manual asistida y ajustar prompts antes de liberar",
+  evi:"Versión de prompt, salida, checklist, tasa de rechazo"},
+ {id:"R-SEG-01",desc:"Entradas externas, documentos o mails inducen prompt injection → salida manipulada o acción indebida",cat:"Seguridad",p:2,i:3,traza:"HU-013, RNF seguridad, HITL",resp:"Responsable Técnico IA",
+  mit:"Sanitizar entradas, casos adversariales de prompt injection y aprobación humana obligatoria",
+  ala:"Entrada intenta alterar instrucciones, pedir secretos o forzar envío",
+  con:"Bloquear solicitud, registrar incidente y actualizar filtros/casos de prueba",
+  evi:"Caso adversarial, log, defecto cerrado"},
+ {id:"R-SEG-02",desc:"Credenciales, permisos o logs exponen información sensible → incumplimiento de seguridad y Ley 25.326",cat:"Seguridad",p:2,i:3,traza:"Google Workspace, RBAC, logs",resp:"Responsable Técnico IA",
+  mit:"Mínimo privilegio, secretos fuera del código, logs sin credenciales, RBAC por rol",
+  ala:"Clave en repositorio/log o cuenta con permisos excesivos",
+  con:"Rotar credenciales, revocar permisos y auditar accesos",
+  evi:"Checklist seguridad, inventario de credenciales"},
+ {id:"R-TRA-01",desc:"No se correlacionan fila, prompt, plantilla, output, aprobador y versión → evidencia no auditable",cat:"Trazabilidad",p:3,i:3,traza:"CONEAU, DoD auditoría, TRL",resp:"J.I. Goñe / Resp. Técnico IA",
+  mit:"Correlation ID por solicitud; log estructurado con input, output, validador, estado, versión y evidencia",
+  ala:"No se puede reconstruir una pieza generada de punta a punta",
+  con:"Rehacer registro desde evidencia disponible; bloquear gate si es sistémico",
+  evi:"Muestra de trazabilidad, índice de evidencias"},
+ {id:"R-TEC-01",desc:"Ollama/hardware local no alcanza latencia o estabilidad esperada → dependencia de API externa o incumplimiento de rendimiento",cat:"Técnico",p:2,i:3,traza:"Stack local, RNF performance, TRL 3",resp:"Responsable Técnico IA",
+  mit:"Ejecutar spike de hardware/modelo local antes de prometer rendimiento; definir fallback aprobado y anonimizado",
+  ala:"Latencia >30 s sostenida o caídas del entorno local",
+  con:"Reducir modelo/carga, cola asíncrona o API externa solo como contingencia aprobada",
+  evi:"Benchmark, reporte de entorno, decisión de fallback"},
+ {id:"R-TEC-02",desc:"La contingencia de API externa con datos anonimizados se vuelve dependencia transitoria → procesamiento fuera del entorno local",cat:"Técnico",p:1,i:2,traza:"RNF datos, decisión de fallback",resp:"Responsable Técnico IA",aceptado:true,
+  mit:"ACEPTAR solo como contingencia aprobada, con anonimización y registro de decisión",
+  ala:"Se procesan datos identificables en API externa o la contingencia se vuelve permanente",
+  con:"Revocar la contingencia, volver al entorno local y auditar los datos enviados",
+  evi:"Decisión de fallback registrada, anonimización verificada"},
+ {id:"R-INT-01",desc:"Cambios de permisos, cuotas o APIs de Google Workspace bloquean triggers → interrupción de flujos S1/S2",cat:"Integración",p:2,i:2,traza:"Sheets, Docs, Gmail, Apps Script",resp:"Responsable Técnico IA",
+  mit:"Pruebas periódicas de Apps Script, cuotas, permisos y APIs; cuenta de servicio con permisos mínimos",
+  ala:"Trigger falla o Google cambia permisos/cuotas",
+  con:"Activar trigger manual/documentado y reconfigurar permisos",
+  evi:"Log de prueba end-to-end, nota de incidencia"},
+ {id:"R-INT-02",desc:"Contratos de datos A2-A5 no definidos → A1 recibe insumos no normalizados o fuera de alcance",cat:"Integración",p:2,i:2,traza:"A2→A1, A3→A1, A4→A1, A5→A1",resp:"Resp. Técnico IA / Pares P100",
+  mit:"Definir contratos mínimos de datos con A2-A5: campos, origen, estados, responsabilidad y validación",
+  ala:"A1 recibe texto/datos sin origen o incompatible con plantilla",
+  con:"Procesar como insumo manual no automatizado hasta normalizar contrato",
+  evi:"Contrato de interfaz, ejemplo real"},
+ {id:"R-ADOP-01",desc:"Personal SEU no participa en codiseño y validación → baja adopción, tono desalineado y TRL sin usuarios reales",cat:"Adopción",p:3,i:3,traza:"P4, validación SEU, checklist 1-4",resp:"Coordinador de Extensión",
+  mit:"Agenda de validaciones SEU, roles suplentes, sesiones cortas de codiseño y walkthroughs",
+  ala:"Validadores no responden o no asisten a dos hitos seguidos",
+  con:"Replanificar gate, usar muestra reducida y registrar falta de disponibilidad",
+  evi:"Minutas, invitaciones, checklists"},
+ {id:"R-EVAL-01",desc:"Se declaran métricas o mejoras sin baseline → beneficios no demostrables ante evaluación",cat:"Evaluación",p:3,i:2,traza:"M3, M4, M5, evidencia TRL",resp:"J.I. Goñe",
+  mit:"Medir baseline manual de gacetilla/post antes de declarar reducción de tiempo; definir muestra y frecuencia",
+  ala:"Métricas presentadas sin muestra o responsable",
+  con:"Reemplazar afirmación cuantitativa por evidencia cualitativa hasta medir",
+  evi:"Hoja baseline, protocolo de medición"},
+ {id:"R-CAL-01",desc:"Checklist, registro de defectos e índice de evidencias no operativos → retrabajo tardío y gates incompletos",cat:"Calidad",p:3,i:3,traza:"Plan de calidad, G2/G4",resp:"J.I. Goñe",
+  mit:"Crear checklist SEU, registro de defectos e índice de evidencias antes de G2",
+  ala:"Evidencias por HU siguen «pendiente de ejecución» en el gate",
+  con:"Bloquear gate, ejecutar pruebas críticas y generar paquete mínimo de evidencia",
+  evi:"Checklist, registro defectos, paquete G2/G4"}
+];
+
+function nivel(exp){return exp>=6?"alto":exp>=4?"medio":"bajo"}
+function lvlName(exp){return exp>=6?"Alto":exp>=4?"Medio":"Bajo"}
+
+// ---- matriz 3x3: filas = impacto 3..1, columnas = probabilidad 1..3 ----
+const mx = document.getElementById('matrix');
+mx.innerHTML += `<div class="axis axis-y">IMPACTO →</div>`;
+for(let imp=3; imp>=1; imp--){
+  for(let pr=1; pr<=3; pr++){
+    const rs = RIESGOS.filter(r=>r.p===pr && r.i===imp);
+    const exp = pr*imp;
+    const cell = document.createElement('div');
+    cell.className = 'cell '+nivel(exp);
+    cell.innerHTML = `<span class="axis-lab">P${pr}·I${imp}=${exp}</span>` +
+      rs.map(r=>`<span class="chip${r.mat?' mat':''}${r.aceptado?' ace':''}" onclick="show('${r.id}')">${r.id.replace('R-','')}${r.mat?' ⚑':''}${r.aceptado?' ✓':''}</span>`).join('');
+    mx.appendChild(cell);
+  }
+}
+mx.innerHTML += `<div></div><div class="axis axis-lab">P1 baja</div><div class="axis axis-lab">P2 media</div><div class="axis axis-lab">P3 alta</div>`;
+mx.innerHTML += `<div></div><div class="axis axis-x" style="grid-column:2/5">PROBABILIDAD →</div>`;
+
+// ---- tabla ----
+const tb = document.querySelector('#reg tbody');
+for(const r of RIESGOS){
+  const exp = r.p*r.i;
+  const tr = document.createElement('tr');
+  tr.className='r'; tr.id='row-'+r.id;
+  tr.onclick = ()=>show(r.id);
+  tr.innerHTML = `
+    <td class="rid">${r.id}${r.mat?' <span class="matmark">⚑ materializado</span>':''}${r.aceptado?' <span class="matmark" style="color:#15803d">✓ aceptado</span>':''}</td>
+    <td>${r.desc}</td>
+    <td class="cat">${r.cat}</td>
+    <td class="num">${r.p}</td><td class="num">${r.i}</td>
+    <td class="num exp">${exp}</td>
+    <td><span class="badge ${nivel(exp)}">${lvlName(exp)}</span></td>
+    <td class="cat">${r.resp}</td>`;
+  tb.appendChild(tr);
+}
+
+// ---- detalle ----
+function show(id){
+  const r = RIESGOS.find(x=>x.id===id);
+  document.querySelectorAll('#reg tr').forEach(t=>t.classList.remove('sel'));
+  const row = document.getElementById('row-'+id);
+  if(row){row.classList.add('sel');}
+  const d = document.getElementById('detail');
+  d.classList.add('show');
+  d.innerHTML = `
+    <h3>${r.id} · <span class="badge ${nivel(r.p*r.i)}">${lvlName(r.p*r.i)}</span> · Exp ${r.p*r.i} (P${r.p}×I${r.i}) · ${r.cat}${r.mat?' · <span class="matmark">⚑ MATERIALIZADO 22/09</span>':''}${r.aceptado?' · <span class="badge aceptado">ACEPTADO</span>':''}</h3>
+    <div style="font-size:13px;margin-bottom:10px">${r.desc}</div>
+    <div class="dgrid">
+      <div class="dcard"><b>${r.aceptado?'Respuesta (aceptación condicionada)':'Mitigación preventiva'}</b>${r.mit}</div>
+      <div class="dcard"><b>Alarma / disparador</b>${r.ala}</div>
+      <div class="dcard"><b>Contingencia si ocurre</b>${r.con}</div>
+      <div class="dcard"><b>Evidencia de control</b>${r.evi}</div>
+    </div>
+    <div class="traza"><b>Trazabilidad:</b> ${r.traza} · <b>Responsable:</b> ${r.resp}</div>`;
+  d.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+</script>
+</body>
+</html>
