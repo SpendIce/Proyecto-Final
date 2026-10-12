@@ -97,6 +97,7 @@ import math
 import os
 from pathlib import Path
 import re
+from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 from .canal import PedidoCanal
@@ -120,6 +121,12 @@ from .interpretacion import (
     ResultadoInterpretacion,
 )
 from .workspace_config import ConfiguracionWorkspaceError, _A1_RE
+
+if TYPE_CHECKING:
+    # `decisiones_form` ya importa este módulo (reusa `PadronRoles`): el
+    # import real sería circular. El colaborador se verifica por duck typing
+    # en `__init__`, así que la anotación alcanza con TYPE_CHECKING.
+    from .decisiones_form import EnlacesDecisiones
 
 
 # Rol centinela con el que entra al núcleo una identidad que no figura en el
@@ -435,6 +442,12 @@ class CanalFormPedidos:
     fake en pruebas): el adapter no construye el correo, lo delega.
     `directorio_estado` aloja `atendidos-canal-form.jsonl`, la única marca
     de «respondido» que existe — la Sheet es de sólo lectura.
+
+    `decisiones` es el puente opcional al segundo Form («Registro de
+    decisiones», #72): cuando está, el aviso de borrador listo declara el
+    pedido como objeto pendiente de decisión y adjunta los links prellenados
+    «lo publiqué / lo descarté». Sin `decisiones` el correo va igual, sólo
+    que sin links de decisión.
     """
 
     def __init__(
@@ -446,6 +459,7 @@ class CanalFormPedidos:
         directorio_estado: Path,
         form_id: str,
         entry_id: str,
+        decisiones: EnlacesDecisiones | None = None,
     ) -> None:
         if (
             not callable(getattr(lector, "leer_valores", None))
@@ -456,6 +470,12 @@ class CanalFormPedidos:
             or ID_RE.fullmatch(form_id) is None
             or not isinstance(entry_id, str)
             or ENTRY_ID_RE.fullmatch(entry_id) is None
+            or (
+                decisiones is not None
+                and not callable(
+                    getattr(decisiones, "enlaces_publicacion", None)
+                )
+            )
         ):
             raise ValueError("configuración del canal de pedidos inválida")
         self._lector = lector
@@ -465,6 +485,7 @@ class CanalFormPedidos:
         self._atendidos_path = directorio_estado / ATENDIDOS_NOMBRE
         self._form_id = form_id
         self._entry_id = entry_id
+        self._decisiones = decisiones
 
     def leer_pendientes(self) -> tuple[PedidoCanal, ...]:
         """Pedidos nuevos de la hoja, en orden de llegada. Nunca escribe nada.
@@ -505,11 +526,37 @@ class CanalFormPedidos:
         institucional es peor que un aviso perdido.
         """
 
+        # Con el puente de decisiones conectado, el correo de borrador listo
+        # declara el pedido como objeto de decisión y adjunta los dos links
+        # del Form de decisiones (#72). La declaración queda aunque el aviso
+        # no llegue: el objeto sí quedó abierto a decisión, y ese estado es
+        # el que la auditoría de decisiones va a exigir después.
+        decisiones_objeto: str | None = None
+        if (
+            self._decisiones is not None
+            and resultado.estado == "PENDIENTE_VALIDACION"
+        ):
+            enlaces_decision = self._decisiones.enlaces_publicacion(
+                objeto_id=pedido.id_pedido,
+                pieza=_KEYWORD_POR_INTENCION.get(resultado.intencion or ""),
+                correlation_id=resultado.correlation_id,
+            )
+            decisiones_objeto = pedido.id_pedido
+        else:
+            enlaces_decision = None
         asunto = _asunto_aviso(pedido=pedido, resultado=resultado)
-        cuerpo = self._cuerpo_aviso(pedido=pedido, resultado=resultado)
+        cuerpo = self._cuerpo_aviso(
+            pedido=pedido,
+            resultado=resultado,
+            enlaces_decision=enlaces_decision,
+        )
         aviso, aviso_codigo = self._enviar_aviso(pedido, resultado, asunto, cuerpo)
         self._registrar_atendido(
-            pedido, resultado, aviso=aviso, aviso_codigo=aviso_codigo
+            pedido,
+            resultado,
+            aviso=aviso,
+            aviso_codigo=aviso_codigo,
+            decisiones_objeto=decisiones_objeto,
         )
 
     # --- Lectura de la hoja -------------------------------------------------
@@ -599,14 +646,22 @@ class CanalFormPedidos:
             return "fallida", getattr(exc, "code", None)
         return "enviada", None
 
-    def _cuerpo_aviso(self, *, pedido: PedidoCanal, resultado: ResultadoInterpretacion) -> str:
+    def _cuerpo_aviso(
+        self,
+        *,
+        pedido: PedidoCanal,
+        resultado: ResultadoInterpretacion,
+        enlaces_decision: Mapping[str, str] | None = None,
+    ) -> str:
         """Texto del aviso: sólo datos institucionales y links, nunca prosa.
 
         Todo cuerpo empieza con `MARCADOR_BORRADOR` porque el destino Gmail
         lo exige mientras rija la lista de prueba (D12). Lo que sigue sale
         del `ResultadoInterpretacion` —resumen con datos de la fuente, error
         con mensajes fijos, candidatas del índice—, nunca del texto del
-        pedido ni del cuerpo del borrador.
+        pedido ni del cuerpo del borrador. `enlaces_decision` son los links
+        prellenados del Form de decisiones (#72): etiqueta fija más URL, la
+        pieza publicada o descartada la decide una persona, no el agente.
         """
 
         ref = _ref_pedido(pedido.id_pedido)
@@ -621,6 +676,17 @@ class CanalFormPedidos:
             url = _url_documento(resultado.referencia_borrador)
             if url is not None:
                 lineas.extend(("", f"Borrador: {url}"))
+            if enlaces_decision is not None:
+                lineas.extend(
+                    (
+                        "",
+                        "La difusión la hace una persona. Cuando definas "
+                        "qué pasa con el borrador, registrá la decisión "
+                        "con tu correo verificado:",
+                        f"Lo publiqué: {enlaces_decision['publique']}",
+                        f"Lo descarté: {enlaces_decision['descarte']}",
+                    )
+                )
         elif resultado.estado == "PENDIENTE_DESAMBIGUACION":
             lineas.append(
                 f"Tu pedido (ref. {ref}) necesita que elijas la actividad."
@@ -705,13 +771,16 @@ class CanalFormPedidos:
         *,
         aviso: str,
         aviso_codigo: str | None,
+        decisiones_objeto: str | None = None,
     ) -> None:
         """Agrega el pedido al registro de atendidos. Sin prosa ni correo.
 
         Es la única escritura del adapter: un JSONL local append-only. Una
         falla acá sí propaga —si no queda constancia del atendido, la
         próxima lectura volvería a despachar el pedido y duplicaría el
-        borrador.
+        borrador. `decisiones_objeto` es el id bajo el que el pedido quedó
+        declarado como objeto de decisión de publicación (#72), cuando el
+        aviso llevó los links del segundo Form.
         """
 
         self._directorio_estado.mkdir(parents=True, exist_ok=True)
@@ -730,6 +799,7 @@ class CanalFormPedidos:
             "intencion": resultado.intencion,
             "aviso": aviso,
             "aviso_codigo": aviso_codigo,
+            "decisiones_objeto": decisiones_objeto,
             "correlation_id": resultado.correlation_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
