@@ -63,6 +63,17 @@ Decisiones que no se ven en el código:
   (`insumo-<productor>-<hash del correlation_id>`), así el log y el nombre
   del borrador quedan correlacionados con el insumo sin depender de campos
   inventados.
+- **El contenido de `evento` tiene contrato propio.** Los campos admitidos y
+  los obligatorios que una gacetilla exige están declarados en
+  `contracts/insumos/a3_evento_gacetilla_v1.schema.json` (#83): la corrida
+  los lee de ahí (`CAMPOS_EVENTO`, `CAMPOS_EVENTO_OBLIGATORIOS`) y el rechazo
+  lleva código propio (`evento_campos_desconocidos`, `evento_valor_invalido`,
+  `evento_campos_faltantes`), sin inventar nada.
+- **El borrador y la auditoría muestran el origen.** El flujo declara una
+  `ProcedenciaInsumo` al pipeline: la línea de `ejecuciones.jsonl` suma el
+  bloque `procedencia` y el documento lleva una línea visible que dice de qué
+  agente vino el insumo y si lo cargó un productor provisional declarado
+  (`data_origin = provisional_producer`).
 """
 
 from __future__ import annotations
@@ -72,6 +83,7 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from importlib.resources import files
 from pathlib import Path
 from typing import Any, Mapping, Protocol
 
@@ -81,7 +93,7 @@ from .fuentes import (
     FuenteSolicitudesError,
 )
 from .insumos_agentes import CONTRACT_VERSION, validar_insumo_agente
-from .procesamiento import CAMPOS_OBLIGATORIOS, Generator, procesar_solicitud
+from .procesamiento import Generator, ProcedenciaInsumo, procesar_solicitud
 
 # Encabezado posicional de la pestaña «Insumos de agentes» (ver docstring).
 # Es tupla y no conjunto porque se compara celda a celda: las mismas columnas
@@ -108,13 +120,20 @@ _REGISTRO_VERSION = "insumos_procesados_v1"
 CARGADO_POR_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}\Z")
 MAX_DETALLE_CHARS = 500
 
-# Campos que un `payload.content` de tipo `evento` puede declarar: las columnas
-# de la planilla de actividades menos el identificador, que la corrida deriva.
-CAMPOS_EVENTO = frozenset(COLUMNAS_ACTIVIDADES_V2) - {"id_actividad"}
-# Los obligatorios de la gacetilla, menos `id_actividad` (lo deriva la corrida).
-CAMPOS_EVENTO_OBLIGATORIOS = tuple(
-    campo for campo in CAMPOS_OBLIGATORIOS if campo != "id_actividad"
+# Contrato declarado del `payload.content` de un insumo A3 `evento` destinado
+# a una gacetilla (#83): los campos admitidos y los obligatorios viven en el
+# schema versionado, no se derivan en silencio de otros contratos. El runtime
+# los lee de acá; la suite verifica que sigan siendo las columnas de la
+# planilla de actividades menos `id_actividad` y los obligatorios de la
+# gacetilla menos el mismo identificador, que la corrida deriva.
+CONTRATO_EVENTO = json.loads(
+    files("agente1")
+    .joinpath("contracts", "insumos", "a3_evento_gacetilla_v1.schema.json")
+    .read_text(encoding="utf-8")
 )
+CONTRATO_EVENTO_VERSION = CONTRATO_EVENTO["x-contract-version"]
+CAMPOS_EVENTO = frozenset(CONTRATO_EVENTO["properties"])
+CAMPOS_EVENTO_OBLIGATORIOS = tuple(CONTRATO_EVENTO["required"])
 
 _TIPOS_REFERENCIA_DOCS = frozenset({"google_docs", "google_drive_template"})
 
@@ -756,14 +775,18 @@ class _FuenteEventoInsumo:
 class FlujoEventoGacetilla:
     """Despacha un insumo A3 `evento` al pipeline de gacetilla HU-010.
 
-    El `payload.content` se trata como la fila de una actividad: debe usar
-    nombres de `COLUMNAS_ACTIVIDADES_V2` (sin `id_actividad`, que la corrida
-    deriva del `correlation_id`) con valores texto, y traer los campos que el
-    contrato de gacetilla declara obligatorios. Lo que sobra o falta es un
-    rechazo explicable para el productor, no una corrección silenciosa.
+    El `payload.content` se trata como la fila de una actividad: los campos
+    admitidos y los obligatorios son los del contrato declarado
+    `a3_evento_gacetilla_v1` (las columnas de la planilla menos
+    `id_actividad`, que la corrida deriva del `correlation_id`), con valores
+    texto. Lo que sobra o falta es un rechazo explicable para el productor,
+    no una corrección silenciosa.
 
     El resultado es siempre un borrador `PENDIENTE_VALIDACION` —nunca una
     publicación— y el detalle que vuelve a la fila es el enlace al borrador.
+    La pieza y la línea de auditoría llevan la procedencia del insumo:
+    productor, tipo, flag de productor provisional y las claves opacas que
+    vinculan el documento con la fila.
     """
 
     def __init__(
@@ -801,6 +824,16 @@ class FlujoEventoGacetilla:
             directorio_salida=self._directorio_salida,
             generator=self._generator,
             destino=self._destino,
+            procedencia=ProcedenciaInsumo(
+                producer=envelope["producer"],
+                payload_type=envelope["payload"]["type"],
+                data_origin=envelope["data_origin"],
+                productor_provisional=(
+                    envelope["data_origin"] == "provisional_producer"
+                ),
+                insumo_correlation_id=envelope["correlation_id"],
+                cargado_por=cargado_por,
+            ),
         )
         if resultado.estado == "PENDIENTE_VALIDACION":
             if resultado.referencia_borrador is None:

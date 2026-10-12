@@ -150,6 +150,9 @@ def test_fila_completa_genera_borrador_pendiente_y_log(tmp_path):
     assert registro["id_solicitud"] == "SYN-001"
     assert registro["estado"] == "PENDIENTE_VALIDACION"
     assert registro["resultado"] == "borrador_generado"
+    # Una solicitud del canal de la SEU no declara procedencia de insumo:
+    # ni el borrador (verificación exacta arriba) ni el log la llevan.
+    assert "procedencia" not in registro
     log_serializado = resultado.log_path.read_text(encoding="utf-8")
     assert "pruebas@example.invalid" not in log_serializado
     assert "Actividad ficticia para probar el flujo." not in log_serializado

@@ -1,6 +1,6 @@
 # Contrato candidato de insumos A3–A5 hacia el Agente 1
 
-- **Fecha de corte:** 17 de agosto de 2026 (revisado por #82, ADR 0008)
+- **Fecha de corte:** 17 de agosto de 2026 (revisado por #82 y #83, ADR 0008)
 - **Estado:** `CANDIDATO_NO_INSTITUCIONAL`
 - **Proceso consumidor:** P4 — Comunicación y Difusión Institucional
 - **Componente consumidor:** Agente 1 — Extension Bot
@@ -14,6 +14,14 @@
 > por el productor provisional declarado mientras los agentes no existan, y la
 > columna `cargado_por` registra quién cargó cada fila. El schema vigente es
 > `agente1_insumo_candidate_v2.schema.json`; el v1 queda como histórico.
+
+> **Revisión #83.** El `payload.content` de un `evento` de A3 destinado a
+> gacetilla dejó de ser un objeto abierto interpretado por convención: tiene
+> contrato declarado propio
+> (`contracts/insumos/a3_evento_gacetilla_v1.schema.json`,
+> `CANDIDATO_NO_INSTITUCIONAL`) con campos admitidos y obligatorios, y el
+> borrador y la auditoría del pipeline muestran la procedencia del insumo
+> (ver § 3.2).
 
 ## 1. Propósito y límite arquitectónico
 
@@ -77,6 +85,44 @@ código del contrato o del flujo, o `aceptado sin flujo` con el tipo de
 payload. La pieza nunca vuelve al productor; cada `correlation_id` se
 procesa una sola vez, aunque la corrida se repita.
 
+## 3.2 Contenido del `evento` de A3 destinado a gacetilla (#83)
+
+Cuando el payload es `type = "evento"`, la corrida lo traduce a la entrada
+del pipeline de gacetilla HU-010. Para que la traducción sea explicable, el
+`content` tiene un schema candidato propio:
+
+`Implementacion/Agente1/src/agente1/contracts/insumos/a3_evento_gacetilla_v1.schema.json`
+
+Reglas del contrato:
+
+- Los campos admitidos son los nombres de `COLUMNAS_ACTIVIDADES_V2` menos
+  `id_actividad`, que la corrida deriva del `correlation_id` del envelope
+  (así el log y el nombre del borrador quedan correlacionados con el insumo
+  sin depender de un campo inventado).
+- Los obligatorios son los que `gacetilla_input_v2` exige para una
+  gacetilla, menos ese identificador: `titulo`, `descripcion`,
+  `fecha_inicio`, `publico`, `organiza`, `contacto` y `fuente`.
+- Todos los valores son texto; los opcionales ausentes o vacíos significan
+  «no informado» y el renderer los omite, nunca se inventan.
+- Un campo desconocido (`evento_campos_desconocidos`), un valor no texto
+  (`evento_valor_invalido`) o un obligatorio ausente
+  (`evento_campos_faltantes`) rechazan la fila con código propio, antes de
+  invocar al generador.
+- El borrador generado lleva una línea visible `[Procedencia: insumo de
+  A3, tipo evento; productor provisional: sí/no; cargado_por: …;
+  correlation_id: …]` entre la marca `BORRADOR — NO PUBLICAR` y la pieza,
+  y la línea de auditoría del pipeline suma el bloque `procedencia` con
+  los mismos identificadores opacos. El contenido libre del insumo nunca
+  se copia a la auditoría.
+
+El fixture declarado
+`tests/fixtures/insumos_agentes/a3_evento_ingenieria_por_un_dia_2026.json`
+lleva el evento real «Ingeniería por un día 2026» con `data_origin =
+provisional_producer` y provenance con los SHA-256 de sus fuentes
+documentales. El procedimiento de la corrida live sobre D2 quedó preparado
+en `evidencias/runbook-corrida-insumos-a3-evento-hu010.md`, pendiente del
+operador.
+
 ## 4. Trust boundary y seguridad
 
 1. El envelope rechaza campos adicionales, incluidos `action`, `instructions` y `callback_url`.
@@ -106,9 +152,11 @@ Las pruebas ejercitan ambas diferencias. El schema no promete que `uniqueItems` 
 | Corrida de la pestaña | `Implementacion/Agente1/src/agente1/insumos_corrida.py` | Ciclo por fila, estados, despacho por tipo, idempotencia y flujo `evento`→HU-010 |
 | Escritor de la pestaña | `Implementacion/Agente1/src/agente1/insumos_sheets.py` | `values.update` acotado, réplica CSV y configuración por entorno |
 | Fixtures válidos | `Implementacion/Agente1/tests/fixtures/insumos_agentes/valid_a3.json` a `valid_a5.json` | Un caso sintético por productor; `valid_a2.json` evidencia el rechazo de A2 |
+| Fixture real declarado | `Implementacion/Agente1/tests/fixtures/insumos_agentes/a3_evento_ingenieria_por_un_dia_2026.json` | Insumo A3 `evento` con hechos del corpus real SEU, `data_origin = provisional_producer` y provenance hasheada |
 | Fixture inválido | `Implementacion/Agente1/tests/fixtures/insumos_agentes/invalid_action.json` | Acción de control no autorizada |
 | Pruebas del contrato | `Implementacion/Agente1/tests/test_insumos_agentes.py` | Productor/canal/versión desconocidos, A2 fuera, `provisional_producer`, provenance, hashes, prompt injection como dato, PII en auditoría y acciones no autorizadas |
-| Pruebas de la corrida | `Implementacion/Agente1/tests/test_insumos_corrida.py`, `test_insumos_sheets.py`, `test_cli_insumos.py` | Aceptado, rechazado, repetido, sin flujo, bloqueado, escritura fallida, escritor `values.update`, config y subcomando |
+| Pruebas de la corrida | `Implementacion/Agente1/tests/test_insumos_corrida.py`, `test_insumos_sheets.py`, `test_cli_insumos.py` | Aceptado, rechazado, repetido, sin flujo, bloqueado, escritura fallida, escritor `values.update`, config y subcomando; contrato `a3_evento_gacetilla_v1`, rechazos por campo obligatorio/desconocido/inválido sin invocar al generador, procedencia en borrador y auditoría, flag provisional sí/no, e insumo real end-to-end |
+| Runbook de la corrida live | `Implementacion/Agente1/evidencias/runbook-corrida-insumos-a3-evento-hu010.md` + `insumos-ensayo-a3-evento-ingenieria-por-un-dia.csv` | Procedimiento live sobre D2 preparado y pendiente del operador; ensayo offline reproducible |
 
 Comando focalizado, sin build:
 
@@ -122,7 +170,7 @@ python -m pytest -q tests/test_insumos_agentes.py tests/test_insumos_corrida.py 
 | BPM | HU / alcance | Criterio DoD relacionado | TRL | Evidencia actual | Responsable de ejecución | Responsable de aceptación | Estado |
 |---|---|---|---:|---|---|---|---|
 | P4 | Preparación transversal para HU-010/HU-011 | Integración con agentes y logs activos | 3 objetivo | Schema, validador, fixtures y tests offline | Juan Ignacio Gone / responsable técnico | Arquitectura P100 + responsables A2-A5 | `CANDIDATO_TECNICO` |
-| P4 | HU-010 | Input trazable, sin hechos inventados y revisable | 3 objetivo | La corrida despacha `evento` al pipeline de gacetilla y produce el borrador pendiente de validación | Juan Ignacio Gone | SEU | `INTEGRADO_OFFLINE` |
+| P4 | HU-010 | Input trazable, sin hechos inventados y revisable | 3 objetivo | La corrida despacha `evento` al pipeline de gacetilla con contrato de contenido declarado y produce el borrador pendiente de validación, con procedencia del insumo visible en el documento y la auditoría (#83) | Juan Ignacio Gone | SEU | `INTEGRADO_OFFLINE` |
 | P4 | HU-011 | Input trazable, adaptado al canal y revisable | 3 objetivo | A1 puede validar envelopes, pero el pipeline HU-011 aún no los consume | Juan Ignacio Gone | Responsable RRSS / SEU | `PREPARADO_NO_INTEGRADO` |
 | P7 → P4 | A2 → A1 (pull) | Metadatos/origen e integridad de contenido histórico | Futuro | A2 sale del envelope; la consulta es `historia_viva.py` / `historia_viva_cliente.py` | Equipo A2 + Juan Ignacio | Responsable P7 / SEU | `PENDIENTE_ACUERDO` |
 | P2/P6 → P4 | A3 → A1 | Eventos/oportunidades con provenance | En curso | Pestaña de D2 + corrida; `evento` tiene flujo, `oportunidad_externa` queda `aceptado sin flujo` | Equipo A3 + Juan Ignacio / productor provisional declarado | Responsables P2/P6 / SEU | `PENDIENTE_ACUERDO` |

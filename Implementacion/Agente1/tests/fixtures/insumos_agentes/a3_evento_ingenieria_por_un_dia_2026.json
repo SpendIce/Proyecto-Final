@@ -1,0 +1,37 @@
+{
+  "schema": "agente1.insumo.v1",
+  "schema_version": "1.0.0",
+  "channel": "a1.communication_input",
+  "producer": "A3",
+  "producer_schema_version": "a3_candidate_v1",
+  "correlation_id": "corr-a3-ingenieria-por-un-dia-2026",
+  "timestamp": "2026-10-05T09:00:00-03:00",
+  "data_origin": "provisional_producer",
+  "provenance": {
+    "sources": [
+      {
+        "ref": "Documentos/PoC/Corpus-Comunicaciones-Reales-SEU-2026-09-30.md",
+        "sha256": "d4bea92098a4f58f560aedebc5aecf197d1bd0573f678e26c952ceee393bf6ed"
+      },
+      {
+        "ref": "Adjuntos/imagenes-flat-finch/mensaje-original.md",
+        "sha256": "0dd317f3af7528f18a3b39e59eebb34fdba17976f517f1d3d50ab953c407f081"
+      }
+    ]
+  },
+  "payload": {
+    "type": "evento",
+    "content": {
+      "titulo": "Ingeniería por un día 2026",
+      "descripcion": "Jornada de puertas abiertas con auspicio institucional del CPIC: recorrida por la oferta académica y los proyectos de los laboratorios, con charlas de directores de carrera, alumnos y graduados.",
+      "fecha_inicio": "2026-10-14",
+      "hora": "16:00",
+      "publico": "Aspirantes a ingresar y público interesado en la oferta académica",
+      "organiza": "Facultad de Ingeniería del Ejército",
+      "contacto": "comunicacion@fie.undef.edu.ar",
+      "fuente": "Documentos/PoC/Corpus-Comunicaciones-Reales-SEU-2026-09-30.md",
+      "enlace_inscripcion": "Enlace en la Bio «Actividades de Extensión» de Instagram",
+      "lugar": "Av. Cabildo 15, CABA"
+    }
+  }
+}

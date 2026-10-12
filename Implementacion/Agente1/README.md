@@ -66,6 +66,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/medir_capacidad_hu011.py`: prueba de capacidad local contra el volumen de referencia informado por la SEU; mide latencia fría y caliente y tasa de conformidad, y proyecta el mes.
 - `scripts/operaciones_seguras.py`: health, reconciliación, consolidación y retención en dry-run.
 - `src/agente1/contracts/insumos/agente1_insumo_candidate_v2.schema.json`, `src/agente1/insumos_agentes.py`, `src/agente1/insumos_corrida.py`, `src/agente1/insumos_sheets.py` y `src/agente1/cli_insumos.py`: entrada push de insumos A3–A5 (ADR 0008, #82) — el envelope candidato (A2 fuera, `data_origin` con `provisional_producer`), la corrida de la pestaña «Insumos de agentes» (estados `borrador generado`/`rechazado`/`aceptado sin flujo`, idempotencia por `correlation_id` en `insumos-procesados.jsonl`, despacho `evento`→HU-010), el escritor `values.update` acotado con su réplica CSV, y el subcomando `insumos-agentes` offline/live con doble opt-in.
+- `src/agente1/contracts/insumos/a3_evento_gacetilla_v1.schema.json`: contrato declarado del `payload.content` de un insumo A3 `evento` destinado a gacetilla (#83) — campos admitidos y obligatorios que la corrida aplica antes de llamar al pipeline, con códigos de rechazo propios y procedencia del insumo visible en el borrador y en la auditoría.
 - `salida/`: evidencia runtime local ignorada por Git.
 
 ## Dónde está documentada cada decisión
@@ -140,6 +141,8 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué una reserva `inicio` sin `final` bloquea en vez de reintentar | `insumos_corrida.py`, docstring de módulo |
 | Por qué el write a Sheets sólo puede tocar `C{n}:D{n}` de una pestaña | `src/agente1/insumos_sheets.py`, docstring de módulo y de `GoogleSheetsEscritorEstadoInsumos` |
 | Por qué el `id_actividad` del evento se deriva del `correlation_id` | `insumos_corrida.py`, docstring de módulo y `_id_solicitud_insumo` |
+| Qué campos exige el `content` de un `evento` A3 para gacetilla | `contracts/insumos/a3_evento_gacetilla_v1.schema.json`; `insumos_corrida.py` (`CAMPOS_EVENTO`, `CAMPOS_EVENTO_OBLIGATORIOS`) |
+| Cómo se ve en el borrador y en el log que la pieza salió de un insumo | `procesamiento.py` (`ProcedenciaInsumo`, `_bloque_procedencia`, `_con_procedencia`) |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
@@ -863,11 +866,31 @@ corrida). Una fila con `estado` vacío está pendiente; cualquier valor
 escrito la marca como ya procesada y no se toca. Por cada fila pendiente la
 corrida valida el envelope, verifica `cargado_por` y despacha por
 `payload.type`: hoy sólo `evento` de A3 tiene pipeline y va al flujo de
-gacetilla HU-010, que produce un borrador `PENDIENTE_VALIDACION` —nunca una
-publicación— cuyo enlace queda escrito en la fila. Un tipo válido sin
-pipeline queda `aceptado sin flujo` con el tipo en `detalle`; una fila
-inválida queda `rechazado` con el código del contrato. La pieza nunca vuelve
-al productor: sólo el enlace o el código.
+gacetilla HU-010 (#83), que produce un borrador `PENDIENTE_VALIDACION`
+—nunca una publicación— cuyo enlace queda escrito en la fila. Un tipo
+válido sin pipeline queda `aceptado sin flujo` con el tipo en `detalle`;
+una fila inválida queda `rechazado` con el código del contrato. La pieza
+nunca vuelve al productor: sólo el enlace o el código.
+
+El `payload.content` del `evento` tiene contrato declarado propio
+(`contracts/insumos/a3_evento_gacetilla_v1.schema.json`): los campos
+admitidos son las columnas de la planilla de actividades menos
+`id_actividad` (que la corrida deriva del `correlation_id`) y los
+obligatorios son los que `gacetilla_input_v2` exige para una gacetilla,
+menos ese identificador. Un campo desconocido, un valor no texto o un
+obligatorio ausente rechazan la fila con código propio
+(`evento_campos_desconocidos`, `evento_valor_invalido`,
+`evento_campos_faltantes`) sin invocar al generador ni inventar el dato.
+Cuando el pipeline corre, el borrador lleva una línea visible
+`[Procedencia: insumo de A3, tipo evento; productor provisional: sí/no;
+cargado_por: …; correlation_id: …]` entre la marca `BORRADOR — NO PUBLICAR`
+y la pieza, y la línea de `logs/ejecuciones.jsonl` suma el bloque
+`procedencia` con los mismos identificadores opacos. Una solicitud del
+canal de la SEU no declara procedencia: el artefacto queda igual que
+siempre. El procedimiento de la corrida live sobre D2 con un insumo real
+de A3 («Ingeniería por un día 2026») quedó preparado en
+`evidencias/runbook-corrida-insumos-a3-evento-hu010.md`, pendiente del
+operador.
 
 La idempotencia es por `correlation_id`: `insumos-procesados.jsonl`, en el
 directorio de salida, registra cada despacho con metadatos (productor, tipo,
