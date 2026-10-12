@@ -9,3 +9,4 @@ cuota_1_monto,20000,OBSERVADO_DOCUMENTO,"Informe p. 3 «Valor: $20.000»; propue
 cuota_1_vencimiento,,DESCONOCIDO,"Ni el informe ni la propuesta informan un vencimiento exacto."
 medios_pago,transferencia|Mercado Pago,OBSERVADO_DOCUMENTO,"Informe p. 3 «transferencia o Mercado Pago»; sin URL de pago ni datos bancarios en ese archivo."
 categorias_bonificadas,alumnos FIE|personal FIE|egresados FIE,OBSERVADO_DOCUMENTO,"Informe p. 3 «Bonificación para alumnos, personal y egresados de la Facultad de Ingeniería del Ejército»; porcentaje no informado."
+anticipaciones,7|2,SUPUESTO_TECNICO,"D15 del diseño: default [7, 2] días, pendiente de confirmación con la SEU."

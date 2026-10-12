@@ -1,11 +1,13 @@
-"""HU-012 ampliada (bible 22/09): catálogo cerrado de tipos de notificación.
+"""HU-012 ampliada (bible 22/09 + control de pagos): catálogo de tipos v2.
 
 La HU pasó de «confirmaciones de inscripción» a «notificaciones automáticas
-de inscripción, participación, situación de pagos y aprobación». Estas
-pruebas fijan que el catálogo es cerrado y coherente con la matriz de
-orígenes, que `participacion` y `aprobacion` recorren el mismo pipeline con
-la misma doble aprobación, que `situacion_pagos` queda declarada pero no
-produce nada mientras el dato de deuda no tenga origen confirmado, y que
+de inscripción, participación, situación de pagos y aprobación», y el
+diseño de control de pagos agregó `recordatorio_pago` con circuito por lote.
+Estas pruebas fijan que el catálogo es cerrado y coherente con la matriz de
+orígenes, que los tipos por envío recorren el mismo pipeline con la misma
+doble aprobación —incluida `situacion_pagos`, que en v2 se habilita al
+derivar su dato del plan de pagos en lugar del dato `DESCONOCIDO` de v1—,
+que `recordatorio_pago` no puede tramitar por solicitud individual, y que
 `inscripcion` no cambió de comportamiento.
 """
 
@@ -31,6 +33,9 @@ from agente1.origenes_inscripcion import ORIGENES_DE_INSCRIPCION
 from agente1.tipos_notificacion import (
     CATALOGO,
     CONTRACT_VERSION,
+    MODO_CIRCUITO_LOTE,
+    MODO_CIRCUITO_POR_ENVIO,
+    MODOS_CIRCUITO,
     MOTIVOS_DE_BLOQUEO,
     PROCEDENCIAS,
     STATUS,
@@ -43,6 +48,7 @@ from agente1.tipos_notificacion import (
     datos_sin_origen_confirmado,
     descripcion_tipo,
     evaluar_tipo,
+    modo_circuito,
 )
 
 
@@ -98,15 +104,23 @@ def aprobar_ambos(tmp_path: Path, registro, solicitud_: SolicitudConfirmacion) -
 # --- El catálogo como contrato -----------------------------------------------
 
 
-def test_el_catalogo_es_cerrado_y_tiene_los_cuatro_tipos_de_la_bible() -> None:
-    assert CONTRACT_VERSION == "tipos_notificacion_v1"
+def test_el_catalogo_es_cerrado_y_tiene_los_tipos_de_la_bible_y_pagos() -> None:
+    assert CONTRACT_VERSION == "tipos_notificacion_v2"
     assert STATUS == "CANDIDATO_PENDIENTE_CONFIRMACION_SEU"
     assert CATALOGO["x-hu"] == "HU-012"
     assert CATALOGO["x-habilita-envio"] is False
+    assert CATALOGO["x-reemplaza"] == "tipos_notificacion_v1"
     assert TIPOS_NOTIFICACION == frozenset(
-        {"inscripcion", "participacion", "situacion_pagos", "aprobacion"}
+        {
+            "inscripcion",
+            "participacion",
+            "situacion_pagos",
+            "aprobacion",
+            "recordatorio_pago",
+        }
     )
     assert TIPO_NOTIFICACION_PREDETERMINADO == "inscripcion"
+    assert MODOS_CIRCUITO == frozenset({"por_envio", "lote"})
 
 
 @pytest.mark.parametrize("tipo", sorted(TIPOS_NOTIFICACION))
@@ -116,6 +130,7 @@ def test_cada_tipo_declara_campos_origenes_plantilla_y_procedencia(
     item = descripcion_tipo(tipo)
 
     assert item["procedencia_tipo"] == "CONFIRMADO_SEU"
+    assert item["modo_circuito"] in MODOS_CIRCUITO
     assert item["campos_requeridos"]
     assert set(item["campos_requeridos"]) <= set(REQUIRED_FIELDS) | {
         "email_destinatario"
@@ -127,24 +142,45 @@ def test_cada_tipo_declara_campos_origenes_plantilla_y_procedencia(
     assert item["plantilla"]["frase_evento"].strip()
 
 
-def test_los_tipos_habilitados_exigen_los_campos_confirmados() -> None:
-    """Los tres tipos que entran al pipeline usan el mismo set de campos:
-    el contacto del inscripto, confirmado por la SEU el 22/09."""
-    for tipo in ("inscripcion", "participacion", "aprobacion"):
+def test_los_tipos_por_envio_exigen_los_campos_confirmados() -> None:
+    """Los cuatro tipos que tramitan por solicitud usan el mismo set de
+    campos: el contacto del inscripto, confirmado por la SEU el 22/09."""
+    for tipo in ("inscripcion", "participacion", "situacion_pagos", "aprobacion"):
+        assert modo_circuito(tipo) == MODO_CIRCUITO_POR_ENVIO
         assert set(campos_requeridos(tipo)) == set(REQUIRED_FIELDS) | {
             "email_destinatario"
         }
 
 
-def test_situacion_pagos_declara_su_dato_de_deuda_como_desconocido() -> None:
+def test_recordatorio_pago_declara_el_modo_lote_y_sus_campos() -> None:
+    item = descripcion_tipo("recordatorio_pago")
+
+    assert modo_circuito("recordatorio_pago") == MODO_CIRCUITO_LOTE
+    # El ítem consume los datos de contacto del padrón y del plan; no usa
+    # los campos del evento (`fecha`, `lugar`, `organiza`) de una solicitud.
+    assert set(item["campos_requeridos"]) == {
+        "id_inscripcion",
+        "nombre_destinatario",
+        "email_destinatario",
+        "actividad",
+        "contacto",
+    }
+    # Todo lo que la SEU no confirmó queda declarado como supuesto, no como
+    # desconocido: nada en el lote depende de un dato sin fundamento.
+    assert set(item["datos_especificos"].values()) == {"SUPUESTO_TECNICO"}
+    assert item["motivos_de_bloqueo"] == []
+
+
+def test_situacion_pagos_ya_no_declara_el_dato_desconocido_de_v1() -> None:
+    """En v2 la situación de pagos se deriva del plan, el padrón, el buzón y
+    las novedades: `situacion_deuda_o_saldo` desaparece del catálogo."""
     item = descripcion_tipo("situacion_pagos")
 
-    assert item["datos_especificos"] == {"situacion_deuda_o_saldo": "DESCONOCIDO"}
-    assert item["origen_datos_especificos"] == "DESCONOCIDO"
-    assert datos_sin_origen_confirmado("situacion_pagos") == (
-        "situacion_deuda_o_saldo",
-    )
-    assert "dato_especifico_sin_origen_confirmado" in item["motivos_de_bloqueo"]
+    assert "situacion_deuda_o_saldo" not in item["datos_especificos"]
+    assert "origen_datos_especificos" not in item
+    assert datos_sin_origen_confirmado("situacion_pagos") == ()
+    assert set(item["datos_especificos"].values()) == {"SUPUESTO_TECNICO"}
+    assert item["motivos_de_bloqueo"] == []
 
 
 def test_la_procedencia_desconocida_es_lo_que_bloquea_un_tipo() -> None:
@@ -162,22 +198,14 @@ def test_la_procedencia_desconocida_es_lo_que_bloquea_un_tipo() -> None:
 # --- La decisión de tipo ------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "tipo", ["inscripcion", "participacion", "aprobacion"]
-)
-def test_tipos_con_datos_confirmados_quedan_habilitados(tipo: str) -> None:
+@pytest.mark.parametrize("tipo", sorted(TIPOS_NOTIFICACION))
+def test_los_cinco_tipos_quedan_habilitados_en_v2(tipo: str) -> None:
+    """En v2 ningún tipo tiene un dato `DESCONOCIDO`: el bloqueo por dato
+    sin fundamento sigue en el catálogo pero hoy no se aplica a ninguno."""
     decision = evaluar_tipo(tipo)
 
     assert decision.habilitado is True
     assert decision.motivos == ()
-
-
-def test_situacion_pagos_no_se_habilita_mientras_no_haya_origen() -> None:
-    decision = evaluar_tipo("situacion_pagos")
-
-    assert decision.habilitado is False
-    assert "dato_especifico_sin_origen_confirmado" in decision.motivos
-    assert set(decision.motivos) <= MOTIVOS_DE_BLOQUEO
 
 
 def test_un_origen_fuera_de_los_admisibles_agrega_motivo() -> None:
@@ -301,11 +329,39 @@ def test_participacion_encolada_drena_como_cualquier_confirmacion(
     assert destino.entregas[0].idempotency_key == encolada.idempotency_key
 
 
-def test_situacion_pagos_se_rechaza_fail_closed_en_toda_via(tmp_path: Path) -> None:
-    """Ni borrador ni envío: el dato de deuda no tiene origen confirmado."""
+def test_situacion_pagos_recorre_el_ciclo_completo_en_v2(tmp_path: Path) -> None:
+    """La situación de pagos tramita por envío como los demás tipos: borrador,
+    doble aprobación por pieza y entrega contra el fake."""
     registro = RegistroConfirmacionesMemoria()
     destino = DestinoConfirmacionesFake()
     pedido = solicitud(tipo_notificacion="situacion_pagos")
+
+    borrador = procesar(tmp_path, registro, solicitud=pedido)
+    parcial = procesar(tmp_path, registro, solicitud=pedido, aprobacion=semantica())
+    aprobada = procesar(tmp_path, registro, solicitud=pedido, aprobacion=utilitaria())
+    entrega = procesar(
+        tmp_path, registro, solicitud=pedido, destino=destino, enviar=True
+    )
+
+    assert borrador.estado == "PENDIENTE_VALIDACION"
+    assert borrador.asunto == (
+        "[BORRADOR — NO ENVIAR] Notificación de situación de pagos"
+    )
+    assert "Registramos la situación de pagos de:" in borrador.cuerpo
+    assert parcial.estado == "APROBADA_SEMANTICA"
+    assert aprobada.estado == "APROBADA"
+    assert entrega.estado == "ENVIADA_SIMULADA"
+    assert len(destino.entregas) == 1
+
+
+def test_recordatorio_pago_no_tramita_por_solicitud_individual(
+    tmp_path: Path,
+) -> None:
+    """El tipo `lote` nunca produce borrador por la vía por-envío: sus ítems
+    nacen de la planificación de la corrida y se encolan en `recordatorios`."""
+    registro = RegistroConfirmacionesMemoria()
+    destino = DestinoConfirmacionesFake()
+    pedido = solicitud(tipo_notificacion="recordatorio_pago")
 
     borrador = procesar(tmp_path, registro, solicitud=pedido)
     con_aprobacion = procesar(
@@ -327,27 +383,25 @@ def test_situacion_pagos_se_rechaza_fail_closed_en_toda_via(tmp_path: Path) -> N
 
     for resultado in (borrador, con_aprobacion, encolada):
         assert resultado.estado == "INVALIDA"
-        assert resultado.error == "notification_type_blocked"
+        assert resultado.error == "notification_mode_mismatch"
         assert resultado.cuerpo is None
-    # Nada quedó registrado: el tipo bloqueado no materializa borrador.
+    # Nada quedó registrado: el modo incorrecto no materializa borrador.
     assert registro.obtener(borrador.idempotency_key) is None
     assert destino.entregas == []
 
 
-def test_la_auditoria_del_bloqueo_nombra_el_tipo_y_el_motivo(
+def test_la_auditoria_del_modo_incorrecto_nombra_tipo_y_modo(
     tmp_path: Path,
 ) -> None:
-    pedido = solicitud(tipo_notificacion="situacion_pagos")
+    pedido = solicitud(tipo_notificacion="recordatorio_pago")
     resultado = procesar(tmp_path, RegistroConfirmacionesMemoria(), solicitud=pedido)
 
     linea = json.loads(
         resultado.log_path.read_text(encoding="utf-8").splitlines()[-1]
     )
-    assert linea["tipo_notificacion"] == "situacion_pagos"
-    assert linea["resultado"] == "notification_type_blocked"
-    assert linea["motivos_bloqueo_tipo"] == [
-        "dato_especifico_sin_origen_confirmado"
-    ]
+    assert linea["tipo_notificacion"] == "recordatorio_pago"
+    assert linea["resultado"] == "notification_mode_mismatch"
+    assert linea["modo_circuito"] == "lote"
     # La auditoría sigue sin datos personales ni texto en claro.
     assert "ana.perez@example.test" not in resultado.log_path.read_text(
         encoding="utf-8"

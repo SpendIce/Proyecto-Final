@@ -64,6 +64,12 @@
       "forma": "lista_barra",
       "procedencia_caso_referencia": "OBSERVADO_DOCUMENTO",
       "observacion": "Categorías con bonificación declaradas por la actividad. En el caso de referencia, alumnos, personal y egresados FIE; porcentaje no informado. Acreditar la condición del inscripto sigue DESCONOCIDO (pregunta 7 de §9)."
+    },
+    "anticipaciones": {
+      "obligatorio": false,
+      "forma": "lista_enteros_barra",
+      "procedencia_caso_referencia": "SUPUESTO_TECNICO",
+      "observacion": "Días antes de la fecha de referencia de una cuota PENDIENTE en que se planifica su recordatorio (D15, §5.1 del diseño). Valores enteros no negativos; ausente o vacío equivale al default [7, 2]. Un 0 planifica el recordatorio el mismo día de la referencia; nunca hay recordatorios después de ella (D4)."
     }
   },
 
@@ -87,7 +93,8 @@
     "columnas": ["campo", "valor", "procedencia", "evidencia"],
     "columnas_obligatorias": ["campo", "valor", "procedencia"],
     "patron_campo_cuota": "^cuota_(\\d+)_(monto|vencimiento)$",
-    "separador_lista": "|"
+    "separador_lista": "|",
+    "anticipaciones_default": [7, 2]
   },
 
   "estados_derivados_cuota": {
@@ -110,6 +117,7 @@
     "comprobante_presentado": "Una respuesta asociada cuenta como comprobante para una cuota si trae al menos un adjunto PDF o imagen (D13). Los comprobantes se distinguen por el sha256 del adjunto, calculado en la corrida y no guardado: la misma captura enviada dos veces cuenta una sola vez.",
     "asignacion_cuotas": "Los comprobantes distintos de una persona se asignan en orden cronológico a las cuotas no bonificadas, de la 1 a la N. Los que exceden las cuotas quedan informados como sin cuota asignada.",
     "estado_no_persistido": "El estado de cada cuota se deriva en cada corrida; el agente no guarda un estado de pago por persona (ADR 0003).",
+    "recordatorio_anticipacion": "Una cuota PENDIENTE genera recordatorio cuando el día de la corrida —en zona America/Argentina/Buenos_Aires— es exactamente la fecha de referencia menos una de las anticipaciones del plan (default [7, 2], configurable por actividad). Nunca después de la fecha de referencia (D4, D15, §5.1).",
     "entrada_no_confiable": "El cuerpo y los adjuntos de las respuestas son entrada no confiable: la corrida deriva metadatos (remitente, asunto, tipo y sha256 de adjuntos) y nada de ese contenido llega a un modelo ni a un prompt (ADR 0001)."
   },
 

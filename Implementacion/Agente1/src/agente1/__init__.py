@@ -32,6 +32,7 @@ Guía rápida de módulos:
 - `canal_form`                HU-013, adapter del canal de pedidos por Google
                               Form con padrón de roles y aviso por Gmail (#71).
 - `pagos`                     HU-012, corrida de control de pagos (offline).
+- `recordatorios`             HU-012, circuito por lote de `recordatorio_pago`.
 - `buzon`                     puerto del buzón propio del agente (ADR 0004).
 """
 
@@ -62,11 +63,19 @@ from .interpretacion import (
 from .buzon import BuzonPropio, BuzonPropioEml, BuzonPropioMemoria
 from .ollama import OllamaGenerator
 from .pagos import correr_control_pagos
+from .recordatorios import (
+    AprobacionLote,
+    aprobar_plantilla_recordatorio,
+    correr_lote_recordatorios,
+    encolar_lote_recordatorios,
+    registrar_plantilla_recordatorio,
+)
 from .procesamiento import FakeGenerator, ResultadoProceso, procesar_fila_csv
 from .posts import PoliticaPost, procesar_post, procesar_post_estructurado
 
 __all__ = [
     "AprobacionHumana",
+    "AprobacionLote",
     "BuzonPropio",
     "BuzonPropioEml",
     "BuzonPropioMemoria",
@@ -89,12 +98,16 @@ __all__ = [
     "ResultadoInterpretacion",
     "ResultadoProceso",
     "SolicitudConfirmacion",
+    "aprobar_plantilla_recordatorio",
     "correr_control_pagos",
+    "correr_lote_recordatorios",
     "drenar_envios",
+    "encolar_lote_recordatorios",
     "interpretar_solicitud",
     "procesar_confirmacion",
     "procesar_fila_csv",
     "procesar_post",
     "procesar_post_estructurado",
     "reconciliar_envios_reservados",
+    "registrar_plantilla_recordatorio",
 ]

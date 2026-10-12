@@ -53,7 +53,7 @@
       "type": "string",
       "enum": ["inscripcion", "participacion", "situacion_pagos", "aprobacion"],
       "default": "inscripcion",
-      "description": "Tipo de notificación según el catálogo cerrado tipos_notificacion_v1. situacion_pagos está declarada pero queda sin producción mientras no haya origen confirmado para el dato de deuda."
+      "description": "Tipo de notificación según el catálogo cerrado tipos_notificacion_v2. Los cuatro tipos del enum viajan por el circuito por envío; recordatorio_pago no entra por este contrato porque viaja por el circuito por lote. situacion_pagos se habilita con el estado que la corrida deriva del plan, el padrón, el buzón y las novedades (ADR 0003)."
     }
   }
 }
