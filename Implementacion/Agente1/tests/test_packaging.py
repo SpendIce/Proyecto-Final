@@ -134,6 +134,45 @@ def test_recursos_y_api_primaria_hu012_son_empaquetables():
         assert getattr(agente1, nombre) is not None
 
 
+def test_recursos_plantilla_actividad_hu012_son_empaquetables():
+    import agente1
+
+    contrato = json.loads(
+        files("agente1")
+        .joinpath("contracts", "plantilla_actividad_v1.json")
+        .read_text(encoding="utf-8")
+    )
+    base = (
+        files("agente1")
+        .joinpath("prompts", "plantilla_actividad_base_provisional_v1.txt")
+        .read_text(encoding="utf-8")
+    )
+    generacion = (
+        files("agente1")
+        .joinpath("prompts", "plantilla_actividad_generacion_v1.txt")
+        .read_text(encoding="utf-8")
+    )
+
+    assert contrato["x-contract-version"] == "plantilla_actividad_v1"
+    assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+    assert contrato["x-hu"] == "HU-012"
+    assert "TEMPLATE_VERSION: plantilla_actividad_base_provisional_v1" in base
+    assert "PENDIENTE_SEU" in base
+    assert "PROMPT_VERSION: plantilla_actividad_generacion_v1" in generacion
+    assert "CONTRACT_VERSION: plantilla_actividad_v1" in generacion
+    for nombre in (
+        "DestinatarioActividad",
+        "ResultadoLoteActividad",
+        "ResultadoPlantillaActividad",
+        "correr_lote_actividad",
+        "encolar_lote_actividad",
+        "procesar_plantilla_actividad",
+        "renderizar_pieza_actividad",
+    ):
+        assert nombre in agente1.__all__
+        assert getattr(agente1, nombre) is not None
+
+
 def test_migraciones_del_spike_son_artefactos_de_repo_no_package_data():
     """Las migraciones se aplican con un cliente SQL, no se importan del wheel."""
     configuracion = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -177,6 +216,7 @@ def test_catalogo_de_intenciones_hu013_es_empaquetable_y_provisional():
     assert {item["id"] for item in contrato["intenciones"]} == {
         "generar_gacetilla",
         "generar_post",
+        "generar_plantilla_actividad",
         "fuera_de_alcance",
         "ajustar_borrador",
         "generar_newsletter",
@@ -227,34 +267,36 @@ def test_prompt_del_fallback_de_interpretacion_es_empaquetable():
         assert marcador in plantilla
 
 
-def test_contratos_v2_de_interpretacion_con_emitir_certificados():
-    """El catálogo vigente es v2 y el enum del fallback coincide (#75).
+def test_contratos_v3_de_interpretacion_con_certificados_y_plantilla():
+    """El catálogo vigente es v3 y el enum del fallback coincide (#75, #73).
 
-    `interpretar_solicitud` valida contra `intenciones_v2` y contra
-    `interpretacion_fallback_v2`; los dos tienen que traer la intención
-    `emitir_certificados` de HU-014 y el mismo enum, porque si difieren
-    hay intenciones que el fallback puede devolver pero el catálogo no
-    despacha, o al revés.
+    `interpretar_solicitud` valida contra `intenciones_v3` y contra
+    `interpretacion_fallback_v3`; los dos tienen que traer las intenciones
+    `emitir_certificados` (HU-014) y `generar_plantilla_actividad` (HU-012)
+    y el mismo enum, porque si difieren hay intenciones que el fallback
+    puede devolver pero el catálogo no despacha, o al revés.
     """
 
     catalogo = json.loads(
         files("agente1")
-        .joinpath("contracts", "intenciones_v2.schema.json")
+        .joinpath("contracts", "intenciones_v3.schema.json")
         .read_text(encoding="utf-8")
     )
     fallback = json.loads(
         files("agente1")
-        .joinpath("contracts", "interpretacion_fallback_v2.schema.json")
+        .joinpath("contracts", "interpretacion_fallback_v3.schema.json")
         .read_text(encoding="utf-8")
     )
 
-    assert catalogo["x-contract-version"] == "intenciones_v2"
+    assert catalogo["x-contract-version"] == "intenciones_v3"
+    assert catalogo["x-reemplaza"] == "intenciones_v2"
     assert catalogo["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
-    assert fallback["x-contract-version"] == "interpretacion_fallback_v2"
+    assert fallback["x-contract-version"] == "interpretacion_fallback_v3"
     assert fallback["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
 
     intenciones = [item["id"] for item in catalogo["intenciones"]]
     assert "emitir_certificados" in intenciones
+    assert "generar_plantilla_actividad" in intenciones
     assert (
         sorted(fallback["properties"]["intencion"]["enum"])
         == sorted(intenciones)
@@ -262,8 +304,8 @@ def test_contratos_v2_de_interpretacion_con_emitir_certificados():
 
     plantilla = (
         files("agente1")
-        .joinpath("prompts", "interpretacion_fallback_v2.txt")
+        .joinpath("prompts", "interpretacion_fallback_v3.txt")
         .read_text(encoding="utf-8")
     )
-    assert "PROMPT_VERSION: interpretacion_fallback_v2" in plantilla
-    assert "CONTRACT_VERSION: interpretacion_fallback_v2" in plantilla
+    assert "PROMPT_VERSION: interpretacion_fallback_v3" in plantilla
+    assert "CONTRACT_VERSION: interpretacion_fallback_v3" in plantilla

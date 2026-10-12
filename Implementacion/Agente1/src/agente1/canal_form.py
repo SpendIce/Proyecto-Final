@@ -182,6 +182,16 @@ _KEYWORD_POR_INTENCION = {
     "generar_gacetilla": "gacetilla",
     "generar_post": "post",
     "emitir_certificados": "certificados",
+    "generar_plantilla_actividad": "plantilla",
+}
+
+# Etiqueta fija por decisión del catálogo #72, para el aviso del pedido de
+# plantilla. El link lo mintea `EnlacesDecisiones`; acá sólo se nombra qué
+# aprobación registra cada uno.
+_ETIQUETA_DECISION = {
+    "apruebo_semantica": "Apruebo la revisión semántica de la plantilla",
+    "apruebo_utilitaria": "Apruebo la plantilla (decisión utilitaria)",
+    "apruebo_lote": "Habilito el lote de envíos de la actividad",
 }
 
 _FRASES_ASUNTO = {
@@ -481,8 +491,9 @@ class CanalFormPedidos:
             or ENTRY_ID_RE.fullmatch(entry_id) is None
             or (
                 decisiones is not None
-                and not callable(
-                    getattr(decisiones, "enlaces_publicacion", None)
+                and not all(
+                    callable(getattr(decisiones, metodo, None))
+                    for metodo in ("enlaces_publicacion", "declarar_y_enlaces")
                 )
             )
         ):
@@ -536,28 +547,43 @@ class CanalFormPedidos:
         """
 
         # Con el puente de decisiones conectado, el correo de borrador listo
-        # declara el pedido como objeto de decisión y adjunta los dos links
-        # del Form de decisiones (#72). La declaración queda aunque el aviso
-        # no llegue: el objeto sí quedó abierto a decisión, y ese estado es
-        # el que la auditoría de decisiones va a exigir después.
+        # declara los objetos que quedaron abiertos a decisión y adjunta los
+        # links del Form de decisiones (#72). La declaración queda aunque el
+        # aviso no llegue: el objeto sí quedó abierto a decisión, y ese
+        # estado es el que la auditoría de decisiones va a exigir después.
+        # Un pipeline que nombra sus objetos en `objetos_decision` —hoy la
+        # plantilla y el lote de `generar_plantilla_actividad`, #73— declara
+        # ésos; los demás siguen declarando el pedido como `publicacion`.
         decisiones_objeto: str | None = None
+        decisiones_objetos: tuple[str, ...] = ()
+        enlaces_decision: Mapping[str, str] | None = None
+        enlaces_objetos: tuple[tuple[str, str, dict[str, str]], ...] = ()
         if (
             self._decisiones is not None
             and resultado.estado == "PENDIENTE_VALIDACION"
         ):
-            enlaces_decision = self._decisiones.enlaces_publicacion(
-                objeto_id=pedido.id_pedido,
-                pieza=_KEYWORD_POR_INTENCION.get(resultado.intencion or ""),
-                correlation_id=resultado.correlation_id,
-            )
-            decisiones_objeto = pedido.id_pedido
-        else:
-            enlaces_decision = None
+            if resultado.objetos_decision:
+                enlaces_objetos = tuple(
+                    self._declarar_objeto_decision(objeto)
+                    for objeto in resultado.objetos_decision
+                )
+                decisiones_objetos = tuple(
+                    f"{objeto['tipo']}:{objeto['objeto_id']}"
+                    for objeto in resultado.objetos_decision
+                )
+            else:
+                enlaces_decision = self._decisiones.enlaces_publicacion(
+                    objeto_id=pedido.id_pedido,
+                    pieza=_KEYWORD_POR_INTENCION.get(resultado.intencion or ""),
+                    correlation_id=resultado.correlation_id,
+                )
+                decisiones_objeto = pedido.id_pedido
         asunto = _asunto_aviso(pedido=pedido, resultado=resultado)
         cuerpo = self._cuerpo_aviso(
             pedido=pedido,
             resultado=resultado,
             enlaces_decision=enlaces_decision,
+            enlaces_objetos=enlaces_objetos,
         )
         aviso, aviso_codigo = self._enviar_aviso(pedido, resultado, asunto, cuerpo)
         self._registrar_atendido(
@@ -566,7 +592,33 @@ class CanalFormPedidos:
             aviso=aviso,
             aviso_codigo=aviso_codigo,
             decisiones_objeto=decisiones_objeto,
+            decisiones_objetos=decisiones_objetos,
         )
+
+    def _declarar_objeto_decision(
+        self, objeto: Mapping[str, object]
+    ) -> tuple[str, str, dict[str, str]]:
+        """Declara un objeto del núcleo y mintea sus links (#72).
+
+        El núcleo ya produjo `tipo` y `objeto_id` conformes al catálogo; el
+        `declarar_y_enlaces` valida de nuevo — un objeto que no pase el
+        catálogo levanta `DecisionesFormError` y corta la respuesta, porque
+        un aviso con links rotos es peor que un aviso que no salió.
+        """
+
+        tipo = str(objeto["tipo"])
+        objeto_id = str(objeto["objeto_id"])
+        detalle = objeto.get("detalle")
+        enlaces = self._decisiones.declarar_y_enlaces(
+            tipo=tipo,
+            objeto_id=objeto_id,
+            detalle=(
+                {str(k): str(v) for k, v in detalle.items()}
+                if isinstance(detalle, Mapping)
+                else None
+            ),
+        )
+        return tipo, objeto_id, enlaces
 
     # --- Lectura de la hoja -------------------------------------------------
 
@@ -661,6 +713,7 @@ class CanalFormPedidos:
         pedido: PedidoCanal,
         resultado: ResultadoInterpretacion,
         enlaces_decision: Mapping[str, str] | None = None,
+        enlaces_objetos: tuple[tuple[str, str, dict[str, str]], ...] = (),
     ) -> str:
         """Texto del aviso: sólo datos institucionales y links, nunca prosa.
 
@@ -696,6 +749,23 @@ class CanalFormPedidos:
                         f"Lo descarté: {enlaces_decision['descarte']}",
                     )
                 )
+            if enlaces_objetos:
+                # #73: la plantilla exige la doble aprobación y el lote la
+                # suya; el aviso enumera cada objeto con sus links del Form
+                # de decisiones. Nada se envía sin las tres registradas.
+                lineas.extend(
+                    (
+                        "",
+                        "La plantilla y el envío necesitan decisiones "
+                        "registradas en el Form de decisiones. Registrá "
+                        "cada aprobación con tu correo verificado:",
+                    )
+                )
+                for tipo, objeto_id, enlaces in enlaces_objetos:
+                    lineas.append(f"{tipo}: {objeto_id}")
+                    for decision in sorted(enlaces):
+                        etiqueta = _ETIQUETA_DECISION.get(decision, decision)
+                        lineas.append(f"  {etiqueta}: {enlaces[decision]}")
         elif resultado.estado == "PENDIENTE_DESAMBIGUACION":
             lineas.append(
                 f"Tu pedido (ref. {ref}) necesita que elijas la actividad."
@@ -781,6 +851,7 @@ class CanalFormPedidos:
         aviso: str,
         aviso_codigo: str | None,
         decisiones_objeto: str | None = None,
+        decisiones_objetos: tuple[str, ...] = (),
     ) -> None:
         """Agrega el pedido al registro de atendidos. Sin prosa ni correo.
 
@@ -789,7 +860,9 @@ class CanalFormPedidos:
         próxima lectura volvería a despachar el pedido y duplicaría el
         borrador. `decisiones_objeto` es el id bajo el que el pedido quedó
         declarado como objeto de decisión de publicación (#72), cuando el
-        aviso llevó los links del segundo Form.
+        aviso llevó los links del segundo Form; `decisiones_objetos`
+        enumera los pares `tipo:objeto_id` que el pipeline dejó abiertos
+        (#73: plantilla y lote).
         """
 
         self._directorio_estado.mkdir(parents=True, exist_ok=True)
@@ -809,6 +882,7 @@ class CanalFormPedidos:
             "aviso": aviso,
             "aviso_codigo": aviso_codigo,
             "decisiones_objeto": decisiones_objeto,
+            "decisiones_objetos": list(decisiones_objetos),
             "correlation_id": resultado.correlation_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }

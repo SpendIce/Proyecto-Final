@@ -46,6 +46,7 @@ Guía rápida de módulos:
 - `linea_descriptiva`         HU-014, línea descriptiva del certificado con
                               gates y aprobación una vez por actividad (#74).
 - `buzon`                     puerto del buzón propio del agente (ADR 0004).
+- `plantillas_actividad`      HU-012, plantilla de correo por actividad (#73).
 """
 
 from .confirmaciones import (
@@ -86,6 +87,15 @@ from .pagos import (
     correr_control_pagos,
     planificar_confirmaciones,
 )
+from .plantillas_actividad import (
+    DestinatarioActividad,
+    ResultadoLoteActividad,
+    ResultadoPlantillaActividad,
+    correr_lote_actividad,
+    encolar_lote_actividad,
+    procesar_plantilla_actividad,
+    renderizar_pieza_actividad,
+)
 from .recordatorios import (
     AprobacionLote,
     aprobar_plantilla_recordatorio,
@@ -107,6 +117,7 @@ __all__ = [
     "ColaEnviosMemoria",
     "CuotaInstrucciones",
     "DatosInstruccionesPago",
+    "DestinatarioActividad",
     "DestinoConfirmacionesFake",
     "EntregaRechazadaError",
     "FakeGenerator",
@@ -122,22 +133,28 @@ __all__ = [
     "ResultadoConfirmacion",
     "ResultadoEnvioEncolado",
     "ResultadoInterpretacion",
+    "ResultadoLoteActividad",
+    "ResultadoPlantillaActividad",
     "ResultadoProceso",
     "SolicitudConfirmacion",
     "TIPO_INSTRUCCIONES_PAGO",
     "aprobar_plantilla_recordatorio",
     "correr_control_pagos",
+    "correr_lote_actividad",
     "correr_lote_recordatorios",
     "drenar_envios",
+    "encolar_lote_actividad",
     "encolar_lote_recordatorios",
     "interpretar_solicitud",
     "planificar_confirmaciones",
     "procesar_confirmacion",
     "procesar_fila_csv",
+    "procesar_plantilla_actividad",
     "procesar_post",
     "procesar_post_estructurado",
     "reconciliar_envios_reservados",
     "registrar_plantilla_recordatorio",
+    "renderizar_pieza_actividad",
     "solicitud_confirmacion_inscripcion",
     "solicitud_instrucciones_pago",
 ]

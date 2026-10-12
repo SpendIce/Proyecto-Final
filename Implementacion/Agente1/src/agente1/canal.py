@@ -52,7 +52,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Callable, Mapping, Protocol
 
 from .destinos import DestinoBorradores
 from .fuentes import FuenteSolicitudes
@@ -62,6 +62,7 @@ from .interpretacion import (
     ResultadoInterpretacion,
     interpretar_solicitud,
 )
+from .pagos import PlanPago
 from .procesamiento import Generator
 
 
@@ -142,6 +143,7 @@ def atender_canal(
     registro_pendientes: RegistroPendientes | None = None,
     reloj: Callable[[], datetime] | None = None,
     emisor_certificados: Callable[..., object] | None = None,
+    planes_pago: Mapping[str, PlanPago] | None = None,
 ) -> tuple[ResultadoInterpretacion, ...]:
     """Bucle delgado de lectura y respuesta. Sin lógica de interpretación.
 
@@ -174,6 +176,7 @@ def atender_canal(
             registro_pendientes=registro_pendientes,
             reloj=reloj,
             emisor_certificados=emisor_certificados,
+            planes_pago=planes_pago,
         )
         canal.responder(pedido, resultado)
         resultados.append(resultado)

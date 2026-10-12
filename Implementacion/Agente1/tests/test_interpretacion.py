@@ -161,6 +161,7 @@ def test_catalogo_declara_exactamente_las_intenciones_de_la_spec() -> None:
         "generar_gacetilla",
         "generar_post",
         "emitir_certificados",
+        "generar_plantilla_actividad",
         "fuera_de_alcance",
         "ajustar_borrador",
         "generar_newsletter",
@@ -169,6 +170,10 @@ def test_catalogo_declara_exactamente_las_intenciones_de_la_spec() -> None:
     assert INTENCIONES_POR_ID["generar_gacetilla"]["aplicacion"] == "ACTIVA"
     assert INTENCIONES_POR_ID["generar_post"]["aplicacion"] == "ACTIVA"
     assert INTENCIONES_POR_ID["emitir_certificados"]["aplicacion"] == "ACTIVA"
+    assert (
+        INTENCIONES_POR_ID["generar_plantilla_actividad"]["aplicacion"]
+        == "ACTIVA"
+    )
     assert INTENCIONES_POR_ID["fuera_de_alcance"]["aplicacion"] == "ACTIVA"
     assert (
         INTENCIONES_POR_ID["ajustar_borrador"]["aplicacion"]
@@ -417,6 +422,10 @@ def test_registro_conserva_unicamente_el_derivado_estructurado(tmp_path: Path) -
         "error",
         "mensaje_hash",
         "output_hash",
+        # #73: ids de los objetos que el pipeline dejó a decisión humana.
+        # Son identificadores — nunca prosa — así que pertenecen al
+        # derivado estructurado.
+        "objetos_decision",
         "timestamp",
     }
     assert set(registro) == campos_esperados
@@ -1709,8 +1718,10 @@ def test_el_presupuesto_del_fallback_se_deriva_del_contrato() -> None:
     assert NUM_PREDICT_FALLBACK == requerido
     # Valor versionado: si cambia, fue por una decisión sobre el contrato y
     # tiene que verse en el diff, no colarse. 212 desde la re-medición del
-    # documento máximo del 22/09 (CHARS_POR_TOKEN_MENOS_FAVORABLE 1,90).
-    assert requerido == 212
+    # documento máximo del 22/09 (CHARS_POR_TOKEN_MENOS_FAVORABLE 1,90);
+    # subió a 217 con #73, porque el enum del fallback creció a
+    # `generar_plantilla_actividad` (26 caracteres → maxLength 30).
+    assert requerido == 217
     assert DEFAULT_OLLAMA_NUM_PREDICT >= requerido, (
         f"el presupuesto por defecto del adapter ({DEFAULT_OLLAMA_NUM_PREDICT}) "
         f"no alcanza para la salida máxima del fallback ({requerido} tokens)"

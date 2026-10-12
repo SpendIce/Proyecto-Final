@@ -114,21 +114,26 @@ from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from importlib.resources import files
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Callable, Mapping, Protocol
 
 from .destinos import DestinoBorradores, ReferenciaBorrador
 from .fuentes import FuenteSolicitudes
+from .pagos import PlanPago
+from .plantillas_actividad import (
+    ResultadoPlantillaActividad,
+    procesar_plantilla_actividad,
+)
 from .posts import procesar_post_estructurado
 from .presupuesto import presupuesto_minimo_num_predict
 from .procesamiento import Generator, procesar_solicitud
 
 
 HU = "HU-013"
-CONTRACT_VERSION = "intenciones_v2"
+CONTRACT_VERSION = "intenciones_v3"
 
 CATALOGO_INTENCIONES = json.loads(
     files("agente1")
-    .joinpath("contracts", "intenciones_v2.schema.json")
+    .joinpath("contracts", "intenciones_v3.schema.json")
     .read_text(encoding="utf-8")
 )
 INTENCIONES = tuple(CATALOGO_INTENCIONES["intenciones"])
@@ -150,25 +155,30 @@ ROLES_HABILITADOS = frozenset(
 # quien exige que exista un caso de prueba, ver `test_interpretacion.py`— es
 # este conjunto.
 INTENCIONES_CON_DESPACHO = frozenset(
-    {"generar_gacetilla", "generar_post", "emitir_certificados"}
+    {
+        "generar_gacetilla",
+        "generar_post",
+        "emitir_certificados",
+        "generar_plantilla_actividad",
+    }
 )
 
 
 # --- Fallback con modelo local (#26) ----------------------------------------
 # El modelo interviene sólo cuando el camino determinístico no resolvió, y su
 # única salida admitida es una intención del catálogo más términos de búsqueda
-# estructurados. `interpretacion_fallback_v2` es el contrato de esa salida; su
-# enum tiene que ser el mismo catálogo que `intenciones_v2`, y hay una prueba
+# estructurados. `interpretacion_fallback_v3` es el contrato de esa salida; su
+# enum tiene que ser el mismo catálogo que `intenciones_v3`, y hay una prueba
 # que falla si dejan de coincidir. Ver ADR 0001.
 CONTRATO_FALLBACK = json.loads(
     files("agente1")
-    .joinpath("contracts", "interpretacion_fallback_v2.schema.json")
+    .joinpath("contracts", "interpretacion_fallback_v3.schema.json")
     .read_text(encoding="utf-8")
 )
 CONTRATO_FALLBACK_VERSION = str(CONTRATO_FALLBACK["x-contract-version"])
 PROMPT_FALLBACK = (
     files("agente1")
-    .joinpath("prompts", "interpretacion_fallback_v2.txt")
+    .joinpath("prompts", "interpretacion_fallback_v3.txt")
     .read_text(encoding="utf-8")
 )
 MAX_TERMINOS_FALLBACK = int(
@@ -224,6 +234,11 @@ PATRON_POST = re.compile(r"\b(?:post\w*|instagram\w*|linkedin\w*)\b")
 PATRON_CERTIFICADOS = re.compile(r"\bcertificad\w*\b")
 PATRON_NEWSLETTER = re.compile(r"\b(?:newsletter\w*|boletin\w*)\b")
 PATRON_MAIL = re.compile(r"\b(?:mail\w*|correo\w*|email\w*)\b")
+# «plantilla» es el artefacto del pedido, igual que «gacetilla» o «post».
+# Va antes de `PATRON_MAIL` porque el pedido canónico de #73 nombra los
+# correos — «la plantilla para los correos de la actividad» — y tiene que
+# despachar la plantilla, no rechazar como un mail suelto sin pipeline.
+PATRON_PLANTILLA = re.compile(r"\bplantilla\w*\b")
 
 
 def _clasificar_intencion(texto: str) -> str:
@@ -246,6 +261,8 @@ def _clasificar_intencion(texto: str) -> str:
         return "emitir_certificados"
     if PATRON_NEWSLETTER.search(normalizado):
         return "generar_newsletter"
+    if PATRON_PLANTILLA.search(normalizado):
+        return "generar_plantilla_actividad"
     if PATRON_MAIL.search(normalizado):
         return "generar_mail"
     return INTENCION_FUERA_DE_ALCANCE
@@ -740,7 +757,7 @@ class TerminosInterpretados:
 
 
 def _validar_salida_fallback(salida: str) -> TerminosInterpretados | None:
-    """Valida la salida del modelo contra `interpretacion_fallback_v2`.
+    """Valida la salida del modelo contra `interpretacion_fallback_v3`.
 
     Devuelve `None` ante cualquier desvío —JSON inválido, claves faltantes o
     de más, tipos equivocados, término demasiado largo, o una intención que no
@@ -1082,6 +1099,13 @@ class ResultadoInterpretacion:
     en una repregunta (`PENDIENTE_DESAMBIGUACION`), donde enumera las
     `candidatas` — jamás del cuerpo generado ni de la prosa del pedido.
     `candidatas` sólo se completa en `PENDIENTE_DESAMBIGUACION`.
+
+    `objetos_decision` enumera los objetos que el pipeline dejó abiertos a
+    decisión humana en el Form de decisiones (#72) — hoy la plantilla y el
+    lote de `generar_plantilla_actividad` (#73). Son pares
+    `{"tipo", "objeto_id", "detalle"}` con identificadores, nunca texto:
+    el canal los declara pendientes y mintea sus links prellenados al
+    responder. Para las demás intenciones queda vacío.
     """
 
     estado: str
@@ -1093,6 +1117,7 @@ class ResultadoInterpretacion:
     resumen: str | None = None
     error: str | None = None
     candidatas: "tuple[CandidataActividad, ...]" = ()
+    objetos_decision: "tuple[dict[str, object], ...]" = ()
 
 
 def _interpretar_solicitud_sin_guarda(
@@ -1107,6 +1132,7 @@ def _interpretar_solicitud_sin_guarda(
     reloj: Callable[[], datetime] | None = None,
     interprete: Generator | None = None,
     emisor_certificados: Callable[..., object] | None = None,
+    planes_pago: Mapping[str, PlanPago] | None = None,
 ) -> ResultadoInterpretacion:
     """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
 
@@ -1386,6 +1412,7 @@ def _interpretar_solicitud_sin_guarda(
     # tener que repetir un dato que ya se dio. El canal nombrado en este
     # turno siempre gana: la persona puede corregirlo («la 1, para
     # linkedin»).
+    objetos_decision: "tuple[dict[str, object], ...]" = ()
     if intencion_efectiva == "emitir_certificados":
         # #75: la emisión no produce borrador ni toca el generador; el
         # circuito de lote de cierre valida la lista, exige la línea
@@ -1461,6 +1488,39 @@ def _interpretar_solicitud_sin_guarda(
         resumen = None
         if resultado_proceso.estado == "PENDIENTE_VALIDACION":
             resumen = _resumen_post_desde_fuente(fuente, id_actividad, canal)
+    elif intencion_efectiva == "generar_plantilla_actividad":
+        # #73: la plantilla de correo de la actividad. El plan de pago de la
+        # actividad —si la corrida lo tiene disponible— habilita las variables
+        # de cuotas y medios; sin plan esas variables están prohibidas. Los
+        # objetos que quedan abiertos a decisión (#72) viajan en el resultado
+        # para que el canal declare los pendientes y mintea sus links.
+        resultado_proceso = procesar_plantilla_actividad(
+            fuente=fuente,
+            id_solicitud=id_actividad,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            destino=destino,
+            planes_pago=planes_pago,
+        )
+        resumen = None
+        if resultado_proceso.estado == "PENDIENTE_VALIDACION":
+            resumen = _resumen_plantilla_actividad(resultado_proceso)
+            detalle = {
+                "actividad": id_actividad,
+                "correlation_id": resultado_proceso.correlation_id,
+            }
+            objetos_decision = (
+                {
+                    "tipo": "plantilla",
+                    "objeto_id": resultado_proceso.plantilla_id,
+                    "detalle": detalle,
+                },
+                {
+                    "tipo": "lote",
+                    "objeto_id": resultado_proceso.lote_id,
+                    "detalle": detalle,
+                },
+            )
     else:
         resultado_proceso = procesar_solicitud(
             fuente=fuente,
@@ -1488,6 +1548,7 @@ def _interpretar_solicitud_sin_guarda(
         referencia_borrador=resultado_proceso.referencia_borrador,
         resumen=resumen,
         pipeline_correlation_id=resultado_proceso.correlation_id,
+        objetos_decision=objetos_decision,
     )
 
 
@@ -1511,6 +1572,7 @@ def interpretar_solicitud(
     reloj: Callable[[], datetime] | None = None,
     interprete: Generator | None = None,
     emisor_certificados: Callable[..., object] | None = None,
+    planes_pago: Mapping[str, PlanPago] | None = None,
 ) -> ResultadoInterpretacion:
     """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
 
@@ -1539,6 +1601,7 @@ def interpretar_solicitud(
             reloj=reloj,
             interprete=interprete,
             emisor_certificados=emisor_certificados,
+            planes_pago=planes_pago,
         )
     except Exception:
         return _finalizar(
@@ -1602,6 +1665,22 @@ def _resumen_post_desde_fuente(
     return f"Post de {canal} para '{titulo.strip()}'."
 
 
+def _resumen_plantilla_actividad(resultado: "ResultadoPlantillaActividad") -> str:
+    """Resumen de la plantilla generada, a partir del propio resultado.
+
+    El resultado ya trae el título de la actividad leído de la fuente y los
+    identificadores de los objetos que quedan a decisión humana: acá sólo se
+    ensambla una frase inequívoca para la respuesta al canal.
+    """
+
+    resumen = f"Plantilla de correo para '{resultado.actividad}'."
+    return (
+        f"{resumen} Quedan pendientes de decisión la plantilla "
+        f"({resultado.plantilla_id}) y el lote de envío "
+        f"({resultado.lote_id})."
+    )
+
+
 def _finalizar(
     *,
     log_path: Path,
@@ -1619,6 +1698,7 @@ def _finalizar(
     pipeline_correlation_id: str | None = None,
     candidatas: "tuple[CandidataActividad, ...]" = (),
     modelo_utilizado: bool = False,
+    objetos_decision: "tuple[dict[str, object], ...]" = (),
 ) -> ResultadoInterpretacion:
     if estado not in ESTADOS_RESULTADO:
         estado = "FALLIDA"
@@ -1642,6 +1722,9 @@ def _finalizar(
         "output_hash": (
             _hash(referencia_borrador.referencia) if referencia_borrador is not None else None
         ),
+        "objetos_decision": [
+            objeto["objeto_id"] for objeto in objetos_decision
+        ],
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     _registrar(log_path, registro)
@@ -1655,6 +1738,7 @@ def _finalizar(
         resumen=resumen,
         error=error,
         candidatas=candidatas,
+        objetos_decision=objetos_decision,
     )
 
 

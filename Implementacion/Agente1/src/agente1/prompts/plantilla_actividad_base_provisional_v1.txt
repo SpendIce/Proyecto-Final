@@ -1,0 +1,26 @@
+TEMPLATE_VERSION: plantilla_actividad_base_provisional_v1
+POLICY_STATUS: PROVISIONAL_NO_INSTITUCIONAL
+ESTADO_INSTITUCIONAL: PENDIENTE_SEU
+
+BORRADOR — NO ENVIAR
+
+Hola {{nombre_destinatario}},
+
+Te escribimos por tu preinscripción a {{actividad}}.
+Inicio: {{fecha_inicio}}.
+
+<prosa descriptiva de la actividad, sin datos concretos: qué propone, a quién apunta y cómo se desarrolla>
+
+<líneas del plan de pago cuando la actividad lo declara: {{detalle_cuotas}}, {{medios_pago}} y {{bonificaciones}}>
+
+Este texto es una plantilla provisional y requiere validación humana antes de cualquier envío.
+Contacto: {{contacto}}
+
+LÍMITES:
+- Es la base provisional marcada PENDIENTE_SEU: no es una plantilla aprobada por la Secretaría de Extensión Universitaria.
+- Las variables {{...}} son las únicas vías de los datos dinámicos: destinatario, montos, cuotas, fechas, horarios, enlaces y datos personales. Ninguna se escribe en texto.
+- La prosa descriptiva la redacta el modelo sobre esta estructura; el resto del documento es fijo.
+- El render es determinista por destinatario; no se entrega este contenido a un LLM.
+- La plantilla resultante exige aprobación semántica y utilitaria por actividad, y los envíos una aprobación de lote, registradas en el Form de decisiones (#72).
+- Sólo el destino habilitado — el fake explícito o el Gmail con lista de direcciones de prueba — puede entregarla.
+- La plantilla institucional definitiva queda PENDIENTE_SEU.
