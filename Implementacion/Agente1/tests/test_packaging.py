@@ -207,16 +207,17 @@ def test_catalogo_de_intenciones_hu013_es_empaquetable_y_provisional():
 
     contrato = json.loads(
         files("agente1")
-        .joinpath("contracts", "intenciones_v1.schema.json")
+        .joinpath("contracts", "intenciones_v3.schema.json")
         .read_text(encoding="utf-8")
     )
 
-    assert contrato["x-contract-version"] == "intenciones_v1"
+    assert contrato["x-contract-version"] == "intenciones_v3"
     assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
     assert {item["id"] for item in contrato["intenciones"]} == {
         "generar_gacetilla",
         "generar_post",
         "generar_plantilla_actividad",
+        "emitir_certificados",
         "fuera_de_alcance",
         "ajustar_borrador",
         "generar_newsletter",
