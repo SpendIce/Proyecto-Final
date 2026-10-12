@@ -493,6 +493,47 @@ persona decida con el registro a la vista.
 uv run pytest -q tests/test_confirmaciones_durables.py
 ```
 
+### Purga de datos personales (#87)
+
+La retención es acotada (ADR 0009, término del glosario): el texto del
+borrador y los datos de la persona viven en el registro sólo durante el
+ciclo de envío y una ventana de reconciliación de 30 días, contados desde
+la última transición del registro. Vencida la ventana,
+`RegistroConfirmacionesArchivo.purgar_terminadas` reescribe el archivo de
+cada registro terminal —`ENVIADA_SIMULADA`, `EMITIDA_SIMULADA`, `FALLIDA`
+y `RECHAZADA`, el conjunto explícito `ESTADOS_PURGABLES`— con `asunto` y
+`cuerpo` vacíos y `purgado_en` asentado. La reescritura usa la misma
+atomicidad de siempre (temporal + `os.replace`, bajo el `.lock` por
+clave) y conserva la clave de idempotencia, el estado, las fechas y el
+hash del contenido borrado: una solicitud repetida sigue chocando contra
+la misma clave, así que purgar nunca habilita un reenvío.
+`ENVIO_INDETERMINADO`, `EMISION_INDETERMINADA`, todo estado no terminal y
+cualquier estado desconocido no se tocan: siguen a la vista hasta que una
+persona decida. Un registro escrito antes de que existieran las fechas se
+mide por el `mtime` de su archivo. Como el registro de HU-014 es el mismo
+objeto, la purga cubre los certificados con la misma regla.
+
+`correr_purga_registro` es la operación invocable: corre la purga y anexa
+una línea por corrida a `logs/confirmaciones-hu012.jsonl` con la cantidad
+purgada y el hash del conjunto de claves, nunca contenido. El comando
+manual es:
+
+```bash
+PYTHONPATH=src \
+  python scripts/purgar_registro.py \
+    --registro salida/registro-confirmaciones \
+    --salida salida
+```
+
+El scheduler local (#84, aún no implementado) invocará este comando una
+vez por día dentro de la ventana de operación; cuando el respaldo diario
+del estado (#86) exista, la purga corre antes que él para que ningún
+respaldo conserve texto que la política ya venció.
+
+```bash
+uv run pytest -q tests/test_purga_registro.py
+```
+
 ### Cola de envío asíncrono (s4d)
 
 El envío también puede diferirse: `procesar_confirmacion(..., asincrono=True,
