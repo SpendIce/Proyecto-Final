@@ -1,4 +1,4 @@
-"""HU-010: de una fila de solicitud a un borrador de gacetilla auditado.
+"""HU-010: de una fila de actividad a un borrador de gacetilla auditado.
 
 Este módulo es el pipeline completo de la gacetilla: leer la fila, validarla,
 pedirle el texto al generador, verificar mecánicamente lo que devolvió,
@@ -47,7 +47,7 @@ from .destinos import (
     ReferenciaBorrador,
 )
 from .fuentes import (
-    COLUMNAS_GACETILLA,
+    COLUMNAS_ACTIVIDADES_V2,
     CsvFuenteSolicitudes,
     FuenteSolicitudes,
     FuenteSolicitudesError,
@@ -63,9 +63,9 @@ HU = "HU-010"
 # Estas tres versiones se escriben en cada línea del log. Si alguna cambia hay
 # que subirle el número: es lo que permite explicar, meses después, por qué dos
 # ejecuciones de la misma fila dieron textos distintos.
-PROMPT_VERSION = "gacetilla_v5"
-CONTRACT_VERSION = "gacetilla_input_v1"
-RENDERER_VERSION = "gacetilla_mail_renderer_v1"
+PROMPT_VERSION = "gacetilla_v6"
+CONTRACT_VERSION = "gacetilla_input_v2"
+RENDERER_VERSION = "gacetilla_mail_renderer_v2"
 MAX_BORRADOR_CHARS = 5000
 # Límites de extensión de la prosa de la gacetilla. Son técnicos y
 # provisionales (DEF-A1-007): calibrados contra el corpus de correos reales
@@ -79,7 +79,7 @@ MAX_BAJADA_WORDS = 40
 PATRON_PROSA_SIN_DATOS = re.compile(r"\d|@|https?://|www\.|\$")
 CONTRATO_ENTRADA = json.loads(
     files("agente1")
-    .joinpath("contracts", "gacetilla_input_v1.schema.json")
+    .joinpath("contracts", "gacetilla_input_v2.schema.json")
     .read_text(encoding="utf-8")
 )
 CAMPOS_OBLIGATORIOS = tuple(CONTRATO_ENTRADA["required"])
@@ -284,9 +284,12 @@ def procesar_solicitud(
         )
     # Control previo a la generación: si falta un campo obligatorio no se
     # llama al modelo. Además de evitar una comunicación incompleta, ahorra el
-    # costo de una generación que igual se descartaría. `lugar` no está en
-    # CAMPOS_OBLIGATORIOS: hay actividades sin sede definida y la SEU todavía
-    # no fijó si debe exigirse.
+    # costo de una generación que igual se descartaría. Los campos v2 nuevos
+    # (fecha_fin, fecha_limite_inscripcion, hora, modalidad, duracion_horas,
+    # enlace_inscripcion) no están en CAMPOS_OBLIGATORIOS: la planilla no
+    # decide qué exige cada pieza, y este contrato no los declara obligatorios
+    # —la SEU todavía no fijó si deben exigirse. Tampoco `lugar`: hay
+    # actividades sin sede definida.
     faltantes = [campo for campo in CAMPOS_OBLIGATORIOS if not fila.get(campo, "").strip()]
     if faltantes:
         # El nombre de los campos faltantes sí va al log: son nombres de
@@ -593,7 +596,7 @@ def _resultado_destino_fallido(
     registro: dict[str, object] = {
         "correlation_id": correlation_id,
         "id_solicitud": None,
-        "id_solicitud_hash": _hash_texto(fila["id_solicitud"]),
+        "id_solicitud_hash": _hash_texto(fila["id_actividad"]),
         "HU": HU,
         "contract_version": CONTRACT_VERSION,
         "modelo": generator.modelo,
@@ -638,12 +641,12 @@ def _normalizar_fila_fuente(
     ):
         return {}, "source_contract_invalid"
     fila_canonica: dict[str, str] = {}
-    for campo in COLUMNAS_GACETILLA:
+    for campo in COLUMNAS_ACTIVIDADES_V2:
         valor = fila.get(campo, "")
         if not isinstance(valor, str):
             return {}, "source_contract_invalid"
         fila_canonica[campo] = valor
-    if fila_canonica["id_solicitud"] != id_solicitud:
+    if fila_canonica["id_actividad"] != id_solicitud:
         return {}, "source_id_mismatch"
     return fila_canonica, None
 
@@ -765,7 +768,9 @@ def _validar_salida(contenido: str, fila: dict[str, str]) -> list[str]:
     if datos_match is None:
         errores.append("data_structure")
         return errores
-    if _normalizar_texto(datos_match.group("fecha")) != _normalizar_texto(fila["fecha"]):
+    if _normalizar_texto(datos_match.group("fecha")) != _normalizar_texto(
+        fila["fecha_inicio"]
+    ):
         errores.append("date_mismatch")
     if _normalizar_texto(datos_match.group("organiza")) != _normalizar_texto(
         fila["organiza"]
@@ -842,9 +847,9 @@ def _renderizar_mail(fila: dict[str, str], ficha: "re.Match[str]") -> str:
 
     Función pura y determinista (mismo patrón que `_renderizar_post_estructurado`
     de posts): la prosa viene de la ficha que ya pasó el gate, y los hechos
-    —fecha, hora, organiza, lugar, enlace, contacto— se copian de la fila,
-    nunca del texto generado. Los campos opcionales se omiten si la fuente no
-    los informa.
+    —fechas, hora, modalidad, duración, organiza, lugar, inscripción,
+    contacto— se copian de la fila, nunca del texto generado. Los campos
+    opcionales del contrato v2 se omiten si la fuente no los informa.
     """
 
     secciones = ficha.groupdict()
@@ -861,16 +866,30 @@ def _renderizar_mail(fila: dict[str, str], ficha: "re.Match[str]") -> str:
         "",
         secciones["cuerpo"].strip(),
         "",
-        f"📅 {_fecha_larga(fila['fecha']) or fila['fecha'].strip()}",
+        f"📅 {_fecha_larga(fila['fecha_inicio']) or fila['fecha_inicio'].strip()}",
     ]
+    fecha_fin = fila.get("fecha_fin", "").strip()
+    if fecha_fin:
+        lineas.append(f"Finaliza: {_fecha_larga(fecha_fin) or fecha_fin}")
     hora = fila.get("hora", "").strip()
     if hora:
         lineas.append(f"🕒 {hora}")
+    modalidad = fila.get("modalidad", "").strip()
+    if modalidad:
+        lineas.append(f"Modalidad: {modalidad}")
+    duracion_horas = fila.get("duracion_horas", "").strip()
+    if duracion_horas:
+        lineas.append(f"Duración: {duracion_horas} h")
     lineas.append(f"Organiza: {fila['organiza'].strip()}")
     if fila.get("lugar", "").strip():
         lineas.append(f"Lugar: {fila['lugar'].strip()}")
-    if fila.get("enlace", "").strip():
-        lineas.append(f"Inscripción: {fila['enlace'].strip()}")
+    fecha_limite = fila.get("fecha_limite_inscripcion", "").strip()
+    if fecha_limite:
+        lineas.append(
+            f"Inscripción hasta: {_fecha_larga(fecha_limite) or fecha_limite}"
+        )
+    if fila.get("enlace_inscripcion", "").strip():
+        lineas.append(f"Inscripción: {fila['enlace_inscripcion'].strip()}")
     lineas += ["", f"Consultas: {fila['contacto'].strip()}", "", "--", _FIRMA_INSTITUCIONAL]
     return "\n".join(lineas)
 
@@ -887,15 +906,26 @@ def _validar_render_mail(contenido_mail: str, fila: dict[str, str]) -> list[str]
         for campo in ("titulo", "organiza", "contacto")
         if _normalizar_texto(fila[campo]) not in normalizado
     ]
-    # La fecha se imprime en formato largo («miércoles 5 de agosto de 2026»);
-    # se acepta esa escritura o la ISO literal de la fila.
-    fecha_iso = fila["fecha"].strip()
-    if (
-        _normalizar_texto(fecha_iso) not in normalizado
-        and _normalizar_texto(_fecha_larga(fecha_iso) or "") not in normalizado
+    # Las fechas se imprimen en formato largo («miércoles 5 de agosto de
+    # 2026»); se acepta esa escritura o la ISO literal de la fila.
+    for campo_fecha in ("fecha_inicio", "fecha_fin", "fecha_limite_inscripcion"):
+        fecha_iso = fila.get(campo_fecha, "").strip()
+        if not fecha_iso:
+            continue
+        if (
+            _normalizar_texto(fecha_iso) not in normalizado
+            and _normalizar_texto(_fecha_larga(fecha_iso) or "") not in normalizado
+        ):
+            faltantes.append(campo_fecha)
+    # `duracion_horas` se imprime como «<valor> h»: el valor sigue estando
+    # literal en el artefacto, así que el control de presencia no cambia.
+    for opcional in (
+        "lugar",
+        "hora",
+        "modalidad",
+        "duracion_horas",
+        "enlace_inscripcion",
     ):
-        faltantes.append("fecha")
-    for opcional in ("lugar", "hora", "enlace"):
         valor = fila.get(opcional, "").strip()
         if valor and _normalizar_texto(valor) not in normalizado:
             faltantes.append(opcional)

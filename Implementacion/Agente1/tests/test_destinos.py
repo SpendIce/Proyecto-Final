@@ -11,7 +11,7 @@ from agente1.destinos import (
     DestinoBorradoresError,
     MarkdownDestinoBorradores,
 )
-from agente1.fuentes import COLUMNAS_GACETILLA
+from agente1.fuentes import COLUMNAS_ACTIVIDADES_V2
 from agente1.procesamiento import FakeGenerator, procesar_solicitud
 
 
@@ -44,16 +44,22 @@ def test_markdown_rechaza_id_inseguro_y_contenido_sin_marker(tmp_path):
 def test_core_usa_destino_inyectado_despues_del_gate(tmp_path):
     fila = dict(
         zip(
-            COLUMNAS_GACETILLA,
+            COLUMNAS_ACTIVIDADES_V2,
             [
                 "SYN-DESTINO",
                 "Actividad destino",
                 "Caso controlado",
                 "2026-08-05",
+                "",
+                "",
+                "",
+                "",
+                "",
                 "Comunidad ficticia",
                 "Equipo de prueba",
                 "pruebas@example.invalid",
                 "Dataset sintético",
+                "",
                 "",
             ],
             strict=True,

@@ -129,7 +129,7 @@ def main() -> int:
                 ROOT / "src" / "agente1" / "prompts" / f"{PROMPT_VERSION}.txt"
             ),
             "contract_sha256": _sha256(
-                ROOT / "src" / "agente1" / "contracts" / "gacetilla_input_v1.schema.json"
+                ROOT / "src" / "agente1" / "contracts" / "gacetilla_input_v2.schema.json"
             ),
             "runner_sha256": _sha256(Path(__file__)),
         },

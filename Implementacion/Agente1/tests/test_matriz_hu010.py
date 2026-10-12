@@ -40,10 +40,10 @@ def test_fixtures_definen_tres_validos_dos_incompletos_y_golden_por_valido():
     with (ROOT / "data" / "actividades_sinteticas.csv").open(
         encoding="utf-8", newline=""
     ) as archivo:
-        filas = {fila["id_solicitud"]: fila for fila in csv.DictReader(archivo)}
+        filas = {fila["id_actividad"]: fila for fila in csv.DictReader(archivo)}
 
     assert set(filas) == CASOS_VALIDOS | CASOS_INCOMPLETOS
-    assert {caso for caso, fila in filas.items() if fila["fecha"] and fila["contacto"]} == (
+    assert {caso for caso, fila in filas.items() if fila["fecha_inicio"] and fila["contacto"]} == (
         CASOS_VALIDOS
     )
     # Los goldens SYN-*.md son los artefactos durables (el mail renderizado);

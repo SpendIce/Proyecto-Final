@@ -8,7 +8,7 @@ import json
 import pytest
 
 from agente1.destinos import BORRADOR_MARKER, DestinoBorradoresError
-from agente1.fuentes import COLUMNAS_GACETILLA
+from agente1.fuentes import COLUMNAS_ACTIVIDADES_V2
 from agente1.google_workspace import (
     MAX_WORKSPACE_RESPONSE_BYTES,
     GoogleDrivePlantillaDestinoBorradores,
@@ -229,16 +229,22 @@ def test_core_audita_drive_403_con_codigo_seguro_sin_filtrar_datos(tmp_path):
     )
     fila = dict(
         zip(
-            COLUMNAS_GACETILLA,
+            COLUMNAS_ACTIVIDADES_V2,
             [
                 "SYN-DRIVE",
                 "Actividad Drive",
                 "Caso controlado",
                 "2026-08-05",
+                "",
+                "",
+                "",
+                "",
+                "",
                 "Comunidad ficticia",
                 "Equipo de prueba",
                 "pruebas@example.invalid",
                 "Dataset sintético",
+                "",
                 "",
             ],
             strict=True,
