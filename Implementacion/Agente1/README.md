@@ -50,9 +50,10 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/matriz_hu014.py`: matriz reproducible de HU-014, con emisión simulada y reconciliación de reservas colgadas.
 - `src/agente1/politicas/politica_redes_provisional_v1.json` y `src/agente1/politica_redes.py`: política de redes de HU-011 como inventario de reglas verificables, con sus parámetros por canal y el estado de cada regla (`ACTIVA`, `NO_APLICADA_PENDIENTE_SEU`, `NO_MECANIZABLE`).
 - `src/agente1/contracts/matriz_origenes_inscripcion_v1.json` y `src/agente1/origenes_inscripcion.py`: matriz operativa de HU-012 por origen de inscripción y decisión de envío fail-closed; ningún origen habilita envío.
-- `src/agente1/contracts/plan_pagos_actividad_v1.json`, `src/agente1/contracts/novedades_pago_v1.json`, `src/agente1/pagos.py` y `src/agente1/buzon.py`: corrida de control de pagos de HU-012 — contrato del plan de pago con procedencia por dato, puerto de buzón propio con adapter de carpeta `.eml`, catálogo cerrado de novedades del Departamento (confirmación de la Fundación, comprobante rechazado, comprobante que cubre N cuotas, dirección alternativa, bonificado) con precedencia sobre lo derivado del buzón, y función pura que informa el «k de N» desglosado por preinscripto, las respuestas no asociadas y las novedades aplicadas o con error. La misma corrida planifica el lote diario de `recordatorio_pago`: anticipaciones por actividad (`7|2` por omisión, `SUPUESTO_TECNICO`), regla `hoy = fecha_referencia − anticipación` en `America/Argentina/Buenos_Aires`, nunca después de la referencia, e idempotencia por actividad, inscripción, cuota y anticipación. Subcomando `python -m agente1 control-pagos` con `--novedades` y `--fecha` opcionales.
-- `src/agente1/contracts/tipos_notificacion_v2.json` y `src/agente1/tipos_notificacion.py`: catálogo cerrado de tipos de notificación con el modo de circuito por tipo —`por_envio` para los cuatro de HU-012 original, `lote` para `recordatorio_pago`— y decisión fail-closed por procedencia de datos.
+- `src/agente1/contracts/plan_pagos_actividad_v1.json`, `src/agente1/contracts/novedades_pago_v1.json`, `src/agente1/pagos.py` y `src/agente1/buzon.py`: corrida de control de pagos de HU-012 — contrato del plan de pago con procedencia por dato, puerto de buzón propio con adapter de carpeta `.eml`, catálogo cerrado de novedades del Departamento (confirmación de la Fundación, comprobante rechazado, comprobante que cubre N cuotas, dirección alternativa, bonificado) con precedencia sobre lo derivado del buzón, y función pura que informa el «k de N» desglosado por preinscripto, las respuestas no asociadas y las novedades aplicadas o con error. La misma corrida planifica el lote diario de `recordatorio_pago`: anticipaciones por actividad (`7|2` por omisión, `SUPUESTO_TECNICO`), regla `hoy = fecha_referencia − anticipación` en `America/Argentina/Buenos_Aires`, nunca después de la referencia, e idempotencia por actividad, inscripción, cuota y anticipación. Además enumera los candidatos a confirmación de inscripción: los preinscriptos cuya cuota 1 quedó `PAGO_CONFIRMADO` o `BONIFICADA` (D9). Subcomando `python -m agente1 control-pagos` con `--novedades` y `--fecha` opcionales.
+- `src/agente1/contracts/tipos_notificacion_v2.json` y `src/agente1/tipos_notificacion.py`: catálogo cerrado de los seis tipos de notificación con el modo de circuito por tipo —`por_envio` para los cuatro de HU-012 original e `instrucciones_pago`, `lote` para `recordatorio_pago`— y decisión fail-closed por procedencia de datos.
 - `src/agente1/recordatorios.py` y `src/agente1/prompts/recordatorio_pago_provisional_v1.txt`: circuito por lote de los recordatorios de pago —la plantilla se aprueba una sola vez con doble decisión y cada lote diario lleva una aprobación utilitaria con la lista exacta de ítems— sobre el registro, la cola y el destino fake de HU-012.
+- `src/agente1/instrucciones_pago.py` y `src/agente1/prompts/instrucciones_pago_provisional_v1.txt`: builders del corte 4 del diseño de pagos —el correo de preinscripción con las instrucciones de pago (D8) y la solicitud de confirmación de inscripción desde el candidato que la cuota 1 `PAGO_CONFIRMADO` o `BONIFICADA` habilita (D9)— más la plantilla provisional del primero, cuyo asunto es el `asunto_preinscripcion` del plan sin la marca de borrador para que la respuesta se asocie.
 - `src/agente1/pagos_sheets.py`: adapter que lee las mismas tres fuentes desde las pestañas de la planilla D2 (plan de pago, padrón y novedades), para la demo en vivo — mismas estructuras de dominio y mismas validaciones que los CSV, compone el lector crudo compartido `GoogleSheetsLectorValores` (un `values.get` por pestaña), y falla explícito si falta una pestaña o cambia el encabezado. Configuración por entorno: `AGENTE1_WORKSPACE_SPREADSHEET_ID` (la misma planilla D2), `AGENTE1_WORKSPACE_ACCESS_TOKEN` y `AGENTE1_PAGOS_RANGO_{PLAN,PADRON,NOVEDADES}`. Modo `--planilla` del subcomando `control-pagos`.
 - `src/agente1/buzon_gmail.py`: adapter del puerto `BuzonPropio` sobre Gmail API con `gmail.readonly` sobre la cuenta técnica (ADR 0004, D11) — sólo lectura de mensajes del usuario `me`, adjuntos hasheados en memoria, paginación con tope explícito; probado offline con transporte fake y equivalente al buzón `.eml`.
 - `data/plan_pagos_notebooklm_n2.csv`, `data/padron_pagos_sintetico.csv` y `data/novedades_pago_sinteticas.csv`: fixture del caso documentado NotebookLM Nivel 2 (cuota única de $20.000, categorías bonificadas, procedencia por dato), padrón sintético y novedades sintéticas para correr la demo local.
@@ -508,10 +509,14 @@ Las APIs primarias (`SolicitudConfirmacion`, `AprobacionHumana`,
 `RegistroConfirmacionesArchivo`, `reconciliar_envios_reservados`,
 `DestinoConfirmacionesFake` y `procesar_confirmacion`) se exportan desde
 `agente1`, al igual que la cola (`ItemEnvio`, `ColaEnviosMemoria`,
-`ColaEnviosArchivo`, `ResultadoEnvioEncolado` y `drenar_envios`) y el
+`ColaEnviosArchivo`, `ResultadoEnvioEncolado` y `drenar_envios`), el
 circuito por lote (`AprobacionLote`, `registrar_plantilla_recordatorio`,
 `aprobar_plantilla_recordatorio`, `encolar_lote_recordatorios` y
-`correr_lote_recordatorios`). Contrato, plantilla, aprobaciones de la matriz y destinatarios son
+`correr_lote_recordatorios`) y los builders del corte 4
+(`solicitud_instrucciones_pago`, `solicitud_confirmacion_inscripcion`,
+`planificar_confirmaciones`, `CandidatoConfirmacion`,
+`DatosInstruccionesPago`, `CuotaInstrucciones` y
+`TIPO_INSTRUCCIONES_PAGO`). Contrato, plantilla, aprobaciones de la matriz y destinatarios son
 sintéticos o provisionales. Consultar
 `evidencias/limites-hu012-offline.md`; no hay envío institucional, validación
 SEU ni evidencia de TRL 3.
@@ -544,6 +549,41 @@ nunca en la auditoría, que sigue llevando sólo hashes, claves y decisiones.
 
 ```bash
 uv run pytest -q tests/test_recordatorios_pagos.py tests/test_matriz_hu012.py
+```
+
+### Instrucciones de pago y confirmación por pago
+
+El corte 4 del diseño de pagos suma dos piezas sobre el circuito por envío
+de siempre (`instrucciones_pago.py`). La primera es el sexto tipo del
+catálogo, `instrucciones_pago` (D8): `solicitud_instrucciones_pago` arma la
+solicitud desde el plan y la fila del padrón copiando cuotas, medios de
+pago, bonificaciones y fechas hacia `datos_pago`, la estructura que la
+solicitud porta y que la clave de idempotencia cubre entera. El borrador
+sale de `prompts/instrucciones_pago_provisional_v1.txt` y su asunto es el
+`asunto_preinscripcion` del plan —exacto, sin la marca de borrador— porque
+la respuesta del preinscripto con el comprobante se asocia a la actividad
+por ese asunto normalizado (§4.2): la marca viaja sólo en el cuerpo, que es
+donde el destino habilitado la exige. Un `datos_pago` ausente o mal formado
+—sin asunto, sin cuotas, monto inválido o fecha no ISO— es
+`required_fields_missing`, nunca un borrador recortado.
+
+La segunda es la confirmación de inscripción que la cuota 1 habilita (D9):
+`planificar_confirmaciones` enumera en el informe de la corrida los
+preinscriptos cuya cuota 1 quedó `PAGO_CONFIRMADO` —única salida posible de
+una novedad `CONFIRMADO_FUNDACION`— o `BONIFICADA`. Un
+`COMPROBANTE_PRESENTADO` no genera candidato: la Fundación es la que
+verifica el ingreso (D1). `solicitud_confirmacion_inscripcion` traduce el
+candidato a una solicitud del tipo `inscripcion` ya declarado —no es un
+tipo nuevo— y tramita con la doble aprobación por pieza y la entrega sólo
+contra el destino habilitado. La corrida no persiste estado de pagos (ADR
+0003): una segunda corrida enumera el mismo candidato y el registro de
+HU-012 devuelve `DUPLICADA`. Ambas piezas comparten las reglas del
+circuito: sin las dos aprobaciones no hay entrega, la auditoría conserva
+hashes y nunca medios de pago ni datos personales, y la plantilla queda
+`PENDIENTE_SEU`.
+
+```bash
+uv run pytest -q tests/test_instrucciones_pago.py tests/test_matriz_hu012.py
 ```
 
 ## HU-014 — certificados offline
