@@ -34,6 +34,8 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `data/frases_ambiguas_fallback.csv`: corpus deliberadamente **no** calibrado, para medir cuánta cobertura da realmente el camino determinístico. Ver `scripts/medir_cobertura_sin_inferencia.py`.
 - `scripts/medir_cobertura_sin_inferencia.py`: mide qué porcentaje de un corpus resuelve sin invocar ningún modelo.
 - `scripts/atender_canal_planilla.py`: corrida guiada del canal de planilla offline, sin credenciales. Ver `evidencias/recorrido-prueba-guiada-canal-planilla.md`.
+- `src/agente1/canal_form.py`: adapter del canal de pedidos sobre el Google Form restringido al dominio (correo verificado + `PadronRoles` externo por `AGENTE1_PADRON_ROLES_PATH`, ADR 0005), con aviso por `gmail.send` bajo lista de prueba; el correo de «borrador listo» adjunta los links «lo publiqué / lo descarté» del Form de decisiones (#72). Runner: `scripts/atender_canal_form.py` (offline con CSV, live con doble opt-in).
+- `src/agente1/decisiones_form.py`: registro de decisiones humanas por el segundo Google Form (#72, ADR 0008): catálogo cerrado de pares tipo/decisión (`publicacion`: `publique`/`descarte`; `plantilla`: `apruebo_semantica`/`apruebo_utilitaria`; `lote`: `apruebo_lote`), validación por rol del padrón, anti-tamper por registro de objetos pendientes y auditoría append-only sin correo en claro. Registrar no dispara ninguna acción. Runner: `scripts/registrar_form_decisiones.py`.
 - `src/agente1/fuentes.py`: puerto `FuenteSolicitudes` (lectura por id y enumeración del catálogo completo) y adapter CSV compatible con el flujo local.
 - `src/agente1/destinos.py`: puerto `DestinoBorradores` y adapter Markdown que preserva la salida local.
 - `src/agente1/google_workspace.py`: contratos HTTP de lectura Google Sheets y creación de borradores Google Docs; sólo están verificados offline con token y transporte fake.
@@ -100,6 +102,9 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué el campo `intencion` que devuelve el modelo sólo puede rechazar, nunca habilitar | `interpretacion.py`, comentario dentro del fallback; ADR 0001 |
 | Por qué un arreglo de texto libre acotado sí se puede dimensionar | `src/agente1/presupuesto.py`, docstring de `_dimensionar_arreglo` |
 | Por qué el núcleo no sabe nada del transporte de la interacción | `src/agente1/canal.py`, docstring de módulo y de `atender_canal` |
+| Por qué un link de decisión alterado se rechaza sin firmar nada | `src/agente1/decisiones_form.py`, docstring de módulo y `RegistroDecisiones`; ADR 0008 |
+| Por qué registrar una decisión no dispara ninguna acción del agente | `decisiones_form.py`, docstring de módulo |
+| De dónde sale el rol que una decisión exige | `decisiones_form.py`, comentario de `ROLES_POR_DECISION`; ADR 0005 |
 | Por qué medir el corpus calibrado da 100 % y eso no informa nada | `scripts/medir_cobertura_sin_inferencia.py`, docstring de módulo |
 | Por qué la situación de pagos se recalcula en cada corrida y no hay registro de pagos | `src/agente1/pagos.py`, docstring de módulo; ADR 0003 |
 | Por qué el agente lee sólo su propio buzón | `src/agente1/buzon.py`, docstring de módulo; ADR 0004 |
