@@ -4,6 +4,7 @@ todos los caminos de falla."""
 
 import csv
 import json
+from pathlib import Path
 
 import pytest
 

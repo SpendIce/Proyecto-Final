@@ -1,0 +1,4 @@
+id_inscripcion,actividad_id,nombre_destinatario,email_destinatario,bonificado
+PRE-NBLM2-001,EJEMPLO-NOTEBOOKLM-N2,Ana Pérez,ana.perez@example.test,no
+PRE-NBLM2-002,EJEMPLO-NOTEBOOKLM-N2,Bruno García,bruno.garcia@example.test,si
+PRE-NBLM2-003,EJEMPLO-NOTEBOOKLM-N2,Carla López,carla.lopez@example.test,no

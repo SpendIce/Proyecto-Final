@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:plan-pagos-actividad:v1",
+  "title": "Plan de pago de una actividad arancelada",
+  "x-contract-version": "plan_pagos_actividad_v1",
+  "x-status": "CANDIDATO_PENDIENTE_CONFIRMACION_SEU",
+  "x-hu": "HU-012",
+  "x-proceso-bpm": "P5 con apoyo de P4",
+  "x-fuente": "Diseño HU-012 control de pagos v1 (decisiones D1-D16), Documentos/PoC/Diseno-HU-012-Control-Pagos-v1.md §3.1. Caso de referencia: curso «IA Aplicada a la Educación y Gestión: NotebookLM — Nivel 2» (informe de actividad, referencia vigente para difusión).",
+  "x-habilita-envio": false,
+  "description": "Contrato del plan de pago de una actividad arancelada: qué datos la componen, de dónde puede salir cada uno y qué reglas los gobiernan. Cada dato llega con su procedencia declarada —OBSERVADO_DOCUMENTO si sale de un documento de la actividad, SUPUESTO_TECNICO si lo propone el equipo a la espera de confirmación, DESCONOCIDO si no hay fundamento— porque el agente nunca inventa condiciones de pago. La forma operativa hoy es un CSV en formato largo (una fila por dato) que replica lo que sería la pestaña «Plan de pagos» de la planilla D2; el adapter de planilla queda para el camino Workspace. Este contrato no habilita cobrar ni verificar pagos: la acreditación la verifica la Fundación Savio y un comprobante presentado sólo declara que el inscripto dice haber pagado (D1).",
+
+  "procedencia_dato": {
+    "OBSERVADO_DOCUMENTO": "El dato sale de un documento de la actividad (informe o propuesta) con ubicación citada como evidencia.",
+    "SUPUESTO_TECNICO": "Propuesto por el equipo técnico; requiere confirmación de la SEU.",
+    "DESCONOCIDO": "Ni observado en documento ni supuesto con fundamento suficiente."
+  },
+
+  "campos_actividad": {
+    "actividad_id": {
+      "obligatorio": true,
+      "forma": "texto",
+      "procedencia_caso_referencia": "SUPUESTO_TECNICO",
+      "observacion": "El mismo identificador de actividad del origen SIU; hoy no está informado y se usa el identificador local del registro de actividad."
+    },
+    "actividad": {
+      "obligatorio": true,
+      "forma": "texto",
+      "procedencia_caso_referencia": "OBSERVADO_DOCUMENTO",
+      "observacion": "Denominación de la actividad según el informe vigente para difusión."
+    },
+    "asunto_preinscripcion": {
+      "obligatorio": true,
+      "forma": "texto",
+      "procedencia_caso_referencia": "SUPUESTO_TECNICO",
+      "observacion": "Asunto del correo de preinscripción; sirve para asociar las respuestas a la actividad. Formato propuesto «Pre-Inscripción <actividad>», pendiente de confirmar estabilidad con la SEU (§9.3 del diseño)."
+    },
+    "fecha_inicio": {
+      "obligatorio": true,
+      "forma": "fecha_iso",
+      "procedencia_caso_referencia": "OBSERVADO_DOCUMENTO",
+      "observacion": "Inicio de la actividad. En el caso de referencia, «05 de octubre» del informe p. 2 con el año aportado por el correo de preinscripción."
+    },
+    "fecha_limite_inscripcion": {
+      "obligatorio": false,
+      "forma": "fecha_iso",
+      "procedencia_caso_referencia": "OBSERVADO_DOCUMENTO",
+      "observacion": "Cierre de la preinscripción cuando el correo lo informa; es la referencia de la cuota 1 del preinscripto (D15)."
+    },
+    "cantidad_cuotas": {
+      "obligatorio": true,
+      "forma": "entero_min_1",
+      "procedencia_caso_referencia": "OBSERVADO_DOCUMENTO",
+      "observacion": "N ≥ 1. En el caso de referencia, cuota única en informe p. 3 y propuesta §11. Responsable de carga y origen operativo por confirmar."
+    },
+    "medios_pago": {
+      "obligatorio": false,
+      "forma": "lista_barra",
+      "procedencia_caso_referencia": "OBSERVADO_DOCUMENTO",
+      "observacion": "Medios declarados por la actividad, no por el inscripto. En el caso de referencia, transferencia y Mercado Pago (informe p. 3), sin URL de pago ni datos bancarios."
+    },
+    "categorias_bonificadas": {
+      "obligatorio": false,
+      "forma": "lista_barra",
+      "procedencia_caso_referencia": "OBSERVADO_DOCUMENTO",
+      "observacion": "Categorías con bonificación declaradas por la actividad. En el caso de referencia, alumnos, personal y egresados FIE; porcentaje no informado. Acreditar la condición del inscripto sigue DESCONOCIDO (pregunta 7 de §9)."
+    }
+  },
+
+  "campos_cuota": {
+    "monto": {
+      "obligatorio": true,
+      "forma": "entero_min_1",
+      "procedencia_caso_referencia": "OBSERVADO_DOCUMENTO",
+      "observacion": "Importe en la moneda declarada por el documento. En el caso de referencia, 20000 (informe p. 3 «$20.000»). No generalizar el monto a otras actividades."
+    },
+    "vencimiento": {
+      "obligatorio": false,
+      "forma": "fecha_iso",
+      "procedencia_caso_referencia": "DESCONOCIDO",
+      "observacion": "Vencimiento propio de la cuota cuando el documento lo informa. En el caso de referencia no está informado y rige el fallback de fecha_referencia_cuota."
+    }
+  },
+
+  "forma_csv": {
+    "descripcion": "Formato largo: una fila por dato. Las cuotas se nombran cuota_<n>_<campo> con n entre 1 y cantidad_cuotas.",
+    "columnas": ["campo", "valor", "procedencia", "evidencia"],
+    "columnas_obligatorias": ["campo", "valor", "procedencia"],
+    "patron_campo_cuota": "^cuota_(\\d+)_(monto|vencimiento)$",
+    "separador_lista": "|"
+  },
+
+  "estados_derivados_cuota": {
+    "BONIFICADA": "El inscripto pertenece a una categoría bonificada del plan (columna del padrón o novedad del Departamento).",
+    "PAGO_CONFIRMADO": "La Fundación Savio confirmó el ingreso y esa confirmación llegó como novedad observable. Nunca se produce por comprobante.",
+    "COMPROBANTE_PRESENTADO": "Hay una respuesta asociable del inscripto con un adjunto admitido distinto, asignada a esa cuota.",
+    "PENDIENTE": "Ninguna de las anteriores. «Vencida» no es un estado: se deriva de PENDIENTE más la fecha del día pasada la fecha de referencia."
+  },
+
+  "motivos_no_asociada": {
+    "asunto_no_coincide": "El asunto de la respuesta, normalizado, no coincide con el asunto_preinscripcion del plan.",
+    "remitente_no_informado": "La respuesta no declara una dirección de remitente utilizable.",
+    "remitente_sin_coincidencia": "El remitente no figura en ninguna fila del padrón de la actividad.",
+    "remitente_ambiguo": "El remitente figura en más de una fila del padrón; no se puede elegir."
+  },
+
+  "reglas": {
+    "fecha_referencia_cuota": "La fecha de referencia de una cuota es su vencimiento propio; si no tiene, la fecha_limite_inscripcion del plan; si tampoco hay, la fecha_inicio (D15, §5.1 del diseño).",
+    "asociacion_respuesta": "Primero el asunto normalizado (sin «Re:»/«RV:», espacios colapsados) contra asunto_preinscripcion; después el remitente contra un único email_destinatario del padrón. Sin coincidencia, o con más de una, la respuesta va a «no asociadas». Nunca se asocia por nombre ni por similitud (§4.2).",
+    "comprobante_presentado": "Una respuesta asociada cuenta como comprobante para una cuota si trae al menos un adjunto PDF o imagen (D13). Los comprobantes se distinguen por el sha256 del adjunto, calculado en la corrida y no guardado: la misma captura enviada dos veces cuenta una sola vez.",
+    "asignacion_cuotas": "Los comprobantes distintos de una persona se asignan en orden cronológico a las cuotas no bonificadas, de la 1 a la N. Los que exceden las cuotas quedan informados como sin cuota asignada.",
+    "estado_no_persistido": "El estado de cada cuota se deriva en cada corrida; el agente no guarda un estado de pago por persona (ADR 0003).",
+    "entrada_no_confiable": "El cuerpo y los adjuntos de las respuestas son entrada no confiable: la corrida deriva metadatos (remitente, asunto, tipo y sha256 de adjuntos) y nada de ese contenido llega a un modelo ni a un prompt (ADR 0001)."
+  },
+
+  "preguntas_abiertas": [
+    "¿Quién carga el plan de pago de cada actividad (cuotas, montos, vencimientos, bonificaciones) y dónde? ¿Sirve una pestaña «Plan de pagos» en la planilla? (§9.1)",
+    "En una cuota única, ¿qué fecha manda para el recordatorio: la fecha límite de inscripción o el inicio del curso? Si hay varias cuotas, ¿cada una tiene su propio vencimiento? (§9.2)",
+    "¿El asunto del correo de preinscripción es estable por actividad? ¿Se puede fijar un formato «Pre-Inscripción <actividad>»? (§9.3)",
+    "¿Cómo se acredita que alguien es alumno, personal o egresado FIE para la bonificación? ¿Lo declara en la preinscripción o se valida contra el SIU? (§9.7)",
+    "¿El SIU puede exportar periódicamente y de forma automática los preinscriptos de una actividad (planilla o CSV)? ¿Quién lo administraría? (§9.16)"
+  ]
+}

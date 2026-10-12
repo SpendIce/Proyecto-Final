@@ -1,0 +1,11 @@
+campo,valor,procedencia,evidencia
+actividad_id,EJEMPLO-NOTEBOOKLM-N2,SUPUESTO_TECNICO,"Identificador local del registro de actividad candidato; el identificador SIU no está informado."
+actividad,INTELIGENCIA ARTIFICIAL APLICADA A LA EDUCACIÓN Y GESTIÓN: NOTEBOOKLM - NIVEL 2,OBSERVADO_DOCUMENTO,"Informe de actividad p. 1, título."
+asunto_preinscripcion,Pre-Inscripción NotebookLM Nivel 2,SUPUESTO_TECNICO,"Formato propuesto «Pre-Inscripción <actividad>»; estabilidad del asunto pendiente de confirmación con la SEU."
+fecha_inicio,2026-10-05,OBSERVADO_DOCUMENTO,"Informe p. 2 «05 de octubre»; año 2026 aportado por el correo de preinscripción del ejemplo."
+fecha_limite_inscripcion,2026-09-29,OBSERVADO_DOCUMENTO,"Informe p. 2 «inscripción abierta hasta el 29 de septiembre»; año 2026 aportado por el correo del ejemplo."
+cantidad_cuotas,1,OBSERVADO_DOCUMENTO,"Informe p. 3 «cuota única»; propuesta §11 coincide."
+cuota_1_monto,20000,OBSERVADO_DOCUMENTO,"Informe p. 3 «Valor: $20.000»; propuesta §11 coincide."
+cuota_1_vencimiento,,DESCONOCIDO,"Ni el informe ni la propuesta informan un vencimiento exacto."
+medios_pago,transferencia|Mercado Pago,OBSERVADO_DOCUMENTO,"Informe p. 3 «transferencia o Mercado Pago»; sin URL de pago ni datos bancarios en ese archivo."
+categorias_bonificadas,alumnos FIE|personal FIE|egresados FIE,OBSERVADO_DOCUMENTO,"Informe p. 3 «Bonificación para alumnos, personal y egresados de la Facultad de Ingeniería del Ejército»; porcentaje no informado."

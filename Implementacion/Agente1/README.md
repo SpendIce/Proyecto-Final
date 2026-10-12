@@ -49,6 +49,8 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/matriz_hu014.py`: matriz reproducible de HU-014, con emisión simulada y reconciliación de reservas colgadas.
 - `src/agente1/politicas/politica_redes_provisional_v1.json` y `src/agente1/politica_redes.py`: política de redes de HU-011 como inventario de reglas verificables, con sus parámetros por canal y el estado de cada regla (`ACTIVA`, `NO_APLICADA_PENDIENTE_SEU`, `NO_MECANIZABLE`).
 - `src/agente1/contracts/matriz_origenes_inscripcion_v1.json` y `src/agente1/origenes_inscripcion.py`: matriz operativa de HU-012 por origen de inscripción y decisión de envío fail-closed; ningún origen habilita envío.
+- `src/agente1/contracts/plan_pagos_actividad_v1.json`, `src/agente1/pagos.py` y `src/agente1/buzon.py`: corrida de control de pagos de HU-012 — contrato del plan de pago con procedencia por dato, puerto de buzón propio con adapter de carpeta `.eml`, y función pura que deriva el «k de N» por preinscripto más las respuestas no asociadas. Subcomando `python -m agente1 control-pagos`.
+- `data/plan_pagos_notebooklm_n2.csv` y `data/padron_pagos_sintetico.csv`: fixture del caso documentado NotebookLM Nivel 2 (cuota única de $20.000, categorías bonificadas, procedencia por dato) y padrón sintético para correr la demo local.
 - `scripts/medir_capacidad_hu011.py`: prueba de capacidad local contra el volumen de referencia informado por la SEU; mide latencia fría y caliente y tasa de conformidad, y proyecta el mes.
 - `scripts/operaciones_seguras.py`: health, reconciliación, consolidación y retención en dry-run.
 - `salida/`: evidencia runtime local ignorada por Git.
@@ -96,6 +98,10 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué un arreglo de texto libre acotado sí se puede dimensionar | `src/agente1/presupuesto.py`, docstring de `_dimensionar_arreglo` |
 | Por qué el núcleo no sabe nada del transporte de la interacción | `src/agente1/canal.py`, docstring de módulo y de `atender_canal` |
 | Por qué medir el corpus calibrado da 100 % y eso no informa nada | `scripts/medir_cobertura_sin_inferencia.py`, docstring de módulo |
+| Por qué la situación de pagos se recalcula en cada corrida y no hay registro de pagos | `src/agente1/pagos.py`, docstring de módulo; ADR 0003 |
+| Por qué el agente lee sólo su propio buzón | `src/agente1/buzon.py`, docstring de módulo; ADR 0004 |
+| Por qué `MensajeBuzon` no tiene campo cuerpo ni datos de adjunto | `src/agente1/buzon.py`, docstrings de módulo y de `MensajeBuzon`; ADR 0001 |
+| Por qué una respuesta nunca se asocia por nombre ni por similitud | `src/agente1/pagos.py`, docstring de módulo y de `correr_control_pagos` |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
