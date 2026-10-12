@@ -213,10 +213,11 @@ def test_catalogo_de_intenciones_hu013_es_empaquetable_y_provisional():
 
     assert contrato["x-contract-version"] == "intenciones_v1"
     assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+    # v1 se conserva como histórica: el catálogo vigente es v3 y ahí viven
+    # `emitir_certificados` (#75) y `generar_plantilla_actividad` (#73).
     assert {item["id"] for item in contrato["intenciones"]} == {
         "generar_gacetilla",
         "generar_post",
-        "generar_plantilla_actividad",
         "fuera_de_alcance",
         "ajustar_borrador",
         "generar_newsletter",
