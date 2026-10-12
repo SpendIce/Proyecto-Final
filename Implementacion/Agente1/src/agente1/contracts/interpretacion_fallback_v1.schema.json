@@ -13,10 +13,11 @@
   "properties": {
     "intencion": {
       "type": "string",
-      "maxLength": 20,
+      "maxLength": 30,
       "enum": [
         "generar_gacetilla",
         "generar_post",
+        "generar_plantilla_actividad",
         "generar_newsletter",
         "generar_mail",
         "ajustar_borrador",

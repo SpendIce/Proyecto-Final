@@ -63,6 +63,11 @@ from agente1.decisiones_form import (
 )
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
 from agente1.gmail_envio import GmailDestinoConfirmaciones, GmailEnvioError
+from agente1.pagos import (
+    ControlPagosError,
+    PlanPago,
+    cargar_plan_pagos_csv,
+)
 from agente1.google_workspace import (
     GoogleDrivePlantillaDestinoBorradores,
     GoogleSheetsFuenteSolicitudes,
@@ -131,6 +136,85 @@ def _fake_output_desde_golden() -> str:
     """
 
     return FICHA_SYN_001.read_text(encoding="utf-8").strip()
+
+
+# Salida del generator fake para la intención `generar_plantilla_actividad`
+# (#73): prosa descriptiva sin un solo dato — todo valor viaja como
+# `{{variable}}`— porque el gate de `plantilla_actividad_v1` descarta la
+# salida entera ante un dígito, una fecha, un importe, un correo o un
+# enlace en el texto. Hay una variante por cada forma del pedido:
+#
+# - con plan de pago, el contrato exige `{{detalle_cuotas}}` y
+#   `{{medios_pago}}`; sin plan esas variables están prohibidas. El fake
+#   elige mirando el prompt — el listado de variables requeridas que el
+#   pipeline le armó al modelo—, igual que un modelo real decidiría.
+_SALIDA_PLANTILLA_BASE = (
+    "Hola {{nombre_destinatario}},\n\n"
+    "Te escribimos por tu preinscripción a {{actividad}}, que comienza el "
+    "{{fecha_inicio}}.\n\n"
+    "La propuesta acerca contenidos y herramientas de la facultad a la "
+    "comunidad, con un formato abierto y pensado para quienes se acercan "
+    "por primera vez. Las instancias de trabajo combinan encuentros "
+    "guiados con espacios de consulta, y el equipo docente acompaña a "
+    "cada participante durante todo el recorrido.\n"
+)
+_SALIDA_PLANTILLA_CIERRE = "\nContacto: {{contacto}}\n"
+_SALIDA_PLANTILLA_BLOQUE_PLAN = (
+    "\nEl valor y las formas de pago de la actividad son:\n"
+    "{{detalle_cuotas}}\n"
+    "Medios de pago: {{medios_pago}}.\n"
+    "{{bonificaciones}}\n"
+)
+
+
+class _GeneradorOffline:
+    """Generator fake del modo offline, con una salida por tipo de pieza.
+
+    Reconoce el prompt de plantilla de actividad por su `PROMPT_VERSION`
+    declarada en el propio texto que el pipeline le pasa al modelo, y
+    devuelve la variante con o sin bloque de plan según las variables
+    requeridas que el prompt enumera. Para cualquier otro prompt devuelve
+    la ficha golden, como `FakeGenerator`.
+    """
+
+    modelo = "fake-offline"
+
+    def __init__(self, salida_gacetilla: str) -> None:
+        self._salida_gacetilla = salida_gacetilla
+
+    def generar(self, prompt: str) -> str:
+        if "PROMPT_VERSION: plantilla_actividad_generacion_v1" in prompt:
+            # El bloque de pago sólo va si el prompt declara la actividad
+            # arancelada en sus DATOS_JSON: la mención de {{detalle_cuotas}}
+            # en la base no alcanza para distinguir, porque está en el
+            # texto del prompt cualquiera sea el plan.
+            bloque_plan = (
+                _SALIDA_PLANTILLA_BLOQUE_PLAN
+                if '"arancelada": true' in prompt
+                else ""
+            )
+            return (
+                _SALIDA_PLANTILLA_BASE + bloque_plan + _SALIDA_PLANTILLA_CIERRE
+            )
+        return self._salida_gacetilla
+
+
+def _planes_desde_csvs(rutas: list[Path]) -> dict[str, PlanPago]:
+    """Mapa actividad → PlanPago a partir de los `--plan-csv` recibidos.
+
+    Cada archivo es un plan en formato largo (`cargar_plan_pagos_csv`); el
+    mapa se arma por `actividad_id`, la misma llave con la que el núcleo
+    resuelve el plan de una actividad. Dos planes sobre la misma actividad
+    son un error de configuración, no un dato a deducir.
+    """
+
+    planes: dict[str, PlanPago] = {}
+    for ruta in rutas:
+        plan = cargar_plan_pagos_csv(ruta)
+        if plan.actividad_id in planes:
+            raise ControlPagosError("plan_actividad_duplicada")
+        planes[plan.actividad_id] = plan
+    return planes
 
 
 def _emitir(payload: dict[str, object]) -> None:
@@ -207,6 +291,17 @@ def main(argv: list[str] | None = None) -> int:
         default=DATASET_DEFAULT,
         help="Dataset de actividades contra el que se resuelve cada pedido (offline).",
     )
+    parser.add_argument(
+        "--plan-csv",
+        type=Path,
+        action="append",
+        default=[],
+        help=(
+            "Plan de pago en formato largo (offline, repetible). Habilita "
+            "las variables de cuotas y medios en `generar_plantilla_actividad` "
+            "para la actividad del plan."
+        ),
+    )
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--confirm-write-workspace", action="store_true")
     parser.add_argument("--modelo", default="llama3.1:8b")
@@ -274,6 +369,12 @@ def main(argv: list[str] | None = None) -> int:
                 timeout_s=config_ws.timeout_s,
             )
             generator = OllamaGenerator(modelo=args.modelo)
+            # En live el plan de pago no llega a la interpretación: el
+            # adapter de la pestaña «Plan de pagos» existe en pagos_sheets
+            # pero su cableado al canal queda pendiente. Sin plan, las
+            # variables de cuotas y medios están prohibidas — la plantilla
+            # sale sin ofrecer un plan que el agente no vio.
+            planes_pago = None
             resumen_config: dict[str, object] = {
                 "workspace": config_ws.resumen_seguro(),
                 "canal_form": config_form.resumen_seguro(),
@@ -300,8 +401,12 @@ def main(argv: list[str] | None = None) -> int:
             )
             fuente = CsvFuenteSolicitudes(args.csv)
             destino = None  # MarkdownDestinoBorradores por defecto del núcleo
-            generator = FakeGenerator(_fake_output_desde_golden())
-            resumen_config = {"modo_offline": True}
+            generator = _GeneradorOffline(_fake_output_desde_golden())
+            planes_pago = _planes_desde_csvs(args.plan_csv)
+            resumen_config = {
+                "modo_offline": True,
+                "planes_pago": len(planes_pago),
+            }
             modo = "offline_fake"
 
         resultados = atender_canal(
@@ -310,6 +415,7 @@ def main(argv: list[str] | None = None) -> int:
             directorio_salida=args.directorio,
             generator=generator,
             destino=destino,
+            planes_pago=planes_pago,
         )
     except ConfiguracionWorkspaceError as exc:
         _emitir({"estado": "RECHAZADA", "resultado": exc.code})
@@ -317,7 +423,7 @@ def main(argv: list[str] | None = None) -> int:
     except (RunnerWorkspaceError, CanalFormError) as exc:
         _emitir({"estado": "RECHAZADA", "resultado": exc.code})
         return 2
-    except (FuenteSolicitudesError, GmailEnvioError) as exc:
+    except (FuenteSolicitudesError, GmailEnvioError, ControlPagosError) as exc:
         _emitir({"estado": "FALLIDA", "resultado": exc.code})
         return 3
     except Exception:

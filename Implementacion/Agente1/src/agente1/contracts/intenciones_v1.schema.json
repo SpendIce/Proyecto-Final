@@ -2,11 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:proyecto-centenario:agente1:intenciones:v1",
   "title": "Catalogo cerrado de intenciones para la interpretacion en lenguaje natural (HU-013)",
-  "description": "Toda solicitud en lenguaje natural se clasifica a una de estas intenciones o se rechaza; nunca se aproxima a la mas parecida. `pipeline_integrado` distingue una propiedad estable del catalogo (aplicacion) de un hecho de esta iteracion (si el seam de HU-013 ya despacha esa intencion a un pipeline). generar_gacetilla despacha desde HU-013/#20 y generar_post desde HU-013/#22, ambos a los pipelines propios de HU-010 y HU-011 respectivamente.",
+  "description": "Toda solicitud en lenguaje natural se clasifica a una de estas intenciones o se rechaza; nunca se aproxima a la mas parecida. `pipeline_integrado` distingue una propiedad estable del catalogo (aplicacion) de un hecho de esta iteracion (si el seam de HU-013 ya despacha esa intencion a un pipeline). generar_gacetilla despacha desde HU-013/#20, generar_post desde HU-013/#22 y generar_plantilla_actividad desde HU-012/#73, a los pipelines propios de HU-010, HU-011 y HU-012 respectivamente.",
   "x-contract-version": "intenciones_v1",
   "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
   "x-hu": "HU-013",
-  "x-issue": "#20, #22",
+  "x-issue": "#20, #22, #73",
   "x-origen": "Equipo tecnico del PPS. El catalogo de intenciones y los roles habilitados no fueron aprobados por la SEU.",
 
   "aplicaciones": {
@@ -31,6 +31,14 @@
       "pipeline_integrado": true,
       "codigo_rechazo": null,
       "descripcion": "Pedido de un post de redes. Despachado al pipeline estructurado de HU-011 (procesar_post_estructurado) con el canal resuelto de forma deterministica desde la prosa (HU-013/#22)."
+    },
+    {
+      "id": "generar_plantilla_actividad",
+      "aplicacion": "ACTIVA",
+      "pipeline": "plantilla_actividad",
+      "pipeline_integrado": true,
+      "codigo_rechazo": null,
+      "descripcion": "Pedido de la plantilla de correo para los envios de HU-012 de una actividad. Despachada al pipeline de #73 (procesar_plantilla_actividad): el modelo solo redacta prosa descriptiva y las variables de montos, fechas, enlaces y destinatario se resuelven por render determinista. La plantilla y su lote quedan pendientes de decision humana (#72)."
     },
     {
       "id": "fuera_de_alcance",
