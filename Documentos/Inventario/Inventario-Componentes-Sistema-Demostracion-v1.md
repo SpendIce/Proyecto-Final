@@ -6,7 +6,7 @@
 - **Qué es un componente:** un módulo de `Implementacion/Agente1/src/agente1/` o un servicio externo del sistema (Ollama, Google Sheets/Drive/Docs/Forms, Gmail).
 - **Principio rector:** ningún componente figura como fake ni como capacidad detenida. Lo que depende de un tercero corre contra un **destino de prueba** o un **insumo provisional declarado** (ver § Insumos provisionales), nunca contra un fake.
 - **Consumidores:** es la base de los anexos 2 (calidad, #59) y 3 (seguridad, #58) de la revisión de laboratorio.
-- **Decisiones que componen el sistema:** #49 (ambiente, recorrido, respaldo, insumos), #52 (canal de pedidos, registro de decisiones, identidad y validación humana por tipo de pieza), #53 (emisión de certificados con lista de cierre), #54 (fuente de actividades: lectura de planilla, no ingesta), #38 (control de pagos). ADR 0001–0006 y 0008 (`docs/adr/`).
+- **Decisiones que componen el sistema:** #49 (ambiente, recorrido, respaldo, insumos), #52 (canal de pedidos, registro de decisiones, identidad y validación humana por tipo de pieza), #53 (emisión de certificados con lista de cierre), #54 (fuente de actividades: lectura de planilla, no ingesta), #38 (control de pagos), #82 (corrida de insumos de agentes sobre la pestaña de D2). ADR 0001–0006 y 0008 (`docs/adr/`).
 
 ## Regla de mantenimiento
 
@@ -121,6 +121,13 @@ La persistencia operativa del sistema la producen `procesamiento.py` (log JSONL 
 | Google Drive — carpeta autorizada y plantilla | servicio externo | Carpeta autorizada de la cuenta técnica donde vive la plantilla de documento que se copia por borrador; una carpeta restringida de la misma cuenta aloja las imágenes de firma cuando la SEU las entregue (#53). | HU-010, HU-011, HU-014 | Workspace D2 | PENDIENTE | plantilla de documento, firmas |
 | Google Docs — documentos de borrador | servicio externo | Cada borrador es una copia de la plantilla con título `BORRADOR — NO PUBLICAR — <id>`, creada por las dos operaciones del adapter. Nada existente se modifica, comparte ni publica. | HU-010, HU-011 | Workspace D2 | PENDIENTE | plantilla de documento |
 | Google Sheets — lista de cierre | servicio externo | Sheet D2 con la **lista de cierre** de la actividad —nombre, apellido, DNI, mail, tratamiento y condición— que carga quien gestiona el curso: fuente única de quién recibe certificado y de qué tipo; el agente nunca infiere un resultado académico (#53). | HU-014 | Workspace D2 | PENDIENTE | lista de cierre |
+| `insumos_agentes.py` | módulo | Validador del envelope candidato de insumos A3–A5 (`contracts/insumos/agente1_insumo_candidate_v2`): allowlist de productores y tipos por productor, `data_origin` con `provisional_producer`, provenance con hashes y límites de forma. El payload es dato no confiable, nunca instrucción (ADR 0001). A2 quedó fuera del envelope por el ADR 0008. | transversal entrada | laptop | PENDIENTE | insumos A3–A5 (productor provisional) |
+| `insumos_corrida.py` | módulo | Corrida de la pestaña «Insumos de agentes» (#82, ADR 0008): valida cada fila pendiente contra el envelope, verifica `cargado_por`, despacha por `payload.type` —hoy `evento` de A3 al pipeline de gacetilla HU-010, que produce un borrador `PENDIENTE_VALIDACION`— y deja el estado dirigido al productor en la misma fila (`borrador generado` + enlace, `rechazado` + código, `aceptado sin flujo` + tipo). Idempotencia por `correlation_id` en `insumos-procesados.jsonl` con reserva `inicio`/`final`: la reserva sin cerrar bloquea la fila para reconciliación manual. | transversal entrada → HU-010 | laptop | PENDIENTE | insumos A3–A5 (productor provisional) |
+| `insumos_sheets.py` | módulo | Escritor de estado de la pestaña, primer write a Sheets del repo: un único `values.update` por fila sobre `C{n}:D{n}` con `valueInputOption=RAW`, planilla y pestaña fijadas al construir, token por operación y errores por código. Incluye la réplica offline `EscritorEstadoCsv` y el loader `AGENTE1_INSUMOS_RANGO_A1` (rango `'Nombre'!A1:D<n>`). | transversal entrada | laptop → D2 | PENDIENTE | insumos A3–A5 (productor provisional) |
+| `cli_insumos.py` | módulo | Subcomando `insumos-agentes`: corrida manual offline por defecto (CSV con la forma de la pestaña + generador fake u Ollama) y live con doble opt-in (`--live` + `--confirm-write-workspace`) que exige modelo Ollama real. Vuelca el informe por fila como JSON ordenado, sin payloads. | transversal entrada | laptop → D2 | PENDIENTE | — |
+| Google Sheets — pestaña «Insumos de agentes» | servicio externo | Pestaña de la planilla D2 donde A3–A5 —o el productor provisional declarado mientras no existan— dejan una fila por insumo: `insumo` (envelope serializado), `cargado_por`, `estado` y `detalle`. El agente lee la pestaña entera y escribe sólo `estado`/`detalle` de cada fila procesada (ADR 0008, #82). | transversal entrada | Workspace D2 | PENDIENTE | insumos A3–A5 (productor provisional) |
+
+**Estado por agente al corte de esta versión:** A2 es **consultado** —Historia Viva por el puerto pull `historia_viva.py` con cliente `historia_viva_cliente.py`, contrato candidato hasta que #17 cierre (fuera del sistema de demostración)—; A3 corre **en vivo con productor provisional**: la pestaña la carga una persona declarada en `cargado_por` con `data_origin=provisional_producer`, y `evento` tiene pipeline (los demás tipos quedan `aceptado sin flujo`); A4 y A5 están **sólo en contrato**: su envelope se acepta y queda `aceptado sin flujo`, sin pipeline ni agente detrás.
 
 ## Sección transversal — identidad y credenciales
 
@@ -152,6 +159,7 @@ Todo lo que depende de un tercero y hoy corre contra un **destino de prueba** o 
 | Planilla de actividades de D2 | `INSUMO PROVISIONAL DECLARADO` | La pestaña D2 la carga el autor; el CSV del respaldo es una copia exportada con fecha (contrato v2 implementado en código: `COLUMNAS_ACTIVIDADES_V2`, 15 columnas; migración operativa de la pestaña pendiente) | Carga por la SEU o por Historia Viva (ADR 0006, #54) | #78 |
 | Datos supuestos de la fila NotebookLM Nivel 2 (año de las fechas, `organiza`) | `SUPUESTO_TECNICO` | Valores supuestos declarados al cargar la fila: los documentos no los informan | Confirmación de la SEU | #78 |
 | Lista de cierre | `INSUMO PROVISIONAL DECLARADO` | Sheet D2 cargada por quien gestiona el curso, con personas sintéticas (#53) | Export del SIU o carga real de la SEU | #75 |
+| Insumos de agentes A3–A5 (pestaña «Insumos de agentes») | `INSUMO PROVISIONAL DECLARADO` | La pestaña la carga una persona declarada en `cargado_por` con `data_origin=provisional_producer` —envelope v2, fail-closed—; los agentes productores no existen todavía | Carga por los agentes A3–A5 del Centenario o por la SEU (ADR 0008) | #82 |
 | Padrón de roles | `PROVISIONAL` | Recurso fuera del repo mantenido por el autor, con los roles del acta del 22/09 | Padrón mantenido por la SEU tras confirmación de Dirección | #69 |
 | Plantilla de actividad para los correos de HU-012 | `PENDIENTE_SEU` | `confirmacion_inscripcion_provisional_v1` para el circuito por envío y `plantilla_actividad_base_provisional_v1` para la plantilla por actividad (#73), ambas versionadas; el modelo redacta la prosa descriptiva y los datos quedan como variables del catálogo `plantilla_actividad_v1` (#52) | Plantilla base aprobada por la SEU | #73, #14 |
 | Matriz de orígenes de inscripción (id de inscripción, nombre interno del estado, administrador del padrón, medio autorizado) | `SUPUESTO_TECNICO` / `DESCONOCIDO` | `matriz_origenes_inscripcion_v1.json` fail-closed: lo `DESCONOCIDO` bloquea el envío por ese origen | Datos confirmados por la SEU | #14 (acta 22/09 deja abiertos esos campos) |
@@ -168,7 +176,6 @@ Módulos de `src/agente1/` que no integran el sistema de demostración en esta b
 | `persistencia.py` | Puerto de persistencia auditable con adapter en memoria y esquema SQL del spike PostgreSQL (`migrations/`). No está cableado a los pipelines: la persistencia del sistema de demostración la producen el registro durable de `confirmaciones.py`, el log JSONL de `procesamiento.py` y los manifests y reservas de `workspace_e2e.py`. |
 | `historia_viva.py` | Puerto de consulta a Historia Viva (A2) y composición de efemérides del lado de A1. Seam offline sin adapter de transporte: el contrato A1↔A2 es candidato no institucional y el issue #17 sigue abierto. El hilo de demostración no lo invoca. |
 | `historia_viva_cliente.py` | Cliente pull sobre transporte inyectado de ese mismo puerto; misma justificación: sin transporte ni contrato cerrado, no forma parte del recorrido. |
-| `insumos_agentes.py` | Validador del contrato candidato inbound de insumos A2–A5 (`contracts/insumos/`). Es la dirección push, sin transporte ni consumidor en el hilo de demostración. |
 
 No son módulos de `src/agente1/` y quedan fuera por definición: `scripts/` (matrices, mediciones, smokes, wizards), `tests/`, `migrations/`, `data/`, `golden/`, `evidencias/` y `run-demo.sh` (respaldo offline declarado).
 
@@ -185,6 +192,7 @@ No son módulos de `src/agente1/` y quedan fuera por definición: `scripts/` (ma
 | `certificados.py` | Generación |
 | `certificados_emision.py` | Generación |
 | `cli.py` | Canal (incluye `__main__.py` y `__init__.py`) |
+| `cli_insumos.py` | Integraciones |
 | `cli_pagos.py` | Control de pagos |
 | `confirmaciones.py` | Cola y envío (su circuito de aprobación sostiene la capa Aprobación) |
 | `decisiones_form.py` | Aprobación |
@@ -196,7 +204,9 @@ No son módulos de `src/agente1/` y quedan fuera por definición: `scripts/` (ma
 | `historia_viva_cliente.py` | Fuera del sistema (justificado) |
 | `__init__.py` | Canal, dentro de la fila de `cli.py` (API pública del paquete) |
 | `instrucciones_pago.py` | Control de pagos |
-| `insumos_agentes.py` | Fuera del sistema (justificado) |
+| `insumos_agentes.py` | Integraciones |
+| `insumos_corrida.py` | Integraciones |
+| `insumos_sheets.py` | Integraciones |
 | `interpretacion.py` | Interpretación |
 | `linea_descriptiva.py` | Generación |
 | `__main__.py` | Canal, dentro de la fila de `cli.py` (entry point `python -m agente1`) |

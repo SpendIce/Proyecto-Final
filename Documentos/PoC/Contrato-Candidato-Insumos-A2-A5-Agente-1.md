@@ -1,25 +1,37 @@
-# Contrato candidato de insumos A2–A5 hacia el Agente 1
+# Contrato candidato de insumos A3–A5 hacia el Agente 1
 
-- **Fecha de corte:** 17 de agosto de 2026
+- **Fecha de corte:** 17 de agosto de 2026 (revisado por #82, ADR 0008)
 - **Estado:** `CANDIDATO_NO_INSTITUCIONAL`
 - **Proceso consumidor:** P4 — Comunicación y Difusión Institucional
 - **Componente consumidor:** Agente 1 — Extension Bot
-- **Alcance:** interfaz inbound técnica y offline; no integración entre agentes
+- **Alcance:** interfaz inbound técnica; la pestaña de D2 es el medio de entrega y la corrida manual el consumidor
+
+> **Revisión #82.** El ADR 0008 cambió la forma de entrega: A3–A5 dejan sus
+> insumos como filas de la pestaña «Insumos de agentes» de la planilla D2 que
+> la corrida `insumos-agentes` sondea a mano, y **A2 salió del envelope**
+> porque Historia Viva se consulta por pull (`historia_viva.py`), no entrega
+> insumos. `data_origin` sumó `provisional_producer` para las filas cargadas
+> por el productor provisional declarado mientras los agentes no existan, y la
+> columna `cargado_por` registra quién cargó cada fila. El schema vigente es
+> `agente1_insumo_candidate_v2.schema.json`; el v1 queda como histórico.
 
 ## 1. Propósito y límite arquitectónico
 
-Este documento propone un envelope mínimo para que A1 pueda recibir datos trazables de A2, A3, A4 y A5. La fuente arquitectónica vigente define a A1 como **hub de comunicación**, no como orquestador: recibe insumos para redactar piezas institucionales, pero no coordina ni invoca a los otros agentes. Apps Script, los triggers y, en una etapa posterior, Celery/Redis conservan la responsabilidad de orquestación.
+Este documento propone un envelope mínimo para que A1 pueda recibir datos trazables de A3, A4 y A5. La fuente arquitectónica vigente define a A1 como **hub de comunicación**, no como orquestador: recibe insumos para redactar piezas institucionales, pero no coordina ni invoca a los otros agentes. Apps Script, los triggers y, en una etapa posterior, Celery/Redis conservan la responsabilidad de orquestación.
 
-El incremento implementado sólo **valida, acepta o rechaza datos**. No ejecuta instrucciones incluidas en el contenido, no llama a otros agentes, no publica, no envía correos y no transforma la aceptación contractual en aprobación institucional.
+El incremento implementado **valida, acepta o rechaza datos y despacha el insumo aceptado al flujo que le corresponde por tipo**. No ejecuta instrucciones incluidas en el contenido, no llama a otros agentes, no publica, no envía correos y no transforma la aceptación contractual en aprobación institucional: todo lo generado queda como borrador `PENDIENTE_VALIDACION`.
 
 ## 2. Fuentes de alcance
 
 | Productor | Insumo previsto por las fuentes | Proceso de origen | Tipos candidatos del contrato |
 |---|---|---|---|
-| A2 — Historia Viva | Datos históricos y efemérides | P7 — Memoria Institucional | `dato_historico`, `efemeride` |
 | A3 — Vinculación | Eventos y oportunidades externas | P2 / P6 — Vinculación y Eventos | `evento`, `oportunidad_externa` |
 | A4 — Atención | Consultas sobre propuestas y solicitudes de material de orientación | P5 / P9 — Cursos y Atención | `consulta_propuesta`, `solicitud_material_orientacion` |
 | A5 — Analíticas | Analíticas de contenido y limpieza/enriquecimiento de texto RRSS | P8 — Mejora Continua | `analitica_contenido`, `texto_rrss_enriquecido` |
+
+A2 — Historia Viva quedó fuera del envelope desde el ADR 0008: sus datos
+históricos y efemérides (P7) se obtienen por la consulta pull del Agente 1,
+no por una fila inbound.
 
 Fuentes consultadas:
 
@@ -37,18 +49,33 @@ Los nombres de campos, versiones y tipos son una **propuesta técnica versionada
 | `schema` | `agente1.insumo.v1` | Identidad explícita del envelope |
 | `schema_version` | `1.0.0` | Evolución incompatible controlada |
 | `channel` | `a1.communication_input` | Canal inbound único; no representa una orden |
-| `producer` | Allowlist `A2`, `A3`, `A4`, `A5` | Impide productores desconocidos |
+| `producer` | Allowlist `A3`, `A4`, `A5` | Impide productores desconocidos; A2 quedó fuera por el ADR 0008 |
 | `producer_schema_version` | `aN_candidate_v1`, coherente con el productor | Evita interpretar versiones no soportadas |
-| `correlation_id` | Identificador opaco | Trazabilidad sin payload en logs |
+| `correlation_id` | Identificador opaco | Trazabilidad sin payload en logs; además es la clave de idempotencia de la corrida |
 | `timestamp` | ISO 8601 con zona horaria | Orden temporal inequívoco |
-| `data_origin` | `institutional_source`, `agent_derived` o `synthetic_test` | Distingue procedencia declarada; no prueba veracidad |
+| `data_origin` | `institutional_source`, `agent_derived`, `synthetic_test` o `provisional_producer` | Distingue procedencia declarada; la última marca las filas del productor provisional |
 | `provenance.sources[]` | Referencia opaca + SHA-256 lowercase | Permite verificar integridad sin loguear contenido |
 | `payload.type` | Allowlist dependiente del productor | Evita confundir capacidades entre agentes |
 | `payload.content` | Objeto JSON no vacío, tratado como dato no confiable | Mantiene el contrato abierto hasta acordar schemas semánticos |
 
-El JSON Schema candidato está en:
+El JSON Schema candidato vigente está en:
 
-`Implementacion/Agente1/src/agente1/contracts/insumos/agente1_insumo_candidate_v1.schema.json`
+`Implementacion/Agente1/src/agente1/contracts/insumos/agente1_insumo_candidate_v2.schema.json`
+
+(la v1 queda como histórica en el mismo directorio).
+
+## 3.1 Entrega por la pestaña «Insumos de agentes» (#82)
+
+El medio de entrega acordado en el ADR 0008 es una pestaña de la planilla D2
+con cuatro columnas: `insumo` (el envelope serializado en una línea),
+`cargado_por` (identificador opaco de quién cargó la fila, agente o productor
+provisional declarado), `estado` y `detalle`. La corrida manual
+`python -m agente1 insumos-agentes` lee la pestaña, valida cada fila
+pendiente contra el envelope y escribe en la misma fila el estado dirigido al
+productor: `borrador generado` con el enlace al borrador, `rechazado` con el
+código del contrato o del flujo, o `aceptado sin flujo` con el tipo de
+payload. La pieza nunca vuelve al productor; cada `correlation_id` se
+procesa una sola vez, aunque la corrida se repita.
 
 ## 4. Trust boundary y seguridad
 
@@ -75,16 +102,19 @@ Las pruebas ejercitan ambas diferencias. El schema no promete que `uniqueItems` 
 | Evidencia | Ubicación | Cobertura |
 |---|---|---|
 | Validador stdlib | `Implementacion/Agente1/src/agente1/insumos_agentes.py` | Envelope, versión, canal, productor, trazabilidad, provenance, allowlists y auditoría segura |
-| JSON Schema | `Implementacion/Agente1/src/agente1/contracts/insumos/agente1_insumo_candidate_v1.schema.json` | Contrato declarativo candidato |
-| Fixtures válidos | `Implementacion/Agente1/tests/fixtures/insumos_agentes/valid_a2.json` a `valid_a5.json` | Un caso sintético por productor |
+| JSON Schema | `Implementacion/Agente1/src/agente1/contracts/insumos/agente1_insumo_candidate_v2.schema.json` | Contrato declarativo candidato (v1 histórica) |
+| Corrida de la pestaña | `Implementacion/Agente1/src/agente1/insumos_corrida.py` | Ciclo por fila, estados, despacho por tipo, idempotencia y flujo `evento`→HU-010 |
+| Escritor de la pestaña | `Implementacion/Agente1/src/agente1/insumos_sheets.py` | `values.update` acotado, réplica CSV y configuración por entorno |
+| Fixtures válidos | `Implementacion/Agente1/tests/fixtures/insumos_agentes/valid_a3.json` a `valid_a5.json` | Un caso sintético por productor; `valid_a2.json` evidencia el rechazo de A2 |
 | Fixture inválido | `Implementacion/Agente1/tests/fixtures/insumos_agentes/invalid_action.json` | Acción de control no autorizada |
-| Pruebas | `Implementacion/Agente1/tests/test_insumos_agentes.py` | Productor/canal/versión desconocidos, provenance, hashes, prompt injection como dato, PII en auditoría y acciones no autorizadas |
+| Pruebas del contrato | `Implementacion/Agente1/tests/test_insumos_agentes.py` | Productor/canal/versión desconocidos, A2 fuera, `provisional_producer`, provenance, hashes, prompt injection como dato, PII en auditoría y acciones no autorizadas |
+| Pruebas de la corrida | `Implementacion/Agente1/tests/test_insumos_corrida.py`, `test_insumos_sheets.py`, `test_cli_insumos.py` | Aceptado, rechazado, repetido, sin flujo, bloqueado, escritura fallida, escritor `values.update`, config y subcomando |
 
 Comando focalizado, sin build:
 
 ```bash
 cd Implementacion/Agente1
-python -m pytest -q tests/test_insumos_agentes.py
+python -m pytest -q tests/test_insumos_agentes.py tests/test_insumos_corrida.py tests/test_insumos_sheets.py tests/test_cli_insumos.py
 ```
 
 ## 6. Trazabilidad BPM–HU–DoD–TRL–responsable
@@ -92,14 +122,14 @@ python -m pytest -q tests/test_insumos_agentes.py
 | BPM | HU / alcance | Criterio DoD relacionado | TRL | Evidencia actual | Responsable de ejecución | Responsable de aceptación | Estado |
 |---|---|---|---:|---|---|---|---|
 | P4 | Preparación transversal para HU-010/HU-011 | Integración con agentes y logs activos | 3 objetivo | Schema, validador, fixtures y tests offline | Juan Ignacio Gone / responsable técnico | Arquitectura P100 + responsables A2-A5 | `CANDIDATO_TECNICO` |
-| P4 | HU-010 | Input trazable, sin hechos inventados y revisable | 3 objetivo | A1 puede validar envelopes, pero el pipeline HU-010 aún no los consume | Juan Ignacio Gone | SEU | `PREPARADO_NO_INTEGRADO` |
+| P4 | HU-010 | Input trazable, sin hechos inventados y revisable | 3 objetivo | La corrida despacha `evento` al pipeline de gacetilla y produce el borrador pendiente de validación | Juan Ignacio Gone | SEU | `INTEGRADO_OFFLINE` |
 | P4 | HU-011 | Input trazable, adaptado al canal y revisable | 3 objetivo | A1 puede validar envelopes, pero el pipeline HU-011 aún no los consume | Juan Ignacio Gone | Responsable RRSS / SEU | `PREPARADO_NO_INTEGRADO` |
-| P7 → P4 | A2 → A1 | Metadatos/origen e integridad de contenido histórico | Futuro | Fixture sintético y tipo candidato | Equipo A2 + Juan Ignacio | Responsable P7 / SEU | `PENDIENTE_ACUERDO` |
-| P2/P6 → P4 | A3 → A1 | Eventos/oportunidades con provenance | Futuro | Fixture sintético y tipo candidato | Equipo A3 + Juan Ignacio | Responsables P2/P6 / SEU | `PENDIENTE_ACUERDO` |
-| P5/P9 → P4 | A4 → A1 | Consulta/material de orientación delimitado | Futuro | Fixture sintético y tipo candidato | Equipo A4 + Juan Ignacio | Responsables P5/P9 / SEU | `PENDIENTE_ACUERDO` |
-| P8 → P4 | A5 → A1 | Analítica/enriquecimiento sin asumir autoridad editorial | Futuro | Fixture sintético y tipo candidato | Equipo A5 + Juan Ignacio | Responsable P8 / SEU | `PENDIENTE_ACUERDO` |
+| P7 → P4 | A2 → A1 (pull) | Metadatos/origen e integridad de contenido histórico | Futuro | A2 sale del envelope; la consulta es `historia_viva.py` / `historia_viva_cliente.py` | Equipo A2 + Juan Ignacio | Responsable P7 / SEU | `PENDIENTE_ACUERDO` |
+| P2/P6 → P4 | A3 → A1 | Eventos/oportunidades con provenance | En curso | Pestaña de D2 + corrida; `evento` tiene flujo, `oportunidad_externa` queda `aceptado sin flujo` | Equipo A3 + Juan Ignacio / productor provisional declarado | Responsables P2/P6 / SEU | `PENDIENTE_ACUERDO` |
+| P5/P9 → P4 | A4 → A1 | Consulta/material de orientación delimitado | Futuro | Envelope aceptado, queda `aceptado sin flujo` | Equipo A4 + Juan Ignacio | Responsables P5/P9 / SEU | `PENDIENTE_ACUERDO` |
+| P8 → P4 | A5 → A1 | Analítica/enriquecimiento sin asumir autoridad editorial | Futuro | Envelope aceptado, queda `aceptado sin flujo` | Equipo A5 + Juan Ignacio | Responsable P8 / SEU | `PENDIENTE_ACUERDO` |
 
-Este incremento no eleva por sí solo el TRL ni cierra el Gate G2: todavía no existe una ejecución integrada A2–A5 → A1 ni aceptación por los responsables institucionales.
+Este incremento no eleva por sí solo el TRL ni cierra el Gate G2: la integración quedó ejercitada offline y la corrida en vivo sobre D2 es tarea del operador, sin aceptación por los responsables institucionales.
 
 ## 7. Decisiones institucionales pendientes
 

@@ -29,6 +29,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
+from .cli_insumos import main as main_insumos
 from .cli_pagos import main as main_control_pagos
 from .fuentes import CsvFuenteSolicitudes
 from .ollama import (
@@ -56,6 +57,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args_list = list(sys.argv[1:] if argv is None else argv)
     if args_list[:1] == ["control-pagos"]:
         return main_control_pagos(args_list[1:])
+    if args_list[:1] == ["insumos-agentes"]:
+        return main_insumos(args_list[1:])
 
     parser = argparse.ArgumentParser(
         description="Genera un borrador local HU-010/HU-011 desde una fila CSV sintética."

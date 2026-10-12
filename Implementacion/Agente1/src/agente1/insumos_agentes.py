@@ -1,7 +1,16 @@
-"""Contrato candidato para insumos de A2-A5 hacia el Agente 1.
+"""Contrato candidato para insumos de A3-A5 hacia el Agente 1.
 
 El módulo sólo valida datos. No despacha tareas, no invoca agentes y no interpreta
 texto del payload como instrucciones ejecutables.
+
+Desde el ADR 0008 (`docs/adr/`), Historia Viva (A2) ya no es productora de
+insumos: el Agente 1 la **consulta** por el puerto `historia_viva.py`, así que
+`producer = "A2"` se rechaza como cualquier productor fuera de la allowlist.
+A3, A4 y A5 entregan sus insumos como filas de la pestaña «Insumos de
+agentes» de la planilla D2 que procesa `insumos_corrida.py`; mientras esos
+agentes no existan, un productor provisional declarado carga las filas con
+`data_origin = "provisional_producer"` (CONTEXT.md, término *Productor
+provisional*).
 """
 
 from __future__ import annotations
@@ -14,17 +23,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-CONTRACT_VERSION = "agente1_insumo_candidate_v1"
+CONTRACT_VERSION = "agente1_insumo_candidate_v2"
 SCHEMA_NAME = "agente1.insumo.v1"
 SCHEMA_VERSION = "1.0.0"
 CHANNEL = "a1.communication_input"
 CONTRACT_STATUS = "CANDIDATO_NO_INSTITUCIONAL"
 
 PRODUCER_CONTRACTS = {
-    "A2": {
-        "version": "a2_candidate_v1",
-        "payload_types": frozenset({"dato_historico", "efemeride"}),
-    },
     "A3": {
         "version": "a3_candidate_v1",
         "payload_types": frozenset({"evento", "oportunidad_externa"}),
@@ -44,7 +49,12 @@ PRODUCER_CONTRACTS = {
 }
 
 DATA_ORIGINS = frozenset(
-    {"institutional_source", "agent_derived", "synthetic_test"}
+    {
+        "institutional_source",
+        "agent_derived",
+        "synthetic_test",
+        "provisional_producer",
+    }
 )
 ENVELOPE_FIELDS = frozenset(
     {

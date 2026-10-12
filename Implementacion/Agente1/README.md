@@ -65,6 +65,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `data/plan_pagos_notebooklm_n2.csv`, `data/padron_pagos_sintetico.csv` y `data/novedades_pago_sinteticas.csv`: fixture del caso documentado NotebookLM Nivel 2 (cuota única de $20.000, categorías bonificadas, procedencia por dato), padrón sintético y novedades sintéticas para correr la demo local.
 - `scripts/medir_capacidad_hu011.py`: prueba de capacidad local contra el volumen de referencia informado por la SEU; mide latencia fría y caliente y tasa de conformidad, y proyecta el mes.
 - `scripts/operaciones_seguras.py`: health, reconciliación, consolidación y retención en dry-run.
+- `src/agente1/contracts/insumos/agente1_insumo_candidate_v2.schema.json`, `src/agente1/insumos_agentes.py`, `src/agente1/insumos_corrida.py`, `src/agente1/insumos_sheets.py` y `src/agente1/cli_insumos.py`: entrada push de insumos A3–A5 (ADR 0008, #82) — el envelope candidato (A2 fuera, `data_origin` con `provisional_producer`), la corrida de la pestaña «Insumos de agentes» (estados `borrador generado`/`rechazado`/`aceptado sin flujo`, idempotencia por `correlation_id` en `insumos-procesados.jsonl`, despacho `evento`→HU-010), el escritor `values.update` acotado con su réplica CSV, y el subcomando `insumos-agentes` offline/live con doble opt-in.
 - `salida/`: evidencia runtime local ignorada por Git.
 
 ## Dónde está documentada cada decisión
@@ -134,6 +135,11 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué una pestaña faltante o con encabezado distinto nunca devuelve una lista vacía | `pagos_sheets.py`, docstring de módulo y de `_leer_values` |
 | Por qué el modelo no escribe montos, fechas ni enlaces en la plantilla de actividad | `src/agente1/plantillas_actividad.py`, docstring de módulo y gate de `plantilla_actividad_v1`; contrato `contracts/plantilla_actividad_v1.json` |
 | Por qué la aprobación de una plantilla vale para esa redacción exacta | `plantillas_actividad.py`, docstring de módulo (`tpl-…`/`lote-…` derivan del `sha256` del documento) |
+| Por qué A2 no entrega insumos en la pestaña | `src/agente1/insumos_agentes.py`, docstring de módulo; ADR 0008 |
+| Qué decide el estado escrito en la fila y qué el registro local | `src/agente1/insumos_corrida.py`, docstring de módulo y de `_despachar` |
+| Por qué una reserva `inicio` sin `final` bloquea en vez de reintentar | `insumos_corrida.py`, docstring de módulo |
+| Por qué el write a Sheets sólo puede tocar `C{n}:D{n}` de una pestaña | `src/agente1/insumos_sheets.py`, docstring de módulo y de `GoogleSheetsEscritorEstadoInsumos` |
+| Por qué el `id_actividad` del evento se deriva del `correlation_id` | `insumos_corrida.py`, docstring de módulo y `_id_solicitud_insumo` |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
@@ -841,20 +847,69 @@ completos, IDs Workspace, PII, contactos, prompts ni credenciales. Ver
 `evidencias/runbook-operaciones-seguras-d2-d3.md`. Para uso programático,
 importar desde `agente1.operaciones_seguras`; no se reexporta en `agente1`.
 
-## Contrato candidato de insumos A2–A5
+## Corrida de insumos de agentes (pestaña «Insumos de agentes»)
 
-`insumos_agentes.py` y
-`contracts/insumos/agente1_insumo_candidate_v1.schema.json` validan un envelope
-inbound provisional. A1 acepta o rechaza datos no confiables de A2–A5: **no los
-invoca, coordina ni orquesta**, no interpreta `payload.content` como control y
-no publica contenido. El contrato permanece `CANDIDATO_NO_INSTITUCIONAL` y los
-pipelines HU-010/HU-011 todavía no consumen esos envelopes.
+La entrada push del ADR 0008: A3, A4 y A5 —o el productor provisional
+declarado mientras esos agentes no existan— dejan una fila por insumo en la
+pestaña `Insumos de agentes` de la planilla D2, y el Agente 1 la sondea con
+una corrida manual (#82). Historia Viva (A2) no entrega insumos: se consulta
+por el puerto pull de `historia_viva.py`, por eso `producer = "A2"` se
+rechaza igual que cualquier productor desconocido.
 
-Prueba focalizada:
+La pestaña tiene cuatro columnas: `insumo` (el envelope
+`agente1.insumo.v1` serializado en una línea), `cargado_por` (identificador
+opaco de quién la cargó), `estado` y `detalle` (las dos que escribe la
+corrida). Una fila con `estado` vacío está pendiente; cualquier valor
+escrito la marca como ya procesada y no se toca. Por cada fila pendiente la
+corrida valida el envelope, verifica `cargado_por` y despacha por
+`payload.type`: hoy sólo `evento` de A3 tiene pipeline y va al flujo de
+gacetilla HU-010, que produce un borrador `PENDIENTE_VALIDACION` —nunca una
+publicación— cuyo enlace queda escrito en la fila. Un tipo válido sin
+pipeline queda `aceptado sin flujo` con el tipo en `detalle`; una fila
+inválida queda `rechazado` con el código del contrato. La pieza nunca vuelve
+al productor: sólo el enlace o el código.
+
+La idempotencia es por `correlation_id`: `insumos-procesados.jsonl`, en el
+directorio de salida, registra cada despacho con metadatos (productor, tipo,
+hash del payload, `cargado_por`), nunca el payload. Una corrida repetida —o
+una segunda fila con el mismo `correlation_id`— reescribe el resultado ya
+registrado sin redespachar; una reserva `inicio` sin `final` deja la fila
+`bloqueada` para reconciliación manual en vez de reejecutar un efecto
+desconocido.
+
+Subcomando manual, offline por defecto sobre un CSV con la misma forma que
+la pestaña:
+
+```bash
+PYTHONPATH=src python -m agente1 insumos-agentes \
+  --tabla insumos.csv --directorio salida/insumos --fake-output "salida"
+```
+
+El modo en vivo exige `--live` **y** `--confirm-write-workspace` juntos, un
+modelo de Ollama y la configuración del entorno: las `AGENTE1_WORKSPACE_*`
+de siempre más `AGENTE1_INSUMOS_RANGO_A1` con el rango `'Nombre'!A1:D<n>` de
+la pestaña. La escritura va por `GoogleSheetsEscritorEstadoInsumos`, el
+primer write a Sheets del repo: un único `values.update` por fila sobre
+`C{n}:D{n}`, `valueInputOption=RAW`, token por operación y la allowlist de
+planilla+pestaña fijada al construir. Correrla sobre D2 es tarea del
+operador.
+
+El envelope lo valida `insumos_agentes.py` contra
+`contracts/insumos/agente1_insumo_candidate_v2.schema.json`
+(`CANDIDATO_NO_INSTITUCIONAL`; el v1 queda histórico). A1 acepta o rechaza
+datos no confiables de A3–A5: **no los invoca, coordina ni orquesta**, no
+interpreta `payload.content` como control —un texto tipo «publicá ya» es
+dato del borrador, nunca una instrucción— y no publica contenido. Cambios
+del v1: A2 sale del envelope por el ADR 0008 y `data_origin` suma
+`provisional_producer` para las filas del productor provisional.
+
+Pruebas focalizadas:
 
 ```bash
 PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
-  python -m pytest -q tests/test_insumos_agentes.py
+  python -m pytest -q tests/test_insumos_agentes.py \
+    tests/test_insumos_corrida.py tests/test_insumos_sheets.py \
+    tests/test_cli_insumos.py
 ```
 
 ## Seam de consulta a Historia Viva
@@ -863,8 +918,9 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
 validado del Agente 2. Es un puerto único con tres operaciones —buscar
 fragmentos, ampliar una pieza y registrar un aporte— y **A1 siempre inicia**:
 no hay callback, webhook ni cola entrante, y una prueba verifica que esa
-superficie no aparezca. Va en dirección contraria al envelope push candidato de
-`insumos_agentes.py`, que sigue versionado y sin consumir.
+superficie no aparezca. Va en dirección contraria al envelope push de
+`insumos_agentes.py`, que la corrida de insumos ya consume para A3–A5: A2
+quedó fuera de ese contrato justamente porque su camino es esta consulta.
 
 Dos controles sostienen el alcance:
 

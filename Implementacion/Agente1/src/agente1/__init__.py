@@ -22,7 +22,13 @@ Guía rápida de módulos:
 - `persistencia`              puerto de persistencia auditable.
 - `auditoria_d2`              auditoría offline de invariantes de seguridad.
 - `operaciones_seguras`       health, retención y reconciliación.
-- `insumos_agentes`           contrato candidato de insumos de A2-A5.
+- `insumos_agentes`           contrato candidato de insumos de A3-A5 (#82).
+- `insumos_corrida`           corrida de la pestaña «Insumos de agentes»:
+                              validación, despacho por tipo, idempotencia y
+                              estados por fila (#82, ADR 0008).
+- `insumos_sheets`            escritor `values.update` acotado de la pestaña
+                              más su réplica CSV y config por entorno (#82).
+- `cli_insumos`               subcomando `insumos-agentes` (#82).
 - `historia_viva`             puerto de consulta al acervo de A2 (offline).
 - `origenes_inscripcion`      matriz de orígenes de inscripción (HU-012).
 - `tipos_notificacion`        catálogo de tipos de notificación (HU-012).
