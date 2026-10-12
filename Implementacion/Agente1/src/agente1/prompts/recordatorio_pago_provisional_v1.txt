@@ -1,0 +1,20 @@
+TEMPLATE_VERSION: recordatorio_pago_provisional_v1
+POLICY_STATUS: PROVISIONAL_NO_INSTITUCIONAL
+
+BORRADOR — NO ENVIAR
+
+Hola {{nombre_destinatario}},
+
+Te recordamos la cuota {{nro_cuota}} de {{actividad}}: importe {{monto}}.
+Fecha de referencia: {{fecha_referencia}} ({{anticipacion}}).
+Medios de pago: {{medios_pago}}.
+Respondé a este correo adjuntando el comprobante.
+
+Este texto es una plantilla provisional y requiere validación humana antes de cualquier envío.
+
+LÍMITES:
+- El render es determinista; no se entrega este contenido a un LLM.
+- Los medios de pago del plan, incluidos links o datos bancarios cuando el plan los declare, aparecen sólo en el cuerpo: la auditoría conserva hashes, nunca esos datos.
+- La plantilla se aprueba una sola vez con aprobación semántica y utilitaria; cada lote diario exige una aprobación utilitaria que lista sus ítems (D3, §5.3 del diseño).
+- Sólo el fake explícito puede simular entrega, drenando la cola de HU-012.
+- La plantilla institucional definitiva queda PENDIENTE_SEU.

@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:tipos-notificacion:v2",
+  "title": "Catálogo de tipos de notificación HU-012",
+  "x-contract-version": "tipos_notificacion_v2",
+  "x-status": "CANDIDATO_PENDIENTE_CONFIRMACION_SEU",
+  "x-hu": "HU-012",
+  "x-proceso-bpm": "P5 con apoyo de P4",
+  "x-contrato-asociado": "confirmacion_inscripcion_v1",
+  "x-fuente": "Bible «Procesos y Agentes» sincronizada el 22/09: HU-012 pasó de «confirmaciones de inscripción» a «notificaciones automáticas de inscripción, participación, situación de pagos y aprobación», absorbiendo la HU previa de mensajes a deudores. Diseño HU-012 control de pagos v1 (D1-D16): la situación de pagos deja de depender del dato DESCONOCIDO situacion_deuda_o_saldo y pasa a derivarse del plan de pago, el padrón, el buzón propio y las novedades; el recordatorio de pago entra como tipo propio con circuito por lote (D3).",
+  "x-habilita-envio": false,
+  "x-reemplaza": "tipos_notificacion_v1",
+  "description": "Catálogo cerrado de los tipos de notificación que HU-012 contempla tras la ampliación del 22/09 y el diseño de control de pagos. Cada tipo declara los campos del contrato que exige, los orígenes de inscripción de los que puede provenir el destinatario, los datos específicos que el evento necesita más allá del contacto y con qué procedencia, y la frase de la plantilla provisional que lo distingue. Que un tipo esté habilitado sólo significa que puede entrar al circuito sin conexión: no levanta los bloqueos de la matriz de orígenes ni autoriza correo real. La decisión es fail-closed: un tipo con un dato específico DESCONOCIDO se puede nombrar y evaluar, pero no produce ni borrador ni envío. Lo no confirmado por la SEU queda declarado como SUPUESTO_TECNICO, que no bloquea. Además cada tipo declara su modo_circuito: los tipos por envío tramitan por procesar_confirmacion con doble aprobación por pieza; el tipo por lote (recordatorio_pago) nunca tramita por solicitud individual — la corrida lo planifica y lo encola sólo con la plantilla aprobada una vez por doble decisión más la aprobación utilitaria del lote que lista sus ítems (D3).",
+
+  "procedencia_dato": {
+    "CONFIRMADO_SEU": "Comunicado por escrito por la SEU.",
+    "SUPUESTO_TECNICO": "Propuesto por el equipo técnico; requiere confirmación.",
+    "DESCONOCIDO": "Ni comunicado ni supuesto con fundamento suficiente."
+  },
+
+  "motivos_de_bloqueo": {
+    "dato_especifico_sin_origen_confirmado": "El dato que distingue al tipo no tiene origen confirmado por la SEU: no se sabe de qué sistema o registro sale ni quién lo administra.",
+    "origen_no_admitido_para_tipo": "El origen informado para el destinatario no está declarado como admisible para ese tipo de notificación."
+  },
+
+  "modos_circuito": {
+    "por_envio": "La notificación tramita por procesar_confirmacion: borrador, aprobación semántica y aprobación utilitaria por pieza, y entrega contra el destino habilitado. Es el modo de los tipos originales de la ampliación del 22/09.",
+    "lote": "La notificación no tramita por solicitud individual: la corrida de control de pagos la planifica como lote del día y el circuito por lote la encola sólo con la plantilla aprobada una vez por doble decisión (semántica y utilitaria) más una aprobación utilitaria del lote que lista sus ítems (D3, §5.3). procesar_confirmacion lo rechaza con notification_mode_mismatch."
+  },
+
+  "tipos": [
+    {
+      "tipo": "inscripcion",
+      "rotulo": "Confirmación de inscripción",
+      "procedencia_tipo": "CONFIRMADO_SEU",
+      "evento_gatillo": "Alta de inscripción en estado «inscripto confirmado» (nombre funcional confirmado el 22/09; el nombre interno del estado en SIU sigue DESCONOCIDO).",
+      "modo_circuito": "por_envio",
+      "campos_requeridos": [
+        "id_inscripcion",
+        "nombre_destinatario",
+        "email_destinatario",
+        "actividad",
+        "fecha",
+        "organiza",
+        "contacto"
+      ],
+      "origenes_admisibles": ["SIU_GUARANI", "SIU_GUARANI_EXTENSION"],
+      "datos_especificos": {},
+      "plantilla": {
+        "asunto_base": "Confirmación de inscripción",
+        "frase_evento": "tu inscripción a"
+      },
+      "motivos_de_bloqueo": [],
+      "observacion": "Tipo original de HU-012, el único que existía antes de la ampliación del 22/09. Es el tipo por omisión de la solicitud: una entrada sin tipo se interpreta como inscripción."
+    },
+    {
+      "tipo": "participacion",
+      "rotulo": "Notificación de participación",
+      "procedencia_tipo": "CONFIRMADO_SEU",
+      "evento_gatillo": "Participación del inscripto en la actividad. El evento concreto que la acredita —asistencia registrada en SIU, lista del docente, actividad cumplida— no fue definido por la SEU.",
+      "modo_circuito": "por_envio",
+      "campos_requeridos": [
+        "id_inscripcion",
+        "nombre_destinatario",
+        "email_destinatario",
+        "actividad",
+        "fecha",
+        "organiza",
+        "contacto"
+      ],
+      "origenes_admisibles": ["SIU_GUARANI", "SIU_GUARANI_EXTENSION"],
+      "datos_especificos": {
+        "constancia_participacion": "SUPUESTO_TECNICO"
+      },
+      "plantilla": {
+        "asunto_base": "Notificación de participación",
+        "frase_evento": "tu participación en"
+      },
+      "motivos_de_bloqueo": [],
+      "observacion": "El contacto del destinatario sale de la inscripción (campos confirmados el 22/09). Se supone que la acreditación de participación proviene del mismo SIU que la inscribió; queda declarada como supuesto para corrección SEU, no como hecho."
+    },
+    {
+      "tipo": "situacion_pagos",
+      "rotulo": "Notificación de situación de pagos",
+      "procedencia_tipo": "CONFIRMADO_SEU",
+      "evento_gatillo": "Aviso sobre la situación de pagos del inscripto o preinscripto; absorbe la HU previa de mensajes a deudores. El evento concreto —cuota con comprobante, cobertura k de N informada— no fue definido por la SEU.",
+      "modo_circuito": "por_envio",
+      "campos_requeridos": [
+        "id_inscripcion",
+        "nombre_destinatario",
+        "email_destinatario",
+        "actividad",
+        "fecha",
+        "organiza",
+        "contacto"
+      ],
+      "origenes_admisibles": ["SIU_GUARANI", "SIU_GUARANI_EXTENSION"],
+      "datos_especificos": {
+        "plan_pago": "SUPUESTO_TECNICO",
+        "situacion_cuotas_derivada": "SUPUESTO_TECNICO"
+      },
+      "plantilla": {
+        "asunto_base": "Notificación de situación de pagos",
+        "frase_evento": "la situación de pagos de"
+      },
+      "motivos_de_bloqueo": [],
+      "observacion": "En v1 quedaba bloqueada por el dato situacion_deuda_o_saldo: DESCONOCIDO. El diseño de control de pagos lo reemplaza por un modelo derivado de fuentes explícitas — plan de pago, padrón, buzón propio y novedades del Departamento (§3.2, §6.1) — así que ya no hay dato sin fundamento: lo que la SEU no confirmó todavía (quién carga el plan, cómo se informa la situación) queda como SUPUESTO_TECNICO y no bloquea. El recordatorio de cuota pendiente es un tipo aparte con circuito por lote."
+    },
+    {
+      "tipo": "aprobacion",
+      "rotulo": "Notificación de aprobación",
+      "procedencia_tipo": "CONFIRMADO_SEU",
+      "evento_gatillo": "Aprobación del inscripto en la actividad. La fuente concreta de la condición —acta, nota en SIU, registro del docente— no fue definida por la SEU.",
+      "modo_circuito": "por_envio",
+      "campos_requeridos": [
+        "id_inscripcion",
+        "nombre_destinatario",
+        "email_destinatario",
+        "actividad",
+        "fecha",
+        "organiza",
+        "contacto"
+      ],
+      "origenes_admisibles": ["SIU_GUARANI", "SIU_GUARANI_EXTENSION"],
+      "datos_especificos": {
+        "condicion_aprobada": "SUPUESTO_TECNICO"
+      },
+      "plantilla": {
+        "asunto_base": "Notificación de aprobación",
+        "frase_evento": "tu aprobación de"
+      },
+      "motivos_de_bloqueo": [],
+      "observacion": "Mismo criterio que participación: el contacto está confirmado y la condición de aprobado se supone provista por el mismo SIU; queda como supuesto técnico a confirmar."
+    },
+    {
+      "tipo": "recordatorio_pago",
+      "rotulo": "Recordatorio de pago",
+      "procedencia_tipo": "CONFIRMADO_SEU",
+      "evento_gatillo": "Cuota derivada PENDIENTE cuya fecha de referencia está a exactamente d días del día de la corrida, con d en las anticipaciones del plan de pago (default [7, 2]; D15, §5.1). Nunca después de la referencia (D4). Se dispara por lote diario, no por solicitud individual.",
+      "modo_circuito": "lote",
+      "campos_requeridos": [
+        "id_inscripcion",
+        "nombre_destinatario",
+        "email_destinatario",
+        "actividad",
+        "contacto"
+      ],
+      "origenes_admisibles": ["SIU_GUARANI", "SIU_GUARANI_EXTENSION"],
+      "datos_especificos": {
+        "plan_pago": "SUPUESTO_TECNICO",
+        "anticipaciones": "SUPUESTO_TECNICO",
+        "plantilla_recordatorio": "SUPUESTO_TECNICO"
+      },
+      "plantilla": {
+        "asunto_base": "Recordatorio de pago",
+        "frase_evento": "el recordatorio de tu cuota pendiente de"
+      },
+      "motivos_de_bloqueo": [],
+      "observacion": "Circuito por lote (D3, §5.3): la plantilla se aprueba una sola vez con aprobación semántica y utilitaria; cada lote diario lleva una aprobación utilitaria que lista sus ítems. La solicitud individual por procesar_confirmacion no aplica y se rechaza: el ítem nace de la planificación de la corrida, no de un pedido. Los campos requeridos son los datos de contacto que el ítem consume — provienen del padrón y del plan de pago, no del contrato de solicitud."
+    }
+  ],
+
+  "preguntas_abiertas": [
+    "¿Con cuánta anticipación se recuerda: sirven 7 y 2 días antes o cada actividad fija los suyos? (§9.2, D15)",
+    "¿Alcanza una aprobación utilitaria del lote diario — con la plantilla ya aprobada una vez — o la SEU quiere revisar cada recordatorio? (D3, §5.3)",
+    "¿La plantilla preaprobada única cubre los tipos por envío o cada uno requiere una redacción propia aprobada? ¿Y la plantilla del recordatorio la redacta la SEU o el agente a partir de una base?",
+    "¿Cómo se acredita la participación del inscripto (asistencia en SIU, lista del docente) y la aprobación (acta, nota)?",
+    "¿Quién carga el plan de pago de cada actividad y dónde (pestaña de la planilla D2 propuesta)?"
+  ]
+}
