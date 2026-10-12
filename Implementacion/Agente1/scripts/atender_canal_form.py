@@ -32,6 +32,14 @@ ids de mentira y el registro en `<directorio>/estado-decisiones/`; en live
 sólo si el entorno declara `AGENTE1_FORM_DECISIONES_*`. Las respuestas de
 ese Form las procesa `scripts/registrar_form_decisiones.py`.
 
+Un pedido «emití los certificados de <actividad>» (#75) despacha al
+circuito de lote de cierre de `certificados_emision`, cableado sólo cuando
+hay lista declarada: en offline con `--lista-csv` (más `--aprobador` y, si
+hay, `--linea`), en live con las variables `AGENTE1_CERTIFICADOS_*` sobre
+la Sheet D2 de la lista. Las entregas de título van al mismo medio que el
+aviso: Gmail con lista de prueba en live, `entregas-certificados-offline.jsonl`
+en offline.
+
 La salida es un JSON por pedido más un resumen: estados, códigos y hashes,
 nunca prosa ni correos en claro.
 """
@@ -55,6 +63,10 @@ from agente1.canal_form import (
     cargar_padron_roles_csv,
     crear_lector_respuestas,
 )
+from agente1.certificados_emision import (
+    DestinoCorreoArchivo,
+    construir_emisor_certificados,
+)
 from agente1.decisiones_form import (
     EnlacesDecisiones,
     FORM_DECISIONES_PREFIX,
@@ -66,6 +78,7 @@ from agente1.gmail_envio import GmailDestinoConfirmaciones, GmailEnvioError
 from agente1.google_workspace import (
     GoogleDrivePlantillaDestinoBorradores,
     GoogleSheetsFuenteSolicitudes,
+    GoogleSheetsLectorValores,
 )
 from agente1.ollama import OllamaGenerator
 from agente1.procesamiento import FakeGenerator
@@ -81,6 +94,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DATASET_DEFAULT = ROOT / "data" / "actividades_sinteticas.csv"
 FICHA_SYN_001 = ROOT / "golden" / "SYN-001.ficha.md"
 AVISOS_OFFLINE_NOMBRE = "avisos-offline.jsonl"
+ENTREGAS_CERTIFICADOS_NOMBRE = "entregas-certificados-offline.jsonl"
+CERT_PREFIX = "AGENTE1_CERTIFICADOS_"
 
 
 class _ParserSeguro(argparse.ArgumentParser):
@@ -178,6 +193,102 @@ def _enlaces_decisiones(
     )
 
 
+def _linea_desde_path(path: Path | None) -> str | None:
+    """La línea descriptiva viene de un archivo externo, nunca de argv."""
+
+    if path is None or not path.is_file():
+        return None
+    texto = path.read_text(encoding="utf-8").strip()
+    return texto or None
+
+
+def _emisor_offline(
+    args: argparse.Namespace,
+    *,
+    fuente,
+    directorio_decisiones: Path,
+    directorio_salida: Path,
+    directorio_estado: Path,
+):
+    """Emisor del pedido «emití los certificados» en modo offline (#75).
+
+    Se cablea sólo cuando la corrida trae una lista de cierre (`--lista-csv`);
+    sin ella, el pedido de emisión termina `emisor_no_configurado` igual que
+    cualquier otro despacho sin medio. La línea descriptiva se lee de
+    `--linea` si está, igual que la va a entregar #74: si falta, el circuito
+    responde `linea_descriptiva_ausente`, no inventa el texto.
+    """
+
+    if args.lista_csv is None:
+        return None
+    if not args.aprobador:
+        raise RunnerWorkspaceError("runner_offline_aprobador_required")
+    registro = RegistroDecisiones(directorio_decisiones)
+    return construir_emisor_certificados(
+        fuente=fuente,
+        lector_lista=LectorValoresCsv(args.lista_csv),
+        linea_descriptiva=_linea_desde_path(args.linea),
+        registro_decisiones=registro,
+        enlaces=_enlaces_decisiones(directorio_decisiones),
+        destino=DestinoCorreoArchivo(
+            directorio_estado / ENTREGAS_CERTIFICADOS_NOMBRE
+        ),
+        correo_aprobador=args.aprobador,
+        directorio_salida=directorio_salida,
+    )
+
+
+def _emisor_live(
+    *,
+    fuente,
+    token_provider,
+    timeout_s: float,
+    directorio_decisiones: Path,
+    directorio_salida: Path,
+):
+    """Emisor live: Sheet D2 de lista, línea por archivo y Gmail con lista.
+
+    Opt-in como el segundo Form: sin `AGENTE1_CERTIFICADOS_LISTA_SHEET_ID`
+    el despacho de `emitir_certificados` queda sin medio configurado. El
+    resto de la config del circuito sale del entorno y es obligatoria.
+    """
+
+    if not os.environ.get(CERT_PREFIX + "LISTA_SHEET_ID", "").strip():
+        return None
+    requeridas = (
+        "LISTA_RANGO_A1",
+        "LINEA_PATH",
+        "APROBADOR",
+    )
+    for clave in requeridas:
+        if not os.environ.get(CERT_PREFIX + clave, "").strip():
+            raise RunnerWorkspaceError("certificados_config_missing")
+    registro = RegistroDecisiones(directorio_decisiones)
+    return construir_emisor_certificados(
+        fuente=fuente,
+        lector_lista=GoogleSheetsLectorValores(
+            spreadsheet_id=os.environ[CERT_PREFIX + "LISTA_SHEET_ID"].strip(),
+            rango_a1=os.environ[CERT_PREFIX + "LISTA_RANGO_A1"].strip(),
+            token_provider=token_provider,
+            timeout_s=timeout_s,
+        ),
+        linea_descriptiva=_linea_desde_path(
+            Path(os.environ[CERT_PREFIX + "LINEA_PATH"].strip())
+        ),
+        registro_decisiones=registro,
+        enlaces=_enlaces_decisiones(
+            directorio_decisiones,
+            config=cargar_configuracion_form_decisiones(),
+        ),
+        destino=GmailDestinoConfirmaciones.desde_entorno(
+            token_provider=token_provider,
+            timeout_s=timeout_s,
+        ),
+        correo_aprobador=os.environ[CERT_PREFIX + "APROBADOR"].strip(),
+        directorio_salida=directorio_salida,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _ParserSeguro(
         description=(
@@ -206,6 +317,20 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=DATASET_DEFAULT,
         help="Dataset de actividades contra el que se resuelve cada pedido (offline).",
+    )
+    parser.add_argument(
+        "--lista-csv",
+        type=Path,
+        help="CSV de la lista de cierre de certificados (offline, #75). Si se pasa, cablea el despacho de `emitir_certificados`.",
+    )
+    parser.add_argument(
+        "--linea",
+        type=Path,
+        help="Archivo de texto con la línea descriptiva aprobada (offline, #75).",
+    )
+    parser.add_argument(
+        "--aprobador",
+        help="Correo del rol utilitario que aprueba el lote de cierre (offline, #75).",
     )
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--confirm-write-workspace", action="store_true")
@@ -274,12 +399,20 @@ def main(argv: list[str] | None = None) -> int:
                 timeout_s=config_ws.timeout_s,
             )
             generator = OllamaGenerator(modelo=args.modelo)
+            emisor = _emisor_live(
+                fuente=fuente,
+                token_provider=token_provider,
+                timeout_s=config_ws.timeout_s,
+                directorio_decisiones=directorio_decisiones,
+                directorio_salida=args.directorio,
+            )
             resumen_config: dict[str, object] = {
                 "workspace": config_ws.resumen_seguro(),
                 "canal_form": config_form.resumen_seguro(),
                 "form_decisiones": (
                     decisiones_live is not None
                 ),
+                "certificados": emisor is not None,
             }
             modo = "live_write_opt_in"
         else:
@@ -301,7 +434,17 @@ def main(argv: list[str] | None = None) -> int:
             fuente = CsvFuenteSolicitudes(args.csv)
             destino = None  # MarkdownDestinoBorradores por defecto del núcleo
             generator = FakeGenerator(_fake_output_desde_golden())
-            resumen_config = {"modo_offline": True}
+            emisor = _emisor_offline(
+                args,
+                fuente=fuente,
+                directorio_decisiones=directorio_decisiones,
+                directorio_salida=args.directorio,
+                directorio_estado=directorio_estado,
+            )
+            resumen_config = {
+                "modo_offline": True,
+                "certificados": emisor is not None,
+            }
             modo = "offline_fake"
 
         resultados = atender_canal(
@@ -310,6 +453,7 @@ def main(argv: list[str] | None = None) -> int:
             directorio_salida=args.directorio,
             generator=generator,
             destino=destino,
+            emisor_certificados=emisor,
         )
     except ConfiguracionWorkspaceError as exc:
         _emitir({"estado": "RECHAZADA", "resultado": exc.code})
