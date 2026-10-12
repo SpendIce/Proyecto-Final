@@ -1,0 +1,32 @@
+TEMPLATE_VERSION: certificado_provisional_v2
+POLICY_STATUS: PROVISIONAL_NO_INSTITUCIONAL
+
+BORRADOR — NO EMITIR
+
+{{encabezado}}
+
+{{organiza}} certifica que
+{{nombre_titular}} (documento {{documento_titular}})
+{{verbo}} la actividad: {{actividad}}.
+[{{linea_descriptiva}}]                    (optativa, #74; ya aprobada por actividad)
+[Modalidad: {{modalidad}}]                 (optativa; variable del registro)
+[Carga horaria: {{carga_horaria}}]         (optativa; variable del registro)
+Fecha: {{fecha}}
+Referencia: {{id_certificado}}
+Firma: {{firmante}}
+
+Documento provisional sin firma digital ni validez institucional.
+
+LÍMITES:
+- El render es determinista; no se entrega este contenido a un LLM.
+- La línea descriptiva llega ya aprobada como variable de entrada: la redactó
+  el modelo y la aprobaron una vez por actividad el RGC (semántica) y el
+  Coordinador (utilitaria) por el Form de decisiones (#74).
+- Título, modalidad y carga horaria se copian del registro de la actividad;
+  nunca son texto del modelo.
+- Emitir con línea exige las dos aprobaciones de la línea y la del lote de
+  cierre registradas en el Form de decisiones; la emisión real es #75.
+- No existe emisión real ni firma digital en HU-014 offline.
+- La marca BORRADOR — NO EMITIR aparece en todo PDF previo a la aprobación completa.
+- Sólo un fake explícito puede simular emisión y exige las dos aprobaciones del circuito.
+- La plantilla institucional definitiva y los firmantes reales quedan PENDIENTE_SEU.

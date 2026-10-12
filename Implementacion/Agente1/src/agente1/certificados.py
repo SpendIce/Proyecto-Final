@@ -36,6 +36,16 @@ El circuito de decisión es el de HU-012 sin modificaciones: se reusan
 durable archivo-por-clave (`os.link` + `flock`). Los helpers privados que se
 importan mantienen un único contrato de decisión y de hash entre las dos HU;
 los alias de registro sólo ponen el nombre del dominio en las firmas.
+
+Desde `certificado_emision_v2` (#74) la solicitud puede traer la línea
+descriptiva de la actividad redactada por el modelo y las variables del
+registro (`id_actividad`, `modalidad`, `carga_horaria`). Con línea, la
+emisión exige dos precondiciones más, verificables contra el
+`RegistroDecisiones` del Form de decisiones (#72): la línea aprobada una
+vez por actividad con las dos decisiones por rol (`linea_descriptiva`,
+objeto `linea_descriptiva-<id_actividad>-<hash>`), y el lote de cierre
+aprobado por el rol utilitario (`lote`, `apruebo_lote`). Sin línea queda el
+camino provisional anterior, que #75 cierra para la emisión en vivo.
 """
 
 from __future__ import annotations
@@ -61,11 +71,20 @@ from agente1.confirmaciones import (
     _hash,
     _PARCIAL_POR_ROL,
 )
+from agente1.decisiones_form import RegistroDecisiones
+from agente1.linea_descriptiva import (
+    ID_ACTIVIDAD_RE,
+    linea_descriptiva_aprobada,
+    lote_cierre_aprobado,
+    normalizar_linea,
+    objeto_id_linea_descriptiva,
+    validar_linea_descriptiva,
+)
 
 
 HU = "HU-014"
-CONTRACT_VERSION = "certificado_emision_v1"
-TEMPLATE_VERSION = "certificado_provisional_v1"
+CONTRACT_VERSION = "certificado_emision_v2"
+TEMPLATE_VERSION = "certificado_provisional_v2"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 MARCADOR_BORRADOR = "BORRADOR — NO EMITIR"
 TIPOS_CERTIFICADO = frozenset({"ASISTENCIA", "APROBACION"})
@@ -97,6 +116,15 @@ RegistroCertificadosArchivo = RegistroConfirmacionesArchivo
 
 @dataclass(frozen=True)
 class SolicitudCertificado:
+    """Entrada del pipeline. Los cuatro últimos campos son optativos (v2).
+
+    `linea_descriptiva` es el texto aprobado una vez por actividad por el
+    Form de decisiones; `id_actividad` la ata al registro. `modalidad` y
+    `carga_horaria` son variables que la plantilla copia del registro,
+    nunca texto del modelo. Sin `linea_descriptiva` el documento se
+    comporta exactamente como en v1.
+    """
+
     id_certificado: str
     nombre_titular: str
     documento_titular: str
@@ -105,6 +133,10 @@ class SolicitudCertificado:
     fecha: str
     organiza: str
     firmante: str
+    id_actividad: str | None = None
+    linea_descriptiva: str | None = None
+    modalidad: str | None = None
+    carga_horaria: str | None = None
 
 
 @dataclass(frozen=True)
@@ -191,18 +223,28 @@ def procesar_certificado(
     aprobacion: AprobacionHumana | None = None,
     destino: DestinoCertificados | None = None,
     emitir: bool = False,
+    decisiones: RegistroDecisiones | None = None,
+    lote_cierre: str | None = None,
 ) -> ResultadoCertificado:
     """Genera y opcionalmente emite sólo a un fake, bajo doble aprobación.
 
     El orden de los controles no es casual: primero los que descalifican la
     solicitud en sí (tipos, tipo de certificado del catálogo, campos
-    completos), después los de autorización (aprobación válida, aprobación
-    presente si se pide emitir, destino obligatoriamente fake). Recién ahí se
-    toca el registro. Así una solicitud mal formada no crea ni reserva nada.
+    completos, la línea descriptiva si la trae), después los de autorización
+    (aprobación válida, aprobación presente si se pide emitir, destino
+    obligatoriamente fake, las precondiciones de línea y lote). Recién ahí
+    se toca el registro. Así una solicitud mal formada no crea ni reserva
+    nada.
 
     Sin `aprobacion` el resultado máximo es `PENDIENTE_VALIDACION`: generar el
     PDF no es aprobarlo. Con `aprobacion.aprobada = False` el certificado
     queda `RECHAZADA` y ya no puede aprobarse después.
+
+    `decisiones` y `lote_cierre` no entran al documento: son el contexto de
+    autorización de la emisión. Por eso el lote es parámetro y no campo de
+    la solicitud: un certificado emitido no deja de ser el mismo documento
+    si el lote se reaprueba con otro objeto, y la clave de idempotencia
+    sigue rechazando el segundo intento como `DUPLICADA`.
     """
 
     correlation_id = str(uuid.uuid4())
@@ -236,6 +278,36 @@ def procesar_certificado(
             estado="INCOMPLETA",
             error="required_fields_missing",
         )
+    if solicitud.linea_descriptiva is not None:
+        # La línea sólo existe atada a una actividad: sin `id_actividad` no
+        # hay objeto de decisión posible. Después se reejecutan los gates de
+        # forma, porque quien llama pudo no pasar por la generación: la
+        # barrera de la entrada no confía en que la línea ya haya validado.
+        if (
+            not isinstance(solicitud.id_actividad, str)
+            or not solicitud.id_actividad.strip()
+            or ID_ACTIVIDAD_RE.fullmatch(solicitud.id_actividad) is None
+        ):
+            return _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="INVALIDA",
+                error="activity_id_required",
+            )
+        if validar_linea_descriptiva(
+            solicitud.linea_descriptiva,
+            titulo_actividad=solicitud.actividad,
+        ):
+            return _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="INVALIDA",
+                error="descriptive_line_invalid",
+            )
     if aprobacion is not None and not _aprobacion_valida(aprobacion):
         return _resultado(
             log_path=log_path,
@@ -264,6 +336,28 @@ def procesar_certificado(
             estado="INVALIDA",
             error="offline_destination_required",
         )
+    if (
+        emitir
+        and (aprobacion is None or aprobacion.aprobada)
+        and solicitud.linea_descriptiva is not None
+    ):
+        # Precondición del ticket #74: ningún PDF sale con una línea que no
+        # tenga las dos aprobaciones de la actividad registradas en el Form,
+        # ni sin el lote de cierre aprobado. El código devuelto distingue
+        # cada falta para que el operador sepa qué decisión falta.
+        codigo = _precondicion_emision_con_linea(
+            solicitud, decisiones=decisiones, lote_cierre=lote_cierre
+        )
+        if codigo is not None:
+            return _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="INVALIDA",
+                error=codigo,
+                lote_cierre=lote_cierre,
+            )
 
     existente = registro.obtener(idempotency_key)
 
@@ -299,6 +393,7 @@ def procesar_certificado(
                 destino=destino,
                 titulo=existente.asunto,
                 cuerpo=existente.cuerpo,
+                lote_cierre=lote_cierre,
             )
         if existente is not None:
             return _duplicada(
@@ -394,6 +489,7 @@ def procesar_certificado(
         titulo=titulo,
         cuerpo=cuerpo,
         aprobacion=aprobacion,
+        lote_cierre=lote_cierre,
     )
 
 
@@ -408,6 +504,7 @@ def _emitir(
     titulo: str,
     cuerpo: str,
     aprobacion: AprobacionHumana | None = None,
+    lote_cierre: str | None = None,
 ) -> ResultadoCertificado:
     """Reserva la emisión antes de intentarla, desde `APROBADA` solamente.
 
@@ -446,6 +543,7 @@ def _emitir(
             titulo=titulo,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
+            lote_cierre=lote_cierre,
         )
     registro.transicionar(
         idempotency_key, frozenset({"EMISION_RESERVADA"}), "EMITIDA_SIMULADA"
@@ -460,7 +558,41 @@ def _emitir(
         cuerpo=cuerpo,
         pdf=pdf,
         aprobacion=aprobacion,
+        lote_cierre=lote_cierre,
     )
+
+
+def _precondicion_emision_con_linea(
+    solicitud: SolicitudCertificado,
+    *,
+    decisiones: RegistroDecisiones | None,
+    lote_cierre: str | None,
+) -> str | None:
+    """Código de la primera precondición incumplida, o `None` si habilita.
+
+    Sólo corre cuando la solicitud trae `linea_descriptiva` (el camino
+    provisional sin línea lo cierra #75). El orden es estructural primero:
+    sin registro de decisiones ni objeto de lote no hay nada que verificar.
+    """
+
+    if not isinstance(decisiones, RegistroDecisiones):
+        return "decisions_registry_required"
+    if (
+        not isinstance(lote_cierre, str)
+        or ID_RE.fullmatch(lote_cierre) is None
+    ):
+        return "closing_batch_required"
+    assert isinstance(solicitud.id_actividad, str)
+    assert isinstance(solicitud.linea_descriptiva, str)
+    if not linea_descriptiva_aprobada(
+        decisiones,
+        id_actividad=solicitud.id_actividad,
+        linea=solicitud.linea_descriptiva,
+    ):
+        return "descriptive_line_unapproved"
+    if not lote_cierre_aprobado(decisiones, objeto_lote=lote_cierre):
+        return "closing_batch_unapproved"
+    return None
 
 
 def _duplicada(
@@ -490,6 +622,7 @@ def _finalizar(
     cuerpo: str,
     aprobacion: AprobacionHumana | None = None,
     pdf: bytes | None = None,
+    lote_cierre: str | None = None,
 ) -> ResultadoCertificado:
     # Todo estado que conserva el borrador devuelve su PDF con marca: la marca
     # es lo que lo inhabilita como documento hasta la aprobación completa.
@@ -504,6 +637,7 @@ def _finalizar(
         cuerpo=cuerpo,
         pdf=pdf if pdf is not None else generar_pdf_certificado(cuerpo, borrador=True),
         aprobacion=aprobacion,
+        lote_cierre=lote_cierre,
     )
 
 
@@ -512,24 +646,37 @@ def _renderizar(solicitud: SolicitudCertificado) -> tuple[str, str]:
 
     Un certificado es un documento administrativo: no hay nada que redactar y
     sí un riesgo concreto si un modelo altera un nombre, un documento o una
-    fecha. Por eso HU-014 es puramente determinista. El texto canónico no
-    lleva la marca de borrador: la marca la agrega el PDF según el estado.
+    fecha. Por eso HU-014 es puramente determinista: la línea descriptiva ya
+    llega aprobada como dato de entrada y la plantilla la interpola como a
+    cualquier otra variable, no la escribe. El texto canónico no lleva la
+    marca de borrador: la marca la agrega el PDF según el estado.
     """
 
     encabezado, verbo = _TEXTO_POR_TIPO[solicitud.tipo_certificado]
     titulo = f"{encabezado} — {solicitud.actividad.strip()}"
-    cuerpo = (
-        f"{encabezado}\n\n"
-        f"{solicitud.organiza.strip()} certifica que\n"
+    lineas = [
+        encabezado,
+        "",
+        f"{solicitud.organiza.strip()} certifica que",
         f"{solicitud.nombre_titular.strip()} "
-        f"(documento {solicitud.documento_titular.strip()})\n"
-        f"{verbo} la actividad: {solicitud.actividad.strip()}.\n"
-        f"Fecha: {solicitud.fecha.strip()}\n"
-        f"Referencia: {solicitud.id_certificado.strip()}\n"
-        f"Firma: {solicitud.firmante.strip()}\n\n"
-        "Documento provisional sin firma digital ni validez institucional.\n"
-    )
-    return titulo, cuerpo
+        f"(documento {solicitud.documento_titular.strip()})",
+        f"{verbo} la actividad: {solicitud.actividad.strip()}.",
+    ]
+    if solicitud.linea_descriptiva is not None:
+        lineas.append(normalizar_linea(solicitud.linea_descriptiva))
+    if solicitud.modalidad:
+        lineas.append(f"Modalidad: {solicitud.modalidad.strip()}")
+    if solicitud.carga_horaria:
+        lineas.append(f"Carga horaria: {solicitud.carga_horaria.strip()}")
+    lineas += [
+        f"Fecha: {solicitud.fecha.strip()}",
+        f"Referencia: {solicitud.id_certificado.strip()}",
+        f"Firma: {solicitud.firmante.strip()}",
+        "",
+        "Documento provisional sin firma digital ni validez institucional.",
+        "",
+    ]
+    return titulo, "\n".join(lineas)
 
 
 def generar_pdf_certificado(cuerpo: str, *, borrador: bool) -> bytes:
@@ -605,8 +752,20 @@ def _campos_completos(solicitud: SolicitudCertificado) -> bool:
     )
 
 
+# Campos de la solicitud que admiten `None` (contrato v2). Todo lo demás
+# tiene que ser string sí o sí: un `None` o un entero en un campo requerido
+# es un contrato de entrada inválido.
+_CAMPOS_OPCIONALES_V2 = frozenset(
+    {"id_actividad", "linea_descriptiva", "modalidad", "carga_horaria"}
+)
+
+
 def _tipos_solicitud_validos(solicitud: SolicitudCertificado) -> bool:
-    return all(isinstance(valor, str) for valor in asdict(solicitud).values())
+    return all(
+        isinstance(valor, str)
+        or (clave in _CAMPOS_OPCIONALES_V2 and valor is None)
+        for clave, valor in asdict(solicitud).items()
+    )
 
 
 def _idempotency_key(solicitud: SolicitudCertificado) -> str:
@@ -640,6 +799,7 @@ def _resultado(
     cuerpo: str | None = None,
     pdf: bytes | None = None,
     aprobacion: AprobacionHumana | None = None,
+    lote_cierre: str | None = None,
 ) -> ResultadoCertificado:
     entrada = json.dumps(
         asdict(solicitud),
@@ -678,6 +838,25 @@ def _resultado(
         # El rol queda en claro para poder evidenciar que las dos aprobaciones
         # vinieron de roles distintos; no es un dato personal.
         "approval_role": aprobacion.rol if aprobacion is not None else None,
+        # Trazas del circuito de #74: el hash del texto de la línea (nunca el
+        # texto), el objeto de decisión al que está atada y el objeto del
+        # lote de cierre declarado por quien pidió emitir. Son identificadores
+        # y hashes, no datos personales.
+        "descriptive_line_hash": _hash(
+            normalizar_linea(solicitud.linea_descriptiva)
+        )
+        if isinstance(solicitud.linea_descriptiva, str)
+        else None,
+        "linea_objeto_id": objeto_id_linea_descriptiva(
+            solicitud.id_actividad, solicitud.linea_descriptiva
+        )
+        if (
+            isinstance(solicitud.id_actividad, str)
+            and ID_ACTIVIDAD_RE.fullmatch(solicitud.id_actividad)
+            and isinstance(solicitud.linea_descriptiva, str)
+        )
+        else None,
+        "closing_batch_id": lote_cierre,
         "emission_mode": "fake" if estado == "EMITIDA_SIMULADA" else "none",
     }
     log_path.parent.mkdir(parents=True, exist_ok=True)
