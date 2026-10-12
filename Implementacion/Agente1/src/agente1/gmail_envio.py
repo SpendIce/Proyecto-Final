@@ -64,6 +64,7 @@ from .confirmaciones import (
 from .destinos import BORRADOR_MARKER
 from .google_workspace import (
     AccessTokenProvider,
+    GMAIL_HOST,
     MAX_WORKSPACE_RESPONSE_BYTES,
     MAX_WORKSPACE_TIMEOUT_S,
     HttpsWorkspaceTransport,
@@ -78,7 +79,6 @@ from .workspace_config import ConfiguracionWorkspaceError
 # técnica enviando como ella misma. `auditoria_d2` lo contrasta contra las
 # llamadas registradas; cualquier otra ruta de Gmail —lectura, labels, otro
 # usuario— sigue siendo un endpoint de distribución prohibido.
-GMAIL_HOST = "gmail.googleapis.com"
 GMAIL_SEND_TARGET = "/gmail/v1/users/me/messages/send"
 GMAIL_SEND_METHOD = "POST"
 

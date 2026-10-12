@@ -63,6 +63,10 @@ from .fuentes import (
 SHEETS_HOST = "sheets.googleapis.com"
 DOCS_HOST = "docs.googleapis.com"
 DRIVE_HOST = "www.googleapis.com"
+# El host de Gmail no es un host Workspace de uso general: la auditoría sólo
+# lo admite para endpoints de lectura de mensajes del usuario `me` (ADR 0004,
+# D11). Cualquier otro uso — envío, etiquetas, otro usuario — falla el control.
+GMAIL_HOST = "gmail.googleapis.com"
 MAX_WORKSPACE_RESPONSE_BYTES = 1_048_576
 MAX_WORKSPACE_TIMEOUT_S = 120.0
 # Forma de un identificador de Workspace. Se valida antes de interpolarlo en

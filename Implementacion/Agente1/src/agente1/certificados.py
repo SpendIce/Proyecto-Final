@@ -552,7 +552,8 @@ def generar_pdf_certificado(cuerpo: str, *, borrador: bool) -> bytes:
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
         b"/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica "
+        b"/Encoding /WinAnsiEncoding >>",
         b"<< /Length " + str(len(contenido)).encode("ascii") + b" >>\nstream\n"
         + contenido + b"\nendstream",
     ]
