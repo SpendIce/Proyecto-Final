@@ -44,19 +44,22 @@ Qué falta para que esto sea utilizable, y por qué no está: los orígenes de
 inscripción reales no están definidos por la SEU. `origenes_inscripcion.py`
 enumera exactamente qué falta por cada origen y bloquea el envío en todos.
 
-Tipos de notificación (bible 22/09): HU-012 cubre cuatro tipos —
-`inscripcion`, `participacion`, `situacion_pagos` y `aprobacion`— declarados
-en el catálogo cerrado `contracts/tipos_notificacion_v1.json` que expone
-`tipos_notificacion.py`. El tipo viaja en la solicitud (con default
-`inscripcion`, el único que existía), entra a la clave de idempotencia —una
-notificación de participación sobre la misma inscripción es otra
-comunicación, no un duplicado— y elige la frase del evento en el cuerpo.
-Todo lo demás del pipeline es idéntico para todos los tipos: misma doble
-aprobación, misma cola, mismo destino habilitado. El control por tipo es
-fail-closed y se evalúa antes de tocar el registro: un tipo fuera del
-catálogo es `INVALIDA`, y `situacion_pagos` —declarada pero sin origen
-confirmado para el dato de deuda— se rechaza siempre sin producir borrador
-ni envío.
+Tipos de notificación (bible 22/09 y diseño de control de pagos): HU-012
+cubre cinco tipos —`inscripcion`, `participacion`, `situacion_pagos`,
+`aprobacion` y `recordatorio_pago`— declarados en el catálogo cerrado
+`contracts/tipos_notificacion_v2.json` que expone `tipos_notificacion.py`.
+El tipo viaja en la solicitud (con default `inscripcion`, el único que
+existía), entra a la clave de idempotencia —una notificación de
+participación sobre la misma inscripción es otra comunicación, no un
+duplicado— y elige la frase del evento en el cuerpo. Todo lo demás del
+pipeline es idéntico para todos los tipos por envío: misma doble aprobación,
+misma cola, mismo destino habilitado. El control por tipo es fail-closed y
+se evalúa antes de tocar el registro: un tipo fuera del catálogo es
+`INVALIDA`, un tipo con datos `DESCONOCIDO` es `notification_type_blocked`,
+y un tipo habilitado cuyo `modo_circuito` declarado no es el de solicitud
+individual —`recordatorio_pago`, que tramita por lote (D3)— es
+`notification_mode_mismatch`: ninguno produce borrador ni envío por esta
+vía.
 """
 
 from __future__ import annotations
@@ -74,11 +77,13 @@ from typing import Protocol
 import uuid
 
 from .tipos_notificacion import (
+    MODO_CIRCUITO_POR_ENVIO,
     TIPOS_NOTIFICACION,
     TIPO_NOTIFICACION_PREDETERMINADO,
     campos_requeridos,
     descripcion_tipo,
     evaluar_tipo,
+    modo_circuito,
 )
 
 
@@ -1226,10 +1231,10 @@ def procesar_confirmacion(
             error="required_fields_missing",
         )
     # Segundo control por tipo, ya con la solicitud bien formada: un tipo
-    # declarado pero sin origen confirmado para sus datos (`situacion_pagos`)
-    # no produce ni borrador ni envío, tenga o no aprobación humana. Los
-    # motivos quedan en la línea de auditoría para que el pedido pendiente a
-    # la SEU sea puntual.
+    # declarado pero sin origen confirmado para sus datos no produce ni
+    # borrador ni envío, tenga o no aprobación humana. Los motivos quedan en
+    # la línea de auditoría para que el pedido pendiente a la SEU sea
+    # puntual.
     decision_tipo = evaluar_tipo(solicitud.tipo_notificacion)
     if not decision_tipo.habilitado:
         return _resultado(
@@ -1242,6 +1247,24 @@ def procesar_confirmacion(
             auditoria_extra={
                 "motivos_bloqueo_tipo": sorted(decision_tipo.motivos)
             },
+        )
+    # Tercer control por tipo: el modo de circuito declarado en el catálogo.
+    # Un tipo habilitado puede tramitar por un circuito distinto del por
+    # envío — `recordatorio_pago` declara `lote` (D3): no hay solicitud
+    # individual que aprobar porque sus ítems nacen de la planificación de la
+    # corrida y los encola `recordatorios.py` con sus propias autorizaciones.
+    # Rechazarlo acá es fail-closed: una vía que el catálogo no declara para
+    # el tipo no puede producir borrador ni envío.
+    modo = modo_circuito(solicitud.tipo_notificacion)
+    if modo != MODO_CIRCUITO_POR_ENVIO:
+        return _resultado(
+            log_path=log_path,
+            solicitud=solicitud,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            estado="INVALIDA",
+            error="notification_mode_mismatch",
+            auditoria_extra={"modo_circuito": modo},
         )
     if aprobacion is not None and not _aprobacion_valida(aprobacion):
         return _resultado(
@@ -1623,7 +1646,7 @@ def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     un riesgo concreto si un modelo altera un dato. Por eso HU-012 es
     puramente determinista. La SEU confirmó una única plantilla preaprobada
     para todos los tipos; lo único que varía por tipo es el asunto base y la
-    frase del evento, declaradas en el catálogo `tipos_notificacion_v1`. Para
+    frase del evento, declaradas en el catálogo `tipos_notificacion_v2`. Para
     `inscripcion` el resultado es idéntico al de siempre: su `asunto_base`
     reproduce el asunto que el módulo tenía fijado antes del catálogo.
     """

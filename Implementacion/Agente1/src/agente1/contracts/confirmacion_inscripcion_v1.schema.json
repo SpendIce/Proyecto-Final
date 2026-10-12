@@ -29,7 +29,7 @@
       "type": "string",
       "enum": ["inscripcion", "participacion", "situacion_pagos", "aprobacion"],
       "default": "inscripcion",
-      "description": "Tipo de notificación según el catálogo cerrado tipos_notificacion_v1 (ampliación HU-012 de la bible del 22/09). Opcional: una entrada sin el campo se interpreta como inscripción, el único tipo que existía antes. situacion_pagos está declarada pero el pipeline la rechaza fail-closed mientras no haya origen confirmado para el dato de deuda."
+      "description": "Tipo de notificación según el catálogo cerrado tipos_notificacion_v2 (ampliación HU-012 de la bible del 22/09). Opcional: una entrada sin el campo se interpreta como inscripción, el único tipo que existía antes. Los cuatro tipos del enum viajan por el circuito por envío; el catálogo declara además recordatorio_pago, que no entra por este contrato porque viaja por el circuito por lote de la corrida de control de pagos. situacion_pagos se habilita con el estado que la corrida deriva del plan, el padrón, el buzón y las novedades (ADR 0003)."
     }
   }
 }
