@@ -342,8 +342,9 @@ def test_gmail_send_con_lista_activa_y_hash_de_lista_pasa() -> None:
 @pytest.mark.parametrize(
     "llamada",
     [
-        # Otra ruta de Gmail —lectura incluida— no es la excepción de D12.
-        {"method": "GET", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/me/messages"},
+        # La lectura del buzón propio es otra excepción (ADR 0004), independiente
+        # de la lista: se cubre en `test_buzon_gmail.py`. Otras rutas de Gmail
+        # no son la excepción de D12.
         {"method": "GET", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/me/messages/send"},
         {"method": "POST", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/me/messages/send?x=1"},
         {"method": "POST", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/otro/messages/send"},
