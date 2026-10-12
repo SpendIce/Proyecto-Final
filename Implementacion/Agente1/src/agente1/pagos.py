@@ -1,23 +1,25 @@
-"""Corrida de control de pagos de HU-012: comprobantes, cuotas, no asociadas.
+"""Corrida de control de pagos de HU-012: comprobantes, cuotas, novedades.
 
 En cada corrida el agente recalcula la situación de pagos de cada preinscripto
-a partir de las fuentes del diseño — el plan de pago de la actividad, el padrón
-y su propio buzón (ADR 0004) — sin guardar un estado de pago por persona (ADR
-0003). La única interfaz pública de la corrida es `correr_control_pagos`: una
-función pura en el sentido que el diseño exige — sin reloj (el día entra por
-parámetro), sin red y sin persistencia — porque todo lo que toca llega por
-puertos inyectados y nada de lo que deriva se escribe. El buzón que ve es el
-que el llamante le da: la cuenta técnica en vivo, una carpeta `.eml` o el fake.
+a partir de las fuentes del diseño — el plan de pago de la actividad, el padrón,
+su propio buzón (ADR 0004) y las novedades de pago que carga el Departamento
+(§6.2) — sin guardar un estado de pago por persona (ADR 0003). La única
+interfaz pública de la corrida es `correr_control_pagos`: una función pura en
+el sentido que el diseño exige — sin reloj (el día entra por parámetro), sin
+red y sin persistencia — porque todo lo que toca llega por puertos inyectados
+y nada de lo que deriva se escribe. El buzón que ve es el que el llamante le
+da: la cuenta técnica en vivo, una carpeta `.eml` o el fake.
 
-Qué hace la corrida, en el orden de §4.2 del diseño:
+Qué hace la corrida, en el orden de §4.2 y §6.2 del diseño:
 
 1. **Asocia respuestas.** El asunto normalizado (se quitan los prefijos de
    respuesta `Re:`/`RV:`, se colapsan espacios y se compara sin mayúsculas ni
    acentos) tiene que coincidir con el `asunto_preinscripcion` del plan, y el
-   remitente con el `email_destinatario` de una sola fila del padrón. Sin
-   coincidencia — o con más de una — la respuesta va a «no asociadas» con su
-   motivo. Nunca se asocia por nombre ni por similitud: lo que no encaja lo
-   resuelve una persona.
+   remitente con el `email_destinatario` de una sola fila del padrón — o con
+   una dirección alternativa que el Departamento haya cargado como novedad
+   `EMAIL_ALTERNATIVO`. Sin coincidencia — o con más de una — la respuesta va
+   a «no asociadas» con su motivo. Nunca se asocia por nombre ni por
+   similitud: lo que no encaja lo resuelve una persona.
 2. **Cuenta comprobantes.** Una respuesta asociada con al menos un adjunto PDF
    o imagen cuenta como comprobante presentado (D13, sin OCR). Los comprobantes
    se distinguen por el sha256 del adjunto: la misma captura enviada dos veces
@@ -25,23 +27,31 @@ Qué hace la corrida, en el orden de §4.2 del diseño:
 3. **Asigna cuotas.** Los comprobantes distintos de cada persona se asignan en
    orden cronológico a las cuotas no bonificadas, de la 1 a la N; los que
    exceden quedan informados como comprobantes sin cuota.
-4. **Deriva estados.** `BONIFICADA` si el padrón marca al preinscripto como
-   bonificado; `COMPROBANTE_PRESENTADO` si la cuota recibió comprobante;
-   `PENDIENTE` en caso contrario. `PAGO_CONFIRMADO` existe en el modelo pero
-   sólo puede salir de una novedad del Departamento (D1), que es otro ticket.
-   «Vencida» no es un estado: se deriva de `PENDIENTE` más `hoy` pasada la
-   fecha de referencia.
+4. **Deriva estados.** `BONIFICADA` si la persona está bonificada (columna del
+   padrón o novedad `BONIFICADO`); `COMPROBANTE_PRESENTADO` si la cuota recibió
+   comprobante; `PENDIENTE` en caso contrario. «Vencida» no es un estado: se
+   deriva de `PENDIENTE` más `hoy` pasada la fecha de referencia.
+5. **Aplica novedades.** Las novedades del Departamento se aplican después de
+   lo derivado del buzón y tienen precedencia sobre esa derivación (§6.2):
+   `CONFIRMADO_FUNDACION` es el único origen posible de `PAGO_CONFIRMADO` (D1),
+   `COMPROBANTE_RECHAZADO` devuelve la cuota a `PENDIENTE`,
+   `COMPROBANTE_CUBRE_N_CUOTAS` extiende el primer comprobante a N cuotas y
+   `BONIFICADO` marca todas las cuotas de la persona. Una novedad con tipo
+   desconocido, `id_inscripcion` inexistente, valor mal formado o efecto
+   incoherente con lo derivado se informa como error de la novedad: no se
+   ignora en silencio ni se aplica.
 
 El plan se lee de un CSV en formato largo — una fila por dato, cada uno con su
 procedencia declarada — conforme al contrato versionado
 `contracts/plan_pagos_actividad_v1.json`. El padrón es el CSV exportado del
-origen de inscripción (D10). Ambos loaders fallan cerrado: lo que el contrato
-no contempla se rechaza con código, no se ignora.
+origen de inscripción (D10) y las novedades replican la pestaña «Novedades de
+pago» de la planilla D2 según `contracts/novedades_pago_v1.json`. Los tres
+loaders fallan cerrado: lo que el contrato no contempla se rechaza con código,
+no se ignora.
 
-Lo que falta para el alcance completo de HU-012 pagos: la pestaña «Novedades
-de pago» del Departamento (precedencia sobre lo derivado) y el lote diario de
-recordatorios con su plantilla preaprobada. Esta interfaz los recibe como
-entradas adicionales cuando entren.
+Lo que falta para el alcance completo de HU-012 pagos: el lote diario de
+recordatorios con su plantilla preaprobada. Esta interfaz lo recibirá como
+salida adicional cuando entre.
 """
 
 from __future__ import annotations
@@ -65,13 +75,24 @@ CONTRATO_PLAN = json.loads(
     .read_text(encoding="utf-8")
 )
 
+CONTRATO_NOVEDADES = json.loads(
+    files("agente1")
+    .joinpath("contracts", "novedades_pago_v1.json")
+    .read_text(encoding="utf-8")
+)
+
 CONTRACT_VERSION = CONTRATO_PLAN["x-contract-version"]
 STATUS = CONTRATO_PLAN["x-status"]
+NOVEDADES_CONTRACT_VERSION = CONTRATO_NOVEDADES["x-contract-version"]
 PROCEDENCIAS_DATO = frozenset(CONTRATO_PLAN["procedencia_dato"])
 CAMPOS_ACTIVIDAD = frozenset(CONTRATO_PLAN["campos_actividad"])
 CAMPOS_CUOTA = frozenset(CONTRATO_PLAN["campos_cuota"])
 ESTADOS_CUOTA = frozenset(CONTRATO_PLAN["estados_derivados_cuota"])
 MOTIVOS_NO_ASOCIADA = frozenset(CONTRATO_PLAN["motivos_no_asociada"])
+TIPOS_NOVEDAD = frozenset(CONTRATO_NOVEDADES["tipos_novedad"])
+MOTIVOS_NOVEDAD_INVALIDA = frozenset(
+    CONTRATO_NOVEDADES["motivos_novedad_invalida"]
+)
 PREGUNTAS_ABIERTAS = tuple(CONTRATO_PLAN["preguntas_abiertas"])
 
 ESTADO_BONIFICADA = "BONIFICADA"
@@ -87,6 +108,19 @@ MOTIVO_ASUNTO_NO_COINCIDE = "asunto_no_coincide"
 MOTIVO_REMITENTE_NO_INFORMADO = "remitente_no_informado"
 MOTIVO_REMITENTE_SIN_COINCIDENCIA = "remitente_sin_coincidencia"
 MOTIVO_REMITENTE_AMBIGUO = "remitente_ambiguo"
+
+# Catálogo cerrado de la pestaña «Novedades de pago» del Departamento (§6.2).
+NOVEDAD_CONFIRMADO_FUNDACION = "CONFIRMADO_FUNDACION"
+NOVEDAD_COMPROBANTE_RECHAZADO = "COMPROBANTE_RECHAZADO"
+NOVEDAD_COMPROBANTE_CUBRE_N_CUOTAS = "COMPROBANTE_CUBRE_N_CUOTAS"
+NOVEDAD_EMAIL_ALTERNATIVO = "EMAIL_ALTERNATIVO"
+NOVEDAD_BONIFICADO = "BONIFICADO"
+
+MOTIVO_NOVEDAD_DATO_INVALID = "novedad_dato_invalid"
+MOTIVO_NOVEDAD_TIPO_DESCONOCIDO = "novedad_tipo_desconocido"
+MOTIVO_NOVEDAD_VALOR_INVALID = "novedad_valor_invalid"
+MOTIVO_NOVEDAD_INSCRIPCION_DESCONOCIDA = "novedad_inscripcion_desconocida"
+MOTIVO_NOVEDAD_NO_APLICABLE = "novedad_no_aplicable"
 
 # Coherencia con el contrato: el módulo no puede emitir un estado ni un motivo
 # que el contrato no declara, porque el informe es la cara visible del catálogo.
@@ -104,6 +138,24 @@ assert MOTIVOS_NO_ASOCIADA == frozenset(
         MOTIVO_REMITENTE_NO_INFORMADO,
         MOTIVO_REMITENTE_SIN_COINCIDENCIA,
         MOTIVO_REMITENTE_AMBIGUO,
+    }
+)
+assert TIPOS_NOVEDAD == frozenset(
+    {
+        NOVEDAD_CONFIRMADO_FUNDACION,
+        NOVEDAD_COMPROBANTE_RECHAZADO,
+        NOVEDAD_COMPROBANTE_CUBRE_N_CUOTAS,
+        NOVEDAD_EMAIL_ALTERNATIVO,
+        NOVEDAD_BONIFICADO,
+    }
+)
+assert MOTIVOS_NOVEDAD_INVALIDA == frozenset(
+    {
+        MOTIVO_NOVEDAD_DATO_INVALID,
+        MOTIVO_NOVEDAD_TIPO_DESCONOCIDO,
+        MOTIVO_NOVEDAD_VALOR_INVALID,
+        MOTIVO_NOVEDAD_INSCRIPCION_DESCONOCIDA,
+        MOTIVO_NOVEDAD_NO_APLICABLE,
     }
 )
 
@@ -125,6 +177,16 @@ COLUMNAS_PADRON = (
     "bonificado",
 )
 COLUMNAS_PADRON_OBLIGATORIAS = COLUMNAS_PADRON[:4]
+
+# Columnas del CSV de la pestaña «Novedades de pago» (§6.2). Las cinco son
+# obligatorias: fecha y responsable existen para trazabilidad, no para efecto.
+COLUMNAS_NOVEDADES = (
+    "id_inscripcion",
+    "tipo",
+    "valor",
+    "fecha",
+    "responsable",
+)
 
 EMAIL_PADRON_RE = re.compile(r"[^\s@]+@[^\s@]+\Z")
 
@@ -221,6 +283,38 @@ class Comprobante:
 
 
 @dataclass(frozen=True)
+class NovedadPago:
+    """Una fila de la pestaña «Novedades de pago» del Departamento (§6.2).
+
+    Los campos llegan como texto crudo del CSV: su validez se decide dentro de
+    la corrida, para que una novedad inválida se informe como error de la
+    novedad en el informe en lugar de tirar abajo la lectura del archivo.
+    `fila` es el número de fila del archivo contando el encabezado como 1 —
+    trazabilidad para que una persona ubique la novedad en la fuente.
+    """
+
+    id_inscripcion: str
+    tipo: str
+    valor: str
+    fecha: str
+    responsable: str
+    fila: int
+
+
+@dataclass(frozen=True)
+class NovedadConError:
+    """Una novedad que no se aplicó, con el motivo cerrado del rechazo.
+
+    El motivo sale del catálogo del contrato: dato inválido, tipo desconocido,
+    valor inválido, inscripción desconocida o efecto incoherente con lo
+    derivado. La novedad queda visible para que una persona la corrija.
+    """
+
+    novedad: NovedadPago
+    motivo: str
+
+
+@dataclass(frozen=True)
 class SituacionCuota:
     """Estado derivado de una cuota de una persona en esta corrida."""
 
@@ -233,13 +327,21 @@ class SituacionCuota:
 
 @dataclass(frozen=True)
 class SituacionPreinscripto:
-    """Lo que la corrida derivó para una fila del padrón."""
+    """Lo que la corrida derivó para una fila del padrón.
+
+    `bonificacion_no_verificable` es la marca de D14: el plan declara
+    categorías bonificadas y el padrón no informa la condición de esta persona
+    (columna ausente o celda vacía). El estado de las cuotas no se asume: la
+    marca existe para que el informe exponga que la bonificación no es
+    verificable por esta vía.
+    """
 
     id_inscripcion: str
     nombre_destinatario: str
     email_destinatario: str
     cuotas: tuple[SituacionCuota, ...]
     comprobantes_sin_cuota: tuple[Comprobante, ...]
+    bonificacion_no_verificable: bool
 
     @property
     def cuotas_cubiertas(self) -> int:
@@ -266,8 +368,11 @@ class InformeCorridaPagos:
     actividad: str
     hoy: date
     contract_version: str
+    novedades_contract_version: str
     situaciones: tuple[SituacionPreinscripto, ...]
     no_asociadas: tuple[RespuestaNoAsociada, ...]
+    novedades_aplicadas: tuple[NovedadPago, ...]
+    novedades_con_error: tuple[NovedadConError, ...]
 
 
 def cargar_plan_pagos_csv(path: Path) -> PlanPago:
@@ -280,7 +385,9 @@ def cargar_plan_pagos_csv(path: Path) -> PlanPago:
     rompe la secuencia 1..N son un rechazo con código, no un dato ignorado.
     """
 
-    filas = _leer_filas(path, COLUMNAS_PLAN_OBLIGATORIAS, "plan")
+    filas = _leer_filas(
+        path, COLUMNAS_PLAN_OBLIGATORIAS, COLUMNAS_PLAN, "plan"
+    )
     datos: dict[str, str] = {}
     procedencias: dict[str, str] = {}
     evidencias: dict[str, str] = {}
@@ -361,7 +468,9 @@ def cargar_padron_csv(path: Path, *, actividad_id: str) -> list[Preinscripto]:
     dato a corregir por el agente.
     """
 
-    filas = _leer_filas(path, COLUMNAS_PADRON_OBLIGATORIAS, "padron")
+    filas = _leer_filas(
+        path, COLUMNAS_PADRON_OBLIGATORIAS, COLUMNAS_PADRON, "padron"
+    )
     padron: list[Preinscripto] = []
     ids_vistos: set[str] = set()
     for fila in filas:
@@ -388,27 +497,83 @@ def cargar_padron_csv(path: Path, *, actividad_id: str) -> list[Preinscripto]:
     return padron
 
 
+def cargar_novedades_csv(path: Path) -> list[NovedadPago]:
+    """Lee las novedades de pago del Departamento desde un CSV (§6.2).
+
+    Replica la pestaña «Novedades de pago» de la planilla D2: una fila por
+    novedad con las cinco columnas del contrato en orden. La validación de
+    forma del archivo es cerrada — encabezado equivocado o filas desalineadas
+    se rechazan entero — pero el contenido de cada fila se evalúa dentro de la
+    corrida, porque una novedad inválida es un error *de la novedad* que el
+    informe tiene que mostrar, no un motivo para abortar la corrida.
+    """
+
+    filas = _leer_filas(
+        path, COLUMNAS_NOVEDADES, COLUMNAS_NOVEDADES, "novedades"
+    )
+    return [
+        NovedadPago(
+            id_inscripcion=fila["id_inscripcion"].strip(),
+            tipo=fila["tipo"].strip(),
+            valor=fila["valor"].strip(),
+            fecha=fila["fecha"].strip(),
+            responsable=fila["responsable"].strip(),
+            fila=numero,
+        )
+        for numero, fila in enumerate(filas, start=2)
+    ]
+
+
 def correr_control_pagos(
     *,
     plan: PlanPago,
     padron: Sequence[Preinscripto],
     buzon: BuzonPropio,
     hoy: date,
+    novedades: Sequence[NovedadPago] = (),
 ) -> InformeCorridaPagos:
     """La corrida: de las fuentes al informe, sin persistir nada.
 
     Es la única interfaz pública de la corrida de control de pagos. Recibe el
     plan ya cargado, el padrón ya leído, el buzón como puerto — la corrida lo
     relee adentro, porque cuando haya recordatorios el lote se arma sobre la
-    lectura más reciente — y el día como parámetro. Devuelve el informe
-    completo; no escribe en disco, no llama a la red, no consulta un reloj.
+    lectura más reciente —, las novedades del Departamento como entrada y el
+    día como parámetro. Devuelve el informe completo; no escribe en disco, no
+    llama a la red, no consulta un reloj.
+
+    Las novedades son opcionales para no romper la firma: sin ellas la corrida
+    es la de siempre. Las que pasan la validación de forma se aplican después
+    de la derivación del buzón, con precedencia sobre ella; las inválidas e
+    inaplicables vuelven en el informe con su motivo.
     """
 
-    asunto_plan = _normalizar_asunto(plan.asunto_preinscripcion)
-    por_remitente: dict[str, list[Preinscripto]] = {}
-    for persona in padron:
-        por_remitente.setdefault(persona.email_destinatario, []).append(persona)
+    validas, con_error = _clasificar_novedades(novedades, plan, padron)
 
+    personas_por_id = {persona.id_inscripcion: persona for persona in padron}
+    # El remitente se resuelve contra el padrón más las direcciones
+    # alternativas que el Departamento cargó (§4.2). El dict interno por id
+    # evita que una misma persona cuente dos veces si la alternativa repite
+    # su correo del padrón.
+    por_remitente: dict[str, dict[str, Preinscripto]] = {}
+    for persona in padron:
+        por_remitente.setdefault(persona.email_destinatario, {})[
+            persona.id_inscripcion
+        ] = persona
+    novedades_por_id: dict[str, list[NovedadPago]] = {}
+    aplicadas: list[NovedadPago] = []
+    for novedad in validas:
+        if novedad.tipo == NOVEDAD_EMAIL_ALTERNATIVO:
+            alternativa = novedad.valor.lower()
+            por_remitente.setdefault(alternativa, {})[
+                novedad.id_inscripcion
+            ] = personas_por_id[novedad.id_inscripcion]
+            aplicadas.append(novedad)
+        else:
+            novedades_por_id.setdefault(novedad.id_inscripcion, []).append(
+                novedad
+            )
+
+    asunto_plan = _normalizar_asunto(plan.asunto_preinscripcion)
     asociadas: dict[str, list[MensajeBuzon]] = {}
     no_asociadas: list[RespuestaNoAsociada] = []
     for mensaje in buzon.listar():
@@ -420,7 +585,7 @@ def correr_control_pagos(
                 _no_asociada(mensaje, MOTIVO_REMITENTE_NO_INFORMADO)
             )
             continue
-        coincidencias = por_remitente.get(mensaje.remitente, [])
+        coincidencias = list(por_remitente.get(mensaje.remitente, {}).values())
         if not coincidencias:
             no_asociadas.append(
                 _no_asociada(mensaje, MOTIVO_REMITENTE_SIN_COINCIDENCIA)
@@ -433,65 +598,251 @@ def correr_control_pagos(
 
     no_asociadas.sort(key=lambda r: _clave_cronologica(r.fecha, r.message_id))
 
-    situaciones = tuple(
-        _derivar_situacion(
+    situaciones: list[SituacionPreinscripto] = []
+    for persona in padron:
+        situacion, aplicadas_persona, error_persona = _derivar_situacion(
             persona,
             plan,
             asociadas.get(persona.id_inscripcion, []),
+            novedades_por_id.get(persona.id_inscripcion, []),
             hoy,
         )
-        for persona in padron
-    )
+        situaciones.append(situacion)
+        aplicadas.extend(aplicadas_persona)
+        con_error.extend(error_persona)
+
     return InformeCorridaPagos(
         actividad_id=plan.actividad_id,
         actividad=plan.actividad,
         hoy=hoy,
         contract_version=CONTRACT_VERSION,
-        situaciones=situaciones,
+        novedades_contract_version=NOVEDADES_CONTRACT_VERSION,
+        situaciones=tuple(situaciones),
         no_asociadas=tuple(no_asociadas),
+        novedades_aplicadas=tuple(
+            sorted(aplicadas, key=lambda n: n.fila)
+        ),
+        novedades_con_error=tuple(
+            sorted(con_error, key=lambda e: e.novedad.fila)
+        ),
     )
+
+
+@dataclass
+class _CuotaTrabajo:
+    """La cuota mientras se deriva y se corrige: la novedad pisa el estado que
+    dejó el buzón, así que el objeto es mutable hasta cerrar la situación."""
+
+    nro: int
+    estado: str
+    comprobante: Comprobante | None
 
 
 def _derivar_situacion(
     persona: Preinscripto,
     plan: PlanPago,
     mensajes: Sequence[MensajeBuzon],
+    novedades: Sequence[NovedadPago],
     hoy: date,
-) -> SituacionPreinscripto:
-    """Deriva las cuotas de una persona: comprobantes distintos, en orden, a
-    las cuotas 1..N no bonificadas; el resto queda informado sin cuota."""
+) -> tuple[SituacionPreinscripto, list[NovedadPago], list[NovedadConError]]:
+    """Deriva las cuotas de una persona y después aplica sus novedades.
+
+    Primero el buzón: comprobantes distintos, en orden, a las cuotas 1..N no
+    bonificadas. Después las novedades del Departamento, en el orden del
+    archivo y con precedencia sobre lo derivado (§6.2). Devuelve también qué
+    novedades se aplicaron y cuáles se informan como error.
+    """
 
     comprobantes = _comprobantes_distintos(mensajes)
-    bonificado = persona.bonificado is True
-    asignables = () if bonificado else comprobantes[: len(plan.cuotas)]
-    excedentes = comprobantes if bonificado else comprobantes[len(plan.cuotas) :]
+    bonificado = persona.bonificado is True or any(
+        novedad.tipo == NOVEDAD_BONIFICADO for novedad in novedades
+    )
+
+    trabajo = [
+        _CuotaTrabajo(
+            nro=cuota_plan.nro,
+            estado=ESTADO_BONIFICADA if bonificado else ESTADO_PENDIENTE,
+            comprobante=None,
+        )
+        for cuota_plan in plan.cuotas
+    ]
+    if not bonificado:
+        for cuota, comprobante in zip(trabajo, comprobantes):
+            cuota.estado = ESTADO_COMPROBANTE_PRESENTADO
+            cuota.comprobante = comprobante
+
+    aplicadas: list[NovedadPago] = []
+    con_error: list[NovedadConError] = []
+    for novedad in novedades:
+        if novedad.tipo == NOVEDAD_BONIFICADO:
+            aplicadas.append(novedad)
+            continue
+        if bonificado:
+            # Una bonificación de la persona no se corrige por cuota: la
+            # novedad de cuota se informa como incoherente, no se descarta.
+            con_error.append(
+                NovedadConError(novedad, MOTIVO_NOVEDAD_NO_APLICABLE)
+            )
+            continue
+        motivo = _aplicar_novedad_cuota(novedad, trabajo, comprobantes)
+        if motivo is None:
+            aplicadas.append(novedad)
+        else:
+            con_error.append(NovedadConError(novedad, motivo))
+
+    asignados = {
+        cuota.comprobante.sha256
+        for cuota in trabajo
+        if cuota.comprobante is not None
+    }
+    sin_cuota = tuple(
+        comprobante
+        for comprobante in comprobantes
+        if comprobante.sha256 not in asignados
+    )
 
     cuotas = []
-    for indice, cuota_plan in enumerate(plan.cuotas):
-        comprobante = asignables[indice] if indice < len(asignables) else None
-        if bonificado:
-            estado = ESTADO_BONIFICADA
-        elif comprobante is not None:
-            estado = ESTADO_COMPROBANTE_PRESENTADO
-        else:
-            estado = ESTADO_PENDIENTE
+    for cuota, cuota_plan in zip(trabajo, plan.cuotas):
         referencia = plan.fecha_referencia(cuota_plan)
         cuotas.append(
             SituacionCuota(
-                nro_cuota=cuota_plan.nro,
-                estado=estado,
+                nro_cuota=cuota.nro,
+                estado=cuota.estado,
                 fecha_referencia=referencia,
-                vencida=estado == ESTADO_PENDIENTE and hoy > referencia,
-                comprobante=comprobante,
+                vencida=cuota.estado == ESTADO_PENDIENTE and hoy > referencia,
+                comprobante=cuota.comprobante,
             )
         )
-    return SituacionPreinscripto(
+    situacion = SituacionPreinscripto(
         id_inscripcion=persona.id_inscripcion,
         nombre_destinatario=persona.nombre_destinatario,
         email_destinatario=persona.email_destinatario,
         cuotas=tuple(cuotas),
-        comprobantes_sin_cuota=tuple(excedentes),
+        comprobantes_sin_cuota=sin_cuota,
+        bonificacion_no_verificable=bool(plan.categorias_bonificadas)
+        and persona.bonificado is None,
     )
+    return situacion, aplicadas, con_error
+
+
+def _aplicar_novedad_cuota(
+    novedad: NovedadPago,
+    trabajo: list[_CuotaTrabajo],
+    comprobantes: tuple[Comprobante, ...],
+) -> str | None:
+    """Aplica una novedad de cuota sobre lo ya derivado. `None` si se aplicó;
+    el motivo cerrado si el efecto contradice lo derivado."""
+
+    if novedad.tipo == NOVEDAD_CONFIRMADO_FUNDACION:
+        cuota = trabajo[int(novedad.valor) - 1]
+        # La confirmación pisa lo derivado pero conserva el comprobante
+        # presentado: el rastro de que la persona mandó su constancia queda.
+        cuota.estado = ESTADO_PAGO_CONFIRMADO
+        return None
+
+    if novedad.tipo == NOVEDAD_COMPROBANTE_RECHAZADO:
+        cuota = trabajo[int(novedad.valor) - 1]
+        if cuota.estado != ESTADO_COMPROBANTE_PRESENTADO:
+            return MOTIVO_NOVEDAD_NO_APLICABLE
+        cuota.estado = ESTADO_PENDIENTE
+        cuota.comprobante = None
+        return None
+
+    if novedad.tipo == NOVEDAD_COMPROBANTE_CUBRE_N_CUOTAS:
+        if not comprobantes:
+            return MOTIVO_NOVEDAD_NO_APLICABLE
+        cubre = int(novedad.valor)
+        # El primer comprobante pasa a cubrir las cuotas 1..N; los demás
+        # comprobantes siguen a partir de la N+1 en el mismo orden.
+        for cuota in trabajo[:cubre]:
+            cuota.estado = ESTADO_COMPROBANTE_PRESENTADO
+            cuota.comprobante = comprobantes[0]
+        for comprobante, cuota in zip(comprobantes[1:], trabajo[cubre:]):
+            cuota.estado = ESTADO_COMPROBANTE_PRESENTADO
+            cuota.comprobante = comprobante
+        return None
+
+    # Inalcanzable: el catálogo se validó al clasificar. Se devuelve el motivo
+    # igual para no depender de que el invariante se mantenga.
+    return MOTIVO_NOVEDAD_TIPO_DESCONOCIDO
+
+
+def _clasificar_novedades(
+    novedades: Sequence[NovedadPago],
+    plan: PlanPago,
+    padron: Sequence[Preinscripto],
+) -> tuple[list[NovedadPago], list[NovedadConError]]:
+    """Separa las novedades válidas en forma de las que llegan con error.
+
+    La coherencia con lo derivado (`novedad_no_aplicable`) no se puede juzgar
+    acá — depende del buzón — así que las válidas en forma entran a la corrida
+    y el efecto se evalúa por persona.
+    """
+
+    ids = {persona.id_inscripcion for persona in padron}
+    validas: list[NovedadPago] = []
+    con_error: list[NovedadConError] = []
+    for novedad in novedades:
+        motivo = _motivo_invalidez_novedad(novedad, len(plan.cuotas), ids)
+        if motivo is None:
+            validas.append(novedad)
+        else:
+            con_error.append(NovedadConError(novedad, motivo))
+    return validas, con_error
+
+
+def _motivo_invalidez_novedad(
+    novedad: NovedadPago, cantidad_cuotas: int, ids: set[str]
+) -> str | None:
+    """El primer motivo que invalida la novedad en forma, o `None`.
+
+    Orden fijo para que dos corridas sobre las mismas fuentes reporten lo
+    mismo: estructura, catálogo, existencia en el padrón y por último el
+    valor propio del tipo.
+    """
+
+    if (
+        not novedad.id_inscripcion
+        or not novedad.responsable
+        or not _es_fecha_iso(novedad.fecha)
+    ):
+        return MOTIVO_NOVEDAD_DATO_INVALID
+    if novedad.tipo not in TIPOS_NOVEDAD:
+        return MOTIVO_NOVEDAD_TIPO_DESCONOCIDO
+    if novedad.id_inscripcion not in ids:
+        return MOTIVO_NOVEDAD_INSCRIPCION_DESCONOCIDA
+    return _motivo_valor_novedad(novedad, cantidad_cuotas)
+
+
+def _motivo_valor_novedad(
+    novedad: NovedadPago, cantidad_cuotas: int
+) -> str | None:
+    """El `valor` se interpreta según el tipo: cuota o cantidad en 1..N,
+    dirección de correo para EMAIL_ALTERNATIVO y vacío para BONIFICADO."""
+
+    if novedad.tipo == NOVEDAD_BONIFICADO:
+        return None if not novedad.valor else MOTIVO_NOVEDAD_VALOR_INVALID
+    if novedad.tipo == NOVEDAD_EMAIL_ALTERNATIVO:
+        if EMAIL_PADRON_RE.match(novedad.valor.lower()):
+            return None
+        return MOTIVO_NOVEDAD_VALOR_INVALID
+    try:
+        numero = int(novedad.valor)
+    except ValueError:
+        return MOTIVO_NOVEDAD_VALOR_INVALID
+    if not 1 <= numero <= cantidad_cuotas:
+        return MOTIVO_NOVEDAD_VALOR_INVALID
+    return None
+
+
+def _es_fecha_iso(valor: str) -> bool:
+    if not valor:
+        return False
+    try:
+        date.fromisoformat(valor)
+    except ValueError:
+        return False
+    return True
 
 
 def _comprobantes_distintos(
@@ -564,7 +915,10 @@ def _no_asociada(mensaje: MensajeBuzon, motivo: str) -> RespuestaNoAsociada:
 
 
 def _leer_filas(
-    path: Path, obligatorias: tuple[str, ...], nombre: str
+    path: Path,
+    obligatorias: tuple[str, ...],
+    permitidas: tuple[str, ...],
+    nombre: str,
 ) -> list[dict[str, str]]:
     """Lee un CSV y valida el encabezado de forma posicional.
 
@@ -574,7 +928,6 @@ def _leer_filas(
     (más o menos celdas que el encabezado) se rechazan.
     """
 
-    permitidas = COLUMNAS_PLAN if nombre == "plan" else COLUMNAS_PADRON
     with Path(path).open(encoding="utf-8", newline="") as archivo:
         reader = csv.DictReader(archivo)
         encabezados = reader.fieldnames or []

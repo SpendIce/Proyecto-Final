@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:novedades-pago:v1",
+  "title": "Novedades de pago de una actividad arancelada",
+  "x-contract-version": "novedades_pago_v1",
+  "x-status": "CANDIDATO_PENDIENTE_CONFIRMACION_SEU",
+  "x-hu": "HU-012",
+  "x-proceso-bpm": "P5 con apoyo de P4",
+  "x-fuente": "Diseño HU-012 control de pagos v1 (decisiones D1-D16), Documentos/PoC/Diseno-HU-012-Control-Pagos-v1.md §6.2. La pestaña «Novedades de pago» de la planilla D2 es el registro del Departamento; el CSV replica su forma para las pruebas y la demo controlada.",
+  "x-habilita-envio": false,
+  "description": "Contrato de las novedades de pago que carga el Departamento para dejar asentado lo que no se puede deducir de los correos: confirmación de la Fundación Savio, comprobante rechazado, comprobante que cubre varias cuotas, dirección alternativa y bonificación. Es un registro del Departamento, no un estado del agente: cada corrida lo relee como fuente y lo aplica después de lo derivado del buzón, con precedencia sobre esa derivación (ADR 0003). Una novedad inválida o inaplicable se informa como error de la novedad con un motivo cerrado: nunca se ignora en silencio ni se aplica a medias. Este contrato no habilita cobrar ni verificar pagos: la acreditación la verifica la Fundación Savio (D1).",
+
+  "tipos_novedad": {
+    "CONFIRMADO_FUNDACION": "La Fundación Savio confirmó el ingreso de una cuota. Es el único origen posible del estado PAGO_CONFIRMADO (D1). Valor: número de cuota entre 1 y cantidad_cuotas.",
+    "COMPROBANTE_RECHAZADO": "El Departamento rechazó el comprobante de una cuota; la cuota vuelve a PENDIENTE. Sólo es aplicable a una cuota derivada como COMPROBANTE_PRESENTADO. Valor: número de cuota entre 1 y cantidad_cuotas.",
+    "COMPROBANTE_CUBRE_N_CUOTAS": "El primer comprobante presentado por la persona cubre N cuotas (corrección del caso «un solo comprobante cubre dos cuotas», §4.3). Sólo es aplicable si la persona tiene al menos un comprobante presentado. Valor: cantidad de cuotas entre 1 y cantidad_cuotas.",
+    "EMAIL_ALTERNATIVO": "La persona puede responder desde otra dirección; las respuestas desde esa dirección se asocian a su id_inscripcion en la misma corrida (§4.2). Valor: dirección de correo.",
+    "BONIFICADO": "La persona está bonificada por el Departamento; todas sus cuotas quedan BONIFICADA. Valor: vacío."
+  },
+
+  "forma_csv": {
+    "descripcion": "Una fila por novedad. Las cinco columnas son obligatorias y van en este orden; la forma replica la pestaña de la planilla D2.",
+    "columnas": ["id_inscripcion", "tipo", "valor", "fecha", "responsable"],
+    "columnas_obligatorias": ["id_inscripcion", "tipo", "valor", "fecha", "responsable"],
+    "formato_fecha": "fecha_iso",
+    "trazabilidad": "fecha y responsable registran quién cargó la novedad y cuándo; no cambian el efecto."
+  },
+
+  "motivos_novedad_invalida": {
+    "novedad_dato_invalid": "Un campo estructural falta o no se puede leer: id_inscripcion vacío, fecha vacía o fuera de formato ISO, o responsable vacío.",
+    "novedad_tipo_desconocido": "El tipo no está en el catálogo cerrado de novedades.",
+    "novedad_valor_invalid": "El valor no se puede interpretar para ese tipo: número fuera de 1..cantidad_cuotas, dirección mal formada o valor no vacío en BONIFICADO.",
+    "novedad_inscripcion_desconocida": "El id_inscripcion no figura en el padrón de la actividad de esta corrida.",
+    "novedad_no_aplicable": "La novedad es válida en forma pero contradice lo derivado: rechazar una cuota sin comprobante presentado, cubrir cuotas sin comprobante, o cargar una novedad de cuota sobre una persona bonificada."
+  },
+
+  "reglas": {
+    "precedencia": "Las novedades se aplican después de la derivación del buzón y tienen precedencia sobre ella (§6.2). EMAIL_ALTERNATIVO participa de la etapa de asociación porque su efecto es ampliar la asociación remitente → persona; las demás se aplican sobre los estados ya derivados, en el orden del archivo.",
+    "orden_de_aplicacion": "Las novedades válidas de una persona se aplican en el orden en que figuran en el archivo; si dos novedades pisan la misma cuota, gana la última.",
+    "bonificacion_persona": "BONIFICADO es una condición de la persona, no de una cuota: una vez bonificada —por padrón o por novedad— todas sus cuotas son BONIFICADA y las novedades de cuota se informan como novedad_no_aplicable.",
+    "rechazo": "COMPROBANTE_RECHAZADO exige que la cuota esté derivada como COMPROBANTE_PRESENTADO; sobre PAGO_CONFIRMADO, PENDIENTE o persona bonificada se informa novedad_no_aplicable.",
+    "sin_silencio": "Ninguna novedad se descarta sin rastro: las inválidas e inaplicables se listan en el informe de la corrida con su motivo, para que una persona las corrija.",
+    "entrada_no_confiable": "La novedad es una fuente de metadatos del Departamento; sus campos nunca llegan a un modelo ni a un prompt (ADR 0001)."
+  }
+}
