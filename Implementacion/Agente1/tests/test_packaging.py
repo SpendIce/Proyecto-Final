@@ -201,6 +201,19 @@ def test_schema_candidato_a2_a5_esta_declarado_como_recurso_importable():
     assert contrato["properties"]["schema"]["const"] == "agente1.insumo.v1"
 
 
+def test_contrato_contenido_evento_a3_es_recurso_importable():
+    """El contrato declarado del `content` del `evento` viaja en el paquete."""
+
+    contrato = json.loads(
+        files("agente1")
+        .joinpath("contracts", "insumos", "a3_evento_gacetilla_v1.schema.json")
+        .read_text(encoding="utf-8")
+    )
+
+    assert contrato["x-contract-version"] == "a3_evento_gacetilla_v1"
+    assert contrato["x-status"] == "CANDIDATO_NO_INSTITUCIONAL"
+
+
 def test_catalogo_de_intenciones_hu013_es_empaquetable_y_provisional():
     import agente1
 

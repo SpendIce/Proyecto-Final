@@ -15,8 +15,13 @@ import pytest
 
 from agente1.canal_form import LectorValoresCsv
 from agente1.destinos import BORRADOR_MARKER
+from agente1.fuentes import COLUMNAS_ACTIVIDADES_V2
 from agente1.insumos_corrida import (
+    CAMPOS_EVENTO,
+    CAMPOS_EVENTO_OBLIGATORIOS,
     COLUMNAS_INSUMOS_AGENTES_V1,
+    CONTRATO_EVENTO,
+    CONTRATO_EVENTO_VERSION,
     ESTADO_ACEPTADO_SIN_FLUJO,
     ESTADO_BORRADOR_GENERADO,
     ESTADO_RECHAZADO,
@@ -30,7 +35,7 @@ from agente1.insumos_corrida import (
     correr_insumos,
 )
 from agente1.insumos_sheets import EscritorEstadoCsv
-from agente1.procesamiento import FakeGenerator
+from agente1.procesamiento import CAMPOS_OBLIGATORIOS, FakeGenerator
 
 # --- Fakes y helpers --------------------------------------------------------
 
@@ -92,6 +97,20 @@ class FlujoQueRechaza:
 class FlujoQueExplota:
     def ejecutar(self, *, envelope, cargado_por) -> ResultadoFlujo:
         raise RuntimeError("fallo interno sin vocabulario")
+
+
+class GeneratorQueNoDebeInvocarse:
+    """Generador centinela: si se invoca, la prueba falla."""
+
+    modelo = "fake-no-invocar"
+    num_predict = None
+
+    def __init__(self) -> None:
+        self.invocaciones = 0
+
+    def generar(self, prompt: str) -> str:
+        self.invocaciones += 1
+        raise AssertionError("El generador no debe invocarse con datos incompletos")
 
 
 SHA = "a" * 64
@@ -612,3 +631,288 @@ def test_payload_con_texto_de_instruccion_no_se_ejecuta(tmp_path: Path) -> None:
     # El flujo procesó el insumo como datos y el único efecto fue un borrador
     # pendiente de validación humana.
     assert informe.filas[0].estado_fila == ESTADO_BORRADOR_GENERADO
+
+
+# --- Contrato declarado del `content` del evento A3 (#83) -------------------
+
+SCHEMA_EVENTO = (
+    Path(__file__).parents[1]
+    / "src"
+    / "agente1"
+    / "contracts"
+    / "insumos"
+    / "a3_evento_gacetilla_v1.schema.json"
+)
+
+
+def test_schema_evento_declarado_es_versionado_y_candidato() -> None:
+    schema = json.loads(SCHEMA_EVENTO.read_text(encoding="utf-8"))
+
+    assert schema["x-contract-version"] == CONTRATO_EVENTO_VERSION
+    assert schema["x-status"] == "CANDIDATO_NO_INSTITUCIONAL"
+    assert schema["additionalProperties"] is False
+
+
+def test_campos_evento_son_las_columnas_de_actividades_menos_el_id() -> None:
+    """Lo admitido por el contrato declarado, no una lista paralela."""
+
+    assert CAMPOS_EVENTO == frozenset(COLUMNAS_ACTIVIDADES_V2) - {"id_actividad"}
+    assert set(CONTRATO_EVENTO["properties"]) == set(CAMPOS_EVENTO)
+    assert all(
+        prop.get("type") == "string"
+        for prop in CONTRATO_EVENTO["properties"].values()
+    )
+
+
+def test_obligatorios_evento_son_los_de_la_gacetilla_menos_el_id() -> None:
+    """Lo que exige una gacetilla; `id_actividad` lo deriva la corrida."""
+
+    assert CAMPOS_EVENTO_OBLIGATORIOS == tuple(
+        campo for campo in CAMPOS_OBLIGATORIOS if campo != "id_actividad"
+    )
+    assert set(CONTRATO_EVENTO["required"]) == set(CAMPOS_EVENTO_OBLIGATORIOS)
+
+
+@pytest.mark.parametrize("campo", sorted(CAMPOS_EVENTO_OBLIGATORIOS))
+def test_evento_sin_cada_obligatorio_queda_rechazado_sin_generar(
+    campo: str, tmp_path: Path
+) -> None:
+    """Falta de un obligatorio declarado: código propio y cero generación."""
+
+    content = dict(CONTENIDO_EVENTO)
+    content.pop(campo)
+    generator = GeneratorQueNoDebeInvocarse()
+    flujo = FlujoEventoGacetilla(
+        generator=generator, directorio_salida=tmp_path
+    )
+    escritor = EscritorEstadoMemoria()
+
+    informe = corrida(
+        filas=tabla(fila_tabla(envelope(content=content))),
+        escritor=escritor,
+        despachos={"evento": flujo},
+    )
+
+    assert informe.filas[0].estado_fila == ESTADO_RECHAZADO
+    assert informe.filas[0].detalle == "evento_campos_faltantes"
+    assert escritor.escrituras[0]["detalle"] == "evento_campos_faltantes"
+    assert generator.invocaciones == 0
+    # El pipeline ni siquiera abrió su log: nada se generó.
+    assert not (tmp_path / "logs" / "ejecuciones.jsonl").exists()
+
+
+def test_evento_rechazado_no_deja_borrador_ni_auditoria_parcial(
+    tmp_path: Path,
+) -> None:
+    escritor = EscritorEstadoMemoria()
+    flujo = FlujoEventoGacetilla(
+        generator=GeneratorQueNoDebeInvocarse(), directorio_salida=tmp_path
+    )
+
+    informe = corrida(
+        filas=tabla(
+            fila_tabla(envelope(content={"titulo": "Sólo un título"}))
+        ),
+        escritor=escritor,
+        despachos={"evento": flujo},
+    )
+
+    assert informe.filas[0].estado_fila == ESTADO_RECHAZADO
+    assert informe.filas[0].detalle == "evento_campos_faltantes"
+    assert not (tmp_path / "borradores").exists()
+
+
+# --- Procedencia del insumo en el borrador y en la auditoría (#83) ----------
+
+
+def _unica_linea_log(directorio: Path) -> dict[str, object]:
+    lineas = (
+        (directorio / "logs" / "ejecuciones.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    )
+    assert len(lineas) == 1
+    return json.loads(lineas[0])
+
+
+def test_borrador_de_evento_lleva_la_procedencia_visible(tmp_path: Path) -> None:
+    """Entre la marca `BORRADOR — NO PUBLICAR` y la pieza va el origen."""
+
+    escritor = EscritorEstadoMemoria()
+    env = envelope(
+        content=CONTENIDO_EVENTO, correlation_id="corr-a3-proc-0001"
+    )
+    flujo = FlujoEventoGacetilla(
+        generator=FakeGenerator(salida_conforme()), directorio_salida=tmp_path
+    )
+
+    informe = corrida(
+        filas=tabla(fila_tabla(env, cargado_por="ope-jgone")),
+        escritor=escritor,
+        despachos={"evento": flujo},
+    )
+
+    assert informe.filas[0].estado_fila == ESTADO_BORRADOR_GENERADO
+    texto = Path(informe.filas[0].detalle).read_text(encoding="utf-8")
+    assert texto.startswith(
+        "# BORRADOR — NO PUBLICAR\n\n"
+        "[Procedencia: insumo de A3, tipo evento; "
+        "productor provisional: sí; "
+        "cargado_por: ope-jgone; "
+        "correlation_id: corr-a3-proc-0001.]\n\n"
+        "Asunto:"
+    )
+
+
+def test_auditoria_del_evento_registra_la_procedencia_sin_contenido(
+    tmp_path: Path,
+) -> None:
+    escritor = EscritorEstadoMemoria()
+    env = envelope(
+        content=CONTENIDO_EVENTO, correlation_id="corr-a3-proc-0002"
+    )
+    flujo = FlujoEventoGacetilla(
+        generator=FakeGenerator(salida_conforme()), directorio_salida=tmp_path
+    )
+
+    corrida(
+        filas=tabla(fila_tabla(env, cargado_por="ope-jgone")),
+        escritor=escritor,
+        despachos={"evento": flujo},
+    )
+
+    registro = _unica_linea_log(tmp_path)
+    assert registro["estado"] == "PENDIENTE_VALIDACION"
+    assert registro["procedencia"] == {
+        "origen": "insumo_agente",
+        "producer": "A3",
+        "payload_type": "evento",
+        "data_origin": "provisional_producer",
+        "productor_provisional": True,
+        "insumo_correlation_id": "corr-a3-proc-0002",
+        "cargado_por": "ope-jgone",
+    }
+    # La auditoría no copia el contenido del insumo ni el texto generado.
+    serializado = json.dumps(registro, ensure_ascii=False)
+    assert "Evento sintético" not in serializado
+    assert "Actividad ficticia" not in serializado
+
+
+def test_evento_de_productor_no_provisional_lo_declara(tmp_path: Path) -> None:
+    """`agent_derived`/`institutional_source`: provisional declarado en no."""
+
+    escritor = EscritorEstadoMemoria()
+    env = envelope(
+        content=CONTENIDO_EVENTO,
+        data_origin="agent_derived",
+        correlation_id="corr-a3-proc-0003",
+    )
+    flujo = FlujoEventoGacetilla(
+        generator=FakeGenerator(salida_conforme()), directorio_salida=tmp_path
+    )
+
+    informe = corrida(
+        filas=tabla(fila_tabla(env)),
+        escritor=escritor,
+        despachos={"evento": flujo},
+    )
+
+    texto = Path(informe.filas[0].detalle).read_text(encoding="utf-8")
+    assert "productor provisional: no" in texto
+    registro = _unica_linea_log(tmp_path)
+    assert registro["procedencia"]["productor_provisional"] is False
+    assert registro["procedencia"]["data_origin"] == "agent_derived"
+
+
+def test_falla_del_pipeline_de_evento_tambien_lleva_procedencia(
+    tmp_path: Path,
+) -> None:
+    """Una generación no conforme se audita con el origen del insumo."""
+
+    flujo = FlujoEventoGacetilla(
+        generator=FakeGenerator("salida sin el contrato de gacetilla"),
+        directorio_salida=tmp_path,
+    )
+
+    informe = corrida(
+        filas=tabla(
+            fila_tabla(
+                envelope(
+                    content=CONTENIDO_EVENTO,
+                    correlation_id="corr-a3-proc-0004",
+                )
+            )
+        ),
+        escritor=EscritorEstadoMemoria(),
+        despachos={"evento": flujo},
+    )
+
+    assert informe.filas[0].estado_fila == ESTADO_RECHAZADO
+    assert informe.filas[0].detalle == "evento_generacion_fallida"
+    registro = _unica_linea_log(tmp_path)
+    assert registro["estado"] == "FALLIDA"
+    assert registro["procedencia"]["producer"] == "A3"
+    assert registro["procedencia"]["insumo_correlation_id"] == (
+        "corr-a3-proc-0004"
+    )
+
+
+# --- Insumo real de A3: «Ingeniería por un día 2026» (#83) ------------------
+
+FIXTURES = Path(__file__).parent / "fixtures" / "insumos_agentes"
+
+
+def test_insumo_real_a3_ingenieria_por_un_dia_genera_borrador(
+    tmp_path: Path,
+) -> None:
+    """El fixture declarado del evento real corre la corrida completa.
+
+    El generador fake produce la ficha con los mismos hechos del insumo:
+    lo que se ejercita acá es la traducción insumo → pipeline → borrador,
+    no la capacidad del modelo (eso queda para la corrida live).
+    """
+
+    env = json.loads(
+        (FIXTURES / "a3_evento_ingenieria_por_un_dia_2026.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    salida = (
+        "## TÍTULO\n"
+        "Ingeniería por un día 2026\n\n"
+        "## DATOS DE LA ACTIVIDAD\n"
+        "Fecha: 2026-10-14\n"
+        "Organiza: Facultad de Ingeniería del Ejército\n"
+        "Lugar: Av. Cabildo 15, CABA\n\n"
+        "## CONTACTO\n"
+        "comunicacion@fie.undef.edu.ar\n\n"
+        "## BAJADA\n"
+        "Jornada de puertas abiertas con laboratorios y charlas.\n\n"
+        "## CUERPO\n"
+        "La actividad invita a conocer la oferta académica y los laboratorios."
+    )
+    flujo = FlujoEventoGacetilla(
+        generator=FakeGenerator(salida), directorio_salida=tmp_path
+    )
+    escritor = EscritorEstadoMemoria()
+
+    informe = corrida(
+        filas=tabla(fila_tabla(env, cargado_por="ope-jgone")),
+        escritor=escritor,
+        despachos={"evento": flujo},
+    )
+
+    resultado = informe.filas[0]
+    assert resultado.desenlace == "escrita"
+    assert resultado.estado_fila == ESTADO_BORRADOR_GENERADO
+    texto = Path(resultado.detalle).read_text(encoding="utf-8")
+    assert texto.startswith("# BORRADOR — NO PUBLICAR\n\n[Procedencia:")
+    assert "insumo de A3" in texto
+    assert "productor provisional: sí" in texto
+    assert "miércoles 14 de octubre de 2026" in texto
+    assert "comunicacion@fie.undef.edu.ar" in texto
+    registro = _unica_linea_log(tmp_path)
+    assert registro["estado"] == "PENDIENTE_VALIDACION"
+    assert registro["procedencia"]["insumo_correlation_id"] == (
+        env["correlation_id"]
+    )

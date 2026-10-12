@@ -18,6 +18,14 @@ Decisiones que no se ven en el código:
 - **El log guarda hashes, no contenido.** `input_hash` y `output_hash` permiten
   probar después que un borrador salió de una fila determinada, sin copiar
   datos de la actividad ni el texto generado a un segundo lugar.
+- **La procedencia de un insumo de agente se declara, no se infiere.** El
+  llamador que despacha un insumo de la pestaña (ADR 0008) pasa una
+  `ProcedenciaInsumo` con puros identificadores opacos: la línea de auditoría
+  suma el bloque `procedencia` y el borrador lleva una línea visible de
+  origen (productor, tipo, flag de productor provisional, `cargado_por` y
+  `correlation_id` del insumo) entre la marca `BORRADOR — NO PUBLICAR` y la
+  pieza. Una solicitud del canal de la SEU no la declara y el artefacto queda
+  igual que siempre.
 - **Los códigos de error se filtran contra una allowlist**
   (`SOURCE_ERROR_CODES`, `DESTINATION_ERROR_CODES`) antes de registrarse: un
   adapter no puede inyectar texto arbitrario en la auditoría.
@@ -200,6 +208,32 @@ class ResultadoProceso:
     referencia_borrador: ReferenciaBorrador | None = None
 
 
+@dataclass(frozen=True)
+class ProcedenciaInsumo:
+    """De dónde salió el pedido cuando no vino del canal de la SEU.
+
+    Una gacetilla también puede nacer de un insumo de agente entregado en la
+    pestaña «Insumos de agentes» (ADR 0008). Cuando el llamador declara esa
+    procedencia, el pipeline la registra en la línea de auditoría y la estampa
+    en el propio borrador, debajo de la marca `BORRADOR — NO PUBLICAR`: qué
+    agente la produjo, con qué tipo de payload, con qué `data_origin` (de
+    donde sale el flag de productor provisional) y los identificadores opacos
+    que la vinculan con la fila de origen (`correlation_id` del envelope,
+    `cargado_por` de la celda).
+
+    Todos los campos portan identificadores opacos o vocabulario cerrado del
+    envelope ya validado: ningún dato libre del insumo llega ni a la
+    auditoría ni al documento.
+    """
+
+    producer: str
+    payload_type: str
+    data_origin: str
+    productor_provisional: bool
+    insumo_correlation_id: str
+    cargado_por: str
+
+
 def procesar_fila_csv(
     *,
     csv_path: Path,
@@ -224,6 +258,7 @@ def procesar_solicitud(
     directorio_salida: Path,
     generator: Generator,
     destino: DestinoBorradores | None = None,
+    procedencia: ProcedenciaInsumo | None = None,
 ) -> ResultadoProceso:
     """Ejecuta el pipeline de gacetilla para una solicitud.
 
@@ -236,6 +271,12 @@ def procesar_solicitud(
 
     El `correlation_id` se genera antes de tocar nada para que hasta el fallo
     más temprano quede correlacionado con el resto de la evidencia.
+
+    `procedencia` sólo lo declara el camino de insumos de agentes (ADR 0008):
+    con él, la línea de auditoría suma el bloque `procedencia` y el borrador
+    lleva una línea visible de origen bajo la marca `BORRADOR — NO PUBLICAR`.
+    Una solicitud del canal de la SEU no lo declara y el artefacto queda igual
+    que siempre.
     """
 
     correlation_id = str(uuid.uuid4())
@@ -250,6 +291,7 @@ def procesar_solicitud(
             correlation_id=correlation_id,
             latencia_s=round(time.perf_counter() - inicio_fuente, 6),
             source_error_code="source_request_invalid",
+            procedencia=procedencia,
         )
     try:
         fila = fuente.obtener(id_solicitud)
@@ -261,6 +303,7 @@ def procesar_solicitud(
             correlation_id=correlation_id,
             latencia_s=round(time.perf_counter() - inicio_fuente, 6),
             source_error_code=error_fuente.code,
+            procedencia=procedencia,
         )
     except Exception:
         return _resultado_fuente_fallida(
@@ -270,6 +313,7 @@ def procesar_solicitud(
             correlation_id=correlation_id,
             latencia_s=round(time.perf_counter() - inicio_fuente, 6),
             source_error_code="source_unavailable",
+            procedencia=procedencia,
         )
     fila, source_error_code = _normalizar_fila_fuente(fila, id_solicitud)
     if source_error_code is not None:
@@ -280,6 +324,7 @@ def procesar_solicitud(
             correlation_id=correlation_id,
             latencia_s=round(time.perf_counter() - inicio_fuente, 6),
             source_error_code=source_error_code,
+            procedencia=procedencia,
         )
     # Control previo a la generación: si falta un campo obligatorio no se
     # llama al modelo. Además de evitar una comunicación incompleta, ahorra el
@@ -297,22 +342,25 @@ def procesar_solicitud(
         log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
         _registrar(
             log_path,
-            {
-                "correlation_id": correlation_id,
-                "id_solicitud": id_solicitud,
-                "HU": HU,
-                "contract_version": CONTRACT_VERSION,
-                "modelo": generator.modelo,
-                "num_predict": _num_predict(generator),
-                "prompt_version": PROMPT_VERSION,
-                "latencia_s": 0.0,
-                "estado": "INCOMPLETA",
-                "resultado": "datos_incompletos",
-                "error": error,
-                "input_hash": _hash_json(fila),
-                "output_hash": None,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
+            _con_procedencia(
+                {
+                    "correlation_id": correlation_id,
+                    "id_solicitud": id_solicitud,
+                    "HU": HU,
+                    "contract_version": CONTRACT_VERSION,
+                    "modelo": generator.modelo,
+                    "num_predict": _num_predict(generator),
+                    "prompt_version": PROMPT_VERSION,
+                    "latencia_s": 0.0,
+                    "estado": "INCOMPLETA",
+                    "resultado": "datos_incompletos",
+                    "error": error,
+                    "input_hash": _hash_json(fila),
+                    "output_hash": None,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                procedencia,
+            ),
         )
         return ResultadoProceso(
             estado="INCOMPLETA",
@@ -339,6 +387,7 @@ def procesar_solicitud(
             latencia_s=latencia_s,
             resultado=RESULTADO_PRESUPUESTO_AGOTADO,
             error=MENSAJE_PRESUPUESTO_AGOTADO,
+            procedencia=procedencia,
         )
     except Exception:
         latencia_s = round(time.perf_counter() - inicio, 6)
@@ -351,6 +400,7 @@ def procesar_solicitud(
             latencia_s=latencia_s,
             resultado="error_generacion",
             error="Falló la generación del borrador",
+            procedencia=procedencia,
         )
     latencia_s = round(time.perf_counter() - inicio, 6)
     contenido = contenido_generado.strip() if isinstance(contenido_generado, str) else ""
@@ -364,6 +414,7 @@ def procesar_solicitud(
             latencia_s=latencia_s,
             resultado="salida_vacia",
             error="El generador devolvió contenido vacío",
+            procedencia=procedencia,
         )
     validation_errors = _validar_salida(contenido, fila)
     if validation_errors:
@@ -377,6 +428,7 @@ def procesar_solicitud(
             resultado="salida_no_conforme",
             error="La salida generada no cumple el contrato mínimo",
             validation_errors=validation_errors,
+            procedencia=procedencia,
         )
 
     # El artefacto durable es el correo en forma FIE Informa, no la ficha:
@@ -397,11 +449,17 @@ def procesar_solicitud(
             resultado="salida_no_conforme",
             error="La salida generada no cumple el contrato mínimo",
             validation_errors=errores_render,
+            procedencia=procedencia,
         )
 
-    # La marca se antepone recién acá, después de que la salida pasó el
-    # contrato: nada que no haya sido validado llega a tener forma de borrador.
-    borrador = f"{BORRADOR_MARKER}{contenido_mail}\n"
+    # La marca y la procedencia se anteponen recién acá, después de que la
+    # salida pasó el contrato: nada que no haya sido validado llega a tener
+    # forma de borrador. La línea de procedencia queda entre la marca y la
+    # pieza, como metadato visible del documento: no forma parte del correo
+    # que una persona copiaría para difundir.
+    borrador = (
+        f"{BORRADOR_MARKER}{_bloque_procedencia(procedencia)}{contenido_mail}\n"
+    )
     destino_efectivo = destino or MarkdownDestinoBorradores(directorio_salida)
     try:
         referencia_borrador = destino_efectivo.guardar(id_solicitud, borrador)
@@ -417,6 +475,7 @@ def procesar_solicitud(
             borrador=borrador,
             destination_error_code=error_destino.code,
             reconciliation_ref_hash=error_destino.reconciliation_ref_hash,
+            procedencia=procedencia,
         )
     except Exception:
         return _resultado_destino_fallido(
@@ -428,30 +487,34 @@ def procesar_solicitud(
             borrador=borrador,
             destination_error_code="destination_unavailable",
             reconciliation_ref_hash=None,
+            procedencia=procedencia,
         )
 
     log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
     _registrar(
         log_path,
-        {
-            "correlation_id": correlation_id,
-            "id_solicitud": id_solicitud,
-            "HU": HU,
-            "contract_version": CONTRACT_VERSION,
-            "modelo": generator.modelo,
-            "num_predict": _num_predict(generator),
-            "prompt_version": PROMPT_VERSION,
-            "renderer_version": RENDERER_VERSION,
-            "latencia_s": latencia_s,
-            "estado": "PENDIENTE_VALIDACION",
-            "resultado": "borrador_generado",
-            "error": None,
-            "input_hash": _hash_json(fila),
-            "output_hash": _hash_texto(borrador),
-            "destination_type": referencia_borrador.tipo,
-            "borrador_ref_hash": _hash_texto(referencia_borrador.referencia),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        },
+        _con_procedencia(
+            {
+                "correlation_id": correlation_id,
+                "id_solicitud": id_solicitud,
+                "HU": HU,
+                "contract_version": CONTRACT_VERSION,
+                "modelo": generator.modelo,
+                "num_predict": _num_predict(generator),
+                "prompt_version": PROMPT_VERSION,
+                "renderer_version": RENDERER_VERSION,
+                "latencia_s": latencia_s,
+                "estado": "PENDIENTE_VALIDACION",
+                "resultado": "borrador_generado",
+                "error": None,
+                "input_hash": _hash_json(fila),
+                "output_hash": _hash_texto(borrador),
+                "destination_type": referencia_borrador.tipo,
+                "borrador_ref_hash": _hash_texto(referencia_borrador.referencia),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+            procedencia,
+        ),
     )
     return ResultadoProceso(
         estado="PENDIENTE_VALIDACION",
@@ -470,6 +533,49 @@ def _validar_id_solicitud(id_solicitud: str) -> None:
         )
 
 
+def _con_procedencia(
+    registro: dict[str, object], procedencia: ProcedenciaInsumo | None
+) -> dict[str, object]:
+    """Suma el bloque `procedencia` a la línea de auditoría cuando aplica.
+
+    Sólo entran identificadores opacos y vocabulario cerrado del envelope:
+    `insumo_correlation_id` y `cargado_por` enlazan la ejecución con la fila
+    de la pestaña sin copiar ningún dato del insumo.
+    """
+
+    if procedencia is not None:
+        registro["procedencia"] = {
+            "origen": "insumo_agente",
+            "producer": procedencia.producer,
+            "payload_type": procedencia.payload_type,
+            "data_origin": procedencia.data_origin,
+            "productor_provisional": procedencia.productor_provisional,
+            "insumo_correlation_id": procedencia.insumo_correlation_id,
+            "cargado_por": procedencia.cargado_por,
+        }
+    return registro
+
+
+def _bloque_procedencia(procedencia: ProcedenciaInsumo | None) -> str:
+    """Línea visible de procedencia, entre la marca de borrador y la pieza.
+
+    Es lo que lee quien revisa el documento: el origen del insumo, si lo
+    cargó un productor provisional declarado y las claves opacas que lo
+    vinculan con la fila de la pestaña y con la línea de auditoría.
+    """
+
+    if procedencia is None:
+        return ""
+    provisional = "sí" if procedencia.productor_provisional else "no"
+    return (
+        f"[Procedencia: insumo de {procedencia.producer}, "
+        f"tipo {procedencia.payload_type}; "
+        f"productor provisional: {provisional}; "
+        f"cargado_por: {procedencia.cargado_por}; "
+        f"correlation_id: {procedencia.insumo_correlation_id}.]\n\n"
+    )
+
+
 def _resultado_fallido(
     *,
     fila: dict[str, str],
@@ -481,27 +587,28 @@ def _resultado_fallido(
     resultado: str,
     error: str,
     validation_errors: list[str] | None = None,
+    procedencia: ProcedenciaInsumo | None = None,
 ) -> ResultadoProceso:
     log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
     registro: dict[str, object] = {
-            "correlation_id": correlation_id,
-            "id_solicitud": id_solicitud,
-            "HU": HU,
-            "contract_version": CONTRACT_VERSION,
-            "modelo": generator.modelo,
-            "num_predict": _num_predict(generator),
-            "prompt_version": PROMPT_VERSION,
-            "latencia_s": latencia_s,
-            "estado": "FALLIDA",
-            "resultado": resultado,
-            "error": error,
-            "input_hash": _hash_json(fila),
-            "output_hash": None,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+        "correlation_id": correlation_id,
+        "id_solicitud": id_solicitud,
+        "HU": HU,
+        "contract_version": CONTRACT_VERSION,
+        "modelo": generator.modelo,
+        "num_predict": _num_predict(generator),
+        "prompt_version": PROMPT_VERSION,
+        "latencia_s": latencia_s,
+        "estado": "FALLIDA",
+        "resultado": resultado,
+        "error": error,
+        "input_hash": _hash_json(fila),
+        "output_hash": None,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
     if validation_errors is not None:
         registro["validation_errors"] = validation_errors
-    _registrar(log_path, registro)
+    _registrar(log_path, _con_procedencia(registro, procedencia))
     return ResultadoProceso(
         estado="FALLIDA",
         borrador_path=None,
@@ -522,6 +629,7 @@ def _resultado_fuente_fallida(
     correlation_id: str,
     latencia_s: float,
     source_error_code: str,
+    procedencia: ProcedenciaInsumo | None = None,
 ) -> ResultadoProceso:
     if source_error_code not in SOURCE_ERROR_CODES:
         source_error_code = "source_unavailable"
@@ -543,30 +651,35 @@ def _resultado_fuente_fallida(
     log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
     _registrar(
         log_path,
-        {
-            "correlation_id": correlation_id,
-            # Cuando la fuente falla no se pudo confirmar que el id
-            # corresponda a una solicitud real, así que se registra su hash en
-            # vez del valor: un id inválido puede venir de afuera y no debe
-            # quedar escrito literal en la auditoría.
-            "id_solicitud": None,
-            "id_solicitud_hash": (
-                _hash_texto(id_solicitud) if isinstance(id_solicitud, str) else None
-            ),
-            "HU": HU,
-            "contract_version": CONTRACT_VERSION,
-            "modelo": generator.modelo,
-            "num_predict": _num_predict(generator),
-            "prompt_version": PROMPT_VERSION,
-            "latencia_s": latencia_s,
-            "estado": estado,
-            "resultado": resultado,
-            "error": error,
-            "source_error_code": source_error_code,
-            "input_hash": None,
-            "output_hash": None,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        },
+        _con_procedencia(
+            {
+                "correlation_id": correlation_id,
+                # Cuando la fuente falla no se pudo confirmar que el id
+                # corresponda a una solicitud real, así que se registra su hash
+                # en vez del valor: un id inválido puede venir de afuera y no
+                # debe quedar escrito literal en la auditoría.
+                "id_solicitud": None,
+                "id_solicitud_hash": (
+                    _hash_texto(id_solicitud)
+                    if isinstance(id_solicitud, str)
+                    else None
+                ),
+                "HU": HU,
+                "contract_version": CONTRACT_VERSION,
+                "modelo": generator.modelo,
+                "num_predict": _num_predict(generator),
+                "prompt_version": PROMPT_VERSION,
+                "latencia_s": latencia_s,
+                "estado": estado,
+                "resultado": resultado,
+                "error": error,
+                "source_error_code": source_error_code,
+                "input_hash": None,
+                "output_hash": None,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+            procedencia,
+        ),
     )
     return ResultadoProceso(
         estado=estado,
@@ -587,6 +700,7 @@ def _resultado_destino_fallido(
     borrador: str,
     destination_error_code: str,
     reconciliation_ref_hash: str | None,
+    procedencia: ProcedenciaInsumo | None = None,
 ) -> ResultadoProceso:
     if destination_error_code not in DESTINATION_ERROR_CODES:
         destination_error_code = "destination_unavailable"
@@ -612,7 +726,7 @@ def _resultado_destino_fallido(
     }
     if reconciliation_ref_hash is not None:
         registro["reconciliation_ref_hash"] = reconciliation_ref_hash
-    _registrar(log_path, registro)
+    _registrar(log_path, _con_procedencia(registro, procedencia))
     return ResultadoProceso(
         estado="FALLIDA",
         borrador_path=None,

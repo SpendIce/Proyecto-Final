@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:candidate:a3-evento-gacetilla-v1",
+  "title": "Contenido candidato del insumo A3 tipo evento para la gacetilla HU-010",
+  "description": "Contrato técnico candidato del payload.content de un insumo de A3 con type evento, consumido por el flujo FlujoEventoGacetilla hacia el pipeline de gacetilla HU-010. No representa un acuerdo institucional con el productor A3. Las propiedades siguen los nombres de COLUMNAS_ACTIVIDADES_V2 sin id_actividad, que la corrida deriva del correlation_id del envelope; required declara lo que una gacetilla exige, alineado con el required de gacetilla_input_v2 menos el identificador derivado.",
+  "x-contract-version": "a3_evento_gacetilla_v1",
+  "x-status": "CANDIDATO_NO_INSTITUCIONAL",
+  "x-issue": "#83",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "titulo",
+    "descripcion",
+    "fecha_inicio",
+    "publico",
+    "organiza",
+    "contacto",
+    "fuente"
+  ],
+  "properties": {
+    "titulo": {"type": "string", "minLength": 1},
+    "descripcion": {"type": "string", "minLength": 1},
+    "fecha_inicio": {"type": "string", "minLength": 1},
+    "fecha_fin": {
+      "type": "string",
+      "description": "Campo opcional; vacío o ausente significa no informado.",
+      "x-required": false
+    },
+    "fecha_limite_inscripcion": {
+      "type": "string",
+      "description": "Campo opcional; vacío o ausente significa no informado.",
+      "x-required": false
+    },
+    "hora": {
+      "type": "string",
+      "description": "Campo opcional; vacío o ausente significa no informado.",
+      "x-required": false
+    },
+    "modalidad": {
+      "type": "string",
+      "description": "Campo opcional; vacío o ausente significa no informado.",
+      "x-required": false
+    },
+    "duracion_horas": {
+      "type": "string",
+      "description": "Campo opcional; vacío o ausente significa no informado.",
+      "x-required": false
+    },
+    "publico": {"type": "string", "minLength": 1},
+    "organiza": {"type": "string", "minLength": 1},
+    "contacto": {"type": "string", "minLength": 1},
+    "fuente": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Referencia al documento/informe vigente del evento; procedencia por actividad, igual que en la planilla."
+    },
+    "enlace_inscripcion": {
+      "type": "string",
+      "description": "Campo opcional; vacío o ausente significa no informado.",
+      "x-required": false
+    },
+    "lugar": {
+      "type": "string",
+      "description": "Campo opcional; vacío o ausente significa no informado.",
+      "x-required": false
+    }
+  }
+}
