@@ -26,9 +26,9 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `data/actividades_sinteticas.csv`: dataset ficticio de cinco filas; incluye tres casos completos, dos incompletos y lugares opcionales ausentes.
 - `src/agente1/contracts/gacetilla_input_v1.schema.json`: contrato técnico versionado de los campos actuales, marcado `PROVISIONAL_NO_INSTITUCIONAL`.
 - `src/agente1/prompts/gacetilla_v3.txt`: prompt versionado con estructura fija, límites y ejemplo sintético; también está marcado como provisional. La línea `Lugar:` se decide por caso antes de armar el prompt, en la estructura y en el ejemplo: v2 la mostraba siempre con la excepción escrita adentro del placeholder, y el modelo la copiaba sin valor para las filas sin lugar, lo que el gate rechazaba como `data_structure`. Ver `DEF-A1-014` y `evidencias/correccion-gacetillas-lugar-ausente-2026-09-08.md`. `gacetilla_v2.txt` se conserva versionado como plantilla histórica.
-- `src/agente1/interpretacion.py`: seam de HU-013. Convierte una solicitud en lenguaje natural en una intención del catálogo cerrado, resuelve a qué actividad se refiere y despacha a los pipelines de gacetilla y de post. Incluye la repregunta con candidatas, el estado entre turnos y el fallback con modelo local.
-- `src/agente1/contracts/intenciones_v1.schema.json`: catálogo cerrado de intenciones, versionado y `PROVISIONAL_NO_INSTITUCIONAL`.
-- `src/agente1/contracts/interpretacion_fallback_v1.schema.json` y `src/agente1/prompts/interpretacion_fallback_v1.txt`: única salida admitida del modelo en el fallback de interpretación —una intención del catálogo más términos de búsqueda— y el prompt que la pide. El presupuesto de decodificación se deriva de ese contrato.
+- `src/agente1/interpretacion.py`: seam de HU-013. Convierte una solicitud en lenguaje natural en una intención del catálogo cerrado, resuelve a qué actividad se refiere y despacha a los pipelines de gacetilla, de post y de emisión de certificados. Incluye la repregunta con candidatas, el estado entre turnos y el fallback con modelo local.
+- `src/agente1/contracts/intenciones_v2.schema.json`: catálogo cerrado de intenciones, versionado y `PROVISIONAL_NO_INSTITUCIONAL`; agrega `emitir_certificados` (HU-014, #75) sobre `intenciones_v1`, que se conserva como histórica.
+- `src/agente1/contracts/interpretacion_fallback_v2.schema.json` y `src/agente1/prompts/interpretacion_fallback_v2.txt`: única salida admitida del modelo en el fallback de interpretación —una intención del catálogo v2 más términos de búsqueda— y el prompt que la pide. El presupuesto de decodificación se deriva de ese contrato. La pareja v1 se conserva versionada como histórica.
 - `src/agente1/canal.py` y `src/agente1/canal_planilla.py`: puerto del canal de interacción, con fake en memoria y adapter de planilla offline. Viven por encima del seam: el núcleo no sabe nada de transporte.
 - `data/frases_resolucion_actividad.csv`: corpus versionado de frases realistas con tipeos y títulos parciales, calibrado para que todas resuelvan sin inferencia.
 - `data/frases_ambiguas_fallback.csv`: corpus deliberadamente **no** calibrado, para medir cuánta cobertura da realmente el camino determinístico. Ver `scripts/medir_cobertura_sin_inferencia.py`.
@@ -49,7 +49,9 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `src/agente1/persistencia.py` y `migrations/`: puerto en memoria y SQL del spike PostgreSQL, ya ejecutado contra un contenedor efímero.
 - `src/agente1/confirmaciones.py`: lifecycle por envío de HU-012 con entrega al fake o al adapter Gmail con lista de prueba (D12); rechaza con `notification_mode_mismatch` los tipos cuyo modo de circuito no es `por_envio`.
 - `src/agente1/certificados.py`: lifecycle offline de HU-014 con generación de PDF determinista (stdlib, sin dependencias nuevas) y emisión únicamente fake; reusa el circuito de doble aprobación y el registro durable de HU-012. Desde `certificado_emision_v2` (#74) la solicitud puede traer la línea descriptiva de la actividad y las variables del registro (`id_actividad`, `modalidad`, `carga_horaria`), y la emisión con línea exige las precondiciones del Form de decisiones.
-- `src/agente1/linea_descriptiva.py` y `src/agente1/prompts/linea_descriptiva_v1.txt`: pipeline de la línea descriptiva del certificado (#74): generación con campos acotados de la fila, gates deterministas, derivación del objeto de decisión `linea_descriptiva-<id_actividad>-<hash>` y verificación de las dos aprobaciones por actividad más la `apruebo_lote` del lote de cierre.
+- `src/agente1/linea_descriptiva.py` y `src/agente1/prompts/linea_descriptiva_v1.txt`: pipeline de la línea descriptiva del certificado (#74): generación con campos acotados de la fila, gates deterministas, derivación del objeto de decisión `linea_descriptiva-<id_actividad>-<hash>` y verificación de las dos aprobaciones por actividad más la `apruebo_lote` del lote de cierre. Es la fuente única del objeto y de las aprobaciones: `certificados_emision` consume sus funciones.
+- `src/agente1/certificados_emision.py`: circuito de emisión del lote de certificados sobre la lista de cierre (#75): validación entera de la lista, aprobaciones por el Form de decisiones (línea descriptiva #74 y lote atado al hash de la lista), PDF por titular con marca `DOCUMENTO DE PRUEBA — SIN VALIDEZ` y entrega por Gmail con lista de prueba. Sin red en offline (`DestinoCorreoArchivo` guarda sólo metadatos del adjunto).
+- `scripts/emitir_certificados.py`: runner de la emisión, offline por defecto y live con doble opt-in; ver `evidencias/recorrido-emision-certificados-hu014.md`.
 - `scripts/matriz_hu014.py`: matriz reproducible de HU-014, con emisión simulada, reconciliación de reservas colgadas y el circuito completo de la línea descriptiva (`matriz_conformidad_hu014_v2`).
 - `src/agente1/politicas/politica_redes_provisional_v1.json` y `src/agente1/politica_redes.py`: política de redes de HU-011 como inventario de reglas verificables, con sus parámetros por canal y el estado de cada regla (`ACTIVA`, `NO_APLICADA_PENDIENTE_SEU`, `NO_MECANIZABLE`).
 - `src/agente1/contracts/matriz_origenes_inscripcion_v1.json` y `src/agente1/origenes_inscripcion.py`: matriz operativa de HU-012 por origen de inscripción y decisión de envío fail-closed; ningún origen habilita envío.
@@ -95,6 +97,10 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué la línea descriptiva se aprueba una vez por actividad y no por certificado | `src/agente1/linea_descriptiva.py`, docstring de módulo y `declarar_linea_pendiente` |
 | Por qué el objeto de la línea usa guiones y no `:` | `linea_descriptiva.py`, docstring de módulo y `objeto_id_linea_descriptiva` |
 | Por qué el prompt de la línea no recibe fecha, carga ni modalidad | `linea_descriptiva.py`, comentario de `CAMPOS_PROMPT` |
+| Por qué el lote de certificados se aprueba contra el hash de la lista y no contra la actividad | `src/agente1/certificados_emision.py`, docstring de módulo y `objeto_lote_cierre` |
+| Por qué una fila inválida bloquea el lote entero en lugar de saltarla | `certificados_emision.py`, `parsear_lista_cierre` |
+| Por qué quien cargó la lista no puede aprobarla | `certificados_emision.py`, `revisar_aprobacion_lote` |
+| Por qué un adjunto de Gmail no agrega ningún endpoint nuevo | `src/agente1/gmail_envio.py`, docstring de `AdjuntoCorreo` y `entregar` |
 | Por qué no se borra nada, sólo se marca | `persistencia.py`, `eliminar_logicamente_anteriores` |
 | Qué prueba y qué no prueba la auditoría de seguridad | `src/agente1/auditoria_d2.py`, `auditar_manifest` |
 | Por qué los límites de redes son provisionales | `src/agente1/politica_redes.py`, docstring de módulo (DEF-A1-007) |
@@ -675,6 +681,70 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
 La plantilla institucional, la firma digital y el destino de emisión real
 quedan `PENDIENTE_SEU`. Consultar `evidencias/limites-hu014-offline.md`; no
 hay emisión institucional, validación SEU ni evidencia de TRL 3.
+
+## HU-014 — emisión del lote con lista de cierre (#75)
+
+`certificados_emision.py` corre la otra mitad de HU-014: la emisión del lote
+completo de certificados de una actividad sobre su **lista de cierre** —la
+Sheet D2 que carga quien gestiona el curso—, con el disparo en un pedido del
+canal («emití los certificados de `<actividad>`», intención
+`emitir_certificados` del catálogo `intenciones_v2`). No hay trigger por
+cambio de estado: eso es HU-015 y queda fuera de alcance.
+
+El circuito, en orden y todo fail-closed:
+
+1. **La actividad da los datos institucionales** (título, carga horaria,
+   modalidad, fechas, organización) desde `FuenteSolicitudes`; nada sale del
+   texto del pedido ni de la lista.
+2. **La lista se valida entera.** Seis columnas posicionales
+   (`nombre,apellido,dni,mail,tratamiento,condicion`), `condicion` cerrada en
+   `asistencia`/`aprobacion` sin inferencias, sin duplicados de DNI ni mail.
+   Una fila mala bloquea el lote (`INVALIDA`), no salta.
+3. **La línea descriptiva tiene que estar aprobada** por los dos roles sobre
+   el objeto `linea_descriptiva:<id>:<hash>` (#74), por el mismo Form de
+   decisiones de #72.
+4. **El lote lo aprueba el rol utilitario** con `apruebo_lote` sobre
+   `sha256("lote_cierre_certificados|<id>|<hash_lista>")`: cualquier edición
+   de la lista cambia el objeto y la aprobación anterior no aplica. Quien
+   cargó la lista no puede aprobarla. Mientras falta, el lote queda
+   `PENDIENTE_APROBACION` y sale el correo al aprobador con el enlace al
+   Form y un **PDF de muestra marcado `BORRADOR — NO EMITIR`** adjunto.
+5. **La entrega es un correo por titular con el PDF adjunto** por
+   `gmail.send` cercado por la lista de prueba (un destinatario fuera de
+   ella rechaza antes del token y de la red, sin reintento). Resultados:
+   `EMITIDA`, `EMITIDA_PARCIAL`, `FALLIDA`, `INVALIDA` o
+   `PENDIENTE_APROBACION`.
+6. **Marcas permanentes y retención mínima.** Todo PDF lleva
+   `DOCUMENTO DE PRUEBA — SIN VALIDEZ` como primera línea mientras rija la
+   lista sintética. La auditoría `emisiones-certificados-hu014.jsonl` guarda
+   sólo hashes (solicitante, lista, titular, destinatario, PDF): ni la lista
+   ni los PDFs se persisten. La reemisión es un pedido nuevo sobre la lista
+   vigente.
+
+El despacho se hace por un callable inyectado (`emisor_certificados`): sin
+medio configurado el pedido termina `emisor_no_configurado`, nunca otra
+intención. Los runners son `scripts/emitir_certificados.py` (disparo manual)
+y el wiring de `scripts/atender_canal_form.py` (pedido del Form):
+
+```bash
+PYTHONPATH=src python scripts/emitir_certificados.py \
+  --actividad SYN-001 --lista-csv lista.csv --linea linea.txt \
+  --aprobador coord@example.invalid --solicitante aux@example.invalid \
+  --directorio /tmp/demo-certificados
+```
+
+En offline la lista es un CSV, la línea un archivo externo y las entregas
+quedan en `entregas-certificados-offline.jsonl` (del adjunto, sólo sha256).
+En live hacen falta `--live --confirm-write-workspace` y el entorno:
+`AGENTE1_CERTIFICADOS_LISTA_SHEET_ID`, `…_LISTA_RANGO_A1`, `…_LINEA_PATH`,
+`…_APROBADOR`, `…_SOLICITANTE`, además de las variables Workspace, Form de
+decisiones, padrón y lista de prueba de siempre. La receta completa —offline
+y live— está en `evidencias/recorrido-emision-certificados-hu014.md`.
+
+El ambiente D2 previsto para la corrida live es el del hilo de demostración
+NotebookLM Nivel 2. No hay firma digital ni imágenes de firma en el repo
+(`PENDIENTE_SEU`, carpeta D2 restringida cuando la SEU las entregue), ni
+emisión sin las aprobaciones, ni destinatarios fuera de la lista de prueba.
 
 ## Operaciones seguras D2/D3
 

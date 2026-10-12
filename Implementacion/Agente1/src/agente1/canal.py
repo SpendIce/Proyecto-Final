@@ -141,6 +141,7 @@ def atender_canal(
     destino: DestinoBorradores | None = None,
     registro_pendientes: RegistroPendientes | None = None,
     reloj: Callable[[], datetime] | None = None,
+    emisor_certificados: Callable[..., object] | None = None,
 ) -> tuple[ResultadoInterpretacion, ...]:
     """Bucle delgado de lectura y respuesta. Sin lógica de interpretación.
 
@@ -157,7 +158,8 @@ def atender_canal(
     siguiente de una misma persona pueda resolver una repregunta, quien
     invoque el bucle tiene que pasar la misma instancia de
     `registro_pendientes` en cada llamada — el estado vive en el puerto, no
-    en `atender_canal`.
+    en `atender_canal`. `emisor_certificados` (#75) se reenvía igual: el
+    bucle no sabe qué es una lista de cierre.
     """
 
     resultados: list[ResultadoInterpretacion] = []
@@ -171,6 +173,7 @@ def atender_canal(
             destino=destino,
             registro_pendientes=registro_pendientes,
             reloj=reloj,
+            emisor_certificados=emisor_certificados,
         )
         canal.responder(pedido, resultado)
         resultados.append(resultado)

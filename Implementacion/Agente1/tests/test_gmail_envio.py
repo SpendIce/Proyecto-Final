@@ -29,6 +29,7 @@ from agente1.confirmaciones import (
     procesar_confirmacion,
 )
 from agente1.gmail_envio import (
+    AdjuntoCorreo,
     DESTINATARIOS_PRUEBA_ENV,
     GMAIL_HOST,
     GMAIL_SEND_TARGET,
@@ -658,3 +659,93 @@ def test_auditoria_gmail_no_expone_destinatario_ni_token(tmp_path: Path):
         assert sensible not in texto
     # La llamada sale por el transporte fake: nunca hubo red en la prueba.
     assert len(transporte.solicitudes) == 1
+
+
+# --- Adjunto acotado (#75) ----------------------------------------------------
+# Un correo puede llevar a lo sumo un adjunto `AdjuntoCorreo`: el PDF del
+# certificado al titular y el PDF de muestra al correo de aprobación del
+# lote. La validación corre entera antes del token y de la red, igual que la
+# lista de prueba, y el endpoint declarado sigue siendo `messages/send`.
+
+PDF_SINTETICO = b"%PDF-1.4\ncontenido sintetico\n%%EOF\n"
+
+
+def test_envio_con_adjunto_pdf_mime_multipart():
+    destino, transporte, _ = crear_destino(
+        [RespuestaHttp(200, b'{"id":"m1"}')]
+    )
+
+    destino.entregar(
+        idempotency_key="a" * 64,
+        destinatario="ana.perez@example.test",
+        asunto="[Agente 1] Certificado",
+        cuerpo=CUERPO_BORRADOR,
+        adjunto=AdjuntoCorreo(
+            nombre="cert-001.pdf", contenido=PDF_SINTETICO
+        ),
+    )
+
+    assert len(transporte.solicitudes) == 1
+    mensaje = mensaje_de(transporte.solicitudes[0])
+    assert mensaje.is_multipart()
+    partes = list(mensaje.iter_parts())
+    assert len(partes) == 2
+    assert partes[0].get_content_type() == "text/plain"
+    adjunto = partes[1]
+    assert adjunto.get_content_type() == "application/pdf"
+    assert adjunto.get_filename() == "cert-001.pdf"
+    assert adjunto.get_payload(decode=True) == PDF_SINTETICO
+    # El endpoint y el método no cambian: el adjunto va dentro del `raw`.
+    assert transporte.solicitudes[0]["target"] == GMAIL_SEND_TARGET
+
+
+@pytest.mark.parametrize(
+    "adjunto",
+    [
+        # Nombre inseguro para la cabecera filename.
+        AdjuntoCorreo(nombre="cert?.pdf", contenido=PDF_SINTETICO),
+        AdjuntoCorreo(nombre="cert\nBcc: x@y.test.pdf", contenido=PDF_SINTETICO),
+        AdjuntoCorreo(nombre="carpeta/cert.pdf", contenido=PDF_SINTETICO),
+        AdjuntoCorreo(nombre="", contenido=PDF_SINTETICO),
+        # Contenido vacío o desbocado.
+        AdjuntoCorreo(nombre="cert.pdf", contenido=b""),
+        AdjuntoCorreo(nombre="cert.pdf", contenido=b"x" * (5 * 1024 * 1024 + 1)),
+        # Tipo fuera del allowlist (hoy sólo PDF).
+        AdjuntoCorreo(
+            nombre="cert.txt", contenido=PDF_SINTETICO, tipo_mime="text/plain"
+        ),
+        # Ni siquiera un AdjuntoCorreo.
+        "cert.pdf",
+        ("cert.pdf", PDF_SINTETICO),
+    ],
+)
+def test_adjunto_invalido_se_rechaza_antes_de_la_red(adjunto):
+    destino, transporte, tokens = crear_destino([])
+
+    with pytest.raises(EntregaRechazadaError) as error:
+        destino.entregar(
+            idempotency_key="a" * 64,
+            destinatario="ana.perez@example.test",
+            asunto="asunto",
+            cuerpo=CUERPO_BORRADOR,
+            adjunto=adjunto,
+        )
+
+    assert error.value.code == "attachment_contract_invalid"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
+def test_correo_sin_adjunto_no_cambia():
+    """Regresión: sin `adjunto` el mensaje sigue siendo texto plano."""
+
+    destino, transporte, _ = crear_destino([RespuestaHttp(200, b'{"id":"m1"}')])
+    destino.entregar(
+        idempotency_key="a" * 64,
+        destinatario="ana.perez@example.test",
+        asunto="asunto",
+        cuerpo=CUERPO_BORRADOR,
+    )
+    mensaje = mensaje_de(transporte.solicitudes[0])
+    assert not mensaje.is_multipart()
+    assert mensaje.get_content_type() == "text/plain"

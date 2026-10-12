@@ -42,12 +42,23 @@ Decisiones que no se ven en el código:
   sin marca levanta `EntregaRechazadaError`, que el circuito distingue de una
   falla del medio: el registro queda `FALLIDA` de una vez, sin gastar
   intentos contra una decisión que no cambia.
+- **Un correo puede llevar a lo sumo un adjunto acotado (#75).** La emisión
+  de certificados de HU-014 adjunta el PDF al titular y el PDF de muestra al
+  correo de aprobación del lote. El adjunto viaja como `AdjuntoCorreo` y se
+  valida por completo antes de tocar el token o la red: nombre seguro para
+  cabecera, contenido no vacío dentro de un tope fijo y tipo MIME del
+  allowlist (hoy sólo `application/pdf`). Un adjunto inválido es un rechazo
+  de política, no una falla del medio: `EntregaRechazadaError`, sin
+  reintento. El endpoint declarado no cambia: el adjunto va dentro del
+  mismo `raw` del `messages/send`, así que la auditoría D2 sigue viendo la
+  misma ruta y el mismo método.
 """
 
 from __future__ import annotations
 
 import base64
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from email.message import EmailMessage
 from email import policy
 import json
@@ -93,6 +104,31 @@ MAX_DESTINATARIOS_PRUEBA = 100
 
 _CLAVE_IDEMPOTENCIA_RE = re.compile(r"[0-9a-f]{64}\Z")
 _GMAIL_MESSAGE_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,256}\Z")
+
+# Contrato del adjunto (#75): nombre seguro para cabecera `filename` (sin
+# separadores de ruta ni bytes de control, así un nombre armado con datos de
+# una planilla no puede inyectar cabeceras), tope de tamaño y allowlist de
+# tipo MIME. El tope queda muy por debajo del límite de `messages/send` y
+# alcanza de sobra para un PDF de una página.
+NOMBRE_ADJUNTO_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,198}\Z")
+MAX_ADJUNTO_BYTES = 5 * 1024 * 1024
+MIME_TYPES_ADJUNTO = frozenset({"application/pdf"})
+
+
+@dataclass(frozen=True)
+class AdjuntoCorreo:
+    """Un adjunto de un correo, ya validado en forma pero sin enviar.
+
+    `nombre` es el `filename` del MIME: tiene que ser seguro para cabecera.
+    `contenido` son los bytes crudos y `tipo_mime` pertenece al allowlist.
+    La validación completa la hace `entregar` antes de cualquier llamada de
+    red, igual que la lista de prueba: el dataclass existe para que el
+    adjunto sea un dato explícito del contrato, no un tuple suelto.
+    """
+
+    nombre: str
+    contenido: bytes
+    tipo_mime: str = "application/pdf"
 
 
 class GmailEnvioError(RuntimeError):
@@ -171,13 +207,16 @@ class GmailDestinoConfirmaciones:
         destinatario: str,
         asunto: str,
         cuerpo: str,
+        adjunto: AdjuntoCorreo | None = None,
     ) -> None:
         """Envía el correo. Rechaza antes de tocar el token o la red.
 
-        Tres controles, todos anteriores a cualquier llamada: el destinatario
-        tiene que estar en la lista de prueba, los campos que viajan en
-        cabeceras no pueden llevar saltos de línea y el cuerpo tiene que
-        conservar la marca de borrador. Cada rechazo es
+        Cuatro controles, todos anteriores a cualquier llamada: el
+        destinatario tiene que estar en la lista de prueba, los campos que
+        viajan en cabeceras no pueden llevar saltos de línea, el cuerpo
+        tiene que conservar la marca de borrador y el adjunto, cuando viene,
+        tiene que cumplir el contrato de `AdjuntoCorreo` (nombre seguro,
+        contenido dentro del tope, MIME del allowlist). Cada rechazo es
         `EntregaRechazadaError`: una prohibición de política, no una falla
         del medio, así que el circuito la deja `FALLIDA` sin reintentos.
         """
@@ -199,6 +238,8 @@ class GmailDestinoConfirmaciones:
             raise EntregaRechazadaError("message_contract_invalid")
         if not cuerpo.startswith(MARCADOR_BORRADOR):
             raise EntregaRechazadaError("draft_marker_missing")
+        if adjunto is not None and not _adjunto_valido(adjunto):
+            raise EntregaRechazadaError("attachment_contract_invalid")
 
         token = self._obtener_token()
         raw = _codificar_mensaje(
@@ -206,6 +247,7 @@ class GmailDestinoConfirmaciones:
             destinatario=destinatario.strip().lower(),
             asunto=asunto,
             cuerpo=cuerpo,
+            adjunto=adjunto,
         )
         body = json.dumps(
             {"raw": raw}, ensure_ascii=False, separators=(",", ":")
@@ -302,12 +344,27 @@ def _validar_lista_prueba(direcciones: Iterable[object]) -> frozenset[str]:
     return frozenset(normalizadas)
 
 
+def _adjunto_valido(adjunto: object) -> bool:
+    """El adjunto cumple el contrato: nombre seguro, contenido acotado, MIME
+    del allowlist. Se corre entero antes de cualquier llamada de red."""
+
+    return (
+        isinstance(adjunto, AdjuntoCorreo)
+        and isinstance(adjunto.nombre, str)
+        and NOMBRE_ADJUNTO_RE.fullmatch(adjunto.nombre) is not None
+        and isinstance(adjunto.contenido, bytes)
+        and 0 < len(adjunto.contenido) <= MAX_ADJUNTO_BYTES
+        and adjunto.tipo_mime in MIME_TYPES_ADJUNTO
+    )
+
+
 def _codificar_mensaje(
     *,
     idempotency_key: str,
     destinatario: str,
     asunto: str,
     cuerpo: str,
+    adjunto: AdjuntoCorreo | None = None,
 ) -> str:
     """Arma el RFC 822 y lo devuelve en base64url, el formato de `gmail.send`.
 
@@ -321,6 +378,9 @@ def _codificar_mensaje(
     lista de prueba rija la entrega, el mensaje se declara «NO PUBLICAR»
     además de «NO ENVIAR». Si el texto ya viniera con la marca (un pipeline
     que la escribe antes) no se duplica.
+
+    El adjunto, cuando viene, se agrega como una parte MIME más del mismo
+    mensaje: el endpoint y el método del envío no cambian.
     """
 
     cuerpo_marcado = (
@@ -333,6 +393,14 @@ def _codificar_mensaje(
     mensaje["Subject"] = asunto
     mensaje["X-Agente1-Idempotency-Key"] = idempotency_key
     mensaje.set_content(cuerpo_marcado, charset="utf-8")
+    if adjunto is not None:
+        maintype, _, subtype = adjunto.tipo_mime.partition("/")
+        mensaje.add_attachment(
+            adjunto.contenido,
+            maintype=maintype,
+            subtype=subtype,
+            filename=adjunto.nombre,
+        )
     return base64.urlsafe_b64encode(mensaje.as_bytes()).decode("ascii")
 
 

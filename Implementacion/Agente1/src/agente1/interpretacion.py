@@ -124,11 +124,11 @@ from .procesamiento import Generator, procesar_solicitud
 
 
 HU = "HU-013"
-CONTRACT_VERSION = "intenciones_v1"
+CONTRACT_VERSION = "intenciones_v2"
 
 CATALOGO_INTENCIONES = json.loads(
     files("agente1")
-    .joinpath("contracts", "intenciones_v1.schema.json")
+    .joinpath("contracts", "intenciones_v2.schema.json")
     .read_text(encoding="utf-8")
 )
 INTENCIONES = tuple(CATALOGO_INTENCIONES["intenciones"])
@@ -149,24 +149,26 @@ ROLES_HABILITADOS = frozenset(
 # para documentar la intención, pero quien decide en tiempo de ejecución —y
 # quien exige que exista un caso de prueba, ver `test_interpretacion.py`— es
 # este conjunto.
-INTENCIONES_CON_DESPACHO = frozenset({"generar_gacetilla", "generar_post"})
+INTENCIONES_CON_DESPACHO = frozenset(
+    {"generar_gacetilla", "generar_post", "emitir_certificados"}
+)
 
 
 # --- Fallback con modelo local (#26) ----------------------------------------
 # El modelo interviene sólo cuando el camino determinístico no resolvió, y su
 # única salida admitida es una intención del catálogo más términos de búsqueda
-# estructurados. `interpretacion_fallback_v1` es el contrato de esa salida; su
-# enum tiene que ser el mismo catálogo que `intenciones_v1`, y hay una prueba
+# estructurados. `interpretacion_fallback_v2` es el contrato de esa salida; su
+# enum tiene que ser el mismo catálogo que `intenciones_v2`, y hay una prueba
 # que falla si dejan de coincidir. Ver ADR 0001.
 CONTRATO_FALLBACK = json.loads(
     files("agente1")
-    .joinpath("contracts", "interpretacion_fallback_v1.schema.json")
+    .joinpath("contracts", "interpretacion_fallback_v2.schema.json")
     .read_text(encoding="utf-8")
 )
 CONTRATO_FALLBACK_VERSION = str(CONTRATO_FALLBACK["x-contract-version"])
 PROMPT_FALLBACK = (
     files("agente1")
-    .joinpath("prompts", "interpretacion_fallback_v1.txt")
+    .joinpath("prompts", "interpretacion_fallback_v2.txt")
     .read_text(encoding="utf-8")
 )
 MAX_TERMINOS_FALLBACK = int(
@@ -214,6 +216,12 @@ PATRON_AJUSTAR = re.compile(
 )
 PATRON_GACETILLA = re.compile(r"\bgacetill\w*\b")
 PATRON_POST = re.compile(r"\b(?:post\w*|instagram\w*|linkedin\w*)\b")
+# `emitir_certificados` (#75) tiene pipeline propio: la prosa sólo sirve
+# para clasificar y resolver la actividad; el circuito de lote de cierre
+# toma todos sus datos de la actividad y de la planilla del Aux. Va antes
+# que newsletter/mail para que «mandá los certificados por mail» se
+# entienda como emisión y no como un pedido de `generar_mail`.
+PATRON_CERTIFICADOS = re.compile(r"\bcertificad\w*\b")
 PATRON_NEWSLETTER = re.compile(r"\b(?:newsletter\w*|boletin\w*)\b")
 PATRON_MAIL = re.compile(r"\b(?:mail\w*|correo\w*|email\w*)\b")
 
@@ -234,6 +242,8 @@ def _clasificar_intencion(texto: str) -> str:
         return "generar_gacetilla"
     if PATRON_POST.search(normalizado):
         return "generar_post"
+    if PATRON_CERTIFICADOS.search(normalizado):
+        return "emitir_certificados"
     if PATRON_NEWSLETTER.search(normalizado):
         return "generar_newsletter"
     if PATRON_MAIL.search(normalizado):
@@ -730,7 +740,7 @@ class TerminosInterpretados:
 
 
 def _validar_salida_fallback(salida: str) -> TerminosInterpretados | None:
-    """Valida la salida del modelo contra `interpretacion_fallback_v1`.
+    """Valida la salida del modelo contra `interpretacion_fallback_v2`.
 
     Devuelve `None` ante cualquier desvío —JSON inválido, claves faltantes o
     de más, tipos equivocados, término demasiado largo, o una intención que no
@@ -1052,6 +1062,9 @@ ESTADOS_RESULTADO = frozenset(
     {
         "PENDIENTE_VALIDACION",
         "PENDIENTE_DESAMBIGUACION",
+        "PENDIENTE_APROBACION",
+        "EMITIDA",
+        "EMITIDA_PARCIAL",
         "INCOMPLETA",
         "INVALIDA",
         "FALLIDA",
@@ -1093,6 +1106,7 @@ def _interpretar_solicitud_sin_guarda(
     registro_pendientes: RegistroPendientes | None = None,
     reloj: Callable[[], datetime] | None = None,
     interprete: Generator | None = None,
+    emisor_certificados: Callable[..., object] | None = None,
 ) -> ResultadoInterpretacion:
     """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
 
@@ -1114,6 +1128,13 @@ def _interpretar_solicitud_sin_guarda(
     perder disponibilidad. Es un `Generator` distinto del que redacta los
     borradores porque hace otra cosa —extrae términos, no redacta— y porque
     así ninguna prueba determinística depende de que exista.
+
+    `emisor_certificados` es el callable del circuito de lote de cierre de
+    HU-014/#75 (`procesar_emision_certificados` ya configurado con su fuente,
+    su lector de lista, su registro de decisiones y su destino de correo).
+    Se invoca sólo con `id_actividad` y `solicitante` y devuelve un
+    `ResultadoEmisionCertificados`; sin él, un pedido `emitir_certificados`
+    termina `FALLIDA` con `emisor_no_configurado` en vez de despacharse.
     """
 
     correlation_id = str(uuid.uuid4())
@@ -1365,6 +1386,48 @@ def _interpretar_solicitud_sin_guarda(
     # tener que repetir un dato que ya se dio. El canal nombrado en este
     # turno siempre gana: la persona puede corregirlo («la 1, para
     # linkedin»).
+    if intencion_efectiva == "emitir_certificados":
+        # #75: la emisión no produce borrador ni toca el generador; el
+        # circuito de lote de cierre valida la lista, exige la línea
+        # descriptiva aprobada (#74) y la aprobación del lote por el Form de
+        # decisiones, y entrega los PDF por el correo configurado. Su
+        # resultado ya trae estado, resumen y error: sólo se traduce.
+        if not callable(emisor_certificados):
+            return _finalizar(
+                log_path=log_path,
+                correlation_id=correlation_id,
+                texto=texto_seguro,
+                solicitante=solicitante,
+                intencion=intencion_efectiva,
+                id_actividad=id_actividad,
+                modelo_utilizado=modelo_utilizado,
+                estado="FALLIDA",
+                resultado="emisor_no_configurado",
+                error=(
+                    "El despacho de emisión de certificados no está "
+                    "configurado en esta corrida"
+                ),
+            )
+        resultado_emision = emisor_certificados(
+            id_actividad=id_actividad,
+            solicitante=solicitante,
+        )
+        return _finalizar(
+            log_path=log_path,
+            correlation_id=correlation_id,
+            texto=texto_seguro,
+            solicitante=solicitante,
+            intencion=intencion_efectiva,
+            id_actividad=id_actividad,
+            modelo_utilizado=modelo_utilizado,
+            estado=str(getattr(resultado_emision, "estado", "FALLIDA")),
+            resultado="emision_certificados_despachada",
+            error=getattr(resultado_emision, "error", None),
+            resumen=getattr(resultado_emision, "resumen", None),
+            pipeline_correlation_id=getattr(
+                resultado_emision, "correlation_id", None
+            ),
+        )
     if intencion_efectiva == "generar_post":
         canal = _resolver_canal(texto)
         if canal is None and pendiente_vigente is not None:
@@ -1447,6 +1510,7 @@ def interpretar_solicitud(
     registro_pendientes: RegistroPendientes | None = None,
     reloj: Callable[[], datetime] | None = None,
     interprete: Generator | None = None,
+    emisor_certificados: Callable[..., object] | None = None,
 ) -> ResultadoInterpretacion:
     """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
 
@@ -1474,6 +1538,7 @@ def interpretar_solicitud(
             registro_pendientes=registro_pendientes,
             reloj=reloj,
             interprete=interprete,
+            emisor_certificados=emisor_certificados,
         )
     except Exception:
         return _finalizar(

@@ -202,6 +202,7 @@ VERSION_PENDIENTES = "decisiones_pendientes_v1"
 VERSION_PROCESADAS = "decisiones_procesadas_v1"
 
 _HASH_ID_RE = re.compile(r"[0-9a-f]{64}\Z")
+
 _DETALLE_CLAVE_RE = re.compile(r"[a-z0-9_]{1,64}\Z")
 
 # Configuración por entorno del segundo Form: mismo patrón que

@@ -225,3 +225,45 @@ def test_prompt_del_fallback_de_interpretacion_es_empaquetable():
     # Los marcadores que rellena `_interpretar_con_modelo`.
     for marcador in ("{intenciones}", "{max_terminos}", "{max_largo_termino}", "{pedido}"):
         assert marcador in plantilla
+
+
+def test_contratos_v2_de_interpretacion_con_emitir_certificados():
+    """El catálogo vigente es v2 y el enum del fallback coincide (#75).
+
+    `interpretar_solicitud` valida contra `intenciones_v2` y contra
+    `interpretacion_fallback_v2`; los dos tienen que traer la intención
+    `emitir_certificados` de HU-014 y el mismo enum, porque si difieren
+    hay intenciones que el fallback puede devolver pero el catálogo no
+    despacha, o al revés.
+    """
+
+    catalogo = json.loads(
+        files("agente1")
+        .joinpath("contracts", "intenciones_v2.schema.json")
+        .read_text(encoding="utf-8")
+    )
+    fallback = json.loads(
+        files("agente1")
+        .joinpath("contracts", "interpretacion_fallback_v2.schema.json")
+        .read_text(encoding="utf-8")
+    )
+
+    assert catalogo["x-contract-version"] == "intenciones_v2"
+    assert catalogo["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+    assert fallback["x-contract-version"] == "interpretacion_fallback_v2"
+    assert fallback["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+
+    intenciones = [item["id"] for item in catalogo["intenciones"]]
+    assert "emitir_certificados" in intenciones
+    assert (
+        sorted(fallback["properties"]["intencion"]["enum"])
+        == sorted(intenciones)
+    )
+
+    plantilla = (
+        files("agente1")
+        .joinpath("prompts", "interpretacion_fallback_v2.txt")
+        .read_text(encoding="utf-8")
+    )
+    assert "PROMPT_VERSION: interpretacion_fallback_v2" in plantilla
+    assert "CONTRACT_VERSION: interpretacion_fallback_v2" in plantilla

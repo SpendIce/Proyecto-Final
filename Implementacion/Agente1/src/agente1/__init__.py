@@ -35,6 +35,10 @@ Guía rápida de módulos:
                               Form (publicación, plantilla, lote y línea
                               descriptiva) con padrón de roles y auditoría
                               append-only (#72, #74).
+- `certificados_emision`      HU-014, emisión del lote de certificados sobre
+                              la lista de cierre: aprobaciones por el Form de
+                              decisiones y entrega por Gmail con lista de
+                              prueba (#75).
 - `pagos`                     HU-012, corrida de control de pagos (offline).
 - `recordatorios`             HU-012, circuito por lote de `recordatorio_pago`.
 - `instrucciones_pago`        HU-012, builders de `instrucciones_pago` (D8) y
