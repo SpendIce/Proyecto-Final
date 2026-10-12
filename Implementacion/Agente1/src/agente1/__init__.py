@@ -24,6 +24,10 @@ Guía rápida de módulos:
 - `operaciones_seguras`       health, retención y reconciliación.
 - `insumos_agentes`           contrato candidato de insumos de A2-A5.
 - `historia_viva`             puerto de consulta al acervo de A2 (offline).
+- `posts_efemeride`           HU-011, post de efeméride desde el puerto
+                              `HistoriaViva` con citas y procedencia (#85;
+                              contrato candidato, transporte pendiente de
+                              #12).
 - `origenes_inscripcion`      matriz de orígenes de inscripción (HU-012).
 - `tipos_notificacion`        catálogo de tipos de notificación (HU-012).
 - `interpretacion`            HU-013, interpretación en lenguaje natural (#20, #22).
@@ -105,6 +109,7 @@ from .recordatorios import (
 )
 from .procesamiento import FakeGenerator, ResultadoProceso, procesar_fila_csv
 from .posts import PoliticaPost, procesar_post, procesar_post_estructurado
+from .posts_efemeride import procesar_post_efemeride
 
 __all__ = [
     "AprobacionHumana",
@@ -151,6 +156,7 @@ __all__ = [
     "procesar_fila_csv",
     "procesar_plantilla_actividad",
     "procesar_post",
+    "procesar_post_efemeride",
     "procesar_post_estructurado",
     "reconciliar_envios_reservados",
     "registrar_plantilla_recordatorio",

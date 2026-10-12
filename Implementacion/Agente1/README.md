@@ -838,6 +838,48 @@ uv run pytest -q tests/test_historia_viva.py tests/test_cliente_historia_viva.py
 Los límites del slice están declarados en
 `evidencias/limites-historia-viva-cliente.md`.
 
+## Post de efeméride desde Historia Viva (#85)
+
+`posts_efemeride.py` produce el borrador HU-011 de una efeméride con material
+del acervo de A2: `procesar_post_efemeride` consulta el puerto `HistoriaViva`
+—el fake en pruebas y recorridos, o `ClienteHistoriaViva` cuando tenga
+transporte—, compone el material con `componer_material_efemeride` y genera el
+post por el mismo carril estructurado de `posts.py`. El contrato creativo
+`post_creative_efemeride_v1` y los prompts `post_*_efemeride_v1` siguen
+`PROVISIONAL_NO_INSTITUCIONAL`; el contrato de consulta a A2 sigue
+`CANDIDATO_NO_INSTITUCIONAL` (issue #17).
+
+La pieza queda `PENDIENTE_VALIDACION` con `BORRADOR — NO PUBLICAR`: el modelo
+sólo redacta la envoltura creativa y el renderer intercala cada fragmento
+literalmente, con su cita `pieza / fragmento (expresión temporal)` —una pieza
+con precisión de mes se cita como «agosto de 1926», nunca como día exacto—.
+Una consulta sin material termina `INCOMPLETA` sin invocar al generador, y la
+procedencia declarada (`insumo_a2` o `synthetic_test`) viaja a la auditoría
+como `data_origin` y al borrador como línea `_Procedencia:_`. Los errores de
+configuración —una política incompatible con la allowlist o un contrato
+creativo que no sea de la familia `post_creative_efemeride`— terminan
+`INVALIDA` antes de tocar el puerto. La publicación pasa por la misma decisión
+`publique`/`descarte` del Form de #72: el objeto es el id del borrador,
+`efemeride-<período>-<hash>-<canal>`.
+
+No hay transporte: el adapter HTTP de Historia Viva queda pendiente del
+contrato con A2 (#17, bloqueado por #12) y ninguna prueba toca la red. La
+efeméride tampoco se dispara desde el canal: el catálogo `intenciones_v3` no
+tiene una intención de efeméride —resolver una fecha desde prosa es un cambio
+de contrato aparte— y el disparo es un pedido del operador, no un scheduler.
+
+Prueba focalizada y recorrido offline:
+
+```bash
+uv run pytest -q tests/test_posts_efemeride.py
+
+uv run python scripts/post_efemeride_demo.py \
+  --directorio salida/post-efemeride-demo
+```
+
+Los límites del recorrido están declarados en
+`evidencias/recorrido-post-efemeride-hu011.md`.
+
 ## Paquete pendiente de validación SEU
 
 `Documentos/PoC/Validacion-SEU/` contiene nueve muestras y un manifest de 17
