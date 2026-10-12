@@ -12,10 +12,19 @@ y las novedades aplicadas junto con las que se informan como error, para que
 una persona las resuelva; no se escribe ningún archivo ni se persiste estado
 (ADR 0003).
 
+La bandera `--planilla` cambia el soporte de las tres fuentes tabulares: en
+lugar de CSV, plan, padrón y novedades se leen de las pestañas de la planilla
+D2 por `GoogleSheetsFuentePagos` (demo en vivo). En ese modo los argumentos
+`--plan`, `--padron` y `--novedades` no aplican — el buzón sigue siendo la
+carpeta `.eml` de `--buzon` — y la configuración sale del entorno:
+`AGENTE1_WORKSPACE_SPREADSHEET_ID` y `AGENTE1_WORKSPACE_ACCESS_TOKEN`, más
+`AGENTE1_PAGOS_RANGO_PLAN`, `AGENTE1_PAGOS_RANGO_PADRON` y
+`AGENTE1_PAGOS_RANGO_NOVEDADES`.
+
 El código de salida distingue estados igual que la CLI principal: `0` si la
 corrida produjo informe, `2` si cualquier entrada falló — plan, padrón,
-novedades, buzón o fecha — con el código de error cerrado y sin datos
-internos en `error`.
+novedades, buzón, fecha o configuración — con el código de error cerrado y
+sin datos internos en `error`.
 """
 
 from __future__ import annotations
@@ -27,6 +36,9 @@ from pathlib import Path
 from typing import Sequence
 
 from .buzon import BuzonPropioError, BuzonPropioEml
+from .google_workspace import TransporteHttp
+from .pagos_sheets import GoogleSheetsFuentePagos
+from .workspace_config import ConfiguracionWorkspaceError, TokenEntornoProvider
 from .pagos import (
     ESTADO_BONIFICADA,
     ESTADO_COMPROBANTE_PRESENTADO,
@@ -42,8 +54,18 @@ from .pagos import (
 )
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """Corre el control de pagos y devuelve el código de salida del proceso."""
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    transport: TransporteHttp | None = None,
+) -> int:
+    """Corre el control de pagos y devuelve el código de salida del proceso.
+
+    `transport` es la misma costura que tienen los adapters de Workspace: en
+    producción queda `None` y el adapter usa HTTPS real; en las pruebas se
+    inyecta el transporte falso y el modo `--planilla` se ejercita entero sin
+    red.
+    """
 
     parser = argparse.ArgumentParser(
         prog="agente1 control-pagos",
@@ -53,8 +75,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "aplicadas o informadas como error."
         ),
     )
-    parser.add_argument("--plan", required=True, type=Path)
-    parser.add_argument("--padron", required=True, type=Path)
+    parser.add_argument("--plan", type=Path)
+    parser.add_argument("--padron", type=Path)
     parser.add_argument("--buzon", required=True, type=Path)
     parser.add_argument(
         "--novedades",
@@ -62,17 +84,49 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="CSV de la pestaña «Novedades de pago» del Departamento (opcional).",
     )
+    parser.add_argument(
+        "--planilla",
+        action="store_true",
+        help=(
+            "lee plan, padrón y novedades de las pestañas de la planilla D2 "
+            "en lugar de CSV (configuración por entorno; ver docstring)."
+        ),
+    )
     parser.add_argument("--fecha", required=True, type=_fecha_arg, metavar="AAAA-MM-DD")
     args = parser.parse_args(argv)
 
+    # Las dos formas de alimentar la corrida son excluyentes y cada una exige
+    # las suyas: CSV pide sus dos archivos (novedades opcional), la planilla
+    # lee las tres pestañas y no admite rutas.
+    if args.planilla:
+        if (
+            args.plan is not None
+            or args.padron is not None
+            or args.novedades is not None
+        ):
+            parser.error("--planilla no admite --plan, --padron ni --novedades")
+    elif args.plan is None or args.padron is None:
+        parser.error("sin --planilla se exigen --plan y --padron")
+
     try:
-        plan = cargar_plan_pagos_csv(args.plan)
-        padron = cargar_padron_csv(args.padron, actividad_id=plan.actividad_id)
-        novedades = (
-            cargar_novedades_csv(args.novedades)
-            if args.novedades is not None
-            else []
-        )
+        if args.planilla:
+            fuente = GoogleSheetsFuentePagos.desde_entorno(
+                token_provider=TokenEntornoProvider(),
+                transport=transport,
+            )
+            plan = fuente.cargar_plan()
+            padron = fuente.cargar_padron(actividad_id=plan.actividad_id)
+            novedades = fuente.cargar_novedades()
+        else:
+            plan = cargar_plan_pagos_csv(args.plan)
+            padron = cargar_padron_csv(
+                args.padron, actividad_id=plan.actividad_id
+            )
+            novedades = (
+                cargar_novedades_csv(args.novedades)
+                if args.novedades is not None
+                else []
+            )
         informe = correr_control_pagos(
             plan=plan,
             padron=padron,
@@ -80,7 +134,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             hoy=args.fecha,
             novedades=novedades,
         )
-    except (ControlPagosError, BuzonPropioError) as exc:
+    except (
+        ControlPagosError,
+        BuzonPropioError,
+        ConfiguracionWorkspaceError,
+    ) as exc:
         return _invalida(exc.code)
     except OSError:
         return _invalida("entrada_inaccesible")
