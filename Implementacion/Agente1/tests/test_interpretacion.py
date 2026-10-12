@@ -287,7 +287,7 @@ class _FuenteSinActividades:
     "no se encontró identificador" sigue siendo una `INCOMPLETA` plana sin
     repregunta: no hay candidatas posibles que ofrecer."""
 
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
+    def obtener(self, id_actividad: str) -> dict[str, str]:
         raise AssertionError("no debería pedirse una actividad de un catálogo vacío")
 
     def enumerar(self) -> list[dict[str, str]]:
@@ -427,7 +427,7 @@ def test_registro_conserva_unicamente_el_derivado_estructurado(tmp_path: Path) -
 
 
 class _FuenteQueRompe:
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
+    def obtener(self, id_actividad: str) -> dict[str, str]:
         raise RuntimeError("boom: detalle interno que no debe llegar al log")
 
 
@@ -884,11 +884,11 @@ def test_contenido_de_otras_filas_de_la_planilla_no_llega_al_prompt_por_resoluci
     assert resultado.estado == "PENDIENTE_VALIDACION"
     assert len(prompts) == 1
     with DATASET.open(encoding="utf-8", newline="") as archivo:
-        filas = {fila["id_solicitud"]: fila for fila in csv.DictReader(archivo)}
+        filas = {fila["id_actividad"]: fila for fila in csv.DictReader(archivo)}
     fila_resuelta = filas.pop("SYN-001")
     assert filas, "el dataset sintético debe tener más de una actividad"
     for fila in filas.values():
-        for columna in ("titulo", "descripcion", "fecha", "organiza", "contacto", "lugar"):
+        for columna in ("titulo", "descripcion", "fecha_inicio", "organiza", "contacto", "lugar"):
             valor = fila[columna]
             # Algunos valores (organizador, contacto) se repiten entre filas
             # del dataset sintético; sólo es una fuga si el valor de la otra
@@ -922,20 +922,20 @@ class _FuenteConActividadesAmbiguas:
         "fuente": "",
         "lugar": "",
         "titulo": "Taller de robótica educativa",
-        "fecha": "2026-09-01",
+        "fecha_inicio": "2026-09-01",
         "organiza": "Equipo ambiguo",
     }
 
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
+    def obtener(self, id_actividad: str) -> dict[str, str]:
         for fila in self.enumerar():
-            if fila["id_solicitud"] == id_solicitud:
+            if fila["id_actividad"] == id_actividad:
                 return fila
         raise AssertionError("no debería pedirse una actividad ambigua por id")
 
     def enumerar(self) -> list[dict[str, str]]:
         return [
-            {**self._FILA_BASE, "id_solicitud": "AMB-001"},
-            {**self._FILA_BASE, "id_solicitud": "AMB-002"},
+            {**self._FILA_BASE, "id_actividad": "AMB-001"},
+            {**self._FILA_BASE, "id_actividad": "AMB-002"},
         ]
 
 
@@ -950,7 +950,7 @@ class _FuenteAmbiguasCompletas(_FuenteConActividadesAmbiguas):
         "fuente": "https://example.invalid/taller",
         "lugar": "Aula de prueba",
         "titulo": "Taller de robótica educativa",
-        "fecha": "2026-09-01",
+        "fecha_inicio": "2026-09-01",
         "organiza": "Equipo ambiguo",
     }
 
@@ -983,9 +983,9 @@ class _FuenteConActividadesParecidasNoIdenticas:
     pero no iguales. Esto ejerce el margen de desambiguación mismo, no sólo
     el caso degenerado de un empate exacto a puntaje cero de diferencia."""
 
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
+    def obtener(self, id_actividad: str) -> dict[str, str]:
         for fila in self.enumerar():
-            if fila["id_solicitud"] == id_solicitud:
+            if fila["id_actividad"] == id_actividad:
                 return fila
         raise AssertionError("no debería pedirse una actividad ambigua por id")
 
@@ -994,16 +994,16 @@ class _FuenteConActividadesParecidasNoIdenticas:
         return [
             {
                 **base,
-                "id_solicitud": "PAR-001",
+                "id_actividad": "PAR-001",
                 "titulo": "Taller de robótica educativa avanzada",
-                "fecha": "2026-09-01",
+                "fecha_inicio": "2026-09-01",
                 "organiza": "Equipo Norte",
             },
             {
                 **base,
-                "id_solicitud": "PAR-002",
+                "id_actividad": "PAR-002",
                 "titulo": "Taller de robótica educativa básica",
-                "fecha": "2026-09-02",
+                "fecha_inicio": "2026-09-02",
                 "organiza": "Equipo Norte",
             },
         ]
@@ -1050,7 +1050,7 @@ def test_resolucion_difusa_es_reproducible_entre_corridas(tmp_path: Path) -> Non
 
 
 class _FuenteQueRompeAlEnumerar:
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
+    def obtener(self, id_actividad: str) -> dict[str, str]:
         raise AssertionError("no debería pedirse una actividad si enumerar ya falló")
 
     def enumerar(self) -> list[dict[str, str]]:
@@ -1076,7 +1076,7 @@ def test_falla_al_enumerar_actividades_no_propaga_excepcion(tmp_path: Path) -> N
 # similitud cuando ese identificador no aparece. La combinación —un pedido de
 # post que además omite el identificador— no la ejercitaba ninguno de los dos,
 # y es un camino real: quien pide un post tiene tan pocos motivos para conocer
-# el `id_solicitud` como quien pide una gacetilla.
+# el `id_actividad` como quien pide una gacetilla.
 
 
 def test_pedido_de_post_sin_identificador_resuelve_la_actividad_por_similitud(
@@ -1148,7 +1148,7 @@ def test_coincidencia_multiple_produce_repregunta_con_candidatas_y_sus_identific
     assert ids == {"AMB-001", "AMB-002"}
     for candidata in resultado.candidatas:
         assert candidata.titulo == "Taller de robótica educativa"
-        assert candidata.fecha == "2026-09-01"
+        assert candidata.fecha_inicio == "2026-09-01"
     assert resultado.resumen is not None
     assert "AMB-001" not in resultado.resumen  # el resumen es prosa, no ids crudos
     assert "Taller de robótica educativa" in resultado.resumen
@@ -1199,7 +1199,7 @@ def test_pendiente_guardada_conserva_solo_lo_que_produjo_el_agente_nunca_prosa(
         "orden",
         "id_actividad",
         "titulo",
-        "fecha",
+        "fecha_inicio",
     }
     # Ni la pendiente ni sus candidatas guardan la prosa original en ningún
     # campo: son datos que el propio agente calculó a partir del índice.
@@ -1863,9 +1863,14 @@ def test_el_contenido_de_la_planilla_no_llega_al_prompt_del_interprete(
         filas = list(csv.DictReader(archivo))
     for fila in filas:
         for columna, valor in fila.items():
-            if columna == "id_solicitud" or not valor.strip():
+            if columna == "id_actividad" or not valor.strip():
                 continue
-            assert valor not in prompt, f"{columna} de {fila['id_solicitud']} en el prompt"
+            # Un valor demasiado corto ("4" de duracion_horas) no se puede
+            # distinguir de un número de la propia prosa del prompt ("40
+            # caracteres"): la fuga que importa es la de datos identificables.
+            if len(valor.strip()) < 4:
+                continue
+            assert valor not in prompt, f"{columna} de {fila['id_actividad']} en el prompt"
 
 
 def test_la_prosa_llega_al_interprete_delimitada_como_dato_no_como_instruccion(

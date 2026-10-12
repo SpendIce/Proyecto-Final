@@ -10,7 +10,7 @@ import json
 import pytest
 
 from agente1.fuentes import (
-    COLUMNAS_GACETILLA,
+    COLUMNAS_ACTIVIDADES_V2,
     CsvFuenteSolicitudes,
     FuenteSolicitudes,
     FuenteSolicitudesError,
@@ -21,24 +21,24 @@ from agente1.procesamiento import FakeGenerator, procesar_solicitud
 def test_columnas_de_fuentes_siguen_el_contrato_versionado():
     contrato = json.loads(
         files("agente1")
-        .joinpath("contracts", "gacetilla_input_v1.schema.json")
+        .joinpath("contracts", "gacetilla_input_v2.schema.json")
         .read_text(encoding="utf-8")
     )
 
-    assert tuple(contrato["properties"]) == COLUMNAS_GACETILLA
+    assert tuple(contrato["properties"]) == COLUMNAS_ACTIVIDADES_V2
 
 
 def test_csv_es_un_adapter_del_port_fuente_solicitudes(tmp_path):
     csv_path = tmp_path / "solicitudes.csv"
     with csv_path.open("w", encoding="utf-8", newline="") as archivo:
-        writer = csv.DictWriter(archivo, fieldnames=COLUMNAS_GACETILLA)
+        writer = csv.DictWriter(archivo, fieldnames=COLUMNAS_ACTIVIDADES_V2)
         writer.writeheader()
         writer.writerow(
             {
-                "id_solicitud": "SYN-001",
+                "id_actividad": "SYN-001",
                 "titulo": "Actividad sintética",
                 "descripcion": "Caso de prueba",
-                "fecha": "2026-08-05",
+                "fecha_inicio": "2026-08-05",
                 "publico": "Comunidad ficticia",
                 "organiza": "Equipo de prueba",
                 "contacto": "pruebas@example.invalid",
@@ -52,14 +52,14 @@ def test_csv_es_un_adapter_del_port_fuente_solicitudes(tmp_path):
 
     assert fila["titulo"] == "Actividad sintética"
     assert fila["lugar"] == ""
-    assert tuple(fila) == COLUMNAS_GACETILLA
+    assert tuple(fila) == COLUMNAS_ACTIVIDADES_V2
 
 
 def test_csv_truncado_normaliza_none_para_preservar_validacion_existente(tmp_path):
     csv_path = tmp_path / "solicitudes.csv"
     csv_path.write_text(
-        ",".join(COLUMNAS_GACETILLA) + "\n"
-        "SYN-TRUNC,Título,Descripción,2026-08-05,Público,Equipo\n",
+        ",".join(COLUMNAS_ACTIVIDADES_V2) + "\n"
+        "SYN-TRUNC,Título,Descripción,2026-08-05,,,,,,Público,Equipo\n",
         encoding="utf-8",
     )
 
@@ -67,15 +67,16 @@ def test_csv_truncado_normaliza_none_para_preservar_validacion_existente(tmp_pat
 
     assert fila["contacto"] == ""
     assert fila["fuente"] == ""
+    assert fila["enlace_inscripcion"] == ""
     assert fila["lugar"] == ""
 
 
 def test_csv_rechaza_id_duplicado_sin_copiar_datos_o_path(tmp_path):
     csv_path = tmp_path / "secreto.csv"
     csv_path.write_text(
-        ",".join(COLUMNAS_GACETILLA) + "\n"
-        + "SYN-DUP," + ",".join(["dato-secreto"] * 8) + "\n"
-        + "SYN-DUP," + ",".join(["otro-secreto"] * 8) + "\n",
+        ",".join(COLUMNAS_ACTIVIDADES_V2) + "\n"
+        + "SYN-DUP," + ",".join(["dato-secreto"] * 14) + "\n"
+        + "SYN-DUP," + ",".join(["otro-secreto"] * 14) + "\n",
         encoding="utf-8",
     )
 
@@ -90,7 +91,7 @@ def test_csv_rechaza_id_duplicado_sin_copiar_datos_o_path(tmp_path):
 
 def test_csv_inexistente_usa_codigo_cerrado(tmp_path):
     csv_path = tmp_path / "solicitudes.csv"
-    csv_path.write_text(",".join(COLUMNAS_GACETILLA) + "\n", encoding="utf-8")
+    csv_path.write_text(",".join(COLUMNAS_ACTIVIDADES_V2) + "\n", encoding="utf-8")
 
     with pytest.raises(FuenteSolicitudesError) as error:
         CsvFuenteSolicitudes(csv_path).obtener("SYN-AUSENTE")
@@ -101,14 +102,14 @@ def test_csv_inexistente_usa_codigo_cerrado(tmp_path):
 def test_csv_enumera_todas_las_actividades_con_el_contrato_de_columnas(tmp_path):
     csv_path = tmp_path / "solicitudes.csv"
     with csv_path.open("w", encoding="utf-8", newline="") as archivo:
-        writer = csv.DictWriter(archivo, fieldnames=COLUMNAS_GACETILLA)
+        writer = csv.DictWriter(archivo, fieldnames=COLUMNAS_ACTIVIDADES_V2)
         writer.writeheader()
         writer.writerow(
             {
-                "id_solicitud": "SYN-001",
+                "id_actividad": "SYN-001",
                 "titulo": "Primera actividad",
                 "descripcion": "Caso de prueba",
-                "fecha": "2026-08-05",
+                "fecha_inicio": "2026-08-05",
                 "publico": "Comunidad ficticia",
                 "organiza": "Equipo de prueba",
                 "contacto": "pruebas@example.invalid",
@@ -118,10 +119,10 @@ def test_csv_enumera_todas_las_actividades_con_el_contrato_de_columnas(tmp_path)
         )
         writer.writerow(
             {
-                "id_solicitud": "SYN-002",
+                "id_actividad": "SYN-002",
                 "titulo": "Segunda actividad",
                 "descripcion": "Otro caso",
-                "fecha": "2026-08-12",
+                "fecha_inicio": "2026-08-12",
                 "publico": "Comunidad ficticia",
                 "organiza": "Otro equipo",
                 "contacto": "otras@example.invalid",
@@ -133,16 +134,16 @@ def test_csv_enumera_todas_las_actividades_con_el_contrato_de_columnas(tmp_path)
 
     actividades = fuente.enumerar()
 
-    assert [a["id_solicitud"] for a in actividades] == ["SYN-001", "SYN-002"]
-    assert all(tuple(a) == COLUMNAS_GACETILLA for a in actividades)
+    assert [a["id_actividad"] for a in actividades] == ["SYN-001", "SYN-002"]
+    assert all(tuple(a) == COLUMNAS_ACTIVIDADES_V2 for a in actividades)
     assert actividades[1]["titulo"] == "Segunda actividad"
 
 
 def test_csv_enumera_normaliza_columnas_faltantes_igual_que_obtener(tmp_path):
     csv_path = tmp_path / "solicitudes.csv"
     csv_path.write_text(
-        ",".join(COLUMNAS_GACETILLA) + "\n"
-        "SYN-TRUNC,Título,Descripción,2026-08-05,Público,Equipo\n",
+        ",".join(COLUMNAS_ACTIVIDADES_V2) + "\n"
+        "SYN-TRUNC,Título,Descripción,2026-08-05,,,,,,Público,Equipo\n",
         encoding="utf-8",
     )
 
@@ -151,12 +152,13 @@ def test_csv_enumera_normaliza_columnas_faltantes_igual_que_obtener(tmp_path):
     assert len(actividades) == 1
     assert actividades[0]["contacto"] == ""
     assert actividades[0]["fuente"] == ""
+    assert actividades[0]["enlace_inscripcion"] == ""
     assert actividades[0]["lugar"] == ""
 
 
 def test_csv_enumera_rechaza_encabezado_que_no_coincide_con_el_contrato(tmp_path):
     csv_path = tmp_path / "solicitudes.csv"
-    columnas_con_error = (*COLUMNAS_GACETILLA[:-1], "ubicacion")
+    columnas_con_error = (*COLUMNAS_ACTIVIDADES_V2[:-1], "ubicacion")
     csv_path.write_text(
         ",".join(columnas_con_error) + "\n"
         "SYN-001,Título,Descripción,2026-08-05,Público,Equipo,contacto@example.invalid,Fuente,Aula\n",
@@ -172,9 +174,9 @@ def test_csv_enumera_rechaza_encabezado_que_no_coincide_con_el_contrato(tmp_path
 def test_csv_enumera_rechaza_id_duplicado_en_el_catalogo_sin_copiar_datos(tmp_path):
     csv_path = tmp_path / "secreto.csv"
     csv_path.write_text(
-        ",".join(COLUMNAS_GACETILLA) + "\n"
-        + "SYN-DUP," + ",".join(["dato-secreto"] * 8) + "\n"
-        + "SYN-DUP," + ",".join(["otro-secreto"] * 8) + "\n",
+        ",".join(COLUMNAS_ACTIVIDADES_V2) + "\n"
+        + "SYN-DUP," + ",".join(["dato-secreto"] * 14) + "\n"
+        + "SYN-DUP," + ",".join(["otro-secreto"] * 14) + "\n",
         encoding="utf-8",
     )
 
@@ -189,7 +191,7 @@ def test_csv_enumera_rechaza_id_duplicado_en_el_catalogo_sin_copiar_datos(tmp_pa
 
 def test_csv_enumera_catalogo_vacio_devuelve_lista_vacia(tmp_path):
     csv_path = tmp_path / "solicitudes.csv"
-    csv_path.write_text(",".join(COLUMNAS_GACETILLA) + "\n", encoding="utf-8")
+    csv_path.write_text(",".join(COLUMNAS_ACTIVIDADES_V2) + "\n", encoding="utf-8")
 
     assert CsvFuenteSolicitudes(csv_path).enumerar() == []
 
@@ -200,16 +202,22 @@ def test_procesamiento_consume_el_port_sin_conocer_csv(tmp_path):
             assert id_solicitud == "SYN-PORT"
             return dict(
                 zip(
-                    COLUMNAS_GACETILLA,
+                    COLUMNAS_ACTIVIDADES_V2,
                     [
                         "SYN-PORT",
                         "Actividad por port",
                         "Caso controlado",
                         "2026-08-05",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
                         "Comunidad ficticia",
                         "Equipo de prueba",
                         "pruebas@example.invalid",
                         "Dataset sintético",
+                        "",
                         "",
                     ],
                     strict=True,
@@ -247,7 +255,7 @@ class GeneratorQueNoDebeInvocarse:
 @pytest.mark.parametrize(
     ("mutacion", "codigo"),
     [
-        (lambda fila: {**fila, "id_solicitud": "SYN-OTRA"}, "source_id_mismatch"),
+        (lambda fila: {**fila, "id_actividad": "SYN-OTRA"}, "source_id_mismatch"),
         (lambda fila: {**fila, "titulo": 42}, "source_contract_invalid"),
     ],
 )
@@ -256,16 +264,22 @@ def test_core_rechaza_fila_fuente_no_confiable_antes_del_generador(
 ):
     fila_base = dict(
         zip(
-            COLUMNAS_GACETILLA,
+            COLUMNAS_ACTIVIDADES_V2,
             [
                 "SYN-TRUST",
                 "Título secreto",
                 "Descripción secreta",
                 "2026-08-05",
+                "",
+                "",
+                "",
+                "",
+                "",
                 "Público secreto",
                 "Equipo secreto",
                 "secreto@example.invalid",
                 "Fuente secreta",
+                "",
                 "Lugar secreto",
             ],
             strict=True,
@@ -299,10 +313,10 @@ def test_core_normaliza_lugar_opcional_e_ignora_extras_sin_filtrarlos(
     tmp_path, incluir_lugar
 ):
     fila = {
-        "id_solicitud": "SYN-SCHEMA",
+        "id_actividad": "SYN-SCHEMA",
         "titulo": "Actividad schema",
         "descripcion": "Caso controlado",
-        "fecha": "2026-08-05",
+        "fecha_inicio": "2026-08-05",
         "publico": "Comunidad ficticia",
         "organiza": "Equipo de prueba",
         "contacto": "pruebas@example.invalid",

@@ -8,7 +8,7 @@ import json
 import pytest
 
 from agente1.destinos import BORRADOR_MARKER, DestinoBorradoresError
-from agente1.fuentes import COLUMNAS_GACETILLA
+from agente1.fuentes import COLUMNAS_ACTIVIDADES_V2
 from agente1.google_workspace import (
     MAX_WORKSPACE_RESPONSE_BYTES,
     GoogleDocsDestinoBorradores,
@@ -166,16 +166,22 @@ def test_core_audita_docs_huerfano_sin_id_token_contenido_o_body(tmp_path):
     )
     fila = dict(
         zip(
-            COLUMNAS_GACETILLA,
+            COLUMNAS_ACTIVIDADES_V2,
             [
                 "SYN-DOCS",
                 "Actividad Docs",
                 "Caso controlado",
                 "2026-08-05",
+                "",
+                "",
+                "",
+                "",
+                "",
                 "Comunidad ficticia",
                 "Equipo de prueba",
                 "pruebas@example.invalid",
                 "Dataset sintético",
+                "",
                 "",
             ],
             strict=True,

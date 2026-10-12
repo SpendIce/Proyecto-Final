@@ -93,7 +93,7 @@ def main() -> int:
 
     csv_path = ROOT / "data" / "actividades_sinteticas.csv"
     filas = {
-        registro["id_solicitud"]: registro
+        registro["id_actividad"]: registro
         for registro in csv.DictReader(csv_path.read_text(encoding="utf-8").splitlines())
     }
     generador = OllamaGenerator(modelo=args.modelo, timeout_s=120)

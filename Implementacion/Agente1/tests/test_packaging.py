@@ -30,17 +30,17 @@ def test_configuracion_de_packaging_declara_backend_importable_y_prompt():
 def test_contrato_versionado_es_explicito_y_provisional():
     contrato = json.loads(
         files("agente1")
-        .joinpath("contracts", "gacetilla_input_v1.schema.json")
+        .joinpath("contracts", "gacetilla_input_v2.schema.json")
         .read_text(encoding="utf-8")
     )
 
-    assert contrato["x-contract-version"] == "gacetilla_input_v1"
+    assert contrato["x-contract-version"] == "gacetilla_input_v2"
     assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
     assert contrato["required"] == [
-        "id_solicitud",
+        "id_actividad",
         "titulo",
         "descripcion",
-        "fecha",
+        "fecha_inicio",
         "publico",
         "organiza",
         "contacto",
@@ -52,17 +52,17 @@ def test_contrato_versionado_es_explicito_y_provisional():
 def test_recursos_hu011_versionados_son_empaquetables_y_provisionales():
     contrato = json.loads(
         files("agente1")
-        .joinpath("contracts", "post_input_v1.schema.json")
+        .joinpath("contracts", "post_input_v2.schema.json")
         .read_text(encoding="utf-8")
     )
 
-    assert contrato["x-contract-version"] == "post_input_v1"
+    assert contrato["x-contract-version"] == "post_input_v2"
     assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
     assert contrato["required"] == [
-        "id_solicitud",
+        "id_actividad",
         "titulo",
         "descripcion",
-        "fecha",
+        "fecha_inicio",
         "publico",
         "organiza",
         "contacto",
@@ -194,7 +194,7 @@ def test_dataset_versionado_tiene_cinco_casos_y_dos_invalidos():
         filas = list(csv.DictReader(archivo))
 
     assert len(filas) == 5
-    assert sum(not fila["contacto"] or not fila["fecha"] for fila in filas) >= 2
+    assert sum(not fila["contacto"] or not fila["fecha_inicio"] for fila in filas) >= 2
     assert any(not fila["lugar"] for fila in filas)
 
 

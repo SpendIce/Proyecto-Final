@@ -67,7 +67,11 @@ from .destinos import (
     MarkdownDestinoBorradores,
     ReferenciaBorrador,
 )
-from .fuentes import COLUMNAS_GACETILLA, FuenteSolicitudes, FuenteSolicitudesError
+from .fuentes import (
+    COLUMNAS_ACTIVIDADES_V2,
+    FuenteSolicitudes,
+    FuenteSolicitudesError,
+)
 from .politica_redes import (
     CANALES_SOPORTADOS,
     POLICY_STATUS,
@@ -86,28 +90,36 @@ from .procesamiento import Generator, ResultadoProceso
 
 
 HU = "HU-011"
-CONTRACT_VERSION = "post_input_v1"
+CONTRACT_VERSION = "post_input_v2"
 STRUCTURED_OUTPUT_CONTRACT_VERSION = "post_creative_output_v2"
-# v4 agrega el párrafo de descripción de la actividad al bloque renderizado;
-# la versión etiqueta el formato del render, compartido por los contratos
-# creativos v2 (catálogo) y v3 (prosa libre).
-STRUCTURED_RENDERER_VERSION = "post_deterministic_renderer_v4"
+# v5 incorpora al bloque renderizado los campos opcionales del contrato de la
+# planilla v2 (fecha_fin, fecha_limite_inscripcion, hora, modalidad,
+# duracion_horas, enlace_inscripcion). La versión etiqueta el formato del
+# render, compartido por los contratos creativos v2 (catálogo) y v3 (prosa).
+STRUCTURED_RENDERER_VERSION = "post_deterministic_renderer_v5"
 CANALES = frozenset(CANALES_SOPORTADOS)
 # Campos cuyo contenido el renderer sí puede poner en el post. Son también los
 # que se buscan dentro del texto creativo para rechazarlo: si el modelo
 # menciona cualquiera de estos valores, está duplicando —o inventando— un hecho
-# que no le corresponde.
+# que no le corresponde. `fuente` no está: su valor es un enlace que el gate
+# ya cubre con PATRON_URL.
 CAMPOS_SEMANTICOS_AUTORIZADOS = (
     "titulo",
     "descripcion",
-    "fecha",
+    "fecha_inicio",
+    "fecha_fin",
+    "fecha_limite_inscripcion",
+    "hora",
+    "modalidad",
+    "duracion_horas",
     "publico",
     "organiza",
     "contacto",
+    "enlace_inscripcion",
     "lugar",
 )
 CONTRATO_ENTRADA = json.loads(
-    files("agente1").joinpath("contracts", "post_input_v1.schema.json").read_text(
+    files("agente1").joinpath("contracts", "post_input_v2.schema.json").read_text(
         encoding="utf-8"
     )
 )
@@ -388,7 +400,20 @@ def _procesar_post(
     # frenarse acá y no después: un carácter de control rompería la estructura
     # del documento, y un estado institucional ("aprobado") pasaría al borrador
     # como si fuera un hecho ya validado.
-    campos_renderizados = ("titulo", "fecha", "organiza", "contacto", "lugar")
+    campos_renderizados = (
+        "titulo",
+        "descripcion",
+        "fecha_inicio",
+        "fecha_fin",
+        "fecha_limite_inscripcion",
+        "hora",
+        "modalidad",
+        "duracion_horas",
+        "organiza",
+        "contacto",
+        "lugar",
+        "enlace_inscripcion",
+    )
     valores_renderizados = [fila.get(campo, "") for campo in campos_renderizados]
     if structured and any(
         unicodedata.category(char).startswith("C")
@@ -655,12 +680,12 @@ def _normalizar_fila(fila: object, id_solicitud: str) -> tuple[dict[str, str], s
     if not isinstance(fila, dict) or any(campo not in fila for campo in CAMPOS_OBLIGATORIOS):
         return {}, "source_contract_invalid"
     canonica: dict[str, str] = {}
-    for campo in COLUMNAS_GACETILLA:
+    for campo in COLUMNAS_ACTIVIDADES_V2:
         valor = fila.get(campo, "")
         if not isinstance(valor, str):
             return {}, "source_contract_invalid"
         canonica[campo] = unicodedata.normalize("NFC", valor)
-    if canonica["id_solicitud"] != id_solicitud:
+    if canonica["id_actividad"] != id_solicitud:
         return {}, "source_id_mismatch"
     return canonica, None
 
@@ -1160,11 +1185,28 @@ def _renderizar_post_estructurado(
         lineas += [descripcion, ""]
     lineas += [
         f"Título: {fila['titulo']}",
-        f"Fecha: {fila['fecha']}",
-        f"Organiza: {fila['organiza']}",
+        f"Fecha: {fila['fecha_inicio']}",
     ]
+    # Los campos opcionales del contrato v2 se copian literalmente, cada uno
+    # con su rótulo, sólo si la fuente los informa: igual que `Lugar`, no hay
+    # relleno para un dato que la institución no cargó.
+    if fila.get("fecha_fin", "").strip():
+        lineas.append(f"Finaliza: {fila['fecha_fin']}")
+    if fila.get("hora", "").strip():
+        lineas.append(f"Hora: {fila['hora']}")
+    if fila.get("modalidad", "").strip():
+        lineas.append(f"Modalidad: {fila['modalidad']}")
+    if fila.get("duracion_horas", "").strip():
+        lineas.append(f"Duración: {fila['duracion_horas']} h")
+    lineas.append(f"Organiza: {fila['organiza']}")
     if fila.get("lugar", "").strip():
         lineas.append(f"Lugar: {fila['lugar']}")
+    if fila.get("fecha_limite_inscripcion", "").strip():
+        lineas.append(
+            f"Inscripción hasta: {fila['fecha_limite_inscripcion']}"
+        )
+    if fila.get("enlace_inscripcion", "").strip():
+        lineas.append(f"Inscripción: {fila['enlace_inscripcion']}")
     lineas.extend(
         [
             f"Contacto: {fila['contacto']}",
@@ -1277,7 +1319,7 @@ def _validar_salida(
         errores.append("hashtag_duplicate")
     hechos = (
         ("titulo", "title_missing"),
-        ("fecha", "date_missing"),
+        ("fecha_inicio", "date_missing"),
         ("organiza", "organizer_missing"),
         ("contacto", "contact_missing"),
     )

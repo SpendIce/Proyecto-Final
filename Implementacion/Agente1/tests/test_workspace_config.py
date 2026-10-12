@@ -16,7 +16,7 @@ from agente1.workspace_config import (
 ENV_VALIDO = {
     "AGENTE1_WORKSPACE_AMBIENTE": "D2",
     "AGENTE1_WORKSPACE_SPREADSHEET_ID": "sheet_ID-123",
-    "AGENTE1_WORKSPACE_RANGO_A1": "'Solicitudes SEU'!A1:I200",
+    "AGENTE1_WORKSPACE_RANGO_A1": "'Actividades SEU'!A1:O200",
     "AGENTE1_WORKSPACE_FOLDER_ID": "folder_ID-456",
     "AGENTE1_WORKSPACE_TEMPLATE_ID": "template_ID-789",
     "AGENTE1_WORKSPACE_TIMEOUT_S": "10",
@@ -29,7 +29,7 @@ def test_carga_config_completa_y_expone_solo_resumen_redactado():
 
     assert config.ambiente == "D2"
     assert config.spreadsheet_id == "sheet_ID-123"
-    assert config.rango_a1 == "'Solicitudes SEU'!A1:I200"
+    assert config.rango_a1 == "'Actividades SEU'!A1:O200"
     assert config.folder_id == "folder_ID-456"
     assert config.template_id == "template_ID-789"
     assert config.timeout_s == 10.0
@@ -54,8 +54,8 @@ def test_carga_config_completa_y_expone_solo_resumen_redactado():
         ("AGENTE1_WORKSPACE_FOLDER_ID", ""),
         ("AGENTE1_WORKSPACE_TEMPLATE_ID", "id con espacios"),
         ("AGENTE1_WORKSPACE_RANGO_A1", ""),
-        ("AGENTE1_WORKSPACE_RANGO_A1", "Hoja!A1:I20\nAuthorization: secreto"),
-        ("AGENTE1_WORKSPACE_RANGO_A1", "https://evil.invalid/A1:I20"),
+        ("AGENTE1_WORKSPACE_RANGO_A1", "Hoja!A1:O20\nAuthorization: secreto"),
+        ("AGENTE1_WORKSPACE_RANGO_A1", "https://evil.invalid/A1:O20"),
         ("AGENTE1_WORKSPACE_TIMEOUT_S", "0"),
         ("AGENTE1_WORKSPACE_TIMEOUT_S", "nan"),
         ("AGENTE1_WORKSPACE_TIMEOUT_S", "121"),

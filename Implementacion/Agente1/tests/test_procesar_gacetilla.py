@@ -73,24 +73,30 @@ def test_fila_completa_genera_borrador_pendiente_y_log(tmp_path):
         writer = csv.DictWriter(
             archivo,
             fieldnames=[
-                "id_solicitud",
+                "id_actividad",
                 "titulo",
                 "descripcion",
-                "fecha",
+                "fecha_inicio",
+                "fecha_fin",
+                "fecha_limite_inscripcion",
+                "hora",
+                "modalidad",
+                "duracion_horas",
                 "publico",
                 "organiza",
                 "contacto",
                 "fuente",
+                "enlace_inscripcion",
                 "lugar",
             ],
         )
         writer.writeheader()
         writer.writerow(
             {
-                "id_solicitud": "SYN-001",
+                "id_actividad": "SYN-001",
                 "titulo": "Taller sintético de vinculación",
                 "descripcion": "Actividad ficticia para probar el flujo.",
-                "fecha": "2026-08-05",
+                "fecha_inicio": "2026-08-05",
                 "publico": "Comunidad universitaria ficticia",
                 "organiza": "Equipo de prueba",
                 "contacto": "pruebas@example.invalid",
@@ -159,24 +165,30 @@ def test_fila_incompleta_no_genera_borrador_y_registra_error(tmp_path):
         writer = csv.DictWriter(
             archivo,
             fieldnames=[
-                "id_solicitud",
+                "id_actividad",
                 "titulo",
                 "descripcion",
-                "fecha",
+                "fecha_inicio",
+                "fecha_fin",
+                "fecha_limite_inscripcion",
+                "hora",
+                "modalidad",
+                "duracion_horas",
                 "publico",
                 "organiza",
                 "contacto",
                 "fuente",
+                "enlace_inscripcion",
                 "lugar",
             ],
         )
         writer.writeheader()
         writer.writerow(
             {
-                "id_solicitud": "SYN-002",
+                "id_actividad": "SYN-002",
                 "titulo": "Actividad sintética incompleta",
                 "descripcion": "Caso ficticio sin contacto.",
-                "fecha": "2026-08-06",
+                "fecha_inicio": "2026-08-06",
                 "publico": "Público ficticio",
                 "organiza": "Equipo de prueba",
                 "contacto": "",
@@ -208,24 +220,30 @@ def test_prompt_versionado_solo_solicita_un_borrador(tmp_path):
         writer = csv.DictWriter(
             archivo,
             fieldnames=[
-                "id_solicitud",
+                "id_actividad",
                 "titulo",
                 "descripcion",
-                "fecha",
+                "fecha_inicio",
+                "fecha_fin",
+                "fecha_limite_inscripcion",
+                "hora",
+                "modalidad",
+                "duracion_horas",
                 "publico",
                 "organiza",
                 "contacto",
                 "fuente",
+                "enlace_inscripcion",
                 "lugar",
             ],
         )
         writer.writeheader()
         writer.writerow(
             {
-                "id_solicitud": "SYN-003",
+                "id_actividad": "SYN-003",
                 "titulo": "Jornada sintética",
                 "descripcion": "Datos exclusivamente ficticios.",
-                "fecha": "2026-08-07",
+                "fecha_inicio": "2026-08-07",
                 "publico": "Público ficticio",
                 "organiza": "Equipo de prueba",
                 "contacto": "pruebas@example.invalid",
@@ -243,7 +261,7 @@ def test_prompt_versionado_solo_solicita_un_borrador(tmp_path):
     )
 
     assert f"PROMPT_VERSION: {PROMPT_VERSION}" in generator.prompt
-    assert "CONTRACT_VERSION: gacetilla_input_v1" in generator.prompt
+    assert "CONTRACT_VERSION: gacetilla_input_v2" in generator.prompt
     assert "PROVISIONAL_NO_INSTITUCIONAL" in generator.prompt
     assert "## DATOS DE LA ACTIVIDAD" in generator.prompt
     assert generator.prompt.index("## DATOS DE LA ACTIVIDAD") < generator.prompt.index(
@@ -265,8 +283,8 @@ def test_el_ejemplo_no_enseña_meta_lenguaje_de_proceso(tmp_path):
     """
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-001,Taller,Descripción,2026-08-05,Público,Equipo,contacto@example.invalid,Sintética,Aula\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-001,Taller,Descripción,2026-08-05,,,,,,Público,Equipo,contacto@example.invalid,Sintética,,Aula\n",
         encoding="utf-8",
     )
     generator = GeneratorQueCapturaPrompt()
@@ -286,8 +304,8 @@ def test_el_ejemplo_no_enseña_meta_lenguaje_de_proceso(tmp_path):
 def test_id_solicitud_no_permite_salir_del_directorio_de_borradores(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente\n"
-        "../escape,Título,Descripción,2026-08-05,Público,Equipo,contacto@example.invalid,Sintética\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "../escape,Título,Descripción,2026-08-05,,,,,,Público,Equipo,contacto@example.invalid,Sintética,\n",
         encoding="utf-8",
     )
 
@@ -308,8 +326,8 @@ def test_id_solicitud_no_permite_salir_del_directorio_de_borradores(tmp_path):
 def test_falla_del_generador_se_registra_sin_datos_y_no_crea_borrador(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente\n"
-        "SYN-FAIL,Título secreto,Descripción,2026-08-05,Público,Equipo,pruebas@example.invalid,Sintética\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-FAIL,Título secreto,Descripción,2026-08-05,,,,,,Público,Equipo,pruebas@example.invalid,Sintética,\n",
         encoding="utf-8",
     )
 
@@ -336,8 +354,8 @@ def test_falla_del_generador_se_registra_sin_datos_y_no_crea_borrador(tmp_path):
 def test_salida_vacia_se_registra_como_fallida_y_no_crea_borrador(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente\n"
-        "SYN-EMPTY,Título,Descripción,2026-08-05,Público,Equipo,contacto@example.invalid,Sintética\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-EMPTY,Título,Descripción,2026-08-05,,,,,,Público,Equipo,contacto@example.invalid,Sintética,\n",
         encoding="utf-8",
     )
 
@@ -360,8 +378,8 @@ def test_salida_vacia_se_registra_como_fallida_y_no_crea_borrador(tmp_path):
 def test_salida_no_conforme_se_audita_sin_crear_borrador(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-BASURA,Título verificable,Descripción,2026-08-10,Público,Equipo,contacto@example.invalid,Sintética,Aula 1\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-BASURA,Título verificable,Descripción,2026-08-10,,,,,,Público,Equipo,contacto@example.invalid,Sintética,,Aula 1\n",
         encoding="utf-8",
     )
     salida_basura = (
@@ -393,8 +411,8 @@ def test_salida_no_conforme_se_audita_sin_crear_borrador(tmp_path):
 def test_validacion_de_hechos_tolera_acentos_y_case_sin_evaluar_tono(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-NORM,Jornada de innovación,Descripción,2026-08-11,Público,Área Técnica,Contacto@Example.Invalid,Sintética,Salón Güemes\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-NORM,Jornada de innovación,Descripción,2026-08-11,,,,,,Público,Área Técnica,Contacto@Example.Invalid,Sintética,,Salón Güemes\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -419,8 +437,8 @@ def test_validacion_de_hechos_tolera_acentos_y_case_sin_evaluar_tono(tmp_path):
 def test_lugar_opcional_ausente_no_se_inventa_ni_se_exige(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-SIN-LUGAR,Jornada remota,Descripción,2026-08-12,Público,Equipo,contacto@example.invalid,Sintética,\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-SIN-LUGAR,Jornada remota,Descripción,2026-08-12,,,,,,Público,Equipo,contacto@example.invalid,Sintética,,\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -443,8 +461,8 @@ def test_lugar_opcional_ausente_no_se_inventa_ni_se_exige(tmp_path):
 def test_salida_truncada_sin_puntuacion_final_se_rechaza(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-CORTE,Jornada de cierre,Descripción,2026-08-13,Público,Equipo,contacto@example.invalid,Sintética,Aula 2\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-CORTE,Jornada de cierre,Descripción,2026-08-13,,,,,,Público,Equipo,contacto@example.invalid,Sintética,,Aula 2\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -471,8 +489,8 @@ def test_salida_truncada_sin_puntuacion_final_se_rechaza(tmp_path):
 def test_hechos_extensos_no_cuentan_como_limite_de_prosa(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-LARGO,Jornada extensa con muchos datos fuente legítimos para una actividad académica universitaria de prueba controlada,Descripción,2026-08-14,Público,Equipo organizador con denominación institucional sintética extensa,contacto@example.invalid,Sintética,Aula 3\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-LARGO,Jornada extensa con muchos datos fuente legítimos para una actividad académica universitaria de prueba controlada,Descripción,2026-08-14,,,,,,Público,Equipo organizador con denominación institucional sintética extensa,contacto@example.invalid,Sintética,,Aula 3\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -497,8 +515,8 @@ def test_hechos_extensos_no_cuentan_como_limite_de_prosa(tmp_path):
 def _procesar_con_cuerpo(tmp_path: Path, cuerpo: str):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-CUERPO,Jornada breve,Descripción,2026-08-15,Público,Equipo,contacto@example.invalid,Sintética,Aula 4\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-CUERPO,Jornada breve,Descripción,2026-08-15,,,,,,Público,Equipo,contacto@example.invalid,Sintética,,Aula 4\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -570,8 +588,8 @@ def test_parser_rechaza_texto_externo_duplicados_y_hechos_fuera_de_seccion(
 ):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-ESTRICTO,Jornada estricta,Descripción,2026-08-16,Público,Equipo,contacto@example.invalid,Sintética,Aula 5\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-ESTRICTO,Jornada estricta,Descripción,2026-08-16,,,,,,Público,Equipo,contacto@example.invalid,Sintética,,Aula 5\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -606,8 +624,8 @@ def test_parser_rechaza_texto_externo_duplicados_y_hechos_fuera_de_seccion(
 def test_fuente_sin_lugar_prohibe_linea_lugar(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-NO-LUGAR,Jornada remota,Descripción,2026-08-17,Público,Equipo,contacto@example.invalid,Sintética,\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-NO-LUGAR,Jornada remota,Descripción,2026-08-17,,,,,,Público,Equipo,contacto@example.invalid,Sintética,,\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -644,8 +662,8 @@ def test_hechos_etiquetados_requieren_igualdad_normalizada(
 ):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-EXACTO,Jornada exacta,Descripción,2026-08-18,Público,Equipo,contacto@example.invalid,Sintética,Aula 6\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-EXACTO,Jornada exacta,Descripción,2026-08-18,,,,,,Público,Equipo,contacto@example.invalid,Sintética,,Aula 6\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -671,8 +689,8 @@ def test_hechos_etiquetados_requieren_igualdad_normalizada(
 def test_documento_corto_pero_estructuralmente_valido_se_acepta(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-MIN,A,D,1,P,O,c@x.invalid,F,\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-MIN,A,D,1,,,,,,P,O,c@x.invalid,F,,\n",
         encoding="utf-8",
     )
     contenido = (
@@ -694,8 +712,8 @@ def test_documento_corto_pero_estructuralmente_valido_se_acepta(tmp_path):
 def test_csv_truncado_trata_valores_none_como_datos_incompletos(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente\n"
-        "SYN-TRUNC,Título,Descripción,2026-08-05,Público,Equipo\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-TRUNC,Título,Descripción,2026-08-05,,,,,,Público,Equipo\n",
         encoding="utf-8",
     )
 
@@ -734,8 +752,8 @@ def test_agotar_el_presupuesto_se_registra_aparte_de_un_fallo_de_generacion(tmp_
 
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente\n"
-        "SYN-TRUNC,Título secreto,Descripción,2026-08-05,Público,Equipo,"
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-TRUNC,Título secreto,Descripción,2026-08-05,,,,,,Público,Equipo,"
         "pruebas@example.invalid,Sintética\n",
         encoding="utf-8",
     )
@@ -764,7 +782,7 @@ def test_agotar_el_presupuesto_se_registra_aparte_de_un_fallo_de_generacion(tmp_
 def _prompt_de(fila_csv: str, id_solicitud: str, tmp_path) -> str:
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
         + fila_csv,
         encoding="utf-8",
     )
@@ -789,8 +807,8 @@ def test_el_prompt_no_muestra_la_linea_lugar_cuando_la_fuente_no_la_trae(tmp_pat
     """
 
     prompt = _prompt_de(
-        "SYN-SIN-LUGAR,Jornada remota,Descripción,2026-08-17,Público,Equipo,"
-        "contacto@example.invalid,Sintética,\n",
+        "SYN-SIN-LUGAR,Jornada remota,Descripción,2026-08-17,,,,,,Público,Equipo,"
+        "contacto@example.invalid,Sintética,,\n",
         "SYN-SIN-LUGAR",
         tmp_path,
     )
@@ -807,8 +825,8 @@ def test_el_prompt_no_muestra_la_linea_lugar_cuando_la_fuente_no_la_trae(tmp_pat
 
 def test_el_prompt_pide_la_linea_lugar_cuando_la_fuente_la_trae(tmp_path):
     prompt = _prompt_de(
-        "SYN-CON-LUGAR,Jornada presencial,Descripción,2026-08-17,Público,Equipo,"
-        "contacto@example.invalid,Sintética,Aula 6\n",
+        "SYN-CON-LUGAR,Jornada presencial,Descripción,2026-08-17,,,,,,Público,Equipo,"
+        "contacto@example.invalid,Sintética,,Aula 6\n",
         "SYN-CON-LUGAR",
         tmp_path,
     )
@@ -821,10 +839,10 @@ def test_el_prompt_pide_la_linea_lugar_cuando_la_fuente_la_trae(tmp_path):
 @pytest.mark.parametrize("id_solicitud", ["SYN-SIN-LUGAR", "SYN-CON-LUGAR"])
 def test_el_prompt_no_deja_marcadores_sin_resolver(tmp_path, id_solicitud):
     filas = {
-        "SYN-SIN-LUGAR": "SYN-SIN-LUGAR,Jornada remota,Descripción,2026-08-17,Público,"
-        "Equipo,contacto@example.invalid,Sintética,\n",
-        "SYN-CON-LUGAR": "SYN-CON-LUGAR,Jornada presencial,Descripción,2026-08-17,"
-        "Público,Equipo,contacto@example.invalid,Sintética,Aula 6\n",
+        "SYN-SIN-LUGAR": "SYN-SIN-LUGAR,Jornada remota,Descripción,2026-08-17,,,,,,Público,"
+        "Equipo,contacto@example.invalid,Sintética,,\n",
+        "SYN-CON-LUGAR": "SYN-CON-LUGAR,Jornada presencial,Descripción,2026-08-17,,,,,,"
+        "Público,Equipo,contacto@example.invalid,Sintética,,Aula 6\n",
     }
 
     prompt = _prompt_de(filas[id_solicitud], id_solicitud, tmp_path)
@@ -844,9 +862,9 @@ def test_lugar_vacio_en_el_borrador_sigue_siendo_estructura_invalida(tmp_path):
 
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-VACIO,Jornada remota,Descripción,2026-08-17,Público,Equipo,"
-        "contacto@example.invalid,Sintética,\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-VACIO,Jornada remota,Descripción,2026-08-17,,,,,,Público,Equipo,"
+        "contacto@example.invalid,Sintética,,\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -872,9 +890,9 @@ def test_lugar_vacio_en_el_borrador_sigue_siendo_estructura_invalida(tmp_path):
 def test_omitir_el_lugar_informado_sigue_siendo_un_hecho_faltante(tmp_path):
     csv_path = tmp_path / "actividades.csv"
     csv_path.write_text(
-        "id_solicitud,titulo,descripcion,fecha,publico,organiza,contacto,fuente,lugar\n"
-        "SYN-FALTA,Jornada presencial,Descripción,2026-08-17,Público,Equipo,"
-        "contacto@example.invalid,Sintética,Aula 6\n",
+        "id_actividad,titulo,descripcion,fecha_inicio,fecha_fin,fecha_limite_inscripcion,hora,modalidad,duracion_horas,publico,organiza,contacto,fuente,enlace_inscripcion,lugar\n"
+        "SYN-FALTA,Jornada presencial,Descripción,2026-08-17,,,,,,Público,Equipo,"
+        "contacto@example.invalid,Sintética,,Aula 6\n",
         encoding="utf-8",
     )
     contenido = salida_conforme(
@@ -896,7 +914,7 @@ def test_omitir_el_lugar_informado_sigue_siendo_un_hecho_faltante(tmp_path):
     assert "place_missing" in registro["validation_errors"]
 
 
-# --- Renderer del correo durable (gacetilla_mail_renderer_v1) ----------------
+# --- Renderer del correo durable (gacetilla_mail_renderer_v2) ----------------
 
 
 def test_fecha_larga_convierte_iso_al_formato_de_los_correos_reales():
@@ -911,7 +929,7 @@ def test_fecha_larga_convierte_iso_al_formato_de_los_correos_reales():
 def _fila_y_ficha(**extra):
     fila = {
         "titulo": "Jornada de prueba",
-        "fecha": "2026-08-05",
+        "fecha_inicio": "2026-08-05",
         "publico": "Comunidad ficticia",
         "organiza": "Equipo de prueba",
         "contacto": "pruebas@example.invalid",
@@ -930,7 +948,7 @@ def _fila_y_ficha(**extra):
 
 
 def test_render_incluye_hora_y_enlace_solo_cuando_la_fuente_los_informa():
-    fila, match = _fila_y_ficha(hora="15:00 h", enlace="https://forms.gle/abc")
+    fila, match = _fila_y_ficha(hora="15:00 h", enlace_inscripcion="https://forms.gle/abc")
     mail = _renderizar_mail(fila, match)
 
     assert "🕒 15:00 h" in mail
@@ -941,7 +959,7 @@ def test_render_incluye_hora_y_enlace_solo_cuando_la_fuente_los_informa():
 def test_render_omite_los_opcionales_ausentes_sin_dejar_huecos():
     fila, match = _fila_y_ficha(lugar="")
     fila.pop("hora", None)
-    fila.pop("enlace", None)
+    fila.pop("enlace_inscripcion", None)
     mail = _renderizar_mail(fila, match)
 
     assert "🕒" not in mail

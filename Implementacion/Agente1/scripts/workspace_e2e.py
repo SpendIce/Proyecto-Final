@@ -42,14 +42,20 @@ from agente1.workspace_e2e import (
 
 ROOT = Path(__file__).resolve().parents[1]
 FILA_OFFLINE = {
-    "id_solicitud": "SYN-001",
+    "id_actividad": "SYN-001",
     "titulo": "Taller sintético de vinculación",
     "descripcion": "Actividad ficticia para probar el flujo.",
-    "fecha": "2026-08-05",
+    "fecha_inicio": "2026-08-05",
+    "fecha_fin": "",
+    "fecha_limite_inscripcion": "",
+    "hora": "",
+    "modalidad": "",
+    "duracion_horas": "",
     "publico": "Comunidad universitaria ficticia",
     "organiza": "Equipo de prueba",
     "contacto": "pruebas@example.invalid",
-    "fuente": "Dataset sintético versionado",
+    "fuente": "https://example.invalid/informe-syn-001",
+    "enlace_inscripcion": "",
     "lugar": "Aula de prueba",
 }
 

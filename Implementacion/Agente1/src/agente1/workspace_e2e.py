@@ -71,12 +71,12 @@ RECOVERY_POLICY = "manual_only"
 _PIPELINE_VERSIONS = {
     "gacetilla": {
         "pipeline_version": "workspace_hu010_gacetilla_v1",
-        "contract_version": "gacetilla_input_v1",
-        "renderer_version": "gacetilla_generator_render_v2",
+        "contract_version": "gacetilla_input_v2",
+        "renderer_version": "gacetilla_generator_render_v3",
     },
     "post": {
         "pipeline_version": "workspace_hu011_structured_v2",
-        "contract_version": f"post_input_v1+{STRUCTURED_OUTPUT_CONTRACT_VERSION}",
+        "contract_version": f"post_input_v2+{STRUCTURED_OUTPUT_CONTRACT_VERSION}",
         "renderer_version": STRUCTURED_RENDERER_VERSION,
     },
 }
@@ -112,7 +112,7 @@ class FuenteMemoria(FuenteSolicitudes):
         self._fila = dict(fila)
         self.invocaciones = 0
 
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
+    def obtener(self, id_actividad: str) -> dict[str, str]:
         self.invocaciones += 1
         return dict(self._fila)
 

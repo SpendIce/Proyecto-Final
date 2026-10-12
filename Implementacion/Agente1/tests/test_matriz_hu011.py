@@ -91,7 +91,7 @@ def test_runner_compara_seis_borradores_y_no_genera_para_incompletos(tmp_path: P
             assert caso["observed_state"] == "PENDIENTE_VALIDACION"
             assert caso["observed_result"] == "borrador_generado"
             assert caso["draft_created"] is True
-            assert caso["contract_version"] == "post_input_v1"
+            assert caso["contract_version"] == "post_input_v2"
             assert caso["policy_version"] == f"post_{canal}_policy_provisional_v1"
             assert caso["policy_status"] == "PROVISIONAL_NO_INSTITUCIONAL"
             assert caso["policy_limits"] == {
