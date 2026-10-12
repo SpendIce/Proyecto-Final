@@ -12,7 +12,7 @@ import json
 import re
 from typing import Any
 
-from .google_workspace import DOCS_HOST, DRIVE_HOST, SHEETS_HOST
+from .google_workspace import DOCS_HOST, DRIVE_HOST, GMAIL_HOST, SHEETS_HOST
 
 
 MANIFEST_SCHEMA = "security-d2-manifest-v1"
@@ -21,8 +21,33 @@ BORRADOR_MARKER = "# BORRADOR — NO PUBLICAR\n\n"
 SAFE_OUTPUT_STATUS = "PENDIENTE_VALIDACION"
 RESOURCE_KINDS = frozenset({"spreadsheet", "folder", "template"})
 WORKSPACE_HOSTS = frozenset({SHEETS_HOST, DOCS_HOST, DRIVE_HOST})
+# El host de Gmail queda fuera de `WORKSPACE_HOSTS` a propósito: no es un host
+# de uso general, sólo se admite para las rutas de lectura del buzón propio.
+# La forma exacta la fija `_GMAIL_LECTURA_ME_RE` y la verifica
+# `_es_lectura_buzon_propio`.
+_GMAIL_LECTURA_ME_RE = re.compile(
+    r"\A/gmail/v1/users/me/messages"
+    r"(?:/(?P<segmento>[A-Za-z0-9_-]{1,256})"
+    r"(?:/attachments/[A-Za-z0-9_-]{1,256})?)?"
+    r"(?:\?[^\s]*)?\Z"
+)
+# Los verbos de la API de Gmail también viven bajo `/messages/`: no son ids de
+# mensaje y no pueden pasar por el slot de id aunque tengan forma válida. Los
+# ids reales de Gmail son hexadecimales, así que bloquearlos nunca rechaza un
+# mensaje legítimo.
+_GMAIL_VERBOS_API = frozenset(
+    {"send", "batchDelete", "batchModify", "import", "insert"}
+)
+# `gmail_auth_denied` es el resultado esperado de una prueba de revocación
+# del scope `gmail.readonly` sobre el buzón propio: el adapter de lectura se
+# detiene con ese código y no produce salida.
 SAFE_REVOCATION_CODES = frozenset(
-    {"workspace_auth_denied", "workspace_auth_unavailable", "docs_auth_denied"}
+    {
+        "workspace_auth_denied",
+        "workspace_auth_unavailable",
+        "docs_auth_denied",
+        "gmail_auth_denied",
+    }
 )
 _EMAIL_RE = re.compile(r"(?i)\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b")
 _BEARER_RE = re.compile(r"(?i)\bbearer\s+\S+")
@@ -238,6 +263,12 @@ def _sin_endpoints_distribucion(http_calls: object) -> bool:
     endpoint de permisos, de compartir o de correo hace fallar el control, aun
     cuando el host sea de Google. La lista se verifica contra las rutas que
     realmente usa `google_workspace`.
+
+    El host de Gmail tiene su propia regla: sólo pasan los GET a las rutas de
+    lectura de mensajes del usuario `me` — lista, lectura de un mensaje y
+    lectura de un adjunto — que son las únicas que usa `buzon_gmail`
+    (ADR 0004). Envío, etiquetas, modificación, borrado o el buzón de otro
+    usuario caen afuera por método o por forma de ruta.
     """
 
     if not isinstance(http_calls, list):
@@ -253,6 +284,10 @@ def _sin_endpoints_distribucion(http_calls: object) -> bool:
         if not all(isinstance(value, str) and value for value in (method, host, target)):
             return False
         normalized_host = host.lower()
+        if normalized_host == GMAIL_HOST:
+            if not _es_lectura_buzon_propio(method, target):
+                return False
+            continue
         if (
             normalized_host not in WORKSPACE_HOSTS
             or not target.startswith("/")
@@ -262,6 +297,20 @@ def _sin_endpoints_distribucion(http_calls: object) -> bool:
         ):
             return False
     return True
+
+
+def _es_lectura_buzon_propio(method: str, target: str) -> bool:
+    """Una llamada a Gmail sólo es admisible si es un GET de lectura del buzón
+    propio: `GET /gmail/v1/users/me/messages`, la lectura de un mensaje o la
+    de un adjunto. Cualquier otra forma — `send`, `modify`, `trash`, `labels`,
+    otro usuario, otro método — falla."""
+    if method != "GET":
+        return False
+    coincidencia = _GMAIL_LECTURA_ME_RE.fullmatch(target)
+    if coincidencia is None:
+        return False
+    segmento = coincidencia.group("segmento")
+    return segmento is None or segmento not in _GMAIL_VERBOS_API
 
 
 def _revocacion_bloquea(probe: object) -> bool:
