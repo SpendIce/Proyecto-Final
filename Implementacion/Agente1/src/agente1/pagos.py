@@ -40,6 +40,18 @@ Qué hace la corrida, en el orden de §4.2 y §6.2 del diseño:
    desconocido, `id_inscripcion` inexistente, valor mal formado o efecto
    incoherente con lo derivado se informa como error de la novedad: no se
    ignora en silencio ni se aplica.
+6. **Planifica el lote del día.** Sobre las situaciones recién derivadas —
+   la lectura del buzón más fresca que hay, cumpliendo la regla de §5.1 que
+   pide releer antes de armar el lote — `planificar_recordatorios` produce el
+   lote de recordatorios debidos: cada cuota `PENDIENTE` cuya fecha de
+   referencia está a exactamente `d` días, con `d` en las anticipaciones del
+   plan (default `[7, 2]`, D15). Nada después del vencimiento (D4). Cada ítem
+   lleva su clave de idempotencia `sha256(tipo, actividad, inscripción,
+   cuota, anticipación)` (§5.2) y la marca `bonificacion_no_verificable`
+   cuando el padrón no puede acreditar la condición (D14). El lote es sólo
+   una planificación: encolarlo es decisión del circuito por lote de
+   `recordatorios.py`, que exige la plantilla preaprobada y la aprobación
+   utilitaria que lista sus ítems (D3).
 
 El plan se lee de un CSV en formato largo — una fila por dato, cada uno con su
 procedencia declarada — conforme al contrato versionado
@@ -49,22 +61,24 @@ pago» de la planilla D2 según `contracts/novedades_pago_v1.json`. Los tres
 loaders fallan cerrado: lo que el contrato no contempla se rechaza con código,
 no se ignora.
 
-Lo que falta para el alcance completo de HU-012 pagos: el lote diario de
-recordatorios con su plantilla preaprobada. Esta interfaz lo recibirá como
-salida adicional cuando entre.
+La fecha del día es un parámetro de la corrida, no un reloj: `fecha_de_corrida`
+la fija en la zona `America/Argentina/Buenos_Aires` cuando el llamante quiere
+«hoy» (§5.1).
 """
 
 from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+import hashlib
 import json
 from importlib.resources import files
 from pathlib import Path
 import re
 from typing import Sequence
 import unicodedata
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .buzon import BuzonPropio, MensajeBuzon
 
@@ -115,6 +129,24 @@ NOVEDAD_COMPROBANTE_RECHAZADO = "COMPROBANTE_RECHAZADO"
 NOVEDAD_COMPROBANTE_CUBRE_N_CUOTAS = "COMPROBANTE_CUBRE_N_CUOTAS"
 NOVEDAD_EMAIL_ALTERNATIVO = "EMAIL_ALTERNATIVO"
 NOVEDAD_BONIFICADO = "BONIFICADO"
+
+# Anticipaciones por omisión del recordatorio (D15, SUPUESTO_TECNICO): el
+# plan puede declarar otras; la corrida nunca recuerda después de la fecha de
+# referencia de la cuota (D4). El default vive en el contrato, no acá.
+ANTICIPACIONES_DEFAULT = tuple(
+    int(valor) for valor in CONTRATO_PLAN["forma_csv"]["anticipaciones_default"]
+)
+
+# El «día» de la corrida — el que decide si una anticipación ya llegó — se
+# fija en la zona horaria de la SEU, no en la del host ni en UTC (§5.1).
+ZONA_HORARIA_CORRIDA = "America/Argentina/Buenos_Aires"
+
+# Nombre del tipo en el catálogo `tipos_notificacion_v2`: el recordatorio que
+# la corrida planifica por lote. Es el primer componente del vector que se
+# hashea para la clave de idempotencia, así que comparte el espacio de claves
+# del registro sin poder colisionar con las claves de solicitud del circuito
+# por envío, que se derivan de un dict distinto.
+TIPO_RECORDATORIO_PAGO = "recordatorio_pago"
 
 MOTIVO_NOVEDAD_DATO_INVALID = "novedad_dato_invalid"
 MOTIVO_NOVEDAD_TIPO_DESCONOCIDO = "novedad_tipo_desconocido"
@@ -240,6 +272,7 @@ class PlanPago:
     categorias_bonificadas: tuple[str, ...]
     procedencias: dict[str, str]
     evidencias: dict[str, str]
+    anticipaciones: tuple[int, ...] = ANTICIPACIONES_DEFAULT
 
     def fecha_referencia(self, cuota: CuotaPlan) -> date:
         """Fecha que manda para la cuota: su vencimiento propio, o la fecha
@@ -361,6 +394,46 @@ class RespuestaNoAsociada:
 
 
 @dataclass(frozen=True)
+class ItemRecordatorio:
+    """Un recordatorio debido del lote del día: una cuota `PENDIENTE` cuya
+    anticipación coincide con `hoy`.
+
+    `idempotency_key` es la clave `sha256` del vector «tipo, actividad,
+    inscripción, cuota, anticipación» (§5.2): identifica esta comunicación en
+    el registro durable de HU-012, así que repetir la corrida el mismo día
+    produce la misma clave y no un segundo envío. `bonificacion_no_verificable`
+    traslada la marca de D14: el ítem entra al lote igual, pero la persona que
+    aprueba el lote ve que la condición no se pudo verificar (D14).
+    """
+
+    id_inscripcion: str
+    nombre_destinatario: str
+    email_destinatario: str
+    nro_cuota: int
+    anticipacion_d: int
+    fecha_referencia: date
+    monto: int
+    bonificacion_no_verificable: bool
+    idempotency_key: str
+
+
+@dataclass(frozen=True)
+class LoteRecordatorios:
+    """El conjunto planeado de recordatorios del día, antes de aprobarse.
+
+    `clave_lote` identifica el conjunto que la aprobación utilitaria lista:
+    el hash del vector «lote, actividad, claves de ítems ordenadas». El lote
+    no persiste nada — es la salida planeada de la corrida —; lo que persiste
+    es cada ítem que el circuito por lote encole (ADR 0003, §5.2).
+    """
+
+    actividad_id: str
+    hoy: date
+    clave_lote: str
+    items: tuple[ItemRecordatorio, ...]
+
+
+@dataclass(frozen=True)
 class InformeCorridaPagos:
     """La salida completa de la corrida: lo derivado, sin persistir nada."""
 
@@ -373,6 +446,104 @@ class InformeCorridaPagos:
     no_asociadas: tuple[RespuestaNoAsociada, ...]
     novedades_aplicadas: tuple[NovedadPago, ...]
     novedades_con_error: tuple[NovedadConError, ...]
+    recordatorios: LoteRecordatorios
+
+
+def clave_item_recordatorio(
+    *,
+    actividad_id: str,
+    id_inscripcion: str,
+    nro_cuota: int,
+    anticipacion_d: int,
+) -> str:
+    """La clave de idempotencia de un recordatorio (§5.2).
+
+    El vector incluye el tipo además de los cuatro componentes del diseño
+    —actividad, inscripción, cuota y anticipación— para que el recordatorio
+    conviva en el mismo registro de claves que las notificaciones del
+    circuito por envío sin que dos comunicaciones de dominio distinto puedan
+    producir la misma clave.
+    """
+
+    canonico = json.dumps(
+        [
+            TIPO_RECORDATORIO_PAGO,
+            actividad_id,
+            id_inscripcion,
+            nro_cuota,
+            anticipacion_d,
+        ],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonico.encode("utf-8")).hexdigest()
+
+
+def planificar_recordatorios(
+    *,
+    plan: PlanPago,
+    situaciones: Sequence[SituacionPreinscripto],
+    hoy: date,
+) -> LoteRecordatorios:
+    """Los recordatorios debidos del día, como lote puro y ordenado.
+
+    Regla de disparo (§5.1): una cuota derivada `PENDIENTE` se recuerda
+    cuando `hoy` es exactamente `fecha_referencia − d` para alguna
+    anticipación `d` del plan — default `[7, 2]`, configurable por actividad.
+    Nunca después de la referencia: un `hoy` posterior produce una cuota
+    `vencida`, no un recordatorio, porque eso ya sería gestión de deuda (D4).
+    La anticipación que dispara queda en el ítem: forma parte de su clave de
+    idempotencia y del texto que el circuito renderiza después.
+
+    Es función pura: no lee el buzón, no toca disco ni reloj. Como la corrida
+    la invoca sobre las situaciones recién derivadas de la lectura más
+    reciente del buzón, vale la regla de §5.1 — quien mandó su comprobante a
+    la mañana no recibe recordatorio esa tarde.
+    """
+
+    items: list[ItemRecordatorio] = []
+    for situacion in situaciones:
+        for cuota in situacion.cuotas:
+            if cuota.estado != ESTADO_PENDIENTE:
+                continue
+            monto = plan.cuotas[cuota.nro_cuota - 1].monto
+            for anticipacion in plan.anticipaciones:
+                if hoy == cuota.fecha_referencia - timedelta(days=anticipacion):
+                    items.append(
+                        ItemRecordatorio(
+                            id_inscripcion=situacion.id_inscripcion,
+                            nombre_destinatario=situacion.nombre_destinatario,
+                            email_destinatario=situacion.email_destinatario,
+                            nro_cuota=cuota.nro_cuota,
+                            anticipacion_d=anticipacion,
+                            fecha_referencia=cuota.fecha_referencia,
+                            monto=monto,
+                            bonificacion_no_verificable=(
+                                situacion.bonificacion_no_verificable
+                            ),
+                            idempotency_key=clave_item_recordatorio(
+                                actividad_id=plan.actividad_id,
+                                id_inscripcion=situacion.id_inscripcion,
+                                nro_cuota=cuota.nro_cuota,
+                                anticipacion_d=anticipacion,
+                            ),
+                        )
+                    )
+    canonico_lote = json.dumps(
+        [
+            "lote_recordatorio_pago",
+            plan.actividad_id,
+            sorted(item.idempotency_key for item in items),
+        ],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return LoteRecordatorios(
+        actividad_id=plan.actividad_id,
+        hoy=hoy,
+        clave_lote=hashlib.sha256(canonico_lote.encode("utf-8")).hexdigest(),
+        items=tuple(items),
+    )
 
 
 def cargar_plan_pagos_csv(path: Path) -> PlanPago:
@@ -455,6 +626,7 @@ def cargar_plan_pagos_csv(path: Path) -> PlanPago:
         categorias_bonificadas=_parsear_lista(datos.get("categorias_bonificadas")),
         procedencias=procedencias,
         evidencias=evidencias,
+        anticipaciones=_parsear_anticipaciones(datos.get("anticipaciones")),
     )
 
 
@@ -624,6 +796,9 @@ def correr_control_pagos(
         ),
         novedades_con_error=tuple(
             sorted(con_error, key=lambda e: e.novedad.fila)
+        ),
+        recordatorios=planificar_recordatorios(
+            plan=plan, situaciones=situaciones, hoy=hoy
         ),
     )
 
@@ -972,6 +1147,47 @@ def _parsear_lista(valor: str | None) -> tuple[str, ...]:
     if not valor:
         return ()
     return tuple(item.strip() for item in valor.split("|") if item.strip())
+
+
+def _parsear_anticipaciones(valor: str | None) -> tuple[int, ...]:
+    """La lista de días de anticipación del plan. Campo ausente o vacío → el
+    default del contrato [7, 2]; valores repetidos se deduplican conservando
+    el orden declarado; un negativo es inválido porque planificaría un
+    recordatorio después de la referencia (D4)."""
+
+    if not valor or not valor.strip():
+        return ANTICIPACIONES_DEFAULT
+    dias: list[int] = []
+    for item in valor.split("|"):
+        try:
+            dia = int(item.strip())
+        except ValueError:
+            raise ControlPagosError("plan_valor_invalid") from None
+        if dia < 0:
+            raise ControlPagosError("plan_valor_invalid")
+        if dia not in dias:
+            dias.append(dia)
+    return tuple(dias) or ANTICIPACIONES_DEFAULT
+
+
+def fecha_de_corrida(momento: datetime | None = None) -> date:
+    """El «día» de la corrida en la zona horaria de la SEU (§5.1).
+
+    Es el único lugar del módulo que toca el reloj: la corrida es pura y
+    recibe `hoy` por parámetro, así que fijar el día es decisión del llamante
+    — la CLI lo toma de acá cuando no se pasa `--fecha`. Argentina no usa
+    horario de verano desde 2009: si el host no trae la base de zonas
+    horarias, el offset fijo -03:00 da la misma fecha.
+    """
+
+    try:
+        zona: timezone | ZoneInfo = ZoneInfo(ZONA_HORARIA_CORRIDA)
+    except ZoneInfoNotFoundError:
+        zona = timezone(timedelta(hours=-3))
+    instante = momento if momento is not None else datetime.now(timezone.utc)
+    if instante.tzinfo is None:
+        instante = instante.replace(tzinfo=timezone.utc)
+    return instante.astimezone(zona).date()
 
 
 def _parsear_bonificado(valor: str | None) -> bool | None:

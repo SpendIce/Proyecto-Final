@@ -39,6 +39,7 @@ from .pagos import (
     cargar_padron_csv,
     cargar_plan_pagos_csv,
     correr_control_pagos,
+    fecha_de_corrida,
 )
 
 
@@ -62,7 +63,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=None,
         help="CSV de la pestaña «Novedades de pago» del Departamento (opcional).",
     )
-    parser.add_argument("--fecha", required=True, type=_fecha_arg, metavar="AAAA-MM-DD")
+    parser.add_argument(
+        "--fecha",
+        type=_fecha_arg,
+        default=None,
+        metavar="AAAA-MM-DD",
+        help=(
+            "Día de la corrida; sin el flag se toma la fecha de calendario de "
+            "America/Argentina/Buenos_Aires al momento de ejecutar."
+        ),
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -77,7 +87,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             plan=plan,
             padron=padron,
             buzon=BuzonPropioEml(args.buzon),
-            hoy=args.fecha,
+            hoy=args.fecha if args.fecha is not None else fecha_de_corrida(),
             novedades=novedades,
         )
     except (ControlPagosError, BuzonPropioError) as exc:
@@ -153,6 +163,36 @@ def informe_a_dict(informe: InformeCorridaPagos) -> dict[str, object]:
                 "motivo": error.motivo,
             }
             for error in informe.novedades_con_error
+        ],
+        "recordatorios": _lote_a_dict(informe.recordatorios),
+    }
+
+
+def _lote_a_dict(lote) -> dict[str, object]:
+    """El lote planeado del día: qué ítems se recordarían y su clave de lote.
+
+    Son metadatos de la planificación — quién, qué cuota, con cuánta
+    anticipación — sin datos de pago sensibles: los medios de pago y links se
+    renderizan en el cuerpo del recordatorio dentro del circuito, no acá.
+    """
+
+    return {
+        "actividad_id": lote.actividad_id,
+        "hoy": lote.hoy.isoformat(),
+        "clave_lote": lote.clave_lote,
+        "items": [
+            {
+                "id_inscripcion": item.id_inscripcion,
+                "nombre_destinatario": item.nombre_destinatario,
+                "email_destinatario": item.email_destinatario,
+                "nro_cuota": item.nro_cuota,
+                "anticipacion_d": item.anticipacion_d,
+                "fecha_referencia": item.fecha_referencia.isoformat(),
+                "monto": item.monto,
+                "bonificacion_no_verificable": item.bonificacion_no_verificable,
+                "idempotency_key": item.idempotency_key,
+            }
+            for item in lote.items
         ],
     }
 
