@@ -15,6 +15,7 @@ import sys
 ROOT = Path(__file__).parents[1]
 PLAN_NOTEBOOKLM = ROOT / "data" / "plan_pagos_notebooklm_n2.csv"
 PADRON_SINTETICO = ROOT / "data" / "padron_pagos_sintetico.csv"
+NOVEDADES_SINTETICAS = ROOT / "data" / "novedades_pago_sinteticas.csv"
 
 
 def escribir_eml(directorio: Path, nombre: str, remitente: str, datos: bytes):
@@ -82,6 +83,107 @@ def test_control_pagos_informa_cuotas_y_no_asociadas(tmp_path):
     assert no_asociada["motivo"] == "remitente_sin_coincidencia"
     # Nada del cuerpo del mensaje viaja a la salida.
     assert "Adjunto." not in proceso.stdout
+
+
+def test_control_pagos_aplica_novedades_desde_su_csv(tmp_path):
+    buzon = tmp_path / "buzon"
+    buzon.mkdir()
+    escribir_eml(buzon, "ana.eml", "ana.perez@example.test", b"%PDF-1.4 a")
+
+    proceso = correr_cli(
+        "--plan", str(PLAN_NOTEBOOKLM),
+        "--padron", str(PADRON_SINTETICO),
+        "--buzon", str(buzon),
+        "--novedades", str(NOVEDADES_SINTETICAS),
+        "--fecha", "2026-09-22",
+    )
+
+    assert proceso.returncode == 0, proceso.stderr
+    respuesta = json.loads(proceso.stdout)
+    assert respuesta["contrato_novedades"] == "novedades_pago_v1"
+
+    preinscriptos = {
+        p["id_inscripcion"]: p for p in respuesta["preinscriptos"]
+    }
+    ana = preinscriptos["PRE-NBLM2-001"]
+    # La confirmación de la Fundación pisa lo derivado del buzón (D1, §6.2).
+    assert ana["cuotas"][0]["estado"] == "PAGO_CONFIRMADO"
+    assert ana["detalle"] == "1 confirmada por la Fundación"
+    # El comprobante presentado queda como rastro, no como estado.
+    assert ana["cuotas"][0]["comprobante"]["sha256"]
+    assert ana["bonificacion_no_verificable"] is False
+
+    aplicadas = respuesta["novedades_aplicadas"]
+    assert [n["tipo"] for n in aplicadas] == [
+        "CONFIRMADO_FUNDACION",
+        "EMAIL_ALTERNATIVO",
+    ]
+    assert aplicadas[0]["responsable"] == (
+        "Departamento Cursos Complementarios"
+    )
+    assert respuesta["novedades_con_error"] == []
+
+
+def test_control_pagos_informa_novedades_con_error_en_el_json(tmp_path):
+    novedades = tmp_path / "novedades.csv"
+    novedades.write_text(
+        "id_inscripcion,tipo,valor,fecha,responsable\n"
+        "PRE-INEXISTENTE,CONFIRMADO_FUNDACION,1,2026-09-21,Dep.\n"
+        "PRE-NBLM2-001,PAGO_RECIBIDO,1,2026-09-21,Dep.\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "buzon").mkdir()
+
+    proceso = correr_cli(
+        "--plan", str(PLAN_NOTEBOOKLM),
+        "--padron", str(PADRON_SINTETICO),
+        "--buzon", str(tmp_path / "buzon"),
+        "--novedades", str(novedades),
+        "--fecha", "2026-09-22",
+    )
+
+    # La corrida produce informe igual: los errores son de la novedad, no de
+    # la corrida, y viajan en el JSON para que una persona los corrija.
+    assert proceso.returncode == 0, proceso.stderr
+    respuesta = json.loads(proceso.stdout)
+    con_error = respuesta["novedades_con_error"]
+    assert [e["motivo"] for e in con_error] == [
+        "novedad_inscripcion_desconocida",
+        "novedad_tipo_desconocido",
+    ]
+    assert [e["fila"] for e in con_error] == [2, 3]
+
+
+def test_control_pagos_rechaza_novedades_inexistentes(tmp_path):
+    (tmp_path / "buzon").mkdir()
+    proceso = correr_cli(
+        "--plan", str(PLAN_NOTEBOOKLM),
+        "--padron", str(PADRON_SINTETICO),
+        "--buzon", str(tmp_path / "buzon"),
+        "--novedades", str(tmp_path / "no-existe.csv"),
+        "--fecha", "2026-09-22",
+    )
+
+    assert proceso.returncode == 2
+    respuesta = json.loads(proceso.stdout)
+    assert respuesta["estado"] == "INVALIDA"
+    assert respuesta["error"] == "entrada_inaccesible"
+
+
+def test_control_pagos_sin_novedades_lista_las_secciones_vacias(tmp_path):
+    (tmp_path / "buzon").mkdir()
+
+    proceso = correr_cli(
+        "--plan", str(PLAN_NOTEBOOKLM),
+        "--padron", str(PADRON_SINTETICO),
+        "--buzon", str(tmp_path / "buzon"),
+        "--fecha", "2026-09-22",
+    )
+
+    assert proceso.returncode == 0, proceso.stderr
+    respuesta = json.loads(proceso.stdout)
+    assert respuesta["novedades_aplicadas"] == []
+    assert respuesta["novedades_con_error"] == []
 
 
 def test_control_pagos_rechaza_fecha_mal_formada(tmp_path):
