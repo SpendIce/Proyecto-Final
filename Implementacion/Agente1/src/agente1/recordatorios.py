@@ -62,6 +62,7 @@ from .confirmaciones import (
     _PARCIAL_POR_ROL,
     _aprobacion_valida,
     _hash,
+    _seccion_cuerpo,
     drenar_envios,
 )
 from .pagos import (
@@ -556,17 +557,6 @@ def renderizar_recordatorio(
     if _PLACEHOLDER_RE.search(cuerpo):
         raise ValueError("plantilla con placeholders sin renderizar")
     return f"[{MARCADOR_BORRADOR}] {asunto_base}", cuerpo
-
-
-def _seccion_cuerpo(texto_plantilla: str) -> str:
-    """La parte aprobable del documento de plantilla: entre el encabezado
-    de versión/estado y la sección `LÍMITES`, que documenta restricciones
-    y no viaja al destinatario."""
-
-    sin_limites = texto_plantilla.split("LÍMITES:", 1)[0]
-    lineas = sin_limites.splitlines()
-    # Las dos primeras líneas son TEMPLATE_VERSION y POLICY_STATUS.
-    return "\n".join(lineas[2:]).strip("\n") + "\n"
 
 
 def _log_path(directorio_salida: Path) -> Path:
