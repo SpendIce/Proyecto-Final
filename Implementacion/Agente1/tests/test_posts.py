@@ -19,17 +19,17 @@ class FuenteFake:
         self.fila = fila
         self.llamadas = 0
 
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
+    def obtener(self, id_actividad: str) -> dict[str, str]:
         self.llamadas += 1
         return dict(self.fila)
 
 
 def actividad(**cambios: str) -> dict[str, str]:
     fila = {
-        "id_solicitud": "SYN-POST-001",
+        "id_actividad": "SYN-POST-001",
         "titulo": "Taller sintético",
         "descripcion": "Actividad ficticia para probar el flujo.",
-        "fecha": "2026-08-20",
+        "fecha_inicio": "2026-08-20",
         "publico": "Comunidad universitaria",
         "organiza": "Equipo de prueba",
         "contacto": "pruebas@example.invalid",
@@ -80,7 +80,7 @@ def test_procesar_post_persiste_borrador_y_audita_versiones(tmp_path: Path):
     registro = json.loads(resultado.log_path.read_text(encoding="utf-8"))
     assert registro["HU"] == "HU-011"
     assert registro["canal"] == "instagram"
-    assert registro["contract_version"] == "post_input_v1"
+    assert registro["contract_version"] == "post_input_v2"
     assert registro["policy_version"] == "post_policy_test_v1"
     assert registro["max_chars"] == 500
     assert registro["min_hashtags"] == 1
@@ -247,7 +247,7 @@ def test_salida_vacia_o_truncada_se_rechaza(tmp_path: Path):
 
 def test_error_de_fuente_se_mapea_a_codigo_cerrado_sin_datos(tmp_path: Path):
     class FuenteFallida:
-        def obtener(self, id_solicitud: str) -> dict[str, str]:
+        def obtener(self, id_actividad: str) -> dict[str, str]:
             raise FuenteSolicitudesError("detalle-remoto-secreto")
 
     resultado = procesar_post(
