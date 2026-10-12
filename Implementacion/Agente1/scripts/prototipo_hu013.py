@@ -70,7 +70,7 @@ class GeneradorDemo:
         datos = self._datos_fuente(prompt)
         if not datos:
             return self.gacetilla
-        lineas = [f"Fecha: {datos.get('fecha', '')}", f"Organiza: {datos.get('organiza', '')}"]
+        lineas = [f"Fecha: {datos.get('fecha_inicio', '')}", f"Organiza: {datos.get('organiza', '')}"]
         if datos.get("lugar"):
             lineas.append(f"Lugar: {datos['lugar']}")
         # La prosa no puede llevar datos concretos (números, correos, enlaces,
@@ -132,7 +132,7 @@ class Handler(BaseHTTPRequestHandler):
         borrador = None
         if resultado.borrador_path and resultado.borrador_path.exists():
             borrador = resultado.borrador_path.read_text(encoding="utf-8")
-        self._json(200,{"estado":resultado.estado,"intencion":resultado.intencion,"resumen":resultado.resumen,"error":resultado.error,"candidatas":[{"titulo":c.titulo,"fecha":c.fecha} for c in resultado.candidatas],"borrador":borrador})
+        self._json(200,{"estado":resultado.estado,"intencion":resultado.intencion,"resumen":resultado.resumen,"error":resultado.error,"candidatas":[{"titulo":c.titulo,"fecha":c.fecha_inicio} for c in resultado.candidatas],"borrador":borrador})
 
     def _json(self, estado: int, objeto: dict) -> None:
         data = json.dumps(objeto,ensure_ascii=False).encode(); self.send_response(estado); self.send_header("Content-Type","application/json; charset=utf-8"); self.send_header("Content-Length",str(len(data))); self.end_headers(); self.wfile.write(data)

@@ -138,20 +138,20 @@ class _FuenteConActividadesAmbiguas:
         "fuente": "",
         "lugar": "",
         "titulo": "Taller de robótica educativa",
-        "fecha": "2026-09-01",
+        "fecha_inicio": "2026-09-01",
         "organiza": "Equipo ambiguo",
     }
 
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
+    def obtener(self, id_actividad: str) -> dict[str, str]:
         for fila in self.enumerar():
-            if fila["id_solicitud"] == id_solicitud:
+            if fila["id_actividad"] == id_actividad:
                 return fila
         raise AssertionError("no debería pedirse una actividad ambigua por id")
 
     def enumerar(self) -> list[dict[str, str]]:
         return [
-            {**self._FILA_BASE, "id_solicitud": "AMB-001"},
-            {**self._FILA_BASE, "id_solicitud": "AMB-002"},
+            {**self._FILA_BASE, "id_actividad": "AMB-001"},
+            {**self._FILA_BASE, "id_actividad": "AMB-002"},
         ]
 
 

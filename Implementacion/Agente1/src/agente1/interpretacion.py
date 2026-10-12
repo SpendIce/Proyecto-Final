@@ -406,7 +406,7 @@ def _cobertura_tokens(
 def _puntuar_actividad(tokens_consulta: tuple[str, ...], fila: dict[str, str]) -> float:
     titulo = str(fila.get("titulo", "") or "")
     organiza = str(fila.get("organiza", "") or "")
-    fecha = str(fila.get("fecha", "") or "")
+    fecha = str(fila.get("fecha_inicio", "") or "")
 
     cobertura_titulo = _cobertura_tokens(_tokenizar(_normalizar(titulo)), tokens_consulta)
     cobertura_organiza = _cobertura_tokens(_tokenizar(_normalizar(organiza)), tokens_consulta)
@@ -420,7 +420,7 @@ def _puntuar_actividad(tokens_consulta: tuple[str, ...], fila: dict[str, str]) -
 
 
 def _resolver_actividad_por_similitud(texto: str, fuente: FuenteSolicitudes) -> str | None:
-    """Resuelve a lo sumo un `id_solicitud`, sólo ante coincidencia única y clara.
+    """Resuelve a lo sumo un `id_actividad`, sólo ante coincidencia única y clara.
 
     Nunca propaga: cualquier falla al enumerar la fuente, o cualquier fila
     con forma inesperada, se trata como "no se encontró actividad", igual
@@ -431,7 +431,7 @@ def _resolver_actividad_por_similitud(texto: str, fuente: FuenteSolicitudes) -> 
     más alto queda, por construcción, siempre por debajo de ese margen, así
     que nunca se acepta como ganador.
 
-    El orden de `candidatos` se desempata por `id_solicitud` (orden
+    El orden de `candidatos` se desempata por `id_actividad` (orden
     alfabético) ante puntajes iguales. Esto no es lo que hace reproducible
     al resultado devuelto: eso ya lo garantiza que el puntaje sea una
     función pura del texto normalizado, sin estructuras de orden no
@@ -456,14 +456,14 @@ def _resolver_actividad_por_similitud(texto: str, fuente: FuenteSolicitudes) -> 
     for fila in actividades:
         if not isinstance(fila, dict):
             continue
-        id_solicitud = fila.get("id_solicitud")
-        if not isinstance(id_solicitud, str) or not id_solicitud:
+        id_actividad = fila.get("id_actividad")
+        if not isinstance(id_actividad, str) or not id_actividad:
             continue
         try:
             puntaje = _puntuar_actividad(tokens_consulta, fila)
         except Exception:
             continue
-        candidatos.append((puntaje, id_solicitud))
+        candidatos.append((puntaje, id_actividad))
 
     if not candidatos:
         return None
@@ -542,8 +542,8 @@ def _generar_candidatas(
     for fila in actividades:
         if not isinstance(fila, dict):
             continue
-        id_solicitud = fila.get("id_solicitud")
-        if not isinstance(id_solicitud, str) or not id_solicitud:
+        id_actividad = fila.get("id_actividad")
+        if not isinstance(id_actividad, str) or not id_actividad:
             continue
         try:
             puntaje = _puntuar_actividad(tokens_consulta, fila)
@@ -552,17 +552,20 @@ def _generar_candidatas(
         if puntaje <= 0.0:
             continue
         titulo = str(fila.get("titulo", "") or "")
-        fecha = str(fila.get("fecha", "") or "")
-        puntuadas.append((puntaje, id_solicitud, titulo, fecha))
+        fecha_inicio = str(fila.get("fecha_inicio", "") or "")
+        puntuadas.append((puntaje, id_actividad, titulo, fecha_inicio))
 
     if not puntuadas:
         return ()
     puntuadas.sort(key=lambda item: (-item[0], item[1]))
     return tuple(
         CandidataActividad(
-            orden=orden, id_actividad=id_solicitud, titulo=titulo, fecha=fecha
+            orden=orden,
+            id_actividad=id_actividad,
+            titulo=titulo,
+            fecha_inicio=fecha_inicio,
         )
-        for orden, (_, id_solicitud, titulo, fecha) in enumerate(
+        for orden, (_, id_actividad, titulo, fecha_inicio) in enumerate(
             puntuadas[:MAX_CANDIDATAS_REPREGUNTA], start=1
         )
     )
@@ -590,8 +593,8 @@ def _tokens_distintivos(candidata: "CandidataActividad") -> frozenset[str]:
     """
 
     tokens = set(_tokenizar(_normalizar(candidata.titulo)))
-    tokens.update(_variantes_fecha_tokenizadas(candidata.fecha))
-    dia = _dia_semana_token(candidata.fecha)
+    tokens.update(_variantes_fecha_tokenizadas(candidata.fecha_inicio))
+    dia = _dia_semana_token(candidata.fecha_inicio)
     if dia is not None:
         tokens.add(dia)
     return frozenset(tokens)
@@ -703,7 +706,7 @@ def _resumen_repregunta(candidatas: tuple["CandidataActividad", ...]) -> str:
 
     lineas = [
         f"{candidata.orden}) {candidata.titulo}"
-        + (f" ({candidata.fecha})" if candidata.fecha else "")
+        + (f" ({candidata.fecha_inicio})" if candidata.fecha_inicio else "")
         for candidata in candidatas
     ]
     return (
@@ -848,14 +851,14 @@ class CandidataActividad:
     Conserva únicamente lo que el propio agente calculó a partir del índice
     de `fuente.enumerar()` —nunca la prosa del pedido—: `orden` es la
     posición (1-based) en la lista mostrada, la que la persona puede nombrar
-    ("el segundo"); `id_actividad`, `titulo` y `fecha` son los mismos datos
-    institucionales que ya usa `_resumen_desde_fuente`.
+    ("el segundo"); `id_actividad`, `titulo` y `fecha_inicio` son los mismos
+    datos institucionales que ya usa `_resumen_desde_fuente`.
     """
 
     orden: int
     id_actividad: str
     titulo: str
-    fecha: str
+    fecha_inicio: str
 
     def __post_init__(self) -> None:
         if (
@@ -868,8 +871,8 @@ class CandidataActividad:
             raise ValueError("candidata sin identificador de actividad")
         if not isinstance(self.titulo, str):
             raise ValueError("candidata sin título")
-        if not isinstance(self.fecha, str):
-            raise ValueError("candidata sin fecha")
+        if not isinstance(self.fecha_inicio, str):
+            raise ValueError("candidata sin fecha de inicio")
 
 
 @dataclass(frozen=True)
@@ -1504,11 +1507,11 @@ def _resumen_desde_fuente(fuente: FuenteSolicitudes, id_actividad: str) -> str |
     if not isinstance(fila, dict):
         return None
     titulo = fila.get("titulo", "")
-    fecha = fila.get("fecha", "")
+    fecha_inicio = fila.get("fecha_inicio", "")
     if not isinstance(titulo, str) or not titulo.strip():
         return None
-    if isinstance(fecha, str) and fecha.strip():
-        return f"Gacetilla para '{titulo.strip()}' ({fecha.strip()})."
+    if isinstance(fecha_inicio, str) and fecha_inicio.strip():
+        return f"Gacetilla para '{titulo.strip()}' ({fecha_inicio.strip()})."
     return f"Gacetilla para '{titulo.strip()}'."
 
 

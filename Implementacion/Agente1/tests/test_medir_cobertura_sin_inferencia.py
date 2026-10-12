@@ -99,7 +99,7 @@ def test_todo_id_esperado_del_corpus_existe_en_el_dataset():
     import csv
 
     with DATASET.open(encoding="utf-8", newline="") as archivo:
-        ids_dataset = {fila["id_solicitud"] for fila in csv.DictReader(archivo)}
+        ids_dataset = {fila["id_actividad"] for fila in csv.DictReader(archivo)}
 
     for corpus in (CORPUS_CALIBRADO, CORPUS_AMBIGUAS):
         with corpus.open(encoding="utf-8", newline="") as archivo:
