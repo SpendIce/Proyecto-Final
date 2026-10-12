@@ -16,28 +16,27 @@ claves, nunca contenido.
 
 import json
 import os
+import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-import subprocess
-import sys
 
 import pytest
 
 from agente1.confirmaciones import (
-    AprobacionHumana,
-    DestinoConfirmacionesFake,
     ESTADOS_PURGABLES,
-    RegistroConfirmacionesArchivo,
     ROL_APROBACION_SEMANTICA,
     ROL_APROBACION_UTILITARIA,
-    SolicitudConfirmacion,
     VENTANA_RECONCILIACION_DIAS,
+    AprobacionHumana,
+    DestinoConfirmacionesFake,
+    RegistroConfirmacionesArchivo,
+    SolicitudConfirmacion,
     _hash,
     correr_purga_registro,
     procesar_confirmacion,
 )
-
 
 ROOT = Path(__file__).parents[1]
 CLAVE_A = "a" * 64
@@ -277,7 +276,7 @@ def test_auditoria_por_corrida_con_cantidad_y_hash_sin_contenido(
     assert "Ana Pérez" not in crudo
     assert TEXTO_PERSONAL not in crudo
     assert "Asunto con nombre" not in crudo
-    lineas = [l for l in lineas_auditoria(salida) if l["evento"] == "purga_retencion"]
+    lineas = [e for e in lineas_auditoria(salida) if e["evento"] == "purga_retencion"]
     assert len(lineas) == 2
     primera, segunda = lineas
     assert primera["purgados"] == 1

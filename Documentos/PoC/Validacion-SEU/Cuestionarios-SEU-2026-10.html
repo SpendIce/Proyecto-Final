@@ -159,6 +159,10 @@ const PERSONAS = [
       {id:"A3", t:"¿De dónde sale el dato de quién aprobó o asistió a una actividad para emitirle el certificado?"},
       {id:"A4", t:"Hoy, ¿cómo le llega el certificado a cada participante?",
        opts:["Por mail","Lo descarga","Impreso","Otro"]},
+      {id:"A5", t:"¿La aprobación de la lista de certificados de cada actividad la da usted?",
+       why:"El aval del Decano vendría con la plantilla, sin pedírselo por cada lista.",
+       sup:"Supuesto actual: aprueba el Secretario de Extensión; el Decano no aprueba por lista.",
+       opts:["Sí, la doy yo","También el Decano por cada lista","Otra persona"]},
     ]},
     {titulo:"Correos a inscriptos", qs:[
       {id:"B1", t:"¿El correo electrónico es el medio institucional autorizado para mandar confirmaciones y avisos a inscriptos?",
@@ -180,6 +184,15 @@ const PERSONAS = [
        sup:"Supuesto actual: no.", opts:["No","Sí"]},
       {id:"C3", t:"¿Está bien avisar 7 y 2 días antes del vencimiento?",
        opts:["Sí","Otros plazos"]},
+    ]},
+    {titulo:"Operación del agente", qs:[
+      {id:"D1", t:"¿En qué horario tiene que estar funcionando el agente?",
+       why:"Es la ventana en la que se mide su disponibilidad después del traspaso.",
+       sup:"Supuesto actual: días hábiles, de 8 a 16.",
+       opts:["Días hábiles de 8 a 16","Otro horario"]},
+      {id:"D2", t:"El 22/09 se dijo que el sistema no guarda datos. ¿Le sirve esta forma de cumplirlo: los datos personales se guardan solo mientras dura el envío y 30 días más de control?",
+       why:"Los respaldos también se borran a los 30 días y el registro de auditoría guarda solo huellas, sin datos personales.",
+       opts:["Sí","Más corto","Otro criterio"]},
     ]},
   ]
 },

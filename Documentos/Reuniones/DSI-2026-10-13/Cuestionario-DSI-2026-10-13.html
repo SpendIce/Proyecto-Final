@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reunión DSI 13/10</title>
+<style>
+  :root{
+    --bg:#f8fafc; --panel:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --teal:#0f766e; --teal-soft:#f0fdfa; --amber:#d97706; --amber-soft:#fffbeb;
+    --green:#15803d; --green-soft:#f0fdf4; --red:#dc2626; --slate-soft:#f1f5f9;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b1220; --panel:#111a2b; --ink:#e2e8f0; --muted:#94a3b8; --line:#1f2a3d;
+      --teal:#2dd4bf; --teal-soft:#0f2a2a; --amber:#fbbf24; --amber-soft:#2a2210;
+      --green:#4ade80; --green-soft:#0f2416; --red:#f87171; --slate-soft:#18233a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b1220; --panel:#111a2b; --ink:#e2e8f0; --muted:#94a3b8; --line:#1f2a3d;
+    --teal:#2dd4bf; --teal-soft:#0f2a2a; --amber:#fbbf24; --amber-soft:#2a2210;
+    --green:#4ade80; --green-soft:#0f2416; --red:#f87171; --slate-soft:#18233a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:var(--bg);font-size:15px;line-height:1.5}
+  header{padding:18px 16px 0;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{margin:0 0 2px;font-size:19px}
+  .sub{color:var(--muted);font-size:13px}
+  nav{display:flex;gap:4px;margin-top:12px;overflow-x:auto}
+  nav button{border:0;background:none;padding:9px 12px;font:inherit;font-size:14px;color:var(--muted);
+    border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+  nav button.on{color:var(--teal);border-bottom-color:var(--teal);font-weight:600}
+  nav .count{font-size:11.5px;background:var(--slate-soft);border-radius:10px;padding:1px 7px;margin-left:6px}
+  main{padding:16px}
+  .intro{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+  .intro h2{margin:0 0 4px;font-size:17px}
+  .intro p{margin:6px 0;font-size:14px}
+  .meta{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:10px}
+  .meta label{font-size:12px;color:var(--muted);display:block}
+  input,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%}
+  input:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:-1px;border-color:transparent}
+  .bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
+  .progress{flex:1 1 220px;height:8px;background:var(--slate-soft);border-radius:6px;overflow:hidden}
+  .progress i{display:block;height:100%;background:var(--teal);width:0}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:7px;padding:6px 11px;font:inherit;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--teal);color:var(--teal)}
+  .btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+  .toggle{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .saved{font-size:12px;color:var(--muted);min-width:90px;text-align:right}
+  section.theme{margin:18px 0 6px}
+  section.theme>h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 8px}
+  .q{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+  .q[data-st="respondida"]{border-left-color:var(--green)}
+  .q[data-st="parcial"],.q[data-st="nosabe"]{border-left-color:var(--amber)}
+  .q[data-st="derivada"]{border-left-color:var(--teal)}
+  .qh{display:flex;gap:10px;align-items:flex-start}
+  .qid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:700;color:var(--muted);padding-top:3px;white-space:nowrap}
+  .qt{font-weight:600;font-size:15.5px}
+  .why{font-size:13px;color:var(--muted);margin:4px 0 0}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+  .chip{font-size:12px;border-radius:6px;padding:2px 8px;background:var(--slate-soft);color:var(--muted)}
+  .chip.sup{background:var(--amber-soft);color:var(--amber)}
+  .opts{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+  .opt{border:1px dashed var(--line);background:none;color:var(--ink);border-radius:16px;padding:4px 11px;font:inherit;font-size:13px;cursor:pointer}
+  .opt:hover{border-color:var(--teal);color:var(--teal)}
+  .opt.on{border-style:solid;border-color:var(--teal);background:var(--teal-soft);color:var(--teal);font-weight:600}
+  .q textarea{margin-top:10px;min-height:58px;resize:vertical}
+  .status{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;align-items:center}
+  .status button{border:1px solid var(--line);background:none;color:var(--muted);border-radius:6px;padding:3px 9px;font:inherit;font-size:12.5px;cursor:pointer}
+  .status button.on{color:#fff;border-color:transparent}
+  .status button.on[data-v="respondida"]{background:var(--green)}
+  .status button.on[data-v="parcial"],.status button.on[data-v="nosabe"]{background:var(--amber)}
+  .status button.on[data-v="derivada"]{background:var(--teal)}
+  .status button.on[data-v="pendiente"]{background:var(--muted)}
+  .status input{flex:1 1 180px;width:auto;padding:4px 8px;font-size:13px}
+  .hide{display:none!important}
+  .closing{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:18px}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:24px 16px}
+  @media (max-width:640px){ .meta{grid-template-columns:1fr} .qt{font-size:15px} }
+  @media print{
+    header{position:static} nav,.bar .btn,.toggle,.opts,.status button:not(.on){display:none!important}
+    .q{break-inside:avoid} body{background:#fff}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Reunión con DSI — Agente 1</h1>
+    <div class="sub">Martes 13/10/2026 · con Fernando Batista Vera (DSI) · lo completa Juani durante la reunión · se guarda solo en este navegador · ticket #62</div>
+    <nav id="tabs"></nav>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<footer>Las respuestas se guardan localmente. Para que cuenten como evidencia, descargá el acta (.md) y versionala en <code>Documentos/Reuniones/DSI-2026-10-13/</code>.</footer>
+
+<script>
+const CONTEXTO_COMUN = "El Agente 1 es un programa que prepara borradores de comunicación para la Secretaría de Extensión: gacetillas, publicaciones, avisos de pago y certificados. Trabaja con una cuenta de Google de la facultad creada para él (bot_ia1@), y nada se publica ni se envía sin que una persona lo apruebe. Antes del 18/11 el sistema pasa por la revisión de los laboratorios de la facultad, que pide detallar cómo se protege cada parte. Buscamos la mayor seguridad posible sin costo, con lo que la facultad ya tiene contratado con Google; lo que no se pueda hacer se declara como pendiente. Después de la presentación final (febrero de 2027) el autor deja de tener acceso, así que todo tiene que quedar en manos de la facultad.";
+
+const PERSONAS = [
+{
+  id:"DSI", nombre:"Fernando Batista Vera", rol:"Responsable del área de servicios informáticos de la FIE (DSI)",
+  proposito:"Saber qué puede activar el área sobre la cuenta del agente para protegerla, y conseguir lo que necesita la demostración (cuentas de prueba, un equipo donde correr). Lo que no se llegue a responder hoy se manda por correo.",
+  temas:[
+    {titulo:"La cuenta de Google de la facultad", qs:[
+      {id:"W1", t:"¿Qué plan de Google para educación tiene contratado la facultad?", tk:"#62 #64",
+       why:"Google tiene un plan gratuito para instituciones educativas (Education Fundamentals) y planes pagos (Standard y Plus). Algunas protecciones solo vienen en los pagos. Si no lo sabe de memoria, figura en la consola de administración de Google, en Facturación.",
+       opts:["Gratuito (Fundamentals)","Standard","Plus","No sabe: lo averigua"]},
+      {id:"W2", t:"¿Quién administra la cuenta de Google de la facultad?", tk:"#62 #81",
+       why:"Es la persona que entra a la consola de administración. Va al manual de operación como contacto para recuperar, bloquear o suspender la cuenta del agente."},
+      {id:"W3", t:"¿Se le puede dar a la cuenta del agente una configuración propia, distinta de la del resto del personal?", tk:"#64",
+       why:"En Google se hace poniendo la cuenta en un grupo aparte, que la consola llama «unidad organizativa». Casi todas las protecciones de este cuestionario se aplican así, sin afectar a nadie más.",
+       opts:["Ya está aparte","Se puede hacer","No"]},
+    ]},
+    {titulo:"Acceso a la cuenta del agente", qs:[
+      {id:"A1", t:"¿Se le puede exigir a la cuenta del agente un segundo paso para iniciar sesión, con una llave física USB?", tk:"#64",
+       why:"Es la verificación en dos pasos. La llave física es la opción más fuerte; también se puede usar una «llave de acceso» guardada en un teléfono.",
+       opts:["Sí, con llave física","Sí, con llave de acceso en un teléfono","Solo con código en el teléfono","No"]},
+      {id:"A2", t:"¿Quién guardaría esa llave?", tk:"#64 ADR 0007",
+       why:"No puede quedar en manos del autor, porque después del PPS no tiene que conservar ningún acceso.",
+       opts:["El área (DSI)","La Dirección de carrera","Otra persona"]},
+      {id:"A3", t:"¿Saben si activar el segundo paso anula el permiso que tiene guardado el agente?", tk:"#64",
+       why:"El agente no inicia sesión como una persona: usa un permiso que Google le dio una sola vez y que queda guardado (técnicamente, un «refresh token»). Google no aclara qué le pasa a ese permiso. Si se anula, alcanza con volver a autorizar al agente; solo hay que coordinarlo.",
+       opts:["No lo anula","Lo anula","No sabe: lo probamos juntos"]},
+      {id:"A4", t:"¿Cada cuánto cambian la contraseña de la cuenta del agente?", tk:"#64 #81",
+       why:"Cambiar la contraseña anula el permiso guardado del agente, que deja de leer y enviar correo hasta que se lo vuelve a autorizar. Por eso el cambio hay que coordinarlo con quien opere el agente."},
+      {id:"A5", t:"Si se pierde el acceso a la cuenta del agente, ¿cómo la recupera el área?", tk:"#64 #81",
+       why:"Va al manual de operación tal como lo hace el área."},
+    ]},
+    {titulo:"Qué puede hacer el agente con la cuenta", qs:[
+      {id:"O1", t:"¿Pueden marcar el programa del agente como «aplicación de confianza» en la consola de Google?", tk:"#64",
+       why:"El agente usa Gmail, Drive y Documentos, que Google considera servicios sensibles. Si algún día el área los restringe y el programa no está marcado como de confianza, el agente deja de funcionar. En la consola: Seguridad > Acceso y control de datos > Controles de API.",
+       opts:["Sí","Ya se confía en todas las aplicaciones internas","No","No sabe: lo averigua"]},
+      {id:"O2", t:"¿Se puede impedir que la cuenta del agente le dé acceso a cualquier otro programa?", tk:"#64",
+       why:"Así, aunque alguien consiguiera la contraseña, no podría conectar otro programa a esa cuenta.",
+       opts:["Sí","No","No sabe"]},
+      {id:"O3", t:"¿El área está de acuerdo con lo que hoy tiene permitido hacer el agente?", tk:"#64",
+       why:"Hoy puede crear y editar archivos en Drive, editar planillas y documentos, enviar correos y leer los correos de su propia casilla, para ver los comprobantes de pago que le reenvían. No lee ninguna otra casilla. El permiso sobre Drive se va a reducir a «solo los archivos que crea el agente».",
+       opts:["Sí","Sí, con cambios","No"]},
+      {id:"O4", t:"¿El área prefiere que el agente siga con una cuenta de usuario propia, o que use una «cuenta de servicio» de Google?", tk:"#64",
+       why:"Una cuenta de servicio es una identidad solo para programas, sin casilla ni contraseña. Pero no puede ser dueña de archivos, y para leer o enviar correo necesita permiso para actuar en nombre de cualquier usuario de la facultad, lo que es más riesgoso. Por eso hoy usamos una cuenta de usuario.",
+       opts:["Cuenta de usuario (como hoy)","Cuenta de servicio","Le da igual"]},
+    ]},
+    {titulo:"Archivos y correos del agente", qs:[
+      {id:"R1", t:"¿Se puede crear una «unidad compartida» de Drive de la facultad para los archivos del agente?", tk:"#64 #86",
+       why:"Los archivos de una unidad compartida son de la facultad y no de una cuenta: si la cuenta del agente se suspende o se borra, las planillas, los borradores y los respaldos quedan.",
+       opts:["Sí","No","Más adelante"]},
+      {id:"R2", t:"¿Quiénes administrarían esa unidad compartida?", tk:"#64 #81"},
+      {id:"R3", t:"¿La facultad permite compartir archivos de Drive con cuentas de afuera de la facultad?", tk:"#64",
+       opts:["No, está bloqueado","Sí, está permitido","Depende del área"]},
+      {id:"R4", t:"¿Se puede limitar la cuenta del agente para que solo pueda mandar correos a direcciones autorizadas?", tk:"#64",
+       why:"Hoy la lista de direcciones de prueba la controla el propio agente. Si Google también la controla, un error del programa no podría mandar un correo a quien no corresponde. En la consola es una opción de cumplimiento de Gmail («Restrict delivery»).",
+       opts:["Sí","No","No sabe"]},
+      {id:"R5", t:"¿Cuánto espacio de almacenamiento tiene la cuenta del agente?", tk:"#86",
+       why:"El agente guarda una copia de respaldo por día y borra las que tienen más de 30 días."},
+    ]},
+    {titulo:"Si pasa algo con la cuenta", qs:[
+      {id:"D1", t:"¿Pueden recibir un aviso automático cuando pase algo raro con la cuenta del agente?", tk:"#64 #66",
+       why:"Por ejemplo: un inicio de sesión, un programa nuevo autorizado o un archivo compartido afuera. La consola de Google tiene un centro de alertas que manda esos avisos por correo.",
+       opts:["Sí","Solo algunos","No"]},
+      {id:"D2", t:"¿Quién recibiría esos avisos?", tk:"#64 #81"},
+      {id:"D3", t:"Si sospechan que alguien tomó la cuenta del agente, ¿cómo la bloquean y le quitan los permisos?", tk:"#64 #81",
+       why:"Va al manual de operación como el procedimiento ante un incidente."},
+      {id:"D4", t:"Después de un incidente, ¿quién decide volver a habilitar la cuenta, y cómo se hace?", tk:"#64 #81"},
+      {id:"D5", t:"¿Podemos probar juntos, antes de la revisión de laboratorio, que quitarle los permisos al agente lo deja sin acceso?", tk:"#58",
+       why:"Esa prueba necesita a alguien que administre la cuenta de la facultad, por eso todavía no se hizo. Es evidencia para la revisión de seguridad.",
+       opts:["Sí","No"]},
+      {id:"D6", t:"Si lo pedimos como evidencia, ¿nos pueden pasar el registro de actividad de la cuenta del agente?", tk:"#58 #88",
+       why:"Google guarda ese registro 6 meses, y el de correos solo 30 días. Lo que no se descargue antes se pierde.",
+       opts:["Sí","No"]},
+    ]},
+    {titulo:"Demostración y revisión de laboratorio", qs:[
+      {id:"L1", t:"¿Pueden crear tres cuentas de prueba de la facultad, una por rol: personal de la Secretaría de Extensión, responsable de gestión del conocimiento y coordinador de Extensión?", tk:"#70",
+       why:"Los formularios del agente solo aceptan cuentas de la facultad. Si la gente de la Secretaría no puede estar en la demostración, esas cuentas ocupan su lugar.",
+       opts:["Sí","No"]},
+      {id:"L2", t:"¿Para cuándo podrían estar esas cuentas?", tk:"#70"},
+      {id:"L3", t:"¿El área puede dar un equipo o servidor de la facultad donde correr el agente antes de la revisión de laboratorio?", tk:"#49 #62",
+       why:"Si no, el agente corre en la notebook del autor, con el modelo de lenguaje instalado ahí.",
+       opts:["Sí, con fecha","Más adelante (dic–feb)","No"]},
+    ]},
+    {titulo:"Claves del agente y traspaso", qs:[
+      {id:"G1", t:"¿El área quiere quedar ya como coadministradora del proyecto de Google Cloud con el que se conecta el agente?", tk:"#62 #63",
+       why:"El agente se conecta a Google a través de ese proyecto, y hoy solo lo administra el autor. Como coadministradora, el área puede anular las claves del agente y generar otras sin depender de él.",
+       opts:["Sí, ahora","Recién en el traspaso","No"]},
+      {id:"G2", t:"Después del traspaso, ¿dónde guardaría el área las claves con las que el agente se conecta a Google?", tk:"#64 #81",
+       why:"Hoy están en un archivo protegido en la notebook del autor, separado del código."},
+      {id:"G3", t:"¿El área estaría dispuesta a hacerse cargo de operar el agente después del PPS?", tk:"#69",
+       why:"Operar es encenderlo, cambiar sus claves y atender fallas. Lo decide la Dirección de carrera: solo queremos llevarle la postura del área, sin comprometer nada.",
+       opts:["Sí","Tal vez","No"]},
+    ]},
+    {titulo:"Cambios en la configuración", qs:[
+      {id:"C1", t:"Si hay que cambiar algo de la cuenta del agente (sus permisos, la unidad compartida o su configuración), ¿cómo se le pide al área y quién lo aprueba?", tk:"#66"},
+      {id:"C2", t:"¿El área registra esos cambios en algún lado?", tk:"#66",
+       opts:["Sí","No"]},
+    ]},
+  ]
+},
+];
+
+const ESTADOS = [["pendiente","Pendiente"],["respondida","Respondida"],["parcial","Parcial"],["nosabe","No sabe"],["derivada","Derivar a…"]];
+const KEY = "reunion-dsi-2026-10-13";
+let datos = {}; let tab = PERSONAS[0].id; let soloPend = false;
+
+function cargar(){ try{ datos = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ datos = {}; } }
+let tGuardar;
+function guardar(){
+  clearTimeout(tGuardar);
+  tGuardar = setTimeout(()=>{
+    const el = document.getElementById("saved");
+    try{ localStorage.setItem(KEY, JSON.stringify(datos)); if(el) el.textContent = "Guardado " + new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}); }
+    catch(e){ if(el) el.textContent = "Sin guardado local: exportá"; }
+  }, 250);
+}
+const P = id => (datos[id] ||= {meta:{fecha:"",presentes:""}, r:{}, extra:""});
+const R = (pid,qid) => (P(pid).r[qid] ||= {estado:"pendiente", texto:"", opt:"", deriva:""});
+const todas = p => p.temas.flatMap(t => t.qs);
+const avance = p => { const qs = todas(p); const n = qs.filter(q => R(p.id,q.id).estado !== "pendiente").length; return [n, qs.length]; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function renderTabs(){
+  document.getElementById("tabs").innerHTML = PERSONAS.map(p => {
+    const [n,t] = avance(p);
+    return `<button class="${p.id===tab?"on":""}" data-tab="${p.id}">${esc(p.nombre)}<span class="count">${n}/${t}</span></button>`;
+  }).join("");
+}
+
+function render(){
+  renderTabs();
+  const p = PERSONAS.find(x => x.id === tab), d = P(p.id), [n,t] = avance(p);
+  let h = `<div class="intro"><h2>${esc(p.nombre)}</h2><div class="sub">${esc(p.rol)}</div>
+    <p><b>Para qué:</b> ${esc(p.proposito)}</p><p class="sub">${esc(CONTEXTO_COMUN)}</p>
+    <p class="sub">Las respuestas parciales y los «no sé» también sirven: mejor marcarlos que saltear la pregunta.</p>
+    <div class="meta"><div><label>Fecha de la reunión</label><input type="date" data-meta="fecha" value="${esc(d.meta.fecha)}"></div>
+    <div><label>Presentes</label><input data-meta="presentes" placeholder="Nombres y roles" value="${esc(d.meta.presentes)}"></div></div></div>
+    <div class="bar"><div class="progress" title="${n} de ${t}"><i style="width:${t?100*n/t:0}%"></i></div>
+    <label class="toggle"><input type="checkbox" id="solo" ${soloPend?"checked":""} style="width:auto"> Solo pendientes</label>
+    <button class="btn primary" data-act="md">Descargar acta (.md)</button>
+    <button class="btn" data-act="json">Exportar todo (.json)</button>
+    <button class="btn" data-act="import">Importar</button>
+    <span class="saved" id="saved"></span></div>`;
+  for(const tema of p.temas){
+    h += `<section class="theme"><h3>${esc(tema.titulo)}</h3>`;
+    for(const q of tema.qs){
+      const r = R(p.id,q.id), oculto = soloPend && r.estado !== "pendiente";
+      h += `<div class="q ${oculto?"hide":""}" data-st="${r.estado}" data-q="${q.id}">
+        <div class="qh"><span class="qid">${p.id}-${q.id}</span><div><div class="qt">${esc(q.t)}</div>
+        ${q.why?`<p class="why">${esc(q.why)}</p>`:""}
+        ${(q.sup||q.tk)?`<div class="chips">${q.tk?`<span class="chip">Alimenta ${esc(q.tk)}</span>`:""}${q.sup?`<span class="chip sup">${esc(q.sup)}</span>`:""}</div>`:""}</div></div>
+        ${q.opts?`<div class="opts">${q.opts.map(o=>`<button class="opt ${r.opt===o?"on":""}" data-opt="${esc(o)}">${esc(o)}</button>`).join("")}</div>`:""}
+        <textarea data-txt placeholder="Respuesta, en sus palabras">${esc(r.texto)}</textarea>
+        <div class="status">${ESTADOS.map(([v,l])=>`<button data-v="${v}" class="${r.estado===v?"on":""}">${l}</button>`).join("")}
+        <input data-deriva class="${r.estado==="derivada"?"":"hide"}" placeholder="¿A quién?" value="${esc(r.deriva)}"></div></div>`;
+    }
+    h += `</section>`;
+  }
+  h += `<div class="closing"><b>¿Algo más?</b><p class="sub" style="margin:4px 0 8px">¿Hay algo que no preguntamos y deberíamos saber?</p>
+    <textarea data-extra placeholder="Notas libres">${esc(d.extra)}</textarea></div>`;
+  document.getElementById("main").innerHTML = h;
+}
+
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if(!b) return; tab = b.dataset.tab; render(); scrollTo(0,0);
+});
+const main = document.getElementById("main");
+main.addEventListener("click", e => {
+  const card = e.target.closest(".q"), p = PERSONAS.find(x => x.id === tab);
+  if(e.target.matches("[data-act=md]")) return descargar(`acta-${p.id}-${hoy()}.md`, acta(p), "text/markdown");
+  if(e.target.matches("[data-act=json]")) return descargar(`reunion-dsi-${hoy()}.json`, JSON.stringify(datos,null,2), "application/json");
+  if(e.target.matches("[data-act=import]")) return importar();
+  if(!card) return;
+  const r = R(tab, card.dataset.q);
+  if(e.target.matches("[data-opt]")){
+    r.opt = r.opt === e.target.dataset.opt ? "" : e.target.dataset.opt;
+    if(r.opt && r.estado === "pendiente") r.estado = "respondida";
+    guardar(); render(); return;
+  }
+  if(e.target.matches(".status button")){ r.estado = e.target.dataset.v; guardar(); render(); }
+});
+main.addEventListener("input", e => {
+  const card = e.target.closest(".q");
+  if(e.target.matches("[data-meta]")) P(tab).meta[e.target.dataset.meta] = e.target.value;
+  else if(e.target.matches("[data-extra]")) P(tab).extra = e.target.value;
+  else if(card && e.target.matches("[data-txt]")){
+    const r = R(tab, card.dataset.q); r.texto = e.target.value;
+    if(r.texto.trim() && r.estado === "pendiente"){ r.estado = "respondida"; card.dataset.st = "respondida";
+      card.querySelectorAll(".status button").forEach(b => b.classList.toggle("on", b.dataset.v === "respondida")); renderTabs(); }
+  }
+  else if(card && e.target.matches("[data-deriva]")) R(tab, card.dataset.q).deriva = e.target.value;
+  guardar();
+});
+main.addEventListener("change", e => { if(e.target.id === "solo"){ soloPend = e.target.checked; render(); } });
+
+function hoy(){ return new Date().toISOString().slice(0,10); }
+function acta(p){
+  const d = P(p.id), [n,t] = avance(p), et = Object.fromEntries(ESTADOS);
+  let s = `# Acta de cuestionario — ${p.nombre}\n\n- **Rol:** ${p.rol}\n- **Fecha de la reunión:** ${d.meta.fecha || "(sin fecha)"}\n- **Presentes:** ${d.meta.presentes || "(sin registrar)"}\n- **Registró:** Juani, en presencia de la persona consultada\n- **Avance:** ${n} de ${t} preguntas con respuesta o estado\n\n> Respuestas registradas durante la reunión. Valen como respuesta de DSI por acta de reunión. Lo marcado como parcial, «no sabe» o derivado sigue abierto.\n`;
+  for(const tema of p.temas){
+    s += `\n## ${tema.titulo}\n`;
+    for(const q of tema.qs){
+      const r = R(p.id,q.id);
+      s += `\n### ${p.id}-${q.id} — ${q.t}\n\n- **Estado:** ${et[r.estado]}${r.estado==="derivada"&&r.deriva?` → ${r.deriva}`:""}\n`;
+      if(q.sup) s += `- **Supuesto previo:** ${q.sup.replace(/^Supuesto actual:\s*/,"")}\n`;
+      if(q.tk) s += `- **Alimenta:** ${q.tk}\n`;
+      if(r.opt) s += `- **Opción elegida:** ${r.opt}\n`;
+      s += `- **Respuesta:** ${r.texto.trim() ? r.texto.trim().replace(/\n/g,"\n  ") : "—"}\n`;
+    }
+  }
+  s += `\n## Otros comentarios\n\n${d.extra.trim() || "—"}\n`;
+  return s;
+}
+function descargar(nombre, contenido, tipo){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([contenido], {type:tipo+";charset=utf-8"}));
+  a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function importar(){
+  const i = document.createElement("input"); i.type = "file"; i.accept = "application/json";
+  i.onchange = () => { const f = i.files[0]; if(!f) return;
+    f.text().then(t => { try{ datos = JSON.parse(t); guardar(); render(); }catch(e){ document.getElementById("saved").textContent = "Archivo inválido"; } }); };
+  i.click();
+}
+cargar(); render();
+</script>
+</body>
+</html>

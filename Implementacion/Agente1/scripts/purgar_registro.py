@@ -30,18 +30,17 @@ que la política de retención ya venció.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import json
-from pathlib import Path
 import sys
-
+from datetime import datetime
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from agente1.confirmaciones import (  # noqa: E402
-    RegistroConfirmacionesArchivo,
     VENTANA_RECONCILIACION_DIAS,
+    RegistroConfirmacionesArchivo,
     _hash,
     correr_purga_registro,
 )
