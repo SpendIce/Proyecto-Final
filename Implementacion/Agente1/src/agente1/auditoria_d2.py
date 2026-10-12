@@ -12,6 +12,7 @@ import json
 import re
 from typing import Any
 
+from .gmail_envio import GMAIL_HOST, GMAIL_SEND_TARGET
 from .google_workspace import DOCS_HOST, DRIVE_HOST, SHEETS_HOST
 
 
@@ -50,7 +51,8 @@ def auditar_manifest(manifest: object) -> dict[str, object]:
       autorizadas?
     - `remote_errors_redacted`: ¿los errores del proveedor filtran datos?
     - `no_distribution_endpoints`: ¿aparece alguna llamada capaz de enviar,
-      compartir o cambiar permisos?
+      compartir o cambiar permisos, distinta del único servicio admitido —
+      `gmail.send` de la cuenta técnica, sólo con lista de prueba activa?
     - `revocation_blocks`: al revocar permisos, ¿se detuvo sin producir salida?
     - `outputs_are_drafts`: ¿toda salida quedó marcada como borrador y en
       estado pendiente de validación?
@@ -87,7 +89,10 @@ def auditar_manifest(manifest: object) -> dict[str, object]:
         ),
         _check(
             "no_distribution_endpoints",
-            _sin_endpoints_distribucion(manifest["http_calls"]),
+            _sin_endpoints_distribucion(
+                manifest["http_calls"],
+                gmail_lista_activa=_lista_prueba_gmail_activa(manifest),
+            ),
         ),
         _check(
             "revocation_blocks",
@@ -158,6 +163,7 @@ def _contrato_basico_valido(manifest: object) -> bool:
             )
         )
         and isinstance(manifest["revocation_probe"], dict)
+        and _declaracion_gmail_valida(manifest.get("gmail_send"))
     )
 
 
@@ -230,7 +236,46 @@ def _recursos_permitidos(resources: object, allowlist: object) -> bool:
     return True
 
 
-def _sin_endpoints_distribucion(http_calls: object) -> bool:
+def _declaracion_gmail_valida(declaracion: object) -> bool:
+    """La sección `gmail_send` del manifest, si existe, es cerrada.
+
+    Es la única declaración que puede habilitar una llamada de distribución:
+    `test_list_active` afirma que el envío operó cercado por la lista de
+    direcciones de prueba de D12. `recipients_hash` es opcional y deja
+    huella verificable de qué lista se usó sin exponer las direcciones.
+    Ausente, la sección equivale a «sin lista»: ninguna llamada de Gmail
+    pasa el control.
+    """
+
+    if declaracion is None:
+        return True
+    if not isinstance(declaracion, dict) or not set(declaracion) <= {
+        "test_list_active",
+        "recipients_hash",
+    }:
+        return False
+    if not isinstance(declaracion.get("test_list_active"), bool):
+        return False
+    recipients_hash = declaracion.get("recipients_hash")
+    return recipients_hash is None or (
+        isinstance(recipients_hash, str)
+        and re.fullmatch(r"[0-9a-f]{64}", recipients_hash) is not None
+    )
+
+
+def _lista_prueba_gmail_activa(manifest: Mapping[str, object]) -> bool:
+    """`True` sólo si el manifest declara la lista de prueba vigente."""
+
+    declaracion = manifest.get("gmail_send")
+    return (
+        isinstance(declaracion, dict)
+        and declaracion.get("test_list_active") is True
+    )
+
+
+def _sin_endpoints_distribucion(
+    http_calls: object, *, gmail_lista_activa: bool
+) -> bool:
     """Ninguna llamada puede distribuir contenido ni cambiar permisos.
 
     No alcanza con revisar el path: se exige además que el host esté entre los
@@ -238,6 +283,11 @@ def _sin_endpoints_distribucion(http_calls: object) -> bool:
     endpoint de permisos, de compartir o de correo hace fallar el control, aun
     cuando el host sea de Google. La lista se verifica contra las rutas que
     realmente usa `google_workspace`.
+
+    Única excepción (D12): `POST gmail.googleapis.com
+    /gmail/v1/users/me/messages/send`, admitida sólo cuando el manifest
+    declara `gmail_send.test_list_active`. Gmail sin lista activa —y
+    cualquier otra ruta de Gmail, incluida la lectura— sigue fallando.
     """
 
     if not isinstance(http_calls, list):
@@ -253,6 +303,14 @@ def _sin_endpoints_distribucion(http_calls: object) -> bool:
         if not all(isinstance(value, str) and value for value in (method, host, target)):
             return False
         normalized_host = host.lower()
+        if (
+            method == "POST"
+            and normalized_host == GMAIL_HOST
+            and target == GMAIL_SEND_TARGET
+        ):
+            if not gmail_lista_activa:
+                return False
+            continue
         if (
             normalized_host not in WORKSPACE_HOSTS
             or not target.startswith("/")
