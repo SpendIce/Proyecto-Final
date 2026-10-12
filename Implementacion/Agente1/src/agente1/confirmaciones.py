@@ -70,12 +70,22 @@ plantilla genérica —el correo lista el plan de pago— y su asunto es el
 respuesta del preinscripto se asocia por ese asunto normalizado (§4.2 del
 diseño de pagos): la marca sigue yendo en el cuerpo, que es donde el
 destino la exige.
+
+Retención acotada (issue #87, ADR 0009 y término del glosario): el texto
+del borrador y los datos de la persona viven en el registro sólo mientras
+dura el ciclo de envío más su ventana de reconciliación. Una vez que la
+confirmación llega a un estado terminal y la ventana vence,
+`purgar_terminadas` reescribe el archivo dejando `asunto` y `cuerpo`
+vacíos y conservando clave, estado, fechas y el hash del contenido: la
+idempotencia sigue intacta porque la clave no se toca nunca, y la traza
+sigue siendo auditable contra el log. Los indeterminados y todo estado
+no terminal quedan a la vista: la purga no decide por una persona.
 """
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 import fcntl
 import hashlib
 from importlib.resources import files
@@ -84,7 +94,7 @@ import os
 from pathlib import Path
 import re
 from threading import Lock
-from typing import Protocol
+from typing import Callable, Protocol
 import uuid
 
 from .tipos_notificacion import (
@@ -171,6 +181,23 @@ ESTADO_ENVIO_ENCOLADO = "ENVIO_ENCOLADO"
 # siempre. Tres intentos alcanzan para distinguir transitorio de definitivo
 # sin convertir la cola en un bucle.
 REINTENTOS_ENVIO_MAX = 3
+
+# Ventana de reconciliación de la retención acotada (ADR 0009, glosario):
+# los 30 días que una persona tiene para cruzar el registro contra Gmail
+# Enviados antes de que el texto del borrador se purgue.
+VENTANA_RECONCILIACION_DIAS = 30
+
+# Estados desde los que ninguna transición sale y que no esperan la
+# decisión de una persona: la entrega terminó, falló o el borrador fue
+# rechazado. Es el único conjunto que la purga puede tocar. Quedan fuera
+# a propósito `ENVIO_INDETERMINADO` y `EMISION_INDETERMINADA` (siguen a la
+# vista hasta que una persona reconcilie), todo estado no terminal y
+# cualquier estado desconocido: lo que el conjunto no nombra no se purga.
+# Se incluyen los estados terminales de HU-014 porque el registro es el
+# mismo (`RegistroCertificadosArchivo` es un alias de esta clase).
+ESTADOS_PURGABLES = frozenset(
+    {"ENVIADA_SIMULADA", "EMITIDA_SIMULADA", "FALLIDA", "RECHAZADA"}
+)
 
 # Por rol: el estado en que queda un borrador pendiente cuando ese rol
 # aprueba, y el estado parcial del que parte para completar el par.
@@ -374,9 +401,26 @@ def _modo_entrega(destino: object) -> str:
 
 @dataclass(frozen=True)
 class BorradorRegistrado:
+    """Un registro del almacén durable: estado más el texto del borrador.
+
+    Los cuatro campos opcionales completan la traza que la retención
+    acotada necesita: `creado_en` y `actualizado_en` (ISO-8601 con zona
+    horaria) fechan el alta y la última transición, `output_hash` es el
+    `sha256` de `asunto + "\\n" + cuerpo` (el mismo cómputo de la línea de
+    auditoría) y `purgado_en` fecha la purga. Un registro anterior a la
+    fecha que los introduce puede venir sin ellos: para decidir la purga
+    el reloj de último recurso es el `mtime` del archivo, y la purga misma
+    deja asentada la fecha que usó. Después de purgar, `asunto` y `cuerpo`
+    quedan vacíos y el resto se conserva.
+    """
+
     estado: str
     asunto: str
     cuerpo: str
+    creado_en: str | None = None
+    actualizado_en: str | None = None
+    output_hash: str | None = None
+    purgado_en: str | None = None
 
 
 class RegistroConfirmaciones(Protocol):
@@ -398,22 +442,34 @@ class RegistroConfirmaciones(Protocol):
 
 
 class RegistroConfirmacionesMemoria:
-    """Unique semantics de proceso para pruebas y matrices offline."""
+    """Unique semantics de proceso para pruebas y matrices offline.
 
-    def __init__(self) -> None:
+    Estampa los mismos campos de traza que el registro durable
+    (`creado_en`, `actualizado_en`, `output_hash`) con un reloj inyectable:
+    las pruebas que intercambian ambos puertos ven la misma forma.
+    """
+
+    def __init__(self, *, clock: Callable[[], datetime] | None = None) -> None:
         self._borradores: dict[str, BorradorRegistrado] = {}
         self._lock = Lock()
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
 
     def obtener(self, idempotency_key: str) -> BorradorRegistrado | None:
         with self._lock:
             return self._borradores.get(idempotency_key)
 
     def crear(self, idempotency_key: str, asunto: str, cuerpo: str) -> bool:
+        ahora = _iso(self._clock())
         with self._lock:
             if idempotency_key in self._borradores:
                 return False
             self._borradores[idempotency_key] = BorradorRegistrado(
-                estado="PENDIENTE_VALIDACION", asunto=asunto, cuerpo=cuerpo
+                estado="PENDIENTE_VALIDACION",
+                asunto=asunto,
+                cuerpo=cuerpo,
+                creado_en=ahora,
+                actualizado_en=ahora,
+                output_hash=_hash(asunto + "\n" + cuerpo),
             )
             return True
 
@@ -425,7 +481,13 @@ class RegistroConfirmacionesMemoria:
             if actual is None or actual.estado not in desde:
                 return False
             self._borradores[idempotency_key] = BorradorRegistrado(
-                estado=hacia, asunto=actual.asunto, cuerpo=actual.cuerpo
+                estado=hacia,
+                asunto=actual.asunto,
+                cuerpo=actual.cuerpo,
+                creado_en=actual.creado_en,
+                actualizado_en=_iso(self._clock()),
+                output_hash=actual.output_hash,
+                purgado_en=actual.purgado_en,
             )
             return True
 
@@ -543,11 +605,21 @@ class RegistroConfirmacionesArchivo:
     - **La clave es un sha256.** Se valida igual antes de construir el path:
       una clave con `..` o con separadores no debe poder elegir dónde escribe
       el registro, aunque hoy la produzca el propio módulo.
+    - **El registro lleva sus propias fechas.** `crear` y `transicionar`
+      estampan `creado_en` y `actualizado_en` dentro del archivo, no fuera:
+      la ventana de retención sobrevive a un respaldo que no preserve el
+      `mtime`, porque la fecha viaja con el registro.
     """
 
-    def __init__(self, directorio: Path) -> None:
+    def __init__(
+        self,
+        directorio: Path,
+        *,
+        clock: Callable[[], datetime] | None = None,
+    ) -> None:
         self._directorio = Path(directorio)
         self._directorio.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
 
     def _ruta(self, idempotency_key: str) -> Path:
         if not CLAVE_REGISTRO_RE.fullmatch(idempotency_key):
@@ -564,8 +636,14 @@ class RegistroConfirmacionesArchivo:
 
     def crear(self, idempotency_key: str, asunto: str, cuerpo: str) -> bool:
         ruta = self._ruta(idempotency_key)
+        ahora = _iso(self._clock())
         registro = BorradorRegistrado(
-            estado="PENDIENTE_VALIDACION", asunto=asunto, cuerpo=cuerpo
+            estado="PENDIENTE_VALIDACION",
+            asunto=asunto,
+            cuerpo=cuerpo,
+            creado_en=ahora,
+            actualizado_en=ahora,
+            output_hash=_hash(asunto + "\n" + cuerpo),
         )
         temporal = ruta.with_name(f"{ruta.stem}.{uuid.uuid4().hex}.tmp")
         descriptor = os.open(temporal, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
@@ -597,7 +675,13 @@ class RegistroConfirmacionesArchivo:
                 _escribir_atomico(
                     ruta,
                     BorradorRegistrado(
-                        estado=hacia, asunto=actual.asunto, cuerpo=actual.cuerpo
+                        estado=hacia,
+                        asunto=actual.asunto,
+                        cuerpo=actual.cuerpo,
+                        creado_en=actual.creado_en,
+                        actualizado_en=_iso(self._clock()),
+                        output_hash=actual.output_hash,
+                        purgado_en=actual.purgado_en,
                     ),
                 )
                 return True
@@ -613,6 +697,103 @@ class RegistroConfirmacionesArchivo:
             if registro is not None and registro.estado == estado:
                 encontradas.append(ruta.stem)
         return tuple(encontradas)
+
+    def purgar_terminadas(
+        self,
+        *,
+        ahora: datetime | None = None,
+        ventana_dias: int = VENTANA_RECONCILIACION_DIAS,
+    ) -> tuple[str, ...]:
+        """Purga el texto de los registros terminales cuya ventana venció.
+
+        La retención acotada (ADR 0009, issue #87): una confirmación en un
+        estado de `ESTADOS_PURGABLES` cuya última transición quedó más
+        atrás que `ahora - ventana_dias` pierde `asunto` y `cuerpo`, que es
+        donde viven el texto del borrador y los datos de la persona. El
+        archivo se reescribe con la misma atomicidad de siempre (temporal +
+        `os.replace`, bajo el `.lock` por clave) y conserva la clave —el
+        nombre del archivo no cambia, así que `crear` sigue fallando en la
+        misma clave—, el estado, las fechas y el hash del contenido
+        borrado. Por eso purgar nunca habilita un reenvío.
+
+        La fecha que mide la ventana es `actualizado_en`: en un registro
+        terminal es la fecha en que llegó a ese estado. Un registro
+        anterior a los campos se mide por el `mtime` del archivo, que para
+        un registro terminal es la última escritura, y la purga deja esa
+        fecha asentada en `actualizado_en`. `ENVIO_INDETERMINADO`,
+        `EMISION_INDETERMINADA` y todo estado no terminal no se tocan:
+        siguen a la vista hasta que una persona decida. Un archivo
+        ilegible o cuyo nombre no es una clave sha256 tampoco se toca:
+        queda como evidencia.
+
+        Devuelve las claves purgadas, ordenadas. La corrida es idempotente:
+        `purgado_en` distingue lo ya purgado.
+        """
+
+        momento = ahora if ahora is not None else self._clock()
+        _validar_momento(momento)
+        if (
+            not isinstance(ventana_dias, int)
+            or isinstance(ventana_dias, bool)
+            or not 1 <= ventana_dias <= 3650
+        ):
+            raise ValueError("ventana de retención inválida")
+        corte = momento - timedelta(days=ventana_dias)
+        purgadas = []
+        for ruta in sorted(self._directorio.glob("*.json")):
+            # El nombre también es la guarda: la purga sólo puede tocar
+            # archivos cuyo nombre es una clave del registro.
+            if CLAVE_REGISTRO_RE.fullmatch(ruta.stem) is None:
+                continue
+            registro = _leer_registro(ruta.read_text(encoding="utf-8"))
+            if registro is None or not _es_purgable(registro):
+                continue
+            # "más de N días": en el instante exacto del corte la ventana
+            # recién se cumple, así que el texto todavía queda.
+            if _fecha_terminal(registro, ruta) >= corte:
+                continue
+            if self._purgar_si_vencida(ruta.stem, ruta, corte, momento):
+                purgadas.append(ruta.stem)
+        return tuple(purgadas)
+
+    def _purgar_si_vencida(
+        self, clave: str, ruta: Path, corte: datetime, ahora: datetime
+    ) -> bool:
+        """Reescribe el registro sin texto, bajo el lock por clave.
+
+        Vuelve a leer y a verificar dentro del `flock`: el filtro previo de
+        `purgar_terminadas` es sólo una optimización, la decisión se toma
+        acá con la misma disciplina que `transicionar`. Si una corrida
+        concurrente ya purgó la clave, `purgado_en` la descarta.
+        """
+
+        candado = ruta.with_suffix(".lock")
+        descriptor = os.open(candado, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            with os.fdopen(descriptor, "r+", encoding="utf-8") as archivo:
+                fcntl.flock(archivo.fileno(), fcntl.LOCK_EX)
+                actual = self.obtener(clave)
+                if actual is None or not _es_purgable(actual):
+                    return False
+                desde = _fecha_terminal(actual, ruta)
+                if desde >= corte:
+                    return False
+                _escribir_atomico(
+                    ruta,
+                    BorradorRegistrado(
+                        estado=actual.estado,
+                        asunto="",
+                        cuerpo="",
+                        creado_en=actual.creado_en,
+                        actualizado_en=actual.actualizado_en or _iso(desde),
+                        output_hash=actual.output_hash
+                        or _hash(actual.asunto + "\n" + actual.cuerpo),
+                        purgado_en=_iso(ahora),
+                    ),
+                )
+                return True
+        except OSError:
+            return False
 
 
 class ColaEnviosArchivo:
@@ -781,7 +962,17 @@ def _leer_item(contenido: str) -> tuple[int, ItemEnvio] | None:
 
 
 def _serializar_registro(registro: BorradorRegistrado) -> str:
-    return json.dumps(asdict(registro), ensure_ascii=False, sort_keys=True)
+    # Los campos de traza ausentes (registros anteriores a su introducción)
+    # no se serializan: `null` no aporta y la ausencia es más honesta.
+    return json.dumps(
+        {
+            clave: valor
+            for clave, valor in asdict(registro).items()
+            if valor is not None
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
 
 
 def _leer_registro(contenido: str) -> BorradorRegistrado | None:
@@ -791,6 +982,12 @@ def _leer_registro(contenido: str) -> BorradorRegistrado | None:
     archivo corrupto en un estado válido, y desde ahí se podría transicionar a
     entrega. Ausente es fail-closed: `crear` va a fallar por `O_EXCL` y la
     inconsistencia sale a la luz en vez de habilitar un envío.
+
+    Los campos de traza se validan con la misma dureza que los obligatorios:
+    una fecha que no es ISO con zona o un hash que no es sha256 hacen el
+    registro ilegible, porque aceptarlos degradaría en silencio la
+    evidencia. Las claves desconocidas se ignoran, para que un archivo
+    escrito por una versión posterior siga leyéndose.
     """
 
     try:
@@ -806,7 +1003,128 @@ def _leer_registro(contenido: str) -> BorradorRegistrado | None:
     )
     if not all(isinstance(valor, str) for valor in (estado, asunto, cuerpo)):
         return None
-    return BorradorRegistrado(estado=estado, asunto=asunto, cuerpo=cuerpo)
+    creado_en, actualizado_en, purgado_en = (
+        datos.get("creado_en"),
+        datos.get("actualizado_en"),
+        datos.get("purgado_en"),
+    )
+    output_hash = datos.get("output_hash")
+    for fecha in (creado_en, actualizado_en, purgado_en):
+        if fecha is not None and not _es_timestamp_iso(fecha):
+            return None
+    if output_hash is not None and CLAVE_REGISTRO_RE.fullmatch(output_hash) is None:
+        return None
+    return BorradorRegistrado(
+        estado=estado,
+        asunto=asunto,
+        cuerpo=cuerpo,
+        creado_en=creado_en,
+        actualizado_en=actualizado_en,
+        output_hash=output_hash,
+        purgado_en=purgado_en,
+    )
+
+
+def _es_timestamp_iso(valor: object) -> bool:
+    """ISO-8601 con zona horaria: un timestamp ingenuo no es comparable."""
+
+    if not isinstance(valor, str):
+        return False
+    try:
+        fecha = datetime.fromisoformat(valor)
+    except ValueError:
+        return False
+    return fecha.tzinfo is not None and fecha.utcoffset() is not None
+
+
+def _iso(momento: datetime) -> str:
+    _validar_momento(momento)
+    return momento.astimezone(timezone.utc).isoformat()
+
+
+def _validar_momento(momento: datetime) -> None:
+    # Misma regla que el resto de la trazabilidad: un timestamp sin zona no
+    # es comparable entre máquinas ni contra la ventana de retención.
+    if (
+        not isinstance(momento, datetime)
+        or momento.tzinfo is None
+        or momento.utcoffset() is None
+    ):
+        raise ValueError("el timestamp debe incluir zona horaria")
+
+
+def _es_purgable(registro: BorradorRegistrado) -> bool:
+    return registro.estado in ESTADOS_PURGABLES and registro.purgado_en is None
+
+
+def _fecha_terminal(registro: BorradorRegistrado, ruta: Path) -> datetime:
+    """Cuándo entró al estado actual: `actualizado_en` o, en un registro
+    anterior a los campos, el `mtime` del archivo —que para un registro
+    terminal es su última escritura."""
+
+    if registro.actualizado_en is not None:
+        return datetime.fromisoformat(registro.actualizado_en)
+    return datetime.fromtimestamp(ruta.stat().st_mtime, timezone.utc)
+
+
+@dataclass(frozen=True)
+class ResultadoPurga:
+    """Qué dejó una corrida de purga: claves afectadas y dónde se auditó.
+
+    `purgadas` son claves sha256, nunca contenido: el registro ya no tiene
+    el texto y la auditoría nunca lo tuvo.
+    """
+
+    purgadas: tuple[str, ...]
+    ventana_dias: int
+    ejecutado_en: str
+    correlation_id: str
+    log_path: Path
+
+
+def correr_purga_registro(
+    *,
+    registro: RegistroConfirmacionesArchivo,
+    directorio_salida: Path,
+    ahora: datetime | None = None,
+    ventana_dias: int = VENTANA_RECONCILIACION_DIAS,
+) -> ResultadoPurga:
+    """Corre la purga del registro y deja una línea en la auditoría.
+
+    Es la operación de la retención acotada: el scheduler local (#84) la
+    dispara una vez por día vía `scripts/purgar_registro.py`, antes del
+    respaldo diario (#86) para que ningún respaldo conserve texto que la
+    política ya venció. La línea de auditoría lleva cuántos registros se
+    purgaron y un hash del conjunto de claves: cantidad y verificabilidad,
+    nunca contenido.
+    """
+
+    momento = ahora if ahora is not None else datetime.now(timezone.utc)
+    purgadas = registro.purgar_terminadas(ahora=momento, ventana_dias=ventana_dias)
+    correlation_id = str(uuid.uuid4())
+    log_path = Path(directorio_salida) / "logs" / "confirmaciones-hu012.jsonl"
+    auditoria = {
+        "hu": HU,
+        "contract_version": CONTRACT_VERSION,
+        "template_version": TEMPLATE_VERSION,
+        "policy_status": POLICY_STATUS,
+        "correlation_id": correlation_id,
+        "evento": "purga_retencion",
+        "ventana_dias": ventana_dias,
+        "ejecutado_en": _iso(momento),
+        "purgados": len(purgadas),
+        "claves_hash": _hash("\n".join(purgadas)),
+    }
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8") as archivo:
+        archivo.write(json.dumps(auditoria, ensure_ascii=False, sort_keys=True) + "\n")
+    return ResultadoPurga(
+        purgadas=purgadas,
+        ventana_dias=ventana_dias,
+        ejecutado_en=_iso(momento),
+        correlation_id=correlation_id,
+        log_path=log_path,
+    )
 
 
 def _escribir_atomico(ruta: Path, registro: BorradorRegistrado) -> None:
@@ -1441,17 +1759,13 @@ def procesar_confirmacion(
         )
 
     # A partir de acá hay una decisión humana que registrar. Si el borrador
-    # todavía no existe, la decisión lo materializa primero.
+    # todavía no existe, la decisión lo materializa primero; la lectura se
+    # repite para conservar el registro tal como quedó en disco, con sus
+    # fechas y su hash, y no una copia a mano que ya diverge.
     if existente is None:
         asunto_nuevo, cuerpo_nuevo = _renderizar(solicitud)
-        if registro.crear(idempotency_key, asunto_nuevo, cuerpo_nuevo):
-            existente = BorradorRegistrado(
-                estado="PENDIENTE_VALIDACION",
-                asunto=asunto_nuevo,
-                cuerpo=cuerpo_nuevo,
-            )
-        else:
-            existente = registro.obtener(idempotency_key)
+        registro.crear(idempotency_key, asunto_nuevo, cuerpo_nuevo)
+        existente = registro.obtener(idempotency_key)
     if existente is None:
         raise RuntimeError("registro de idempotencia inconsistente")
     asunto, cuerpo = existente.asunto, existente.cuerpo

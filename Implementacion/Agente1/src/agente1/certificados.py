@@ -63,7 +63,6 @@ from agente1.confirmaciones import (
     ESTADOS_PARCIALES_APROBACION,
     ID_RE,
     AprobacionHumana,
-    BorradorRegistrado,
     RegistroConfirmaciones,
     RegistroConfirmacionesArchivo,
     RegistroConfirmacionesMemoria,
@@ -415,17 +414,13 @@ def procesar_certificado(
         )
 
     # A partir de acá hay una decisión humana que registrar. Si el borrador
-    # todavía no existe, la decisión lo materializa primero.
+    # todavía no existe, la decisión lo materializa primero; la lectura se
+    # repite para conservar el registro tal como quedó en disco, con sus
+    # fechas y su hash, y no una copia a mano que ya diverge.
     if existente is None:
         titulo_nuevo, cuerpo_nuevo = _renderizar(solicitud)
-        if registro.crear(idempotency_key, titulo_nuevo, cuerpo_nuevo):
-            existente = BorradorRegistrado(
-                estado="PENDIENTE_VALIDACION",
-                asunto=titulo_nuevo,
-                cuerpo=cuerpo_nuevo,
-            )
-        else:
-            existente = registro.obtener(idempotency_key)
+        registro.crear(idempotency_key, titulo_nuevo, cuerpo_nuevo)
+        existente = registro.obtener(idempotency_key)
     if existente is None:
         raise RuntimeError("registro de idempotencia inconsistente")
     titulo, cuerpo = existente.asunto, existente.cuerpo
