@@ -1048,6 +1048,171 @@ def test_circuito_completo_descarte_de_post_registra_sin_publicar(
     )
 
 
+_PLANTILLA_ACTIVIDAD_CONFORME = (
+    "Hola {{nombre_destinatario}},\n\n"
+    "Te escribimos por tu preinscripción a {{actividad}}, que comienza el "
+    "{{fecha_inicio}}.\n\n"
+    "La propuesta acerca herramientas de la facultad a la comunidad, con "
+    "encuentros guiados y espacios de consulta durante todo el recorrido. "
+    "El equipo docente acompaña a quienes se acercan por primera vez.\n\n"
+    "Contacto: {{contacto}}\n"
+)
+
+
+def _enlaces_del_aviso(cuerpo: str) -> list[dict[str, list[str]]]:
+    """Todos los links del Form de decisiones del cuerpo, con sus params."""
+
+    enlaces = []
+    for linea in cuerpo.splitlines():
+        linea = linea.strip()
+        if "docs.google.com/forms/" not in linea:
+            continue
+        url = linea.split(": ", 1)[-1]
+        enlaces.append(parse_qs(urlparse(url).query))
+    return enlaces
+
+
+def test_circuito_plantilla_actividad_declara_plantilla_y_lote(
+    tmp_path: Path,
+) -> None:
+    """#73: el pedido de plantilla deja dos objetos a decisión —la plantilla
+    `tpl-…` con las dos aprobaciones y el `lote-…` con `apruebo_lote`— y el
+    correo enumera los links de cada uno. Las decisiones luego registran
+    sobre esos mismos objetos."""
+
+    router = TransporteRouterDosForms(
+        values_pedidos=[
+            ["Marca temporal", "Dirección de correo electrónico", "Escribí tu pedido"],
+            [
+                "2026-10-10 09:00:00",
+                CORREO_SOLICITANTE,
+                "plantilla de la actividad SYN-001",
+            ],
+        ]
+    )
+    canal = CanalFormPedidos(
+        lector=GoogleSheetsLectorValores(
+            spreadsheet_id="sheet_respuestas-1",
+            rango_a1="'Form Responses 1'!A1:C200",
+            token_provider=TokenFijo(),
+            transport=router,
+            timeout_s=5,
+        ),
+        padron=_padron(),
+        avisos=GmailDestinoConfirmaciones(
+            destinatarios_permitidos={CORREO_SOLICITANTE},
+            token_provider=TokenFijo(),
+            transport=router,
+            timeout_s=5,
+        ),
+        directorio_estado=tmp_path / "estado-canal-form",
+        form_id="FORM_ID_RESPUESTAS-9",
+        entry_id="entry.123456789",
+        decisiones=_enlazador(tmp_path),
+    )
+    from agente1.google_workspace import (
+        GoogleDrivePlantillaDestinoBorradores,
+    )
+
+    resultados = atender_canal(
+        canal,
+        fuente=CsvFuenteSolicitudes(DATASET),
+        directorio_salida=tmp_path / "salida",
+        generator=FakeGenerator(_PLANTILLA_ACTIVIDAD_CONFORME),
+        destino=GoogleDrivePlantillaDestinoBorradores(
+            plantilla_id="template_ALLOWLIST-1",
+            carpeta_id="carpeta_ALLOWLIST-1",
+            token_provider=TokenFijo(),
+            transport=router,
+            timeout_s=5,
+        ),
+    )
+    assert len(resultados) == 1
+    assert resultados[0].estado == "PENDIENTE_VALIDACION"
+    assert resultados[0].intencion == "generar_plantilla_actividad"
+
+    (cuerpo,) = router.cuerpos_gmail()
+    assert MARCADOR_BORRADOR in cuerpo
+    enlaces = _enlaces_del_aviso(cuerpo)
+    assert len(enlaces) == 3
+    pares = {
+        (params[ENTRY_TIPO][0], params[ENTRY_DECISION][0]): params[
+            ENTRY_OBJETO
+        ][0]
+        for params in enlaces
+    }
+    # Dos objetos: la plantilla con semántica+utilitaria y el lote.
+    assert set(pares) == {
+        (TIPO_PLANTILLA, DECISION_APRUEBO_SEMANTICA),
+        (TIPO_PLANTILLA, DECISION_APRUEBO_UTILITARIA),
+        (TIPO_LOTE, DECISION_APRUEBO_LOTE),
+    }
+    plantilla_id = pares[(TIPO_PLANTILLA, DECISION_APRUEBO_SEMANTICA)]
+    lote_id = pares[(TIPO_LOTE, DECISION_APRUEBO_LOTE)]
+    assert plantilla_id.startswith("tpl-SYN-001-")
+    assert lote_id.startswith("lote-SYN-001-")
+    assert (
+        pares[(TIPO_PLANTILLA, DECISION_APRUEBO_UTILITARIA)] == plantilla_id
+    )
+
+    # Los dos objetos quedaron declarados pendientes y el atendido los
+    # correlaciona — nada de prosa ni correo en claro.
+    pendientes = {(p["tipo"], p["objeto_id"]) for p in _pendientes(tmp_path)}
+    assert pendientes == {
+        (TIPO_PLANTILLA, plantilla_id),
+        (TIPO_LOTE, lote_id),
+    }
+    atendido = json.loads(
+        (tmp_path / "estado-canal-form" / ATENDIDOS_NOMBRE)
+        .read_text(encoding="utf-8")
+        .strip()
+    )
+    assert atendido["decisiones_objetos"] == [
+        f"{TIPO_PLANTILLA}:{plantilla_id}",
+        f"{TIPO_LOTE}:{lote_id}",
+    ]
+    # El campo legacy de publicación queda vacío: el pedido no es un
+    # objeto `publicacion`, la plantilla y el lote son los dos objetos.
+    assert atendido["decisiones_objeto"] is None
+
+    # Las tres decisiones llegan por el Form y se registran sobre esos
+    # objetos: el circuito que habilita el lote es el mismo que declara
+    # el correo.
+    router.values_decisiones = [
+        ENCABEZADOS_DECISIONES,
+        fila_decision(
+            correo=CORREO_RGC,
+            tipo=TIPO_PLANTILLA,
+            objeto=plantilla_id,
+            decision=DECISION_APRUEBO_SEMANTICA,
+        ),
+        fila_decision(
+            correo=CORREO_COORD,
+            tipo=TIPO_PLANTILLA,
+            objeto=plantilla_id,
+            decision=DECISION_APRUEBO_UTILITARIA,
+        ),
+        fila_decision(
+            correo=CORREO_COORD,
+            tipo=TIPO_LOTE,
+            objeto=lote_id,
+            decision=DECISION_APRUEBO_LOTE,
+        ),
+    ]
+    resultados_decision = _canal_decisiones(tmp_path, router).atender()
+
+    assert [r.resultado for r in resultados_decision] == [
+        "registrada",
+        "registrada",
+        "registrada",
+    ]
+    assert [r.rol for r in resultados_decision] == [
+        ROL_APROBACION_SEMANTICA,
+        ROL_APROBACION_UTILITARIA,
+        ROL_APROBACION_UTILITARIA,
+    ]
+
+
 def test_sin_puente_de_decisiones_el_aviso_no_trae_links(
     tmp_path: Path,
 ) -> None:

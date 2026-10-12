@@ -134,6 +134,45 @@ def test_recursos_y_api_primaria_hu012_son_empaquetables():
         assert getattr(agente1, nombre) is not None
 
 
+def test_recursos_plantilla_actividad_hu012_son_empaquetables():
+    import agente1
+
+    contrato = json.loads(
+        files("agente1")
+        .joinpath("contracts", "plantilla_actividad_v1.json")
+        .read_text(encoding="utf-8")
+    )
+    base = (
+        files("agente1")
+        .joinpath("prompts", "plantilla_actividad_base_provisional_v1.txt")
+        .read_text(encoding="utf-8")
+    )
+    generacion = (
+        files("agente1")
+        .joinpath("prompts", "plantilla_actividad_generacion_v1.txt")
+        .read_text(encoding="utf-8")
+    )
+
+    assert contrato["x-contract-version"] == "plantilla_actividad_v1"
+    assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+    assert contrato["x-hu"] == "HU-012"
+    assert "TEMPLATE_VERSION: plantilla_actividad_base_provisional_v1" in base
+    assert "PENDIENTE_SEU" in base
+    assert "PROMPT_VERSION: plantilla_actividad_generacion_v1" in generacion
+    assert "CONTRACT_VERSION: plantilla_actividad_v1" in generacion
+    for nombre in (
+        "DestinatarioActividad",
+        "ResultadoLoteActividad",
+        "ResultadoPlantillaActividad",
+        "correr_lote_actividad",
+        "encolar_lote_actividad",
+        "procesar_plantilla_actividad",
+        "renderizar_pieza_actividad",
+    ):
+        assert nombre in agente1.__all__
+        assert getattr(agente1, nombre) is not None
+
+
 def test_migraciones_del_spike_son_artefactos_de_repo_no_package_data():
     """Las migraciones se aplican con un cliente SQL, no se importan del wheel."""
     configuracion = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -177,6 +216,7 @@ def test_catalogo_de_intenciones_hu013_es_empaquetable_y_provisional():
     assert {item["id"] for item in contrato["intenciones"]} == {
         "generar_gacetilla",
         "generar_post",
+        "generar_plantilla_actividad",
         "fuera_de_alcance",
         "ajustar_borrador",
         "generar_newsletter",
