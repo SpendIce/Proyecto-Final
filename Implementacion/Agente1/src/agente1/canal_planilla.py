@@ -44,7 +44,6 @@ from pathlib import Path
 from .canal import PedidoCanal
 from .interpretacion import IdentidadSolicitante, ResultadoInterpretacion
 
-
 NOMBRE_PEDIDOS = "pedidos.csv"
 NOMBRE_RESPUESTAS = "respuestas.csv"
 COLUMNAS_PEDIDO = ("id_pedido", "identificador", "rol", "texto")

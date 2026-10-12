@@ -16,11 +16,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from datetime import datetime, timezone
-from pathlib import Path
 import subprocess
 import sys
-
+from datetime import datetime, timezone
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parents[1]
@@ -28,7 +27,6 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from agente1 import FakeGenerator, procesar_fila_csv  # noqa: E402
 from agente1.procesamiento import PROMPT_VERSION  # noqa: E402
-
 
 CASOS = (
     ("SYN-001", "complete_with_place", "PENDIENTE_VALIDACION"),

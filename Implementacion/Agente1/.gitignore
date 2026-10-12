@@ -1,5 +1,7 @@
+/.coverage
 /.pytest_cache/
 /.runtime/
+/coverage.txt
 /salida/
 __pycache__/
 *.py[cod]

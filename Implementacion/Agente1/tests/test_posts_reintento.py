@@ -24,7 +24,6 @@ from agente1.posts import (
 )
 from agente1.presupuesto import PresupuestoAgotadoError
 
-
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 

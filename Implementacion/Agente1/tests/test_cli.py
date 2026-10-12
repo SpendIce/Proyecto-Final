@@ -3,17 +3,16 @@ JSON de stdout, exclusión mutua de generadores y rechazo de las banderas de
 post cuando el tipo es gacetilla."""
 
 import csv
-from contextlib import contextmanager
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
+from contextlib import contextmanager
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from threading import Thread
 
 from agente1.ollama import MAX_OLLAMA_NUM_PREDICT
-
 
 ROOT = Path(__file__).parents[1]
 

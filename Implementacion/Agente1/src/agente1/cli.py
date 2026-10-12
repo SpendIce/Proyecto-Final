@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Sequence
 
 from .cli_pagos import main as main_control_pagos
+from .fuentes import CsvFuenteSolicitudes
 from .ollama import (
     DEFAULT_OLLAMA_BASE_URL,
     DEFAULT_OLLAMA_NUM_PREDICT,
@@ -37,14 +38,13 @@ from .ollama import (
     MAX_OLLAMA_TIMEOUT_S,
     OllamaGenerator,
 )
-from .procesamiento import FakeGenerator, procesar_fila_csv
-from .fuentes import CsvFuenteSolicitudes
 from .posts import (
     CONTRATO_SALIDA_ESTRUCTURADA,
     POLITICAS_DEFAULT,
     procesar_post,
     procesar_post_estructurado,
 )
+from .procesamiento import FakeGenerator, procesar_fila_csv
 
 
 def main(argv: Sequence[str] | None = None) -> int:

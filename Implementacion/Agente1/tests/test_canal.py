@@ -36,7 +36,6 @@ from agente1.interpretacion import (
     RegistroPendientesMemoria,
 )
 
-
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 ROL_HABILITADO = next(iter(ROLES_HABILITADOS))

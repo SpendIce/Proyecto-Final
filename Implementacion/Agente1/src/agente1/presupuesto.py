@@ -45,7 +45,6 @@ from __future__ import annotations
 import json
 import math
 
-
 TOKENIZADOR_MEDIDO = "llama3.2:3b"
 FECHA_MEDICION = "2026-09-22"
 # La medición queda como dato y no sólo como prosa: así la constante se puede

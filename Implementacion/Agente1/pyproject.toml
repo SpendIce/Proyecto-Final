@@ -9,7 +9,12 @@ requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest>=8", "setuptools>=68"]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.9",
+    "setuptools>=68",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -20,3 +25,33 @@ agente1 = ["contracts/*.json", "contracts/insumos/*.json", "politicas/*.json", "
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+# Configuración acotada del linter (issue #90): pycodestyle (E/W), Pyflakes
+# (F) e imports ordenados (I). E501 queda fuera porque el proyecto mantiene
+# docstrings y aserciones en una sola línea larga a propósito. Las familias
+# que ruff 0.17 preselecciona por defecto (UP, BLE, TRY, S, SIM y afines) no
+# se habilitan: arreglarlas exigía un refactor amplio sin hallazgos de bug.
+[tool.ruff]
+target-version = "py311"
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Los scripts hacen bootstrap de `sys.path` antes de importar `agente1`
+# porque se ejecutan sueltos, sin instalar el paquete.
+"scripts/**" = ["E402"]
+# Este test carga el script por importlib y recién después importa `agente1`.
+"tests/test_exportar_actividades_d2.py" = ["E402"]
+# Demo interactiva escrita con handlers HTTP compactos a propósito.
+"scripts/prototipo_hu013.py" = ["E701", "E702"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+sort = "Cover"

@@ -84,23 +84,23 @@ hace el consumidor del registro, no este adapter.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import hashlib
 import json
 import math
 import os
-from pathlib import Path
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
 from urllib.parse import quote
 
 from .canal_form import (
     ENTRY_ID_RE,
     PADRON_PREFIX,
     PADRON_ROLES_ENV,
-    PadronRoles,
     ROL_NO_EN_PADRON,
+    PadronRoles,
     cargar_padron_roles_csv,
 )
 from .confirmaciones import (
@@ -111,13 +111,12 @@ from .confirmaciones import (
 )
 from .google_workspace import (
     ID_RE,
+    MAX_WORKSPACE_TIMEOUT_S,
     AccessTokenProvider,
     GoogleSheetsLectorValores,
-    MAX_WORKSPACE_TIMEOUT_S,
     TransporteHttp,
 )
-from .workspace_config import ConfiguracionWorkspaceError, _A1_RE
-
+from .workspace_config import _A1_RE, ConfiguracionWorkspaceError
 
 # ---------------------------------------------------------------------------
 # Contrato de la hoja de respuestas del Form de decisiones

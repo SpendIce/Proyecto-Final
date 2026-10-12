@@ -35,8 +35,8 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from agente1 import FakeGenerator
 from agente1.canal_form import (
@@ -50,15 +50,15 @@ from agente1.confirmaciones import (
     RegistroConfirmacionesArchivo,
 )
 from agente1.decisiones_form import (
-    CanalFormDecisiones,
     DECISION_APRUEBO_LOTE,
     DECISION_APRUEBO_SEMANTICA,
     DECISION_APRUEBO_UTILITARIA,
+    TIPO_LOTE,
+    TIPO_PLANTILLA,
+    CanalFormDecisiones,
     DecisionesFormError,
     EnlacesDecisiones,
     RegistroDecisiones,
-    TIPO_LOTE,
-    TIPO_PLANTILLA,
 )
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
 from agente1.pagos import (
@@ -73,7 +73,6 @@ from agente1.plantillas_actividad import (
 )
 from agente1.workspace_config import ConfiguracionWorkspaceError
 from agente1.workspace_e2e import RunnerWorkspaceError
-
 
 ROOT = Path(__file__).resolve().parents[1]
 

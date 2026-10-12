@@ -9,13 +9,13 @@ from pathlib import Path
 import pytest
 
 from agente1 import FakeGenerator, procesar_fila_csv
+from agente1.presupuesto import PresupuestoAgotadoError
 from agente1.procesamiento import (
     PATRON_BORRADOR,
     PROMPT_VERSION,
     _renderizar_mail,
     _validar_render_mail,
 )
-from agente1.presupuesto import PresupuestoAgotadoError
 
 
 class GeneratorQueNoDebeInvocarse:

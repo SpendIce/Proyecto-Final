@@ -38,7 +38,6 @@ import json
 from dataclasses import dataclass
 from importlib.resources import files
 
-
 CATALOGO = json.loads(
     files("agente1")
     .joinpath("contracts", "tipos_notificacion_v2.json")

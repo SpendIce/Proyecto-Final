@@ -1,0 +1,85 @@
+# CI del Agente 1 (issue #90): suite determinista, cobertura y linter sobre
+# Implementacion/Agente1. No toca la red de Google ni usa secretos; los
+# adapters remotos se ejercitan solo con transportes fake dentro de la suite.
+#
+# Este archivo vive en `.github/workflows/` del repo raiz aunque el codigo
+# que prueba esta en `Implementacion/Agente1/`: GitHub Actions solo ejecuta
+# workflows desde esa ubicacion. Cuando se extraiga el repositorio del
+# Agente 1 (issue #80), este workflow viaja con el; los paths de abajo
+# quedan relativos a la raiz del repo extraido (`src/`, `tests/`) y los
+# filtros `paths` de `on:` habra que ajustarlos o quitarlos alli.
+
+name: agente1-ci
+
+on:
+  push:
+    paths:
+      - "Implementacion/Agente1/**"
+      - ".github/workflows/agente1-ci.yml"
+  pull_request:
+    paths:
+      - "Implementacion/Agente1/**"
+      - ".github/workflows/agente1-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agente1-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  suite:
+    name: Suite, cobertura y linter del Agente 1
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Implementacion/Agente1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar uv y Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.10"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sincronizar dependencias
+        run: uv sync --frozen
+
+      - name: Linter (ruff)
+        run: uv run ruff check .
+
+      - name: Suite determinista con cobertura
+        run: |
+          uv run pytest -q --cov=src --cov-report=term-missing
+          uv run coverage report > coverage.txt
+
+      - name: Publicar cobertura en el resumen del job
+        if: always()
+        run: |
+          {
+            echo '### Cobertura de `src/` (suite determinista, evidencia Anexo 2)'
+            echo ''
+            if [ -f coverage.txt ]; then
+              echo '```'
+              tail -n 5 coverage.txt
+              echo '```'
+              echo ''
+              echo 'Sin umbral bloqueante: el numero es evidencia de capacidad de prueba y analizabilidad.'
+            else
+              echo 'La suite no completo; no hay medicion de cobertura en esta corrida.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Subir coverage.txt como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agente1-coverage
+          path: Implementacion/Agente1/coverage.txt
+          if-no-files-found: warn
+          retention-days: 30

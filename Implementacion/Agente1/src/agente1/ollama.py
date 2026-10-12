@@ -23,16 +23,15 @@ Decisiones que no se ven en el código:
 
 from __future__ import annotations
 
-from http.client import HTTPConnection, HTTPException
-from ipaddress import ip_address
 import hashlib
 import json
 import math
 import time
+from http.client import HTTPConnection, HTTPException
+from ipaddress import ip_address
 from urllib.parse import urlsplit
 
 from .presupuesto import MENSAJE_PRESUPUESTO_AGOTADO, PresupuestoAgotadoError
-
 
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_OLLAMA_TIMEOUT_S = 45.0

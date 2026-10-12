@@ -37,11 +37,10 @@ contrato con Ignacio (issue #17), que todavía no está cerrado.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import date
-import re
 from typing import Protocol
-
 
 CONTRACT_VERSION = "historia_viva_consulta_candidate_v1"
 CONTRACT_STATUS = "CANDIDATO_NO_INSTITUCIONAL"

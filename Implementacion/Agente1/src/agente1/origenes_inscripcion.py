@@ -18,7 +18,6 @@ import json
 from dataclasses import dataclass
 from importlib.resources import files
 
-
 MATRIZ = json.loads(
     files("agente1")
     .joinpath("contracts", "matriz_origenes_inscripcion_v1.json")

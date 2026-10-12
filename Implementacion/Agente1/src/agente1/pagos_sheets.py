@@ -47,8 +47,8 @@ recurso nuevo) y los tres rangos van en variables propias del prefijo
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import os
+from collections.abc import Mapping
 
 from .fuentes import FuenteSolicitudesError
 from .google_workspace import (
@@ -72,7 +72,6 @@ from .pagos import (
     _plan_desde_filas,
 )
 from .workspace_config import ConfiguracionWorkspaceError
-
 
 # La planilla es la misma D2 de los adapters de Workspace: la allowlist del
 # recurso no cambia por leerle más pestañas. Los rangos de las pestañas de

@@ -9,24 +9,19 @@ Form de decisiones (#72), la entrega por `gmail.send` con lista de prueba
 
 import base64
 import json
-from email.parser import BytesParser
 from email import policy as email_policy
+from email.parser import BytesParser
 from pathlib import Path
 
 import pytest
 
 from agente1.certificados_emision import (
-    MARCA_PRUEBA,
     ListaCierreError,
     hash_lista_cierre,
     objeto_lote_cierre,
     parsear_lista_cierre,
     procesar_emision_certificados,
     revisar_aprobacion_lote,
-)
-from agente1.linea_descriptiva import (
-    linea_descriptiva_aprobada,
-    objeto_id_linea_descriptiva,
 )
 from agente1.confirmaciones import (
     ROL_APROBACION_SEMANTICA,
@@ -44,7 +39,10 @@ from agente1.google_workspace import (
     GoogleSheetsLectorValores,
     RespuestaHttp,
 )
-
+from agente1.linea_descriptiva import (
+    linea_descriptiva_aprobada,
+    objeto_id_linea_descriptiva,
+)
 
 ROOT = Path(__file__).parents[1]
 

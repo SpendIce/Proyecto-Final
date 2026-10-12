@@ -16,19 +16,18 @@ from pathlib import Path
 import pytest
 
 from agente1.certificados import (
-    DestinoCertificadosFake,
     MARCADOR_BORRADOR,
+    DestinoCertificadosFake,
     RegistroCertificadosMemoria,
     SolicitudCertificado,
     generar_pdf_certificado,
     procesar_certificado,
 )
 from agente1.confirmaciones import (
-    AprobacionHumana,
     ROL_APROBACION_SEMANTICA,
     ROL_APROBACION_UTILITARIA,
+    AprobacionHumana,
 )
-
 
 ROOT = Path(__file__).parents[1]
 

@@ -53,12 +53,12 @@ from __future__ import annotations
 
 import base64
 import binascii
-from datetime import timezone
-from email.utils import getaddresses, parsedate_to_datetime
 import hashlib
 import json
 import math
 import time
+from datetime import timezone
+from email.utils import getaddresses, parsedate_to_datetime
 from urllib.parse import quote
 
 from .buzon import AdjuntoMensaje, BuzonPropioError, MensajeBuzon
@@ -72,7 +72,6 @@ from .google_workspace import (
     TransporteHttp,
     _RespuestaDemasiadoGrande,
 )
-
 
 # La ruta de mensajes lleva el usuario `me` literal: leer el buzón propio es
 # el único caso previsto (ADR 0004) y la auditoría admite justo estas rutas.

@@ -20,27 +20,26 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import json
+import sys
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from email.utils import format_datetime
-import hashlib
-import json
 from pathlib import Path
-import sys
-
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from agente1.buzon import BuzonPropioEml  # noqa: E402
 from agente1.confirmaciones import (  # noqa: E402
+    ROL_APROBACION_SEMANTICA,
+    ROL_APROBACION_UTILITARIA,
     AprobacionHumana,
     ColaEnviosMemoria,
     DestinoConfirmacionesFake,
     RegistroConfirmacionesMemoria,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
     SolicitudConfirmacion,
     procesar_confirmacion,
 )

@@ -22,7 +22,6 @@ from agente1.persistencia import (
     ValidacionNueva,
 )
 
-
 AHORA = datetime(2026, 8, 17, 18, 0, tzinfo=timezone.utc)
 
 

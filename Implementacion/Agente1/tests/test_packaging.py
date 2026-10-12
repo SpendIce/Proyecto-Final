@@ -1,15 +1,14 @@
 """El paquete declara e incluye sus artefactos de datos (contratos, prompts,
 políticas): sin ellos los módulos no pueden cargar sus contratos."""
 
-import importlib
-from importlib.resources import files
 import csv
+import importlib
 import json
-from pathlib import Path
 import tomllib
+from importlib.resources import files
+from pathlib import Path
 
 from agente1.procesamiento import PROMPT_VERSION
-
 
 ROOT = Path(__file__).parents[1]
 
@@ -213,10 +212,12 @@ def test_catalogo_de_intenciones_hu013_es_empaquetable_y_provisional():
 
     assert contrato["x-contract-version"] == "intenciones_v1"
     assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
+    # v1 es histórico: `emitir_certificados` llegó en v2 (#75) y
+    # `generar_plantilla_actividad` en v3 (#73); ambas se verifican en
+    # `test_contratos_v3_de_interpretacion_con_certificados_y_plantilla`.
     assert {item["id"] for item in contrato["intenciones"]} == {
         "generar_gacetilla",
         "generar_post",
-        "generar_plantilla_actividad",
         "fuera_de_alcance",
         "ajustar_borrador",
         "generar_newsletter",

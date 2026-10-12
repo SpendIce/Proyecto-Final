@@ -4,8 +4,8 @@ y el manifest nunca contiene identificadores ni contenido."""
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import stat
 import threading
 from pathlib import Path
@@ -13,8 +13,9 @@ from pathlib import Path
 import pytest
 
 from agente1.destinos import DestinoBorradoresError, ReferenciaBorrador
-from agente1.procesamiento import FakeGenerator
 from agente1.posts import CONTRATO_SALIDA_ESTRUCTURADA
+from agente1.procesamiento import FakeGenerator
+from agente1.workspace_config import ConfiguracionWorkspace
 from agente1.workspace_e2e import (
     DestinoMemoria,
     FuenteMemoria,
@@ -23,8 +24,6 @@ from agente1.workspace_e2e import (
     crear_dependencias_workspace_live,
     ejecutar_workspace_e2e,
 )
-from agente1.workspace_config import ConfiguracionWorkspace
-
 
 FILA = {
     "id_actividad": "SYN-001",
@@ -322,7 +321,6 @@ def test_manifest_live_no_expone_ids_token_referencia_ni_paths(tmp_path: Path) -
 
 
 def test_registro_corrupto_bloquea_sin_copiar_campos_al_manifest(tmp_path: Path) -> None:
-    registro = RegistroIdempotenciaArchivo(tmp_path / "state")
     # Se obtiene el nombre opaco mediante una primera reserva válida y luego se
     # simula corrupción local; el runner debe fallar cerrado y sanitizarla.
     _run(tmp_path)

@@ -9,7 +9,6 @@ from pathlib import Path
 
 from agente1.posts import CONTRATO_SALIDA_ESTRUCTURADA
 
-
 SCRIPT = Path(__file__).parents[1] / "scripts" / "workspace_e2e.py"
 
 

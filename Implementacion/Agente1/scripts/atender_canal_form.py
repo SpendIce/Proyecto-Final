@@ -49,8 +49,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from agente1.canal import atender_canal
 from agente1.canal_form import (
@@ -68,32 +68,30 @@ from agente1.certificados_emision import (
     construir_emisor_certificados,
 )
 from agente1.decisiones_form import (
-    EnlacesDecisiones,
     FORM_DECISIONES_PREFIX,
+    EnlacesDecisiones,
     RegistroDecisiones,
     cargar_configuracion_form_decisiones,
 )
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
 from agente1.gmail_envio import GmailDestinoConfirmaciones, GmailEnvioError
-from agente1.pagos import (
-    ControlPagosError,
-    PlanPago,
-    cargar_plan_pagos_csv,
-)
 from agente1.google_workspace import (
     GoogleDrivePlantillaDestinoBorradores,
     GoogleSheetsFuenteSolicitudes,
     GoogleSheetsLectorValores,
 )
 from agente1.ollama import OllamaGenerator
-from agente1.procesamiento import FakeGenerator
+from agente1.pagos import (
+    ControlPagosError,
+    PlanPago,
+    cargar_plan_pagos_csv,
+)
 from agente1.workspace_auth import construir_token_provider
 from agente1.workspace_config import (
     ConfiguracionWorkspaceError,
     cargar_configuracion_workspace,
 )
 from agente1.workspace_e2e import RunnerWorkspaceError
-
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_DEFAULT = ROOT / "data" / "actividades_sinteticas.csv"

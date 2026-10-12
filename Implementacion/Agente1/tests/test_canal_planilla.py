@@ -12,14 +12,11 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-import pytest
-
+from agente1 import FakeGenerator
 from agente1.canal import CanalInteraccionFake, PedidoCanal, atender_canal
 from agente1.canal_planilla import CanalPlanillaOffline
 from agente1.fuentes import CsvFuenteSolicitudes
-from agente1.interpretacion import IdentidadSolicitante, ROLES_HABILITADOS
-from agente1 import FakeGenerator
-
+from agente1.interpretacion import ROLES_HABILITADOS, IdentidadSolicitante
 
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"

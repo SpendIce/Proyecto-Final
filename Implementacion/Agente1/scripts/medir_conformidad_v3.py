@@ -46,7 +46,6 @@ from ipaddress import ip_address
 from pathlib import Path
 from urllib.parse import urlsplit
 
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -81,7 +80,6 @@ from agente1.presupuesto import (  # noqa: E402
     MENSAJE_PRESUPUESTO_AGOTADO,
     PresupuestoAgotadoError,
 )
-
 
 CONTRATOS = {"v2": CONTRATO_CREATIVO_V2, "v3": CONTRATO_CREATIVO_V3}
 CANALES = ("instagram", "linkedin")

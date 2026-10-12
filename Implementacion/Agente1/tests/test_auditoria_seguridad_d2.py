@@ -7,15 +7,14 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 from agente1.auditoria_d2 import WORKSPACE_HOSTS, auditar_manifest
 from agente1.google_workspace import DOCS_HOST, DRIVE_HOST, SHEETS_HOST
-
 
 ROOT = Path(__file__).parents[1]
 

@@ -41,8 +41,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -69,7 +69,6 @@ from agente1.workspace_config import (
     cargar_configuracion_workspace,
 )
 from agente1.workspace_e2e import RunnerWorkspaceError
-
 
 DATASET_DEFAULT = ROOT / "data" / "actividades_sinteticas.csv"
 ENTREGAS_OFFLINE_NOMBRE = "entregas-certificados-offline.jsonl"

@@ -30,12 +30,12 @@ Decisiones que no se ven en el código:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import json
 import math
 import os
 import re
 import time
+from collections.abc import Mapping
 from urllib.parse import urlencode
 
 from .google_workspace import (
@@ -47,7 +47,6 @@ from .google_workspace import (
     _RespuestaDemasiadoGrande,
 )
 from .workspace_config import ConfiguracionWorkspaceError, TokenEntornoProvider
-
 
 # Host exclusivo del intercambio OAuth. No forma parte del plano de datos:
 # ningún adapter lo toca, sólo este provider.

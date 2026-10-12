@@ -10,29 +10,29 @@ otro destino sigue rechazado. Ninguna prueba usa red.
 
 import base64
 import json
-from email.parser import BytesParser
 from email import policy as email_policy
+from email.parser import BytesParser
 from pathlib import Path
 
 import pytest
 
 from agente1.confirmaciones import (
+    ROL_APROBACION_SEMANTICA,
+    ROL_APROBACION_UTILITARIA,
     AprobacionHumana,
     ColaEnviosMemoria,
     DestinoConfirmacionesFake,
     EntregaRechazadaError,
     RegistroConfirmacionesMemoria,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
     SolicitudConfirmacion,
     drenar_envios,
     procesar_confirmacion,
 )
 from agente1.gmail_envio import (
-    AdjuntoCorreo,
     DESTINATARIOS_PRUEBA_ENV,
     GMAIL_HOST,
     GMAIL_SEND_TARGET,
+    AdjuntoCorreo,
     GmailDestinoConfirmaciones,
     GmailEnvioError,
     cargar_destinatarios_prueba,
@@ -43,7 +43,6 @@ from agente1.google_workspace import (
     _RespuestaDemasiadoGrande,
 )
 from agente1.workspace_config import ConfiguracionWorkspaceError
-
 
 LISTA = frozenset({"ana.perez@example.test", "beto@example.test"})
 CUERPO_BORRADOR = "BORRADOR — NO ENVIAR\n\nCuerpo de la confirmación.\n"

@@ -147,6 +147,39 @@ Desde este directorio:
 PYTHONPYCACHEPREFIX=/tmp/agente1-pycache python -m pytest -q
 ```
 
+## CI: suite, cobertura y linter
+
+El workflow `.github/workflows/agente1-ci.yml` corre en cada push y pull
+request que toque `Implementacion/Agente1/`: instala `uv`, sincroniza las
+dependencias declaradas, ejecuta `ruff check` y la suite con cobertura, y
+publica el número en el resumen del job y como artefacto `coverage.txt`. No
+usa secretos ni toca la red de Google: sólo corre la suite determinista. El
+número de cobertura no tiene umbral bloqueante; es evidencia de *capacidad de
+prueba* y *analizabilidad* para el Anexo 2.
+
+El mismo chequeo se reproduce en local, desde este directorio:
+
+```bash
+uv sync --frozen
+uv run ruff check .
+uv run pytest -q --cov=src --cov-report=term-missing
+uv run coverage report > coverage.txt   # mismo artefacto que sube el job
+```
+
+`ruff` está configurado en `pyproject.toml` con `select = ["E", "F", "I", "W"]`:
+pycodestyle, Pyflakes e imports ordenados. `E501` queda deshabilitada porque
+el proyecto mantiene docstrings y aserciones en líneas largas a propósito, y
+las familias del conjunto ampliado de ruff 0.17 (UP, BLE, TRY, S, SIM, RUF y
+afines) no se habilitaron porque cumplirlas exigía un refactor amplio sin
+hallazgos de bug concretos. Los `per-file-ignores` documentan los tres casos
+deliberados: el bootstrap de `sys.path` de los scripts, el test que carga un
+script por `importlib` y la demo con handlers HTTP compactos.
+
+Nota para la extracción del repo (issue #80): el workflow vive en
+`.github/workflows/` de la raíz porque GitHub Actions sólo lo ejecuta desde
+ahí. Viaja con el repositorio del Agente 1 y, una vez extraído, los filtros
+`paths:` de los disparadores deben ajustarse a la raíz nueva o quitarse.
+
 ## Ejecutar el smoke
 
 ```bash

@@ -79,7 +79,6 @@ from agente1.interpretacion import (
 from agente1.ollama import DEFAULT_OLLAMA_NUM_PREDICT, MAX_OLLAMA_NUM_PREDICT
 from agente1.presupuesto import presupuesto_minimo_num_predict
 
-
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 CORPUS_RESOLUCION_ACTIVIDAD = ROOT / "data" / "frases_resolucion_actividad.csv"

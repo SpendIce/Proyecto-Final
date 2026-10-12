@@ -57,34 +57,33 @@ Decisiones que no se ven en el código:
 from __future__ import annotations
 
 import base64
-from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
-from email.message import EmailMessage
-from email import policy
 import json
 import math
 import os
 import re
 import time
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
+from email import policy
+from email.message import EmailMessage
 
 from .confirmaciones import (
-    EntregaRechazadaError,
     MARCADOR_BORRADOR,
+    EntregaRechazadaError,
     email_valido,
 )
 from .destinos import BORRADOR_MARKER
 from .google_workspace import (
-    AccessTokenProvider,
     GMAIL_HOST,
     MAX_WORKSPACE_RESPONSE_BYTES,
     MAX_WORKSPACE_TIMEOUT_S,
+    AccessTokenProvider,
     HttpsWorkspaceTransport,
     RespuestaHttp,
     TransporteHttp,
     _RespuestaDemasiadoGrande,
 )
 from .workspace_config import ConfiguracionWorkspaceError
-
 
 # El único endpoint de distribución que el agente puede llamar: la cuenta
 # técnica enviando como ella misma. `auditoria_d2` lo contrasta contra las

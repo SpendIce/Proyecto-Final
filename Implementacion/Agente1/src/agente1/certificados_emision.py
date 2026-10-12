@@ -80,7 +80,8 @@ from typing import Protocol
 from .certificados import generar_pdf_certificado
 from .confirmaciones import (
     MARCADOR_BORRADOR as MARCADOR_BORRADOR_CORREO,
-    ROL_APROBACION_SEMANTICA,
+)
+from .confirmaciones import (
     ROL_APROBACION_UTILITARIA,
     _hash,
 )

@@ -17,10 +17,13 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from agente1.fuentes import CsvFuenteSolicitudes
-from agente1.interpretacion import IdentidadSolicitante, RegistroPendientesMemoria, interpretar_solicitud
+from agente1.interpretacion import (
+    IdentidadSolicitante,
+    RegistroPendientesMemoria,
+    interpretar_solicitud,
+)
 from agente1.ollama import OllamaGenerator
-from agente1.procesamiento import PATRON_PROSA_SIN_DATOS, FakeGenerator
-
+from agente1.procesamiento import PATRON_PROSA_SIN_DATOS
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = r'''<!doctype html>

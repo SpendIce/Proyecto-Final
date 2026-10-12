@@ -16,6 +16,8 @@ from pathlib import Path
 import pytest
 
 from agente1.confirmaciones import (
+    ROL_APROBACION_SEMANTICA,
+    ROL_APROBACION_UTILITARIA,
     AprobacionHumana,
     ColaEnviosArchivo,
     ColaEnviosMemoria,
@@ -23,8 +25,6 @@ from agente1.confirmaciones import (
     ItemEnvio,
     RegistroConfirmacionesArchivo,
     RegistroConfirmacionesMemoria,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
     SolicitudConfirmacion,
     drenar_envios,
     procesar_confirmacion,

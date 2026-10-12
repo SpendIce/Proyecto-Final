@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-
 CONTRACT_VERSION = "agente1_insumo_candidate_v1"
 SCHEMA_NAME = "agente1.insumo.v1"
 SCHEMA_VERSION = "1.0.0"

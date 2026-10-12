@@ -74,29 +74,28 @@ destino la exige.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import date, datetime
 import fcntl
 import hashlib
-from importlib.resources import files
 import json
 import os
-from pathlib import Path
 import re
+import uuid
+from dataclasses import asdict, dataclass
+from datetime import date, datetime
+from importlib.resources import files
+from pathlib import Path
 from threading import Lock
 from typing import Protocol
-import uuid
 
 from .tipos_notificacion import (
     MODO_CIRCUITO_POR_ENVIO,
-    TIPOS_NOTIFICACION,
     TIPO_NOTIFICACION_PREDETERMINADO,
+    TIPOS_NOTIFICACION,
     campos_requeridos,
     descripcion_tipo,
     evaluar_tipo,
     modo_circuito,
 )
-
 
 HU = "HU-012"
 CONTRACT_VERSION = "confirmacion_inscripcion_v1"

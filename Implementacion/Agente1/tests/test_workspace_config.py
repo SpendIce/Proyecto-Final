@@ -12,7 +12,6 @@ from agente1.workspace_config import (
     cargar_configuracion_workspace,
 )
 
-
 ENV_VALIDO = {
     "AGENTE1_WORKSPACE_AMBIENTE": "D2",
     "AGENTE1_WORKSPACE_SPREADSHEET_ID": "sheet_ID-123",

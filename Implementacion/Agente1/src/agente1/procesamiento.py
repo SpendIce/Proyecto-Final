@@ -58,7 +58,6 @@ from .presupuesto import (
     PresupuestoAgotadoError,
 )
 
-
 HU = "HU-010"
 # Estas tres versiones se escriben en cada línea del log. Si alguna cambia hay
 # que subirle el número: es lo que permite explicar, meses después, por qué dos

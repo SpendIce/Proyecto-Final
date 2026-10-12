@@ -35,8 +35,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from agente1.canal_form import (
     CanalFormError,
@@ -45,13 +45,13 @@ from agente1.canal_form import (
     cargar_padron_roles_csv,
 )
 from agente1.decisiones_form import (
+    PENDIENTES_NOMBRE,
+    PROCESADAS_NOMBRE,
+    TIPOS_DECISION,
     CanalFormDecisiones,
     DecisionesFormError,
     EnlacesDecisiones,
-    PROCESADAS_NOMBRE,
-    PENDIENTES_NOMBRE,
     RegistroDecisiones,
-    TIPOS_DECISION,
     cargar_configuracion_form_decisiones,
     crear_lector_decisiones,
 )
@@ -60,7 +60,6 @@ from agente1.google_workspace import ID_RE
 from agente1.workspace_auth import construir_token_provider
 from agente1.workspace_config import ConfiguracionWorkspaceError
 from agente1.workspace_e2e import RunnerWorkspaceError
-
 
 ROOT = Path(__file__).resolve().parents[1]
 

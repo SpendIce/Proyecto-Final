@@ -22,13 +22,12 @@ Form real queda para la ejecución del operador en D2, como en #72.
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
-from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
 import sys
-
+from dataclasses import replace
+from datetime import datetime, timezone
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -42,24 +41,23 @@ from agente1.certificados import (  # noqa: E402
     reconciliar_emisiones_reservadas,
 )
 from agente1.confirmaciones import (  # noqa: E402
-    AprobacionHumana,
     ROL_APROBACION_SEMANTICA,
     ROL_APROBACION_UTILITARIA,
+    AprobacionHumana,
 )
 from agente1.decisiones_form import (  # noqa: E402
     DECISION_APRUEBO_LOTE,
     DECISION_APRUEBO_SEMANTICA,
     DECISION_APRUEBO_UTILITARIA,
     RESULTADO_REGISTRADA,
-    RegistroDecisiones,
-    ResultadoDecision,
     TIPO_LINEA_DESCRIPTIVA,
     TIPO_LOTE,
+    RegistroDecisiones,
+    ResultadoDecision,
 )
 from agente1.linea_descriptiva import (  # noqa: E402
     objeto_id_linea_descriptiva,
 )
-
 
 LINEA_DESCRIPTIVA = (
     "Espacio de formación docente en tecnología aplicada a la enseñanza."

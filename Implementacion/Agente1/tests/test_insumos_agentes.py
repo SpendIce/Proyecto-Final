@@ -13,7 +13,6 @@ from agente1.insumos_agentes import (
     validar_insumo_agente,
 )
 
-
 FIXTURES = Path(__file__).parent / "fixtures" / "insumos_agentes"
 
 

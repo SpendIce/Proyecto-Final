@@ -31,8 +31,8 @@ Decisiones que no se ven en el código:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
 import re
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from enum import Enum
 from threading import RLock

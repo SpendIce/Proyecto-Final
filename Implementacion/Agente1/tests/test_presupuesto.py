@@ -22,7 +22,6 @@ from agente1.presupuesto import (
     presupuesto_minimo_num_predict,
 )
 
-
 CONTRATOS = {
     "v2": CONTRATO_SALIDA_ESTRUCTURADA,
     "v3": CONTRATO_SALIDA_ESTRUCTURADA_V3,
