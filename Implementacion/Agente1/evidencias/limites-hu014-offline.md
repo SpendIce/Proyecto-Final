@@ -3,6 +3,15 @@
 **Estado institucional:** PENDIENTE
 **Estado técnico:** prototipo contractual offline, provisional.
 
+> **Alcance de este documento (#75):** describe el slice original de
+> `certificados.py` (#29): el ciclo de vida por documento sobre el fake.
+> El circuito de emisión del lote sobre lista de cierre vive en
+> `certificados_emision.py` y sí tiene un adapter real acotado —Gmail con
+> lista de prueba y Sheet D2 de lista, ambos detrás de opt-in—; su
+> evidencia y sus límites están en
+> `evidencias/recorrido-emision-certificados-hu014.md`. Lo que sigue abajo
+> sigue vigente para el slice por documento.
+
 ## Qué demuestra
 
 - Render determinista del texto canónico del certificado, para los tipos cerrados `ASISTENCIA` y `APROBACION`.
@@ -15,7 +24,7 @@
 
 ## Qué no demuestra
 
-- No hay adapter de emisión real: ni carpeta de Drive, ni registro institucional, ni transporte alguno.
+- El slice por documento no tiene adapter de emisión real: ni carpeta de Drive, ni registro institucional, ni transporte alguno. La emisión del lote de cierre es el otro circuito (`certificados_emision.py`), acotado a Gmail con lista de prueba y aprobaciones por el Form de decisiones.
 - No hay firma digital: el enunciado la menciona, pero el DoD no la exige y no existe infraestructura de firma; el PDF lo declara en su propio texto.
 - La plantilla es provisional: la plantilla institucional de certificados queda `PENDIENTE_SEU` (diseño, logo, firmantes y formato finales son definiciones de la SEU).
 - No se probó validez del PDF contra un lector institucional ni accesibilidad; es un artefacto de texto mínimo para verificar el pipeline.
