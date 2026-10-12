@@ -45,12 +45,14 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/matriz_hu011_v2.py`: matriz fake de creatividad JSON y render determinista para HU-011 v2.
 - `scripts/workspace_e2e.py`: runner Sheets→procesamiento→Drive, offline por defecto y live con doble opt-in.
 - `src/agente1/persistencia.py` y `migrations/`: puerto en memoria y SQL del spike PostgreSQL, ya ejecutado contra un contenedor efímero.
-- `src/agente1/confirmaciones.py`: lifecycle de HU-012 con entrega al fake o al adapter Gmail con lista de prueba (D12).
+- `src/agente1/confirmaciones.py`: lifecycle por envío de HU-012 con entrega al fake o al adapter Gmail con lista de prueba (D12); rechaza con `notification_mode_mismatch` los tipos cuyo modo de circuito no es `por_envio`.
 - `src/agente1/certificados.py`: lifecycle offline de HU-014 con generación de PDF determinista (stdlib, sin dependencias nuevas) y emisión únicamente fake; reusa el circuito de doble aprobación y el registro durable de HU-012.
 - `scripts/matriz_hu014.py`: matriz reproducible de HU-014, con emisión simulada y reconciliación de reservas colgadas.
 - `src/agente1/politicas/politica_redes_provisional_v1.json` y `src/agente1/politica_redes.py`: política de redes de HU-011 como inventario de reglas verificables, con sus parámetros por canal y el estado de cada regla (`ACTIVA`, `NO_APLICADA_PENDIENTE_SEU`, `NO_MECANIZABLE`).
 - `src/agente1/contracts/matriz_origenes_inscripcion_v1.json` y `src/agente1/origenes_inscripcion.py`: matriz operativa de HU-012 por origen de inscripción y decisión de envío fail-closed; ningún origen habilita envío.
-- `src/agente1/contracts/plan_pagos_actividad_v1.json`, `src/agente1/contracts/novedades_pago_v1.json`, `src/agente1/pagos.py` y `src/agente1/buzon.py`: corrida de control de pagos de HU-012 — contrato del plan de pago con procedencia por dato, puerto de buzón propio con adapter de carpeta `.eml`, catálogo cerrado de novedades del Departamento (confirmación de la Fundación, comprobante rechazado, comprobante que cubre N cuotas, dirección alternativa, bonificado) con precedencia sobre lo derivado del buzón, y función pura que informa el «k de N» desglosado por preinscripto, las respuestas no asociadas y las novedades aplicadas o con error. Subcomando `python -m agente1 control-pagos` con `--novedades` opcional.
+- `src/agente1/contracts/plan_pagos_actividad_v1.json`, `src/agente1/contracts/novedades_pago_v1.json`, `src/agente1/pagos.py` y `src/agente1/buzon.py`: corrida de control de pagos de HU-012 — contrato del plan de pago con procedencia por dato, puerto de buzón propio con adapter de carpeta `.eml`, catálogo cerrado de novedades del Departamento (confirmación de la Fundación, comprobante rechazado, comprobante que cubre N cuotas, dirección alternativa, bonificado) con precedencia sobre lo derivado del buzón, y función pura que informa el «k de N» desglosado por preinscripto, las respuestas no asociadas y las novedades aplicadas o con error. La misma corrida planifica el lote diario de `recordatorio_pago`: anticipaciones por actividad (`7|2` por omisión, `SUPUESTO_TECNICO`), regla `hoy = fecha_referencia − anticipación` en `America/Argentina/Buenos_Aires`, nunca después de la referencia, e idempotencia por actividad, inscripción, cuota y anticipación. Subcomando `python -m agente1 control-pagos` con `--novedades` y `--fecha` opcionales.
+- `src/agente1/contracts/tipos_notificacion_v2.json` y `src/agente1/tipos_notificacion.py`: catálogo cerrado de tipos de notificación con el modo de circuito por tipo —`por_envio` para los cuatro de HU-012 original, `lote` para `recordatorio_pago`— y decisión fail-closed por procedencia de datos.
+- `src/agente1/recordatorios.py` y `src/agente1/prompts/recordatorio_pago_provisional_v1.txt`: circuito por lote de los recordatorios de pago —la plantilla se aprueba una sola vez con doble decisión y cada lote diario lleva una aprobación utilitaria con la lista exacta de ítems— sobre el registro, la cola y el destino fake de HU-012.
 - `data/plan_pagos_notebooklm_n2.csv`, `data/padron_pagos_sintetico.csv` y `data/novedades_pago_sinteticas.csv`: fixture del caso documentado NotebookLM Nivel 2 (cuota única de $20.000, categorías bonificadas, procedencia por dato), padrón sintético y novedades sintéticas para correr la demo local.
 - `scripts/medir_capacidad_hu011.py`: prueba de capacidad local contra el volumen de referencia informado por la SEU; mide latencia fría y caliente y tasa de conformidad, y proyecta el mes.
 - `scripts/operaciones_seguras.py`: health, reconciliación, consolidación y retención en dry-run.
@@ -105,6 +107,11 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué una respuesta nunca se asocia por nombre ni por similitud | `src/agente1/pagos.py`, docstring de módulo y de `correr_control_pagos` |
 | Por qué `PAGO_CONFIRMADO` sólo sale de una novedad y nunca de un comprobante | `pagos.py`, docstring de módulo y de `_aplicar_novedad_cuota`; contrato `novedades_pago_v1.json` (D1) |
 | Por qué una novedad inválida se informa en lugar de ignorarse | `pagos.py`, docstring de `cargar_novedades_csv` y de `NovedadConError` |
+| Por qué `recordatorio_pago` no pasa por `procesar_confirmacion` | `src/agente1/tipos_notificacion.py` (`modo_circuito`), `confirmaciones.py` (`notification_mode_mismatch`); catálogo `tipos_notificacion_v2` |
+| Por qué la plantilla se aprueba una vez y el lote cada día | `src/agente1/recordatorios.py`, docstring de módulo |
+| Por qué la lista de ítems de la aprobación del lote debe ser exacta | `recordatorios.py`, docstrings de `AprobacionLote` y `encolar_lote_recordatorios` |
+| Por qué un recordatorio nunca sale después de la fecha de referencia | `pagos.py`, docstring de `planificar_recordatorios`; D15 del diseño |
+| Por qué los links y datos bancarios van al cuerpo y no a la auditoría | `recordatorios.py`, docstrings de `_auditar` y `_auditar_item`; `prompts/recordatorio_pago_provisional_v1.txt` |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
@@ -498,10 +505,43 @@ Las APIs primarias (`SolicitudConfirmacion`, `AprobacionHumana`,
 `RegistroConfirmacionesArchivo`, `reconciliar_envios_reservados`,
 `DestinoConfirmacionesFake` y `procesar_confirmacion`) se exportan desde
 `agente1`, al igual que la cola (`ItemEnvio`, `ColaEnviosMemoria`,
-`ColaEnviosArchivo`, `ResultadoEnvioEncolado` y `drenar_envios`). Contrato, plantilla, aprobaciones de la matriz y destinatarios son
+`ColaEnviosArchivo`, `ResultadoEnvioEncolado` y `drenar_envios`) y el
+circuito por lote (`AprobacionLote`, `registrar_plantilla_recordatorio`,
+`aprobar_plantilla_recordatorio`, `encolar_lote_recordatorios` y
+`correr_lote_recordatorios`). Contrato, plantilla, aprobaciones de la matriz y destinatarios son
 sintéticos o provisionales. Consultar
 `evidencias/limites-hu012-offline.md`; no hay envío institucional, validación
 SEU ni evidencia de TRL 3.
+
+### Recordatorios de pago por lote
+
+`recordatorio_pago` es el primer tipo cuyo modo de circuito no es por envío:
+el catálogo `tipos_notificacion_v2` lo declara `lote` y
+`procesar_confirmacion` lo rechaza con `notification_mode_mismatch`. La
+corrida de control de pagos deriva la situación de cada cuota —como siempre,
+sin registro propio de pagos (ADR 0003)— y `planificar_recordatorios` arma el
+lote del día con las cuotas `PENDIENTE` cuya fecha de referencia cae exactamente
+`anticipacion_d` días después de `hoy` (`7|2` por omisión, configurable por
+actividad, zona `America/Argentina/Buenos_Aires`). Un inscripto que el plan
+declara bonificable pero el padrón no puede verificar entra igual al lote con
+la marca `bonificacion_no_verificable`, para que la revisión humana la vea.
+
+El circuito tiene dos aprobaciones en dos niveles distintos
+(`recordatorios.py`): la **plantilla** provisional se registra y aprueba una
+sola vez con la doble decisión de HU-012 (semántica y utilitaria), y cada
+**lote** diario pide una aprobación utilitaria que nombra la lista exacta de
+ítems —una lista parcial (`batch_approval_partial`), con claves ajenas
+(`batch_item_unknown`) o con el rol equivocado no encola nada. Con el lote
+autorizado, cada ítem se renderiza desde la plantilla, se registra con su
+clave de idempotencia y se encola; `correr_lote_recordatorios` drena la cola
+contra `DestinoConfirmacionesFake`. Repetir la corrida el mismo día produce
+las mismas claves y el registro devuelve `DUPLICADA`: no hay envíos dobles.
+Los medios de pago —link o dato bancario— van en el cuerpo del borrador y
+nunca en la auditoría, que sigue llevando sólo hashes, claves y decisiones.
+
+```bash
+uv run pytest -q tests/test_recordatorios_pagos.py tests/test_matriz_hu012.py
+```
 
 ## HU-014 — certificados offline
 
