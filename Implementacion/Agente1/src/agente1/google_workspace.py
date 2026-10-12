@@ -6,6 +6,11 @@ fila de la pestaña de actividades de D2 (sólo lectura, con el encabezado
 `COLUMNAS_ACTIVIDADES_V2`), copiar la plantilla institucional en la carpeta
 autorizada y volcar el borrador en esa copia.
 
+Además expone `GoogleSheetsLectorValores`, la lectura cruda de un rango sin
+contrato tabular: es la base de `GoogleSheetsFuenteSolicitudes` y también del
+adapter del canal de pedidos por Form (`canal_form.py`, #71), cuya hoja de
+respuestas tiene los encabezados del formulario y no `COLUMNAS_ACTIVIDADES_V2`.
+
 Decisiones que no se ven en el código:
 
 - **HTTP a mano, sin SDK.** Se usa `http.client` en vez del cliente oficial de
@@ -63,6 +68,10 @@ from .fuentes import (
 SHEETS_HOST = "sheets.googleapis.com"
 DOCS_HOST = "docs.googleapis.com"
 DRIVE_HOST = "www.googleapis.com"
+# El host de Gmail no es un host Workspace de uso general: la auditoría sólo
+# lo admite para endpoints de lectura de mensajes del usuario `me` (ADR 0004,
+# D11). Cualquier otro uso — envío, etiquetas, otro usuario — falla el control.
+GMAIL_HOST = "gmail.googleapis.com"
 MAX_WORKSPACE_RESPONSE_BYTES = 1_048_576
 MAX_WORKSPACE_TIMEOUT_S = 120.0
 # Forma de un identificador de Workspace. Se valida antes de interpolarlo en
@@ -105,15 +114,17 @@ class TransporteHttp(Protocol):
     ) -> RespuestaHttp: ...
 
 
-class GoogleSheetsFuenteSolicitudes(FuenteSolicitudes):
-    """Lee una fila de la pestaña de actividades de la planilla D2.
+class GoogleSheetsLectorValores:
+    """Lectura cruda de un rango A1: `values.get` sin contrato tabular.
 
-    Es un adapter de sólo lectura: el Agente 1 consume actividades ya
-    resueltas en la planilla institucional; no crea filas ni las modifica.
-    La configuración fija una única planilla y un único rango: el agente no
-    puede pedir otra hoja ni otro rango en tiempo de ejecución. Toda la
-    validación de la configuración ocurre en el constructor, así un despliegue
-    mal configurado falla al arrancar y no a mitad de una ejecución.
+    Es la mitad reutilizable del adapter de solicitudes: misma allowlist
+    (planilla y rango fijados al construir, sin forma de pedir otros en tiempo
+    de ejecución), mismo deadline absoluto, mismo tope de respuesta y misma
+    traducción de errores — pero devuelve las filas tal como vienen, porque no
+    toda hoja leída por el agente es la planilla de actividades. La hoja de
+    respuestas del Google Form de pedidos (`canal_form.py`, #71) tiene los
+    encabezados que el propio formulario escribe, no `COLUMNAS_ACTIVIDADES_V2`:
+    quien consume este lector decide qué columnas son un pedido.
     """
 
     def __init__(
@@ -143,22 +154,7 @@ class GoogleSheetsFuenteSolicitudes(FuenteSolicitudes):
         self._transport = transport or HttpsWorkspaceTransport()
         self._timeout_s = float(timeout_s)
 
-    def obtener(self, id_actividad: str) -> dict[str, str]:
-        if not isinstance(id_actividad, str) or ID_ACTIVIDAD_RE.fullmatch(
-            id_actividad
-        ) is None:
-            raise FuenteSolicitudesError("source_request_invalid")
-        values = self._leer_valores()
-        return _buscar_fila(values, id_actividad)
-
-    def enumerar(self) -> list[dict[str, str]]:
-        # Misma lectura que `obtener`, sin recorte a un id: el rango
-        # configurado es la única superficie que este adapter toca, así que
-        # enumerar no agrega ningún endpoint ni verbo nuevo.
-        values = self._leer_valores()
-        return _enumerar_filas(values)
-
-    def _leer_valores(self) -> list[object]:
+    def leer_valores(self) -> list[object]:
         token = self._obtener_token()
         # `FORMATTED_VALUE` devuelve lo que ve una persona en la planilla, no el
         # valor serial interno: una fecha llega como la escribió quien cargó la
@@ -217,6 +213,51 @@ class GoogleSheetsFuenteSolicitudes(FuenteSolicitudes):
         ):
             raise FuenteSolicitudesError("workspace_auth_unavailable")
         return token
+
+
+class GoogleSheetsFuenteSolicitudes(FuenteSolicitudes):
+    """Lee una fila de la pestaña de actividades de la planilla D2.
+
+    Es un adapter de sólo lectura: el Agente 1 consume actividades ya
+    resueltas en la planilla institucional; no crea filas ni las modifica.
+    La configuración fija una única planilla y un único rango: el agente no
+    puede pedir otra hoja ni otro rango en tiempo de ejecución. Toda la
+    validación de la configuración ocurre en el lector crudo, así un
+    despliegue mal configurado falla al arrancar y no a mitad de una
+    ejecución.
+    """
+
+    def __init__(
+        self,
+        *,
+        spreadsheet_id: str,
+        rango_a1: str,
+        token_provider: AccessTokenProvider,
+        transport: TransporteHttp | None = None,
+        timeout_s: float = 10.0,
+    ) -> None:
+        self._lector = GoogleSheetsLectorValores(
+            spreadsheet_id=spreadsheet_id,
+            rango_a1=rango_a1,
+            token_provider=token_provider,
+            transport=transport,
+            timeout_s=timeout_s,
+        )
+
+    def obtener(self, id_actividad: str) -> dict[str, str]:
+        if not isinstance(id_actividad, str) or ID_ACTIVIDAD_RE.fullmatch(
+            id_actividad
+        ) is None:
+            raise FuenteSolicitudesError("source_request_invalid")
+        values = self._lector.leer_valores()
+        return _buscar_fila(values, id_actividad)
+
+    def enumerar(self) -> list[dict[str, str]]:
+        # Misma lectura que `obtener`, sin recorte a un id: el rango
+        # configurado es la única superficie que este adapter toca, así que
+        # enumerar no agrega ningún endpoint ni verbo nuevo.
+        values = self._lector.leer_valores()
+        return _enumerar_filas(values)
 
 
 class GoogleDocsDestinoBorradores(DestinoBorradores):

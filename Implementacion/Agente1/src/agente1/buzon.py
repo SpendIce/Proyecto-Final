@@ -20,8 +20,9 @@ Implementaciones:
   las pruebas y de la demo controlada; los archivos se arman a mano (D16).
 - `BuzonPropioMemoria`: fake en memoria para ejercitar la corrida sin disco,
   mismo patrón que los demás fakes del paquete.
-- El adapter Gmail con `gmail.readonly` sobre la propia cuenta queda para su
-  ticket; implementa este mismo puerto.
+- `buzon_gmail.GoogleGmailBuzonPropio`: adapter del buzón real por Gmail API
+  con `gmail.readonly` sobre la propia cuenta (D11); implementa este mismo
+  puerto y produce los mismos `MensajeBuzon`.
 """
 
 from __future__ import annotations

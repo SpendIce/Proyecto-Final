@@ -29,6 +29,8 @@ Guía rápida de módulos:
 - `interpretacion`            HU-013, interpretación en lenguaje natural (#20, #22).
 - `canal`                     HU-013, puerto de canal y bucle de atención (#24).
 - `canal_planilla`            HU-013, adapter de planilla offline del canal (#24).
+- `canal_form`                HU-013, adapter del canal de pedidos por Google
+                              Form con padrón de roles y aviso por Gmail (#71).
 - `pagos`                     HU-012, corrida de control de pagos (offline).
 - `buzon`                     puerto del buzón propio del agente (ADR 0004).
 """

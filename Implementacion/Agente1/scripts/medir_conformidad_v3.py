@@ -156,6 +156,95 @@ BLOQUE_ANTIHECHOS = (
     "genérica que funcione con cualquier actividad."
 )
 
+# Variante "positivo": la plantilla v4 expresa sus reglas como prohibiciones y
+# nombra los literales prohibidos («inscríbete», «únete», «descubre»…). Nombrar
+# la forma prohibida la activa: la medición del 22/09 muestra que el modelo
+# reincide en esos mismos literales aun con la regla explícita en el reintento.
+# Esta variante reescribe las mismas reglas como especificación positiva —qué
+# es el texto, no qué le falta— y nunca menciona las formas desterradas. El
+# gate no se toca: si la salida viola una regla, cae igual.
+BLOQUE_REGLAS_POSITIVO = (
+    "REGLAS DE REDACCIÓN para gancho, prosa y cta:\n"
+    "- el texto se escribe completo en palabras: cada número, fecha, horario, "
+    "lugar, contacto o precio lo agrega el sistema por separado;\n"
+    "- la actividad se nombra siempre de forma genérica («la jornada», "
+    "«el taller», «el curso», «el seminario»): su título y sus datos los pone "
+    "el sistema;\n"
+    "- la invitación es atemporal y vale para cualquier sede;\n"
+    "- el texto describe únicamente la invitación a participar; la "
+    "organización, la modalidad y el estado de la pieza los informa el "
+    "sistema;\n"
+    "- el CTA remite al enlace que indica más abajo;\n"
+    "- el vocabulario es académico y sobrio;\n"
+    "- el JSON contiene solamente el texto del post.\n"
+)
+
+# Reemplazos puntuales del resto del prompt. Algunos aplican a un solo canal:
+# cada prompt sólo contiene los propios, así que se aplican si están presentes.
+REEMPLAZOS_POSITIVOS = (
+    (
+        "Escribí texto original y propio. No copies frases de ejemplo ni "
+        "repitas la misma redacción entre publicaciones.",
+        "Escribí texto original y propio: cada publicación lleva una redacción "
+        "nueva.",
+    ),
+    (
+        "Podés referirte a la actividad de forma genérica —«la jornada», "
+        "«el taller», «el curso», «el seminario»—, confirmado por la SEU; lo "
+        "que no podés es copiar su título literal ni sus datos.",
+        "Podés referirte a la actividad siempre en forma genérica —«la "
+        "jornada», «el taller», «el curso», «el seminario»—, confirmado por "
+        "la SEU.",
+    ),
+    (
+        "No uses tuteo: están prohibidas formas como “inscríbete”, "
+        "“regístrate”, “únete”, “descubre” o “puedes”. Evitá solemnidad y "
+        "jerga administrativa.",
+        "El registro es rioplatense con voseo: la segunda persona del singular "
+        "se escribe «vos» y sus imperativos llevan acento en la última sílaba "
+        "—«sumate», «participá», «conocé», «enterate», «acercate», «animáte». "
+        "Cuando la forma directa quede forzada, usá la impersonal («se "
+        "invita», «te invitamos», «los invitamos»). El tono es llano y cercano.",
+    ),
+    (
+        "Si se usa segunda persona, emplear registro rioplatense con voseo y "
+        "no tuteo (por ejemplo, no “inscríbete”, “regístrate” ni “únete”). "
+        "Sin emojis, sin exclamaciones y sin lenguaje publicitario.",
+        "Si se usa segunda persona, el registro es rioplatense con voseo "
+        "(«vos», «sumate», «participá», «conocé»); cuando quede forzada, la "
+        "forma impersonal («se invita», «les invitamos»). El texto se apoya "
+        "sólo en palabras y en tono sobrio.",
+    ),
+    (
+        "«en el enlace de nuestro perfil»), sin incluir URLs.",
+        "«en el enlace de nuestro perfil»), nombrado en palabras.",
+    ),
+    (
+        "«en el enlace de esta publicación»), sin incluir URLs.",
+        "«en el enlace de esta publicación»), nombrado en palabras.",
+    ),
+)
+
+
+def _transformar_positivo(prompt: str) -> str:
+    """Reescribe el prompt renderizado con instrucciones positivas.
+
+    El bloque de prohibiciones se corta por sus delimitadores estables —no por
+    el texto completo— para no depender de cada literal; si la plantilla deja
+    de contenerlo, la corrida falla acá y no mide otra cosa.
+    """
+
+    inicio = prompt.find("PROHIBIDO ABSOLUTAMENTE")
+    fin = prompt.find("Los datos concretos")
+    if inicio == -1 or fin == -1 or fin <= inicio:
+        raise RuntimeError(
+            "variante positivo: no se encontró el bloque de prohibiciones"
+        )
+    prompt = prompt[:inicio] + BLOQUE_REGLAS_POSITIVO + "\n" + prompt[fin:]
+    for viejo, nuevo in REEMPLAZOS_POSITIVOS:
+        prompt = prompt.replace(viejo, nuevo, 1)
+    return prompt
+
 
 @dataclass
 class RespuestaCapturada:
@@ -311,6 +400,8 @@ def _transformacion(variante: str):
     las instrucciones y no mezclado con los datos no confiables.
     """
 
+    if variante == "positivo":
+        return _transformar_positivo
     bloques = {
         "baseline": (),
         "voseo": (BLOQUE_VOSEO,),
@@ -417,7 +508,13 @@ def main() -> int:
     )
     parser.add_argument(
         "--variante-prompt",
-        choices=("baseline", "voseo", "antihechos", "voseo_antihechos"),
+        choices=(
+            "baseline",
+            "voseo",
+            "antihechos",
+            "voseo_antihechos",
+            "positivo",
+        ),
         default="baseline",
         help="Texto extra que el medidor inserta en el prompt, sin tocar la plantilla versionada.",
     )
