@@ -781,7 +781,7 @@ def _una_linea(texto: str, *, maximo: int = 300) -> str:
 
 def _etiqueta_candidata(candidata: CandidataActividad) -> str:
     titulo = _una_linea(candidata.titulo, maximo=120)
-    fecha = _una_linea(candidata.fecha, maximo=40)
+    fecha = _una_linea(candidata.fecha_inicio, maximo=40)
     return f"{titulo} ({fecha})" if fecha else titulo
 
 
