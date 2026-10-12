@@ -1,8 +1,9 @@
 # Agente 1 — MVP técnico controlado
 
 Este directorio reúne la implementación incremental del Agente 1: HU-010 para
-gacetillas, HU-011 para borradores de redes sociales, el slice offline de
-HU-012 para confirmaciones y el slice offline de HU-014 para certificados.
+gacetillas, HU-011 para borradores de redes sociales, HU-012 para
+confirmaciones —fake o Gmail real cercado por una lista de prueba— y el
+slice offline de HU-014 para certificados.
 También contiene preparación contractual de
 Workspace, persistencia y operaciones. Ningún flujo publica o envía contenido
 real sin una autorización humana e institucional externa al repositorio.
@@ -44,7 +45,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/matriz_hu011_v2.py`: matriz fake de creatividad JSON y render determinista para HU-011 v2.
 - `scripts/workspace_e2e.py`: runner Sheets→procesamiento→Drive, offline por defecto y live con doble opt-in.
 - `src/agente1/persistencia.py` y `migrations/`: puerto en memoria y SQL del spike PostgreSQL, ya ejecutado contra un contenedor efímero.
-- `src/agente1/confirmaciones.py`: lifecycle offline de HU-012 con entrega únicamente fake.
+- `src/agente1/confirmaciones.py`: lifecycle de HU-012 con entrega al fake o al adapter Gmail con lista de prueba (D12).
 - `src/agente1/certificados.py`: lifecycle offline de HU-014 con generación de PDF determinista (stdlib, sin dependencias nuevas) y emisión únicamente fake; reusa el circuito de doble aprobación y el registro durable de HU-012.
 - `scripts/matriz_hu014.py`: matriz reproducible de HU-014, con emisión simulada y reconciliación de reservas colgadas.
 - `src/agente1/politicas/politica_redes_provisional_v1.json` y `src/agente1/politica_redes.py`: política de redes de HU-011 como inventario de reglas verificables, con sus parámetros por canal y el estado de cada regla (`ACTIVA`, `NO_APLICADA_PENDIENTE_SEU`, `NO_MECANIZABLE`).
@@ -364,7 +365,7 @@ final se ejecutaron contra PostgreSQL 16 efímero el 2026-08-26; ver
 Continúa pendiente ejecutar los mismos contract tests contra un adapter
 PostgreSQL real, que todavía no existe.
 
-## HU-012 — confirmaciones offline
+## HU-012 — confirmaciones
 
 HU-012 renderiza determinísticamente un asunto y cuerpo provisional con
 `BORRADOR — NO ENVIAR`. Valida destinatario y exige las dos aprobaciones del
@@ -377,8 +378,12 @@ negativa), con `ENVIO_INDETERMINADO` para una reserva que quedó colgada, y usa
 transiciones atómicas para impedir retrocesos, carreras y entregas
 duplicadas. Una sola aprobación —de cualquiera de los dos roles— deja el
 registro en el estado parcial correspondiente y no habilita el envío.
-`ENVIADA_SIMULADA` sólo registra una entrega en memoria mediante
-`DestinoConfirmacionesFake`: no existe adapter de correo real.
+`ENVIADA_SIMULADA` registra la entrega contra el destino habilitado: el fake
+en memoria (`DestinoConfirmacionesFake`) o el adapter Gmail con lista de
+prueba (`GmailDestinoConfirmaciones`, ver más abajo). El estado terminal del
+lifecycle conserva su nombre histórico aunque la entrega haya sido real;
+el campo `delivery_mode` de la auditoría distingue `fake` de
+`gmail_test_list`.
 
 ```bash
 PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
@@ -435,13 +440,50 @@ mismo compare-and-set (`ENVIO_ENCOLADO` → `ENVIO_RESERVADO` →
 intentos; cada intento queda auditado en el mismo JSONL con `evento` e
 `intento`. Un ítem cuyo registro ya no está en `ENVIO_ENCOLADO` se descarta
 sin re-entregar, y una reserva colgada sigue yendo a `ENVIO_INDETERMINADO`
-por la reconciliación existente. Sin el fake explícito el worker no procesa
-nada: **sigue sin existir adapter de correo real, el encolado sólo cambia
-cuándo se entrega, no qué se entrega**.
+por la reconciliación existente. Sin un destino habilitado por tipo exacto
+—fake o Gmail con lista— el worker no procesa nada: el encolado sólo cambia
+cuándo se entrega, no qué se entrega.
 
 ```bash
 uv run pytest -q tests/test_cola_envios.py
 ```
+
+### Destino Gmail con lista de prueba (D11/D12)
+
+`src/agente1/gmail_envio.py` implementa el mismo puerto
+`DestinoConfirmaciones` contra `gmail.send`
+(`POST gmail.googleapis.com /gmail/v1/users/me/messages/send`), con el mismo
+transporte HTTP intercambiable de los adapters de Workspace. Es el primer
+destino que manda correo de verdad, y entra cercado por las decisiones D11
+y D12 del diseño de control de pagos:
+
+- **La lista de direcciones de prueba es condición de existencia.** Sale de
+  `AGENTE1_GMAIL_DESTINATARIOS_PRUEBA` (variable de entorno, separadas por
+  coma, fuera del repo). Ausente, vacía o con una dirección inválida, el
+  destino no se construye: `gmail_test_list_missing`/`gmail_test_list_invalid`.
+- **La lista se re-verifica en cada entrega, antes del token y de la red.**
+  Un destinatario fuera de la lista levanta `EntregaRechazadaError`
+  (`recipient_off_test_list`): el registro queda `FALLIDA` —terminal, sin
+  reintentos— aunque el envío tenga las dos aprobaciones. Pasar a
+  destinatarios reales es un cambio de configuración, no de código.
+- **El cuerpo lleva las dos marcas de borrador.** El adapter exige que el
+  cuerpo empiece con `BORRADOR — NO ENVIAR` (la marca de HU-012) y le
+  antepone `# BORRADOR — NO PUBLICAR` antes de armar el MIME: mientras rija
+  la lista, el correo se declara no publicable.
+- **El candado sigue siendo por tipo exacto.** `procesar_confirmacion` y
+  `drenar_envios` habilitan exactamente `DestinoConfirmacionesFake` o
+  `GmailDestinoConfirmaciones`; una subclase, un envoltorio o cualquier otro
+  objeto sigue dando `offline_destination_required` (vía síncrona) o un
+  worker que no procesa (vía encolada).
+- **La auditoría D2 admite exactamente un servicio de distribución.** El
+  check `no_distribution_endpoints` pasa el `POST` de `messages.send` sólo si
+  el manifest declara `gmail_send.test_list_active`; cualquier otra ruta de
+  Gmail —lectura incluida— y cualquier otro servicio siguen prohibidos.
+
+Las pruebas (`tests/test_gmail_envio.py`) inyectan transporte y token fake:
+éxito, errores HTTP, timeout, respuesta excesiva y todos los rechazos de
+política sin una sola llamada de red. **No hay ejecución live ni
+destinatarios institucionales**: lo demostrado es el mecanismo cercado.
 
 Las APIs primarias (`SolicitudConfirmacion`, `AprobacionHumana`,
 `ResultadoConfirmacion`, `RegistroConfirmacionesMemoria`,

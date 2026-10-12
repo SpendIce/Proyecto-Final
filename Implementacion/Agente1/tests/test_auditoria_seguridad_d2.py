@@ -286,3 +286,108 @@ def test_cli_es_offline_y_rechaza_manifest_live(tmp_path: Path) -> None:
 
     assert proceso.returncode == 2
     assert json.loads(report_path.read_text(encoding="utf-8"))["status"] == "INVALID"
+
+
+# --- La única excepción de distribución: `gmail.send` con lista activa (D12) ---
+
+
+def _llamada_gmail_send() -> dict[str, str]:
+    return {
+        "method": "POST",
+        "host": "gmail.googleapis.com",
+        "target": "/gmail/v1/users/me/messages/send",
+    }
+
+
+def _check_distribucion(reporte: dict[str, object]) -> bool:
+    checks = {check["id"]: check for check in reporte["checks"]}
+    return checks["no_distribution_endpoints"]["passed"]
+
+
+def test_gmail_send_pasa_solo_si_el_manifest_declara_lista_activa() -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["gmail_send"] = {"test_list_active": True}
+
+    assert _check_distribucion(auditar_manifest(manifest)) is True
+
+
+def test_gmail_send_sin_declaracion_o_sin_lista_activa_falla() -> None:
+    for declaracion in (
+        None,
+        {"test_list_active": False},
+    ):
+        manifest = _manifest_seguro()
+        manifest["http_calls"].append(_llamada_gmail_send())
+        if declaracion is not None:
+            manifest["gmail_send"] = declaracion
+
+        reporte = auditar_manifest(manifest)
+
+        assert reporte["status"] == "FAIL"
+        assert _check_distribucion(reporte) is False
+
+
+def test_gmail_send_con_lista_activa_y_hash_de_lista_pasa() -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["gmail_send"] = {
+        "test_list_active": True,
+        "recipients_hash": "c" * 64,
+    }
+
+    assert _check_distribucion(auditar_manifest(manifest)) is True
+
+
+@pytest.mark.parametrize(
+    "llamada",
+    [
+        # Otra ruta de Gmail —lectura incluida— no es la excepción de D12.
+        {"method": "GET", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/me/messages"},
+        {"method": "GET", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/me/messages/send"},
+        {"method": "POST", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/me/messages/send?x=1"},
+        {"method": "POST", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/otro/messages/send"},
+        {"method": "POST", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/me/messages/send/extra"},
+        {"method": "PUT", "host": "gmail.googleapis.com", "target": "/gmail/v1/users/me/messages/send"},
+        # El host viejo de correo y cualquier otro servicio siguen prohibidos.
+        {"method": "POST", "host": "mail.googleapis.com", "target": "/v1/send"},
+        {"method": "POST", "host": "www.googleapis.com", "target": "/gmail/v1/users/me/messages/send"},
+    ],
+)
+def test_ninguna_otra_llamada_de_distribucion_pasa_aun_con_lista_activa(
+    llamada: dict[str, str],
+) -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["http_calls"].append(llamada)
+    manifest["gmail_send"] = {"test_list_active": True}
+
+    reporte = auditar_manifest(manifest)
+
+    assert reporte["status"] == "FAIL"
+    assert _check_distribucion(reporte) is False
+
+
+@pytest.mark.parametrize(
+    "declaracion",
+    [
+        "test_list_active",
+        {"test_list_active": "yes"},
+        {"test_list_active": True, "sorpresa": 1},
+        {"recipients_hash": "no-es-hex"},
+        {"test_list_active": True, "recipients_hash": "C" * 64},
+        {"test_list_active": True, "recipients_hash": 7},
+    ],
+)
+def test_la_declaracion_gmail_del_manifest_es_de_contrato_cerrado(
+    declaracion: object,
+) -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["gmail_send"] = declaracion
+
+    reporte = auditar_manifest(manifest)
+
+    # Contrato inválido: fail-closed, no un check «con matices».
+    assert reporte["status"] == "INVALID"
+    assert reporte["checks"] == []

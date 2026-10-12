@@ -1,17 +1,25 @@
-"""Slice offline de HU-012: borradores de confirmación, nunca correo real.
+"""Slice de HU-012: borradores de confirmación y entrega acotada por destino.
 
-Prepara el texto de una confirmación de inscripción y modela su ciclo de vida
-completo —incluida la aprobación humana y el "envío"— pero **no existe ningún
-adapter que mande correo**. La única entrega posible es contra
-`DestinoConfirmacionesFake`, y eso se verifica en tiempo de ejecución
-comparando el tipo exacto (`type(destino) is not DestinoConfirmacionesFake`, no
-`isinstance`): ni siquiera una subclase puede colarse como destino.
+Prepara el texto de una confirmación de inscripción y gobierna su ciclo de
+vida completo —incluida la aprobación humana y la entrega— con una salida
+posible por tipo exacto: `DestinoConfirmacionesFake`, o
+`GmailDestinoConfirmaciones` de `gmail_envio.py`, el adapter de `gmail.send`
+que sólo puede construirse con una lista de direcciones de prueba activa
+(D12). El control se verifica en tiempo de ejecución comparando el tipo
+exacto —nunca `isinstance`— así que ni una subclase ni un envoltorio del
+fake o del Gmail se cuelan como destino. El candado anterior era más chico:
+«sólo el fake». La ampliación actual quedó documentada en el registro de
+defectos (DEF-A1-020) con las decisiones D11/D12 que la habilitan.
 
-Por qué modelar un envío que no se hace: el punto de la HU es demostrar que la
-secuencia de autorización es correcta —sin aprobación no hay envío, sin
-destinatario válido no hay borrador, un reintento no duplica— antes de que
-exista la capacidad técnica de enviar. Cuando la SEU habilite el correo, lo que
-se agrega es un adapter, no la lógica de control.
+Por qué el ciclo de vida es el mismo que cuando no había envío real: el
+punto de la HU es demostrar que la secuencia de autorización es correcta
+—sin aprobación no hay envío, sin destinatario válido no hay borrador, un
+reintento no duplica— y eso no depende de qué destino ejecuta la entrega.
+La capacidad nueva es un adapter detrás del mismo puerto, no lógica de
+control nueva. `ENVIADA_SIMULADA` sigue siendo el nombre del estado
+terminal de entrega —el sufijo es histórico— y lo que distingue al destino
+que entregó es el `delivery_mode` de la línea de auditoría: `fake` o
+`gmail_test_list`.
 
 Estados: `PENDIENTE_VALIDACION` → `APROBADA_SEMANTICA` | `APROBADA_UTILITARIA`
 según cuál de las dos aprobaciones llega primero, y de ahí → `APROBADA` cuando
@@ -28,8 +36,9 @@ acotados. La cola es una pista de trabajo, no la autoridad: el estado que
 habilita o descarta una entrega vive siempre en el registro, así que un ítem
 encolado cuyo registro ya no está pendiente se descarta sin re-entregar. No
 hay broker externo (Celery y Redis quedaron diferidos por decisión
-documentada) y la entrega sigue siendo exclusivamente contra el fake: el
-encolado cambia cuándo se entrega, no qué se entrega.
+documentada) y la entrega exige el mismo destino habilitado que la vía
+síncrona: el encolado cambia cuándo se entrega, no qué se entrega ni quién
+puede recibirlo.
 
 Qué falta para que esto sea utilizable, y por qué no está: los orígenes de
 inscripción reales no están definidos por la SEU. `origenes_inscripcion.py`
@@ -43,10 +52,11 @@ en el catálogo cerrado `contracts/tipos_notificacion_v1.json` que expone
 notificación de participación sobre la misma inscripción es otra
 comunicación, no un duplicado— y elige la frase del evento en el cuerpo.
 Todo lo demás del pipeline es idéntico para todos los tipos: misma doble
-aprobación, misma cola, mismo fake. El control por tipo es fail-closed y se
-evalúa antes de tocar el registro: un tipo fuera del catálogo es `INVALIDA`,
-y `situacion_pagos` —declarada pero sin origen confirmado para el dato de
-deuda— se rechaza siempre sin producir borrador ni envío.
+aprobación, misma cola, mismo destino habilitado. El control por tipo es
+fail-closed y se evalúa antes de tocar el registro: un tipo fuera del
+catálogo es `INVALIDA`, y `situacion_pagos` —declarada pero sin origen
+confirmado para el dato de deuda— se rechaza siempre sin producir borrador
+ni envío.
 """
 
 from __future__ import annotations
@@ -195,7 +205,13 @@ class EntregaSimulada:
 
 
 class DestinoConfirmaciones(Protocol):
-    """Puerto sin implementación productiva en HU-012 offline."""
+    """Puerto de entrega de HU-012.
+
+    Implementaciones habilitadas por el circuito, siempre por tipo exacto:
+    `DestinoConfirmacionesFake` (doble de pruebas, sin red) y
+    `GmailDestinoConfirmaciones` de `gmail_envio.py` (`gmail.send` cercado
+    por la lista de direcciones de prueba de D12).
+    """
 
     def entregar(
         self,
@@ -227,6 +243,58 @@ class DestinoConfirmacionesFake:
         self.entregas.append(
             EntregaSimulada(idempotency_key, destinatario, asunto, cuerpo)
         )
+
+
+class EntregaRechazadaError(RuntimeError):
+    """Rechazo de política de una entrega, antes de cualquier llamada de red.
+
+    Lo levanta un destino cuando la entrega está prohibida en sí —un
+    destinatario fuera de la lista de prueba, un cuerpo sin la marca de
+    borrador— a diferencia de una falla del medio, que podría resolverse en
+    un reintento. `code` es el identificador auditable del motivo y termina
+    como `resultado` en la línea de auditoría. El circuito la lleva a
+    `FALLIDA` de una vez: reintentar un rechazo de política no tiene sentido
+    y gastaría el presupuesto de intentos contra una decisión que no cambia.
+    """
+
+    def __init__(self, code: str) -> None:
+        self.code = code
+        super().__init__(code)
+
+
+def _destino_habilitado_para_entrega(destino: object) -> bool:
+    """«Fake exacto, o Gmail con lista de prueba», siempre por tipo exacto.
+
+    Es el control vigente del circuito (D12): la entrega existe contra
+    `DestinoConfirmacionesFake` o contra `GmailDestinoConfirmaciones`, que
+    no puede construirse sin una lista de direcciones de prueba cargada.
+    Una subclase, un envoltorio o cualquier otro destino se rechaza, porque
+    se compara `type(...) is` y no `isinstance`. El import diferido rompe el
+    ciclo: `gmail_envio` implementa el puerto definido en este módulo.
+    """
+
+    if type(destino) is DestinoConfirmacionesFake:
+        return True
+    from .gmail_envio import GmailDestinoConfirmaciones
+
+    return type(destino) is GmailDestinoConfirmaciones
+
+
+def _modo_entrega(destino: object) -> str:
+    """Identificador del destino que entregó, para la línea de auditoría.
+
+    `ENVIADA_SIMULADA` es el nombre histórico del estado terminal; el modo
+    es lo que distingue si la entrega fue en memoria (`fake`) o un envío
+    real por `gmail.send` cercado por la lista (`gmail_test_list`).
+    """
+
+    if type(destino) is DestinoConfirmacionesFake:
+        return "fake"
+    from .gmail_envio import GmailDestinoConfirmaciones
+
+    if type(destino) is GmailDestinoConfirmaciones:
+        return "gmail_test_list"
+    return "desconocido"
 
 
 @dataclass(frozen=True)
@@ -758,10 +826,10 @@ def drenar_envios(
     `FALLIDA` y el ítem sale de la cola. Cada intento (y cada descarte) deja
     una línea de auditoría en el mismo log que `procesar_confirmacion`.
 
-    Fail-closed en ambas puntas: sin el fake explícito el worker no procesa
-    nada (devuelve vacío y la cola queda intacta), y un ítem cuyo registro ya
-    no está en `ENVIO_ENCOLADO` (entregada, fallida, rechazada, indeterminada
-    o ausente) se descarta sin re-entregar.
+    Fail-closed en ambas puntas: sin un destino habilitado el worker no
+    procesa nada (devuelve vacío y la cola queda intacta), y un ítem cuyo
+    registro ya no está en `ENVIO_ENCOLADO` (entregada, fallida, rechazada,
+    indeterminada o ausente) se descarta sin re-entregar.
     """
 
     if (
@@ -771,10 +839,12 @@ def drenar_envios(
     ):
         raise ValueError("presupuesto de reintentos inválido")
     # El mismo candado que `procesar_confirmacion`: la entrega sólo existe
-    # contra el fake explícito. Acá no hay Invalida que devolver porque el
-    # worker no procesa solicitudes: simplemente no trabaja.
-    if type(destino) is not DestinoConfirmacionesFake:
+    # contra el fake explícito o el Gmail con lista de prueba. Acá no hay
+    # Invalida que devolver porque el worker no procesa solicitudes:
+    # simplemente no trabaja.
+    if not _destino_habilitado_para_entrega(destino):
         return ()
+    modo_entrega = _modo_entrega(destino)
     log_path = Path(directorio_salida) / "logs" / "confirmaciones-hu012.jsonl"
 
     resultados = []
@@ -786,7 +856,7 @@ def drenar_envios(
         # descarta y el registro queda intacto para revisión humana.
         if (
             CLAVE_REGISTRO_RE.fullmatch(clave) is None
-            or not _email_valido(item.destinatario)
+            or not email_valido(item.destinatario)
             or item.intentos < 0
         ):
             cola.descartar(clave)
@@ -794,6 +864,7 @@ def drenar_envios(
                 log_path,
                 correlation_id=correlation_id,
                 item=item,
+                delivery_mode=modo_entrega,
                 intento=0,
                 estado="ITEM_INVALIDO",
                 resultado="queue_item_invalid",
@@ -818,6 +889,7 @@ def drenar_envios(
                 log_path,
                 correlation_id=correlation_id,
                 item=item,
+                delivery_mode=modo_entrega,
                 intento=0,
                 estado=encontrado,
                 resultado="queue_item_discarded",
@@ -845,6 +917,7 @@ def drenar_envios(
                 log_path,
                 correlation_id=correlation_id,
                 item=item,
+                delivery_mode=modo_entrega,
                 intento=item.intentos,
                 estado="FALLIDA",
                 resultado="delivery_budget_exhausted",
@@ -872,6 +945,7 @@ def drenar_envios(
                 log_path,
                 correlation_id=correlation_id,
                 item=item,
+                delivery_mode=modo_entrega,
                 intento=0,
                 estado=ESTADO_ENVIO_ENCOLADO,
                 resultado="reservation_lost",
@@ -896,6 +970,35 @@ def drenar_envios(
                 asunto=actual.asunto,
                 cuerpo=actual.cuerpo,
             )
+        except EntregaRechazadaError as exc:
+            # Rechazo de política —destinatario fuera de la lista de prueba,
+            # cuerpo sin marca de borrador—: no hay transitorio que esperar.
+            # El registro queda FALLIDA de una vez y el ítem sale de la cola,
+            # sin gastar intentos contra una decisión que no cambia.
+            registro.transicionar(
+                clave, frozenset({"ENVIO_RESERVADO"}), "FALLIDA"
+            )
+            cola.descartar(clave)
+            _auditar_drenaje(
+                log_path,
+                correlation_id=correlation_id,
+                item=item,
+                delivery_mode=modo_entrega,
+                intento=intento,
+                estado="FALLIDA",
+                resultado=exc.code,
+                asunto=actual.asunto,
+                cuerpo=actual.cuerpo,
+            )
+            resultados.append(
+                ResultadoEnvioEncolado(
+                    idempotency_key=clave,
+                    intento=intento,
+                    estado_registro="FALLIDA",
+                    resolucion="fallida",
+                )
+            )
+            continue
         except Exception:
             if intento >= max_intentos:
                 registro.transicionar(
@@ -906,6 +1009,7 @@ def drenar_envios(
                     log_path,
                     correlation_id=correlation_id,
                     item=item,
+                    delivery_mode=modo_entrega,
                     intento=intento,
                     estado="FALLIDA",
                     resultado="delivery_failed_budget_exhausted",
@@ -941,6 +1045,7 @@ def drenar_envios(
                     log_path,
                     correlation_id=correlation_id,
                     item=item,
+                    delivery_mode=modo_entrega,
                     intento=intento,
                     estado=ESTADO_ENVIO_ENCOLADO,
                     resultado="delivery_failed_retry_pending",
@@ -965,6 +1070,7 @@ def drenar_envios(
             log_path,
             correlation_id=correlation_id,
             item=item,
+            delivery_mode=modo_entrega,
             intento=intento,
             estado="ENVIADA_SIMULADA",
             resultado="ok",
@@ -987,6 +1093,7 @@ def _auditar_drenaje(
     *,
     correlation_id: str,
     item: ItemEnvio,
+    delivery_mode: str,
     intento: int,
     estado: str,
     resultado: str,
@@ -1017,7 +1124,7 @@ def _auditar_drenaje(
         "human_decision_present": False,
         "human_decision_hash": None,
         "approval_role": None,
-        "delivery_mode": "fake" if estado == "ENVIADA_SIMULADA" else "none",
+        "delivery_mode": delivery_mode if estado == "ENVIADA_SIMULADA" else "none",
         "origen_envio": "asincrono",
     }
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1047,7 +1154,12 @@ def procesar_confirmacion(
     asincrono: bool = False,
     cola: ColaEnvios | None = None,
 ) -> ResultadoConfirmacion:
-    """Genera y opcionalmente entrega sólo a un fake, bajo aprobación explícita.
+    """Genera y opcionalmente entrega a un destino habilitado, bajo aprobación.
+
+    El destino habilitado es el fake explícito o el Gmail con lista de prueba
+    (D12), siempre por tipo exacto: el control vive en
+    `_destino_habilitado_para_entrega` y se aplica igual en la vía síncrona y
+    en el worker `drenar_envios`.
 
     El orden de los controles no es casual: primero los que descalifican la
     solicitud en sí (tipos, destinatario, campos completos), después los de
@@ -1095,7 +1207,7 @@ def procesar_confirmacion(
             estado="INVALIDA",
             error="notification_type_invalid",
         )
-    if not _email_valido(solicitud.email_destinatario):
+    if not email_valido(solicitud.email_destinatario):
         return _resultado(
             log_path=log_path,
             solicitud=solicitud,
@@ -1141,11 +1253,11 @@ def procesar_confirmacion(
             error="approval_invalid",
         )
     # Control central de la HU: todo pedido de envío que pueda terminar en una
-    # entrega exige el fake explícito. Se compara el tipo exacto y no con
-    # isinstance, para que una subclase que sí mande correo no pueda pasar por
-    # acá. Es el candado que permite tener el ciclo de vida completo
-    # implementado sin capacidad real de envío. Una decisión de rechazo no
-    # entrega nunca, así que no exige destino.
+    # entrega exige un destino habilitado —el fake explícito o el Gmail con
+    # lista de prueba— por tipo exacto y no con isinstance, para que una
+    # subclase o un envoltorio no pueda pasar por acá. La lista del Gmail se
+    # exige al construir el adapter: si el objeto existe, la lista existe.
+    # Una decisión de rechazo no entrega nunca, así que no exige destino.
     # En la vía encolada el candado equivalente es `drenar_envios`, que exige
     # el mismo tipo exacto recién al entregar; lo que se exige acá es la cola
     # inyectada, porque encolar sin cola no tiene adónde ir.
@@ -1160,7 +1272,7 @@ def procesar_confirmacion(
                 estado="INVALIDA",
                 error="queue_required",
             )
-        if not asincrono and type(destino) is not DestinoConfirmacionesFake:
+        if not asincrono and not _destino_habilitado_para_entrega(destino):
             return _resultado(
                 log_path=log_path,
                 solicitud=solicitud,
@@ -1402,13 +1514,31 @@ def _entregar(
         "ENVIO_RESERVADO",
     ):
         return _duplicada(log_path, solicitud, correlation_id, idempotency_key)
-    assert type(destino) is DestinoConfirmacionesFake
+    assert _destino_habilitado_para_entrega(destino)
     try:
         destino.entregar(
             idempotency_key=idempotency_key,
             destinatario=solicitud.email_destinatario,
             asunto=asunto,
             cuerpo=cuerpo,
+        )
+    except EntregaRechazadaError as exc:
+        # El destino rechazó la entrega por política antes de la red (un
+        # destinatario fuera de la lista de prueba, un cuerpo sin marca):
+        # FALLIDA es terminal —no hay reintento de una prohibición.
+        registro.transicionar(
+            idempotency_key, frozenset({"ENVIO_RESERVADO"}), "FALLIDA"
+        )
+        return _resultado(
+            log_path=log_path,
+            solicitud=solicitud,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            estado="FALLIDA",
+            error=exc.code,
+            asunto=asunto,
+            cuerpo=cuerpo,
+            aprobacion=aprobacion,
         )
     except Exception:
         registro.transicionar(
@@ -1420,7 +1550,9 @@ def _entregar(
             correlation_id=correlation_id,
             idempotency_key=idempotency_key,
             estado="FALLIDA",
-            error="fake_delivery_failed",
+            error="fake_delivery_failed"
+            if type(destino) is DestinoConfirmacionesFake
+            else "delivery_failed",
             asunto=asunto,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
@@ -1428,15 +1560,17 @@ def _entregar(
     registro.transicionar(
         idempotency_key, frozenset({"ENVIO_RESERVADO"}), "ENVIADA_SIMULADA"
     )
-    return _finalizar(
+    return _resultado(
         log_path=log_path,
         solicitud=solicitud,
         correlation_id=correlation_id,
         idempotency_key=idempotency_key,
         estado="ENVIADA_SIMULADA",
+        error=None,
         asunto=asunto,
         cuerpo=cuerpo,
         aprobacion=aprobacion,
+        auditoria_extra={"delivery_mode": _modo_entrega(destino)},
     )
 
 
@@ -1466,6 +1600,7 @@ def _finalizar(
     asunto: str,
     cuerpo: str,
     aprobacion: AprobacionHumana | None = None,
+    auditoria_extra: dict[str, object] | None = None,
 ) -> ResultadoConfirmacion:
     return _resultado(
         log_path=log_path,
@@ -1477,6 +1612,7 @@ def _finalizar(
         asunto=asunto,
         cuerpo=cuerpo,
         aprobacion=aprobacion,
+        auditoria_extra=auditoria_extra,
     )
 
 
@@ -1531,7 +1667,14 @@ def _tipos_solicitud_validos(solicitud: SolicitudConfirmacion) -> bool:
     return all(isinstance(valor, str) for valor in asdict(solicitud).values())
 
 
-def _email_valido(email: object) -> bool:
+def email_valido(email: object) -> bool:
+    """Validación cerrada de una dirección de correo.
+
+    Es pública porque la reutiliza `gmail_envio.py` para validar la lista de
+    direcciones de prueba: la misma regla que exige el pipeline al dato de
+    entrada es la que exige el adapter a la configuración.
+    """
+
     if (
         not isinstance(email, str)
         or len(email) > 254
