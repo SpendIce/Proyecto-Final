@@ -107,7 +107,7 @@ Conjunto de atributos de calidad que el autor declara para el sistema de demostr
 _Evitar_: plan de calidad, metricas de calidad
 
 **Estrato**:
-Capa del inventario de componentes del sistema de demostracion (canal, interpretacion, generacion, gates, aprobacion, cola y envio, persistencia y auditoria, integraciones), que es la unidad sobre la que se declara el perfil de calidad.
+Capa del inventario de componentes del sistema de demostracion (canal, interpretacion, generacion, gates, control de pagos, aprobacion, cola y envio, persistencia y auditoria, integraciones), que es la unidad sobre la que se declara el perfil de calidad. En la tabla fuente del perfil, el valor `Sistema` marca atributos transversales que ninguna capa ejerce sola.
 _Evitar_: modulo, componente (cuando se habla de la unidad del perfil)
 
 **Estado de implementacion**:
