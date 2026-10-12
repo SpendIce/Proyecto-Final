@@ -4,7 +4,7 @@
 **Autor del PPS:** Juan Ignacio Gone  
 **Artefacto:** evaluacion del proyecto de desarrollo y plan de riesgos  
 **Estado:** borrador academico trazable  
-**Ultima actualizacion:** 2026-09-23
+**Ultima actualizacion:** 2026-10-12
 
 ## 1. Proposito
 
@@ -105,33 +105,44 @@ Se adopta una escala simple, consistente con el material DSI2 de gestion de ries
 | R-EVAL-01 | Se declaran metricas o mejoras sin baseline -> beneficios no demostrables ante evaluacion | Evaluacion | 3 | 2 | 6 | Alto | M3, M4, M5, evidencia TRL | Juan Ignacio Gone |
 | R-CAL-01 | Checklist, registro de defectos e indice de evidencias no estan operativos -> retrabajo tardio y gates incompletos | Calidad | 3 | 3 | 9 | Alto | Plan de calidad, G2/G4 | Juan Ignacio Gone |
 
-### 6.1 Correspondencia con la matriz oficial del P100 (bible sincronizada 2026-09-22)
+### 6.1 Correspondencia con la matriz oficial del P100 (bible sincronizada 2026-10-12)
 
-La version vigente de `Contenido/bible/Procesos y Agentes.md` incorpora una matriz de riesgos de programa (R-01 a R-31, metodo PMBOK con disposicion ROAM). El registro local de arriba es el del PPS del Agente 1; esta tabla vincula ambos identificadores para que la lectura institucional y la del proyecto no diverjan. La correspondencia es orientativa: varios riesgos de la bible son de nivel programa (multi-equipo, presupuesto P100) y no bajan tal cual al registro del Agente 1.
+La version vigente de `Contenido/bible/Procesos y Agentes.md` incorpora una matriz de riesgos de programa (metodo PMBOK con disposicion ROAM) cuya tabla resume R-01 a R-20. Esta version reemplaza a la matriz anterior de R-01 a R-31 (sincronizada el 2026-09-22, issue #35): once riesgos fueron eliminados y los restantes renumerados, por lo que los identificadores bible citados en versiones previas de este plan ya no coinciden. El registro local de arriba es el del PPS del Agente 1; esta tabla vincula ambos identificadores para que la lectura institucional y la del proyecto no diverjan. La correspondencia es orientativa y toma como referencia la numeracion de la tabla de la matriz: varios riesgos de la bible son de nivel programa (multi-equipo, presupuesto P100) y no bajan tal cual al registro del Agente 1. Cuando un riesgo local ya no tiene correlato en la matriz vigente, su gestion continua exclusivamente en este plan.
 
-| Riesgo local (PPS A1) | Riesgo(s) bible P100 | Comentario |
-|---|---|---|
-| R-ALC-01, R-ALC-02 | R-02, R-14 | Desviacion de alcance y sobre-documentacion |
-| R-ALC-03 | R-02 | Expansion del backlog por el propio stakeholder durante la ejecucion; materializado el 22/09 con la ampliacion de HU-012 a cuatro tipos de notificacion, HU nuevas propuestas y el cambio de origen Forms -> SIU Guarani. Respuesta aplicada: exclusion provisional, fail-closed sobre datos DESCONOCIDO y escalamiento pendiente (issue #34) |
-| R-GOB-01 | R-08 | Alineacion entre equipos/areas; los roles nominales quedaron confirmados el 22/09 (J. Manuel semantica, S. Moreira utilitaria/firma) |
-| R-HITL-01 | R-19, R-27 | Autonomia sin control y acciones fuera de autorizacion |
-| R-REQ-01 | R-16 | Requisitos/diseno no validados oficialmente |
-| R-CRO-01, R-CRO-02 | R-03, R-15 | Dependencia entre fases y cronograma subestimado |
-| R-DAT-01 | R-26 | Integridad de datos; R-26 agrega la lectura de fuga de PII |
-| R-LLM-01 | R-19, R-24, R-07 | Alucinaciones/tono: expectativa del motor sin control, inyeccion indirecta via RAG y contenido que no cumple DoD |
-| R-SEG-01 | R-23, R-24 | Spoofing e inyeccion de prompts (R-24 es el unico critico de la matriz bible) |
-| R-SEG-02 | R-26, R-29 | Fuga de PII y credenciales hardcodeadas/compartidas |
-| R-TRA-01 | R-25 | Repudio: imposibilidad de determinar error vs ataque |
-| R-TEC-01 | R-18, R-31 | Inmadurez del stack IA local e inestabilidad de Ollama |
-| R-INT-01 | R-10, R-11 | Dependencia de servicios cloud y demora de infraestructura |
-| R-INT-02 | R-01, R-04 | Incompatibilidad de contratos A1<->A2..A5 y subestimacion de integracion |
-| R-ADOP-01 | R-09 | Baja adopcion del personal de Extension |
-| R-EVAL-01 | R-07 | Evidencia/DoD debil llegando a validacion |
-| R-CAL-01 | R-06, R-07 | Identificacion incompleta de riesgos y DoD no cumplido en validacion |
+| Riesgo local (PPS A1) | Bible P100 anterior (R-31, sync 22/09) | Bible P100 vigente (tabla R-01..R-20) | Comentario |
+|---|---|---|---|
+| R-ALC-01, R-ALC-02 | R-02, R-14 | Sin correlato en la matriz vigente | La bible elimino la desviacion de alcance (ex R-02) y el gold plating (ex R-14); ambos riesgos locales siguen gestionados en este plan |
+| R-ALC-03 | R-02 | Sin correlato en la matriz vigente | La bible elimino el riesgo de expansion del alcance (ex R-02), pero el riesgo local sigue activo y gestionado en este plan: se materializo el 22/09 con la ampliacion de HU-012 a cuatro tipos de notificacion, HU nuevas propuestas y el cambio de origen Forms -> SIU Guarani. Respuesta de Direccion cerrada el 30/09 (issue #34): las expansiones de HU-010..HU-014 quedan en el PPS; HU posteriores a HU-014, fuera y delegadas a continuidad P100. Los datos institucionales DESCONOCIDOS siguen bloqueados hasta confirmacion SEU. |
+| R-GOB-01 | R-08 | R-05 | Alineacion entre equipos/areas; los roles nominales quedaron confirmados el 22/09 (J. Manuel semantica, S. Moreira utilitaria/firma) |
+| R-HITL-01 | R-19, R-27 | R-18 | Acciones fuera de autorizacion (Elevation of Privilege, ex R-27); la expectativa de solucion magica del motor (ex R-19) fue eliminada de la matriz y sigue cubierta localmente |
+| R-REQ-01 | R-16 | R-10 | Requisitos/diseno no validados oficialmente |
+| R-CRO-01, R-CRO-02 | R-03, R-15 | R-02, R-09 | Dependencia entre fases y cronograma/presupuesto subestimados |
+| R-DAT-01 | R-26 | R-17 | Integridad de datos; R-17 (ex R-26) agrega la lectura de fuga de PII |
+| R-LLM-01 | R-19, R-24, R-07 | R-15 | Inyeccion indirecta via RAG (ex R-24); la expectativa del motor sin control (ex R-19) y el contenido que no cumple DoD por falencias del plan de pruebas (ex R-07) fueron eliminados de la matriz; alucinaciones/tono siguen gestionados en este plan |
+| R-SEG-01 | R-23, R-24 | R-14, R-15 | Spoofing e inyeccion de prompts (R-15 es el unico critico de la matriz bible) |
+| R-SEG-02 | R-26, R-29 | R-17 | Fuga de PII (ex R-26); credenciales hardcodeadas/compartidas (ex R-29) sin correlato en la matriz vigente, sigue gestionado en este plan |
+| R-TRA-01 | R-25 | R-16 | Repudio: imposibilidad de determinar error vs ataque |
+| R-TEC-01 | R-18, R-31 | R-11 | Falta de experiencia del equipo en IA generativa local (ex R-18, reformulado); caida o inestabilidad de Ollama (ex R-31) sin correlato en la matriz vigente, sigue gestionado en este plan |
+| R-INT-01 | R-10, R-11 | R-07 | Demora en adquisicion de infraestructura (ex R-11); dependencia de licencias/servicios cloud de terceros (ex R-10) sin correlato en la matriz vigente, la dependencia de Google Workspace sigue gestionada localmente |
+| R-INT-02 | R-01, R-04 | R-01, R-03 | Incompatibilidad de contratos A1<->A2..A5 y subestimacion de integracion |
+| R-ADOP-01 | R-09 | R-06 | Baja adopcion del personal de Extension |
+| R-EVAL-01 | R-07 | Sin correlato en la matriz vigente | La bible elimino el riesgo de contenido que no cumple DoD por falencias del plan de pruebas (ex R-07); las metricas sin baseline siguen gestionadas localmente |
+| R-CAL-01 | R-06, R-07 | Sin correlato en la matriz vigente | La bible elimino la identificacion incompleta de riesgos emergentes (ex R-06) y el DoD/plan de pruebas (ex R-07); la cobertura local de calidad se mantiene |
 
 Los riesgos aceptados (R-ALC-04, R-GOB-02, R-DAT-02, R-TEC-02) son decisiones locales del PPS sin equivalente en la matriz de programa de la bible.
 
-Riesgos de la bible sin equivalente local directo (nivel programa, se registran aca para no perderlos): R-05 (costo de hardware especializado), R-12 (rotacion de estudiantes), R-13 (perfil insuficiente del equipo), R-17 (inmadurez del proceso multi-equipo), R-21 (respaldo institucional para escalar al Centenario), R-22 (apoyo politico sostenido), R-28 (poisoning de datos de entrenamiento/RAG — relevante si se adopta la opcion candidata de fine-tuning registrada el 22/09) y R-30 (saturacion por rafaga de solicitudes).
+Riesgos de la matriz vigente sin equivalente local directo (nivel programa, se registran aca para no perderlos): R-04 (costo de hardware especializado), R-08 (perfil insuficiente del equipo para las tecnologias criticas), R-12 (demora en poner el sistema operativo frente a las necesidades de la SEU), R-13 (apoyo sostenido de las autoridades para la continuidad presupuestaria), R-19 (poisoning de datos de entrenamiento/RAG — relevante si se adopta la opcion candidata de fine-tuning registrada el 22/09) y R-20 (saturacion por rafaga de solicitudes).
+
+Riesgos que la nueva version elimino de la matriz, con su identificador anterior: ex R-02 (desviacion de alcance), ex R-06 (riesgos emergentes), ex R-07 (contenido sin DoD por falencias del plan de pruebas), ex R-10 (dependencia de licencias/servicios cloud), ex R-12 (rotacion de estudiantes), ex R-14 (gold plating), ex R-17 (inmadurez del proceso multi-equipo), ex R-19 (expectativa de solucion magica del motor), ex R-21 (respaldo institucional para escalar al Centenario), ex R-29 (credenciales hardcodeadas) y ex R-31 (caida o inestabilidad de Ollama). Los riesgos locales que dependian de ellos quedaron marcados como sin correlato en la tabla anterior y su gestion continua exclusivamente en este plan; los que eran de nivel programa y no bajaban al registro del Agente 1 dejan de listarse como referencia externa.
+
+Inconsistencias registradas de la fuente vigente (se reportan, no se corrigen):
+
+1. La tabla de la matriz enumera R-01 a R-20, pero las fichas de detalle usan otra numeracion desde el bloque de seguridad: la ficha titulada R-14 detalla el riesgo de la fila R-13 de la tabla (apoyo sostenido de las autoridades), y las fichas R-15 a R-20 detallan los contenidos de las filas R-14 a R-19 de la tabla respectivamente.
+2. No existe ficha de detalle con el identificador R-13: entre la ficha R-12 y la ficha R-14 quedo un encabezado vacio.
+3. El identificador R-20 aparece en dos fichas de detalle: la primera corresponde a Data Poisoning (fila R-19 de la tabla) y la segunda a Denial of Service (fila R-20 de la tabla).
+4. La tabla de contenidos del documento sigue listando los titulos y la numeracion de la matriz anterior (R-01 a R-31), incluida la referencia al presupuesto de USD 260.850 que la fila R-15 de esa version tenia y que la tabla vigente ya no muestra.
+
+Nota de costos: el presupuesto total calculado en la seccion de costos de la bible (USD 841.350, resultado del ejercicio de costing de DSI2 que aplica margen de ganancia sobre costos y gastos del programa) es una cifra de nivel P100 y no se adopta como costo del PPS del Agente 1.
 
 ## 7. Planes de mitigacion y contingencia
 
@@ -139,7 +150,7 @@ Riesgos de la bible sin equivalente local directo (nivel programa, se registran 
 |---|---|---|---|---|
 | R-ALC-01 | Revisar backlog contra matriz BPM-HU-DoD en cada gate; rechazar tareas de A4/A5/scraping/analitica como alcance A1 | Nueva HU o texto de informe incorpora dashboards, scraping, atencion publica o orquestacion | Mover a backlog P100/A2-A5; dejar nota de exclusion y actualizar matriz de alcance | Matriz BPM-HU-DoD, acta de revision |
 | R-ALC-02 | Redactar newsletters/correos como tipos de pieza derivados de HU existentes, no como HU nueva salvo aprobacion formal | Se pide medir cobertura de newsletter como entregable independiente | Reencuadrar como extension futura o salida de HU-010/HU-012 | Nota de alcance, backlog actualizado |
-| R-ALC-03 | Mantener baseline de alcance por HU por gate; tratar toda HU/requisito nuevo o ampliacion como solicitud de cambio evaluada contra el cierre de noviembre, no como incorporacion automatica | Nueva version del backlog amplia una HU vigente, propone HU/requisitos nuevos o cambia un sistema origen de datos | Exclusion provisional documentada y fail-closed sobre datos DESCONOCIDO; absorber solo lo acotado al sprint vigente que no mueva el camino critico; el resto a backlog P100 con decision de Direccion | Nota de exclusion, issue de decision, matriz de alcance actualizada, acta de cambio |
+| R-ALC-03 | Mantener baseline de alcance por HU por gate; evaluar cambios contra el cierre de noviembre | Nueva version del backlog amplia una HU vigente, propone HU/requisitos nuevos o cambia un sistema origen de datos | Aplicar la frontera acordada el 30/09: expansiones de HU-010..HU-014 dentro del PPS; HU nuevas posteriores a HU-014 al backlog P100. Para datos institucionales DESCONOCIDOS, mantener fail-closed y solicitar definicion SEU | Nota de alcance, issue #34 resuelto, matriz de alcance actualizada, registro de cambios |
 | R-ALC-04 | Respuesta: ACEPTAR. La frontera PPS/continuidad ya esta declarada en el anteproyecto y en el alcance evaluado; basta mantener la nota de exclusion visible | Direccion pide comprometer entregables de 2027 dentro del PPS | Reabrir como riesgo activo y tramitar como solicitud de cambio formal | Nota de exclusion, matriz de alcance |
 | R-GOB-01 | Confirmar roles por HU: Coordinador, Responsable Gestion del Conocimiento, RRSS, cursos, administracion y tecnico | Checklist sin responsable o aprobacion por chat sin registro | Bloquear validacion oficial hasta asignar rol suplente y registrar aprobacion | RACI por flujo, checklist firmado o registrado |
 | R-GOB-02 | Respuesta: ACEPTAR condicionado a que exista rol suplente designado y aprobacion registrada por HU | Un gate queda sin aprobador disponible o el suplente deja de estar disponible | Reabrir como R-GOB-01 activo; bloquear el gate hasta la designacion | RACI, acta de designacion de suplente, checklist firmado |
@@ -205,7 +216,7 @@ Un riesgo debe escalar al Director del Proyecto o tutor cuando ocurra cualquiera
 | P0 | Crear checklist SEU por tipo de pieza y acta/registro de validacion | R-GOB-01, R-HITL-01, R-CAL-01 | Juan Ignacio Gone + SEU | Antes de G2 |
 | P0 | Definir esquema minimo de logs y correlation ID para S1 | R-TRA-01, R-DAT-01 | Responsable Tecnico IA | Antes de prototipos HU-010/HU-011 |
 | P0 | Cerrar campos minimos de Sheets y plantillas para HU-010/HU-011 | R-REQ-01, R-DAT-01, R-LLM-01 | Juan Ignacio Gone + SEU | Antes de declarar TRL 3 |
-| P0 | Formalizar el control de cambios de alcance: toda HU/requisito nuevo o ampliacion entra como solicitud evaluada contra el cierre, con exclusion provisional como default | R-ALC-03, R-CRO-02 | Juan Ignacio Gone / Director | Inmediato; primer caso pendiente: issue #34 |
+| P0 | Aplicar la frontera de alcance acordada: ampliaciones de HU-010..HU-014 dentro del PPS; HU posteriores a HU-014 para continuidad P100. Evaluar cambios adicionales contra el cierre de noviembre | R-ALC-03, R-CRO-02 | Juan Ignacio Gone / Director | Durante el control de cambios y antes de incorporar nuevas tareas |
 | P1 | Ejecutar spike de Ollama/modelo local y medir latencia con caso real | R-TEC-01 | Responsable Tecnico IA | Durante S1 |
 | P1 | Registrar baseline manual de gacetilla/post y protocolo de medicion | R-EVAL-01 | Juan Ignacio Gone + SEU | Antes de medir beneficio |
 | P1 | Definir casos adversariales de seguridad y prompt injection | R-SEG-01, R-SEG-02 | Responsable Tecnico IA | Antes de G2 |
@@ -232,4 +243,3 @@ No se consideran aceptables (lineas rojas, no riesgos):
 - Entorno real disponible para Ollama, FastAPI, Google Workspace, Apps Script y almacenamiento.
 - Criterio de muestra para baseline manual y validaciones SEU.
 - Herramienta final para registro de defectos, riesgos y evidencias: Google Sheets, Jira, repositorio Markdown u otra.
-
