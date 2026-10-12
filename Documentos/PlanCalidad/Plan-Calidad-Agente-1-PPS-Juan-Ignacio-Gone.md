@@ -4,7 +4,7 @@
 **Autor del PPS:** Juan Ignacio Gone  
 **Artefacto:** evaluacion del proyecto de desarrollo y plan de calidad  
 **Estado:** borrador academico trazable  
-**Ultima actualizacion:** 2026-05-18
+**Ultima actualizacion:** 2026-10-12 (M1 queda pendiente del objetivo de latencia de #50/#51 y referencia el perfil de calidad del sistema de demostracion)
 
 ## 1. Proposito
 
@@ -127,7 +127,7 @@ El control de calidad mide resultados concretos y detecta defectos.
 | Prueba funcional por HU | Comportamiento visible | Casos de prueba caja negra | Cumple flujo principal y excepciones criticas | Registrar defecto y re-probar |
 | Prueba de integracion | Sheets, Docs, Gmail, Drive, Apps Script/backend | Caso end-to-end | No hay perdida de datos ni estados inconsistentes | Bloquear gate afectado |
 | Prueba de contenido | Gacetillas, posts, mails, certificados | Checklist SEU escala 1-4 | Puntaje >= 3 en precision, tono, plantilla y canal | Ajustar prompt/plantilla y revalidar |
-| Prueba de rendimiento | Generacion de pieza | Medicion de tiempo | < 30 segundos por pieza, salvo excepcion documentada | Optimizar o activar contingencia aprobada |
+| Prueba de rendimiento | Generacion de pieza | Medicion de tiempo | Latencia por pieza dentro del objetivo que fije la medicion de #50 sobre el modelo elegido en #51 (pendiente; ver M1 y el perfil de calidad) | Optimizar o activar contingencia aprobada |
 | Prueba de seguridad | Entradas, credenciales, permisos, logs | Checklist y casos adversariales | No expone credenciales, respeta roles, no ejecuta acciones sin aprobacion | Corregir antes de release |
 | Prueba de trazabilidad | Logs y evidencia | Muestreo de acciones | Accion reconstruible: quien, cuando, que, estado, evidencia | Completar registro y corregir logging |
 | Validacion de usuario | Usuarios SEU | Checklist/entrevista | Resultado usable y aceptado o observado formalmente | Registrar observacion y retrabajo |
@@ -160,7 +160,7 @@ La estrategia se organiza de menor a mayor integracion.
 
 | ID | Metrica | Formula / medicion | Umbral | Frecuencia | Responsable |
 |---|---|---|---|---|---|
-| M1 | Tiempo de generacion | timestamp salida - timestamp trigger | < 30 s por pieza | Por ejecucion | Responsable tecnico IA |
+| M1 | Tiempo de generacion (latencia por pieza) | timestamp salida - timestamp trigger | Objetivo pendiente: lo fija la medicion de #50 sobre el modelo elegido en #51; el nivel verificado se declara en el perfil de calidad (Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md) | Por ejecucion | Responsable tecnico IA |
 | M2 | Validacion humana | piezas validadas / piezas publicadas o enviadas | 100% | Por release | Coordinador / SEU |
 | M3 | Reduccion de tiempo manual | 1 - tiempo A1 / tiempo manual base | >= 50% al cierre S2, sujeto a baseline validada | G2/G4 | Juan Ignacio Gone + SEU |
 | M4 | Satisfaccion SEU | promedio checklist 1-4 | >= 3/4 al cierre S2 | G2/G4 | Coordinador / validadores |
@@ -171,6 +171,8 @@ La estrategia se organiza de menor a mayor integracion.
 | M9 | Seguridad base | controles criticos cumplidos / controles criticos definidos | 100% antes de release | Por gate | Responsable tecnico IA |
 | M10 | Cobertura de prueba | casos ejecutados / casos planificados | Umbral pendiente de confirmacion; no liberar con casos criticos sin ejecutar | Por gate | Juan Ignacio Gone |
 | M11 | Defectos criticos abiertos | cantidad de defectos severidad critica sin cerrar | 0 para liberar | Semanal en estabilizacion | Juan Ignacio Gone |
+
+El estado declarado por atributo de calidad (implementado, implementado con observaciones, previsto o no aplica, con motivo, evidencia versionada y paso en vivo reproducible) se mantiene en el perfil de calidad del sistema de demostracion: `Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`. Esa tabla fuente es la base del Anexo 2 de la revision de laboratorio, que se genera por proyeccion con `Implementacion/Agente1/scripts/anexo2_calidad.py`. Las celdas de los atributos con SLO citan el nivel verificado cuando existe; mientras los issues #50, #51 y #88 esten abiertos esas celdas quedan declaradas como pendientes y el umbral de M1 no se cita como si ya estuviera verificado.
 
 ## 13. Protocolo de medicion
 
@@ -226,7 +228,7 @@ La evidencia minima por HU debe guardarse con identificador estable, fecha, resp
 
 | Elemento | Proceso BPM | HU / requisito | DoD | Evidencia | Estado |
 |---|---|---|---|---|---|
-| Gacetilla | P4 | HU-010 | Sheet -> Google Doc, plantilla, < 30 s, validacion | Doc, log, checklist | Pendiente de ejecucion |
+| Gacetilla | P4 | HU-010 | Sheet -> Google Doc, plantilla, latencia por pieza segun M1 (objetivo pendiente de #50 y #51), validacion | Doc, log, checklist | Pendiente de ejecucion |
 | Post RRSS | P4 | HU-011 | Canal adaptable, texto limpio, longitud configurable, validacion | Borrador, log, checklist canal | Pendiente de ejecucion |
 | Confirmacion | P5/P4 | HU-012 | Trigger, email, registro de envio | Email, log, estado Sheet | Pendiente de ejecucion |
 | Lenguaje natural interno | P4/P3 | HU-013 | Email -> invitacion chat, datos en Sheets, respuesta usable | Captura/transcript, Sheet, log | Pendiente de ejecucion |
