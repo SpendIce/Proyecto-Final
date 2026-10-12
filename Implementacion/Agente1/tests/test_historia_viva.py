@@ -4,8 +4,8 @@ efeméride compuesta del lado de A1, y aportes idempotentes que nacen pendientes
 Todo corre sin red y sin credenciales: el fake es la única implementación del
 puerto que existe hoy."""
 
-from datetime import date
 import inspect
+from datetime import date
 
 import pytest
 

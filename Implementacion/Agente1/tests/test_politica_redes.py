@@ -40,7 +40,6 @@ from agente1.politica_redes import (
 )
 from agente1.posts import CONTRATO_CREATIVO_V3, procesar_post_estructurado
 
-
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 

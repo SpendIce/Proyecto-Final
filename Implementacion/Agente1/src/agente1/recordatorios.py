@@ -40,14 +40,15 @@ guarda bajo la clave y el fake entrega; nunca en una línea del log.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import json
-from importlib.resources import files
-from pathlib import Path
 import re
 import uuid
+from dataclasses import asdict, dataclass
+from importlib.resources import files
+from pathlib import Path
 
 from .confirmaciones import (
+    _PARCIAL_POR_ROL,
     CLAVE_REGISTRO_RE,
     ESTADO_ENVIO_ENCOLADO,
     ESTADOS_PARCIALES_APROBACION,
@@ -59,7 +60,6 @@ from .confirmaciones import (
     ItemEnvio,
     RegistroConfirmaciones,
     ResultadoEnvioEncolado,
-    _PARCIAL_POR_ROL,
     _aprobacion_valida,
     _hash,
     _seccion_cuerpo,
@@ -67,13 +67,14 @@ from .confirmaciones import (
 )
 from .pagos import (
     CONTRACT_VERSION as PLAN_CONTRACT_VERSION,
+)
+from .pagos import (
+    TIPO_RECORDATORIO_PAGO,
     ItemRecordatorio,
     LoteRecordatorios,
     PlanPago,
-    TIPO_RECORDATORIO_PAGO,
 )
 from .tipos_notificacion import descripcion_tipo
-
 
 HU = "HU-012"
 CONTRACT_VERSION = PLAN_CONTRACT_VERSION

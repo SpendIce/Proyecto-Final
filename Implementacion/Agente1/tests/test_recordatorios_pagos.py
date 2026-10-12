@@ -14,10 +14,10 @@ personales en claro.
 """
 
 import csv
+import json
 from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from email.utils import format_datetime
-import json
 from pathlib import Path
 
 import pytest
@@ -25,27 +25,25 @@ import pytest
 from agente1.buzon import BuzonPropioEml
 from agente1.cli_pagos import informe_a_dict
 from agente1.confirmaciones import (
-    AprobacionHumana,
     CLAVE_REGISTRO_RE,
+    ROL_APROBACION_SEMANTICA,
+    ROL_APROBACION_UTILITARIA,
+    AprobacionHumana,
     ColaEnviosMemoria,
     DestinoConfirmacionesFake,
     RegistroConfirmacionesMemoria,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
     drenar_envios,
 )
 from agente1.pagos import (
     ANTICIPACIONES_DEFAULT,
+    TIPO_RECORDATORIO_PAGO,
     ControlPagosError,
     NovedadPago,
-    TIPO_RECORDATORIO_PAGO,
-    cargar_novedades_csv,
     cargar_padron_csv,
     cargar_plan_pagos_csv,
     clave_item_recordatorio,
     correr_control_pagos,
     fecha_de_corrida,
-    planificar_recordatorios,
 )
 from agente1.recordatorios import (
     CLAVE_PLANTILLA_RECORDATORIO,
@@ -57,7 +55,6 @@ from agente1.recordatorios import (
     registrar_plantilla_recordatorio,
     renderizar_recordatorio,
 )
-
 
 ACTIVIDAD_ID = "EJEMPLO-LOTE"
 ASUNTO = "Pre-Inscripción Curso de prueba"
@@ -870,7 +867,7 @@ def test_los_medios_del_plan_con_links_van_al_cuerpo_no_al_log(tmp_path):
     salida = tmp_path / "salida"
     aprobar_plantilla(registro, salida)
 
-    resultado = correr_lote_recordatorios(
+    correr_lote_recordatorios(
         plan=plan,
         lote=lote,
         aprobacion_lote=aprobacion_lote(lote),
@@ -878,7 +875,7 @@ def test_los_medios_del_plan_con_links_van_al_cuerpo_no_al_log(tmp_path):
         cola=cola,
         destino=DestinoConfirmacionesFake(),
         directorio_salida=salida,
-    )[0]
+    )
 
     cuerpo = registro.obtener(lote.items[0].idempotency_key).cuerpo
     assert "CBU 0000000000000000000001" in cuerpo

@@ -28,7 +28,6 @@ from agente1.origenes_inscripcion import (
     evaluar_envio,
 )
 
-
 CONTRATO_V2 = json.loads(
     files("agente1")
     .joinpath("contracts", "confirmacion_inscripcion_v2.schema.json")

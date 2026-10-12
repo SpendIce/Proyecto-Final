@@ -9,13 +9,13 @@ usuario `me`. Todo con transporte fake: ninguna prueba toca la red.
 """
 
 import base64
+import hashlib
+import json
+import time
 from datetime import date, datetime, timezone
 from email.message import EmailMessage
 from email.utils import format_datetime
-import hashlib
-import json
 from pathlib import Path
-import time
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -30,11 +30,10 @@ from agente1.google_workspace import (
     _RespuestaDemasiadoGrande,
 )
 from agente1.pagos import (
-    correr_control_pagos,
     cargar_padron_csv,
     cargar_plan_pagos_csv,
+    correr_control_pagos,
 )
-
 
 CONSULTA = 'subject:"Pre-Inscripción" has:attachment'
 FECHA_TEXTO = "Sun, 20 Sep 2026 10:00:00 +0000"
@@ -946,7 +945,9 @@ def test_equivalencia_de_listar_con_el_buzon_eml(tmp_path):
     via_eml = BuzonPropioEml(buzon_dir).listar()
     via_gmail = buzon_gmail.listar()
 
-    clave = lambda m: m.message_id
+    def clave(mensaje):
+        return mensaje.message_id
+
     assert sorted(via_eml, key=clave) == sorted(via_gmail, key=clave)
 
 

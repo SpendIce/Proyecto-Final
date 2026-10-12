@@ -46,15 +46,15 @@ alcance de #73.
 
 from __future__ import annotations
 
+import json
+import re
+import time
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib.resources import files
-import json
 from pathlib import Path
-import re
-import time
 from typing import TYPE_CHECKING, Mapping, Sequence
-import uuid
 
 if TYPE_CHECKING:
     # Sólo el tipo: `decisiones_form` importa `canal_form`, que importa
@@ -80,9 +80,9 @@ from .confirmaciones import (
 )
 from .destinos import (
     BORRADOR_MARKER,
+    ID_SOLICITUD_RE,
     DestinoBorradores,
     DestinoBorradoresError,
-    ID_SOLICITUD_RE,
     MarkdownDestinoBorradores,
     ReferenciaBorrador,
 )
@@ -99,6 +99,11 @@ from .posts import (
     _contiene_fragmento_significativo,
     _contiene_hecho,
 )
+from .presupuesto import (
+    MENSAJE_PRESUPUESTO_AGOTADO,
+    RESULTADO_PRESUPUESTO_AGOTADO,
+    PresupuestoAgotadoError,
+)
 from .procesamiento import (
     Generator,
     ResultadoProceso,
@@ -109,12 +114,6 @@ from .procesamiento import (
     _registrar,
     _validar_id_solicitud,
 )
-from .presupuesto import (
-    MENSAJE_PRESUPUESTO_AGOTADO,
-    RESULTADO_PRESUPUESTO_AGOTADO,
-    PresupuestoAgotadoError,
-)
-
 
 HU = "HU-012"
 CONTRACT_VERSION = "plantilla_actividad_v1"
@@ -923,9 +922,11 @@ def encolar_lote_actividad(
         DECISION_APRUEBO_LOTE,
         DECISION_APRUEBO_SEMANTICA,
         DECISION_APRUEBO_UTILITARIA,
-        RegistroDecisiones as _RegistroDecisiones,
         TIPO_LOTE,
         TIPO_PLANTILLA,
+    )
+    from .decisiones_form import (
+        RegistroDecisiones as _RegistroDecisiones,
     )
 
     correlation_id = str(uuid.uuid4())

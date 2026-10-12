@@ -17,7 +17,6 @@ from agente1.operaciones_seguras import (
     planificar_retencion,
 )
 
-
 HASH_A = "a" * 64
 HASH_B = "b" * 64
 

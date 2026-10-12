@@ -33,7 +33,6 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -42,7 +41,6 @@ from agente1.interpretacion import (  # noqa: E402
     _extraer_identificador_explicito,
     _resolver_actividad_por_similitud,
 )
-
 
 CORPUS = ROOT / "data" / "frases_resolucion_actividad.csv"
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"

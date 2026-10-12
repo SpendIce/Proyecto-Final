@@ -10,11 +10,10 @@ candidatos a borrado manual y no ofrece una opción para ejecutarlo.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import json
-from pathlib import Path
 import sys
-
+from datetime import datetime
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -26,7 +25,6 @@ from agente1.operaciones_seguras import (
     planificar_reconciliacion,
     planificar_retencion,
 )
-
 
 MAX_INPUT_BYTES = 1_048_576
 

@@ -12,11 +12,11 @@ from pathlib import Path
 import pytest
 
 from agente1.confirmaciones import (
+    ROL_APROBACION_SEMANTICA,
+    ROL_APROBACION_UTILITARIA,
     AprobacionHumana,
     DestinoConfirmacionesFake,
     RegistroConfirmacionesArchivo,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
     SolicitudConfirmacion,
     procesar_confirmacion,
     reconciliar_envios_reservados,

@@ -37,7 +37,6 @@ import csv
 from pathlib import Path
 from typing import Protocol
 
-
 # Orden y nombres de las columnas del contrato de la planilla de actividades
 # (v2). Es una tupla y no un conjunto porque el adapter de Sheets compara el
 # encabezado posicionalmente: una planilla con las mismas columnas en otro

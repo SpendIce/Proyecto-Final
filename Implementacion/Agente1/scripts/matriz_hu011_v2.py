@@ -12,10 +12,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
-import sys
-
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -23,7 +22,6 @@ sys.path.insert(0, str(ROOT / "src"))
 from agente1 import FakeGenerator  # noqa: E402
 from agente1.fuentes import CsvFuenteSolicitudes  # noqa: E402
 from agente1.posts import procesar_post_estructurado  # noqa: E402
-
 
 CANALES = ("instagram", "linkedin")
 CASOS = (

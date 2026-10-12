@@ -23,7 +23,6 @@ from agente1.posts import (
     procesar_post_estructurado,
 )
 
-
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 

@@ -74,7 +74,6 @@ from .fuentes import (
 )
 from .politica_redes import (
     CANALES_SOPORTADOS,
-    POLICY_STATUS,
     POLICY_VERSION,
     POLITICA_DEFAULT,
     POLITICAS_DEFAULT,
@@ -87,7 +86,6 @@ from .presupuesto import (
     PresupuestoAgotadoError,
 )
 from .procesamiento import Generator, ResultadoProceso
-
 
 HU = "HU-011"
 CONTRACT_VERSION = "post_input_v2"

@@ -13,11 +13,11 @@ salida (ADR 0001).
 """
 
 import csv
+import hashlib
+import json
 from datetime import date, datetime, timezone
 from email.message import EmailMessage
 from email.utils import format_datetime
-import hashlib
-import json
 from pathlib import Path
 
 import pytest
@@ -38,11 +38,11 @@ from agente1.pagos import (
     ESTADO_COMPROBANTE_PRESENTADO,
     ESTADO_PAGO_CONFIRMADO,
     ESTADO_PENDIENTE,
-    MOTIVOS_NO_ASOCIADA,
     MOTIVO_ASUNTO_NO_COINCIDE,
     MOTIVO_REMITENTE_AMBIGUO,
     MOTIVO_REMITENTE_NO_INFORMADO,
     MOTIVO_REMITENTE_SIN_COINCIDENCIA,
+    MOTIVOS_NO_ASOCIADA,
     PROCEDENCIAS_DATO,
     STATUS,
     ControlPagosError,
@@ -50,7 +50,6 @@ from agente1.pagos import (
     cargar_plan_pagos_csv,
     correr_control_pagos,
 )
-
 
 ROOT = Path(__file__).parents[1]
 PLAN_NOTEBOOKLM = ROOT / "data" / "plan_pagos_notebooklm_n2.csv"

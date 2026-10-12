@@ -6,15 +6,14 @@ hashes opacos para que sea recuperable sin transformarse en un nuevo canal de fu
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
 import hashlib
 import json
 import re
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .gmail_envio import GMAIL_SEND_TARGET
 from .google_workspace import DOCS_HOST, DRIVE_HOST, GMAIL_HOST, SHEETS_HOST
-
 
 MANIFEST_SCHEMA = "security-d2-manifest-v1"
 REPORT_SCHEMA = "security-d2-report-v1"

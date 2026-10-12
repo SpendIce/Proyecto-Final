@@ -25,12 +25,12 @@ Decisiones que no se ven en el código:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
 import hashlib
 import math
 import os
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 from .google_workspace import (
     DOCS_HOST,
@@ -38,7 +38,6 @@ from .google_workspace import (
     MAX_WORKSPACE_TIMEOUT_S,
     SHEETS_HOST,
 )
-
 
 DRIVE_HOST = "www.googleapis.com"
 TOKEN_ENV = "AGENTE1_WORKSPACE_ACCESS_TOKEN"

@@ -19,7 +19,6 @@ import unicodedata
 from dataclasses import dataclass
 from importlib.resources import files
 
-
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 
 POLITICA_REDES = json.loads(

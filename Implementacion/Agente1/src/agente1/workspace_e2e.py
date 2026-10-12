@@ -31,20 +31,20 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-import re
 from typing import Protocol
-import uuid
 
 from .destinos import DestinoBorradores, DestinoBorradoresError, ReferenciaBorrador
 from .fuentes import FuenteSolicitudes
 from .google_workspace import (
+    MAX_WORKSPACE_RESPONSE_BYTES,
     AccessTokenProvider,
     GoogleDrivePlantillaDestinoBorradores,
     GoogleSheetsFuenteSolicitudes,
-    MAX_WORKSPACE_RESPONSE_BYTES,
     TransporteHttp,
 )
 from .posts import (
@@ -52,9 +52,8 @@ from .posts import (
     STRUCTURED_RENDERER_VERSION,
     procesar_post_estructurado,
 )
-from .procesamiento import Generator, ResultadoProceso, procesar_solicitud
+from .procesamiento import Generator, procesar_solicitud
 from .workspace_config import ConfiguracionWorkspace
-
 
 MANIFEST_VERSION = "workspace_e2e_manifest_v1"
 IDEMPOTENCY_VERSION = "workspace_e2e_idempotency_v1"

@@ -5,7 +5,6 @@ trigger que rechaza timestamps futuros. Cada rollback deshace en orden inverso."
 
 from pathlib import Path
 
-
 MIGRACIONES = Path(__file__).parents[1] / "migrations"
 
 

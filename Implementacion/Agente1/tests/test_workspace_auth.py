@@ -21,7 +21,6 @@ from agente1.workspace_config import (
     TokenEntornoProvider,
 )
 
-
 CLIENT_ID = "12345.apps.googleusercontent.com"
 CLIENT_SECRET = "GOCSPX-secreto-sintetico"
 REFRESH_TOKEN = "1//refresh-token-sintetico"

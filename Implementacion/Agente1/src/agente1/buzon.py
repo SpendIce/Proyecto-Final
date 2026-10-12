@@ -27,12 +27,12 @@ Implementaciones:
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email import policy
 from email.parser import BytesParser
 from email.utils import getaddresses, parsedate_to_datetime
-import hashlib
 from pathlib import Path
 from typing import Protocol, Sequence
 

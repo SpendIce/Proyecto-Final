@@ -6,10 +6,9 @@ from __future__ import annotations
 import csv
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
-
+from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 CASOS_VALIDOS = {"SYN-001", "SYN-003", "SYN-005"}

@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from agente1.ollama import OllamaGenerator
 from agente1.posts import CONTRATO_SALIDA_ESTRUCTURADA
@@ -38,7 +38,6 @@ from agente1.workspace_e2e import (
     crear_dependencias_workspace_live,
     ejecutar_workspace_e2e,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 FILA_OFFLINE = {

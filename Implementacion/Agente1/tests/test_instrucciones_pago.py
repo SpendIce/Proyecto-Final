@@ -16,22 +16,34 @@ import json
 from pathlib import Path
 
 import pytest
+from test_pagos import (
+    ACTIVIDAD_ID,
+    ASUNTO,
+    HOY,
+    PDF_A,
+    PLAN_NOTEBOOKLM,
+    escribir_eml,
+    escribir_padron,
+    escribir_plan,
+    situacion,
+)
 
+from agente1.buzon import BuzonPropioEml
+from agente1.cli_pagos import informe_a_dict
 from agente1.confirmaciones import (
+    ROL_APROBACION_SEMANTICA,
+    ROL_APROBACION_UTILITARIA,
+    TIPO_INSTRUCCIONES_PAGO,
     AprobacionHumana,
     ColaEnviosMemoria,
     CuotaInstrucciones,
     DatosInstruccionesPago,
     DestinoConfirmacionesFake,
     RegistroConfirmacionesMemoria,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
     SolicitudConfirmacion,
-    TIPO_INSTRUCCIONES_PAGO,
     drenar_envios,
     procesar_confirmacion,
 )
-from agente1.cli_pagos import informe_a_dict
 from agente1.instrucciones_pago import (
     solicitud_confirmacion_inscripcion,
     solicitud_instrucciones_pago,
@@ -50,19 +62,6 @@ from agente1.pagos import (
     cargar_plan_pagos_csv,
     correr_control_pagos,
 )
-from agente1.buzon import BuzonPropioEml
-from test_pagos import (
-    ACTIVIDAD_ID,
-    ASUNTO,
-    HOY,
-    PDF_A,
-    PLAN_NOTEBOOKLM,
-    escribir_eml,
-    escribir_padron,
-    escribir_plan,
-    situacion,
-)
-
 
 CONTACTO = "extension@example.test"
 ORGANIZA = "Secretaría de Extensión Universitaria"

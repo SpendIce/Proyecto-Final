@@ -33,26 +33,26 @@ import pytest
 from agente1 import FakeGenerator
 from agente1.canal_form import LectorValoresCsv, PadronRoles
 from agente1.confirmaciones import (
+    ESTADO_ENVIO_ENCOLADO,
     ColaEnviosMemoria,
     DestinoConfirmacionesFake,
-    ESTADO_ENVIO_ENCOLADO,
     RegistroConfirmacionesMemoria,
 )
 from agente1.decisiones_form import (
-    CanalFormDecisiones,
     DECISION_APRUEBO_LOTE,
     DECISION_APRUEBO_SEMANTICA,
     DECISION_APRUEBO_UTILITARIA,
     RESULTADO_REGISTRADA,
-    RegistroDecisiones,
-    ResultadoDecision,
     TIPO_LOTE,
     TIPO_PLANTILLA,
+    CanalFormDecisiones,
+    RegistroDecisiones,
+    ResultadoDecision,
 )
 from agente1.fuentes import CsvFuenteSolicitudes
 from agente1.interpretacion import (
-    IdentidadSolicitante,
     ROLES_HABILITADOS,
+    IdentidadSolicitante,
     interpretar_solicitud,
 )
 from agente1.pagos import CuotaPlan, PlanPago
@@ -67,7 +67,6 @@ from agente1.plantillas_actividad import (
     procesar_plantilla_actividad,
     renderizar_pieza_actividad,
 )
-
 
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"

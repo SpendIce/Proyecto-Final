@@ -39,13 +39,13 @@ Decisiones que no se ven en el código:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
-from http.client import HTTPException, HTTPSConnection
 import json
 import math
 import re
 import time
+from dataclasses import dataclass
+from http.client import HTTPException, HTTPSConnection
 from typing import Protocol
 from urllib.parse import quote
 
@@ -60,7 +60,6 @@ from .fuentes import (
     FuenteSolicitudes,
     FuenteSolicitudesError,
 )
-
 
 # Los tres únicos hosts que el agente puede tocar. La auditoría de seguridad
 # comprueba contra esta lista que no aparezcan endpoints de distribución

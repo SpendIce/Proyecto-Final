@@ -4,8 +4,8 @@ del catálogo completo: forma de fila, encabezado que no coincide con el
 contrato, id duplicado en el catálogo y catálogo vacío."""
 
 import csv
-from importlib.resources import files
 import json
+from importlib.resources import files
 
 import pytest
 

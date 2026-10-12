@@ -30,20 +30,20 @@ from agente1.certificados import (
 )
 from agente1.confirmaciones import (
     ID_RE,
-    AprobacionHumana,
     ROL_APROBACION_SEMANTICA,
     ROL_APROBACION_UTILITARIA,
+    AprobacionHumana,
 )
 from agente1.decisiones_form import (
     DECISION_APRUEBO_LOTE,
     DECISION_APRUEBO_SEMANTICA,
     DECISION_APRUEBO_UTILITARIA,
     RESULTADO_REGISTRADA,
+    TIPO_LINEA_DESCRIPTIVA,
+    TIPO_LOTE,
     EnlacesDecisiones,
     RegistroDecisiones,
     ResultadoDecision,
-    TIPO_LINEA_DESCRIPTIVA,
-    TIPO_LOTE,
 )
 from agente1.linea_descriptiva import (
     ID_ACTIVIDAD_RE,
@@ -59,7 +59,6 @@ from agente1.linea_descriptiva import (
     validar_linea_descriptiva,
 )
 from agente1.procesamiento import FakeGenerator
-
 
 ACTIVIDAD_ID = "SYN-001"
 LINEA = "Espacio de formación docente en tecnología aplicada a la enseñanza."

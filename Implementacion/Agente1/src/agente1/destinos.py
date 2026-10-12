@@ -18,11 +18,10 @@ Decisiones que no se ven en el código:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
 from typing import Protocol
-
 
 # Cabecera obligatoria de todo borrador. La escribe el pipeline y la vuelve a
 # verificar el destino: es la única marca que ve una persona al abrir el

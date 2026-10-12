@@ -12,9 +12,8 @@ prosa del pedido.
 from __future__ import annotations
 
 import base64
-from email import message_from_bytes
-from email import policy
 import json
+from email import message_from_bytes, policy
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -23,11 +22,11 @@ import pytest
 from agente1.canal import atender_canal
 from agente1.canal_form import (
     ATENDIDOS_NOMBRE,
+    ROL_NO_EN_PADRON,
     CanalFormError,
     CanalFormPedidos,
     LectorValoresCsv,
     PadronRoles,
-    ROL_NO_EN_PADRON,
     cargar_configuracion_canal_form,
     cargar_padron_roles_csv,
 )
@@ -42,7 +41,6 @@ from agente1.google_workspace import (
 from agente1.interpretacion import RegistroPendientesMemoria
 from agente1.procesamiento import FakeGenerator
 from agente1.workspace_config import ConfiguracionWorkspaceError
-
 
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"

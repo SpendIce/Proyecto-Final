@@ -33,7 +33,6 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -46,7 +45,6 @@ from agente1.posts import (  # noqa: E402
     procesar_post_estructurado,
 )
 from agente1.procesamiento import procesar_fila_csv  # noqa: E402
-
 
 CANALES = ("instagram", "linkedin")
 ACTIVIDADES_COMPLETAS = ("SYN-001", "SYN-003", "SYN-005")

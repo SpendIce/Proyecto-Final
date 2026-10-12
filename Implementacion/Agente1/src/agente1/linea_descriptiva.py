@@ -47,16 +47,16 @@ plantilla desde el registro.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import hashlib
-from importlib.resources import files
 import json
-from pathlib import Path
 import re
-from typing import Mapping, Protocol
 import unicodedata
 import uuid
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from importlib.resources import files
+from pathlib import Path
+from typing import Mapping, Protocol
 
 from .confirmaciones import (
     ROL_APROBACION_SEMANTICA,
@@ -92,7 +92,6 @@ from .presupuesto import (
     RESULTADO_PRESUPUESTO_AGOTADO,
     PresupuestoAgotadoError,
 )
-
 
 HU = "HU-014"
 CONTRACT_VERSION = "linea_descriptiva_v1"

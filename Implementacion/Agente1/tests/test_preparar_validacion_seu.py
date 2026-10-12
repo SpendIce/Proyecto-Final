@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pytest
 
-
 SCRIPT = Path(__file__).parents[1] / "scripts" / "preparar_validacion_seu.py"
 SPEC = importlib.util.spec_from_file_location("preparar_validacion_seu", SCRIPT)
 assert SPEC and SPEC.loader

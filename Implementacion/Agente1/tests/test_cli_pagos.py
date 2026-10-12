@@ -2,15 +2,14 @@
 rechazo de entradas inválidas, por subproceso como las pruebas de la CLI
 principal."""
 
+import json
+import os
+import subprocess
+import sys
 from datetime import datetime, timezone
 from email.message import EmailMessage
 from email.utils import format_datetime
-import json
-import os
 from pathlib import Path
-import subprocess
-import sys
-
 
 ROOT = Path(__file__).parents[1]
 PLAN_NOTEBOOKLM = ROOT / "data" / "plan_pagos_notebooklm_n2.csv"

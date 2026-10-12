@@ -50,16 +50,15 @@ camino provisional anterior, que #75 cierra para la emisión en vivo.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import hashlib
 import json
+import uuid
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Protocol
-import uuid
 
 from agente1.confirmaciones import (
-    ESTADO_APROBADA_SEMANTICA,
-    ESTADO_APROBADA_UTILITARIA,
+    _PARCIAL_POR_ROL,
     ESTADOS_PARCIALES_APROBACION,
     ID_RE,
     AprobacionHumana,
@@ -69,7 +68,6 @@ from agente1.confirmaciones import (
     RegistroConfirmacionesMemoria,
     _aprobacion_valida,
     _hash,
-    _PARCIAL_POR_ROL,
 )
 from agente1.decisiones_form import RegistroDecisiones
 from agente1.linea_descriptiva import (
@@ -80,7 +78,6 @@ from agente1.linea_descriptiva import (
     objeto_id_linea_descriptiva,
     validar_linea_descriptiva,
 )
-
 
 HU = "HU-014"
 CONTRACT_VERSION = "certificado_emision_v2"

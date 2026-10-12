@@ -127,7 +127,6 @@ from .posts import procesar_post_estructurado
 from .presupuesto import presupuesto_minimo_num_predict
 from .procesamiento import Generator, procesar_solicitud
 
-
 HU = "HU-013"
 CONTRACT_VERSION = "intenciones_v3"
 

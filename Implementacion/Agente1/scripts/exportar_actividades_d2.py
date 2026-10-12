@@ -32,11 +32,10 @@ import argparse
 import csv
 import hashlib
 import json
-from pathlib import Path
 import subprocess
 import sys
 from datetime import datetime, timezone
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = ROOT.parents[1]
@@ -47,7 +46,6 @@ from agente1.fuentes import (  # noqa: E402
     FuenteSolicitudes,
     FuenteSolicitudesError,
 )
-
 
 SCHEMA_VERSION_MANIFIESTO = "exportacion_actividades_d2_v1"
 COLUMNAS_CONTRATO = "actividades_planilla_v2"

@@ -88,31 +88,31 @@ un prompt.
 from __future__ import annotations
 
 import csv
-from collections.abc import Mapping
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import hashlib
 import json
 import math
 import os
-from pathlib import Path
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
 from .canal import PedidoCanal
 from .confirmaciones import (
+    MARCADOR_BORRADOR,
     DestinoConfirmaciones,
     EntregaRechazadaError,
-    MARCADOR_BORRADOR,
     email_valido,
 )
 from .destinos import ReferenciaBorrador
 from .google_workspace import (
     ID_RE,
+    MAX_WORKSPACE_TIMEOUT_S,
     AccessTokenProvider,
     GoogleSheetsLectorValores,
-    MAX_WORKSPACE_TIMEOUT_S,
     TransporteHttp,
 )
 from .interpretacion import (
@@ -120,7 +120,7 @@ from .interpretacion import (
     IdentidadSolicitante,
     ResultadoInterpretacion,
 )
-from .workspace_config import ConfiguracionWorkspaceError, _A1_RE
+from .workspace_config import _A1_RE, ConfiguracionWorkspaceError
 
 if TYPE_CHECKING:
     # `decisiones_form` ya importa este módulo (reusa `PadronRoles`): el

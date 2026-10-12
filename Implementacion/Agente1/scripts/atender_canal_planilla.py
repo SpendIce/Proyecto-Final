@@ -32,7 +32,6 @@ from agente1.canal_planilla import CanalPlanillaOffline
 from agente1.fuentes import CsvFuenteSolicitudes
 from agente1.procesamiento import FakeGenerator
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_DEFAULT = ROOT / "data" / "actividades_sinteticas.csv"
 FICHA_SYN_001 = ROOT / "golden" / "SYN-001.ficha.md"

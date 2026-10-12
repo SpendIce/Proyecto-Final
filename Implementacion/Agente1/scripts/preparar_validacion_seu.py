@@ -15,7 +15,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
-
 DECISIONES = {
     "PENDIENTE",
     "APROBADO_COMO_BORRADOR",

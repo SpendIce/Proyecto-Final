@@ -13,19 +13,18 @@ que `recordatorio_pago` no puede tramitar por solicitud individual, y que
 """
 
 import json
-from importlib.resources import files
 from pathlib import Path
 
 import pytest
 
 from agente1.confirmaciones import (
+    REQUIRED_FIELDS,
+    ROL_APROBACION_SEMANTICA,
+    ROL_APROBACION_UTILITARIA,
     AprobacionHumana,
     ColaEnviosMemoria,
     DestinoConfirmacionesFake,
     RegistroConfirmacionesMemoria,
-    REQUIRED_FIELDS,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
     SolicitudConfirmacion,
     drenar_envios,
     procesar_confirmacion,
@@ -41,7 +40,6 @@ from agente1.tipos_notificacion import (
     PROCEDENCIAS,
     STATUS,
     TIPO_NOTIFICACION_PREDETERMINADO,
-    TIPOS,
     TIPOS_NOTIFICACION,
     DecisionTipoNotificacion,
     TipoNotificacionDesconocidoError,
@@ -51,7 +49,6 @@ from agente1.tipos_notificacion import (
     evaluar_tipo,
     modo_circuito,
 )
-
 
 ROOT = Path(__file__).parents[1]
 

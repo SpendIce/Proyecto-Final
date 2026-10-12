@@ -11,10 +11,19 @@ se ignora, y la marca «bonificación no verificable» de D14. El loader
 """
 
 import csv
-from datetime import date, datetime, timezone
 import hashlib
+from datetime import date, datetime, timezone
 
 import pytest
+from test_pagos import (
+    HOY,
+    PDF_A,
+    PDF_B,
+    escribir_eml,
+    escribir_padron,
+    escribir_plan,
+    situacion,
+)
 
 from agente1.buzon import BuzonPropioEml
 from agente1.pagos import (
@@ -44,15 +53,6 @@ from agente1.pagos import (
     cargar_padron_csv,
     cargar_plan_pagos_csv,
     correr_control_pagos,
-)
-from test_pagos import (
-    HOY,
-    PDF_A,
-    PDF_B,
-    escribir_eml,
-    escribir_padron,
-    escribir_plan,
-    situacion,
 )
 
 

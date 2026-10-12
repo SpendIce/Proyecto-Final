@@ -69,7 +69,6 @@ from .historia_viva import (
     RecepcionAporte,
 )
 
-
 CONTRACT_VERSION = "historia_viva_cliente_candidate_v1"
 CONTRACT_STATUS = "CANDIDATO_NO_INSTITUCIONAL"
 

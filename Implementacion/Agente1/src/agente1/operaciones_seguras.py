@@ -6,13 +6,12 @@ salidas son planes o reportes: nunca publica, comparte, borra ni modifica recurs
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-import re
 from typing import Any, Protocol
-
 
 HEALTH_INPUT_SCHEMA = "agente1-health-input-v1"
 HEALTH_REPORT_SCHEMA = "agente1-health-report-v1"
