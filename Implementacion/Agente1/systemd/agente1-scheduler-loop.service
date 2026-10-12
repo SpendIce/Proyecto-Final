@@ -1,0 +1,35 @@
+# Unidad `systemd --user` PLANTILLA del mecanismo alternativo (#84):
+# el bucle con `sleep` en un proceso único.
+#
+# `agente1 scheduler --loop` espera al próximo tick de la agenda, corre la
+# corrida dentro de la ventana y repite. Sirve en hosts sin timer usable
+# (o para ensayos operativos con `--max-disparos`). El lock de corrida y
+# la idempotencia son los mismos que en el oneshot: un loop y un timer
+# conviviendo no duplican filas, el segundo disparo queda `omitida_lock` u
+# `omitida_duplicada`. Aun así, en producción se elige UN mecanismo.
+#
+# Mismos pasos que `agente1-scheduler.service`: reemplazar `__CHECKOUT__`,
+# preparar el env file y ajustar el ExecStart. Instalarla es alternativa al
+# timer, no complementaria: con ambos activos cada corrida la gana quien
+# tome el lock primero y la otra queda `omitida_*` (no se duplica, pero el
+# log mezcla dos agendas).
+#
+# El repo NO instala ni activa unidades.
+
+[Unit]
+Description=Agente 1: bucle local de corridas programadas (#84, alternativa al timer)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__CHECKOUT__/Implementacion/Agente1
+EnvironmentFile=-%h/.config/agente1/scheduler.env
+ExecStart=/usr/bin/env bash -lc 'uv run python -m agente1 scheduler --loop --directorio %h/agente1/salida --live --confirm-write-workspace --ollama-model __MODELO_OLLAMA__'
+# Una caída del proceso reinicia el bucle; una corrida fallida adentro ya
+# quedó auditada y se reintenta en el tick siguiente, no tumba el proceso.
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

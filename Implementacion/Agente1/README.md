@@ -66,6 +66,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/medir_capacidad_hu011.py`: prueba de capacidad local contra el volumen de referencia informado por la SEU; mide latencia fría y caliente y tasa de conformidad, y proyecta el mes.
 - `scripts/operaciones_seguras.py`: health, reconciliación, consolidación y retención en dry-run.
 - `src/agente1/contracts/insumos/agente1_insumo_candidate_v2.schema.json`, `src/agente1/insumos_agentes.py`, `src/agente1/insumos_corrida.py`, `src/agente1/insumos_sheets.py` y `src/agente1/cli_insumos.py`: entrada push de insumos A3–A5 (ADR 0008, #82) — el envelope candidato (A2 fuera, `data_origin` con `provisional_producer`), la corrida de la pestaña «Insumos de agentes» (estados `borrador generado`/`rechazado`/`aceptado sin flujo`, idempotencia por `correlation_id` en `insumos-procesados.jsonl`, despacho `evento`→HU-010), el escritor `values.update` acotado con su réplica CSV, y el subcomando `insumos-agentes` offline/live con doble opt-in.
+- `src/agente1/scheduler.py`, `src/agente1/cli_scheduler.py` y `systemd/agente1-scheduler.{service,timer}` + `systemd/agente1-scheduler-loop.service`: scheduler local de las corridas programadas (#84) — agenda por ticks anclada a la ventana de operación configurable (`AGENTE1_SCHEDULER_*`), lock `flock` contra solapamientos, log versionado `scheduler-corridas.jsonl` (entrada de #88), slot diario con la purga (#87) y el respaldo declarado (#86), y las unidades `systemd --user` como plantillas instalables junto al bucle `--loop` alternativo.
 - `salida/`: evidencia runtime local ignorada por Git.
 
 ## Dónde está documentada cada decisión
@@ -531,10 +532,11 @@ PYTHONPATH=src \
     --salida salida
 ```
 
-El scheduler local (#84, aún no implementado) invocará este comando una
-vez por día dentro de la ventana de operación; cuando el respaldo diario
-del estado (#86) exista, la purga corre antes que él para que ningún
-respaldo conserve texto que la política ya venció.
+El scheduler local (#84) invoca este comando una vez por día dentro de la
+ventana de operación, en el slot diario de la primera corrida; cuando el
+respaldo diario del estado (#86) exista, la purga corre antes que él para
+que ningún respaldo conserve texto que la política ya venció (ver la
+sección del scheduler más abajo).
 
 ```bash
 uv run pytest -q tests/test_purga_registro.py
@@ -910,6 +912,72 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
   python -m pytest -q tests/test_insumos_agentes.py \
     tests/test_insumos_corrida.py tests/test_insumos_sheets.py \
     tests/test_cli_insumos.py
+```
+
+## Scheduler local de corridas programadas (#84)
+
+El subcomando `agente1 scheduler` dispara la corrida de insumos cada pocos
+minutos en el host de la demo, para que el agente reaccione cuando un
+productor carga una fila sin esperar una corrida manual. El disparo
+automático **sólo produce borradores `PENDIENTE_VALIDACION`**: no publica,
+no envía, y la validación humana queda intacta; la corrida manual sigue
+disponible como contingencia.
+
+Mismo proceso, mismos flags que `insumos-agentes` (la composición la
+comparte `corrida_desde_args` de `cli_insumos`): offline exige `--tabla` y
+un generador, live exige `--live` + `--confirm-write-workspace` + modelo
+Ollama. Lo que agrega es la agenda, configurable por entorno con
+`AGENTE1_SCHEDULER_*`: intervalo (`INTERVALO_S`, default 300 s), ventana
+de operación (`VENTANA_DIAS`, `VENTANA_DESDE`/`HASTA` en `TZ`, default
+días hábiles 8 a 16, **provisional** a confirmar por la SEU en #56), path
+del repo (`REPO`) y el registro de confirmaciones que la purga diaria
+procesa (`REGISTRO_CONFIRMACIONES`).
+
+Los ticks son `desde + k * intervalo` dentro de la ventana. Cada disparo
+responde al tick más reciente (`inicio_previsto`), así un disparo atrasado
+deja el atraso a la vista. Dos mecanismos, a elegir uno por host:
+
+- **Timer `systemd --user`** (natural en la demo): las plantillas de
+  `systemd/` (`agente1-scheduler.timer` + `.service` oneshot que corre
+  `--una-corrida`) se copian a `~/.config/systemd/user/` y se habilitan
+  con `systemctl --user` por el operador designado; el repo no instala ni
+  activa unidades.
+- **Bucle con `sleep`** (`--loop`): un proceso único que espera al próximo
+  tick y corre; sirve de alternativa y de ensayo (`--max-disparos`).
+
+Solapamiento cubierto en tres capas: `flock` no bloqueante sobre
+`scheduler-corrida.lock` (un disparo concurrente queda `omitida_lock`),
+deduplicación por tick ya `completada` (`omitida_duplicada`) y la
+idempotencia por `correlation_id` de la corrida como red de seguridad.
+Fuera de la ventana el disparo queda `omitida_ventana` sin tocar nada.
+
+Cada disparo deja una línea en `logs/scheduler-corridas.jsonl` (formato
+versionado `scheduler_corrida_v1`): `inicio_previsto`, `inicio_real`,
+`fin`, `resultado` y conteos cerrados de la corrida, más el bloque
+`mantenimiento` cuando corre el slot diario. Nunca lleva payload ni
+contenido: es la fuente que #88 usa para medir disponibilidad.
+
+El slot diario de la primera corrida en ventana corre la **purga** de
+datos personales (#87) como subproceso de `scripts/purgar_registro.py`
+(una vez por día, con reintento en el tick siguiente si falla) y declara
+el **respaldo** diario (#86) como paso `pendiente` hasta que exista: el
+punto de entrada ya está en la agenda, en el orden que ADR 0009 exige.
+
+Manual completo de instalación, parada, diagnóstico y migración de host en
+`Documentos/PlanDespliegue/Runbook-Scheduler-Agente-1.md` (ADR 0007). El
+esquema del log también está ahí.
+
+```bash
+# Ensayo offline de un disparo (sin instalar unidades)
+PYTHONPATH=src python -m agente1 scheduler --una-corrida \
+  --ahora 2026-10-05T10:00:00-03:00 \
+  --tabla insumos.csv --directorio salida/insumos --fake-output "salida"
+
+# Bucle acotado para ensayos
+PYTHONPATH=src python -m agente1 scheduler --loop --max-disparos 2 \
+  --tabla insumos.csv --directorio salida/insumos --fake-output "salida"
+
+uv run pytest -q tests/test_scheduler.py tests/test_cli_scheduler.py
 ```
 
 ## Seam de consulta a Historia Viva

@@ -1,0 +1,35 @@
+# Timer `systemd --user` PLANTILLA del scheduler del Agente 1 (#84).
+#
+# Dispara `agente1-scheduler.service` cada 5 minutos, el intervalo default
+# provisional (`AGENTE1_SCHEDULER_INTERVALO_S=300`). La cadencia del timer
+# debe ser igual o menor que el intervalo configurado: los disparos de más
+# sobre el mismo tick quedan asentados `omitida_duplicada` y no vuelven a
+# correr, así que un timer más fino nunca duplica una corrida.
+#
+# Fuera de la ventana de operación cada disparo queda `omitida_ventana` en
+# `logs/scheduler-corridas.jsonl`: es una línea barata y la agenda real la
+# define la configuración, no el calendario del timer.
+#
+# Instalación manual del operador designado (ADR 0007):
+#
+#   mkdir -p ~/.config/systemd/user
+#   cp agente1-scheduler.service agente1-scheduler.timer ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now agente1-scheduler.timer
+#   # y para que el timer corra sin sesión iniciada:
+#   loginctl enable-linger "$USER"
+#
+# El repo NO instala ni activa unidades: esto es documentación instalable.
+
+[Unit]
+Description=Timer de las corridas programadas del Agente 1 (#84)
+
+[Timer]
+# Cada 5 minutos del reloj del host. Alinear con INTERVALO_S si cambia.
+OnCalendar=*:0/5
+# Un disparo que no salió (host apagado dentro de la ventana) corre al
+# encender: responde al tick más reciente, sin ponerse al día con todos.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

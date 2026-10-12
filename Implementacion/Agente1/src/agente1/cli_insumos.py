@@ -25,12 +25,20 @@ entrada por fila con su desenlace y los metadatos del envelope —nunca el
 payload ni el contenido generado. Código de salida `0` si la corrida
 produjo informe, `2` si la tabla, la configuración o el registro fallaron,
 con el código cerrado en `error`.
+
+El armado del parser, la validación cruzada y la composición de la corrida
+(`agregar_argumentos_corrida`, `validar_argumentos_corrida`,
+`corrida_desde_args`) están factorizados porque el subcomando `scheduler`
+(#84) dispara exactamente la misma corrida con la misma interfaz: lo que
+cambia entre la corrida manual y la programada es quién la dispara, no qué
+corre.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Sequence
 
@@ -68,26 +76,15 @@ from .workspace_config import (
 )
 
 
-def main(
-    argv: Sequence[str] | None = None,
-    *,
-    transport: TransporteHttp | None = None,
-) -> int:
-    """Corre la corrida de insumos y devuelve el código de salida del proceso.
+def agregar_argumentos_corrida(parser: argparse.ArgumentParser) -> None:
+    """Los flags de la corrida de insumos, compartidos con `scheduler`.
 
-    `transport` es la costura de los adapters de Workspace: en producción
-    queda `None` y se usa HTTPS real; en las pruebas se inyecta el transporte
-    falso y el modo `--live` se ejercita entero sin red.
+    Mismo contrato en los dos comandos: `--tabla` y un generador para el
+    camino offline, `--live` + `--confirm-write-workspace` + modelo Ollama
+    para el camino sobre D2, y `--directorio` para el registro de
+    idempotencia, los borradores locales y el estado del scheduler.
     """
 
-    parser = argparse.ArgumentParser(
-        prog="agente1 insumos-agentes",
-        description=(
-            "Corrida de insumos de agentes: lee la pestaña «Insumos de "
-            "agentes», valida cada fila contra agente1.insumo.v1, despacha "
-            "por tipo y escribe el estado en la misma fila."
-        ),
-    )
     parser.add_argument(
         "--tabla",
         type=Path,
@@ -138,7 +135,12 @@ def main(
         action="store_true",
         help="Confirma que la corrida puede escribir en la planilla real.",
     )
-    args = parser.parse_args(argv)
+
+
+def validar_argumentos_corrida(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> None:
+    """Las reglas cruzadas del contrato: live exige doble opt-in y modelo."""
 
     if args.live:
         if args.tabla is not None:
@@ -153,24 +155,37 @@ def main(
         if args.tabla is None:
             parser.error("sin --live se exige --tabla")
 
-    try:
-        if args.live:
-            lector, escritor, destino = _dependencias_live(transport=transport)
-        else:
-            lector = LectorValoresCsv(args.tabla)
-            escritor = EscritorEstadoCsv(args.tabla)
-            destino = None
-        generator = (
-            FakeGenerator(args.fake_output)
-            if args.fake_output is not None
-            else OllamaGenerator(
-                modelo=args.ollama_model,
-                base_url=args.ollama_base_url,
-                timeout_s=args.ollama_timeout,
-                num_predict=args.ollama_num_predict,
-            )
+
+def corrida_desde_args(
+    args: argparse.Namespace, *, transport: TransporteHttp | None = None
+) -> Callable[[], InformeCorridaInsumos]:
+    """La corrida ya cableada según los flags.
+
+    Es la composición que comparten la corrida manual y el disparo del
+    scheduler (#84): mismo lector, mismo escritor, mismo mapa de despachos
+    y mismo registro de idempotencia. Devuelve un callable sin argumentos
+    para que el scheduler no conozca los adapters.
+    """
+
+    if args.live:
+        lector, escritor, destino = _dependencias_live(transport=transport)
+    else:
+        lector = LectorValoresCsv(args.tabla)
+        escritor = EscritorEstadoCsv(args.tabla)
+        destino = None
+    generator = (
+        FakeGenerator(args.fake_output)
+        if args.fake_output is not None
+        else OllamaGenerator(
+            modelo=args.ollama_model,
+            base_url=args.ollama_base_url,
+            timeout_s=args.ollama_timeout,
+            num_predict=args.ollama_num_predict,
         )
-        informe = correr_insumos(
+    )
+
+    def corrida() -> InformeCorridaInsumos:
+        return correr_insumos(
             lector=lector,
             escritor=escritor,
             registro=RegistroInsumosArchivo(args.directorio),
@@ -182,6 +197,36 @@ def main(
                 )
             },
         )
+
+    return corrida
+
+
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    transport: TransporteHttp | None = None,
+) -> int:
+    """Corre la corrida de insumos y devuelve el código de salida del proceso.
+
+    `transport` es la costura de los adapters de Workspace: en producción
+    queda `None` y se usa HTTPS real; en las pruebas se inyecta el transporte
+    falso y el modo `--live` se ejercita entero sin red.
+    """
+
+    parser = argparse.ArgumentParser(
+        prog="agente1 insumos-agentes",
+        description=(
+            "Corrida de insumos de agentes: lee la pestaña «Insumos de "
+            "agentes», valida cada fila contra agente1.insumo.v1, despacha "
+            "por tipo y escribe el estado en la misma fila."
+        ),
+    )
+    agregar_argumentos_corrida(parser)
+    args = parser.parse_args(argv)
+    validar_argumentos_corrida(parser, args)
+
+    try:
+        informe = corrida_desde_args(args, transport=transport)()
     except (CorridaInsumosError, ConfiguracionWorkspaceError) as exc:
         return _invalida(exc.code)
     except OSError:
