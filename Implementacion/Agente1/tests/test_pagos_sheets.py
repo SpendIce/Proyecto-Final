@@ -274,7 +274,8 @@ def test_planilla_cada_lectura_es_un_request_a_su_pestana():
 )
 def test_planilla_pestana_faltante_falla_explicito(metodo):
     # Un rango que nombra una pestaña inexistente devuelve 400: para la
-    # corrida es «la fuente no está», con código propio — nunca una lista.
+    # corrida es «la fuente no está», con el código del lector compartido
+    # — nunca una lista vacía.
     fuente, _, _ = crear_fuente(RespuestaHttp(status=400, body=b"bad range"))
 
     with pytest.raises(ControlPagosError) as error:
@@ -285,7 +286,7 @@ def test_planilla_pestana_faltante_falla_explicito(metodo):
         else:
             fuente.cargar_novedades()
 
-    assert error.value.code == "workspace_range_invalid"
+    assert error.value.code == "workspace_unavailable"
 
 
 @pytest.mark.parametrize(
@@ -793,7 +794,7 @@ def test_cli_planilla_reporta_falla_de_pestana_con_codigo(
     respuesta = json.loads(capsys.readouterr().out)
     assert respuesta == {
         "estado": "INVALIDA",
-        "error": "workspace_range_invalid",
+        "error": "workspace_unavailable",
     }
 
 
