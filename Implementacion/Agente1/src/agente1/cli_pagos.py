@@ -2,16 +2,20 @@
 comandos.
 
 Envoltura delgada de `pagos.correr_control_pagos`: carga el plan y el padrón
-desde sus CSV, apunta el buzón a una carpeta `.eml` y vuelca el informe a
+desde sus CSV, las novedades del Departamento desde su CSV cuando se pasa
+`--novedades`, apunta el buzón a una carpeta `.eml` y vuelca el informe a
 stdout como JSON con claves ordenadas — la misma convención de la CLI
 principal, para poder comparar la salida entre corridas y guardarla como
-evidencia. El informe nombra a cada preinscripto con su «k de N» desglosado y
-lista las respuestas no asociadas con su motivo, para que una persona las
-resuelva; no se escribe ningún archivo ni se persiste estado (ADR 0003).
+evidencia. El informe nombra a cada preinscripto con su «k de N» desglosado,
+marca la bonificación no verificable (D14), lista las respuestas no asociadas
+y las novedades aplicadas junto con las que se informan como error, para que
+una persona las resuelva; no se escribe ningún archivo ni se persiste estado
+(ADR 0003).
 
 El código de salida distingue estados igual que la CLI principal: `0` si la
-corrida produjo informe, `2` si cualquier entrada falló — plan, padrón, buzón
-o fecha — con el código de error cerrado y sin datos internos en `error`.
+corrida produjo informe, `2` si cualquier entrada falló — plan, padrón,
+novedades, buzón o fecha — con el código de error cerrado y sin datos
+internos en `error`.
 """
 
 from __future__ import annotations
@@ -30,6 +34,8 @@ from .pagos import (
     Comprobante,
     ControlPagosError,
     InformeCorridaPagos,
+    NovedadPago,
+    cargar_novedades_csv,
     cargar_padron_csv,
     cargar_plan_pagos_csv,
     correr_control_pagos,
@@ -43,23 +49,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         prog="agente1 control-pagos",
         description=(
             "Corrida de control de pagos: informa las cuotas de cada "
-            "preinscripto y las respuestas no asociadas."
+            "preinscripto, las respuestas no asociadas y las novedades "
+            "aplicadas o informadas como error."
         ),
     )
     parser.add_argument("--plan", required=True, type=Path)
     parser.add_argument("--padron", required=True, type=Path)
     parser.add_argument("--buzon", required=True, type=Path)
+    parser.add_argument(
+        "--novedades",
+        type=Path,
+        default=None,
+        help="CSV de la pestaña «Novedades de pago» del Departamento (opcional).",
+    )
     parser.add_argument("--fecha", required=True, type=_fecha_arg, metavar="AAAA-MM-DD")
     args = parser.parse_args(argv)
 
     try:
         plan = cargar_plan_pagos_csv(args.plan)
         padron = cargar_padron_csv(args.padron, actividad_id=plan.actividad_id)
+        novedades = (
+            cargar_novedades_csv(args.novedades)
+            if args.novedades is not None
+            else []
+        )
         informe = correr_control_pagos(
             plan=plan,
             padron=padron,
             buzon=BuzonPropioEml(args.buzon),
             hoy=args.fecha,
+            novedades=novedades,
         )
     except (ControlPagosError, BuzonPropioError) as exc:
         return _invalida(exc.code)
@@ -70,8 +89,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def informe_a_dict(informe: InformeCorridaPagos) -> dict[str, object]:
-    """Serializa el informe: el «k de N» por preinscripto con su desglose y la
-    lista de no asociadas. Metadatos solamente — el contenido de cuerpos y
+    """Serializa el informe: el «k de N» por preinscripto con su desglose, la
+    marca de bonificación no verificable, las no asociadas y las novedades —
+    aplicadas y con error —. Metadatos solamente: el contenido de cuerpos y
     adjuntos no forma parte del modelo, así que no puede aparecer acá."""
 
     return {
@@ -79,6 +99,7 @@ def informe_a_dict(informe: InformeCorridaPagos) -> dict[str, object]:
         "actividad_id": informe.actividad_id,
         "actividad": informe.actividad,
         "contrato_plan": informe.contract_version,
+        "contrato_novedades": informe.novedades_contract_version,
         "hoy": informe.hoy.isoformat(),
         "preinscriptos": [
             {
@@ -89,6 +110,9 @@ def informe_a_dict(informe: InformeCorridaPagos) -> dict[str, object]:
                     f"{situacion.cuotas_cubiertas} de {len(situacion.cuotas)}"
                 ),
                 "detalle": _detalle_cobertura(situacion),
+                "bonificacion_no_verificable": (
+                    situacion.bonificacion_no_verificable
+                ),
                 "cuotas": [
                     {
                         "nro": cuota.nro_cuota,
@@ -119,6 +143,16 @@ def informe_a_dict(informe: InformeCorridaPagos) -> dict[str, object]:
                 "motivo": respuesta.motivo,
             }
             for respuesta in informe.no_asociadas
+        ],
+        "novedades_aplicadas": [
+            _novedad_a_dict(novedad) for novedad in informe.novedades_aplicadas
+        ],
+        "novedades_con_error": [
+            {
+                **_novedad_a_dict(error.novedad),
+                "motivo": error.motivo,
+            }
+            for error in informe.novedades_con_error
         ],
     }
 
@@ -171,6 +205,18 @@ def _comprobante_a_dict(comprobante: Comprobante) -> dict[str, object]:
         "nombre": comprobante.nombre,
         "fecha": _fecha_a_texto(comprobante.fecha),
         "message_id": comprobante.message_id,
+    }
+
+
+def _novedad_a_dict(novedad: NovedadPago) -> dict[str, object]:
+    """La novedad con su trazabilidad: fila de origen, fecha y responsable."""
+    return {
+        "fila": novedad.fila,
+        "id_inscripcion": novedad.id_inscripcion,
+        "tipo": novedad.tipo,
+        "valor": novedad.valor,
+        "fecha": novedad.fecha,
+        "responsable": novedad.responsable,
     }
 
 
