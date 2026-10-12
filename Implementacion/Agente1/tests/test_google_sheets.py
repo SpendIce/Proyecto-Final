@@ -9,7 +9,7 @@ import time
 
 import pytest
 
-from agente1.fuentes import COLUMNAS_GACETILLA, FuenteSolicitudesError
+from agente1.fuentes import COLUMNAS_ACTIVIDADES_V2, FuenteSolicitudesError
 from agente1.google_workspace import (
     MAX_WORKSPACE_RESPONSE_BYTES,
     GoogleSheetsFuenteSolicitudes,
@@ -61,20 +61,26 @@ class TransporteCaptura:
 def respuesta_values(filas: list[list[object]]) -> RespuestaHttp:
     return RespuestaHttp(
         status=200,
-        body=json.dumps({"range": "Solicitudes!A1:I20", "values": filas}).encode(),
+        body=json.dumps({"range": "Actividades!A1:O20", "values": filas}).encode(),
     )
 
 
-def fila_valida(id_solicitud: str = "SYN-001") -> list[str]:
+def fila_valida(id_actividad: str = "SYN-001") -> list[str]:
     return [
-        id_solicitud,
+        id_actividad,
         "Actividad sintética",
         "Caso controlado",
         "2026-08-05",
+        "",
+        "",
+        "",
+        "",
+        "",
         "Comunidad ficticia",
         "Equipo de prueba",
         "pruebas@example.invalid",
-        "Dataset sintético",
+        "https://example.invalid/informe",
+        "",
         "Aula ficticia",
     ]
 
@@ -84,7 +90,7 @@ def crear_fuente(
     *,
     token_provider: TokenFijo | None = None,
     spreadsheet_id: str = "sheet_ID-123",
-    rango_a1: str = "'Solicitudes SEU'!A1:I20",
+    rango_a1: str = "'Actividades SEU'!A1:O20",
 ) -> tuple[GoogleSheetsFuenteSolicitudes, TransporteCaptura, TokenFijo]:
     transporte = TransporteCaptura(respuesta)
     tokens = token_provider or TokenFijo()
@@ -100,20 +106,20 @@ def crear_fuente(
 
 def test_sheets_values_get_codifica_range_y_devuelve_fila_unica():
     fuente, transporte, tokens = crear_fuente(
-        respuesta_values([list(COLUMNAS_GACETILLA), fila_valida()])
+        respuesta_values([list(COLUMNAS_ACTIVIDADES_V2), fila_valida()])
     )
     antes = time.monotonic()
 
     fila = fuente.obtener("SYN-001")
 
-    assert fila == dict(zip(COLUMNAS_GACETILLA, fila_valida(), strict=True))
+    assert fila == dict(zip(COLUMNAS_ACTIVIDADES_V2, fila_valida(), strict=True))
     assert tokens.invocaciones == 1
     solicitud = transporte.solicitudes[0]
     assert solicitud["method"] == "GET"
     assert solicitud["host"] == "sheets.googleapis.com"
     assert solicitud["target"] == (
         "/v4/spreadsheets/sheet_ID-123/values/"
-        "%27Solicitudes%20SEU%27%21A1%3AI20"
+        "%27Actividades%20SEU%27%21A1%3AO20"
         "?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE"
     )
     assert solicitud["headers"] == {
@@ -128,7 +134,7 @@ def test_sheets_values_get_codifica_range_y_devuelve_fila_unica():
 def test_sheets_rellena_celdas_finales_omitidas_por_values_get():
     fila_sin_lugar = fila_valida()[:-1]
     fuente, _, _ = crear_fuente(
-        respuesta_values([list(COLUMNAS_GACETILLA), fila_sin_lugar])
+        respuesta_values([list(COLUMNAS_ACTIVIDADES_V2), fila_sin_lugar])
     )
 
     fila = fuente.obtener("SYN-001")
@@ -139,24 +145,24 @@ def test_sheets_rellena_celdas_finales_omitidas_por_values_get():
 @pytest.mark.parametrize(
     ("filas", "codigo"),
     [
-        ([list(COLUMNAS_GACETILLA[:-1]), fila_valida()[:-1]], "sheets_headers_invalid"),
+        ([list(COLUMNAS_ACTIVIDADES_V2[:-1]), fila_valida()[:-1]], "sheets_headers_invalid"),
         (
             [
-                [*COLUMNAS_GACETILLA[:-1], "fuente"],
+                [*COLUMNAS_ACTIVIDADES_V2[:-1], "fuente"],
                 fila_valida(),
             ],
             "sheets_headers_invalid",
         ),
         (
-            [list(COLUMNAS_GACETILLA), [*fila_valida(), "extra"]],
+            [list(COLUMNAS_ACTIVIDADES_V2), [*fila_valida(), "extra"]],
             "sheets_row_invalid",
         ),
         (
-            [list(COLUMNAS_GACETILLA), [*fila_valida()[:-1], 42]],
+            [list(COLUMNAS_ACTIVIDADES_V2), [*fila_valida()[:-1], 42]],
             "sheets_row_invalid",
         ),
         (
-            [list(COLUMNAS_GACETILLA), fila_valida("SYN-DUP"), fila_valida("SYN-DUP")],
+            [list(COLUMNAS_ACTIVIDADES_V2), fila_valida("SYN-DUP"), fila_valida("SYN-DUP")],
             "source_duplicate_id",
         ),
     ],
@@ -174,7 +180,7 @@ def test_sheets_enumera_todas_las_filas_del_rango_con_una_sola_solicitud_http():
     fuente, transporte, tokens = crear_fuente(
         respuesta_values(
             [
-                list(COLUMNAS_GACETILLA),
+                list(COLUMNAS_ACTIVIDADES_V2),
                 fila_valida("SYN-001"),
                 fila_valida("SYN-002"),
             ]
@@ -183,15 +189,15 @@ def test_sheets_enumera_todas_las_filas_del_rango_con_una_sola_solicitud_http():
 
     actividades = fuente.enumerar()
 
-    assert [a["id_solicitud"] for a in actividades] == ["SYN-001", "SYN-002"]
-    assert all(tuple(a) == COLUMNAS_GACETILLA for a in actividades)
+    assert [a["id_actividad"] for a in actividades] == ["SYN-001", "SYN-002"]
+    assert all(tuple(a) == COLUMNAS_ACTIVIDADES_V2 for a in actividades)
     assert tokens.invocaciones == 1
     assert len(transporte.solicitudes) == 1
     assert transporte.solicitudes[0]["method"] == "GET"
 
 
 def test_sheets_enumera_catalogo_vacio_devuelve_lista_vacia():
-    fuente, _, _ = crear_fuente(respuesta_values([list(COLUMNAS_GACETILLA)]))
+    fuente, _, _ = crear_fuente(respuesta_values([list(COLUMNAS_ACTIVIDADES_V2)]))
 
     assert fuente.enumerar() == []
 
@@ -199,24 +205,24 @@ def test_sheets_enumera_catalogo_vacio_devuelve_lista_vacia():
 @pytest.mark.parametrize(
     ("filas", "codigo"),
     [
-        ([list(COLUMNAS_GACETILLA[:-1]), fila_valida()[:-1]], "sheets_headers_invalid"),
+        ([list(COLUMNAS_ACTIVIDADES_V2[:-1]), fila_valida()[:-1]], "sheets_headers_invalid"),
         (
             [
-                [*COLUMNAS_GACETILLA[:-1], "fuente"],
+                [*COLUMNAS_ACTIVIDADES_V2[:-1], "fuente"],
                 fila_valida(),
             ],
             "sheets_headers_invalid",
         ),
         (
-            [list(COLUMNAS_GACETILLA), [*fila_valida(), "extra"]],
+            [list(COLUMNAS_ACTIVIDADES_V2), [*fila_valida(), "extra"]],
             "sheets_row_invalid",
         ),
         (
-            [list(COLUMNAS_GACETILLA), [*fila_valida()[:-1], 42]],
+            [list(COLUMNAS_ACTIVIDADES_V2), [*fila_valida()[:-1], 42]],
             "sheets_row_invalid",
         ),
         (
-            [list(COLUMNAS_GACETILLA), fila_valida("SYN-DUP"), fila_valida("SYN-DUP")],
+            [list(COLUMNAS_ACTIVIDADES_V2), fila_valida("SYN-DUP"), fila_valida("SYN-DUP")],
             "source_duplicate_id",
         ),
     ],
@@ -255,7 +261,7 @@ def test_sheets_enumera_mapea_http_sin_filtrar_token_o_cuerpo(status, codigo):
 
 def test_sheets_solicitud_inexistente_usa_codigo_cerrado():
     fuente, _, _ = crear_fuente(
-        respuesta_values([list(COLUMNAS_GACETILLA), fila_valida()])
+        respuesta_values([list(COLUMNAS_ACTIVIDADES_V2), fila_valida()])
     )
 
     with pytest.raises(FuenteSolicitudesError) as error:
@@ -315,8 +321,8 @@ def test_sheets_rechaza_respuesta_invalida_y_sobredimensionada(respuesta, codigo
 @pytest.mark.parametrize(
     ("spreadsheet_id", "rango_a1"),
     [
-        ("https://evil.invalid/sheet", "Solicitudes!A1:I20"),
-        ("sheet-ok", "Solicitudes!A1:I20\nAuthorization: secreto"),
+        ("https://evil.invalid/sheet", "Actividades!A1:O20"),
+        ("sheet-ok", "Actividades!A1:O20\nAuthorization: secreto"),
         ("sheet-ok", ""),
     ],
 )
@@ -341,7 +347,7 @@ def test_sheets_rechaza_token_vacio_o_con_inyeccion_sin_invocar_transporte():
         transporte = TransporteCaptura(respuesta_values([]))
         fuente = GoogleSheetsFuenteSolicitudes(
             spreadsheet_id="sheet-ok",
-            rango_a1="Solicitudes!A1:I20",
+            rango_a1="Actividades!A1:O20",
             token_provider=TokenFijo(token),
             transport=transporte,
         )
@@ -366,7 +372,7 @@ def test_sheets_transport_error_se_redacta_y_no_reintenta():
     transporte = TransporteQueFalla()
     fuente = GoogleSheetsFuenteSolicitudes(
         spreadsheet_id="sheet-ok",
-        rango_a1="Solicitudes!A1:I20",
+        rango_a1="Actividades!A1:O20",
         token_provider=TokenFijo(),
         transport=transporte,
     )
@@ -400,7 +406,7 @@ class GeneratorIntegracion:
 
 def test_sheets_se_integra_al_core_con_transporte_fake(tmp_path):
     fuente, _, _ = crear_fuente(
-        respuesta_values([list(COLUMNAS_GACETILLA), fila_valida()])
+        respuesta_values([list(COLUMNAS_ACTIVIDADES_V2), fila_valida()])
     )
     generator = GeneratorIntegracion()
 

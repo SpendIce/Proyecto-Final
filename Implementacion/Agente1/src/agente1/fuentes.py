@@ -1,23 +1,34 @@
-"""Puerto de entrada: de dónde salen los datos de una solicitud.
+"""Puerto de entrada: de dónde salen los datos de una actividad.
 
 El agente nunca inventa datos de una actividad: los lee de una fuente externa
-que la institución controla. `FuenteSolicitudes` es el puerto y cada adapter
-—CSV local, Google Sheets— resuelve el mismo contrato: dado un `id_solicitud`,
-devolver exactamente una fila con las columnas de `COLUMNAS_GACETILLA`. El
-puerto también sabe enumerar el catálogo completo con esa misma forma de
-fila, para quien necesita buscar una actividad sin conocer su identificador.
+que la institución controla (decisión #54: el agente lee actividades, no las
+crea). `FuenteSolicitudes` es el puerto y cada adapter —la pestaña de
+actividades de D2 vía Google Sheets, el CSV exportado— resuelve el mismo
+contrato: dado un `id_actividad`, devolver exactamente una fila con las
+columnas de `COLUMNAS_ACTIVIDADES_V2`. El puerto también sabe enumerar el
+catálogo completo con esa misma forma de fila, para quien necesita buscar una
+actividad sin conocer su identificador.
 
 Decisiones que no se ven en el código:
 
 - **La fuente es de sólo lectura.** No hay ninguna operación de escritura en
   este puerto: el agente no marca filas como procesadas ni corrige datos en la
   planilla. Enumerar tampoco la agrega: es otra forma de leer, no de escribir.
-  Si algo está mal en el origen, lo corrige una persona.
+  Si algo está mal en el origen, lo corrige una persona —el Agente 1 lee
+  actividades, no las crea ni las mantiene.
 - **Los errores viajan como código, no como texto.** `FuenteSolicitudesError`
   lleva un `code` estable (`source_request_not_found`, `sheets_row_invalid`, …)
   porque ese código se escribe en el log de auditoría, y el mensaje de una
   excepción podría arrastrar contenido de la fila hacia el registro. La
   enumeración usa el mismo vocabulario de códigos que la lectura por id.
+- **`fuente` es un enlace, no un descriptor.** En v2 la columna `fuente`
+  apunta al documento/informe vigente de la actividad en Drive: la
+  procedencia es por actividad, no por campo.
+- **`id_solicitud` y `id_actividad` no son lo mismo.** El contrato identifica
+  actividades con `id_actividad`. Los módulos que gestionan pedidos y
+  ejecuciones de comunicación siguen llamando `id_solicitud` a su propia
+  clave de solicitud: es el vocabulario interno del pipeline, no de la
+  planilla de actividades.
 """
 
 from __future__ import annotations
@@ -27,25 +38,39 @@ from pathlib import Path
 from typing import Protocol
 
 
-# Orden y nombres de las columnas del contrato de entrada. Es una tupla y no un
-# conjunto porque el adapter de Sheets compara el encabezado posicionalmente:
-# una planilla con las mismas columnas en otro orden se rechaza en lugar de
-# leerse mal. Cambiar esta tupla es cambiar el contrato con la SEU.
-COLUMNAS_GACETILLA = (
-    "id_solicitud",
+# Orden y nombres de las columnas del contrato de la planilla de actividades
+# (v2). Es una tupla y no un conjunto porque el adapter de Sheets compara el
+# encabezado posicionalmente: una planilla con las mismas columnas en otro
+# orden se rechaza en lugar de leerse mal. Cambiar esta tupla es cambiar el
+# contrato con la SEU.
+#
+# Campos agregados por v2: `fecha_fin`, `fecha_limite_inscripcion`, `hora`,
+# `modalidad`, `duracion_horas` y `enlace_inscripcion` (que reemplaza al
+# `enlace` que el renderer ya soportaba). Arancel y cuotas quedan en la
+# planilla de pagos (#38), unida por `id_actividad`. La planilla no decide
+# qué campos son obligatorios: cada contrato de pieza (gacetilla, post)
+# declara los suyos.
+COLUMNAS_ACTIVIDADES_V2 = (
+    "id_actividad",
     "titulo",
     "descripcion",
-    "fecha",
+    "fecha_inicio",
+    "fecha_fin",
+    "fecha_limite_inscripcion",
+    "hora",
+    "modalidad",
+    "duracion_horas",
     "publico",
     "organiza",
     "contacto",
     "fuente",
+    "enlace_inscripcion",
     "lugar",
 )
 
 
 class FuenteSolicitudes(Protocol):
-    """Puerto de lectura de solicitudes.
+    """Puerto de lectura de actividades.
 
     Un adapter devuelve la fila pedida o levanta `FuenteSolicitudesError`. No
     debe devolver `None` ni una fila vacía para un id inexistente: la ausencia
@@ -53,14 +78,14 @@ class FuenteSolicitudes(Protocol):
     en la auditoría en vez de derivar en una generación sin datos.
 
     `enumerar` devuelve el catálogo completo con la misma forma de fila que
-    `obtener` (una lista de dicts con las claves de `COLUMNAS_GACETILLA`). Es
-    la operación que habilita construir un índice para búsqueda difusa sin que
-    el contenido de la fuente llegue a un prompt: quien enumera se queda con
-    datos estructurados, nunca con texto libre para interpretar. Sigue siendo
-    de sólo lectura y usa los mismos códigos de error que `obtener`.
+    `obtener` (una lista de dicts con las claves de `COLUMNAS_ACTIVIDADES_V2`).
+    Es la operación que habilita construir un índice para búsqueda difusa sin
+    que el contenido de la fuente llegue a un prompt: quien enumera se queda
+    con datos estructurados, nunca con texto libre para interpretar. Sigue
+    siendo de sólo lectura y usa los mismos códigos de error que `obtener`.
     """
 
-    def obtener(self, id_solicitud: str) -> dict[str, str]: ...
+    def obtener(self, id_actividad: str) -> dict[str, str]: ...
 
     def enumerar(self) -> list[dict[str, str]]: ...
 
@@ -78,9 +103,9 @@ def _leer_filas_csv(path: Path) -> tuple[list[str], list[dict[str, str]]]:
 
     Valida exactamente lo que ya validaba `obtener` antes de este prefactor
     (encabezados sin duplicar, ninguna fila desalineada) y nada más: no
-    compara el conjunto de columnas contra `COLUMNAS_GACETILLA` acá, porque
-    `obtener` nunca lo exigió y esta función es compartida con él. Ese chequeo
-    adicional, cuando hace falta, lo hace quien llama.
+    compara el conjunto de columnas contra `COLUMNAS_ACTIVIDADES_V2` acá,
+    porque `obtener` nunca lo exigió y esta función es compartida con él. Ese
+    chequeo adicional, cuando hace falta, lo hace quien llama.
     """
 
     filas: list[dict[str, str]] = []
@@ -93,25 +118,30 @@ def _leer_filas_csv(path: Path) -> tuple[list[str], list[dict[str, str]]]:
             if None in fila:
                 raise FuenteSolicitudesError("source_contract_invalid")
             filas.append(
-                {clave: fila.get(clave) or "" for clave in COLUMNAS_GACETILLA}
+                {clave: fila.get(clave) or "" for clave in COLUMNAS_ACTIVIDADES_V2}
             )
     return encabezados, filas
 
 
 class CsvFuenteSolicitudes:
-    """Adapter sobre un CSV local; es la fuente usada en pruebas y matrices."""
+    """Adapter sobre un CSV local; es la fuente usada en pruebas y matrices.
+
+    El CSV es una copia exportada de la pestaña de actividades de D2 para
+    trabajo offline: el mismo contrato `COLUMNAS_ACTIVIDADES_V2`, ninguna
+    transformación intermedia.
+    """
 
     def __init__(self, path: Path) -> None:
         self._path = path
 
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
+    def obtener(self, id_actividad: str) -> dict[str, str]:
         # Se recorre el archivo entero en lugar de cortar en la primera
         # coincidencia: un id repetido es un defecto del dataset y debe
         # rechazarse (`source_duplicate_id`), no resolverse eligiendo una fila
         # cualquiera. Con datasets de prueba el costo es irrelevante.
         _, filas = _leer_filas_csv(self._path)
         coincidencias = [
-            fila for fila in filas if fila["id_solicitud"] == id_solicitud
+            fila for fila in filas if fila["id_actividad"] == id_actividad
         ]
         if not coincidencias:
             raise FuenteSolicitudesError("source_request_not_found")
@@ -126,13 +156,13 @@ class CsvFuenteSolicitudes:
         # planilla equivocada. Es la misma lógica que ya aplica el adapter de
         # Sheets al comparar el encabezado del rango.
         encabezados, filas = _leer_filas_csv(self._path)
-        if set(encabezados) != set(COLUMNAS_GACETILLA):
+        if set(encabezados) != set(COLUMNAS_ACTIVIDADES_V2):
             raise FuenteSolicitudesError("source_contract_invalid")
         # Un id duplicado en el catálogo completo invalida cualquier índice
         # que se construya sobre él, aunque nadie lo haya pedido todavía.
         ids_vistos: set[str] = set()
         for fila in filas:
-            if fila["id_solicitud"] in ids_vistos:
+            if fila["id_actividad"] in ids_vistos:
                 raise FuenteSolicitudesError("source_duplicate_id")
-            ids_vistos.add(fila["id_solicitud"])
+            ids_vistos.add(fila["id_actividad"])
         return filas

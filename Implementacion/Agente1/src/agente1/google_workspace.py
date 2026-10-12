@@ -2,8 +2,9 @@
 
 Implementa los puertos `FuenteSolicitudes` y `DestinoBorradores` contra Sheets,
 Drive y Docs. Es el módulo que ejecuta el flujo aprobado por la SEU: leer la
-fila de la planilla de respuestas del formulario, copiar la plantilla
-institucional en la carpeta autorizada y volcar el borrador en esa copia.
+fila de la pestaña de actividades de D2 (sólo lectura, con el encabezado
+`COLUMNAS_ACTIVIDADES_V2`), copiar la plantilla institucional en la carpeta
+autorizada y volcar el borrador en esa copia.
 
 Decisiones que no se ven en el código:
 
@@ -50,7 +51,7 @@ from .destinos import (
     validar_entrada_borrador,
 )
 from .fuentes import (
-    COLUMNAS_GACETILLA,
+    COLUMNAS_ACTIVIDADES_V2,
     FuenteSolicitudes,
     FuenteSolicitudesError,
 )
@@ -67,7 +68,7 @@ MAX_WORKSPACE_TIMEOUT_S = 120.0
 # Forma de un identificador de Workspace. Se valida antes de interpolarlo en
 # una ruta: un id con `/` o `..` podría redirigir el request a otro recurso.
 ID_RE = re.compile(r"[A-Za-z0-9_-]{1,256}\Z")
-ID_SOLICITUD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
+ID_ACTIVIDAD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}\Z")
 
 
 class AccessTokenProvider(Protocol):
@@ -105,8 +106,10 @@ class TransporteHttp(Protocol):
 
 
 class GoogleSheetsFuenteSolicitudes(FuenteSolicitudes):
-    """Lee una fila de la planilla de solicitudes (la que llena el formulario).
+    """Lee una fila de la pestaña de actividades de la planilla D2.
 
+    Es un adapter de sólo lectura: el Agente 1 consume actividades ya
+    resueltas en la planilla institucional; no crea filas ni las modifica.
     La configuración fija una única planilla y un único rango: el agente no
     puede pedir otra hoja ni otro rango en tiempo de ejecución. Toda la
     validación de la configuración ocurre en el constructor, así un despliegue
@@ -140,13 +143,13 @@ class GoogleSheetsFuenteSolicitudes(FuenteSolicitudes):
         self._transport = transport or HttpsWorkspaceTransport()
         self._timeout_s = float(timeout_s)
 
-    def obtener(self, id_solicitud: str) -> dict[str, str]:
-        if not isinstance(id_solicitud, str) or ID_SOLICITUD_RE.fullmatch(
-            id_solicitud
+    def obtener(self, id_actividad: str) -> dict[str, str]:
+        if not isinstance(id_actividad, str) or ID_ACTIVIDAD_RE.fullmatch(
+            id_actividad
         ) is None:
             raise FuenteSolicitudesError("source_request_invalid")
         values = self._leer_valores()
-        return _buscar_fila(values, id_solicitud)
+        return _buscar_fila(values, id_actividad)
 
     def enumerar(self) -> list[dict[str, str]]:
         # Misma lectura que `obtener`, sin recorte a un id: el rango
@@ -515,13 +518,12 @@ class _RespuestaDemasiadoGrande(Exception):
 def _parsear_filas(values: list[object]) -> dict[str, dict[str, str]]:
     """Valida el rango leído y arma el catálogo indexado por id.
 
-    Requisito de configuración importante para el flujo con Google Forms: el
-    encabezado del rango debe ser **exactamente** `COLUMNAS_GACETILLA`, en ese
-    orden. La hoja de respuestas de un formulario agrega su propia columna de
-    marca temporal y usa los enunciados de las preguntas como encabezados, así
-    que hay que apuntar el rango a las columnas correctas o volcar a una hoja
-    derivada. Es deliberado que no se acomode solo: una planilla con otra forma
-    puede significar que se está leyendo la planilla equivocada.
+    Requisito de configuración importante de la pestaña de actividades de D2:
+    el encabezado del rango debe ser **exactamente**
+    `COLUMNAS_ACTIVIDADES_V2`, en ese orden. Es deliberado que no se acomode
+    solo: una planilla con otra forma puede significar que se está leyendo la
+    planilla equivocada —por ejemplo, la pestaña todavía no migrada al
+    encabezado v2.
 
     Comparte esta validación `obtener` (busca un id en el resultado) y
     `enumerar` (devuelve el catálogo completo): las dos operaciones deben
@@ -531,45 +533,45 @@ def _parsear_filas(values: list[object]) -> dict[str, dict[str, str]]:
     if not values or not isinstance(values[0], list):
         raise FuenteSolicitudesError("sheets_headers_invalid")
     encabezados = values[0]
-    if tuple(encabezados) != COLUMNAS_GACETILLA:
+    if tuple(encabezados) != COLUMNAS_ACTIVIDADES_V2:
         raise FuenteSolicitudesError("sheets_headers_invalid")
 
     filas_por_id: dict[str, dict[str, str]] = {}
     for fila_cruda in values[1:]:
         if (
             not isinstance(fila_cruda, list)
-            or len(fila_cruda) > len(COLUMNAS_GACETILLA)
+            or len(fila_cruda) > len(COLUMNAS_ACTIVIDADES_V2)
             or any(not isinstance(valor, str) for valor in fila_cruda)
         ):
             raise FuenteSolicitudesError("sheets_row_invalid")
         # Sheets recorta las celdas vacías del final de una fila: una fila sin
-        # `lugar` llega con 8 elementos en vez de 9. Se completa con vacíos para
-        # que la posición de cada columna siga siendo la del contrato.
+        # `lugar` llega con 14 elementos en vez de 15. Se completa con vacíos
+        # para que la posición de cada columna siga siendo la del contrato.
         fila_completa = [
             *fila_cruda,
-            *([""] * (len(COLUMNAS_GACETILLA) - len(fila_cruda))),
+            *([""] * (len(COLUMNAS_ACTIVIDADES_V2) - len(fila_cruda))),
         ]
         # Filas totalmente vacías (separadores, restos de edición) se ignoran;
-        # no son solicitudes ni errores.
+        # no son actividades ni errores.
         if not any(fila_completa):
             continue
         identificador = fila_completa[0]
-        if ID_SOLICITUD_RE.fullmatch(identificador) is None:
+        if ID_ACTIVIDAD_RE.fullmatch(identificador) is None:
             raise FuenteSolicitudesError("sheets_row_invalid")
         if identificador in filas_por_id:
             raise FuenteSolicitudesError("source_duplicate_id")
         filas_por_id[identificador] = dict(
-            zip(COLUMNAS_GACETILLA, fila_completa, strict=True)
+            zip(COLUMNAS_ACTIVIDADES_V2, fila_completa, strict=True)
         )
     return filas_por_id
 
 
-def _buscar_fila(values: list[object], id_solicitud: str) -> dict[str, str]:
+def _buscar_fila(values: list[object], id_actividad: str) -> dict[str, str]:
     """Ubica la fila pedida dentro del rango leído."""
 
     filas_por_id = _parsear_filas(values)
     try:
-        return filas_por_id[id_solicitud]
+        return filas_por_id[id_actividad]
     except KeyError:
         raise FuenteSolicitudesError("source_request_not_found") from None
 

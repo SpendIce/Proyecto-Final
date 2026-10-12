@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:post-input:v2",
+  "title": "Contrato provisional de entrada para posts (planilla de actividades v2)",
+  "description": "Contrato técnico del PoC HU-011 sobre la planilla de actividades v2. No representa una política institucional aprobada por la SEU. Las propiedades siguen el orden y los nombres de COLUMNAS_ACTIVIDADES_V2; `required` es decisión de esta pieza, no de la planilla.",
+  "x-contract-version": "post_input_v2",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "type": "object",
+  "required": [
+    "id_actividad",
+    "titulo",
+    "descripcion",
+    "fecha_inicio",
+    "publico",
+    "organiza",
+    "contacto",
+    "fuente"
+  ],
+  "properties": {
+    "id_actividad": {"type": "string", "minLength": 1},
+    "titulo": {"type": "string", "minLength": 1},
+    "descripcion": {"type": "string", "minLength": 1},
+    "fecha_inicio": {"type": "string", "minLength": 1},
+    "fecha_fin": {
+      "type": "string",
+      "description": "Campo opcional; vacío significa no informado.",
+      "x-required": false
+    },
+    "fecha_limite_inscripcion": {
+      "type": "string",
+      "description": "Campo opcional; vacío significa no informado.",
+      "x-required": false
+    },
+    "hora": {
+      "type": "string",
+      "description": "Campo opcional; vacío significa no informado.",
+      "x-required": false
+    },
+    "modalidad": {
+      "type": "string",
+      "description": "Campo opcional; vacío significa no informado.",
+      "x-required": false
+    },
+    "duracion_horas": {
+      "type": "string",
+      "description": "Campo opcional; vacío significa no informado.",
+      "x-required": false
+    },
+    "publico": {"type": "string", "minLength": 1},
+    "organiza": {"type": "string", "minLength": 1},
+    "contacto": {"type": "string", "minLength": 1},
+    "fuente": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Enlace al documento/informe vigente de la actividad en Drive; procedencia por actividad."
+    },
+    "enlace_inscripcion": {
+      "type": "string",
+      "description": "Campo opcional; vacío significa no informado. Reemplaza al `enlace` que el renderer ya soportaba.",
+      "x-required": false
+    },
+    "lugar": {
+      "type": "string",
+      "description": "Campo opcional; vacío significa no informado.",
+      "x-required": false
+    }
+  },
+  "additionalProperties": true
+}
