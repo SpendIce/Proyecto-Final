@@ -75,7 +75,7 @@ def test_matriz_cubre_el_circuito_por_lote_de_pagos(tmp_path: Path):
     assert pagos["anticipaciones_default"] == [7, 2]
     assert pagos["estado_pagos"] == "derivado_en_cada_corrida"
     por_caso = {caso["case"]: caso for caso in pagos["cases"]}
-    assert pagos["totals"]["executions"] == len(pagos["cases"]) == 13
+    assert pagos["totals"]["executions"] == len(pagos["cases"]) == 23
 
     plan_7d = por_caso["pagos_planificacion_7d"]
     assert plan_7d["observed_state"] == "PLANIFICADO"
@@ -118,6 +118,54 @@ def test_matriz_cubre_el_circuito_por_lote_de_pagos(tmp_path: Path):
     assert por_caso["pagos_auditoria_sin_datos_sensibles"][
         "observed_state"
     ] == "AUDITORIA_LIMPIA"
+
+    # Corte 4: instrucciones de pago por el circuito por envío (D8).
+    instr = pagos["instrucciones_pago"]
+    assert instr["tipo_notificacion"] == "instrucciones_pago"
+    assert instr["circuito"] == "por_envio"
+    assert instr["asunto_borrador"] == "asunto_preinscripcion_del_plan"
+    assert instr["entrega"] == "fake"
+    borrador = por_caso["pagos_instrucciones_borrador"]
+    assert borrador["observed_state"] == "PENDIENTE_VALIDACION"
+    assert borrador["draft_created"] is True
+    assert borrador["asunto_igual_al_plan"] is True
+    aprobada = por_caso["pagos_instrucciones_aprobada_fake"]
+    assert aprobada["observed_state"] == "ENVIADA_SIMULADA"
+    assert aprobada["real_delivery"] is False
+    assert aprobada["asunto_igual_al_plan"] is True
+    assert aprobada["fake_deliveries_after"] == 1
+    mal_formada = por_caso["pagos_instrucciones_mal_formada"]
+    assert mal_formada["observed_state"] == "INVALIDA"
+    assert mal_formada["draft_created"] is False
+
+    # La respuesta se asocia por el asunto del plan; otro asunto, no (§4.2).
+    asociada = por_caso["pagos_asociacion_asunto_respuesta"]
+    assert asociada["observed_state"] == "COMPROBANTE_PRESENTADO"
+    assert asociada["respuestas_no_asociadas"] == 0
+    assert por_caso["pagos_asunto_distinto_no_asocia"]["observed_state"] == (
+        "NO_ASOCIADA"
+    )
+
+    # Los candidatos a confirmación (D9): cuota 1 confirmada o bonificada.
+    conf = pagos["confirmacion_inscripcion"]
+    assert conf["tipo_notificacion"] == "inscripcion"
+    assert conf["excluye"] == "COMPROBANTE_PRESENTADO"
+    confirmado = por_caso["pagos_candidato_pago_confirmado"]
+    assert confirmado["observed_state"] == "PLANIFICADO"
+    assert confirmado["candidatos"] == 1
+    assert confirmado["razones"] == ["PAGO_CONFIRMADO"]
+    bonificada = por_caso["pagos_candidato_bonificada"]
+    assert bonificada["razones"] == ["BONIFICADA"]
+    comprobante = por_caso["pagos_sin_candidato_comprobante"]
+    assert comprobante["observed_state"] == "VACIO"
+    assert comprobante["candidatos"] == 0
+    confirmacion = por_caso["pagos_confirmacion_inscripcion_fake"]
+    assert confirmacion["observed_state"] == "ENVIADA_SIMULADA"
+    assert confirmacion["tipo_notificacion"] == "inscripcion"
+    assert confirmacion["real_delivery"] is False
+    duplicada = por_caso["pagos_confirmacion_idempotente_segunda_corrida"]
+    assert duplicada["observed_state"] == "DUPLICADA"
+    assert duplicada["fake_deliveries_after"] == 1
 
     # La matriz serializada no lleva links, datos bancarios ni personas.
     texto = json.dumps(resumen, ensure_ascii=False)
