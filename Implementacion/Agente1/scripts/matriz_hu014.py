@@ -8,6 +8,15 @@ contra el destino fake. Es la evidencia de que la secuencia de autorización
 con doble aprobación (semántica del RGC y utilitaria del Coordinador de
 Extensión, CU10 del bible) se cumple antes de que exista capacidad real de
 emisión, plantilla institucional o firma digital.
+
+Desde `matriz_conformidad_hu014_v2` (#74) la matriz también recorre el
+circuito de la línea descriptiva: el borrador con la línea y las variables
+del registro, el rechazo por gates en la entrada, la emisión bloqueada sin
+las dos decisiones de la línea en el `RegistroDecisiones`, la bloqueada con
+aprobación parcial, la bloqueada sin `apruebo_lote` del lote de cierre y la
+emisión simulada con todo aprobado. Las decisiones del Form se simulan
+escribiendo la auditoría del registro directamente; el recorrido por el
+Form real queda para la ejecución del operador en D2, como en #72.
 """
 
 from __future__ import annotations
@@ -37,6 +46,95 @@ from agente1.confirmaciones import (  # noqa: E402
     ROL_APROBACION_SEMANTICA,
     ROL_APROBACION_UTILITARIA,
 )
+from agente1.decisiones_form import (  # noqa: E402
+    DECISION_APRUEBO_LOTE,
+    DECISION_APRUEBO_SEMANTICA,
+    DECISION_APRUEBO_UTILITARIA,
+    RESULTADO_REGISTRADA,
+    RegistroDecisiones,
+    ResultadoDecision,
+    TIPO_LINEA_DESCRIPTIVA,
+    TIPO_LOTE,
+)
+from agente1.linea_descriptiva import (  # noqa: E402
+    objeto_id_linea_descriptiva,
+)
+
+
+LINEA_DESCRIPTIVA = (
+    "Espacio de formación docente en tecnología aplicada a la enseñanza."
+)
+ACTIVIDAD_LINEA = "SYN-001"
+LOTE_CIERRE = "lote-cierre-syn-001"
+
+
+def _decision_simulada(
+    *,
+    tipo: str,
+    objeto_id: str,
+    decision: str,
+    rol: str,
+    semilla: str,
+) -> ResultadoDecision:
+    """La línea de auditoría que dejaría una respuesta del Form procesada."""
+
+    return ResultadoDecision(
+        id_respuesta=_hash(semilla),
+        correo_hash=_hash(f"correo-{semilla}"),
+        rol=rol,
+        rol_origen="padron",
+        tipo=tipo,
+        objeto_id=objeto_id,
+        decision=decision,
+        resultado=RESULTADO_REGISTRADA,
+        rechazo_codigo=None,
+        marca_temporal_form="2026-10-11 09:00:00",
+        timestamp="2026-10-11T12:00:00+00:00",
+    )
+
+
+def _registro_decisiones(
+    directorio: Path, *, con_linea: int, con_lote: bool
+) -> RegistroDecisiones:
+    """Auditoría simulada del Form: 0 sin línea, 1 sólo semántica, 2 las dos."""
+
+    registro = RegistroDecisiones(directorio)
+    objeto = objeto_id_linea_descriptiva(ACTIVIDAD_LINEA, LINEA_DESCRIPTIVA)
+    if con_linea >= 1:
+        registro.registrar(
+            _decision_simulada(
+                tipo=TIPO_LINEA_DESCRIPTIVA,
+                objeto_id=objeto,
+                decision=DECISION_APRUEBO_SEMANTICA,
+                rol=ROL_APROBACION_SEMANTICA,
+                semilla=f"sem-{objeto}",
+            )
+        )
+    if con_linea >= 2:
+        registro.registrar(
+            _decision_simulada(
+                tipo=TIPO_LINEA_DESCRIPTIVA,
+                objeto_id=objeto,
+                decision=DECISION_APRUEBO_UTILITARIA,
+                rol=ROL_APROBACION_UTILITARIA,
+                semilla=f"uti-{objeto}",
+            )
+        )
+    if con_lote:
+        registro.registrar(
+            _decision_simulada(
+                tipo=TIPO_LOTE,
+                objeto_id=LOTE_CIERRE,
+                decision=DECISION_APRUEBO_LOTE,
+                rol=ROL_APROBACION_UTILITARIA,
+                semilla=f"lote-{LOTE_CIERRE}",
+            )
+        )
+    return registro
+
+
+def _hash(valor: str) -> str:
+    return hashlib.sha256(valor.encode("utf-8")).hexdigest()
 
 
 def main() -> int:
@@ -151,6 +249,127 @@ def main() -> int:
         destino=destino, emitir=True,
     )
 
+    # --- Circuito de la línea descriptiva (#74) --------------------------------
+    #
+    # La solicitud trae la línea ya aprobada como variable más `id_actividad`,
+    # `modalidad` y `carga_horaria` copiadas del registro de la actividad.
+
+    con_linea = replace(
+        base,
+        id_certificado="CERT-011",
+        id_actividad=ACTIVIDAD_LINEA,
+        linea_descriptiva=LINEA_DESCRIPTIVA,
+        modalidad="presencial",
+        carga_horaria="6 horas",
+    )
+    _ejecutar(
+        casos, "linea_pending_draft", con_linea, salida,
+        RegistroCertificadosMemoria(),
+        golden="certificado-linea.txt",
+    )
+    # Una línea que no pasa los gates se rechaza en la entrada, aunque el
+    # llamador se haya saltado la generación.
+    _ejecutar(
+        casos, "linea_gate_invalid",
+        replace(
+            con_linea,
+            id_certificado="CERT-012",
+            linea_descriptiva="Formación con una carga de 40 horas.",
+        ),
+        salida, RegistroCertificadosMemoria(),
+    )
+    _ejecutar(
+        casos, "linea_gate_multiline",
+        replace(
+            con_linea,
+            id_certificado="CERT-013",
+            linea_descriptiva=(
+                "Espacio de formación docente.\nOtra línea indebida acá."
+            ),
+        ),
+        salida, RegistroCertificadosMemoria(),
+    )
+
+    # Emisión bloqueada: sin registro de decisiones, con aprobación parcial
+    # de la línea, y con la línea aprobada pero sin `apruebo_lote` del lote
+    # de cierre. La aprobación que se registra es la utilitaria del circuito
+    # del certificado, pero la emisión no se dispara.
+    for numero, (nombre, con_decisiones, lote) in enumerate(
+        (
+            ("linea_no_decisions", None, LOTE_CIERRE),
+            (
+                "linea_partial_approval",
+                _registro_decisiones(
+                    salida
+                    / "casos"
+                    / "linea_partial_approval"
+                    / "decisiones",
+                    con_linea=1,
+                    con_lote=True,
+                ),
+                LOTE_CIERRE,
+            ),
+            (
+                "linea_batch_unapproved",
+                _registro_decisiones(
+                    salida
+                    / "casos"
+                    / "linea_batch_unapproved"
+                    / "decisiones",
+                    con_linea=2,
+                    con_lote=False,
+                ),
+                LOTE_CIERRE,
+            ),
+            (
+                "linea_no_batch_declared",
+                _registro_decisiones(
+                    salida
+                    / "casos"
+                    / "linea_no_batch_declared"
+                    / "decisiones",
+                    con_linea=2,
+                    con_lote=True,
+                ),
+                None,
+            ),
+        ),
+        start=16,
+    ):
+        _ejecutar(
+            casos, nombre,
+            replace(con_linea, id_certificado=f"CERT-{numero:03d}"),
+            salida, RegistroCertificadosMemoria(),
+            aprobacion=utilitaria,
+            destino=DestinoCertificadosFake(), emitir=True,
+            decisiones=con_decisiones, lote_cierre=lote,
+        )
+
+    # Emisión simulada con el circuito completo: las dos aprobaciones del
+    # certificado, las dos de la línea (una vez por actividad) y la del lote
+    # de cierre, todo registrado en la auditoría.
+    registro_linea = RegistroCertificadosMemoria()
+    destino_linea = DestinoCertificadosFake()
+    solicitud_linea = replace(con_linea, id_certificado="CERT-014")
+    for decision in (semantica, utilitaria):
+        procesar_certificado(
+            solicitud=solicitud_linea,
+            directorio_salida=salida / "casos" / "linea_emission_simulated",
+            registro=registro_linea,
+            aprobacion=decision,
+        )
+    _ejecutar(
+        casos, "linea_emission_simulated", solicitud_linea, salida,
+        registro_linea,
+        destino=destino_linea, emitir=True,
+        decisiones=_registro_decisiones(
+            salida / "casos" / "linea_emission_simulated" / "decisiones",
+            con_linea=2,
+            con_lote=True,
+        ),
+        lote_cierre=LOTE_CIERRE,
+    )
+
     # Recuperación durable: reserva colgada tras un reinicio, reconciliada sin
     # reemitir. El segundo registro es un objeto nuevo sobre el mismo
     # directorio, que es lo que ve un proceso recién arrancado.
@@ -186,6 +405,9 @@ def main() -> int:
             "pdf_sha256": None,
             "pdf_has_draft_mark": None,
             "emission_mode": "none",
+            "descriptive_line_hash": None,
+            "linea_objeto_id": None,
+            "closing_batch_id": None,
             "real_emission": False,
             "fake_emissions_after": 0,
         }
@@ -193,7 +415,7 @@ def main() -> int:
 
     estados = [caso["observed_state"] for caso in casos]
     resumen = {
-        "schema_version": "matriz_conformidad_hu014_v1",
+        "schema_version": "matriz_conformidad_hu014_v2",
         "evidence_kind": "CONFORMIDAD_CONTRACTUAL_SIMULADA",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "data_origin": "SIMULADA",
@@ -204,8 +426,9 @@ def main() -> int:
         "real_certificate_issued": False,
         "trl3_claimed": False,
         "artifact_hashes": {
-            "contract_sha256": _sha256(ROOT / "src" / "agente1" / "contracts" / "certificado_emision_v1.schema.json"),
-            "template_sha256": _sha256(ROOT / "src" / "agente1" / "prompts" / "certificado_provisional_v1.txt"),
+            "contract_sha256": _sha256(ROOT / "src" / "agente1" / "contracts" / "certificado_emision_v2.schema.json"),
+            "template_sha256": _sha256(ROOT / "src" / "agente1" / "prompts" / "certificado_provisional_v2.txt"),
+            "linea_prompt_sha256": _sha256(ROOT / "src" / "agente1" / "prompts" / "linea_descriptiva_v1.txt"),
             "runner_sha256": _sha256(Path(__file__)),
         },
         "totals": {
@@ -225,8 +448,10 @@ def main() -> int:
         "limitations": [
             "Todos los datos, roles y decisiones humanas de esta matriz son simulados.",
             "Las dos aprobaciones del circuito (semántica y utilitaria) son simuladas: los roles institucionales reales siguen pendientes de la identidad SEU/DSI.",
+            "Las decisiones del Form (`linea_descriptiva` y `lote`) se simulan escribiendo la auditoría del RegistroDecisiones; el recorrido por el Form real queda para la ejecución del operador en D2.",
+            "La línea descriptiva de los casos es texto fijo de la matriz, no una salida de modelo: el pipeline de generación se ejercita en tests con generador fake.",
             "La plantilla del certificado es provisional y no fue aprobada por SEU (PENDIENTE_SEU).",
-            "EMITIDA_SIMULADA significa una emisión en memoria; no se emitió ni firmó un certificado real.",
+            "EMITIDA_SIMULADA significa una emisión en memoria; no se emitió ni firmó un certificado real. La emisión en vivo de HU-014 es alcance del ticket #75.",
             "No hay firma digital: el PDF generado es un artefacto de texto provisional sin validez institucional.",
             "La matriz no acredita validación institucional, Gate G2 ni TRL 3.",
         ],
@@ -251,6 +476,8 @@ def _ejecutar(
     destino: DestinoCertificadosFake | None = None,
     emitir: bool = False,
     golden: str | None = None,
+    decisiones: RegistroDecisiones | None = None,
+    lote_cierre: str | None = None,
 ) -> None:
     resultado = procesar_certificado(
         solicitud=solicitud,
@@ -259,6 +486,8 @@ def _ejecutar(
         aprobacion=aprobacion,
         destino=destino,
         emitir=emitir,
+        decisiones=decisiones,
+        lote_cierre=lote_cierre,
     )
     if golden is not None:
         esperado = (ROOT / "golden" / "certificados" / golden).read_text(encoding="utf-8")
@@ -288,6 +517,9 @@ def _ejecutar(
             if resultado.pdf is not None
             else None,
             "emission_mode": ultimo["emission_mode"],
+            "descriptive_line_hash": ultimo["descriptive_line_hash"],
+            "linea_objeto_id": ultimo["linea_objeto_id"],
+            "closing_batch_id": ultimo["closing_batch_id"],
             "real_emission": False,
             "fake_emissions_after": len(destino.emisiones) if destino is not None else 0,
         }
