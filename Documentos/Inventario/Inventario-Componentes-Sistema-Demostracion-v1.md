@@ -1,7 +1,7 @@
 # Inventario de componentes del sistema de demostración — v1
 
 - **Estado:** vigente.
-- **Commit de la base:** `98be859` (`git rev-parse --short HEAD`, 2026-10-12). Este documento describe esa base; los anexos del laboratorio citan el commit junto con la foto que revisaron.
+- **Commit de la base:** `96deddb` (`git rev-parse --short HEAD`, 2026-10-12). La foto anterior declarada fue `98be859`; el perfil de calidad del laboratorio (#89) la cita expresamente como la base que revisó. Este documento describe esa base; los anexos del laboratorio citan el commit junto con la foto que revisaron.
 - **Qué inventaría:** el **sistema de demostración** del Agente 1 (`CONTEXT.md`): el agente en todo su alcance declarado —ambiente, flujos y componentes— funcionando de punta a punta en vivo, sobre el hilo **NotebookLM Nivel 2**, en la revisión de laboratorio y en la mesa final (18/11/2026). Ambiente: laptop del autor con Ollama local + Workspace D2 live con la cuenta técnica (decisión [#49](https://github.com/SpendIce/Proyecto-Final/issues/49)). La corrida offline ensayada (`run-demo.sh`) es el respaldo, no un componente.
 - **Qué es un componente:** un módulo de `Implementacion/Agente1/src/agente1/` o un servicio externo del sistema (Ollama, Google Sheets/Drive/Docs/Forms, Gmail).
 - **Principio rector:** ningún componente figura como fake ni como capacidad detenida. Lo que depende de un tercero corre contra un **destino de prueba** o un **insumo provisional declarado** (ver § Insumos provisionales), nunca contra un fake.
