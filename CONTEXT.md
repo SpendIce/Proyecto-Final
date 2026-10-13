@@ -170,6 +170,26 @@ _Evitar_: objetivo, meta, SLO (cuando se habla de lo medido)
 Interpretacion vigente de que «el sistema no retiene datos»: los datos personales se conservan solo durante el ciclo de envio y su ventana de reconciliacion, y los respaldos no los conservan mas tiempo. La auditoria guarda solo hashes.
 _Evitar_: sin retencion, borrado, minimizacion (como sinonimos)
 
+**Cambio controlado**:
+Modificacion de algo que define como se comporta el Agente 1 (codigo, prompts y parametros de inferencia, criterios de contenido de la SEU, contratos de interfaz, configuracion de Workspace y credenciales) y que solo entra en operacion aprobada por el dueño de su clase. Los criterios de contenido de la SEU siguen su propio circuito de aprobacion; el control de cambios lo reconoce, no lo duplica.
+_Evitar_: actualizacion, ajuste, deploy
+
+**Version del agente**:
+Estado etiquetado del Agente 1 que se instala en el host, con la huella de todo lo controlado que contiene. Es la unidad que se instala, se revierte y se cita: cada pieza registra con que version salio.
+_Evitar_: release, build, baseline (la baseline tecnica recuperable es otra cosa)
+
+**Dato operativo**:
+Informacion que mantiene su dueño institucional y que el Agente 1 solo lee para trabajar: padron de roles, lista de cierre, planilla de actividades. Cargarla o corregirla no es un cambio controlado; queda rastreada por la auditoria.
+_Evitar_: configuracion, parametro
+
+**Cambio de emergencia**:
+Situacion que habilita actuar por fuera del circuito normal: una credencial comprometida o una pieza enviada o emitida por error. La respuesta es suspender el agente, no corregirlo en caliente; la correccion vuelve por el circuito normal.
+_Evitar_: hotfix, parche urgente
+
+**Cuenta tecnica**:
+Cuenta de Workspace de la FIE en cuyo nombre actua el Agente 1: es la dueña del buzon que lee y desde el que envia, y la que figura como autora de sus archivos en la auditoria de Google. Ninguna persona la usa para trabajar. La credencial con la que el agente obtiene acceso en su nombre es otra cosa, y cambiarla no cambia la cuenta tecnica.
+_Evitar_: cuenta de servicio, bot, cuenta del agente (como sinonimos)
+
 ### Control de pagos
 
 **Actividad arancelada**:
