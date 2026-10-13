@@ -135,7 +135,7 @@ Quedan declaradas `PENDIENTE` dentro de la tabla y no bloquean el armado:
 
 - **#50** (medición de modelos y latencia): comportamiento temporal (objetivo de latencia por pieza) y utilización de recursos (RAM/CPU).
 - **#51** (modelo local del sistema de demostración): la medición de capacidad se rehace con el modelo elegido; el nivel de corrección del contenido generado se refresca con ese modelo.
-- **#88** (nivel verificado de los SLO desde la auditoría): disponibilidad, tiempo de atención, aprobación a envío, RPO y RTO.
+- **#88** (nivel verificado de los SLO desde la auditoría): entregó el instrumento de medición (`scripts/medir_nivel_slo.py`) y la primera evidencia versionada (`Implementacion/Agente1/evidencias/nivel-verificado-slo-*.md`), con declaraciones de muestra insuficiente, fuente faltante y objetivo pendiente en lugar de números inventados. Siguen pendientes de esta línea: el objetivo de latencia por pieza (#50/#51), la medición con muestra amplia sobre la operación real y los RPO/RTO que atan a #86.
 - **#86** (respaldo diario y RPO/RTO): parte de la fila de recuperabilidad.
 - **#56** (validación SEU): operabilidad, reconocibilidad de la adecuación, aprendizaje y la ventana de operación del SLO de disponibilidad.
 - **#81** (manual de operación): aprendizaje y asistencia al usuario.

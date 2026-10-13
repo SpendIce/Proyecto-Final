@@ -38,6 +38,11 @@ Guía rápida de módulos:
 - `respaldo`                  respaldo diario del estado local en Drive con
                               retención de 30 días y restauración con marca
                               `ENVIO_INDETERMINADO` (#86, ADR 0009).
+- `medicion_slo`              nivel verificado de los SLO desde la
+                              auditoría: los cinco indicadores de #65 sobre
+                              los registros de operación, con declaraciones
+                              de muestra insuficiente, fuente faltante y
+                              objetivo pendiente (#88).
 - `historia_viva`             puerto de consulta al acervo de A2 (offline).
 - `posts_efemeride`           HU-011, post de efeméride desde el puerto
                               `HistoriaViva` con citas y procedencia (#85;
