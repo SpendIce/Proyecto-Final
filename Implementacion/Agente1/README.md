@@ -1171,28 +1171,36 @@ nacer `PENDIENTE_VALIDACION`: no existe forma de declarar uno validado ni
 publicado.
 
 `HistoriaVivaFake` implementa el puerto en memoria, sin red ni credenciales, y
-permite forzar la falla de una operación por separado. El transporte definitivo
-depende del contrato con Ignacio, que sigue abierto.
+permite forzar la falla de una operación por separado.
 
 `historia_viva_cliente.py` es la capa cliente de ese seam: `ClienteHistoriaViva`
 implementa el puerto sobre un `TransporteHistoriaViva` inyectado que devuelve
-cuerpos crudos, y valida cada respuesta contra el contrato candidato
-`contracts/historia_viva_cliente_candidate_v1.schema.json` antes de producir los
-objetos del dominio. Lo que el contrato no contempla se rechaza con
-`historia_viva_response_invalid`; lo que falta no se inventa. El timeout y los
-reintentos son objetos de configuración (`PoliticaCliente`): las consultas
-idempotentes reintentan ante fallas transitorias y `POST /aportes` no reintenta
-por default, porque la deduplicación por `Idempotency-Key` sigue siendo
-`PROPUESTA_NO_ACORDADA` en el issue #17. No hay adapter HTTP productivo ni
-identidad por token: ambos quedan declarados como pendientes del acuerdo. Para
-uso programático, importar desde `agente1.historia_viva_cliente`; no se
-reexporta en `agente1`.
+cuerpos crudos, y valida cada respuesta contra el contrato `/v1` de Historia
+Viva (`openapi-agentes.yaml` 1.1.0-rc1, borrador hasta el congelado del
+30/10), espejado en `contracts/historia_viva_v1.schema.json`. Lo que el
+contrato no contempla se rechaza con `historia_viva_response_invalid`; lo que
+falta no se inventa. El timeout y los reintentos son objetos de configuración
+(`PoliticaCliente`): las consultas reintentan ante `429`/`503` esperando el
+`Retry-After` (hasta `espera_maxima_segundos`) y `POST /v1/aportes` no
+reintenta por default. Para uso programático, importar desde
+`agente1.historia_viva_cliente`; no se reexporta en `agente1`.
+
+`historia_viva_http.py` es el transporte HTTP (`TransporteHistoriaVivaHttp`,
+issue #12): manda solo los parámetros del contrato, decide por `codigo` con
+default por familia (todo `4xx` es definitivo), lee el token en cada pedido
+para poder rotarlo sin reiniciar y nunca deja salir el `mensaje` remoto.
 
 Pruebas focalizadas:
 
 ```bash
-uv run pytest -q tests/test_historia_viva.py tests/test_cliente_historia_viva.py
+uv run pytest -q tests/test_historia_viva.py tests/test_cliente_historia_viva.py tests/test_historia_viva_http.py
 ```
+
+Prueba de contrato contra el mock Prism de Historia Viva (paquete
+`contratojuan`, clonado al lado del repo): `node ejecutar-contrato.mjs` levanta
+el mock, exporta `HV_BASE_URL` y `HV_TOKEN` y corre `contrato/` con la línea de
+`cliente.comando`. Sin `HV_BASE_URL` la prueba se saltea; los casos pendientes
+de C48 se excluyen con `-m "not c48"`.
 
 Los límites del slice están declarados en
 `evidencias/limites-historia-viva-cliente.md`.

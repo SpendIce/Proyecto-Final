@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:historia-viva:v1:1.1.0-rc1",
+  "title": "Espejo de las formas de /v1 de Historia Viva que consume el Agente 1",
+  "description": "Copia de los esquemas de components/schemas de openapi-agentes.yaml 1.1.0-rc1 (paquete contratojuan de Ignacio Becerra, huella 2af852e591ede5701adf7599be69d992fe6112d55fc44459e71feab9f8c60d7b) que el cliente de A1 decodifica. La fuente es el OpenAPI de Historia Viva: si cambia, se actualiza este espejo y el decodificador, nunca al revés. Faltan a propósito Efemeride y Relato: A1 no consume GET /v1/efemerides ni GET /v1/relatos.",
+  "x-contract-version": "historia_viva_v1_1.1.0-rc1",
+  "x-status": "BORRADOR_HISTORIA_VIVA",
+  "x-issue": 17,
+  "x-congelado": "2026-10-30",
+  "$defs": {
+    "IdPiezaV1": {"type": "string", "pattern": "^pza_[A-Za-z0-9._-]{1,60}$"},
+    "IdFragmentoV1": {"type": "string", "pattern": "^frg_[A-Za-z0-9._-]{1,60}$"},
+    "IdAporteV1": {"type": "string", "pattern": "^apt_[A-Za-z0-9._-]{1,60}$"},
+    "IdLoteV1": {"type": "string", "pattern": "^lot_[A-Za-z0-9._-]{1,60}$"},
+    "PrecisionFecha": {"type": "string", "enum": ["dia", "mes", "anio", "decada", "rango"]},
+    "TipoPieza": {
+      "type": "string",
+      "description": "Enum abierto: A1 lo trata como string opaco.",
+      "examples": ["fotografia", "acta", "resolucion", "convenio", "memoria", "nota", "plano", "planilla", "video"]
+    },
+    "TipoContenido": {"type": "string", "enum": ["gacetilla", "post", "comunicado"]},
+    "Canal": {"type": ["string", "null"], "enum": ["instagram", "linkedin", "web", null]},
+    "Momento": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "Fecha": {"type": "string", "format": "date"},
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["codigo", "mensaje", "solicitud_id"],
+      "properties": {
+        "codigo": {
+          "type": "string",
+          "enum": [
+            "parametros_invalidos",
+            "idempotency_key_reutilizada",
+            "fuente_inexistente",
+            "token_invalido",
+            "operacion_no_permitida",
+            "pieza_no_disponible",
+            "ruta_inexistente",
+            "aporte_rechazado",
+            "limite_superado",
+            "servicio_no_disponible"
+          ]
+        },
+        "mensaje": {"type": "string"},
+        "solicitud_id": {"type": "string", "pattern": "^req_[0-9A-Za-z]+$"}
+      }
+    },
+    "Fragmento": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fragmento_id",
+        "pieza_id",
+        "texto",
+        "fecha_inicio",
+        "fecha_fin",
+        "precision_fecha",
+        "tipo",
+        "resumen_pieza",
+        "url_original",
+        "validada_el",
+        "pagina",
+        "seccion"
+      ],
+      "properties": {
+        "fragmento_id": {"$ref": "#/$defs/IdFragmentoV1"},
+        "pieza_id": {"$ref": "#/$defs/IdPiezaV1"},
+        "texto": {"type": "string"},
+        "fecha_inicio": {"$ref": "#/$defs/Fecha"},
+        "fecha_fin": {"$ref": "#/$defs/Fecha"},
+        "precision_fecha": {"$ref": "#/$defs/PrecisionFecha"},
+        "tipo": {"$ref": "#/$defs/TipoPieza"},
+        "resumen_pieza": {"type": "string"},
+        "url_original": {"type": "string", "format": "uri"},
+        "validada_el": {"$ref": "#/$defs/Momento"},
+        "pagina": {"type": ["integer", "null"], "minimum": 1},
+        "seccion": {"type": ["string", "null"]}
+      }
+    },
+    "RespuestaFragmentos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "limite", "fragmentos"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0},
+        "limite": {"type": "integer", "minimum": 1, "maximum": 50},
+        "fragmentos": {"type": "array", "maxItems": 50, "items": {"$ref": "#/$defs/Fragmento"}}
+      }
+    },
+    "Pieza": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pieza_id",
+        "tipo",
+        "estado",
+        "resumen",
+        "texto",
+        "fecha_inicio",
+        "fecha_fin",
+        "precision_fecha",
+        "origen",
+        "lote_id",
+        "lote_nombre",
+        "url_original",
+        "validada_por",
+        "validada_el",
+        "modo_validacion",
+        "fragmentos"
+      ],
+      "properties": {
+        "pieza_id": {"$ref": "#/$defs/IdPiezaV1"},
+        "tipo": {"$ref": "#/$defs/TipoPieza"},
+        "estado": {"type": "string", "enum": ["Validada"]},
+        "resumen": {"type": "string"},
+        "texto": {"type": "string"},
+        "fecha_inicio": {"$ref": "#/$defs/Fecha"},
+        "fecha_fin": {"$ref": "#/$defs/Fecha"},
+        "precision_fecha": {"$ref": "#/$defs/PrecisionFecha"},
+        "origen": {"type": "string"},
+        "lote_id": {"oneOf": [{"$ref": "#/$defs/IdLoteV1"}, {"type": "null"}]},
+        "lote_nombre": {"type": ["string", "null"]},
+        "url_original": {"type": "string", "format": "uri"},
+        "validada_por": {"type": "string"},
+        "validada_el": {"$ref": "#/$defs/Momento"},
+        "modo_validacion": {"type": "string", "enum": ["individual", "bloque"]},
+        "fragmentos": {"type": "array", "items": {"$ref": "#/$defs/Fragmento"}}
+      }
+    },
+    "Aporte": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["titulo", "cuerpo", "tipo_contenido", "piezas_fuente"],
+      "properties": {
+        "titulo": {"type": "string", "minLength": 1, "maxLength": 300},
+        "cuerpo": {"type": "string", "minLength": 1, "maxLength": 20000},
+        "tipo_contenido": {"$ref": "#/$defs/TipoContenido"},
+        "canal": {"$ref": "#/$defs/Canal"},
+        "piezas_fuente": {"type": "array", "maxItems": 50, "items": {"$ref": "#/$defs/IdPiezaV1"}},
+        "fragmentos_fuente": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/IdFragmentoV1"}},
+        "fecha_publicacion": {"type": ["string", "null"]},
+        "url_publicacion": {"type": ["string", "null"]}
+      }
+    },
+    "AporteCreado": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["aporte_id", "pieza_id", "estado", "recibido_el", "idempotency_key"],
+      "properties": {
+        "aporte_id": {"$ref": "#/$defs/IdAporteV1"},
+        "pieza_id": {"$ref": "#/$defs/IdPiezaV1"},
+        "estado": {"type": "string", "enum": ["Pendiente"]},
+        "recibido_el": {"$ref": "#/$defs/Momento"},
+        "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$"}
+      }
+    }
+  }
+}

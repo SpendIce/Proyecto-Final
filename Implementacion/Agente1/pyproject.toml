@@ -25,6 +25,9 @@ agente1 = ["contracts/*.json", "contracts/insumos/*.json", "politicas/*.json", "
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+    "c48: casos del contrato /v1 de Historia Viva pendientes de la consulta C48",
+]
 
 # Configuración acotada del linter (issue #90): pycodestyle (E/W), Pyflakes
 # (F) e imports ordenados (I). E501 queda fuera porque el proyecto mantiene

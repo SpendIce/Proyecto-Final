@@ -10,9 +10,8 @@ Decisiones que no se ven en el código:
 
 - **La fuente es el puerto, nunca un adapter.** El parámetro `historia_viva`
   recibe cualquier implementación de `HistoriaViva`: el fake en pruebas, o el
-  `ClienteHistoriaViva` con su transporte inyectado cuando exista. El adapter
-  HTTP queda pendiente del issue #12 y no se implementa acá; nada de este
-  módulo sabe si el material vino por red o de memoria.
+  `ClienteHistoriaViva` sobre `TransporteHistoriaVivaHttp` (#12). Nada de
+  este módulo sabe si el material vino por red o de memoria.
 - **Historia Viva no redacta y el modelo tampoco escribe hechos.** El
   `datos_fuente` del prompt lleva los textos citados y sus citas como datos
   no confiables; el modelo sólo escribe `gancho`, `prosa`, `cta` y hashtags
@@ -59,7 +58,7 @@ Decisiones que no se ven en el código:
 No está en este módulo: el despacho desde `interpretacion.py` (el catálogo
 `intenciones_v3` no tiene una intención de efeméride y resolver fechas desde
 prosa es un cambio de contrato aparte), el `registrar_aporte` de vuelta a A2
-(el issue define el flujo consulta→borrador), y cualquier transporte (#12).
+(el issue define el flujo consulta→borrador), y el transporte (`historia_viva_http.py`).
 """
 
 from __future__ import annotations

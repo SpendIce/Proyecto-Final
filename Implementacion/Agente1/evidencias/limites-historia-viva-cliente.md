@@ -1,5 +1,10 @@
 # Cliente Historia Viva — Límites del slice offline
 
+> **Superado el 2026-10-13.** Este documento describe el cliente contra el contrato candidato de A1. Desde el 13/10 el
+> cliente valida el contrato `/v1` de Historia Viva (1.1.0-rc1), existe el transporte HTTP y la prueba de contrato pasa
+> contra el mock de Ignacio: ver `evidencias/contrato-historia-viva-v1/recorrido-2026-10-13.md`. Se conserva como
+> registro histórico.
+
 **Estado institucional:** PENDIENTE
 **Estado técnico:** cliente contractual offline, provisional.
 **Contrato:** `historia_viva_cliente_candidate_v1` (`CANDIDATO_NO_INSTITUCIONAL`), posición unilateral de A1 pendiente de acuerdo en el issue #17.

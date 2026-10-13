@@ -30,9 +30,9 @@ Decisiones que no se ven en el código:
   un aporte validado ni publicado, y la clave de idempotencia es obligatoria
   porque un POST reintentado a ciegas duplica el aporte.
 
-Este seam es offline y no fija el transporte: `insumos_agentes.py` sigue siendo
-el contrato candidato inbound, y el cliente HTTP definitivo depende del
-contrato con Ignacio (issue #17), que todavía no está cerrado.
+Este seam es offline y no fija el transporte: el cliente que habla `/v1` vive
+en `historia_viva_cliente.py` y el transporte HTTP en `historia_viva_http.py`.
+`insumos_agentes.py` no participa: Historia Viva no entrega insumos (ADR 0008).
 """
 
 from __future__ import annotations
@@ -42,8 +42,11 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Protocol
 
-CONTRACT_VERSION = "historia_viva_consulta_candidate_v1"
-CONTRACT_STATUS = "CANDIDATO_NO_INSTITUCIONAL"
+# Contrato `/v1` de Historia Viva que respalda el puerto (OpenAPI 1.1.0-rc1,
+# borrador hasta el congelado del 30/10). La auditoría de los flujos que
+# consultan el puerto lo registra; el cliente lo valida.
+CONTRACT_VERSION = "historia_viva_v1_1.1.0-rc1"
+CONTRACT_STATUS = "BORRADOR_HISTORIA_VIVA"
 
 # Límite y tope de la búsqueda, según la propuesta respondida en
 # `respuesta-nacho.md`. El tope se aplica acá y no sólo del lado remoto: A1 no
@@ -51,10 +54,11 @@ CONTRACT_STATUS = "CANDIDATO_NO_INSTITUCIONAL"
 LIMITE_FRAGMENTOS_DEFAULT = 10
 LIMITE_FRAGMENTOS_MAX = 50
 
-# Precisión declarada de un rango histórico, de la más fina a la más gruesa.
-# El orden importa: `expresion_temporal` decide cuánto puede decir a partir de
-# él, y una precisión desconocida no se degrada en silencio, se rechaza.
-PRECISIONES_FECHA = ("dia", "mes", "anio", "decada")
+# Precisión declarada de un rango histórico: las cuatro primeras van de la más
+# fina a la más gruesa; `rango` (contrato /v1 1.1) es un intervalo declarado
+# como tal, «entre 2015 y 2019», que nunca es una fecha exacta. Una precisión
+# desconocida no se degrada en silencio, se rechaza.
+PRECISIONES_FECHA = ("dia", "mes", "anio", "decada", "rango")
 
 MESES = (
     "enero",
@@ -74,6 +78,11 @@ MESES = (
 # Mismo criterio que el resto del proyecto: identificadores acotados antes de
 # que lleguen a un path, una URL o un registro de auditoría.
 ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\Z")
+# El contrato /v1 exige al menos 8 caracteres en `Idempotency-Key`.
+LARGO_MINIMO_CLAVE_IDEMPOTENCIA = 8
+# `X-Solicitud-Id` de Historia Viva: lo único remoto que viaja en un error,
+# porque es lo que permite seguir una solicitud de punta a punta entre agentes.
+SOLICITUD_ID_RE = re.compile(r"req_[0-9A-Za-z]{1,64}\Z")
 
 # Vocabulario cerrado de fallas. Un adapter que devuelva otra cosa se registra
 # como `historia_viva_unavailable`, para que la auditoría no reciba texto
@@ -86,6 +95,9 @@ CODIGOS_ERROR = frozenset(
         "historia_viva_unavailable",
         "historia_viva_response_invalid",
         "historia_viva_request_invalid",
+        # `422 aporte_rechazado`: el contenido trae etiquetas de control. Es
+        # definitivo: ni la misma clave ni el mismo texto se vuelven a enviar.
+        "historia_viva_aporte_rechazado",
     }
 )
 
@@ -102,10 +114,25 @@ class HistoriaVivaError(RuntimeError):
     No transporta el mensaje remoto ni el cuerpo de la respuesta: el pipeline
     sólo necesita saber que Historia Viva no entregó material utilizable, y
     cualquier detalle podría arrastrar contenido no validado hacia el log.
+    Las dos excepciones son datos acotados, no texto: `reintentar_en` (los
+    segundos de `Retry-After`) y `solicitud_id` (`req_<ulid>`, validado contra
+    `SOLICITUD_ID_RE`; si no cumple la forma se descarta).
     """
 
-    def __init__(self, code: str) -> None:
+    def __init__(
+        self,
+        code: str,
+        *,
+        reintentar_en: float | None = None,
+        solicitud_id: str | None = None,
+    ) -> None:
         self.code = code if code in CODIGOS_ERROR else "historia_viva_unavailable"
+        self.reintentar_en = reintentar_en
+        self.solicitud_id = (
+            solicitud_id
+            if isinstance(solicitud_id, str) and SOLICITUD_ID_RE.fullmatch(solicitud_id)
+            else None
+        )
         super().__init__(self.code)
 
 
@@ -161,6 +188,18 @@ class RangoHistorico:
             if self.desde.year == self.hasta.year:
                 return str(self.desde.year)
             return f"entre {self.desde.year} y {self.hasta.year}"
+        if self.precision == "rango":
+            # «entre X y Y» (DEC-60 de Historia Viva). Si el intervalo cae en
+            # un solo año se nombra por meses, y si cae en un solo mes se
+            # nombra el mes: engrosar es seguro, afinar a un día no.
+            if self.desde.year != self.hasta.year:
+                return f"entre {self.desde.year} y {self.hasta.year}"
+            if self.desde.month != self.hasta.month:
+                return (
+                    f"entre {MESES[self.desde.month - 1]} y "
+                    f"{MESES[self.hasta.month - 1]} de {self.desde.year}"
+                )
+            return f"{MESES[self.desde.month - 1]} de {self.desde.year}"
         decada_desde = self.desde.year - self.desde.year % 10
         decada_hasta = self.hasta.year - self.hasta.year % 10
         if decada_desde == decada_hasta:
@@ -202,10 +241,13 @@ class Fragmento:
 
 @dataclass(frozen=True)
 class Pieza:
-    """Una pieza completa del acervo, para ampliar una recuperación corta."""
+    """Una pieza completa del acervo, para ampliar una recuperación corta.
+
+    `texto` es el cuerpo íntegro de la Ficha Validada: `/v1` no tiene título.
+    """
 
     pieza_id: str
-    titulo: str
+    texto: str
     resumen: str
     rango: RangoHistorico
     tipo: str
@@ -247,7 +289,8 @@ class Aporte:
 
     `clave_idempotencia` es obligatoria: sin ella, un POST reintentado tras una
     respuesta perdida duplica el aporte. `piezas_fuente` también, porque un
-    aporte sin procedencia no se puede validar contra nada.
+    aporte sin procedencia no se puede validar contra nada. `fragmentos_fuente`
+    precisa los pasajes citados; `/v1` sólo valida su forma.
     """
 
     clave_idempotencia: str
@@ -256,9 +299,13 @@ class Aporte:
     titulo: str
     cuerpo: str
     piezas_fuente: tuple[str, ...]
+    fragmentos_fuente: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        if not ID_RE.fullmatch(self.clave_idempotencia):
+        if (
+            not ID_RE.fullmatch(self.clave_idempotencia)
+            or len(self.clave_idempotencia) < LARGO_MINIMO_CLAVE_IDEMPOTENCIA
+        ):
             raise ValueError("clave de idempotencia inválida")
         if self.tipo_contenido not in TIPOS_CONTENIDO_APORTE:
             raise ValueError("tipo de contenido inválido")
@@ -270,15 +317,22 @@ class Aporte:
             raise ValueError("aporte sin piezas fuente")
         if any(not ID_RE.fullmatch(pieza) for pieza in self.piezas_fuente):
             raise ValueError("pieza fuente inválida")
+        if any(not ID_RE.fullmatch(frag) for frag in self.fragmentos_fuente):
+            raise ValueError("fragmento fuente inválido")
 
 
 @dataclass(frozen=True)
 class RecepcionAporte:
-    """Acuse de Historia Viva. Nunca dice "validado" ni "publicado"."""
+    """Acuse de Historia Viva. Nunca dice "validado" ni "publicado".
+
+    `pieza_id` es la Pieza Pendiente que el aporte creó del lado de Historia
+    Viva; `duplicado` indica que la clave ya se había registrado (un `200`).
+    """
 
     aporte_id: str
     estado: str = ESTADO_APORTE
     duplicado: bool = False
+    pieza_id: str | None = None
 
     def __post_init__(self) -> None:
         if self.estado != ESTADO_APORTE:

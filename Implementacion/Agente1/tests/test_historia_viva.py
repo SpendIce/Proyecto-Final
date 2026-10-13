@@ -236,7 +236,7 @@ def test_la_busqueda_respeta_el_limite_pedido():
 def test_obtener_pieza_devuelve_la_pieza_completa():
     pieza = Pieza(
         pieza_id="pie-001",
-        titulo="Acta fundacional sintética",
+        texto="Acta fundacional sintética, texto íntegro.",
         resumen="Resumen sintético",
         rango=rango(date(1926, 8, 7), date(1926, 8, 7)),
         tipo="acta",

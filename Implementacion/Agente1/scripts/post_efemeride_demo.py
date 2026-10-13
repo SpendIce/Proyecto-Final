@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
-"""Recorrido offline del post de efeméride HU-011 desde Historia Viva (#85).
+"""Recorrido del post de efeméride HU-011 desde Historia Viva (#85, #12).
 
-Corre el flujo A2 → borrador sin red ni credenciales, en una sola corrida:
+Por defecto corre el flujo A2 → borrador sin red ni credenciales. Con
+`AGENTE1_HV_BASE_URL` y `AGENTE1_HV_TOKEN_ARCHIVO` en el entorno consulta una
+instancia real de `/v1` (o el mock Prism del contrato) por
+`TransporteHistoriaVivaHttp`; en ese modo `--procedencia` es obligatoria
+—`insumo_a2` contra Historia Viva, `synthetic_test` contra el mock— y no se
+corre la fase sin material, porque el período vacío no se controla del otro
+lado. `--hv-escenario` agrega `Prefer` para elegir un ejemplo del mock y no
+tiene sentido contra la API real.
+
+Las fases:
 
 1. **Generación** — `procesar_post_efemeride` consulta el puerto
    `HistoriaViva` con un `HistoriaVivaFake` alimentado desde
@@ -45,7 +54,15 @@ from agente1.historia_viva import (
     HistoriaVivaFake,
     RangoHistorico,
 )
-from agente1.posts_efemeride import PROCEDENCIA_SINTETICA
+from agente1.historia_viva_http import (
+    ConfiguracionHistoriaVivaError,
+    cargar_configuracion_historia_viva,
+    construir_cliente_historia_viva,
+)
+from agente1.posts_efemeride import (
+    PROCEDENCIA_SINTETICA,
+    PROCEDENCIAS_EFEMERIDE,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -171,7 +188,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--precision",
-        choices=["dia", "mes", "anio", "decada"],
+        choices=["dia", "mes", "anio", "decada", "rango"],
         default="mes",
         help="Precisión declarada del período: cuánto puede decir la efeméride.",
     )
@@ -191,12 +208,45 @@ def main(argv: list[str] | None = None) -> int:
         default=date(1900, 12, 31),
         help="Fin del período sin material (AAAA-MM-DD).",
     )
+    parser.add_argument(
+        "--limite",
+        type=int,
+        default=10,
+        help="Cantidad máxima de fragmentos que se piden a Historia Viva.",
+    )
+    parser.add_argument(
+        "--procedencia",
+        choices=sorted(PROCEDENCIAS_EFEMERIDE),
+        help="Obligatoria con Historia Viva configurada: de dónde viene el material.",
+    )
+    parser.add_argument(
+        "--hv-escenario",
+        help="Solo contra el mock Prism: valor de `Prefer`, p. ej. "
+        "'code=200, example=conResultados'.",
+    )
     try:
         args = parser.parse_args(argv)
         directorio = args.directorio
-        historia_viva = HistoriaVivaFake(
-            fragmentos=_cargar_fragmentos(args.fragmentos)
-        )
+        config = cargar_configuracion_historia_viva()
+        if config is None:
+            if args.hv_escenario or args.procedencia not in (None, PROCEDENCIA_SINTETICA):
+                _emitir({"estado": "RECHAZADA", "resultado": "historia_viva_no_configurada"})
+                return 2
+            historia_viva = HistoriaVivaFake(
+                fragmentos=_cargar_fragmentos(args.fragmentos)
+            )
+            procedencia = PROCEDENCIA_SINTETICA
+        else:
+            if args.procedencia is None:
+                _emitir({"estado": "RECHAZADA", "resultado": "procedencia_requerida"})
+                return 2
+            historia_viva = construir_cliente_historia_viva(
+                config,
+                cabeceras_extra=(
+                    {"Prefer": args.hv_escenario} if args.hv_escenario else None
+                ),
+            )
+            procedencia = args.procedencia
 
         # --- Fase 1: generación ---------------------------------------
         resultado = procesar_post_efemeride(
@@ -208,7 +258,8 @@ def main(argv: list[str] | None = None) -> int:
             generator=FakeGenerator(_SALIDA_POR_CANAL[args.canal]),
             precision=args.precision,
             tema=args.tema,
-            procedencia=PROCEDENCIA_SINTETICA,
+            limite=args.limite,
+            procedencia=procedencia,
         )
         objeto_id = (
             resultado.borrador_path.stem if resultado.borrador_path else None
@@ -223,7 +274,8 @@ def main(argv: list[str] | None = None) -> int:
                     else None
                 ),
                 "objeto_id": objeto_id,
-                "fragmentos_consultados": len(historia_viva.consultas),
+                "modo": "offline" if config is None else "historia_viva",
+                "procedencia": procedencia,
                 "error": resultado.error,
             }
         )
@@ -252,6 +304,9 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
 
+        if config is not None:
+            return 0
+
         # --- Fase 3: la misma consulta sin material --------------------
         vacio = procesar_post_efemeride(
             historia_viva=historia_viva,
@@ -273,7 +328,7 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
         return 0 if vacio.estado == "INCOMPLETA" else 1
-    except DecisionesFormError as exc:
+    except (DecisionesFormError, ConfiguracionHistoriaVivaError) as exc:
         _emitir({"estado": "RECHAZADA", "resultado": exc.code})
         return 2
     except Exception:

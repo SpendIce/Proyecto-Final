@@ -22,7 +22,6 @@ from agente1.historia_viva import (
     RangoHistorico,
 )
 from agente1.historia_viva_cliente import (
-    SCHEMA_FRAGMENTOS,
     ClienteHistoriaViva,
     TransporteHistoriaVivaFake,
 )
@@ -123,7 +122,7 @@ def test_el_post_se_genera_desde_el_puerto_con_citas_y_procedencia(
     assert registro["renderer_version"] == "post_efemeride_renderer_v1"
     assert registro["prompt_version"] == f"post_{canal}_efemeride_v1"
     assert registro["data_origin"] == "insumo_a2"
-    assert registro["hv_contract_status"] == "CANDIDATO_NO_INSTITUCIONAL"
+    assert registro["hv_contract_status"] == "BORRADOR_HISTORIA_VIVA"
     assert registro["hv_fragmentos"] == 1
     assert registro["hv_piezas_fuente"] == ["pie-001"]
     assert registro["hv_consulta"]["desde"] == "1926-08-07"
@@ -139,24 +138,24 @@ def test_el_pipeline_no_depende_del_adapter_sino_del_puerto(tmp_path: Path):
     """
 
     fragmento_crudo = {
-        "fragmento_id": "frg-777",
-        "pieza_id": "pie-777",
+        "fragmento_id": "frg_777",
+        "pieza_id": "pza_777",
         "texto": "La gacetilla sintética anuncia la primera cursada.",
-        "rango": {
-            "desde": "1926-08-07",
-            "hasta": "1926-08-07",
-            "precision_fecha": "dia",
-        },
-        "tipo": "gacetilla",
+        "fecha_inicio": "1926-08-07",
+        "fecha_fin": "1926-08-07",
+        "precision_fecha": "dia",
+        "tipo": "nota",
         "resumen_pieza": "Pieza sintética",
-        "url_original": "https://ejemplo.invalid/piezas/7",
-        "validada_el": "2026-01-15",
-        "ubicacion": None,
+        "url_original": "https://ejemplo.invalid/validar.html?pieza=777",
+        "validada_el": "2026-01-15T10:00:00Z",
+        "pagina": None,
+        "seccion": None,
     }
     transporte = TransporteHistoriaVivaFake(
         respuestas={
             "get_fragmentos": {
-                "schema": SCHEMA_FRAGMENTOS,
+                "total": 1,
+                "limite": 10,
                 "fragmentos": [fragmento_crudo],
             }
         }
@@ -174,7 +173,7 @@ def test_el_pipeline_no_depende_del_adapter_sino_del_puerto(tmp_path: Path):
 
     assert resultado.estado == "PENDIENTE_VALIDACION"
     borrador = resultado.borrador_path.read_text(encoding="utf-8")
-    assert "Fuente: pie-777 / frg-777 (7 de agosto de 1926)" in borrador
+    assert "Fuente: pza_777 / frg_777 (7 de agosto de 1926)" in borrador
 
 
 def test_cada_fragmento_lleva_su_propia_cita(tmp_path: Path):
