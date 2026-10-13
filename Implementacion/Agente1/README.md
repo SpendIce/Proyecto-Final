@@ -67,7 +67,8 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/operaciones_seguras.py`: health, reconciliación, consolidación y retención en dry-run.
 - `src/agente1/contracts/insumos/agente1_insumo_candidate_v2.schema.json`, `src/agente1/insumos_agentes.py`, `src/agente1/insumos_corrida.py`, `src/agente1/insumos_sheets.py` y `src/agente1/cli_insumos.py`: entrada push de insumos A3–A5 (ADR 0008, #82) — el envelope candidato (A2 fuera, `data_origin` con `provisional_producer`), la corrida de la pestaña «Insumos de agentes» (estados `borrador generado`/`rechazado`/`aceptado sin flujo`, idempotencia por `correlation_id` en `insumos-procesados.jsonl`, despacho `evento`→HU-010), el escritor `values.update` acotado con su réplica CSV, y el subcomando `insumos-agentes` offline/live con doble opt-in.
 - `src/agente1/contracts/insumos/a3_evento_gacetilla_v1.schema.json`: contrato declarado del `payload.content` de un insumo A3 `evento` destinado a gacetilla (#83) — campos admitidos y obligatorios que la corrida aplica antes de llamar al pipeline, con códigos de rechazo propios y procedencia del insumo visible en el borrador y en la auditoría.
-- `src/agente1/scheduler.py`, `src/agente1/cli_scheduler.py` y `systemd/agente1-scheduler.{service,timer}` + `systemd/agente1-scheduler-loop.service`: scheduler local de las corridas programadas (#84) — agenda por ticks anclada a la ventana de operación configurable (`AGENTE1_SCHEDULER_*`), lock `flock` contra solapamientos, log versionado `scheduler-corridas.jsonl` (entrada de #88), slot diario con la purga (#87) y el respaldo declarado (#86), y las unidades `systemd --user` como plantillas instalables junto al bucle `--loop` alternativo.
+- `src/agente1/scheduler.py`, `src/agente1/cli_scheduler.py` y `systemd/agente1-scheduler.{service,timer}` + `systemd/agente1-scheduler-loop.service`: scheduler local de las corridas programadas (#84) — agenda por ticks anclada a la ventana de operación configurable (`AGENTE1_SCHEDULER_*`), lock `flock` contra solapamientos, log versionado `scheduler-corridas.jsonl` (entrada de #88), slot diario con la purga (#87) y el respaldo diario (#86) en ese orden, y las unidades `systemd --user` como plantillas instalables junto al bucle `--loop` alternativo.
+- `src/agente1/respaldo.py`, `scripts/respaldar_estado.py` y `scripts/restaurar_respaldo.py`: respaldo diario del estado local en Drive (#86, ADR 0009) — artefacto `.tar.gz` con manifiesto de hashes, subida siempre como archivo nuevo a la carpeta de la cuenta técnica, borrado de los propios vencidos a 30 días auditado con hash y fecha, aviso al operador por el destino Gmail cercado o por el fake declarado, y restauración manual que marca `ENVIO_INDETERMINADO` lo posterior a la marca del respaldo.
 - `salida/`: evidencia runtime local ignorada por Git.
 
 ## Dónde está documentada cada decisión
@@ -144,6 +145,9 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué el `id_actividad` del evento se deriva del `correlation_id` | `insumos_corrida.py`, docstring de módulo y `_id_solicitud_insumo` |
 | Qué campos exige el `content` de un `evento` A3 para gacetilla | `contracts/insumos/a3_evento_gacetilla_v1.schema.json`; `insumos_corrida.py` (`CAMPOS_EVENTO`, `CAMPOS_EVENTO_OBLIGATORIOS`) |
 | Cómo se ve en el borrador y en el log que la pieza salió de un insumo | `procesamiento.py` (`ProcedenciaInsumo`, `_bloque_procedencia`, `_con_procedencia`) |
+| Por qué el respaldo no puede sobrescribir otro respaldo | `src/agente1/respaldo.py`, docstring de módulo y de `GoogleDriveRespaldoDiario` |
+| Por qué el borrado de respaldos está cercado tres veces | `respaldo.py`, docstrings de módulo, de `GoogleDriveRespaldoDiario` y de `correr_respaldo_diario`; ADR 0009 |
+| Por qué la restauración marca indeterminado en vez de reenviar | `respaldo.py`, docstrings de `restaurar_estado_respaldo` y de `_marcar_posteriores_indeterminados` |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
@@ -536,13 +540,81 @@ PYTHONPATH=src \
 ```
 
 El scheduler local (#84) invoca este comando una vez por día dentro de la
-ventana de operación, en el slot diario de la primera corrida; cuando el
-respaldo diario del estado (#86) exista, la purga corre antes que él para
-que ningún respaldo conserve texto que la política ya venció (ver la
-sección del scheduler más abajo).
+ventana de operación, en el slot diario de la primera corrida, siempre
+antes del respaldo diario del estado (#86): ningún respaldo conserva
+texto que la política ya venció, y si la purga del día falla el respaldo
+del día también falla a propósito (ver la sección del scheduler más
+abajo).
 
 ```bash
 uv run pytest -q tests/test_purga_registro.py
+```
+
+### Respaldo diario del estado local en Drive (#86)
+
+El respaldo cierra el ciclo de la retención acotada (ADR 0009): una vez
+por día hábil, en el slot diario del scheduler y después de la purga, el
+estado local del agente viaja a una carpeta de Drive de la cuenta técnica
+que no se comparte con nadie. Así el RPO queda en un día hábil y el
+registro que protege contra envíos duplicados sobrevive a la pérdida del
+host; el respaldo comparte dominio de falla con Workspace, que es la
+limitación declarada del ADR.
+
+El artefacto es `agente1-respaldo-AAAA-MM-DD.tar.gz` con un
+`manifest.json` adentro: record `agente1_respaldo_v1`, la marca
+`creado_en` del empaquetado y un sha256 por miembro. Viaja el conjunto
+declarado y nada más — el registro durable de confirmaciones, los JSONL
+de `logs/`, `insumos-procesados.jsonl`, `estado-canal-form/`,
+`estado-decisiones/`, `cola-envios/` y los manifests; los borradores
+generados no son estado y quedan fuera. La subida es siempre
+`files.create`: el adapter no tiene operación de actualización, así que
+un respaldo nunca se sobrescribe; una segunda corrida del mismo día lo
+omite por nombre.
+
+El borrado por antigüedad —más de 30 días, la ventana de reconciliación—
+es la única excepción a «el agente nunca borra» y está cercada tres
+veces: sólo la carpeta fijada al construir el adapter, sólo archivos con
+la convención `agente1-respaldo-*.tar.gz` más el marker `appProperties`
+`agente1_respaldo=v1`, y con `drive.file` Drive además sólo devuelve
+archivos que la aplicación creó. Cada borrado queda en
+`logs/respaldo-diario.jsonl` con hash y fecha, sin contenido. Una falla
+del paso se audita con código cerrado, se avisa al operador por el
+destino Gmail cercado por la lista de prueba —o por el fake declarado en
+offline— y la corrida sigue: el paso se reintenta en el tick siguiente.
+
+La restauración es un procedimiento manual: el operador descarga el
+artefacto y corre `scripts/restaurar_respaldo.py`, que verifica hashes,
+repone archivos sin pisar lo que ya existe (un archivo distinto es
+`conflicto`, nunca sobreescritura) y marca el registro: toda reserva pasa
+al indeterminado de su pipeline y toda aprobación posterior a la marca
+del respaldo pasa a `ENVIO_INDETERMINADO`. Lo indeterminado no se
+reenvía: una persona cruza cada clave contra Gmail Enviados. El
+procedimiento completo está en el runbook del scheduler
+(`Documentos/PlanDespliegue/Runbook-Scheduler-Agente-1.md`).
+
+```bash
+# Offline: carpeta local fake declarada, aviso en JSONL, sin red.
+AGENTE1_RESPALDO_CARPETA_FAKE=salida/carpeta-respaldo-fake \
+PYTHONPATH=src \
+  python scripts/respaldar_estado.py --salida salida \
+    --registro salida/registro-confirmaciones
+
+# Live (operador, doble opt-in): carpeta real + aviso a dirección de la
+# lista de prueba de Gmail.
+AGENTE1_RESPALDO_CARPETA_ID=<id-carpeta> \
+AGENTE1_RESPALDO_CONFIRMAR_ESCRITURA=SI \
+AGENTE1_RESPALDO_AVISO_DESTINATARIO=operador@example.com \
+PYTHONPATH=src \
+  python scripts/respaldar_estado.py --salida salida \
+    --registro salida/registro-confirmaciones
+
+# Restauración manual (sin red: el operador provee el artefacto).
+PYTHONPATH=src \
+  python scripts/restaurar_respaldo.py \
+    --artefacto agente1-respaldo-2026-10-05.tar.gz \
+    --salida salida --registro salida/registro-confirmaciones
+
+uv run pytest -q tests/test_respaldo.py tests/test_respaldo_scripts.py
 ```
 
 ### Cola de envío asíncrono (s4d)
@@ -981,10 +1053,16 @@ versionado `scheduler_corrida_v1`): `inicio_previsto`, `inicio_real`,
 contenido: es la fuente que #88 usa para medir disponibilidad.
 
 El slot diario de la primera corrida en ventana corre la **purga** de
-datos personales (#87) como subproceso de `scripts/purgar_registro.py`
-(una vez por día, con reintento en el tick siguiente si falla) y declara
-el **respaldo** diario (#86) como paso `pendiente` hasta que exista: el
-punto de entrada ya está en la agenda, en el orden que ADR 0009 exige.
+datos personales (#87) como subproceso de `scripts/purgar_registro.py` y
+el **respaldo** diario del estado (#86) como subproceso de
+`scripts/respaldar_estado.py`, en ese orden y encadenados: si la purga
+del día falla el respaldo también falla. Una vez por día cada uno, con
+reintento en el tick siguiente si fallan y sin detener la corrida. El
+respaldo existe cuando el entorno declara una carpeta
+(`AGENTE1_RESPALDO_CARPETA_FAKE` offline o `AGENTE1_RESPALDO_CARPETA_ID`
++ `CONFIRMAR_ESCRITURA=SI` + `AVISO_DESTINATARIO` live); sin carpeta
+declarada se asienta `pendiente`. La sección del respaldo en este README
+y el runbook cubren formato, modos y restauración.
 
 Manual completo de instalación, parada, diagnóstico y migración de host en
 `Documentos/PlanDespliegue/Runbook-Scheduler-Agente-1.md` (ADR 0007). El

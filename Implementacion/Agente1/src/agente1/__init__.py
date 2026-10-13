@@ -35,6 +35,9 @@ Guía rápida de módulos:
 - `cli_scheduler`             subcomando `scheduler`: `--una-corrida` para
                               el timer y `--loop` para el bucle con `sleep`
                               (#84).
+- `respaldo`                  respaldo diario del estado local en Drive con
+                              retención de 30 días y restauración con marca
+                              `ENVIO_INDETERMINADO` (#86, ADR 0009).
 - `historia_viva`             puerto de consulta al acervo de A2 (offline).
 - `posts_efemeride`           HU-011, post de efeméride desde el puerto
                               `HistoriaViva` con citas y procedencia (#85;

@@ -24,10 +24,14 @@ usa para medir la disponibilidad dentro de la ventana.
 
 El mantenimiento diario corre en la primera corrida en ventana del día:
 `purga` (#87, si `AGENTE1_SCHEDULER_REGISTRO_CONFIRMACIONES` apunta al
-registro durable de HU-012) y `respaldo` (#86, declarado `pendiente` hasta
-que exista, en ese orden para que ningún respaldo conserve lo que la
-retención ya venció). El disparo automático nunca envía ni publica: sólo
-genera borradores y la validación humana queda intacta.
+registro durable de HU-012) y `respaldo` (#86, si el entorno declara una
+carpeta de respaldo con `AGENTE1_RESPALDO_*`), en ese orden para que
+ningún respaldo conserve lo que la retención ya venció — si la purga del
+día falló, el respaldo del día también falla a propósito y ambos se
+reintentan en el tick siguiente. Sin carpeta configurada el respaldo se
+asienta `pendiente`, para que el hueco quede a la vista. El disparo
+automático nunca envía ni publica: sólo genera borradores y la validación
+humana queda intacta.
 
 Códigos de salida: `0` cuando el disparo quedó asentado (`completada` u
 `omitida_*`, que son resultados esperados de la agenda); `2` cuando la
@@ -39,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -65,10 +70,10 @@ from .scheduler import (
 )
 from .workspace_config import ConfiguracionWorkspaceError
 
-# Pasos del mantenimiento diario que el diseño declara y aún no existen:
-# el respaldo diario del estado (issue #86). Se asienta `pendiente` cada
-# día hasta que el comando exista, para que el hueco quede a la vista.
-_PASOS_DECLARADOS = ("respaldo",)
+# El respaldo diario (#86) existe desde este issue: corre cuando el
+# entorno declara una carpeta con `AGENTE1_RESPALDO_*` y queda declarado
+# `pendiente` cuando no — el hueco sigue a la vista como antes.
+_PREFIJO_RESPALDO = "AGENTE1_RESPALDO_"
 
 
 def main(
@@ -146,7 +151,9 @@ def main(
     def corrida() -> Mapping[str, Any]:
         return informe_a_dict(corrida_informe())
 
-    pasos_diarios = _pasos_diarios(config, args.directorio)
+    pasos_diarios, pasos_declarados = _pasos_diarios(
+        config, args.directorio, environ
+    )
     reloj = clock or (lambda: datetime.now(timezone.utc))
     ahora = reloj()
     if args.ahora:
@@ -161,7 +168,7 @@ def main(
                 config=config,
                 directorio=args.directorio,
                 pasos_diarios=pasos_diarios,
-                pasos_declarados=_PASOS_DECLARADOS,
+                pasos_declarados=pasos_declarados,
                 dormir=dormir or time.sleep,
                 clock=reloj,
                 max_disparos=args.max_disparos,
@@ -172,7 +179,7 @@ def main(
             config=config,
             directorio=args.directorio,
             pasos_diarios=pasos_diarios,
-            pasos_declarados=_PASOS_DECLARADOS,
+            pasos_declarados=pasos_declarados,
             clock=reloj,
         )
     except SchedulerError as exc:
@@ -183,45 +190,110 @@ def main(
 
 
 def _pasos_diarios(
-    config: ConfiguracionScheduler, directorio_salida: Path
-) -> list[PasoDiario]:
-    """Los pasos del slot diario que hoy existen: la purga de #87.
+    config: ConfiguracionScheduler,
+    directorio_salida: Path,
+    environ: Mapping[str, str] | None = None,
+) -> tuple[list[PasoDiario], tuple[str, ...]]:
+    """Los pasos del slot diario y los declarados que aún no corren.
 
-    El respaldo de #86 está declarado, no implementado: viaja en
-    `_PASOS_DECLARADOS`. Sin `AGENTE1_SCHEDULER_REGISTRO_CONFIRMACIONES`
-    o sin el script en el checkout no hay purga y el paso no se declara.
+    `purga` (#87) existe cuando hay registro durable declarado y el script
+    está en el checkout; `respaldo` (#86) existe cuando el entorno declara
+    una carpeta con `AGENTE1_RESPALDO_*` y el script está — los modos y el
+    doble opt-in los resuelve el propio script contra ese entorno. Sin
+    carpeta configurada el paso viaja en `pasos_declarados` y se asienta
+    `pendiente` cada día, para que el hueco quede a la vista.
+
+    Los dos corren como procesos aparte, en este orden: el respaldo nunca
+    corre antes que la purga del día, y si la purga falló el respaldo
+    falla a propósito — ningún artefacto puede conservar texto que la
+    retención ya venció (ADR 0009).
     """
 
-    if config.registro_confirmaciones is None:
-        return []
-    script = (
-        config.repo / "Implementacion" / "Agente1" / "scripts" / "purgar_registro.py"
-    )
-    if not script.is_file():
-        return []
+    env = os.environ if environ is None else environ
+    pasos: list[PasoDiario] = []
+    # La cadena purga → respaldo viaja por este flag: lo escribe el paso
+    # de la purga en cada intento y lo lee el del respaldo antes de subir
+    # nada. Sin purga declarada no hay nada que esperar.
+    purga_completa = {"ok": True}
 
-    def correr() -> None:
-        # Proceso aparte, igual que lo haría una unidad propia: la purga
-        # audita en su propio log (`logs/confirmaciones-hu012.jsonl` bajo
-        # el directorio de salida) y el scheduler sólo conoce el código.
+    if config.registro_confirmaciones is not None:
+        script_purga = (
+            config.repo
+            / "Implementacion"
+            / "Agente1"
+            / "scripts"
+            / "purgar_registro.py"
+        )
+        if script_purga.is_file():
+
+            def correr_purga() -> None:
+                # Proceso aparte, igual que lo haría una unidad propia: la
+                # purga audita en su propio log
+                # (`logs/confirmaciones-hu012.jsonl` bajo el directorio de
+                # salida) y el scheduler sólo conoce el código.
+                resultado = subprocess.run(
+                    [
+                        sys.executable,
+                        str(script_purga),
+                        "--registro",
+                        str(config.registro_confirmaciones),
+                        "--salida",
+                        str(directorio_salida),
+                    ],
+                    cwd=config.repo,
+                    env=dict(env),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+                purga_completa["ok"] = resultado.returncode == 0
+                if not purga_completa["ok"]:
+                    raise RuntimeError("purga_registro_error")
+
+            pasos.append(PasoDiario("purga", correr_purga))
+
+    script_respaldo = (
+        config.repo
+        / "Implementacion"
+        / "Agente1"
+        / "scripts"
+        / "respaldar_estado.py"
+    )
+    respaldo_configurado = script_respaldo.is_file() and any(
+        clave.startswith(_PREFIJO_RESPALDO) for clave in env
+    )
+    if not respaldo_configurado:
+        return pasos, ("respaldo",)
+
+    def correr_respaldo() -> None:
+        # Mismo patrón que la purga: subproceso con el entorno heredado
+        # (ahí viven `AGENTE1_RESPALDO_*` y la credencial de Workspace) y
+        # auditoría propia en `logs/respaldo-diario.jsonl`. La carpeta
+        # real de Drive es un opt-in del operador; sin ella el paso corre
+        # contra la carpeta fake declarada o falla con código.
+        if not purga_completa["ok"]:
+            raise RuntimeError("respaldo_tras_purga_fallida")
+        comando = [
+            sys.executable,
+            str(script_respaldo),
+            "--salida",
+            str(directorio_salida),
+        ]
+        if config.registro_confirmaciones is not None:
+            comando += ["--registro", str(config.registro_confirmaciones)]
         resultado = subprocess.run(
-            [
-                sys.executable,
-                str(script),
-                "--registro",
-                str(config.registro_confirmaciones),
-                "--salida",
-                str(directorio_salida),
-            ],
+            comando,
             cwd=config.repo,
+            env=dict(env),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
         )
         if resultado.returncode != 0:
-            raise RuntimeError("purga_registro_error")
+            raise RuntimeError("respaldo_diario_error")
 
-    return [PasoDiario("purga", correr)]
+    pasos.append(PasoDiario("respaldo", correr_respaldo))
+    return pasos, ()
 
 
 def _parsear_ahora(texto: str) -> datetime:

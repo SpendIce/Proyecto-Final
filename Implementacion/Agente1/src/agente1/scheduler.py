@@ -48,11 +48,13 @@ Decisiones que no se ven en el código:
   con el código cerrado. La línea del scheduler nunca lleva payload, filas
   ni contenido generado.
 - **El mantenimiento diario es una secuencia ordenada en la primera corrida
-  de la ventana.** La purga de datos personales (#87) corre una vez por día
-  y reintenta en el tick siguiente si falló; el respaldo diario (#86) está
-  declarado como paso futuro y se asienta `pendiente` hasta que exista. El
-  orden importa: ningún respaldo debe conservar texto que la retención
-  acotada ya venció (ADR 0009).
+  de la ventana.** La purga de datos personales (#87) y el respaldo del
+  estado local en Drive (#86) corren una vez por día y reintentan en el
+  tick siguiente si fallaron. El orden importa y además se encadena: si la
+  purga falló, el respaldo falla a propósito, porque ningún respaldo debe
+  conservar texto que la retención acotada ya venció (ADR 0009). Sin
+  carpeta declarada (`AGENTE1_RESPALDO_*`) el respaldo se asienta
+  `pendiente`.
 - **El log del scheduler es la fuente del nivel verificado de
   disponibilidad** (#88): una línea JSONL append-only por disparo con
   `inicio_previsto`, `inicio_real`, `fin` y `resultado`, más la fecha

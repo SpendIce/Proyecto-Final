@@ -84,6 +84,25 @@ cada día permitido. Los defaults replican la ventana declarada para el SLO
 de disponibilidad (días hábiles de 8 a 16) y son **provisionales**: la SEU
 los confirma en #56.
 
+El paso `respaldo` del slot diario (#86) tiene su propio prefijo,
+`AGENTE1_RESPALDO_`, con la misma regla de clave desconocida o valor
+vacío (`respaldo_config_unknown_key` / `respaldo_config_invalid`). Sin
+ninguna variable del prefijo el paso queda `pendiente`: no hay destino
+default. Los dos modos son excluyentes (`respaldo_config_incomplete` si
+faltan o sobran piezas):
+
+| Variable | Contenido | Modo |
+|---|---|---|
+| `AGENTE1_RESPALDO_CARPETA_FAKE` | Directorio local del `CarpetaRespaldoLocal` | offline declarado |
+| `AGENTE1_RESPALDO_CARPETA_ID` | ID de la carpeta de Drive de la cuenta técnica, no compartida | live |
+| `AGENTE1_RESPALDO_CONFIRMAR_ESCRITURA` | Literal `SI`: segunda señal del opt-in de escritura real | live, obligatorio |
+| `AGENTE1_RESPALDO_AVISO_DESTINATARIO` | Correo del operador para el aviso de falla; debe pertenecer a la lista de prueba (`AGENTE1_GMAIL_DESTINATARIOS_PRUEBA`) | live, obligatorio |
+| `AGENTE1_RESPALDO_TIMEOUT_S` | Deadline total por llamada HTTP | ambos, default `30` |
+
+En modo fake no se aceptan `CONFIRMAR_ESCRITURA` ni `AVISO_DESTINATARIO`:
+el aviso queda asentado en el JSONL y declarar un destinatario real
+sería una trampa silenciosa.
+
 El resto de la configuración es la de siempre: `AGENTE1_WORKSPACE_*`,
 `AGENTE1_INSUMOS_RANGO_A1` para el camino live y los flags de la corrida
 en el `ExecStart` de la unidad.
@@ -164,10 +183,107 @@ La primera corrida en ventana de cada fecha corre el **slot diario**:
    <directorio>`; deja su propio log en
    `logs/confirmaciones-hu012.jsonl`. Una purga fallida se reintenta en el
    tick siguiente del mismo día.
-2. `respaldo` (#86): **futuro**. El scheduler lo declara `pendiente` cada
-   día para que el hueco quede a la vista hasta que el comando exista;
-   cuando se implemente, entra como paso posterior a la purga (ADR 0009:
-   ningún respaldo conserva texto que la retención ya venció).
+2. `respaldo` (#86): invoca `scripts/respaldar_estado.py` como subproceso
+   con `--salida <directorio>` y `--registro` derivado de
+   `AGENTE1_SCHEDULER_REGISTRO_CONFIRMACIONES` cuando está declarado. El
+   paso corre **después** de la purga y sólo si la purga del día no
+   falló: ADR 0009 exige que ningún respaldo conserve texto que la
+   retención ya venció, así que ante una purga fallida el respaldo también
+   se asienta `falla` y ambos se reintentan en el tick siguiente. Sin
+   `AGENTE1_RESPALDO_*` el paso se asienta `pendiente` cada día, con el
+   hueco a la vista.
+
+Una falla del respaldo **no** cae la corrida: el slot la registra, la
+audita en `logs/respaldo-diario.jsonl` y avisa al operador (ver §6.1).
+La corrida de insumos del tick ya terminó de todos modos: el slot corre
+después del flujo principal.
+
+### 6.1 Respaldo diario del estado en Drive (#86)
+
+Qué viaja: un `.tar.gz` por día hábil con el estado durable del agente —
+el registro de confirmaciones, los JSONL de `logs/`,
+`insumos-procesados.jsonl`, `estado-canal-form/`, `estado-decisiones/`,
+`cola-envios/` y los manifests. Los borradores generados no son estado:
+no viajan (la fuente queda en el repo/Docs y el registro alcanza para
+reconstruir qué se generó).
+
+Formato del artefacto: `agente1-respaldo-AAAA-MM-DD.tar.gz` con un
+miembro `manifest.json` (record `agente1_respaldo_v1`) que declara la
+marca `creado_en` del empaquetado y, por cada archivo, path relativo,
+bytes y sha256. Para el mismo estado y la misma marca el artefacto es
+byte a byte igual: reproducible y verificable.
+
+Tres propiedades del destino, en los dos modos:
+
+- **Nunca sobrescribe.** La subida es siempre `files.create` (en el fake,
+  crear con `O_EXCL`): el adapter no conoce operación de actualización.
+  Un segundo respaldo del mismo día se omite por nombre
+  (`respaldo_omitido_existente` en la auditoría).
+- **Sólo borra los propios vencidos.** El borrado exige las cuatro
+  condiciones juntas: el archivo apareció listando la carpeta
+  configurada, el nombre cumple `agente1-respaldo-*.tar.gz`, lleva el
+  marker `appProperties` `agente1_respaldo=v1` y la fecha del nombre
+  tiene más de 30 días (la ventana de reconciliación). Con `drive.file`,
+  Drive además sólo devuelve archivos que la aplicación creó. Cada
+  borrado deja una línea `respaldo_eliminado`/`respaldo_eliminar_fallido`
+  en `logs/respaldo-diario.jsonl` con el hash del id y la fecha, sin
+  contenido.
+- **La carpeta es de la cuenta técnica y no se comparte.** En live el ID
+  lo fija el operador en `AGENTE1_RESPALDO_CARPETA_ID` y la pertenencia la
+  garantiza el scope `drive.file`; el repo no documenta ninguna carpeta
+  institucional.
+
+El aviso de falla al operador usa el destino Gmail cercado de siempre
+(lista de prueba, marcador `BORRADOR — NO ENVIAR`); en offline queda
+asentado en el JSONL del respaldo. Si el aviso también falla, la
+auditoría conserva el error original del paso.
+
+### 6.2 Restauración desde un respaldo (#86)
+
+Restaurar es un procedimiento manual del operador, sin red: el artefacto
+se baja de Drive por el canal habitual y se repone localmente. Nada de
+esto lo dispara el agente.
+
+```bash
+cd <CHECKOUT>/Implementacion/Agente1
+PYTHONPATH=src \
+  python scripts/restaurar_respaldo.py \
+    --artefacto agente1-respaldo-2026-10-05.tar.gz \
+    --salida <directorio-salida> \
+    --registro <directorio-registro>
+```
+
+El script valida el tar antes de escribir: manifiesto presente y
+conforme, sha256 y tamaño por miembro, paths sin `..` ni absolutos, topes
+por miembro y de tamaño total. Un artefacto corrupto o adulterado se
+rechaza entero con código cerrado; no hay restauración parcial de un
+archivo que no verifica.
+
+La escritura es **no destructiva**: un archivo que ya existe con el mismo
+contenido se omite (la restauración es idempotente) y uno que existe con
+contenido distinto es `conflicto` — se informa, no se pisa. La
+restauración repone lo que falta; nunca borra ni sobrescribe trabajo del
+host.
+
+Después de reponer, el script marca el registro de confirmaciones contra
+la marca `creado_en` del manifiesto:
+
+- Toda reserva colgada pasa a su indeterminado: `ENVIO_RESERVADO` →
+  `ENVIO_INDETERMINADO`, `EMISION_RESERVADA` → `EMISION_INDETERMINADA`.
+- Toda transición posterior a la marca que dejó el registro en estado de
+  aprobación (parciales, `APROBADA`, `ENVIO_ENCOLADO`) pasa a
+  `ENVIO_INDETERMINADO`.
+
+**Lo indeterminado no se reenvía solo.** El operador cruza cada clave
+indeterminada contra Gmail Enviados (o el registro manual) y decide por
+caso; recién ahí una persona puede registrar la decisión que corresponda.
+Es el mismo trato que recibe cualquier envío cuya entrega quedó sin
+confirmar: el agente no asume ni el sí ni el no.
+
+La restauración audita su corrida en `logs/respaldo-diario.jsonl`
+(evento `restauracion_respaldo` del record `agente1_respaldo_diario_v1`,
+con conteos y hashes, sin contenido), así el host reconstruido hereda la
+traza del evento.
 
 ## 7. Instalación en el host (operador designado)
 
