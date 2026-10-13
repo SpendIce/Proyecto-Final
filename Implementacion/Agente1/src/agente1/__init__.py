@@ -35,6 +35,11 @@ Guía rápida de módulos:
 - `cli_scheduler`             subcomando `scheduler`: `--una-corrida` para
                               el timer y `--loop` para el bucle con `sleep`
                               (#84).
+- `medicion_slo`              nivel verificado de los SLO desde la
+                              auditoría: los cinco indicadores de #65 sobre
+                              los registros de operación, con declaraciones
+                              de muestra insuficiente, fuente faltante y
+                              objetivo pendiente (#88).
 - `historia_viva`             puerto de consulta al acervo de A2 (offline).
 - `posts_efemeride`           HU-011, post de efeméride desde el puerto
                               `HistoriaViva` con citas y procedencia (#85;

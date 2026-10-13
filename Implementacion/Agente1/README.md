@@ -68,6 +68,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `src/agente1/contracts/insumos/agente1_insumo_candidate_v2.schema.json`, `src/agente1/insumos_agentes.py`, `src/agente1/insumos_corrida.py`, `src/agente1/insumos_sheets.py` y `src/agente1/cli_insumos.py`: entrada push de insumos A3–A5 (ADR 0008, #82) — el envelope candidato (A2 fuera, `data_origin` con `provisional_producer`), la corrida de la pestaña «Insumos de agentes» (estados `borrador generado`/`rechazado`/`aceptado sin flujo`, idempotencia por `correlation_id` en `insumos-procesados.jsonl`, despacho `evento`→HU-010), el escritor `values.update` acotado con su réplica CSV, y el subcomando `insumos-agentes` offline/live con doble opt-in.
 - `src/agente1/contracts/insumos/a3_evento_gacetilla_v1.schema.json`: contrato declarado del `payload.content` de un insumo A3 `evento` destinado a gacetilla (#83) — campos admitidos y obligatorios que la corrida aplica antes de llamar al pipeline, con códigos de rechazo propios y procedencia del insumo visible en el borrador y en la auditoría.
 - `src/agente1/scheduler.py`, `src/agente1/cli_scheduler.py` y `systemd/agente1-scheduler.{service,timer}` + `systemd/agente1-scheduler-loop.service`: scheduler local de las corridas programadas (#84) — agenda por ticks anclada a la ventana de operación configurable (`AGENTE1_SCHEDULER_*`), lock `flock` contra solapamientos, log versionado `scheduler-corridas.jsonl` (entrada de #88), slot diario con la purga (#87) y el respaldo declarado (#86), y las unidades `systemd --user` como plantillas instalables junto al bucle `--loop` alternativo.
+- `src/agente1/medicion_slo.py` y `scripts/medir_nivel_slo.py`: medición del nivel verificado de los SLO (#88) desde la auditoría ya escrita, con declaraciones `muestra insuficiente` / `sin_fuente` / `pendiente #50/#51` en lugar de números inventados, y emisión de la evidencia versionable en `evidencias/`.
 - `salida/`: evidencia runtime local ignorada por Git.
 
 ## Dónde está documentada cada decisión
@@ -144,6 +145,9 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué el `id_actividad` del evento se deriva del `correlation_id` | `insumos_corrida.py`, docstring de módulo y `_id_solicitud_insumo` |
 | Qué campos exige el `content` de un `evento` A3 para gacetilla | `contracts/insumos/a3_evento_gacetilla_v1.schema.json`; `insumos_corrida.py` (`CAMPOS_EVENTO`, `CAMPOS_EVENTO_OBLIGATORIOS`) |
 | Cómo se ve en el borrador y en el log que la pieza salió de un insumo | `procesamiento.py` (`ProcedenciaInsumo`, `_bloque_procedencia`, `_con_procedencia`) |
+| Por qué el denominador de disponibilidad es la agenda y no las líneas del log | `src/agente1/medicion_slo.py`, docstring de módulo y de `indicador_disponibilidad` |
+| Por qué el tiempo de atención exige el CSV de respuestas del Form | `medicion_slo.py`, docstrings de módulo y de `indicador_tiempo_atencion` |
+| Por qué el SLO de aprobación a envío descuenta el tiempo fuera de la ventana | `medicion_slo.py`, docstrings de `indicador_aprobacion_envio` y de `segundos_en_ventana` |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
@@ -1001,6 +1005,62 @@ PYTHONPATH=src python -m agente1 scheduler --loop --max-disparos 2 \
   --tabla insumos.csv --directorio salida/insumos --fake-output "salida"
 
 uv run pytest -q tests/test_scheduler.py tests/test_cli_scheduler.py
+```
+
+## Nivel verificado de los SLO desde la auditoría (#88)
+
+`scripts/medir_nivel_slo.py` calcula los cinco indicadores de la resolución
+de SLO/SLA (#65) sobre los registros que la operación ya deja bajo un
+directorio de salida, sin tocar la red ni escribir en las fuentes, y
+publica el reporte `nivel_verificado_slo_v1`: disponibilidad (agenda vs.
+corridas del scheduler), tiempo de atención (Form de pedido → aviso),
+latencia por pieza (p95 de `latencia_s` por tipo), aprobación → envío
+(doble aprobación → entrega, dentro de la ventana) e integridad del gate
+(toda pieza en validación humana con gate aprobado).
+
+La agenda y la ventana se leen de `AGENTE1_SCHEDULER_*` con
+`cargar_configuracion_scheduler`, igual que el scheduler: el denominador
+de disponibilidad son los ticks que la agenda ya debió disparar al
+instante de corte, no las líneas del log. El intervalo de sondeo efectivo
+y la ventana viajan declarados en la evidencia.
+
+Nada se inventa: un indicador con `n < --muestra-minima` (default 20)
+declara `muestra insuficiente (n=...)`; una fuente ausente o ilegible
+declara `sin_fuente` con el hueco explícito; el objetivo de latencia se
+declara `pendiente #50/#51` hasta que #50 fije el número sobre el modelo
+de #51. Dos huecos conocidos que la evidencia reporta: la marca temporal
+del Form de pedido sólo entra hasheada a la auditoría (el indicador de
+tiempo de atención pide el CSV de respuestas exportado a la fecha de
+corte por `--respuestas-csv`, o declara `sin_fuente`) y las aprobaciones
+de los circuitos que no pasan por el Form de decisiones quedan como hash,
+así que su ancla no se reconstruye.
+
+```bash
+PYTHONPATH=src python scripts/medir_nivel_slo.py \
+  --directorio salida/insumos-d2 \
+  --desde 2026-10-12 --hasta 2026-10-16 \
+  --respuestas-csv respuestas-form.csv \
+  --md evidencias/nivel-verificado-slo-2026-10-16.md
+```
+
+El JSON por stdout es el reporte completo (indicador por indicador:
+`n`, nivel medido o declaración, objetivo, detalle y huecos); `--md`
+emite el corte en markdown listo para versionar en `evidencias/` con el
+comando exacto que lo produjo. La primera evidencia medida es
+`evidencias/nivel-verificado-slo-2026-10-12.md`, producida sobre la
+corrida sintética offline de `salida/slo-demo-2026-10-12` (backend fake,
+sin red): sirve para verificar el instrumento end-to-end —agenda,
+cruces por hash, ventana operativa y declaraciones— no para afirmar un
+nivel operativo.
+
+Es la evidencia que las celdas con SLO del perfil de calidad (#89)
+citan como nivel verificado cuando se proyecta el Anexo 2 con
+`scripts/anexo2_calidad.py`: mientras una celda diga `pendiente` o
+`muestra insuficiente`, la proyección lo declara y el nivel no se
+publica como cumplido.
+
+```bash
+uv run pytest -q tests/test_medicion_slo.py
 ```
 
 ## Seam de consulta a Historia Viva
