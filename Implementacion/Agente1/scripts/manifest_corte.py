@@ -1,13 +1,16 @@
 """Emite el manifest de reconstrucción de un corte de evidencia.
 
-Responde una sola pregunta: con qué fuentes y con qué configuración se produjo
-la evidencia de este corte. Registra hashes de las entradas versionadas —
-dataset sintético, prompts, contratos, política de redes y módulos que rinden
-la salida — más la configuración por defecto del adapter y la referencia Git.
+Responde una sola pregunta: con qué versión del agente y con qué configuración
+se produjo la evidencia de este corte. Ya no mantiene su propia lista de
+fuentes: referencia la **versión** y el **hash del manifest de versión**
+(`manifest-version.json`, #92), que cubre código, prompts, políticas,
+contratos, migraciones, `uv.lock`, `pyproject.toml`, `scripts/` y `systemd/`.
+Lo que agrega es lo propio del corte: la configuración del adapter y la
+referencia Git.
 
-No copia borradores, prompts renderizados ni datos de actividades: un hash
-alcanza para verificar que una fuente no cambió, y copiar el contenido sería
-arrastrar material que la evidencia no necesita.
+No copia borradores, prompts renderizados ni datos de actividades: el hash del
+manifest alcanza para verificar que la versión no cambió, y copiar el
+contenido sería arrastrar material que la evidencia no necesita.
 
 Uso:
     uv run python scripts/manifest_corte.py --corte 2026-09-08 \\
@@ -17,7 +20,6 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import subprocess
 import sys
@@ -26,6 +28,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from agente1.manifest_version import (  # noqa: E402
+    MANIFEST_VERSION_NOMBRE,
+    IntegridadError,
+    leer_manifest,
+    sha256_archivo,
+)
 from agente1.ollama import (  # noqa: E402
     DEFAULT_OLLAMA_NUM_PREDICT,
     DEFAULT_OLLAMA_TIMEOUT_S,
@@ -38,29 +46,6 @@ from agente1.presupuesto import (  # noqa: E402
     presupuesto_minimo_num_predict,
 )
 from agente1.procesamiento import PROMPT_VERSION  # noqa: E402
-
-# Entradas versionadas de las que depende cualquier corrida de HU-010 y HU-011.
-# Si alguna cambia, el corte deja de ser el mismo aunque el resultado se parezca.
-FUENTES = (
-    "data/actividades_sinteticas.csv",
-    "src/agente1/contracts/gacetilla_input_v2.schema.json",
-    "src/agente1/contracts/post_input_v2.schema.json",
-    "src/agente1/contracts/post_creative_output_v2.schema.json",
-    "src/agente1/contracts/post_creative_output_v3.schema.json",
-    "src/agente1/politicas/politica_redes_provisional_v1.json",
-    "src/agente1/prompts/gacetilla_v3.txt",
-    "src/agente1/prompts/post_instagram_structured_v3.txt",
-    "src/agente1/prompts/post_linkedin_structured_v3.txt",
-    "src/agente1/procesamiento.py",
-    "src/agente1/posts.py",
-    "src/agente1/politica_redes.py",
-    "src/agente1/presupuesto.py",
-    "src/agente1/ollama.py",
-)
-
-
-def _sha256(ruta: Path) -> str:
-    return hashlib.sha256(ruta.read_bytes()).hexdigest()
 
 
 def _git(*argumentos: str) -> str | None:
@@ -82,9 +67,14 @@ def main() -> int:
     parser.add_argument("--corte", required=True, help="Fecha del corte, AAAA-MM-DD.")
     args = parser.parse_args()
 
-    faltantes = [ruta for ruta in FUENTES if not (ROOT / ruta).is_file()]
-    if faltantes:
-        print(f"faltan fuentes declaradas: {faltantes}", file=sys.stderr)
+    ruta_manifest = ROOT / MANIFEST_VERSION_NOMBRE
+    try:
+        manifest_version = leer_manifest(ruta_manifest)
+    except IntegridadError as exc:
+        print(
+            f"manifest de versión no utilizable ({exc.code}): {ruta_manifest}",
+            file=sys.stderr,
+        )
         return 1
 
     manifest = {
@@ -94,6 +84,11 @@ def main() -> int:
         # manifest: los hashes valen por si solos, y este archivo se genera
         # antes del commit que lo va a contener.
         "commit_padre": _git("rev-parse", "HEAD"),
+        # La versión y su manifest reemplazan la lista de fuentes que este
+        # script mantenía congelada: lo controlado lo cubre el manifest de
+        # versión, y su hash ata el corte a una versión exacta.
+        "version": manifest_version["version"],
+        "manifest_version_sha256": sha256_archivo(ruta_manifest),
         "configuracion": {
             "prompt_version_gacetilla": PROMPT_VERSION,
             "ollama_num_predict_default": DEFAULT_OLLAMA_NUM_PREDICT,
@@ -107,7 +102,6 @@ def main() -> int:
             ),
             "chars_por_token_menos_favorable": CHARS_POR_TOKEN_MENOS_FAVORABLE,
         },
-        "fuentes_sha256": {ruta: _sha256(ROOT / ruta) for ruta in FUENTES},
         "no_incluye": [
             "borradores generados",
             "prompts renderizados",

@@ -8,6 +8,10 @@
 # conviviendo no duplican filas, el segundo disparo queda `omitida_lock` u
 # `omitida_duplicada`. Aun así, en producción se elige UN mecanismo.
 #
+# Como el oneshot, en modo operación (`--live`) verifica la integridad de la
+# versión al arrancar (ADR 0010): un archivo controlado que no coincide, o un
+# manifest ausente o inválido, y el bucle no arranca.
+#
 # Mismos pasos que `agente1-scheduler.service`: reemplazar `__CHECKOUT__`,
 # preparar el env file y ajustar el ExecStart. Instalarla es alternativa al
 # timer, no complementaria: con ambos activos cada corrida la gana quien

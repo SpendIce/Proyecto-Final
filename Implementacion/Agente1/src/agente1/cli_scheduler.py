@@ -15,6 +15,14 @@ Los flags de la corrida son exactamente los de `insumos-agentes`
 `--confirm-write-workspace` y `--ollama-model`. La agenda se configura por
 entorno con `AGENTE1_SCHEDULER_*` (ver `scheduler.py`).
 
+Antes de arrancar en modo operación (`--live`, como lo invocan las unidades
+`systemd/`) se verifica la integridad de la versión contra
+`manifest-version.json` (#92, ADR 0010): si un archivo controlado difiere, o
+si el manifest falta o es inválido, el disparo no arranca y sale con código 2
+dejando el motivo en `logs/integridad-arranque.jsonl`. Los ensayos offline y
+la suite no verifican: el manifest se regenera al cortar una versión, no en
+cada cambio.
+
 Cada disparo deja una línea en `logs/scheduler-corridas.jsonl` bajo
 `--directorio`: `inicio_previsto`, `inicio_real`, `fin`, `resultado`
 (`completada`, `falla`, `omitida_ventana`, `omitida_lock`,
@@ -59,6 +67,7 @@ from .cli_insumos import (
     validar_argumentos_corrida,
 )
 from .google_workspace import TransporteHttp
+from .manifest_version import IntegridadError
 from .scheduler import (
     ConfiguracionScheduler,
     ConfiguracionSchedulerError,
@@ -142,7 +151,7 @@ def main(
 
     try:
         corrida_informe = corrida_desde_args(args, transport=transport)
-    except ConfiguracionWorkspaceError as exc:
+    except (ConfiguracionWorkspaceError, IntegridadError) as exc:
         return _invalida(exc.code)
 
     # El scheduler conoce el informe como mapping: `informe_a_dict` es la

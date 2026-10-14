@@ -10,7 +10,10 @@ El modo en vivo se pide con `--live` **y** `--confirm-write-workspace`
 juntos (doble opt-in, igual que `workspace_e2e`): lee la pestaña real por
 `GoogleSheetsLectorValores`, escribe el estado de cada fila por
 `GoogleSheetsEscritorEstadoInsumos` y deja los borradores en la carpeta de
-Drive configurada. La configuración sale del entorno: las
+Drive configurada. Es el modo operación, así que antes de tocar la red
+verifica la integridad de la versión contra el manifest (#92, ADR 0010): un
+árbol alterado, o un manifest ausente o inválido, no arranca. La configuración
+sale del entorno: las
 `AGENTE1_WORKSPACE_*` de siempre (planilla, plantilla, carpeta, token o el
 trío OAuth) más `AGENTE1_INSUMOS_RANGO_A1` con el rango `'Nombre'!A1:D<n>`
 de la pestaña. En vivo el generador es obligatoriamente un modelo de Ollama:
@@ -61,6 +64,7 @@ from .insumos_sheets import (
     GoogleSheetsEscritorEstadoInsumos,
     cargar_configuracion_insumos,
 )
+from .manifest_version import IntegridadError, verificar_integridad_al_arrancar
 from .ollama import (
     DEFAULT_OLLAMA_BASE_URL,
     DEFAULT_OLLAMA_NUM_PREDICT,
@@ -168,7 +172,9 @@ def corrida_desde_args(
     """
 
     if args.live:
-        lector, escritor, destino = _dependencias_live(transport=transport)
+        lector, escritor, destino = _dependencias_live(
+            transport=transport, directorio=args.directorio
+        )
     else:
         lector = LectorValoresCsv(args.tabla)
         escritor = EscritorEstadoCsv(args.tabla)
@@ -227,7 +233,7 @@ def main(
 
     try:
         informe = corrida_desde_args(args, transport=transport)()
-    except (CorridaInsumosError, ConfiguracionWorkspaceError) as exc:
+    except (CorridaInsumosError, ConfiguracionWorkspaceError, IntegridadError) as exc:
         return _invalida(exc.code)
     except OSError:
         return _invalida("entrada_inaccesible")
@@ -236,13 +242,20 @@ def main(
 
 
 def _dependencias_live(
-    *, transport: TransporteHttp | None
+    *, transport: TransporteHttp | None, directorio: Path
 ) -> tuple[
     GoogleSheetsLectorValores,
     GoogleSheetsEscritorEstadoInsumos,
     GoogleDrivePlantillaDestinoBorradores,
 ]:
     """Los tres adapters reales. Único punto donde la corrida sale a la red.
+
+    Antes de pedir el token se valida la configuración y se verifica la
+    **integridad de la versión** (#92, ADR 0010): el modo operación no arranca
+    si un archivo controlado no coincide con el manifest. El gate va después
+    de la configuración y antes de la red, así una corrida de ensayo sin
+    configuración —o la suite— no exige manifest, y ninguna corrida real sale
+    a Google con el árbol alterado.
 
     El token se pide acá, antes de devolver nada, para que un problema de
     credenciales aparezca al preparar la corrida y no a mitad de camino, con
@@ -251,6 +264,7 @@ def _dependencias_live(
 
     config = cargar_configuracion_workspace()
     insumos = cargar_configuracion_insumos()
+    verificar_integridad_al_arrancar(directorio_salida=directorio)
     token_provider = construir_token_provider(timeout_s=config.timeout_s)
     try:
         token_provider.obtener_access_token()

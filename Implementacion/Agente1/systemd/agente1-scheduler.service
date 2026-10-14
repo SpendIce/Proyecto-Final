@@ -19,6 +19,13 @@
 # 4. `DIRECTORIO_SALIDA` es donde viven el registro de idempotencia, los
 #    borradores locales, el lock y `logs/scheduler-corridas.jsonl`.
 #
+# Modo operación (ADR 0010): antes de tocar la red, `--live` verifica la
+# integridad del árbol contra `manifest-version.json`. Si un archivo
+# controlado no coincide, o si el manifest falta o es inválido, el disparo no
+# arranca, sale con código 2 y deja el motivo en
+# `DIRECTORIO_SALIDA/logs/integridad-arranque.jsonl`. Regenerar el manifest es
+# un corte de versión (`scripts/manifest_version.py`), no un ajuste en caliente.
+#
 # Instalación manual del operador designado (ADR 0007): copiar esta unidad
 # y `agente1-scheduler.timer` a `~/.config/systemd/user/` y habilitar el
 # timer. El repo NO instala ni activa unidades.
