@@ -192,7 +192,7 @@ Agente de comunicaci\'on institucional, automatizaci\'on de contenido, gacetilla
 
 \begin{description}
   \item[Gacetilla institucional:] comunicado oficial de extensi\'on universitaria que describe una actividad, curso o evento de la \ac{SEU}. Formato estandarizado con plantilla institucional.
-  \item[Nodo de comunicaci\'on institucional:] rol del Agente~1 como receptor de contenido de otros agentes (A2--A5) para su adaptaci\'on y difusi\'on. No act\'ua como orquestador del sistema.
+  \item[Nodo de comunicaci\'on institucional:] rol del Agente~1 como receptor de insumos de otros agentes (A3--A5) y consultante del acervo hist\'orico (A2) para su adaptaci\'on y difusi\'on. No act\'ua como orquestador del sistema.
   \item[Validaci\'on humana:] revisi\'on obligatoria por parte del personal de la \ac{SEU} de todo contenido generado autom\'aticamente, antes de cualquier publicaci\'on o env\'io oficial.
   \item[Trigger:] evento autom\'atico que inicia un proceso en el sistema, generalmente una nueva fila en Google Sheets o la carga de un documento.
   \item[LangGraph:] motor de orquestaci\'on de c\'odigo abierto para definir flujos de agentes como grafos con estado, nodos, transiciones, persistencia e intervenci\'on humana.
@@ -313,15 +313,15 @@ La \ac{SEU} opera sin automatizaci\'on en su proceso de comunicaci\'on instituci
 
 \subsection{Situaci\'on deseada (To Be)}
 
-Un sistema en el que el personal de la \ac{SEU} ingresa datos de una actividad en Google Sheets (o un formulario equivalente) y el Agente~1 genera autom\'aticamente, previa validaci\'on humana: (a)~la gacetilla institucional en Google Docs con plantilla aplicada, (b)~los posts adaptados para Instagram y LinkedIn, (c)~el correo de difusi\'on correspondiente. Las inscripciones a actividades disparar\'an autom\'aticamente correos de confirmaci\'on. La interacci\'on en lenguaje natural ser\'a de uso interno y se iniciar\'a mediante un correo que invite al usuario a chatear con el agente; Google Sheets conservar\'a los datos que el sistema requiera para operar y auditar el flujo. El sistema registrar\'a cada acci\'on con fecha, usuario solicitante y estado de validaci\'on, proveyendo trazabilidad completa para auditor\'ias de \ac{CONEAU}.
+Un sistema en el que el personal de la \ac{SEU} ingresa datos de una actividad en Google Sheets (o un formulario equivalente) y el Agente~1 genera autom\'aticamente, previa validaci\'on humana: (a)~la gacetilla institucional en Google Docs con plantilla aplicada, (b)~los posts adaptados para Instagram y LinkedIn, (c)~el correo de difusi\'on correspondiente. Las inscripciones a actividades disparar\'an autom\'aticamente correos de confirmaci\'on. La interacci\'on en lenguaje natural ser\'a de uso interno y se iniciar\'a mediante un formulario de pedidos cuyo resultado se avisa por correo; Google Sheets conservar\'a los datos que el sistema requiera para operar y auditar el flujo. El sistema registrar\'a cada acci\'on con fecha, usuario solicitante y estado de validaci\'on, proveyendo trazabilidad completa para auditor\'ias de \ac{CONEAU}.
 
 \subsection{Objetivos espec\'ificos}
 
 \begin{enumerate}[label=OE\arabic*.]
   \item Implementar el m\'odulo de generaci\'on de gacetillas institucionales, con input desde Google Sheets y output en Google Docs con plantilla oficial de la \ac{SEU}.
   \item Implementar el m\'odulo de generaci\'on de posts para redes sociales, con formato adaptado a Instagram (texto breve, hashtags) y LinkedIn (texto extendido, tono profesional), controlando longitud y tono seg\'un canal.
-  \item Implementar el sistema de confirmaciones autom\'aticas de inscripci\'on, con trigger al registrarse una nueva inscripci\'on en Google Sheets, doble aprobaci\'on humana registrada previa al env\'io ---sem\'antica del Responsable de Gesti\'on del Conocimiento y utilitaria del Coordinador de Extensi\'on--- y registro de cada env\'io.
-  \item Implementar la interfaz de interacci\'on en lenguaje natural para uso interno del personal de la \ac{SEU}, iniciada por correo electr\'onico con invitaci\'on a chat (canal adoptado seg\'un lectura vigente de la documentaci\'on del \ac{P100}, pendiente de confirmaci\'on por Direcci\'on) y registro operativo en Google Sheets.
+  \item Implementar el sistema de confirmaciones autom\'aticas de inscripci\'on, con trigger al registrarse una nueva inscripci\'on en Google Sheets, plantilla aprobada (sem\'antica del Responsable de Gesti\'on del Conocimiento y utilitaria del Coordinador de Extensi\'on) y aprobaci\'on de lote previa al env\'io, y registro de cada env\'io.
+  \item Implementar la interfaz de interacci\'on en lenguaje natural para uso interno del personal de la \ac{SEU}, mediante un formulario de pedidos con aviso por correo (canal provisional, pendiente de confirmaci\'on por Direcci\'on) y registro operativo en Google Sheets.
   \item Implementar el m\'odulo de generaci\'on de certificados autom\'aticos con plantilla base y flujo obligatorio de validaci\'on humana antes de emisi\'on.
   \item Incorporar el procesamiento acotado de documentos PDF/DOCX como insumo para generar res\'umenes o piezas de comunicaci\'on, sin convertir al Agente~1 en herramienta de anal\'itica documental.
   \item Integrar el Agente~1 como nodo de comunicaci\'on institucional del sistema multiagente, recibiendo insumos de los dem\'as agentes y produciendo comunicaciones institucionales integrales.
@@ -353,10 +353,10 @@ Las actividades de este Proyecto (primer a\~no del Proyecto Centenario) abarcan 
 \begin{itemize}
   \item \textbf{HU-010} (Semestre~1): generaci\'on autom\'atica de gacetillas institucionales. Input: datos de Google Sheets. Output: Google Docs con plantilla institucional aplicada.
   \item \textbf{HU-011} (Semestre~1): generaci\'on de posts para redes sociales. Canales: Instagram y LinkedIn. Longitud y tono configurables por canal.
-  \item \textbf{HU-012} (Semestre~2): notificaciones autom\'aticas de inscripci\'on, participaci\'on, situaci\'on de pagos y aprobaci\'on (la documentaci\'on del \ac{P100} ampli\'o el alcance el 2026-09-22 e incorpor\'o los mensajes a deudores). Trigger al registrarse una nueva inscripci\'on en Google Sheets: el agente prepara la confirmaci\'on y la deja en estado \texttt{PENDIENTE\_VALIDACION}; el env\'io autom\'atico por correo se habilita reci\'en cuando el registro acumula las dos aprobaciones del circuito, la sem\'antica del Responsable de Gesti\'on del Conocimiento y la utilitaria del Coordinador de Extensi\'on, registradas por separado y en cualquier orden. Registro de cada env\'io con marca temporal, destinatario y estado. Es la \'unica salida que el Agente~1 entrega de forma autom\'atica a un destinatario final. La fuente de datos de situaci\'on de pagos queda pendiente de definici\'on por la \ac{SEU}.
-  \item \textbf{HU-013} (Semestre~2): interfaz de interacci\'on en lenguaje natural para uso interno, iniciada mediante correo electr\'onico con invitaci\'on a chat y registro de datos operativos en Google Sheets. El canal adoptado responde a la lectura vigente de la documentaci\'on del \ac{P100} y queda pendiente de confirmaci\'on por Direcci\'on (la misma fuente admite una lectura de prompt en Sheet/Doc y otra de interfaz web con login).
-  \item \textbf{HU-014} (Semestre~2): generaci\'on de certificados autom\'aticos con plantilla base, generaci\'on PDF y validaci\'on humana obligatoria previa a emisi\'on.
-  \item Integraci\'on del Agente~1 como nodo de comunicaci\'on institucional: recepci\'on de insumos de A2 (contenido hist\'orico), A3 (datos de eventos), A4 (respuestas complejas) y A5 (enriquecimiento de texto de \ac{RRSS}).
+  \item \textbf{HU-012} (Semestre~2): notificaciones autom\'aticas de inscripci\'on, participaci\'on, situaci\'on de pagos y aprobaci\'on (la documentaci\'on del \ac{P100} ampli\'o el alcance el 2026-09-22 e incorpor\'o los mensajes a deudores). Trigger al registrarse una nueva inscripci\'on en Google Sheets: el agente prepara la confirmaci\'on y la deja en estado \texttt{PENDIENTE\_VALIDACION}; el env\'io autom\'atico por correo se habilita reci\'en cuando la plantilla de la actividad acumula la aprobaci\'on sem\'antica del Responsable de Gesti\'on del Conocimiento y la utilitaria del Coordinador de Extensi\'on y se registra la aprobaci\'on de lote. Registro de cada env\'io con marca temporal, destinatario y estado. Es la \'unica salida que el Agente~1 entrega de forma autom\'atica a un destinatario final. La fuente de datos de situaci\'on de pagos son los comprobantes presentados en el buz\'on propio, las novedades de pago y el plan de pago.
+  \item \textbf{HU-013} (Semestre~2): interfaz de interacci\'on en lenguaje natural para uso interno, mediante un formulario de pedidos con aviso por correo y registro de datos operativos en Google Sheets. El canal es provisional y queda pendiente de confirmaci\'on por Direcci\'on; la lectura de \'prompt\' en Sheet/Doc queda descartada porque el Agente~1 procesa pedidos y no es un chatbot.
+  \item \textbf{HU-014} (Semestre~2): generaci\'on de certificados autom\'aticos con plantilla base (provisional mientras la \ac{SEU} no entregue la definitiva), generaci\'on de PDF y validaci\'on humana obligatoria previa a emisi\'on. El certificado lleva el bloque de firma del Secretario de Extensi\'on y del Decano (imagen de la firma si la \ac{SEU} la entrega, o recuadro provisional si no); la firma digital queda fuera de alcance porque el \ac{DoD} no la exige. El destino es un correo al titular con el PDF adjunto, contra una lista de prueba en el sistema de demostraci\'on. Los datos de cada participante salen de una lista de cierre que carga la \ac{SEU}: el agente nunca infiere asistencia ni aprobaci\'on, y la aprobaci\'on del lote la da el Secretario de Extensi\'on. Despu\'es de emitir, solo queda la auditor\'ia con hashes.
+  \item Integraci\'on del Agente~1 como nodo de comunicaci\'on institucional, con el mecanismo productivo y el insumo provisional declarado. En el sistema de demostraci\'on, A3 (datos de eventos) corre en vivo con productor provisional declarado y dispara un borrador de gacetilla (HU-010); A2 (Historia Viva) se consulta y no entrega ---la consulta corre en vivo por HTTP solo si la instancia de A2, con el contrato acordado, llega antes de la fecha de corte, y su salida es un post de efem\'eride (HU-011)---; A4 (respuestas complejas) y A5 (enriquecimiento de texto de \ac{RRSS}) quedan solo como contrato.
   \item Procesamiento acotado de archivos PDF/DOCX provistos por usuarios internos para producir res\'umenes o reutilizar contenido en gacetillas, posts, newsletters o correos institucionales.
   \item Log de ejecuci\'on con trazabilidad completa de todas las acciones.
 \end{itemize}
@@ -401,7 +401,7 @@ El Agente~1 se ubica como soporte tecnol\'ogico principal del Proceso~4 (Comunic
   \item HU-016 y HU-017 de la versi\'on de la documentaci\'on del \ac{P100} sincronizada el 2026-09-22 (base de datos de consultas con clasificaci\'on sem\'antica por proceso, y generaci\'on de Disposiciones Decanales, respectivamente): aunque la fuente las ubica dentro de la \'epica del Agente~1, quedan fuera del alcance de este Proyecto por decisi\'on de Direcci\'on, delegadas junto con toda historia nueva posterior a HU-014 a los alumnos de cuarto a\~no que continuar\'an el \ac{P100}. En cambio, las ampliaciones de las historias ya incluidas (HU-010 a HU-014) s\'i forman parte del alcance de este Proyecto, como la incorporaci\'on de las notificaciones de situaci\'on de pagos a HU-012.
   \item Gesti\'on de tareas administrativas de soporte inter-secretar\'ia, tales como orden del d\'ia, ceremonial, proveedores, presupuestos, aprovisionamiento e inventarios. Esas tareas se canalizan hacia el \'area de apoyo correspondiente y no redefinen el \ac{MVP} del Agente~1.
   \item Scraping o consumo de APIs externas complejas no definidas en la etapa actual.
-  \item Publicaci\'on en redes sociales y env\'io de gacetillas, newsletters o correos de difusi\'on: el Agente~1 produce esas piezas \'unicamente como borrador y la publicaci\'on o distribuci\'on queda a cargo del personal de la \ac{SEU}, de forma manual y desde los canales y cuentas institucionales. La \'unica excepci\'on es la confirmaci\'on de inscripci\'on (HU-012), acotada al destinatario de esa inscripci\'on y condicionada a las dos aprobaciones registradas del circuito (sem\'antica y utilitaria).
+  \item Publicaci\'on en redes sociales y env\'io de gacetillas, newsletters o correos de difusi\'on: el Agente~1 produce esas piezas \'unicamente como borrador y la publicaci\'on o distribuci\'on queda a cargo del personal de la \ac{SEU}, de forma manual y desde los canales y cuentas institucionales. La \'unica excepci\'on es la confirmaci\'on de inscripci\'on (HU-012), acotada al destinatario de esa inscripci\'on y condicionada a la plantilla aprobada (sem\'antica y utilitaria) y a la aprobaci\'on de lote previa al env\'io.
   \item Automatizaci\'on sin validaci\'on humana en contenidos destinados a publicaci\'on oficial.
   \item Infraestructura de alto costo (servidores GPU, servicios cloud premium).
   \item Comunicaci\'on con organismos militares y dependencias de la \ac{UNDEF}: el alcance comunicacional del Agente~1 se limita a la comunidad \ac{FIE} (FIE Informa), organismos institucionales y canales de redes sociales definidos. Toda comunicaci\'on oficial con la \ac{UNDEF} o dependencias castrenses queda fuera de alcance.
@@ -634,7 +634,7 @@ La Tabla~\ref{tab:plataforma} detalla el stack tecnol\'ogico propuesto para el A
 
 \subsection{Viabilidad t\'ecnica}
 
-El stack tecnol\'ogico seleccionado se compone de herramientas maduras con amplia adopci\'on en la industria. Los modelos de lenguaje de c\'odigo abierto pueden ejecutarse en hardware de consumo sin GPU dedicada, lo que los hace compatibles con los servidores institucionales existentes. LangGraph provee una base probada para modelar flujos ag\'enticos como grafos con estado, con soporte para persistencia, transmisi\'on de eventos, memoria, subgrafos e intervenci\'on humana; \texttt{deepagents} se prev\'e como entorno auxiliar de desarrollo para acelerar prototipos con planificaci\'on, subagentes, herramientas y gesti\'on de contexto, sin modificar la validaci\'on humana obligatoria ni el alcance funcional del Agente~1; al corte de este documento no registra uso efectivo. La integraci\'on con Google Workspace a trav\'es de su API y Apps Script es un patr\'on bien documentado y ampliamente utilizado. Los mayores riesgos t\'ecnicos son la calidad del contenido generado (mitigado con validaci\'on humana obligatoria), la inyecci\'on de prompts sobre datos no confiables (mitigada con sanitizaci\'on, separaci\'on de instrucciones y revisi\'on de salidas) y la latencia de generaci\'on (objetivo: $<$~30 segundos por pieza).
+El stack tecnol\'ogico seleccionado se compone de herramientas maduras con amplia adopci\'on en la industria. Los modelos de lenguaje de c\'odigo abierto pueden ejecutarse en hardware de consumo sin GPU dedicada, lo que los hace compatibles con los servidores institucionales existentes. LangGraph provee una base probada para modelar flujos ag\'enticos como grafos con estado, con soporte para persistencia, transmisi\'on de eventos, memoria, subgrafos e intervenci\'on humana; \texttt{deepagents} se prev\'e como entorno auxiliar de desarrollo para acelerar prototipos con planificaci\'on, subagentes, herramientas y gesti\'on de contexto, sin modificar la validaci\'on humana obligatoria ni el alcance funcional del Agente~1; al corte de este documento no registra uso efectivo. La integraci\'on con Google Workspace a trav\'es de su API y Apps Script es un patr\'on bien documentado y ampliamente utilizado. Los mayores riesgos t\'ecnicos son la calidad del contenido generado (mitigado con validaci\'on humana obligatoria), la inyecci\'on de prompts sobre datos no confiables (mitigada con sanitizaci\'on, separaci\'on de instrucciones y revisi\'on de salidas) y la latencia de generaci\'on (objetivo: p95 por tipo de pieza; el umbral queda pendiente de medici\'on).
 
 \subsection{Viabilidad econ\'omica}
 
@@ -740,7 +740,7 @@ La Tabla~\ref{tab:riesgos} presenta los riesgos identificados para el alcance de
     R3 & Plantillas institucionales no definidas antes del inicio del desarrollo & Definici\'on de plantillas durante las fases de relevamiento y dise\~no, en colaboraci\'on con la SEU, antes de iniciar el prototipado de HU-010/HU-011. \\
     R4 & Falta de aceptaci\'on del personal de la SEU & Involucramiento temprano: el personal participa en el co-dise\~no de plantillas y en la validaci\'on funcional desde TRL~3. \\
     R5 & Dependencia de HU-001 y HU-002 (plataforma base) & Estas historias son prerequisitos globales compartidos con el Proyecto de Becerra Mas Roca. Se implementan como actividad conjunta al inicio del desarrollo, antes del prototipado de las HU del Agente~1. \\
-    R6 & Latencia de generaci\'on superior a 30 segundos & Optimizaci\'on de prompts, selecci\'on de un modelo m\'as eficiente, y posibilidad de fallback a API externa con menor latencia. \\
+    R6 & Latencia de generaci\'on superior al objetivo comprometido & Optimizaci\'on de prompts, selecci\'on de un modelo m\'as eficiente, y posibilidad de fallback a API externa con menor latencia. \\
     R7 & Cambios en las APIs de Google Workspace & Abstracci\'on de la capa de integraci\'on con Workspace, permitiendo ajustes sin impacto en el n\'ucleo del agente. \\
     R8 & Hardware insuficiente para inferencia local con Ollama & La ausencia de una m\'aquina con m\'inimo 8~GB de RAM impide ejecutar el \ac{LLM} localmente, comprometiendo la soberan\'ia de datos. Mitigaci\'on: relevamiento de infraestructura durante la fase de relevamiento (F1). Alternativa: coordinaci\'on con el \'area de infraestructura (\infraestructura) para asignar un servidor con recursos suficientes, o ajuste a un modelo de menor tama\~no. \\
     R9 & Inyecci\'on de prompts o manipulaci\'on de datos de entrada & Sanitizaci\'on de entradas, separaci\'on estricta entre instrucciones del sistema y datos del usuario, validaci\'on de salidas antes de ejecutar acciones en Google Workspace. \\
@@ -768,7 +768,7 @@ La condici\'on de agente aut\'onomo del Agente~1 introduce una superficie de ata
   \item \textbf{Identidades no humanas:} cada cuenta de servicio, token o credencial de automatizaci\'on se trata como una \ac{NHI} con identidad propia, propietario, rotaci\'on peri\'odica y baja documentada cuando deje de utilizarse.
   \item \textbf{Autenticaci\'on:} integraci\'on con OAuth2 para el acceso a servicios de Google Workspace. Las cuentas de servicio de Google se configuran con permisos m\'inimos necesarios.
   \item \textbf{Control de acceso:} modelo \ac{RBAC} con tres niveles: administrador (configura el sistema), validador (revisa y aprueba contenido) y visualizador (consulta logs). Solo el validador puede aprobar contenido para publicaci\'on.
-  \item \textbf{Validaci\'on humana obligatoria:} ning\'un contenido generado por el Agente~1 puede publicarse ni enviarse sin la aprobaci\'on expl\'icita de un validador humano. Este mecanismo es estructural y no puede deshabilitarse sin modificar el c\'odigo fuente.
+  \item \textbf{Validaci\'on humana obligatoria:} ning\'un contenido generado por el Agente~1 puede publicarse ni enviarse sin la aprobaci\'on expl\'icita de un validador humano. Para las piezas de difusi\'on (gacetillas y posts), la validaci\'on es la decisi\'on de publicaci\'on registrada por quien publica o descarta el borrador; para las piezas que el agente env\'ia o emite (confirmaciones y certificados), es la plantilla aprobada m\'as la aprobaci\'on de lote previa al env\'io. La identidad del validador se verifica por el formulario y su rol se toma de un padr\'on que mantiene la \ac{SEU}, no de una lectura del organigrama. Este mecanismo es estructural y no puede deshabilitarse sin modificar el c\'odigo fuente.
   \item \textbf{Ejecuci\'on local:} los modelos de lenguaje se ejecutan en infraestructura propia, sin env\'io de datos institucionales a servicios externos. Solo en caso de fallback expl\'icito, con aprobaci\'on del administrador y datos anonimizados, se puede utilizar una API externa.
   \item \textbf{Protecci\'on contra inyecci\'on de prompts:} las entradas de formularios, documentos y correos se sanitizan antes de llegar al \ac{LLM}; las instrucciones del sistema se separan de los datos de usuario mediante delimitadores; y las salidas se revisan antes de activar acciones sobre Google Workspace.
   \item \textbf{Privilegio m\'inimo (\ac{PoLP}):} ejecuci\'on en contenedores ef\'imeros y aislados, control de acceso \ac{RBAC} sobre PostgreSQL y Google Drive, y segmentaci\'on de red para impedir el movimiento lateral en caso de compromiso de un componente.
@@ -815,6 +815,8 @@ Los planes complementarios de calidad, estados, despliegue y auditor\'ia refinan
 \end{table}
 
 Un gate queda bloqueado si existe publicaci\'on, env\'io o emisi\'on sin aprobaci\'on humana registrada; si falta evidencia esencial; si hay defectos cr\'iticos abiertos; si los responsables de validaci\'on no est\'an confirmados; o si se intenta declarar \ac{TRL} sin outputs, pruebas y logs recuperables.
+
+\noindent\textbf{Criterio del gate:} mientras la Direcci\'on de carrera no fije un criterio formal de gate, la evidencia se presenta contra el \ac{TRL}~4 de la documentaci\'on del \ac{P100} y se declara expresamente que no hubo criterio formal; el go/no-go es el resultado de la mesa final.
 
 % =============================================================================
 % SECCION 16: PARTICIPANTES
@@ -966,11 +968,11 @@ La Tabla~\ref{tab:hu} presenta las cinco historias de usuario del \ac{EPIC}~E2 (
     \toprule
     \textbf{HU} & \textbf{Prior.} & \textbf{SP} & \textbf{Definition of Done} \\
     \midrule
-    HU-010: Generar gacetillas autom\'aticamente & P0 & 8 & Input desde Google Sheets. Output en Google Docs con plantilla institucional aplicada. Tiempo de generaci\'on $<$~30~s. Validaci\'on humana previa a entrega. \\
+    HU-010: Generar gacetillas autom\'aticamente & P0 & 8 & Input desde Google Sheets. Output en Google Docs con plantilla institucional aplicada. Tiempo de generaci\'on pendiente de medici\'on (p95 por tipo de pieza). Validaci\'on humana previa a entrega. \\
     HU-011: Generar posts para redes sociales & P0 & 5 & Formato adaptable a Instagram (breve, hashtags) y LinkedIn (extendido, tono profesional). Longitud configurable. Texto limpio, sin alucinaciones verificadas por validador. \\
-    HU-012: Confirmaciones autom\'aticas de inscripci\'on & P1 & 5 & Trigger al registrarse nueva fila en Sheets. Confirmaci\'on preparada en estado pendiente; correo enviado v\'ia Gmail s\'olo tras las dos aprobaciones registradas del circuito (sem\'antica del Responsable de Gesti\'on del Conocimiento y utilitaria del Coordinador de Extensi\'on). Registro de env\'io (timestamp, destinatario, estado) y confirmaci\'on de recepci\'on. \\
-    HU-013: Interacci\'on en lenguaje natural (uso interno) & P1 & 3 & Interfaz simple iniciada por email con invitaci\'on a chat (canal pendiente de confirmaci\'on por Direcci\'on). Google Sheets registra los datos requeridos por el sistema. Respuesta generada usable por personal no t\'ecnico. \\
-    HU-014: Generar certificados autom\'aticos & P2 & 8 & Plantilla base definida con la SEU. Generaci\'on de PDF. Validaci\'on humana obligatoria antes de emisi\'on. Log de cada certificado emitido. \\
+    HU-012: Confirmaciones autom\'aticas de inscripci\'on & P1 & 5 & Trigger al registrarse nueva fila en Sheets. Confirmaci\'on preparada en estado pendiente; correo enviado v\'ia Gmail s\'olo con la plantilla aprobada (sem\'antica del Responsable de Gesti\'on del Conocimiento y utilitaria del Coordinador de Extensi\'on) y la aprobaci\'on de lote registrada. Registro de env\'io (timestamp, destinatario, estado) y confirmaci\'on de recepci\'on. \\
+    HU-013: Interacci\'on en lenguaje natural (uso interno) & P1 & 3 & Interfaz simple mediante formulario de pedidos con aviso por correo (canal provisional, pendiente de confirmaci\'on por Direcci\'on). Google Sheets registra los datos requeridos por el sistema. Respuesta generada usable por personal no t\'ecnico. \\
+    HU-014: Generar certificados autom\'aticos & P2 & 8 & Plantilla base definida con la SEU (provisional si no llega antes de la entrega). PDF con bloque de firma del Secretario de Extensi\'on y del Decano; firma digital fuera de alcance. Validaci\'on humana y aprobaci\'on de lote del Secretario antes de emitir. Emisi\'on por correo al titular contra lista de prueba. Despu\'es de emitir solo queda la auditor\'ia con hashes. \\
     \midrule
     \textbf{Total} & & \textbf{29} & \\
     \bottomrule
@@ -996,9 +998,9 @@ La Tabla~\ref{tab:trazabilidad-funcional} vincula cada elemento del alcance con 
     \midrule
     Gacetillas (HU-010) & P4 & Input desde Sheet; output en Google Docs; plantilla institucional aplicada; validaci\'on humana. Evidencia: documento generado, log y checklist de calidad. & COORD/RGC \\
     Posts \ac{RRSS} (HU-011) & P4 & Formato adaptable a Instagram y LinkedIn; texto limpio y coherente; longitud configurable; validaci\'on humana. Evidencia: borrador de post, log y checklist de canal. & RGC/RRSS \\
-    Confirmaciones (HU-012) & P5/P4 & Trigger al registrar inscripci\'on; email generado autom\'aticamente y enviado tras las dos aprobaciones registradas (sem\'antica y utilitaria); registro de env\'io. Evidencia: email recibido, ambas aprobaciones registradas y log de env\'io. & Responsable de cursos \\
-    Lenguaje natural interno (HU-013) & P4/P3 & Email de inicio con invitaci\'on a chat (canal pendiente de confirmaci\'on por Direcci\'on); respuesta usable; datos requeridos registrados en Sheets. Evidencia: captura de interacci\'on y registro en Sheet. & COORD/RGC \\
-    Certificados (HU-014) & P5 & Plantilla base; PDF generado; validaci\'on previa obligatoria. Evidencia: PDF generado, aprobaci\'on manual y log. & COORD/Admin. \\
+    Confirmaciones (HU-012) & P5/P4 & Trigger al registrar inscripci\'on; email generado autom\'aticamente y enviado con la plantilla aprobada (sem\'antica y utilitaria) y la aprobaci\'on de lote registrada; registro de env\'io. Evidencia: email recibido, decisiones registradas y log de env\'io. & Responsable de cursos \\
+    Lenguaje natural interno (HU-013) & P4/P3 & Formulario de pedidos con aviso por correo (canal provisional, pendiente de confirmaci\'on por Direcci\'on); respuesta usable; datos requeridos registrados en Sheets. Evidencia: captura del pedido y de la respuesta, y registro en Sheet. & COORD/RGC \\
+    Certificados (HU-014) & P5 & Plantilla base; PDF generado con firma del Secretario de Extensi\'on y del Decano; validaci\'on humana previa y aprobaci\'on de lote del Secretario. Evidencia: PDF emitido, decisiones registradas y auditor\'ia con hashes. & Secretario de Extensi\'on/COORD \\
     Seguridad y auditor\'ia & Transversal & Inventario, credenciales seguras, \ac{RBAC}, logs y validaci\'on formal registrada. Evidencia: registro de activos, checklist de seguridad y logs. & Go\~ne + \ac{SEU} \\
     Exclusiones & P8/P9; admin. & HU-015, HU-016, HU-017, HU-025, HU-052 y HU-060 quedan fuera de alcance A1: no implementar anal\'itica, scraping, atenci\'on p\'ublica, soporte administrativo, BD de consultas ni disposiciones decanales. Las historias de la \'epica E2 posteriores a HU-014 (HU-015 en su lectura de certificados/triggers, HU-016 y HU-017) se delegan a los alumnos de cuarto a\~no que continuar\'an el \ac{P100}. Evidencia: revisi\'on de backlog y acta de alcance. & Cicerchia/\ac{SEU} \\
     \bottomrule
@@ -1017,10 +1019,10 @@ El Agente~1 no es el orquestador del sistema multiagente ---ese rol corresponde 
     \toprule
     \textbf{Origen} & \textbf{Tipo de insumo} & \textbf{Uso por el Agente~1} \\
     \midrule
-    A2 --- Historia Viva      & Fragmentos hist\'oricos validados, citables y con precisi\'on de fecha expl\'icita & El Agente~1 consulta por per\'iodo y \textbf{redacta} la efem\'eride o el post alusivo. A2 no entrega piezas redactadas ni efem\'erides ya elaboradas \\
-    A3 --- Vinculaci\'on      & Datos de eventos y oportunidades     & Difusi\'on de congresos, jornadas, convenios detectados por A3 \\
-    A4 --- Atenci\'on         & Consultas complejas derivadas & Texto institucional y material de respuesta para que A4 resuelva con tono oficial (flujo bidireccional) \\
-    A5 --- Anal\'iticas       & Enriquecimiento de texto de \ac{RRSS} & Mejora de calidad y consistencia de publicaciones antes de su difusi\'on \\
+    A2 --- Historia Viva      & Fragmentos hist\'oricos validados, citables y con precisi\'on de fecha expl\'icita (consulta de A1, no insumo entrante) & El Agente~1 consulta por per\'iodo y \textbf{redacta} la efem\'eride o el post alusivo. En vivo por HTTP solo si la instancia de A2 llega antes de la fecha de corte; si no, queda como contrato. A2 no entrega piezas redactadas ni efem\'erides ya elaboradas \\
+    A3 --- Vinculaci\'on      & Datos de eventos y oportunidades     & En vivo, con productor provisional declarado: dispara el borrador de gacetilla (HU-010) a partir de un evento detectado por A3 \\
+    A4 --- Atenci\'on         & Consultas complejas derivadas & Solo contrato: la salida A1 hacia A4 y sus flujos no corresponden a HU-010 a HU-014 \\
+    A5 --- Anal\'iticas       & Enriquecimiento de texto de \ac{RRSS} & Solo contrato (continuidad P100) \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -1038,13 +1040,13 @@ A continuaci\'on se describe la secuencia t\'ipica de uso del Agente~1 por parte
 
   \item \textbf{Trigger autom\'atico:} al guardar la fila en Google Sheets, un trigger de Google Apps Script detecta la nueva entrada y env\'ia una solicitud al backend del Agente~1 (FastAPI, componente diferido; ver nota en \S\ref{sec:plataforma}).
 
-  \item \textbf{Generaci\'on de contenido:} el Agente~1 ejecuta un grafo LangGraph (componente diferido) con el prompt correspondiente a la plantilla de gacetilla institucional, pasa los datos como estado de entrada y solicita la generaci\'on al modelo de lenguaje de c\'odigo abierto ejecutado localmente v\'ia Ollama. El objetivo de duraci\'on del proceso es menor a 30 segundos por pieza.
+  \item \textbf{Generaci\'on de contenido:} el Agente~1 ejecuta un grafo LangGraph (componente diferido) con el prompt correspondiente a la plantilla de gacetilla institucional, pasa los datos como estado de entrada y solicita la generaci\'on al modelo de lenguaje de c\'odigo abierto ejecutado localmente v\'ia Ollama. La latencia objetivo se declara como p95 por tipo de pieza y queda pendiente de medici\'on.
 
   \item \textbf{Salida inicial:} el sistema crea un Google Doc en la carpeta correspondiente de Google Drive con el borrador de la gacetilla y la plantilla institucional aplicada. Simult\'aneamente genera los borradores de posts para Instagram y LinkedIn.
 
   \item \textbf{Notificaci\'on al validador:} el sistema env\'ia un correo autom\'atico al coordinador (y/o a quien tenga rol de validador) con un enlace al Google Doc generado y una descripci\'on del contenido.
 
-  \item \textbf{Revisi\'on y validaci\'on:} el Responsable de Gesti\'on del Conocimiento y el Coordinador de Extensi\'on abren el documento, lo revisan y lo ajustan si es necesario; cada uno registra su aprobaci\'on seg\'un su rol (sem\'antica y utilitaria, respectivamente) en la hoja de seguimiento de Google Sheets. El sistema registra cada acci\'on con timestamp y nombre del validador, y solo considera el borrador aprobado cuando ambas aprobaciones est\'an registradas.
+  \item \textbf{Revisi\'on y validaci\'on:} el Responsable de Gesti\'on del Conocimiento y el Coordinador de Extensi\'on abren el documento, lo revisan y lo ajustan si es necesario. Cuando el borrador queda listo, quien publica o descarta la pieza registra la decisi\'on de publicaci\'on. El sistema registra cada acci\'on con timestamp y nombre del validador; para una gacetilla, la validaci\'on humana es esa decisi\'on de publicaci\'on, registrada y trazable.
 
   \item \textbf{Publicaci\'on:} una vez aprobado, el contenido est\'a listo para su publicaci\'on manual en los canales correspondientes (web institucional, \ac{RRSS}, lista de correos). En versiones futuras del sistema (S3, proyecci\'on P100), este paso podr\'ia automatizarse parcialmente.
 \end{enumerate}
@@ -1137,8 +1139,8 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
     C0 & Alcance, gobierno y baseline documental & Relevamiento P4, equipo validador \ac{SEU}, exclusiones, devoluciones, firma institucional del anteproyecto y evidencia inicial & S1 \\
     C1 & HU-010 Gacetillas & Co-dise\~no de plantilla, spike Sheets--Docs, prototipo, prueba, validaci\'on \ac{SEU} y ajuste & S1 \\
     C2 & HU-011 Posts \ac{RRSS} & Criterios Instagram/LinkedIn, prototipo por canal, validaci\'on de tono/longitud y gate \ac{TRL}~3 & S1 \\
-    C3 & HU-012 Confirmaciones & Trigger Sheets--Gmail con doble aprobaci\'on humana registrada (sem\'antica y utilitaria) previa al env\'io, registro de env\'io, logs persistentes y validaci\'on interna & S2 \\
-    C4 & HU-013 Lenguaje natural interno & Email de inicio, invitaci\'on a chat (canal pendiente de confirmaci\'on por Direcci\'on), registro en Sheets, validaci\'on de usabilidad y controles de alcance & S2 \\
+    C3 & HU-012 Confirmaciones & Trigger Sheets--Gmail con plantilla aprobada (sem\'antica y utilitaria) y aprobaci\'on de lote previa al env\'io, registro de env\'io, logs persistentes y validaci\'on interna & S2 \\
+    C4 & HU-013 Lenguaje natural interno & Formulario de pedidos con aviso por correo (canal provisional, pendiente de confirmaci\'on por Direcci\'on), registro en Sheets, validaci\'on de usabilidad y controles de alcance & S2 \\
     C5 & HU-014 Certificados & Plantilla, generaci\'on PDF, aprobaci\'on manual, log de emisi\'on y prueba controlada & S2 \\
     CI & Integraci\'on, release y cierre & Contratos/mocks A2--A5, integraci\'on progresiva, pruebas \ac{SEU}, release candidata, paquete de evidencias, informe final, transferencia y gate \ac{TRL}~4 & S2 \\
     \bottomrule
@@ -1167,9 +1169,9 @@ La Tabla~\ref{tab:edt} presenta la \ac{EDT} refinada como ciclos incrementales y
   \end{tabularx}
 \end{table}
 
-La ventana de febrero de 2027 se reserva solamente como margen m\'aximo para observaciones finales de c\'atedra o de la \ac{SEU}, preparaci\'on de demo y transferencia al \ac{P100}. No agrega funcionalidades nuevas ni extiende el alcance de implementaci\'on del Proyecto, que permanece concentrado en S1--S2 de 2026.
+La presentaci\'on final de febrero de 2027 (ventana del 20 al 28 de febrero) no suma historias nuevas: solo cierra lo que la mesa final del 18 de noviembre de 2026 dej\'o detenido por un bloqueante externo, dentro de HU-010 a HU-014. La mesa final cuenta con la revisi\'on de laboratorio previa sobre los anexos de calidad y seguridad.
 
-\noindent\textbf{Nota sobre fechas y estado verificado:} las fechas de las Tablas~\ref{tab:entregables} y~\ref{tab:hitos} son objetivos de planificaci\'on, no compromisos confirmados por la \ac{SEU} ni por la c\'atedra. Al corte del 21 de septiembre de 2026, el estado verificable difiere del plan y conviene leerlo as\'i:
+\noindent\textbf{Nota sobre fechas y estado verificado:} las fechas de las Tablas~\ref{tab:entregables} y~\ref{tab:hitos} son objetivos de planificaci\'on, no compromisos confirmados por la \ac{SEU} ni por la c\'atedra. Las fechas institucionales confirmadas son dos: la mesa final del 18 de noviembre de 2026, con la revisi\'on de laboratorio previa, y la ventana de presentaci\'on final del 20 al 28 de febrero de 2027. Al corte del 21 de septiembre de 2026, el estado verificable difiere del plan y conviene leerlo as\'i:
 
 \begin{itemize}
   \item \textbf{Demostrado en entorno local controlado con datos sint\'eticos:} HU-010 produce borradores conformes con el gate mec\'anico de estructura y de coincidencia de hechos; HU-011 alcanza conformidad mec\'anica con el contrato creativo de cat\'alogo cerrado; HU-012 existe como recorte \emph{offline} sin capacidad de env\'io real y con el circuito de doble aprobaci\'on (sem\'antica y utilitaria) verificado en regresi\'on; HU-013 interpreta solicitudes en lenguaje natural con clasificaci\'on determin\'istica sobre cat\'alogo cerrado, repregunta con candidatas sin persistir la prosa original y fallback acotado al modelo local, todo como recorte \emph{offline} con identidad afirmada y no verificada. La regresi\'on vigente es de 757 pruebas verdes. Toda salida queda marcada como borrador y pendiente de validaci\'on.
@@ -1178,6 +1180,8 @@ La ventana de febrero de 2027 se reserva solamente como margen m\'aximo para obs
 \end{itemize}
 
 \noindent Los bloqueantes vigentes son institucionales y no de software: definiciones operativas y validaci\'on de la \ac{SEU}, identidad y permisos de infraestructura, y criterio del gate. El detalle por defecto, con su evidencia y su estado, se mantiene en el registro de defectos del Proyecto.
+
+\noindent\textbf{Re-declaraci\'on por vencimiento:} toda capacidad que no pueda demostrarse en vivo ni con un insumo provisional declarado, y cuyo tercero no responda antes de la entrega de los anexos al laboratorio, se re-declara en este anteproyecto.
 
 \subsection{Cronograma de hitos}
 
@@ -1200,7 +1204,7 @@ La ventana de febrero de 2027 se reserva solamente como margen m\'aximo para obs
     H8 & Certificados con validaci\'on humana operativos con \ac{DoD} & 30 Nov 2026 \\
     H9 & Gate \ac{TRL}~4 validado & 20 Dic 2026 \\
     H10 & Informe final y cierre anual del Agente~1 & 31 Dic 2026 \\
-    H11 & Entrega final m\'axima del Agente~1, demo y transferencia \ac{P100} & 20 Feb 2027 \\
+    H11 & Presentaci\'on final del PPS: demo y transferencia \ac{P100} & 20--28 Feb 2027 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -1237,9 +1241,9 @@ La Tabla~\ref{tab:planificacion-mensual} presenta la distribuci\'on de actividad
     Nov 2026 & Cierre de certificados con aprobaci\'on manual, pruebas de sistema, seguridad, validaci\'on con usuarios \ac{SEU} y regresi\'on sobre defectos cr\'iticos. & H8: HU-014 operativo \\
     Dic 2026 & Release candidata, paquete de evidencias, auditor\'ia final, decisi\'on go/no-go, gate \ac{TRL}~4, informe final y cierre anual del Agente~1. & H9--H10: Gate \ac{TRL}~4 + cierre \\
     \midrule
-    \multicolumn{3}{l}{\textit{Ventana m\'axima posterior --- Feb 2027}} \\
+    \multicolumn{3}{l}{\textit{Presentaci\'on final --- 20 al 28 Feb 2027}} \\
     \midrule
-    Feb 2027 & Incorporaci\'on de observaciones finales de c\'atedra y \ac{SEU}, preparaci\'on de demo, paquete final y transferencia al \ac{P100}. No agrega alcance funcional. & H11: Entrega final m\'axima \\
+    Feb 2027 & Presentaci\'on final del PPS (ventana del 20 al 28): demo y transferencia al \ac{P100}. Solo cierra lo detenido por bloqueantes externos dentro de HU-010 a HU-014; no suma historias nuevas. & H11: Presentaci\'on final \\
     \bottomrule
 \end{longtable}
 }
@@ -1267,21 +1271,22 @@ La Tabla~\ref{tab:criterios-aceptacion} consolida las m\'etricas n\'ucleo que se
     \textbf{ID} & \textbf{Dimensi\'on} & \textbf{Medici\'on} & \textbf{Criterio de aceptaci\'on} & \textbf{Aplic.} \\
     \midrule
     \endhead
-    M1 & Rendimiento & Tiempo desde trigger hasta borrador disponible & $<$~30~segundos por pieza generada & S1--S2 \\
+    M1 & Rendimiento & Latencia de generaci\'on por tipo de pieza (p95) & Pendiente de medici\'on: el umbral se fija con la medici\'on sobre el modelo y la configuraci\'on del sistema de demostraci\'on & S1--S2 \\
     M2 & \ac{HITL} & Acciones oficiales con validaci\'on humana previa / acciones oficiales totales & 100\%, sin excepciones & S1--S2 \\
     M3 & Eficiencia & Reducci\'on respecto de l\'inea base manual de redacci\'on & $\geq$~50\% al cierre de S2 & S2 \\
     M4 & Satisfacci\'on \ac{SEU} & Checklist 1--4: precisi\'on factual, tono, plantilla y canal & Promedio $\geq$~3/4 & S2 \\
     M5 & Madurez \ac{TRL} & Cumplimiento de criterios de gate & \ac{TRL}~3 en S1; \ac{TRL}~4 en S2 & Gates \\
     M6 & Cobertura & Canales institucionales cubiertos por A1 & 3 canales en S1; 5 canales en S2 & S1--S2 \\
-    M7 & Calidad de prompts & Borradores rechazados / borradores evaluados & $\leq$~20\% al cierre de S2 & S2 \\
+    M7 & Calidad del contenido & Tasa de conformidad: borradores conformes al gate / borradores evaluados (medida de calidad, no de disponibilidad) & $\geq$~80\% al cierre de S2 & S2 \\
     M8 & Trazabilidad & Acciones con ID, fecha, solicitante, output, estado, validador y evidencia / acciones auditadas & 100\% para muestra auditada y gates & S1--S2 \\
     M9 & Seguridad base & Controles cr\'iticos cumplidos / controles cr\'iticos aplicables & 100\% antes de release o gate & S1--S2 \\
     M10 & Cumplimiento \ac{DoD} & Checks \ac{DoD} cumplidos / checks aplicables por \ac{HU} & 100\% para declarar una \ac{HU} cerrada & Por \ac{HU} \\
     M11 & Defectos cr\'iticos & Defectos cr\'iticos abiertos al momento de gate o release & 0 defectos cr\'iticos abiertos & Gates \\
     M12 & Pruebas cr\'iticas & Pruebas cr\'iticas ejecutadas / pruebas cr\'iticas planificadas & 100\% para el gate correspondiente & Gates \\
-    M13 & Disponibilidad funcional & Tiempo en que el flujo candidato permanece utilizable durante ventanas de prueba / tiempo total de ventana & Objetivo $\geq$~99\% en piloto controlado; pendiente de medir; incidentes registrados y analizados & S2 \\
+    M13 & Disponibilidad & Corridas programadas completadas a tiempo / corridas programadas, dentro de la ventana de operaci\'on & Objetivo $\geq$~99\% (el de la documentaci\'on del \ac{P100}); pendiente de medir; incidentes registrados y analizados & S2 \\
     M14 & Usabilidad operativa & Usuarios que completan tareas guiadas sin asistencia t\'ecnica / usuarios participantes & $\geq$~80\% en muestra de validaci\'on \ac{SEU} & S2 \\
     M15 & Mantenibilidad y tolerancia a fallos & Incidentes con log, causa, acci\'on correctiva y recuperaci\'on documentada / incidentes detectados & 100\% de incidentes relevantes registrados antes de gate & S1--S2 \\
+    M16 & Tiempo de atenci\'on & Tiempo desde el env\'io del pedido hasta el aviso con el borrador & p95 $\leq$ intervalo de sondeo + 5 minutos & S2 \\
     \bottomrule
 \end{longtable}
 }
@@ -1302,7 +1307,7 @@ La Tabla~\ref{tab:protocolo-medicion} define c\'omo se capturan las m\'etricas. 
     \textbf{M\'etricas} & \textbf{Fuente de medici\'on} & \textbf{Frecuencia} & \textbf{Responsable / evidencia} \\
     \midrule
     \endhead
-    M1, M3 & Logs de ejecuci\'on, mediciones de proceso manual y registro de tiempos por pieza & Por muestra y por gate & Go\~ne + \ac{SEU}; log, baseline manual y reporte de comparaci\'on \\
+    M1, M3, M16 & Logs de ejecuci\'on, registro de pedidos y avisos, mediciones de proceso manual y registro de tiempos por pieza & Por muestra y por gate & Go\~ne + \ac{SEU}; log, baseline manual y reporte de comparaci\'on \\
     M2, M8, M10 & Planilla de estados, checklist de validaci\'on, matriz \ac{DoD} y registro de evidencia & Por \ac{HU} y por gate & Go\~ne + validador institucional; Sheet, checklist, link a output y estado \\
     M4, M7 & Checklist \ac{SEU} 1--4, observaciones y rechazos de borradores & Por validaci\'on y cierre de semestre & Responsable de validaci\'on; formulario/checklist, registro de observaciones \\
     M5, M11, M12 & Paquete de gate \ac{TRL}, reporte de pruebas, defectos y acta/informe de cierre & G2 y G4 & Director/Tutor + Go\~ne; acta, reporte de pruebas, registro de defectos \\
