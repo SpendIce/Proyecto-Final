@@ -6,6 +6,7 @@
 #   scripts/renderizar-artefactos.sh              # regenera todo
 #   scripts/renderizar-artefactos.sh latex        # solo PDFs desde .tex
 #   scripts/renderizar-artefactos.sh presentacion # solo renders desde HTML
+#   scripts/renderizar-artefactos.sh manual       # solo el PDF del manual desde .md
 #
 # El script no borra nada y no toca fuentes versionadas. Escribe cada salida
 # junto a su fuente, en rutas que .gitignore ya excluye.
@@ -16,6 +17,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CHROMIUM="${CHROMIUM:-chromium}"
 PDFLATEX="${PDFLATEX:-pdflatex}"
 PDFTOPPM="${PDFTOPPM:-pdftoppm}"
+UV="${UV:-uv}"
 
 requerir() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -101,11 +103,26 @@ grupo_presentacion() {
                         "03-control-humano-y-pedido.png"
 }
 
+# El manual de operación del Agente 1 es una sola fuente Markdown; su PDF no se
+# versiona (política de artefactos). El HTML intermedio lo arma el script del
+# Agente 1 con la extensión `markdown` traída transitoriamente por uv —la misma
+# convención que `scripts/anexo2_calidad.py` usa con python-docx— y Chromium lo
+# imprime, igual que los demás renders.
+grupo_manual() {
+  requerir "$CHROMIUM"
+  requerir "$UV"
+  (cd "$RAIZ" && "$UV" run --quiet --no-project --with markdown \
+    python Implementacion/Agente1/scripts/renderizar_manual.py)
+  render_pdf_html "Implementacion/Agente1/MANUAL-OPERACION-AGENTE-1.html" \
+                  "Implementacion/Agente1/MANUAL-OPERACION-AGENTE-1.pdf"
+}
+
 case "${1:-todo}" in
   latex) grupo_latex ;;
   presentacion) grupo_presentacion ;;
-  todo) grupo_latex; grupo_presentacion ;;
-  *) echo "grupo desconocido: $1 (latex | presentacion | todo)" >&2; exit 2 ;;
+  manual) grupo_manual ;;
+  todo) grupo_latex; grupo_presentacion; grupo_manual ;;
+  *) echo "grupo desconocido: $1 (latex | presentacion | manual | todo)" >&2; exit 2 ;;
 esac
 
 echo "listo"
