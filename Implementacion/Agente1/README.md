@@ -24,8 +24,9 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 ## Estructura
 
 - `data/actividades_sinteticas.csv`: dataset ficticio de cinco filas; incluye tres casos completos, dos incompletos y lugares opcionales ausentes.
-- `src/agente1/contracts/gacetilla_input_v1.schema.json`: contrato técnico versionado de los campos actuales, marcado `PROVISIONAL_NO_INSTITUCIONAL`.
-- `src/agente1/prompts/gacetilla_v3.txt`: prompt versionado con estructura fija, límites y ejemplo sintético; también está marcado como provisional. La línea `Lugar:` se decide por caso antes de armar el prompt, en la estructura y en el ejemplo: v2 la mostraba siempre con la excepción escrita adentro del placeholder, y el modelo la copiaba sin valor para las filas sin lugar, lo que el gate rechazaba como `data_structure`. Ver `DEF-A1-014` y `evidencias/correccion-gacetillas-lugar-ausente-2026-09-08.md`. `gacetilla_v2.txt` se conserva versionado como plantilla histórica.
+- `src/agente1/contracts/gacetilla_input_v2.schema.json`: contrato técnico versionado de la planilla de actividades v2, marcado `PROVISIONAL_NO_INSTITUCIONAL`; `gacetilla_input_v1` se conserva como histórico.
+- `src/agente1/prompts/gacetilla_v7.txt`: prompt vigente de HU-010, con estructura fija, límites y ejemplo sintético, marcado como provisional; `gacetilla_v1` a `v6` se conservan como plantillas históricas. La línea `Lugar:` se decide por caso antes de armar el prompt, en la estructura y en el ejemplo: v2 la mostraba siempre con la excepción escrita adentro del placeholder, y el modelo la copiaba sin valor para las filas sin lugar, lo que el gate rechazaba como `data_structure` (ver `DEF-A1-014` y `evidencias/correccion-gacetillas-lugar-ausente-2026-09-08.md`). v7 agrega el límite de no escribir encabezados, pie ni firma: esos los agrega el renderer.
+- `src/agente1/procesamiento.py`: pipeline de HU-010 y renderer determinista del correo durable (`gacetilla_mail_renderer_v3`). El artefacto guardado es el mail en forma FIE Informa: asunto, invitación institucional, fecha en formato largo, hechos de la fila, `Consultas:` con el contacto, el pie fijo de difusión («Departamento de Cursos Complementarios» / «Secretaría de Extensión Universitaria») y la firma institucional completa. El nombre del Doc del borrador sigue la convención del corpus —«Fie informa D-M <título>» con la fecha de generación— y lo aplica el destino remoto (título del Doc en D2), no el cuerpo del correo. Un control posterior al render verifica que ningún hecho de la fila se haya perdido.
 - `src/agente1/interpretacion.py`: seam de HU-013. Convierte una solicitud en lenguaje natural en una intención del catálogo cerrado, resuelve a qué actividad se refiere y despacha a los pipelines de gacetilla, de post, de emisión de certificados y de plantilla por actividad. Incluye la repregunta con candidatas, el estado entre turnos y el fallback con modelo local.
 - `src/agente1/contracts/intenciones_v3.schema.json`: catálogo cerrado de intenciones, versionado y `PROVISIONAL_NO_INSTITUCIONAL`; agrega `generar_plantilla_actividad` (HU-012, #73) sobre `intenciones_v2` (que a su vez agregó `emitir_certificados`, HU-014, #75). `intenciones_v1` y `v2` se conservan como históricas.
 - `src/agente1/contracts/interpretacion_fallback_v3.schema.json` y `src/agente1/prompts/interpretacion_fallback_v3.txt`: única salida admitida del modelo en el fallback de interpretación —una intención del catálogo v3 más términos de búsqueda— y el prompt que la pide. El presupuesto de decodificación se deriva de ese contrato. Las parejas v1 y v2 se conservan versionadas como históricas.
@@ -43,6 +44,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `tests/`: contrato público del procesador y de la CLI.
 - `scripts/smoke.sh`: ejecución end-to-end local contra dataset y golden.
 - `scripts/matriz_hu010.py`: matriz reproducible de los cinco casos contractuales sin depender de un LLM.
+- `scripts/regenerar_gacetilla_durable.py`: regenera el artefacto durable de HU-010 —los goldens y las muestras del paquete de validación de la SEU— desde las fichas versionadas y el dataset, sin modelo ni red (#107).
 - `scripts/smoke_ollama.sh`: smoke opt-in contra un Ollama ya iniciado y con el modelo descargado.
 - `scripts/matriz_hu011_v2.py`: matriz fake de creatividad JSON y render determinista para HU-011 v2.
 - `scripts/workspace_e2e.py`: runner Sheets→procesamiento→Drive, offline por defecto y live con doble opt-in.
@@ -85,6 +87,7 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Decisión | Dónde está explicada |
 |---|---|
 | Por qué el modelo no escribe los datos de la actividad (renderer determinista y gate de hechos) | `src/agente1/posts.py`, docstring de módulo y de `_parsear_creatividad_estructurada` |
+| Por qué el nombre del Doc y el pie de difusión los pone el sistema y no el modelo | `src/agente1/procesamiento.py`, docstrings de `_nombre_doc` y `_renderizar_mail`; `src/agente1/destinos.py`, `nombre_doc_efectivo` |
 | Por qué se rechaza cualquier dígito en la zona creativa | `posts.py`, comentario sobre `texto_creativo` |
 | Por qué existe un control de registro rioplatense | `posts.py`, comentario de `PATRON_TUTEO` |
 | Por qué el camino `text-v1` sigue en el repo | `posts.py`, docstrings de `procesar_post` y `_validar_salida` |

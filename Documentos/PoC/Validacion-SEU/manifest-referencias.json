@@ -12,53 +12,53 @@
   "referencias": [
     {
       "id": "REF-001",
-      "sha256": "fe5d712f5f41e777b5daa02ac1de0b23bfde64e0cc61433d9a89d3c0977d98f4",
-      "bytes": 964
+      "sha256": "602f3f077bee52af15a3b4437576e268104609bcd181a48dbbb3109e9e06da1d",
+      "bytes": 1658
     },
     {
       "id": "REF-002",
-      "sha256": "fcad985dba6cfc5aa5ff96cc5022c72519171cc3a03ab60cea5e04ef8693a226",
-      "bytes": 314
+      "sha256": "c9268261ee6c072b52953fadeea1443cf532a1840cda92ce7a60c5b28702cd3b",
+      "bytes": 1018
     },
     {
       "id": "REF-003",
-      "sha256": "57b4607401a1f5dc3ab8efa1f5feaa130937b017002fc3a119780f008db4576c",
-      "bytes": 257
+      "sha256": "e25e85ed68fab19c175a3987ca6856a0895704c01deb2f56d8612636088a6c82",
+      "bytes": 931
     },
     {
       "id": "REF-004",
-      "sha256": "04c3b5f33c8ac2e4a54f344985642d2f97da1261374d4bdcafa6b4a3679e0cce",
-      "bytes": 300
+      "sha256": "0bdd49b002a9b2fd2763968c7cdc474c9f330486e961ab496e10a5c59a8b82ad",
+      "bytes": 896
     },
     {
       "id": "REF-005",
-      "sha256": "c778837dfb775729114986aee2853a04eeb9be2603aad7f708f81ccb83fa110b",
-      "bytes": 353
+      "sha256": "a033a4913862b915b05fa46ccb7b896a84dbaf8744573210417a0762ffcae02d",
+      "bytes": 648
     },
     {
       "id": "REF-006",
-      "sha256": "3f80f31b4a0ad4f49c711b5ec817030b5046f61ce6f177a5bcadab89f9df2f5c",
-      "bytes": 383
+      "sha256": "a9d6e7400cc4a9737a4248627bb542e58f8b0b306c3c06c553cc852a2a8b6382",
+      "bytes": 678
     },
     {
       "id": "REF-007",
-      "sha256": "8f060604711abc4545ff79230718e238d31cbf24719a57057366c166f1c7efe1",
-      "bytes": 316
+      "sha256": "e232fcafa8170d1ed954497502e78225da5835b50284114f84cb2d93b9b293d7",
+      "bytes": 590
     },
     {
       "id": "REF-008",
-      "sha256": "d50aaf11cf6a2fae6b9a4e21aed7ee49c63520e090638cb8e8c78bca5338c661",
-      "bytes": 346
+      "sha256": "43f3603abfca2977bbecedc19e46c184d4cfde2d36577a03145664bcaf0b82ba",
+      "bytes": 620
     },
     {
       "id": "REF-009",
-      "sha256": "acac4531028bb6fc840a19109b6ac0845d2a858151e0311a2df154067ba5ef5d",
-      "bytes": 325
+      "sha256": "fd6d35f595f5065a34d87782d07a1b16f9484db5e688f57e4565f400fe735d65",
+      "bytes": 576
     },
     {
       "id": "REF-010",
-      "sha256": "f9647a89ca9e5e041cb213b662e8c16350eb6b0b1cf210b141e2bb6acfde3f3f",
-      "bytes": 355
+      "sha256": "f1297b7b6b686fc9926516d951b7ed5f1fa03beae3250579dfa56a94248d6ad1",
+      "bytes": 606
     },
     {
       "id": "REF-011",

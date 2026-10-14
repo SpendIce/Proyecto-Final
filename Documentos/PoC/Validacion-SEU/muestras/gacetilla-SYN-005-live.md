@@ -1,17 +1,31 @@
 # BORRADOR — NO PUBLICAR
 
-## TÍTULO
-Seminario sintético remoto
+Asunto: Seminario sintético remoto
 
-## DATOS DE LA ACTIVIDAD
-Fecha: 2026-08-09
-Organiza: Área de prueba
+La Facultad de Ingeniería del Ejército invita a graduados y profesionales a participar de la siguiente actividad.
 
-## CONTACTO
-contacto@example.invalid
+Seminario introductorio con encuentros remotos y material de lectura.
 
-## BAJADA
-Actividad sintética para la comunidad universitaria.
+El Departamento de Cursos Complementarios invita a graduados y profesionales a participar de encuentros remotos.
 
-## CUERPO
-El Área de prueba organiza un seminario remoto.
+📅 domingo 9 de agosto de 2026
+Finaliza: domingo 30 de agosto de 2026
+🕒 18:00
+Modalidad: virtual
+Duración: 8 h
+Organiza: Departamento de Cursos Complementarios
+Inscripción hasta: viernes 7 de agosto de 2026
+Inscripción: https://example.invalid/inscripciones/syn-005
+
+Consultas: cursos@fie.undef.edu.ar
+
+Departamento de Cursos Complementarios
+Secretaría de Extensión Universitaria
+
+--
+Facultad de Ingeniería del Ejército
+"Grl Div Manuel N Savio"
+UNDEF
+Tel: (011) 4779-3300
+Av. Cabildo 15 – CABA
+www.fie.undef.edu.ar
