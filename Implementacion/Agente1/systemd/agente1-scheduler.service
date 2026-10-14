@@ -10,9 +10,12 @@
 # 1. Reemplazar `__CHECKOUT__` por la raíz del checkout en el host. Es la
 #    misma ruta que va en `AGENTE1_SCHEDULER_REPO` dentro del env file.
 # 2. Crear `%h/.config/agente1/scheduler.env` con `AGENTE1_WORKSPACE_*`,
-#    `AGENTE1_INSUMOS_RANGO_A1` y las `AGENTE1_SCHEDULER_*` (intervalo,
-#    ventana, zona, repo, registro de confirmaciones). Nunca versionar ese
-#    archivo: lleva credenciales.
+#    `AGENTE1_INSUMOS_RANGO_A1`, las `AGENTE1_SCHEDULER_*` (intervalo,
+#    ventana, zona, repo, registro de confirmaciones) y, para el aviso de
+#    cambios de configuración (#94), `AGENTE1_CONFIG_ENTORNO_AVISO_DESTINATARIO`
+#    con la dirección del operador (tiene que estar en
+#    `AGENTE1_GMAIL_DESTINATARIOS_PRUEBA`). Nunca versionar ese archivo:
+#    lleva credenciales.
 # 3. Ajustar el `ExecStart` al comando de corrida vigente: el de abajo
 #    replica la invocación live documentada en el README (doble opt-in y
 #    modelo Ollama). En un ensayo offline cambiar `--live` por `--tabla`.
@@ -25,6 +28,12 @@
 # arranca, sale con código 2 y deja el motivo en
 # `DIRECTORIO_SALIDA/logs/integridad-arranque.jsonl`. Regenerar el manifest es
 # un corte de versión (`scripts/manifest_version.py`), no un ajuste en caliente.
+#
+# La configuración por entorno no frena el arranque (ADR 0010): se compara su
+# huella con la de la corrida anterior y, si cambió, queda en
+# `DIRECTORIO_SALIDA/logs/config-entorno.jsonl` con las claves afectadas (sin
+# valores) y sale un aviso al operador. Si el aviso falla, el error queda en la
+# auditoría y la corrida sigue (#94).
 #
 # Instalación manual del operador designado (ADR 0007): copiar esta unidad
 # y `agente1-scheduler.timer` a `~/.config/systemd/user/` y habilitar el
