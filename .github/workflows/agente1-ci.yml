@@ -9,24 +9,29 @@
 # pruebas no lo necesita. La base es desechable, con datos sinteticos y sin
 # datos institucionales.
 #
+# Desde el issue #96 este workflow deja de filtrar por `paths` en el evento y
+# pasa a decidir por job. El motivo esta explicado abajo, en el job `agente1-ci`.
+#
 # Este archivo vive en `.github/workflows/` del repo raiz aunque el codigo
 # que prueba esta en `Implementacion/Agente1/`: GitHub Actions solo ejecuta
 # workflows desde esa ubicacion. Cuando se extraiga el repositorio del
 # Agente 1 (issue #80), este workflow viaja con el; los paths de abajo
 # quedan relativos a la raiz del repo extraido (`src/`, `tests/`) y los
-# filtros `paths` de `on:` habra que ajustarlos o quitarlos alli.
+# filtros de rutas de los jobs `cambios` habra que ajustarlos alli.
 
 name: agente1-ci
 
 on:
-  push:
-    paths:
-      - "Implementacion/Agente1/**"
-      - ".github/workflows/agente1-ci.yml"
+  # Sin filtro `paths` a proposito (issue #96). Un filtro de workflow deja el
+  # check requerido en "Expected — Waiting for status to be reported" cuando el
+  # PR no toca esas rutas, y `main` queda trabada. El filtro de rutas se aplica
+  # por job, mas abajo.
   pull_request:
-    paths:
-      - "Implementacion/Agente1/**"
-      - ".github/workflows/agente1-ci.yml"
+    branches:
+      - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -37,8 +42,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Job liviano que SIEMPRE corre: decide si hay que ejercitar la suite.
+  # No es el check requerido (ese es `agente1-ci`, mas abajo); solo publica la
+  # salida `agente1` que consumen los otros dos.
+  cambios:
+    name: Detectar cambios del Agente 1
+    runs-on: ubuntu-latest
+    outputs:
+      agente1: ${{ steps.filtro.outputs.agente1 }}
+    steps:
+      - name: Checkout con historia completa
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Filtrar rutas del Agente 1
+        id: filtro
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CABEZA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENTO" = "workflow_dispatch" ] \
+             || [ -z "$BASE" ] \
+             || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            # Sin base comparable (rama nueva o corrida manual): se corre la
+            # suite por las dudas. El default conservador es probar, no saltear.
+            echo "agente1=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --name-only "$BASE...$CABEZA" \
+             | grep -qE '^(Implementacion/Agente1/|\.github/workflows/agente1-ci\.yml$)'; then
+            echo "agente1=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "agente1=false" >> "$GITHUB_OUTPUT"
+          fi
+
   suite:
     name: Suite, cobertura y linter del Agente 1
+    needs: cambios
+    if: needs.cambios.outputs.agente1 == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -112,3 +156,49 @@ jobs:
           path: Implementacion/Agente1/coverage.txt
           if-no-files-found: warn
           retention-days: 30
+
+  # CHECK REQUERIDO POR LA PROTECCION DE `main` (issue #96).
+  #
+  # Es el unico check que la proteccion de rama exige, y por eso tiene que
+  # reportar SIEMPRE: si no corre, `main` queda esperandolo para siempre.
+  #
+  # Por que un job aparte y no el `suite` como check requerido:
+  #   * Un workflow filtrado por `paths` que no matchea NO se ejecuta y su check
+  #     queda en "Expected — Waiting for status to be reported" (documentado por
+  #     GitHub en "Handling skipped but required checks"). Un PR que solo toca
+  #     documentacion quedaria trabado. Es exactamente la trampa del issue #96.
+  #   * Un job salteado por un `if:` reporta "Success" y no traba; pero un job
+  #     que depende de otro que fallo se saltea y podria no trabar (docs: "Use
+  #     `always()` with `needs` for required checks that depend on other jobs").
+  #     Este job usa `if: always()` y evalua a mano el resultado de `suite`, asi
+  #     que no depende de esa sutileza.
+  #
+  # El nombre del job es el nombre del check requerido: `agente1-ci`.
+  agente1-ci:
+    name: agente1-ci
+    needs:
+      - cambios
+      - suite
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluar el resultado del Agente 1
+        run: |
+          set -euo pipefail
+          echo "deteccion=${{ needs.cambios.result }} suite=${{ needs.suite.result }}"
+          if [ "${{ needs.cambios.result }}" != "success" ]; then
+            echo "::error::La deteccion de cambios no completo; no se puede acreditar el check."
+            exit 1
+          fi
+          case "${{ needs.suite.result }}" in
+            success)
+              echo "Conforme: la suite del Agente 1 paso."
+              ;;
+            skipped)
+              echo "Conforme: el cambio no toca el Agente 1; no habia suite que correr."
+              ;;
+            *)
+              echo "::error::La suite del Agente 1 no paso (resultado: ${{ needs.suite.result }})."
+              exit 1
+              ;;
+          esac
