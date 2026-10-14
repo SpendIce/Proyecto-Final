@@ -71,7 +71,7 @@ _PIPELINE_VERSIONS = {
     "gacetilla": {
         "pipeline_version": "workspace_hu010_gacetilla_v1",
         "contract_version": "gacetilla_input_v2",
-        "renderer_version": "gacetilla_generator_render_v3",
+        "renderer_version": "gacetilla_generator_render_v4",
     },
     "post": {
         "pipeline_version": "workspace_hu011_structured_v2",
@@ -123,7 +123,13 @@ class DestinoMemoria(DestinoBorradores):
         self.invocaciones = 0
         self.output_hash: str | None = None
 
-    def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador:
+    def guardar(
+        self,
+        id_solicitud: str,
+        contenido: str,
+        *,
+        nombre: str | None = None,
+    ) -> ReferenciaBorrador:
         self.invocaciones += 1
         self.output_hash = _hash(contenido)
         return ReferenciaBorrador(
@@ -287,7 +293,13 @@ class _DestinoIdempotente:
         self.duplicada = False
         self.conflicto: dict[str, object] | None = None
 
-    def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador:
+    def guardar(
+        self,
+        id_solicitud: str,
+        contenido: str,
+        *,
+        nombre: str | None = None,
+    ) -> ReferenciaBorrador:
         if not self._registro.reservar(self._key_hash):
             self.conflicto = self._registro.consultar(self._key_hash) or _registro_idempotencia(
                 "UNCERTAIN", error_code="idempotency_record_unavailable"
@@ -295,7 +307,7 @@ class _DestinoIdempotente:
             self.duplicada = self.conflicto.get("status") == "COMPLETE"
             raise DestinoBorradoresError("destination_unavailable")
         try:
-            referencia = self._destino.guardar(id_solicitud, contenido)
+            referencia = self._destino.guardar(id_solicitud, contenido, nombre=nombre)
         except DestinoBorradoresError as exc:
             self._registro.guardar(
                 self._key_hash,

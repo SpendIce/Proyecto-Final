@@ -42,7 +42,7 @@ import time
 import unicodedata
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from importlib.resources import files
 from pathlib import Path
 from typing import Protocol
@@ -70,10 +70,14 @@ HU = "HU-010"
 # Estas tres versiones se escriben en cada línea del log. Si alguna cambia hay
 # que subirle el número: es lo que permite explicar, meses después, por qué dos
 # ejecuciones de la misma fila dieron textos distintos.
-PROMPT_VERSION = "gacetilla_v6"
+PROMPT_VERSION = "gacetilla_v7"
 CONTRACT_VERSION = "gacetilla_input_v2"
-RENDERER_VERSION = "gacetilla_mail_renderer_v2"
+RENDERER_VERSION = "gacetilla_mail_renderer_v3"
 MAX_BORRADOR_CHARS = 5000
+# Prefijo del nombre del Doc del borrador. El título del Doc no lleva la marca
+# completa (`BORRADOR_MARKER`, que va en el cuerpo): lleva este prefijo, para
+# que un borrador se reconozca al mirarlo desde Drive, donde el cuerpo no se ve.
+PREFIJO_BORRADOR_DOC = "BORRADOR — "
 # Límites de extensión de la prosa de la gacetilla. Son técnicos y
 # provisionales (DEF-A1-007): calibrados contra el corpus de correos reales
 # FIE Informa (Corpus-Comunicaciones-Reales-SEU-2026-09-30), donde la bajada
@@ -461,8 +465,15 @@ def procesar_solicitud(
         f"{BORRADOR_MARKER}{_bloque_procedencia(procedencia)}{contenido_mail}\n"
     )
     destino_efectivo = destino or MarkdownDestinoBorradores(directorio_salida)
+    # El nombre visible del Doc sigue la convención institucional del corpus
+    # FIE Informa («Fie informa D-M <título>»), con la fecha de generación. El
+    # cuerpo del correo no lleva esa línea: el nombre vive en el título del
+    # documento y sólo lo aplica el destino remoto.
+    nombre_doc = _nombre_doc(fila, _fecha_generacion())
     try:
-        referencia_borrador = destino_efectivo.guardar(id_solicitud, borrador)
+        referencia_borrador = destino_efectivo.guardar(
+            id_solicitud, borrador, nombre=nombre_doc
+        )
         if not isinstance(referencia_borrador, ReferenciaBorrador):
             raise DestinoBorradoresError("destination_contract_invalid")
     except DestinoBorradoresError as error_destino:
@@ -940,6 +951,15 @@ _FIRMA_INSTITUCIONAL = (
     "www.fie.undef.edu.ar"
 )
 
+# Pie fijo de difusión, tomado del corpus FIE Informa de la SEU (#102, decisión
+# 7) y confirmado para el borrador de gacetilla: va entre «Consultas:» y la
+# firma institucional. Es fijo y no depende de la actividad: `organiza` queda en
+# las líneas de hechos del cuerpo y el contacto en «Consultas:».
+_PIE_DIFUSION = (
+    "Departamento de Cursos Complementarios\n"
+    "Secretaría de Extensión Universitaria"
+)
+
 
 def _fecha_larga(iso: str) -> str | None:
     """«2026-08-05» → «miércoles 5 de agosto de 2026», el formato de fecha de
@@ -955,6 +975,35 @@ def _fecha_larga(iso: str) -> str | None:
     )
 
 
+def _fecha_generacion() -> date:
+    """Día en que se generó el borrador, para el nombre del Doc.
+
+    Aislado en una función para poder fijarlo en las pruebas: el nombre del
+    documento es el único artefacto del renderer que depende de la fecha de
+    generación y no de un dato de la fila.
+    """
+
+    return datetime.now().date()
+
+
+def _nombre_doc(fila: dict[str, str], generado_en: date) -> str:
+    """Nombre del Doc del borrador, según la convención del corpus FIE Informa.
+
+    «BORRADOR — Fie informa D-M <título>» con la fecha de generación en
+    día-mes y el título de la fila. El prefijo va primero porque el nombre es
+    lo único que se ve desde Drive. No es prosa del modelo: se arma
+    determinísticamente con el título de la fuente y los espacios se colapsan a
+    uno para que el nombre sea una sola línea. El cuerpo del correo no lleva
+    esta línea.
+    """
+
+    titulo = " ".join(fila["titulo"].split())
+    return (
+        f"{PREFIJO_BORRADOR_DOC}"
+        f"Fie informa {generado_en.day}-{generado_en.month} {titulo}"
+    )
+
+
 def _renderizar_mail(fila: dict[str, str], ficha: "re.Match[str]") -> str:
     """Arma el correo FIE Informa a partir de la ficha validada y la fila.
 
@@ -963,6 +1012,10 @@ def _renderizar_mail(fila: dict[str, str], ficha: "re.Match[str]") -> str:
     —fechas, hora, modalidad, duración, organiza, lugar, inscripción,
     contacto— se copian de la fila, nunca del texto generado. Los campos
     opcionales del contrato v2 se omiten si la fuente no los informa.
+
+    El cuerpo no lleva la línea «Fie informa D/M»: el nombre del Doc se aplica
+    desde el destino (ver `_nombre_doc`), no dentro del correo. El pie de
+    difusión es fijo y va después de «Consultas:» y antes de la firma.
     """
 
     secciones = ficha.groupdict()
@@ -1003,7 +1056,15 @@ def _renderizar_mail(fila: dict[str, str], ficha: "re.Match[str]") -> str:
         )
     if fila.get("enlace_inscripcion", "").strip():
         lineas.append(f"Inscripción: {fila['enlace_inscripcion'].strip()}")
-    lineas += ["", f"Consultas: {fila['contacto'].strip()}", "", "--", _FIRMA_INSTITUCIONAL]
+    lineas += [
+        "",
+        f"Consultas: {fila['contacto'].strip()}",
+        "",
+        _PIE_DIFUSION,
+        "",
+        "--",
+        _FIRMA_INSTITUCIONAL,
+    ]
     return "\n".join(lineas)
 
 

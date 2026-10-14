@@ -130,6 +130,18 @@ y el núcleo `interpretacion.py`:
   `enlace` se renderizan sólo si la fuente los trae: agregarlos al CSV es
   una decisión institucional pendiente (`COLUMNAS_GACETILLA` es el contrato
   de entrada vigente).
+- **Alineación del correo con el corpus FIE INFORMA de la SEU (implementado
+  14/10, renderer `gacetilla_mail_renderer_v3`, prompt `gacetilla_v7`, #107):**
+  la SEU entregó el 13/10 el histórico de FIE INFORMA y lo tomó como ejemplo
+  aprobado de formato (resolución de #102). El correo suma el **pie fijo de
+  difusión** —«Departamento de Cursos Complementarios» / «Secretaría de
+  Extensión Universitaria» entre «Consultas:» y la firma institucional— y el
+  **nombre del Doc** del borrador pasa a seguir la convención «Fie informa D-M
+  <título>» con la fecha de generación, aplicado por el destino remoto (título
+  del Doc en D2) y no dentro del cuerpo. La redacción no tiene que ser idéntica
+  a la del corpus y los datos siguen saliendo de la fila: el modelo no escribe
+  datos en la prosa (`unauthorized_fact_in_prose`). El contrato de entrada v2 no
+  cambia.
 - **Descripción de la actividad en el post (implementado 30/09, renderer
   `post_deterministic_renderer_v4`):** observación de ensayo — el post IG
   «no decía nada de la actividad» porque los campos creativos son genéricos

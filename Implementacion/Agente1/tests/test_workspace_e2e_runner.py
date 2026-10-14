@@ -92,7 +92,7 @@ def test_compone_gacetilla_y_emite_un_manifest_seguro(tmp_path: Path) -> None:
     assert manifest["HU"] == "HU-010"
     assert manifest["pipeline_version"] == "workspace_hu010_gacetilla_v1"
     assert manifest["contract_version"] == "gacetilla_input_v2"
-    assert manifest["renderer_version"] == "gacetilla_generator_render_v3"
+    assert manifest["renderer_version"] == "gacetilla_generator_render_v4"
     assert manifest["destination"]["status"] == "COMPLETE"
     serializado = json.dumps(manifest, ensure_ascii=False)
     for secreto in ("SYN-001", "Taller sintético", "pruebas@example.invalid", "Aula de prueba"):
@@ -195,7 +195,9 @@ def test_fallo_destino_con_huerfano_conserva_hash_y_bloquea_repeticion(tmp_path:
         def __init__(self) -> None:
             self.invocaciones = 0
 
-        def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador:
+        def guardar(
+            self, id_solicitud: str, contenido: str, *, nombre=None
+        ) -> ReferenciaBorrador:
             self.invocaciones += 1
             raise DestinoBorradoresError(
                 "docs_update_failed_orphaned",
@@ -359,10 +361,12 @@ def test_carrera_reserva_una_sola_escritura_y_bloquea_in_progress(tmp_path: Path
     liberar = threading.Event()
 
     class DestinoLento(DestinoMemoria):
-        def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador:
+        def guardar(
+            self, id_solicitud: str, contenido: str, *, nombre=None
+        ) -> ReferenciaBorrador:
             entro.set()
             assert liberar.wait(timeout=5)
-            return super().guardar(id_solicitud, contenido)
+            return super().guardar(id_solicitud, contenido, nombre=nombre)
 
     destino = DestinoLento()
     resultados = []

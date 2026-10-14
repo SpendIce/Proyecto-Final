@@ -2,9 +2,11 @@
 fuera de la allowlist y no se puede escribir fuera del directorio de salida."""
 
 import json
+from datetime import date
 
 import pytest
 
+import agente1.procesamiento as procesamiento
 from agente1.destinos import (
     BORRADOR_MARKER,
     DestinoBorradores,
@@ -41,7 +43,7 @@ def test_markdown_rechaza_id_inseguro_y_contenido_sin_marker(tmp_path):
     assert not (tmp_path / "salida").exists()
 
 
-def test_core_usa_destino_inyectado_despues_del_gate(tmp_path):
+def test_core_usa_destino_inyectado_despues_del_gate(tmp_path, monkeypatch):
     fila = dict(
         zip(
             COLUMNAS_ACTIVIDADES_V2,
@@ -72,12 +74,12 @@ def test_core_usa_destino_inyectado_despues_del_gate(tmp_path):
 
     class DestinoCaptura:
         def __init__(self) -> None:
-            self.llamadas: list[tuple[str, str]] = []
+            self.llamadas: list[tuple[str, str, str | None]] = []
 
-        def guardar(self, id_solicitud: str, contenido: str):
+        def guardar(self, id_solicitud: str, contenido: str, *, nombre=None):
             from agente1.destinos import ReferenciaBorrador
 
-            self.llamadas.append((id_solicitud, contenido))
+            self.llamadas.append((id_solicitud, contenido, nombre))
             return ReferenciaBorrador(tipo="fake", referencia="ref-opaca")
 
     contenido_generado = (
@@ -89,6 +91,11 @@ def test_core_usa_destino_inyectado_despues_del_gate(tmp_path):
         "## CUERPO\nLa actividad requiere validación humana."
     )
     destino = DestinoCaptura()
+    # El nombre del Doc depende de la fecha de generación: se fija para que la
+    # regresión sea determinista.
+    monkeypatch.setattr(
+        procesamiento, "_fecha_generacion", lambda: date(2026, 10, 14)
+    )
 
     resultado = procesar_solicitud(
         fuente=FuenteFalsa(),
@@ -113,6 +120,8 @@ def test_core_usa_destino_inyectado_despues_del_gate(tmp_path):
         "📅 miércoles 5 de agosto de 2026\n"
         "Organiza: Equipo de prueba\n\n"
         "Consultas: pruebas@example.invalid\n\n"
+        "Departamento de Cursos Complementarios\n"
+        "Secretaría de Extensión Universitaria\n\n"
         "--\n"
         "Facultad de Ingeniería del Ejército\n"
         '"Grl Div Manuel N Savio"\n'
@@ -121,8 +130,15 @@ def test_core_usa_destino_inyectado_despues_del_gate(tmp_path):
         "Av. Cabildo 15 – CABA\n"
         "www.fie.undef.edu.ar"
     )
+    # El tercer elemento es el nombre del Doc que el pipeline declara para el
+    # destino remoto: la convención «BORRADOR — Fie informa D-M <título>»
+    # (#102, #107), con el prefijo de marca para reconocerlo desde Drive.
     assert destino.llamadas == [
-        ("SYN-DESTINO", BORRADOR_MARKER + mail_esperado + "\n")
+        (
+            "SYN-DESTINO",
+            BORRADOR_MARKER + mail_esperado + "\n",
+            "BORRADOR — Fie informa 14-10 Actividad destino",
+        )
     ]
     registro_serializado = resultado.log_path.read_text(encoding="utf-8")
     registro = json.loads(registro_serializado)

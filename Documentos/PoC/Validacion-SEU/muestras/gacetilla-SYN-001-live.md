@@ -1,18 +1,32 @@
 # BORRADOR — NO PUBLICAR
 
-## TÍTULO
-Taller sintético de vinculación
+Asunto: Taller sintético de vinculación
 
-## DATOS DE LA ACTIVIDAD
-Fecha: 2026-08-05
-Organiza: Equipo de prueba
-Lugar: Aula de prueba
+La Facultad de Ingeniería del Ejército invita a estudiantes de todas las carreras a participar de la siguiente actividad.
 
-## CONTACTO
-pruebas@example.invalid
+Taller de práctica para acercar la ingeniería a la comunidad con propuestas de extensión abiertas.
 
-## BAJADA
-Actividad para probar el flujo.
+El Departamento de Cursos Complementarios invita a estudiantes de todas las carreras a participar de propuestas de extensión abiertas a la comunidad.
 
-## CUERPO
-El Equipo de prueba invita a la Comunidad universitaria.
+📅 miércoles 5 de agosto de 2026
+Finaliza: miércoles 19 de agosto de 2026
+🕒 14:00
+Modalidad: presencial
+Duración: 6 h
+Organiza: Departamento de Cursos Complementarios
+Lugar: Aula 12, Av. Cabildo 15
+Inscripción hasta: lunes 3 de agosto de 2026
+Inscripción: https://example.invalid/inscripciones/syn-001
+
+Consultas: cursos@fie.undef.edu.ar
+
+Departamento de Cursos Complementarios
+Secretaría de Extensión Universitaria
+
+--
+Facultad de Ingeniería del Ejército
+"Grl Div Manuel N Savio"
+UNDEF
+Tel: (011) 4779-3300
+Av. Cabildo 15 – CABA
+www.fie.undef.edu.ar

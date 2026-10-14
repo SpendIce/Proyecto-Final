@@ -468,7 +468,7 @@ def test_falla_de_generador_no_propaga_excepcion(tmp_path: Path) -> None:
 
 
 class _DestinoQueRompe:
-    def guardar(self, id_solicitud: str, contenido: str):
+    def guardar(self, id_solicitud: str, contenido: str, *, nombre=None):
         raise RuntimeError("boom: detalle interno del destino")
 
 
