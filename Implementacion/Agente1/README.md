@@ -450,6 +450,20 @@ un CHECK. El ciclo completo `0001 → 0002 → 0003`, su rollback y un forward
 final se ejecutaron contra PostgreSQL 16 efímero el 2026-08-26; ver
 `evidencias/validacion-migraciones-postgresql-0003-2026-08-26.md`.
 
+El ticket #95 (reversión de #66) agregó una prueba que corre el ciclo
+`up` → `down` → esquema original contra un PostgreSQL real:
+`tests/test_migraciones_down_ciclo.py`. Para cada migración aplica las `up`
+hasta ella, aplica su `down` y exige que los catálogos del motor
+(`information_schema` y `pg_catalog`) queden idénticos al estado anterior;
+además clasifica cada `down` como reversible o destructivo. El job
+`agente1-ci` levanta un servicio `postgres:16-alpine` y define
+`AGENTE1_POSTGRES_DSN`; sin esa variable el caso se saltea, porque no hay
+adapter PostgreSQL cableado al producto. La clasificación de reversibilidad y
+el procedimiento están en
+`Documentos/PlanDespliegue/Procedimiento-Reversion-Agente-1.md`. Corrida local
+verificada el 2026-10-14:
+`evidencias/ciclo-migraciones-down-postgresql-2026-10-14.md`.
+
 Continúa pendiente ejecutar los mismos contract tests contra un adapter
 PostgreSQL real, que todavía no existe.
 
