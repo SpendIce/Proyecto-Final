@@ -2,6 +2,13 @@
 # Implementacion/Agente1. No toca la red de Google ni usa secretos; los
 # adapters remotos se ejercitan solo con transportes fake dentro de la suite.
 #
+# Desde el issue #95 el job levanta un servicio PostgreSQL efimero para probar
+# el ciclo `up` -> `down` -> esquema original de las migraciones
+# (`tests/test_migraciones_down_ciclo.py`). Es la unica pieza de la suite que
+# habla con un motor real: la suite sigue siendo determinista y el resto de las
+# pruebas no lo necesita. La base es desechable, con datos sinteticos y sin
+# datos institucionales.
+#
 # Este archivo vive en `.github/workflows/` del repo raiz aunque el codigo
 # que prueba esta en `Implementacion/Agente1/`: GitHub Actions solo ejecuta
 # workflows desde esa ubicacion. Cuando se extraiga el repositorio del
@@ -36,6 +43,24 @@ jobs:
     defaults:
       run:
         working-directory: Implementacion/Agente1
+    services:
+      postgres:
+        # Misma version mayor que la evidencia del spike
+        # (`evidencias/validacion-migraciones-postgresql-0003-2026-08-26.md`).
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # `tests/test_migraciones_down_ciclo.py` ejecuta el ciclo de migraciones
+      # contra este servicio; sin la variable el caso se saltea.
+      AGENTE1_POSTGRES_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,6 +74,10 @@ jobs:
 
       - name: Sincronizar dependencias
         run: uv sync --frozen
+
+      - name: Cliente psql para el ciclo de migraciones
+        # El runner ubuntu-latest suele traer `psql`; se asegura por si cambia.
+        run: command -v psql >/dev/null || (sudo apt-get update && sudo apt-get install -y postgresql-client)
 
       - name: Linter (ruff)
         run: uv run ruff check .
