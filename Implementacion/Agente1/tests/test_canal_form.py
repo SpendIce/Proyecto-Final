@@ -1049,7 +1049,12 @@ def test_la_respuesta_al_link_resuelve_la_candidata_elegida(
         for s in reversed(router.solicitudes)
         if s["host"] == "www.googleapis.com"
     )
-    assert json.loads(copia["body"])["name"].endswith("AMB-001")
+    nombre_doc = json.loads(copia["body"])["name"]
+    # El Doc sigue la convención de gacetilla («Fie informa D-M <título>»): la
+    # resolución al identificador AMB-001 se prueba por el título de la
+    # actividad elegida, porque el identificador ya no va en el nombre.
+    assert nombre_doc.startswith("Fie informa ")
+    assert nombre_doc.endswith("Taller de robótica educativa")
     assert len(_atendidos(tmp_path)) == 2
     assert len(_correos_gmail(router)) == 2
 

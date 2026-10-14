@@ -53,6 +53,7 @@ from .destinos import (
     DestinoBorradores,
     DestinoBorradoresError,
     ReferenciaBorrador,
+    nombre_doc_efectivo,
     validar_entrada_borrador,
 )
 from .fuentes import (
@@ -286,8 +287,15 @@ class GoogleDocsDestinoBorradores(DestinoBorradores):
         self._transport = transport or HttpsWorkspaceTransport()
         self._timeout_s = float(timeout_s)
 
-    def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador:
+    def guardar(
+        self,
+        id_solicitud: str,
+        contenido: str,
+        *,
+        nombre: str | None = None,
+    ) -> ReferenciaBorrador:
         validar_entrada_borrador(id_solicitud, contenido)
+        nombre_efectivo = nombre_doc_efectivo(id_solicitud, nombre)
         token = self._obtener_token()
         deadline = time.monotonic() + self._timeout_s
         headers = {
@@ -295,10 +303,12 @@ class GoogleDocsDestinoBorradores(DestinoBorradores):
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json; charset=utf-8",
         }
-        # El título también lleva la marca: quien vea el documento en una lista
-        # de Drive sabe que es un borrador sin necesidad de abrirlo.
+        # El título lleva el nombre declarado por el llamador —la convención de
+        # la pieza— o, si no lo hay, el nombre técnico con la marca de borrador:
+        # quien vea el documento en una lista de Drive sabe que es un borrador
+        # sin necesidad de abrirlo.
         create_body = json.dumps(
-            {"title": f"BORRADOR — NO PUBLICAR — {id_solicitud}"},
+            {"title": nombre_efectivo},
             ensure_ascii=False,
             separators=(",", ":"),
         ).encode("utf-8")
@@ -412,8 +422,15 @@ class GoogleDrivePlantillaDestinoBorradores(DestinoBorradores):
         self._transport = transport or HttpsWorkspaceTransport()
         self._timeout_s = float(timeout_s)
 
-    def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador:
+    def guardar(
+        self,
+        id_solicitud: str,
+        contenido: str,
+        *,
+        nombre: str | None = None,
+    ) -> ReferenciaBorrador:
         validar_entrada_borrador(id_solicitud, contenido)
+        nombre_efectivo = nombre_doc_efectivo(id_solicitud, nombre)
         update_body = json.dumps(
             {
                 "requests": [
@@ -442,7 +459,7 @@ class GoogleDrivePlantillaDestinoBorradores(DestinoBorradores):
         }
         copy_body = json.dumps(
             {
-                "name": f"BORRADOR — NO PUBLICAR — {id_solicitud}",
+                "name": nombre_efectivo,
                 "parents": [self._carpeta_id],
             },
             ensure_ascii=False,

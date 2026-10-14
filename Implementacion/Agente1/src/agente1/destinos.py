@@ -62,9 +62,23 @@ class ReferenciaBorrador:
 
 
 class DestinoBorradores(Protocol):
-    """Puerto de escritura. `guardar` es la única operación que existe."""
+    """Puerto de escritura. `guardar` es la única operación que existe.
 
-    def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador: ...
+    `nombre` es el nombre con el que el borrador se identifica en el destino
+    remoto (el título del Doc en D2). Es opcional y por defecto `None`: quien no
+    lo declara conserva el nombre técnico del adapter. Existe porque el nombre
+    visible de una gacetilla sigue una convención institucional
+    («Fie informa D-M <título>») que sólo el pipeline conoce; el adapter no
+    puede inferirla del identificador ni del contenido.
+    """
+
+    def guardar(
+        self,
+        id_solicitud: str,
+        contenido: str,
+        *,
+        nombre: str | None = None,
+    ) -> ReferenciaBorrador: ...
 
 
 class DestinoBorradoresError(RuntimeError):
@@ -94,12 +108,24 @@ class DestinoBorradoresError(RuntimeError):
 
 
 class MarkdownDestinoBorradores:
-    """Adapter local: deja el borrador como archivo `.md` bajo `borradores/`."""
+    """Adapter local: deja el borrador como archivo `.md` bajo `borradores/`.
+
+    Acepta `nombre` por compatibilidad con el puerto, pero lo ignora: el nombre
+    del archivo sigue siendo el identificador validado, de modo que la ruta del
+    borrador sea estable y reproducible entre corridas. El nombre visible del
+    Doc sólo lo aplica el destino remoto.
+    """
 
     def __init__(self, directorio_salida: Path) -> None:
         self._directorio_salida = directorio_salida
 
-    def guardar(self, id_solicitud: str, contenido: str) -> ReferenciaBorrador:
+    def guardar(
+        self,
+        id_solicitud: str,
+        contenido: str,
+        *,
+        nombre: str | None = None,
+    ) -> ReferenciaBorrador:
         _validar_entrada(id_solicitud, contenido)
         directorio_borradores = (self._directorio_salida / "borradores").resolve()
         path = (directorio_borradores / f"{id_solicitud}.md").resolve()
@@ -136,3 +162,34 @@ def _validar_entrada(id_solicitud: str, contenido: str) -> None:
         or not contenido.startswith(BORRADOR_MARKER)
     ):
         raise DestinoBorradoresError("destination_contract_invalid")
+
+
+# Tope del nombre visible del Doc. No es una regla de negocio: acota lo que
+# viaja al nombre de un archivo remoto y deja margen sobre cualquier título
+# real de la planilla.
+NOMBRE_DOC_MAX_CHARS = 240
+
+
+def nombre_doc_efectivo(id_solicitud: str, nombre: str | None) -> str:
+    """Nombre con el que el adapter remoto identifica el borrador.
+
+    Sin `nombre` se conserva el nombre técnico del adapter, que lleva la marca
+    de borrador para que se lea en la lista del Drive. Con `nombre` manda la
+    convención que declaró el llamador (por ejemplo, la de gacetilla). En los
+    dos casos el valor es un nombre de archivo remoto: se rechazan vacíos,
+    demasiado largos y con saltos de línea, y el rechazo es fail-closed
+    (`destination_contract_invalid`) para no crear un documento con un nombre
+    inesperado.
+    """
+
+    if nombre is None:
+        return f"BORRADOR — NO PUBLICAR — {id_solicitud}"
+    if (
+        not isinstance(nombre, str)
+        or not nombre.strip()
+        or len(nombre) > NOMBRE_DOC_MAX_CHARS
+        or "\r" in nombre
+        or "\n" in nombre
+    ):
+        raise DestinoBorradoresError("destination_contract_invalid")
+    return nombre

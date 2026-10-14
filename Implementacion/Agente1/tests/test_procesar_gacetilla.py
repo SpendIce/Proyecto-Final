@@ -4,6 +4,7 @@ todos los caminos de falla."""
 
 import csv
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -138,6 +139,8 @@ def test_fila_completa_genera_borrador_pendiente_y_log(tmp_path):
         "Organiza: Equipo de prueba\n"
         "Lugar: Aula de prueba\n\n"
         "Consultas: pruebas@example.invalid\n\n"
+        "Departamento de Cursos Complementarios\n"
+        "Secretaría de Extensión Universitaria\n\n"
         "--\n"
         "Facultad de Ingeniería del Ejército\n"
         '"Grl Div Manuel N Savio"\n'
@@ -917,7 +920,7 @@ def test_omitir_el_lugar_informado_sigue_siendo_un_hecho_faltante(tmp_path):
     assert "place_missing" in registro["validation_errors"]
 
 
-# --- Renderer del correo durable (gacetilla_mail_renderer_v2) ----------------
+# --- Renderer del correo durable (gacetilla_mail_renderer_v3) ----------------
 
 
 def test_fecha_larga_convierte_iso_al_formato_de_los_correos_reales():
@@ -987,3 +990,57 @@ def test_render_no_toma_hechos_de_la_prosa_sino_de_la_fila():
     mail = _renderizar_mail(fila, match)
 
     assert "Consultas: pruebas@example.invalid" in mail
+
+
+def test_nombre_doc_sigue_la_convencion_fie_informa_con_fecha_de_generacion():
+    from agente1.procesamiento import _nombre_doc
+
+    fila, _ = _fila_y_ficha()
+    assert _nombre_doc(fila, date(2026, 10, 3)) == "Fie informa 3-10 Jornada de prueba"
+    # Sin cero a la izquierda en día ni mes (corpus: «Fie informa 1-6 …»).
+    assert _nombre_doc(fila, date(2026, 1, 6)) == "Fie informa 6-1 Jornada de prueba"
+
+
+def test_nombre_doc_colapsa_espacios_del_titulo_en_una_sola_linea():
+    from agente1.procesamiento import _nombre_doc
+
+    fila, _ = _fila_y_ficha()
+    fila["titulo"] = "  Jornada\n  de   prueba  "
+
+    assert _nombre_doc(fila, date(2026, 10, 3)) == "Fie informa 3-10 Jornada de prueba"
+
+
+def test_render_incluye_el_pie_fijo_de_difusion_antes_de_la_firma():
+    fila, match = _fila_y_ficha()
+    mail = _renderizar_mail(fila, match)
+
+    assert (
+        "Consultas: pruebas@example.invalid\n\n"
+        "Departamento de Cursos Complementarios\n"
+        "Secretaría de Extensión Universitaria\n\n"
+        "--\n"
+    ) in mail
+    # `organiza` sigue en las líneas de hechos del cuerpo, no en el pie.
+    assert "Organiza: Equipo de prueba" in mail
+    assert _validar_render_mail(mail, fila) == []
+
+
+def test_validar_render_detecta_contacto_perdido_en_el_pie():
+    fila, match = _fila_y_ficha()
+    mail = _renderizar_mail(fila, match).replace(
+        "Consultas: pruebas@example.invalid", "Consultas: otro@example.invalid"
+    )
+
+    assert _validar_render_mail(mail, fila) == ["renderer_fact_missing"]
+
+
+def test_render_no_lleva_la_linea_fie_informa_en_el_cuerpo():
+    # El nombre del Doc lo aplica el destino remoto (título del Doc); el cuerpo
+    # del correo no repite ese encabezado, ni en la forma «Fie informa D/M».
+    import re as _re
+
+    fila, match = _fila_y_ficha()
+    mail = _renderizar_mail(fila, match)
+
+    assert "Fie informa" not in mail
+    assert _re.search(r"Fie informa \d+/\d+", mail) is None

@@ -110,6 +110,42 @@ def test_drive_rechaza_borrador_sin_marker_antes_de_token_o_red():
     assert transporte.solicitudes == []
 
 
+def test_drive_usa_el_nombre_del_doc_declarado_por_el_llamador():
+    destino, transporte, _ = crear_destino(
+        [
+            RespuestaHttp(200, b'{"id":"doc_copiado-789"}'),
+            RespuestaHttp(200, b'{"replies":[{}]}'),
+        ]
+    )
+
+    destino.guardar(
+        "SYN-001",
+        BORRADOR_MARKER + "Contenido validado.\n",
+        nombre="Fie informa 13-10 Taller sintético",
+    )
+
+    copiar = transporte.solicitudes[0]
+    assert json.loads(copiar["body"]) == {
+        "name": "Fie informa 13-10 Taller sintético",
+        "parents": ["folder_ALLOWLIST-456"],
+    }
+
+
+@pytest.mark.parametrize(
+    "nombre",
+    ["", "   ", "Fie informa\n13-10 Taller", "Fie informa\r13-10 Taller"],
+)
+def test_drive_rechaza_nombre_invalido_antes_de_token_o_red(nombre):
+    destino, transporte, tokens = crear_destino([])
+
+    with pytest.raises(DestinoBorradoresError) as error:
+        destino.guardar("SYN-001", BORRADOR_MARKER + "Texto.\n", nombre=nombre)
+
+    assert error.value.code == "destination_contract_invalid"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
 def test_drive_rechaza_request_mayor_a_un_mib_antes_de_token_o_red():
     destino, transporte, tokens = crear_destino([])
 

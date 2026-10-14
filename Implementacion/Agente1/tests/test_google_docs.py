@@ -93,6 +93,39 @@ def test_docs_crea_borrador_y_luego_inserta_texto_con_deadline_compartida():
     assert crear["max_response_bytes"] == MAX_WORKSPACE_RESPONSE_BYTES
 
 
+def test_docs_usa_el_nombre_del_doc_declarado_por_el_llamador():
+    destino, transporte, _ = crear_destino(
+        [
+            RespuestaHttp(200, b'{"documentId":"doc_ID-123"}'),
+            RespuestaHttp(200, b'{"replies":[{}]}'),
+        ]
+    )
+
+    destino.guardar(
+        "SYN-001",
+        BORRADOR_MARKER + "Contenido validado.\n",
+        nombre="Fie informa 13-10 Taller sintético",
+    )
+
+    crear = transporte.solicitudes[0]
+    assert json.loads(crear["body"]) == {
+        "title": "Fie informa 13-10 Taller sintético"
+    }
+
+
+def test_docs_rechaza_nombre_invalido_antes_del_token_y_transporte():
+    destino, transporte, tokens = crear_destino([])
+
+    with pytest.raises(DestinoBorradoresError) as error:
+        destino.guardar(
+            "SYN-001", BORRADOR_MARKER + "Texto.\n", nombre="Fie informa\n13-10"
+        )
+
+    assert error.value.code == "destination_contract_invalid"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
 def test_docs_rechaza_contenido_sin_marker_antes_del_token_y_transporte():
     destino, transporte, tokens = crear_destino([])
 
