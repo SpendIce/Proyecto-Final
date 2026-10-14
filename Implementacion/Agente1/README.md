@@ -1150,7 +1150,8 @@ manifest se regenera al cortar una versión, no en cada cambio.
 `scripts/manifest_corte.py` dejó de mantener su lista `FUENTES` congelada en
 `gacetilla_v3`: cada manifest de corte referencia `version` y
 `manifest_version_sha256`, y sólo suma lo propio del corte (la configuración
-del adapter y la referencia Git).
+del adapter, la referencia Git y el hash del dataset sintético
+`datos_sinteticos_sha256`).
 
 ```bash
 uv run pytest -q tests/test_manifest_version.py tests/test_integridad_arranque.py
@@ -1159,6 +1160,37 @@ uv run pytest -q tests/test_manifest_version.py tests/test_integridad_arranque.p
 Paso en vivo para el laboratorio y la mesa —editar un prompt en el host → no
 arranca → la auditoría muestra los dos hashes → restaurar → arranca— en
 `evidencias/integridad-arranque-2026-10-14.md`.
+
+## Versión del agente: tag, changelog y versión en la auditoría (#93)
+
+La versión instalada tiene su identidad en un solo lugar y se cita, no se
+repite:
+
+- **Tag `agente1-vX.Y.Z`** sobre `main` en cada versión que se instala. Mayor:
+  cambia un contrato de interfaz. Menor: capacidad nueva, prompt o política.
+  Parche: corrección.
+- **`CHANGELOG.md`**, con una entrada por versión (cambios controlados, su clase
+  y la referencia del issue o rama) y una sección **Configuración** aparte, para
+  los cambios que se le piden a DSI y que no generan versión.
+- **`version_agente` y `manifest_version_sha256` en cada registro de
+  auditoría**: la versión sale de `pyproject.toml` (fuente única) y el hash es
+  el del manifest versionado, así que una pieza se rastrea hasta la versión y la
+  huella de lo controlado que la produjo. La escritura vive en
+  `src/agente1/registro_auditoria.py` (`escribir_registro`), que todos los logs
+  de auditoría usan.
+
+El procedimiento completo para cortar una versión —subir el número, regenerar
+el manifest, escribir el changelog, etiquetar `main`— está en
+[`PROCEDIMIENTO-CORTE-DE-VERSION.md`](PROCEDIMIENTO-CORTE-DE-VERSION.md).
+Incluye, explícito, el punto fino: **después de mergear cualquier cambio
+controlado, el `manifest-version.json` versionado queda viejo y el gate
+fail-closed rechaza el arranque en modo operación hasta que se corta la
+versión**; eso es por diseño y el corte lo resuelve regenerando el manifest.
+Por eso **no** hay un check de CI que exija el manifest siempre fresco.
+
+```bash
+uv run pytest -q tests/test_version_agente.py
+```
 
 ## Nivel verificado de los SLO desde la auditoría (#88)
 

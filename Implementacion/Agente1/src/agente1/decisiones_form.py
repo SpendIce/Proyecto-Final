@@ -116,6 +116,7 @@ from .google_workspace import (
     GoogleSheetsLectorValores,
     TransporteHttp,
 )
+from .registro_auditoria import escribir_registro
 from .workspace_config import _A1_RE, ConfiguracionWorkspaceError
 
 # ---------------------------------------------------------------------------
@@ -474,8 +475,7 @@ class RegistroDecisiones:
             "timestamp": resultado.timestamp,
         }
         try:
-            with self._path_procesadas.open("a", encoding="utf-8") as fh:
-                fh.write(json.dumps(linea, ensure_ascii=False) + "\n")
+            escribir_registro(self._path_procesadas, linea)
         except OSError:
             raise DecisionesFormError(
                 "decisiones_registry_unavailable"

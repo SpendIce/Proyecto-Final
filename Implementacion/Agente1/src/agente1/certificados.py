@@ -77,6 +77,7 @@ from agente1.linea_descriptiva import (
     objeto_id_linea_descriptiva,
     validar_linea_descriptiva,
 )
+from agente1.registro_auditoria import escribir_registro
 
 HU = "HU-014"
 CONTRACT_VERSION = "certificado_emision_v2"
@@ -851,9 +852,7 @@ def _resultado(
         "closing_batch_id": lote_cierre,
         "emission_mode": "fake" if estado == "EMITIDA_SIMULADA" else "none",
     }
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("a", encoding="utf-8") as archivo:
-        archivo.write(json.dumps(auditoria, ensure_ascii=False, sort_keys=True) + "\n")
+    escribir_registro(log_path, auditoria)
     return ResultadoCertificado(
         estado=estado,
         idempotency_key=idempotency_key,

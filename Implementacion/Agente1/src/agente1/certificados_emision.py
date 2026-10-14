@@ -94,6 +94,7 @@ from .linea_descriptiva import (
     linea_descriptiva_aprobada,
     objeto_id_linea_descriptiva,
 )
+from .registro_auditoria import escribir_registro
 
 HU = "HU-014"
 CONTRACT_VERSION = "certificado_emision_lote_v1"
@@ -425,21 +426,16 @@ def procesar_emision_certificados(
     cargada_por_hash = solicitante_hash
 
     def evento(nombre: str, **campos) -> None:
-        with log_path.open("a", encoding="utf-8") as f:
-            f.write(
-                json.dumps(
-                    {
-                        "schema": CONTRACT_VERSION,
-                        "hu": HU,
-                        "correlation_id": cid,
-                        "evento": nombre,
-                        **campos,
-                    },
-                    ensure_ascii=False,
-                    sort_keys=True,
-                )
-                + "\n"
-            )
+        escribir_registro(
+            log_path,
+            {
+                "schema": CONTRACT_VERSION,
+                "hu": HU,
+                "correlation_id": cid,
+                "evento": nombre,
+                **campos,
+            },
+        )
 
     def resultado(
         estado: str,
@@ -814,10 +810,7 @@ class DestinoCorreoArchivo:
                 "bytes": len(adjunto.contenido),
                 "sha256": _hash_bytes(adjunto.contenido),
             }
-        with self._path.open("a", encoding="utf-8") as archivo:
-            archivo.write(
-                json.dumps(registro, ensure_ascii=False, sort_keys=True) + "\n"
-            )
+        escribir_registro(self._path, registro)
 
 
 def _adjunto_pdf(nombre: str, pdf: bytes):

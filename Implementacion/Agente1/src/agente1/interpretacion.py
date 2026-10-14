@@ -126,6 +126,7 @@ from .plantillas_actividad import (
 from .posts import procesar_post_estructurado
 from .presupuesto import presupuesto_minimo_num_predict
 from .procesamiento import Generator, procesar_solicitud
+from .registro_auditoria import escribir_registro
 
 HU = "HU-013"
 CONTRACT_VERSION = "intenciones_v3"
@@ -1742,9 +1743,8 @@ def _finalizar(
 
 
 def _registrar(path: Path, registro: dict[str, object]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as archivo:
-        archivo.write(json.dumps(registro, ensure_ascii=False, sort_keys=True) + "\n")
+    # Suma `version_agente` y el hash del manifest (#93).
+    escribir_registro(path, registro)
 
 
 def _hash(valor: str) -> str:

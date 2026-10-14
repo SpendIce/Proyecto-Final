@@ -5,12 +5,15 @@ se produjo la evidencia de este corte. Ya no mantiene su propia lista de
 fuentes: referencia la **versión** y el **hash del manifest de versión**
 (`manifest-version.json`, #92), que cubre código, prompts, políticas,
 contratos, migraciones, `uv.lock`, `pyproject.toml`, `scripts/` y `systemd/`.
-Lo que agrega es lo propio del corte: la configuración del adapter y la
-referencia Git.
+Lo que agrega es lo propio del corte: la configuración del adapter, la
+referencia Git y el hash del dataset sintético que alimentó el corte.
 
 No copia borradores, prompts renderizados ni datos de actividades: el hash del
 manifest alcanza para verificar que la versión no cambió, y copiar el
-contenido sería arrastrar material que la evidencia no necesita.
+contenido sería arrastrar material que la evidencia no necesita. El dataset
+sintético se **hashea** en `datos_sinteticos_sha256`, no se copia: es un dato
+operativo (queda fuera del manifest de versión, `CONTEXT.md`), pero sin su hash
+la evidencia del corte no se reproduce.
 
 Uso:
     uv run python scripts/manifest_corte.py --corte 2026-09-08 \\
@@ -46,6 +49,12 @@ from agente1.presupuesto import (  # noqa: E402
     presupuesto_minimo_num_predict,
 )
 from agente1.procesamiento import PROMPT_VERSION  # noqa: E402
+
+# El dataset que alimenta el corte (línea descriptiva, certificados HU-014).
+# No es un archivo controlado —es dato operativo, lo mantiene su dueño—, por
+# eso no entra al manifest de versión; pero sin su hash la evidencia del corte
+# no se reproduce, así que el manifest de corte lo ata al corte concreto.
+DATASET_SINTETICO = "data/actividades_sinteticas.csv"
 
 
 def _git(*argumentos: str) -> str | None:
@@ -89,6 +98,11 @@ def main() -> int:
         # versión, y su hash ata el corte a una versión exacta.
         "version": manifest_version["version"],
         "manifest_version_sha256": sha256_archivo(ruta_manifest),
+        # El dataset del corte, aparte del manifest de versión: es la entrada
+        # del corte, no un archivo controlado (ver docstring/DATASET_SINTETICO).
+        "datos_sinteticos_sha256": {
+            DATASET_SINTETICO: sha256_archivo(ROOT / DATASET_SINTETICO),
+        },
         "configuracion": {
             "prompt_version_gacetilla": PROMPT_VERSION,
             "ollama_num_predict_default": DEFAULT_OLLAMA_NUM_PREDICT,

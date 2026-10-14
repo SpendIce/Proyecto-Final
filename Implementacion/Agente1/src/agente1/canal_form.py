@@ -120,6 +120,7 @@ from .interpretacion import (
     IdentidadSolicitante,
     ResultadoInterpretacion,
 )
+from .registro_auditoria import escribir_registro
 from .workspace_config import _A1_RE, ConfiguracionWorkspaceError
 
 if TYPE_CHECKING:
@@ -886,10 +887,7 @@ class CanalFormPedidos:
             "correlation_id": resultado.correlation_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        with self._atendidos_path.open("a", encoding="utf-8") as archivo:
-            archivo.write(
-                json.dumps(registro, ensure_ascii=False, sort_keys=True) + "\n"
-            )
+        escribir_registro(self._atendidos_path, registro)
 
 
 def _celda(fila: list[object], indice: int) -> str:

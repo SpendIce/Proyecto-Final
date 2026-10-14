@@ -92,6 +92,7 @@ from .google_workspace import (
     TransporteHttp,
     _RespuestaDemasiadoGrande,
 )
+from .registro_auditoria import escribir_registro
 
 MANIFEST_RECORD = "agente1_respaldo_v1"
 AUDITORIA_RECORD = "agente1_respaldo_diario_v1"
@@ -819,9 +820,7 @@ class AvisoOperadorJsonl:
             "cuerpo": cuerpo,
             "modo": "offline_fake",
         }
-        with self._path.open("a", encoding="utf-8", newline="") as archivo:
-            archivo.write(json.dumps(entrada, ensure_ascii=False, sort_keys=True))
-            archivo.write("\n")
+        escribir_registro(self._path, entrada)
         return "registrado_offline"
 
 
@@ -883,9 +882,7 @@ class AuditoriaRespaldo:
             "ejecutado_en": datetime.now(timezone.utc).isoformat(),
             **campos,
         }
-        with self._path.open("a", encoding="utf-8", newline="") as archivo:
-            archivo.write(json.dumps(entrada, ensure_ascii=False, sort_keys=True))
-            archivo.write("\n")
+        escribir_registro(self._path, entrada)
 
 
 @dataclass(frozen=True)

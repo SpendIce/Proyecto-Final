@@ -176,6 +176,38 @@ def version_desde_pyproject(raiz: Path) -> str:
     return version.strip()
 
 
+def identidad_version_agente(raiz: Path | None = None) -> dict[str, object]:
+    """La identidad de la versión instalada para los registros de auditoría (#93).
+
+    Devuelve las dos claves que #93 agrega a cada registro: `version_agente`
+    —la de `pyproject.toml`, fuente única, para que la versión no se repita a
+    mano— y `manifest_version_sha256` —el sha256 del manifest de versión que
+    viaja con lo instalado (`manifest-version.json`), el mismo hash que ata el
+    manifest de corte—. Con eso una pieza se rastrea hasta la versión exacta y
+    la huella de lo controlado que la produjo, no sólo hasta el prompt o la
+    política.
+
+    Es tolerante a propósito: si faltan el `pyproject.toml` o el manifest, el
+    campo correspondiente queda en `None` en vez de impedir que el registro se
+    escriba. El fail-closed del arranque (ADR 0010) es el que exige el manifest
+    en modo operación; la auditoría no puede dejar de asentar por eso.
+    """
+
+    raiz = Path(raiz) if raiz is not None else raiz_agente()
+    try:
+        version: str | None = version_desde_pyproject(raiz)
+    except IntegridadError:
+        version = None
+    try:
+        hash_manifest: str | None = sha256_archivo(raiz / MANIFEST_VERSION_NOMBRE)
+    except OSError:
+        hash_manifest = None
+    return {
+        "version_agente": version,
+        "manifest_version_sha256": hash_manifest,
+    }
+
+
 def construir_manifest(raiz: Path, *, version: str | None = None) -> dict[str, Any]:
     """El manifest de versión: `schema_version`, `version` y los hashes.
 

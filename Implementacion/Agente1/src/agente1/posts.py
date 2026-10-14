@@ -86,6 +86,7 @@ from .presupuesto import (
     PresupuestoAgotadoError,
 )
 from .procesamiento import Generator, ResultadoProceso
+from .registro_auditoria import escribir_registro
 
 HU = "HU-011"
 CONTRACT_VERSION = "post_input_v2"
@@ -1564,9 +1565,9 @@ def _fallo_destino(
 
 
 def _registrar(path: Path, registro: dict[str, object]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as archivo:
-        archivo.write(json.dumps(registro, ensure_ascii=False, sort_keys=True) + "\n")
+    # La escritura suma `version_agente` y el hash del manifest (#93) y deja
+    # las claves en orden estable.
+    escribir_registro(path, registro)
 
 
 def _hash_json(valor: dict[str, str]) -> str:

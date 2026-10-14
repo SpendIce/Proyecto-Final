@@ -97,6 +97,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Callable, Protocol
 
+from .registro_auditoria import escribir_registro
 from .tipos_notificacion import (
     MODO_CIRCUITO_POR_ENVIO,
     TIPO_NOTIFICACION_PREDETERMINADO,
@@ -1114,9 +1115,7 @@ def correr_purga_registro(
         "purgados": len(purgadas),
         "claves_hash": _hash("\n".join(purgadas)),
     }
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("a", encoding="utf-8") as archivo:
-        archivo.write(json.dumps(auditoria, ensure_ascii=False, sort_keys=True) + "\n")
+    escribir_registro(log_path, auditoria)
     return ResultadoPurga(
         purgadas=purgadas,
         ventana_dias=ventana_dias,
@@ -1519,9 +1518,7 @@ def _auditar_drenaje(
         "delivery_mode": delivery_mode if estado == "ENVIADA_SIMULADA" else "none",
         "origen_envio": "asincrono",
     }
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("a", encoding="utf-8") as archivo:
-        archivo.write(json.dumps(auditoria, ensure_ascii=False, sort_keys=True) + "\n")
+    escribir_registro(log_path, auditoria)
 
 
 @dataclass(frozen=True)
@@ -2367,9 +2364,7 @@ def _resultado(
     # produjo el resultado; nunca datos personales ni texto en claro.
     if auditoria_extra:
         auditoria.update(auditoria_extra)
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("a", encoding="utf-8") as archivo:
-        archivo.write(json.dumps(auditoria, ensure_ascii=False, sort_keys=True) + "\n")
+    escribir_registro(log_path, auditoria)
     return ResultadoConfirmacion(
         estado=estado,
         idempotency_key=idempotency_key,

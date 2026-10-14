@@ -86,6 +86,7 @@ from agente1.pagos import (
     PlanPago,
     cargar_plan_pagos_csv,
 )
+from agente1.registro_auditoria import escribir_registro
 from agente1.workspace_auth import construir_token_provider
 from agente1.workspace_config import (
     ConfiguracionWorkspaceError,
@@ -134,10 +135,7 @@ class _DestinoAvisosArchivo:
             "asunto": asunto,
             "cuerpo": cuerpo,
         }
-        with self._path.open("a", encoding="utf-8") as archivo:
-            archivo.write(
-                json.dumps(registro, ensure_ascii=False, sort_keys=True) + "\n"
-            )
+        escribir_registro(self._path, registro)
 
 
 def _fake_output_desde_golden() -> str:
