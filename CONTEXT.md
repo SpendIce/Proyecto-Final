@@ -98,16 +98,16 @@ _Evitar_: pedido de agente, mensaje entre agentes, orden
 
 ### Evaluacion del PPS
 
-**Mesa final**:
-Instancia de evaluacion de la asignatura del 18/11/2026 en la que el Agente 1 se demuestra funcionando en vivo ante el profesor de la materia, la Direccion de Carrera y la SEU.
-_Evitar_: presentacion final, defensa, gate TRL
+**Presentacion de cursada**:
+Ultima instancia de la asignatura, el 18/11/2026: el Agente 1 se demuestra funcionando en vivo ante el profesor de la materia, la Direccion de Carrera y la SEU. Funciona como examen parcial y da el aprobado de la cursada; **no** es la instancia final del Proyecto. Para esa fecha el sistema se presenta con al menos el 80 % del proyecto completo y funcionando, y cuenta con la revision de laboratorio previa.
+_Evitar_: mesa final, presentacion final, defensa, gate TRL
 
 **Presentacion final**:
-Exposicion del PPS con defensa oral en la ventana de febrero de 2027. No suma historias nuevas; solo puede cerrar lo que en la mesa final quedo detenido por un bloqueante externo.
-_Evitar_: mesa final, entrega de version
+Exposicion del PPS con defensa oral en la mesa de examen final de la materia ---diciembre de 2026 o, mas realistamente, la ventana del 20 al 28 de febrero de 2027---, donde se hace la ultima presentacion del proyecto y el autor egresa. No suma historias nuevas; solo puede cerrar lo que en la presentacion de cursada quedo detenido por un bloqueante externo.
+_Evitar_: presentacion de cursada, entrega de version
 
 **Revision de laboratorio**:
-Evaluacion de calidad y seguridad del sistema funcionando que hacen los laboratorios iLab y rLab sobre los anexos de calidad y seguridad presentados por el autor. Su informe habilita, habilita con condiciones o no habilita la mesa final.
+Evaluacion de calidad y seguridad del sistema funcionando que hacen los laboratorios iLab y rLab sobre los anexos de calidad y seguridad presentados por el autor. Su informe habilita, habilita con condiciones o no habilita la presentacion de cursada.
 _Evitar_: auditoria, pentest, gate TRL
 
 **Perfil de calidad**:
@@ -123,7 +123,7 @@ Categoria que el autor declara para cada atributo del perfil: A implementado sat
 _Evitar_: nivel de competencia (lo califica el laboratorio)
 
 **Sistema de demostracion**:
-El Agente 1 en todo su alcance declarado (ambiente, flujos y componentes), funcionando de punta a punta en vivo en la revision de laboratorio y en la mesa final. La mesa final puede mostrar una base posterior a la que reviso el laboratorio, sobre el mismo ambiente. No tiene capacidades detenidas: lo que depende de un tercero corre contra un destino de prueba o un insumo provisional declarado, nunca contra un fake.
+El Agente 1 en todo su alcance declarado (ambiente, flujos y componentes), funcionando de punta a punta en vivo en la revision de laboratorio y en la presentacion de cursada. La presentacion de cursada puede mostrar una base posterior a la que reviso el laboratorio, sobre el mismo ambiente. No tiene capacidades detenidas: lo que depende de un tercero corre contra un destino de prueba o un insumo provisional declarado, nunca contra un fake.
 _Evitar_: demo, maqueta, prototipo, recorte
 
 **Destino de prueba**:
