@@ -166,7 +166,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise RunnerWorkspaceError("runner_live_environment_invalid")
             config_decisiones = cargar_configuracion_form_decisiones()
             token_provider = construir_token_provider(
-                timeout_s=config_ws.timeout_s
+                timeout_s=config_ws.timeout_s,
+                directorio_auditoria=args.directorio,
             )
             token = token_provider.obtener_access_token()
             if not isinstance(token, str) or not token.strip():

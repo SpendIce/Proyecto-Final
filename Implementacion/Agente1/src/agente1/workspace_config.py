@@ -53,15 +53,19 @@ _REQUIRED_KEYS = frozenset(
         "AGENTE1_WORKSPACE_MAX_RESPONSE_BYTES",
     }
 )
-# Las tres credenciales OAuth de `OAuthRefreshTokenProvider` (Alternativa A
-# del issue #15) son aceptadas para que el loader no las rechace como
+# Las credenciales son aceptadas para que el loader no las rechace como
 # desconocidas, pero nunca entran al objeto de configuración: las lee el
-# provider directo del entorno, igual que `TOKEN_ENV`.
+# provider directo del entorno, igual que `TOKEN_ENV`. Son el token efímero,
+# el trío OAuth de `OAuthRefreshTokenProvider` (respaldo del issue #15) y el
+# par de la cuenta de servicio de `CuentaServicioDelegadaProvider` (ADR 0011):
+# la ruta de la clave y la cuenta por la que el agente se hace pasar.
 _ALLOWED_KEYS = _REQUIRED_KEYS | {
     TOKEN_ENV,
     "AGENTE1_WORKSPACE_OAUTH_CLIENT_ID",
     "AGENTE1_WORKSPACE_OAUTH_CLIENT_SECRET",
     "AGENTE1_WORKSPACE_OAUTH_REFRESH_TOKEN",
+    "AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY",
+    "AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT",
 }
 _ID_RE = re.compile(r"[A-Za-z0-9_-]{1,256}\Z")
 # Rango A1 completo y acotado: exige nombre de hoja y celdas inicial y final

@@ -131,7 +131,9 @@ def main(
             # Modo live: el token se pide por operación adentro del adapter;
             # la pre-verificación sólo comprueba que la credencial existe,
             # sin tocar la red.
-            token_provider = construir_token_provider(environ)
+            token_provider = construir_token_provider(
+                environ, directorio_auditoria=args.salida
+            )
             destino = GoogleDriveRespaldoDiario(
                 carpeta_id=config.carpeta_id,
                 token_provider=token_provider,

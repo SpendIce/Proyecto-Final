@@ -165,7 +165,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.live:
             config = cargar_configuracion_form_decisiones()
             token_provider = construir_token_provider(
-                timeout_s=config.timeout_s
+                timeout_s=config.timeout_s,
+                directorio_auditoria=args.directorio,
             )
             # Token pedido antes de cualquier lectura: si la credencial no
             # sirve, la corrida falla al preparar y no a mitad de camino.
