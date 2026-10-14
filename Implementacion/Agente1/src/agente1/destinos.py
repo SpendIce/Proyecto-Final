@@ -68,8 +68,8 @@ class DestinoBorradores(Protocol):
     remoto (el título del Doc en D2). Es opcional y por defecto `None`: quien no
     lo declara conserva el nombre técnico del adapter. Existe porque el nombre
     visible de una gacetilla sigue una convención institucional
-    («Fie informa D-M <título>») que sólo el pipeline conoce; el adapter no
-    puede inferirla del identificador ni del contenido.
+    («BORRADOR — Fie informa D-M <título>») que sólo el pipeline conoce; el
+    adapter no puede inferirla del identificador ni del contenido.
     """
 
     def guardar(

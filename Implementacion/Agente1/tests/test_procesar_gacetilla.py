@@ -996,9 +996,9 @@ def test_nombre_doc_sigue_la_convencion_fie_informa_con_fecha_de_generacion():
     from agente1.procesamiento import _nombre_doc
 
     fila, _ = _fila_y_ficha()
-    assert _nombre_doc(fila, date(2026, 10, 3)) == "Fie informa 3-10 Jornada de prueba"
+    assert _nombre_doc(fila, date(2026, 10, 3)) == "BORRADOR — Fie informa 3-10 Jornada de prueba"
     # Sin cero a la izquierda en día ni mes (corpus: «Fie informa 1-6 …»).
-    assert _nombre_doc(fila, date(2026, 1, 6)) == "Fie informa 6-1 Jornada de prueba"
+    assert _nombre_doc(fila, date(2026, 1, 6)) == "BORRADOR — Fie informa 6-1 Jornada de prueba"
 
 
 def test_nombre_doc_colapsa_espacios_del_titulo_en_una_sola_linea():
@@ -1007,7 +1007,7 @@ def test_nombre_doc_colapsa_espacios_del_titulo_en_una_sola_linea():
     fila, _ = _fila_y_ficha()
     fila["titulo"] = "  Jornada\n  de   prueba  "
 
-    assert _nombre_doc(fila, date(2026, 10, 3)) == "Fie informa 3-10 Jornada de prueba"
+    assert _nombre_doc(fila, date(2026, 10, 3)) == "BORRADOR — Fie informa 3-10 Jornada de prueba"
 
 
 def test_render_incluye_el_pie_fijo_de_difusion_antes_de_la_firma():

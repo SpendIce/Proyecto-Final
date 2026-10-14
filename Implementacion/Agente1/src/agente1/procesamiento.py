@@ -74,6 +74,10 @@ PROMPT_VERSION = "gacetilla_v7"
 CONTRACT_VERSION = "gacetilla_input_v2"
 RENDERER_VERSION = "gacetilla_mail_renderer_v3"
 MAX_BORRADOR_CHARS = 5000
+# Prefijo del nombre del Doc del borrador. El título del Doc no lleva la marca
+# completa (`BORRADOR_MARKER`, que va en el cuerpo): lleva este prefijo, para
+# que un borrador se reconozca al mirarlo desde Drive, donde el cuerpo no se ve.
+PREFIJO_BORRADOR_DOC = "BORRADOR — "
 # Límites de extensión de la prosa de la gacetilla. Son técnicos y
 # provisionales (DEF-A1-007): calibrados contra el corpus de correos reales
 # FIE Informa (Corpus-Comunicaciones-Reales-SEU-2026-09-30), donde la bajada
@@ -985,14 +989,19 @@ def _fecha_generacion() -> date:
 def _nombre_doc(fila: dict[str, str], generado_en: date) -> str:
     """Nombre del Doc del borrador, según la convención del corpus FIE Informa.
 
-    «Fie informa D-M <título>» con la fecha de generación en día-mes y el
-    título de la fila. No es prosa del modelo: se arma determinísticamente con
-    el título de la fuente y los espacios se colapsan a uno para que el nombre
-    sea una sola línea. El cuerpo del correo no lleva esta línea.
+    «BORRADOR — Fie informa D-M <título>» con la fecha de generación en
+    día-mes y el título de la fila. El prefijo va primero porque el nombre es
+    lo único que se ve desde Drive. No es prosa del modelo: se arma
+    determinísticamente con el título de la fuente y los espacios se colapsan a
+    uno para que el nombre sea una sola línea. El cuerpo del correo no lleva
+    esta línea.
     """
 
     titulo = " ".join(fila["titulo"].split())
-    return f"Fie informa {generado_en.day}-{generado_en.month} {titulo}"
+    return (
+        f"{PREFIJO_BORRADOR_DOC}"
+        f"Fie informa {generado_en.day}-{generado_en.month} {titulo}"
+    )
 
 
 def _renderizar_mail(fila: dict[str, str], ficha: "re.Match[str]") -> str:

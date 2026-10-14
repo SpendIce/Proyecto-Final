@@ -131,12 +131,13 @@ def test_core_usa_destino_inyectado_despues_del_gate(tmp_path, monkeypatch):
         "www.fie.undef.edu.ar"
     )
     # El tercer elemento es el nombre del Doc que el pipeline declara para el
-    # destino remoto: la convención «Fie informa D-M <título>» (#102, #107).
+    # destino remoto: la convención «BORRADOR — Fie informa D-M <título>»
+    # (#102, #107), con el prefijo de marca para reconocerlo desde Drive.
     assert destino.llamadas == [
         (
             "SYN-DESTINO",
             BORRADOR_MARKER + mail_esperado + "\n",
-            "Fie informa 14-10 Actividad destino",
+            "BORRADOR — Fie informa 14-10 Actividad destino",
         )
     ]
     registro_serializado = resultado.log_path.read_text(encoding="utf-8")
