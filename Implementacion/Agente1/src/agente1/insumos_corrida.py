@@ -94,6 +94,7 @@ from .fuentes import (
 )
 from .insumos_agentes import CONTRACT_VERSION, validar_insumo_agente
 from .procesamiento import Generator, ProcedenciaInsumo, procesar_solicitud
+from .registro_auditoria import escribir_registro
 
 # Encabezado posicional de la pestaña «Insumos de agentes» (ver docstring).
 # Es tupla y no conjunto porque se compara celda a celda: las mismas columnas
@@ -316,10 +317,7 @@ class RegistroInsumosArchivo:
             "detalle": detalle,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        with self._path.open("a", encoding="utf-8", newline="") as archivo:
-            archivo.write(json.dumps(entrada, ensure_ascii=False, sort_keys=True))
-            archivo.write("\n")
+        escribir_registro(self._path, entrada)
 
 
 class RegistroInsumosMemoria:

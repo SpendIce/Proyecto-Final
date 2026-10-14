@@ -74,6 +74,7 @@ from .pagos import (
     LoteRecordatorios,
     PlanPago,
 )
+from .registro_auditoria import escribir_registro
 from .tipos_notificacion import descripcion_tipo
 
 HU = "HU-012"
@@ -666,11 +667,7 @@ def _auditar(
     }
     if extra:
         auditoria.update(extra)
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("a", encoding="utf-8") as archivo:
-        archivo.write(
-            json.dumps(auditoria, ensure_ascii=False, sort_keys=True) + "\n"
-        )
+    escribir_registro(log_path, auditoria)
 
 
 __all__ = [

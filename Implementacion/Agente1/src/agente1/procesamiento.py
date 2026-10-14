@@ -65,6 +65,7 @@ from .presupuesto import (
     RESULTADO_PRESUPUESTO_AGOTADO,
     PresupuestoAgotadoError,
 )
+from .registro_auditoria import escribir_registro
 
 HU = "HU-010"
 # Estas tres versiones se escriben en cada línea del log. Si alguna cambia hay
@@ -824,11 +825,10 @@ def _construir_prompt(fila: dict[str, str]) -> str:
 
 def _registrar(path: Path, registro: dict[str, object]) -> None:
     # Append a un JSONL, una línea por ejecución: el archivo se puede analizar
-    # incrementalmente y ninguna corrida pisa a la anterior. `sort_keys` deja
-    # las claves en orden estable para poder comparar (o hashear) evidencias.
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as archivo:
-        archivo.write(json.dumps(registro, ensure_ascii=False, sort_keys=True) + "\n")
+    # incrementalmente y ninguna corrida pisa a la anterior. La escritura suma
+    # `version_agente` y el hash del manifest (#93); `sort_keys` deja las claves
+    # en orden estable para poder comparar (o hashear) evidencias.
+    escribir_registro(path, registro)
 
 
 def _hash_json(valor: dict[str, str]) -> str:

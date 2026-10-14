@@ -92,6 +92,7 @@ from .presupuesto import (
     RESULTADO_PRESUPUESTO_AGOTADO,
     PresupuestoAgotadoError,
 )
+from .registro_auditoria import escribir_registro
 
 HU = "HU-014"
 CONTRACT_VERSION = "linea_descriptiva_v1"
@@ -365,12 +366,7 @@ def generar_linea_descriptiva(
         }
         if validation_errors:
             registro["validation_errors"] = list(validation_errors)
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        with log_path.open("a", encoding="utf-8") as archivo:
-            archivo.write(
-                json.dumps(registro, ensure_ascii=False, sort_keys=True)
-                + "\n"
-            )
+        escribir_registro(log_path, registro)
         return ResultadoLinea(
             estado=estado,
             correlation_id=correlation_id,

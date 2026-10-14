@@ -426,6 +426,10 @@ def test_registro_conserva_unicamente_el_derivado_estructurado(tmp_path: Path) -
         # derivado estructurado.
         "objetos_decision",
         "timestamp",
+        # #93: la identidad de la versión del agente va en todo registro de
+        # auditoría, además del derivado estructurado.
+        "version_agente",
+        "manifest_version_sha256",
     }
     assert set(registro) == campos_esperados
     assert registro["intencion"] == "generar_gacetilla"

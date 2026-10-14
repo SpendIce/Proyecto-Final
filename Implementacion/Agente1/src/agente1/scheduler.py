@@ -104,6 +104,8 @@ from pathlib import Path
 from typing import Any, Callable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from .registro_auditoria import escribir_registro
+
 RECORD_CORRIDA = "scheduler_corrida_v1"
 LOG_NOMBRE = "scheduler-corridas.jsonl"
 LOCK_NOMBRE = "scheduler-corrida.lock"
@@ -374,12 +376,9 @@ class RegistroCorridasArchivo:
     def path(self) -> Path:
         return self._path
 
-    def anexar(self, entrada: Mapping[str, Any]) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
+    def anexar(self, entrada: Mapping[str, Any]) -> dict[str, Any]:
         try:
-            with self._path.open("a", encoding="utf-8", newline="") as archivo:
-                archivo.write(json.dumps(entrada, ensure_ascii=False, sort_keys=True))
-                archivo.write("\n")
+            return escribir_registro(self._path, entrada)
         except OSError:
             raise SchedulerError("scheduler_log_inaccesible") from None
 
@@ -509,8 +508,7 @@ def disparar(
                 "resultado": "omitida_ventana",
             }
         )
-        registro.anexar(entrada)
-        return entrada
+        return registro.anexar(entrada)
 
     if _previsto_completado(registro, previsto):
         ahora_mismo = _iso(reloj())
@@ -521,8 +519,7 @@ def disparar(
                 "resultado": "omitida_duplicada",
             }
         )
-        registro.anexar(entrada)
-        return entrada
+        return registro.anexar(entrada)
 
     with lock_corrida(directorio) as adquirido:
         if not adquirido:
@@ -534,8 +531,7 @@ def disparar(
                     "resultado": "omitida_lock",
                 }
             )
-            registro.anexar(entrada)
-            return entrada
+            return registro.anexar(entrada)
 
         # Segunda consulta al registro ya bajo el lock: un disparo que
         # esperaba puede haber completado el tick entre la deduplicación de
@@ -549,8 +545,7 @@ def disparar(
                     "resultado": "omitida_duplicada",
                 }
             )
-            registro.anexar(entrada)
-            return entrada
+            return registro.anexar(entrada)
 
         entrada["inicio_real"] = _iso(reloj())
         mantenimiento = _correr_mantenimiento(
@@ -585,8 +580,7 @@ def disparar(
         # El asiento va adentro del lock: si quedara afuera, un disparo que
         # tomara el lock en el intervalo entre soltar y asentar no vería el
         # tick completado y correría una segunda vez la misma agenda.
-        registro.anexar(entrada)
-        return entrada
+        return registro.anexar(entrada)
 
 
 def _correr_mantenimiento(

@@ -43,6 +43,7 @@ from agente1.linea_descriptiva import (
     linea_descriptiva_aprobada,
     objeto_id_linea_descriptiva,
 )
+from agente1.manifest_version import identidad_version_agente
 
 ROOT = Path(__file__).parents[1]
 
@@ -793,6 +794,13 @@ def test_despacho_emitir_certificados_por_el_seam(tmp_path: Path):
         resultado.log_path.read_text(encoding="utf-8").splitlines()[-1]
     )
     assert registro_log["resultado"] == "emision_certificados_despachada"
+    # #93: el evento de la emisión lleva la identidad de la versión del agente.
+    identidad = identidad_version_agente()
+    assert registro_log["version_agente"] == identidad["version_agente"]
+    assert (
+        registro_log["manifest_version_sha256"]
+        == identidad["manifest_version_sha256"]
+    )
 
 
 def test_emitir_certificados_sin_emisor_falla_controlado(tmp_path: Path):

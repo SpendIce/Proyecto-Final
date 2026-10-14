@@ -39,6 +39,7 @@ from agente1.google_workspace import (
     RespuestaHttp,
 )
 from agente1.interpretacion import RegistroPendientesMemoria
+from agente1.manifest_version import identidad_version_agente
 from agente1.procesamiento import FakeGenerator
 from agente1.workspace_config import ConfiguracionWorkspaceError
 
@@ -801,6 +802,10 @@ def test_pedido_autorizado_termina_en_borrador_y_aviso_gmail(
     assert registro["rol_origen"] == "padron"
     assert registro["identidad_canal"] == "correo_verificado_form"
     assert len(registro["solicitante_hash"]) == 64
+    # #93: la línea del canal lleva la identidad de la versión del agente.
+    identidad = identidad_version_agente()
+    assert registro["version_agente"] == identidad["version_agente"]
+    assert registro["manifest_version_sha256"] == identidad["manifest_version_sha256"]
 
     # El pedido ya atendido no vuelve a aparecer.
     assert canal.leer_pendientes() == ()
