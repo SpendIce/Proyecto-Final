@@ -24,6 +24,14 @@ _Evitar_: publicacion, cuando todavia no fue validada ni difundida
 Pieza comunicacional generada que no tiene autorizacion para publicarse, enviarse ni emitirse.
 _Evitar_: contenido aprobado, publicacion
 
+**FIE Informa**:
+Canal de correo institucional por el que la FIE difunde a su comunidad piezas de la SEU y de otras areas. Cada pieza se redacta como un documento con nombre «Fie informa D-M <titulo>».
+_Evitar_: newsletter, gacetilla, cuando se habla del canal y no de la pieza
+
+**Ejemplo aprobado**:
+Pieza que la SEU ya publico y que sirve de referencia de formato, estructura y registro para lo que genera el Agente 1. No es referencia de ortografia ni es una plantilla aprobada: el agente no completa variables sobre ella.
+_Evitar_: plantilla, modelo, muestra (las muestras son borradores del agente)
+
 **Validacion humana**:
 Conjunto de decisiones registradas por personas con rol institucional autorizado que habilita a una pieza a avanzar; no se infiere de la conformidad tecnica. Toma una forma distinta segun quien difunde la pieza: en una pieza que el Agente 1 envia o emite, es la plantilla aprobada mas la aprobacion de lote; en una pieza de difusion, que publica una persona, es la decision de publicacion. Toda validacion humana queda registrada en el sistema.
 _Evitar_: validacion automatica, aprobacion del agente, aprobacion al publicar sin registro
