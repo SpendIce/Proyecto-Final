@@ -27,6 +27,10 @@
 /Documentos/Presentacion/Laminas-Agente-1-Extension-Bot-2026-08-26.pdf
 /Documentos/Presentacion/Laminas-Agente-1-Extension-Bot-2026-08-26/
 
+# Manual de operacion del Agente 1: render reproducible desde su fuente .md
+/Implementacion/Agente1/MANUAL-OPERACION-AGENTE-1.html
+/Implementacion/Agente1/MANUAL-OPERACION-AGENTE-1.pdf
+
 # Snapshots nuevos de navegador; los del corte historico siguen versionados
 /.playwright-mcp/
 

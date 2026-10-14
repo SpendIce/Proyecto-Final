@@ -82,6 +82,12 @@ los docstrings de función describen el contrato; los comentarios en línea sól
 aparecen donde el "por qué" no se deduce leyendo el código. Nada documenta lo
 que el código ya dice por sí mismo.
 
+Para **operar** el sistema —puesta en marcha, credenciales, incidentes,
+diagnóstico por códigos de error, control de cambios, políticas, SLO y SLA— el
+documento vigente es el [Manual de operación del Agente
+1](MANUAL-OPERACION-AGENTE-1.md). El manual es la fuente de la operación; este
+README explica el porqué del código.
+
 Para revisar una decisión puntual, empezar por el docstring del módulo:
 
 | Decisión | Dónde está explicada |
