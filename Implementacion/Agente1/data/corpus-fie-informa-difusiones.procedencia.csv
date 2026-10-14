@@ -1,0 +1,121 @@
+id_actividad,campo,origen,nota
+FIE-DIF-01,id_actividad,sintetico,identificador estable del set (no viene del flyer)
+FIE-DIF-01,titulo,flyer,
+FIE-DIF-01,descripcion,flyer,
+FIE-DIF-01,fecha_inicio,flyer,
+FIE-DIF-01,fecha_fin,flyer,
+FIE-DIF-01,fecha_limite_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-01,hora,flyer,
+FIE-DIF-01,modalidad,flyer,
+FIE-DIF-01,duracion_horas,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-01,publico,provisional,no informado en el flyer; valor declarado para cubrir el campo required
+FIE-DIF-01,organiza,flyer,
+FIE-DIF-01,contacto,flyer,
+FIE-DIF-01,fuente,sintetico,campo de procedencia armado para el set (no viene del flyer)
+FIE-DIF-01,enlace_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-01,lugar,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-02,id_actividad,sintetico,identificador estable del set (no viene del flyer)
+FIE-DIF-02,titulo,flyer,
+FIE-DIF-02,descripcion,flyer,
+FIE-DIF-02,fecha_inicio,flyer,
+FIE-DIF-02,fecha_fin,flyer,
+FIE-DIF-02,fecha_limite_inscripcion,flyer,
+FIE-DIF-02,hora,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-02,modalidad,flyer,
+FIE-DIF-02,duracion_horas,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-02,publico,provisional,no informado en el flyer; valor declarado para cubrir el campo required
+FIE-DIF-02,organiza,flyer,
+FIE-DIF-02,contacto,flyer,
+FIE-DIF-02,fuente,sintetico,campo de procedencia armado para el set (no viene del flyer)
+FIE-DIF-02,enlace_inscripcion,no_informado,el flyer remite a un enlace/web de inscripción; no se transcriben enlaces reales
+FIE-DIF-02,lugar,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-03,id_actividad,sintetico,identificador estable del set (no viene del flyer)
+FIE-DIF-03,titulo,flyer,
+FIE-DIF-03,descripcion,flyer,
+FIE-DIF-03,fecha_inicio,flyer,
+FIE-DIF-03,fecha_fin,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-03,fecha_limite_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-03,hora,flyer,
+FIE-DIF-03,modalidad,provisional,inferido del lugar informado en el flyer; el flyer no lo declara
+FIE-DIF-03,duracion_horas,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-03,publico,provisional,no informado en el flyer; valor declarado para cubrir el campo required
+FIE-DIF-03,organiza,flyer,
+FIE-DIF-03,contacto,flyer,
+FIE-DIF-03,fuente,sintetico,campo de procedencia armado para el set (no viene del flyer)
+FIE-DIF-03,enlace_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-03,lugar,flyer,
+FIE-DIF-04,id_actividad,sintetico,identificador estable del set (no viene del flyer)
+FIE-DIF-04,titulo,flyer,
+FIE-DIF-04,descripcion,flyer,
+FIE-DIF-04,fecha_inicio,flyer,
+FIE-DIF-04,fecha_fin,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-04,fecha_limite_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-04,hora,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-04,modalidad,provisional,inferido del lugar informado en el flyer; el flyer no lo declara
+FIE-DIF-04,duracion_horas,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-04,publico,provisional,no informado en el flyer; valor declarado para cubrir el campo required
+FIE-DIF-04,organiza,flyer,
+FIE-DIF-04,contacto,provisional,contacto de área declarado para el set; el flyer no lo informa
+FIE-DIF-04,fuente,sintetico,campo de procedencia armado para el set (no viene del flyer)
+FIE-DIF-04,enlace_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-04,lugar,flyer,
+FIE-DIF-05,id_actividad,sintetico,identificador estable del set (no viene del flyer)
+FIE-DIF-05,titulo,flyer,
+FIE-DIF-05,descripcion,flyer,
+FIE-DIF-05,fecha_inicio,flyer,
+FIE-DIF-05,fecha_fin,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-05,fecha_limite_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-05,hora,flyer,
+FIE-DIF-05,modalidad,provisional,inferido del lugar informado en el flyer; el flyer no lo declara
+FIE-DIF-05,duracion_horas,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-05,publico,provisional,no informado en el flyer; valor declarado para cubrir el campo required
+FIE-DIF-05,organiza,flyer,
+FIE-DIF-05,contacto,provisional,contacto de área declarado para el set; el flyer no lo informa
+FIE-DIF-05,fuente,sintetico,campo de procedencia armado para el set (no viene del flyer)
+FIE-DIF-05,enlace_inscripcion,no_informado,el flyer remite a un enlace/web de inscripción; no se transcriben enlaces reales
+FIE-DIF-05,lugar,flyer,
+FIE-DIF-06,id_actividad,sintetico,identificador estable del set (no viene del flyer)
+FIE-DIF-06,titulo,flyer,
+FIE-DIF-06,descripcion,flyer,
+FIE-DIF-06,fecha_inicio,flyer,
+FIE-DIF-06,fecha_fin,flyer,
+FIE-DIF-06,fecha_limite_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-06,hora,flyer,
+FIE-DIF-06,modalidad,provisional,inferido del lugar informado en el flyer; el flyer no lo declara
+FIE-DIF-06,duracion_horas,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-06,publico,provisional,no informado en el flyer; valor declarado para cubrir el campo required
+FIE-DIF-06,organiza,flyer,
+FIE-DIF-06,contacto,provisional,contacto de área declarado para el set; el flyer no lo informa
+FIE-DIF-06,fuente,sintetico,campo de procedencia armado para el set (no viene del flyer)
+FIE-DIF-06,enlace_inscripcion,no_informado,el flyer remite a un enlace/web de inscripción; no se transcriben enlaces reales
+FIE-DIF-06,lugar,flyer,
+FIE-DIF-07,id_actividad,sintetico,identificador estable del set (no viene del flyer)
+FIE-DIF-07,titulo,flyer,
+FIE-DIF-07,descripcion,flyer,
+FIE-DIF-07,fecha_inicio,flyer,
+FIE-DIF-07,fecha_fin,flyer,
+FIE-DIF-07,fecha_limite_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-07,hora,flyer,
+FIE-DIF-07,modalidad,flyer,
+FIE-DIF-07,duracion_horas,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-07,publico,flyer,
+FIE-DIF-07,organiza,flyer,
+FIE-DIF-07,contacto,flyer,
+FIE-DIF-07,fuente,sintetico,campo de procedencia armado para el set (no viene del flyer)
+FIE-DIF-07,enlace_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-07,lugar,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-08,id_actividad,sintetico,identificador estable del set (no viene del flyer)
+FIE-DIF-08,titulo,flyer,
+FIE-DIF-08,descripcion,flyer,
+FIE-DIF-08,fecha_inicio,flyer,
+FIE-DIF-08,fecha_fin,flyer,
+FIE-DIF-08,fecha_limite_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-08,hora,flyer,
+FIE-DIF-08,modalidad,provisional,inferido del lugar informado en el flyer; el flyer no lo declara
+FIE-DIF-08,duracion_horas,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-08,publico,provisional,no informado en el flyer; valor declarado para cubrir el campo required
+FIE-DIF-08,organiza,flyer,
+FIE-DIF-08,contacto,flyer,
+FIE-DIF-08,fuente,sintetico,campo de procedencia armado para el set (no viene del flyer)
+FIE-DIF-08,enlace_inscripcion,no_informado,no informado en el flyer (campo opcional del contrato v2)
+FIE-DIF-08,lugar,no_informado,no informado en el flyer (campo opcional del contrato v2)
