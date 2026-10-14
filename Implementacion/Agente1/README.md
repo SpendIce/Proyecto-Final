@@ -154,6 +154,9 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué el SLO de aprobación a envío descuenta el tiempo fuera de la ventana | `medicion_slo.py`, docstrings de `indicador_aprobacion_envio` y de `segundos_en_ventana` |
 | Por qué el manifest de versión no se controla a sí mismo ni incluye la configuración por entorno | `src/agente1/manifest_version.py`, docstring de módulo y `RUTAS_CONTROLADAS`; ADR 0010 |
 | Por qué el gate de integridad vive en el armado del modo live y no en la CLI offline | `manifest_version.py`, docstring de módulo, y `cli_insumos.py`, `_dependencias_live` |
+| Por qué la credencial del agente es una cuenta de servicio que sólo se hace pasar por una lista cerrada de cuentas | `src/agente1/workspace_auth.py`, docstring de módulo y de `CuentaServicioDelegadaProvider`; `contracts/cuentas_suplantables_v1.json`; ADR 0011 |
+| Por qué el *assertion* RS256 se firma con `openssl` y no con una dependencia de criptografía | `workspace_auth.py`, docstring de `_firmar_rs256` |
+| Por qué cada token deja asentado por quién se pidió | `workspace_auth.py`, docstring de `AuditoriaCuentaSuplantada` y de `obtener_access_token` |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
@@ -382,6 +385,16 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache PYTHONPATH=src \
 No se debe pasar el token por CLI, escribirlo en `.env` versionado ni copiarlo
 al historial. `--live` queda reservado para una sesión autorizada por DSI y
 requiere un token efímero en `AGENTE1_WORKSPACE_ACCESS_TOKEN`.
+
+La credencial vigente es una **cuenta de servicio con *domain-wide
+delegation*** (ADR 0011). El host declara `AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY`
+(la ruta de la clave JSON, con `chmod 600` y fuera del repo) y
+`AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT` (la cuenta por la que el agente se
+hace pasar, que debe estar en `contracts/cuentas_suplantables_v1.json`). Cada
+token emitido deja el sha256 de la cuenta suplantada en
+`logs/cuenta-suplantada.jsonl`. El trío OAuth por refresh token
+(`AGENTE1_WORKSPACE_OAUTH_*`) queda como respaldo explícito hasta el issue
+#99.
 
 El harness de seguridad es deliberadamente offline y no acepta credenciales:
 
