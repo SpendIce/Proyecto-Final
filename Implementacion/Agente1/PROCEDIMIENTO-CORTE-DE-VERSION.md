@@ -162,3 +162,23 @@ dato operativo, lo mantiene su dueño (`CONTEXT.md`)—, por eso queda fuera del
 manifest de versión; pero sin su hash la evidencia del corte no se puede
 reproducir, así que el manifest de corte lo ata al corte concreto. Es un dato de
 entrada del corte, no una segunda lista de fuentes.
+
+## 7. Nota: la primera versión (0.1.0) todavía no está etiquetada
+
+La primera versión etiquetada es la **0.1.0**: el número que ya estaba en
+`pyproject.toml` y en el manifest de #92, y el que se instala en el sistema de
+demostración para el laboratorio. No se inventó un número nuevo.
+
+El tag va sobre `main`, y `agente1-v0.1.0` todavía **no existe** porque este
+cambio vive en una rama de trabajo hasta que se mergee. El comando exacto,
+una vez que el cambio está en `main`:
+
+```bash
+git -C <checkout de main> fetch origin
+git -C <checkout de main> tag -a agente1-v0.1.0 -m "Agente 1 0.1.0"
+git -C <checkout de main> push origin agente1-v0.1.0
+```
+
+No se ejecutó: desde este entorno no se pushea ni se mergea a `main`, y
+etiquetar una rama de trabajo produciría un tag que no corresponde a lo
+instalado. El comando queda para el responsable de la rama `main`.
