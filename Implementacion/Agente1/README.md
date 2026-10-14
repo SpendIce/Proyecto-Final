@@ -1187,8 +1187,11 @@ reintenta por default. Para uso programático, importar desde
 
 `historia_viva_http.py` es el transporte HTTP (`TransporteHistoriaVivaHttp`,
 issue #12): manda solo los parámetros del contrato, decide por `codigo` con
-default por familia (todo `4xx` es definitivo), lee el token en cada pedido
-para poder rotarlo sin reiniciar y nunca deja salir el `mensaje` remoto.
+default por familia (todo `4xx` es definitivo) y nunca deja salir el `mensaje`
+remoto. Se configura con `AGENTE1_HV_BASE_URL` y `AGENTE1_HV_TOKEN`: el token
+lo emite Ignacio en mano en cada sesión y se carga directo en la variable, sin
+escribirlo en un archivo (acordado el 13/10). Rotarlo es volver a arrancar con
+el valor nuevo.
 
 Pruebas focalizadas:
 

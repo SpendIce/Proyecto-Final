@@ -333,83 +333,68 @@ def test_sin_servidor_es_indisponibilidad() -> None:
     assert excinfo.value.code == "historia_viva_unavailable"
 
 
-# --- Configuración y token fuera del repositorio ------------------------------------
-
-
-def _token_archivo(directorio, contenido: str = TOKEN, modo: int = 0o600):
-    ruta = directorio / "hv.token"
-    ruta.write_text(contenido + "\n", encoding="ascii")
-    ruta.chmod(modo)
-    return ruta
+# --- Configuración y token en la variable de entorno -------------------------------
 
 
 def test_sin_claves_historia_viva_no_esta_configurada() -> None:
     assert cargar_configuracion_historia_viva({"OTRA": "x"}) is None
 
 
-def test_la_configuracion_arma_un_cliente_que_lee_el_token_del_archivo(
-    servidor: Servidor, tmp_path
+def test_la_configuracion_arma_un_cliente_que_manda_el_token_de_la_variable(
+    servidor: Servidor,
 ) -> None:
-    ruta = _token_archivo(tmp_path)
     config = cargar_configuracion_historia_viva(
-        {"AGENTE1_HV_BASE_URL": servidor.url, "AGENTE1_HV_TOKEN_ARCHIVO": str(ruta)}
+        {"AGENTE1_HV_BASE_URL": servidor.url, "AGENTE1_HV_TOKEN": f" {TOKEN}\n"}
     )
 
     cliente = construir_cliente_historia_viva(config)
     cliente.buscar_fragmentos(ConsultaFragmentos(texto="abc"))
-    ruta.write_text("hv_rotado\n", encoding="ascii")
-    cliente.buscar_fragmentos(ConsultaFragmentos(texto="abc"))
 
-    assert [r["cabeceras"]["Authorization"] for r in servidor.recibidos] == [
-        f"Bearer {TOKEN}",
-        "Bearer hv_rotado",
-    ]
+    assert servidor.recibidos[0]["cabeceras"]["Authorization"] == f"Bearer {TOKEN}"
+
+
+def test_el_token_no_aparece_al_imprimir_la_configuracion() -> None:
+    config = cargar_configuracion_historia_viva(
+        {"AGENTE1_HV_BASE_URL": "http://hv.local", "AGENTE1_HV_TOKEN": TOKEN}
+    )
+
+    assert TOKEN not in repr(config)
 
 
 @pytest.mark.parametrize(
     ("env", "codigo"),
     [
         ({"AGENTE1_HV_BASE_URL": "http://hv.local"}, "historia_viva_config_incomplete"),
-        ({"AGENTE1_HV_TOKEN": "hv_x"}, "historia_viva_config_unknown_key"),
+        ({"AGENTE1_HV_TOKEN": TOKEN}, "historia_viva_config_incomplete"),
         (
-            {"AGENTE1_HV_BASE_URL": "ftp://hv.local", "AGENTE1_HV_TOKEN_ARCHIVO": "{token}"},
+            {"AGENTE1_HV_BASE_URL": "http://hv.local", "AGENTE1_HV_TOKEN": "   "},
+            "historia_viva_config_incomplete",
+        ),
+        (
+            {"AGENTE1_HV_BASE_URL": "http://hv.local", "AGENTE1_HV_TOKEN_ARCHIVO": "/tmp/t"},
+            "historia_viva_config_unknown_key",
+        ),
+        (
+            {"AGENTE1_HV_BASE_URL": "ftp://hv.local", "AGENTE1_HV_TOKEN": TOKEN},
             "historia_viva_config_base_url",
         ),
         (
-            {"AGENTE1_HV_BASE_URL": "http://hv.local", "AGENTE1_HV_TOKEN_ARCHIVO": "/no/existe"},
-            "historia_viva_config_token_missing",
+            {"AGENTE1_HV_BASE_URL": "http://hv.local", "AGENTE1_HV_TOKEN": "hv con espacio"},
+            "historia_viva_config_token_invalid",
+        ),
+        (
+            {"AGENTE1_HV_BASE_URL": "http://hv.local", "AGENTE1_HV_TOKEN": "hv_ñ"},
+            "historia_viva_config_token_invalid",
+        ),
+        (
+            {"AGENTE1_HV_BASE_URL": "http://hv.local", "AGENTE1_HV_TOKEN": "a" * 4097},
+            "historia_viva_config_token_invalid",
         ),
     ],
 )
-def test_una_configuracion_rota_se_rechaza_con_codigo(tmp_path, env: dict, codigo: str) -> None:
-    ruta = _token_archivo(tmp_path)
-    env = {k: v.replace("{token}", str(ruta)) for k, v in env.items()}
-
+def test_una_configuracion_rota_se_rechaza_con_codigo(env: dict, codigo: str) -> None:
     with pytest.raises(ConfiguracionHistoriaVivaError) as excinfo:
         cargar_configuracion_historia_viva(env)
 
     assert excinfo.value.code == codigo
-
-
-def test_un_token_legible_por_otros_se_rechaza(tmp_path) -> None:
-    ruta = _token_archivo(tmp_path, modo=0o644)
-
-    with pytest.raises(ConfiguracionHistoriaVivaError) as excinfo:
-        cargar_configuracion_historia_viva(
-            {"AGENTE1_HV_BASE_URL": "http://hv.local", "AGENTE1_HV_TOKEN_ARCHIVO": str(ruta)}
-        )
-
-    assert excinfo.value.code == "historia_viva_config_token_permissions"
-
-
-def test_un_token_dentro_de_un_repo_git_se_rechaza(tmp_path) -> None:
-    (tmp_path / ".git").mkdir()
-    (tmp_path / "secretos").mkdir()
-    ruta = _token_archivo(tmp_path / "secretos")
-
-    with pytest.raises(ConfiguracionHistoriaVivaError) as excinfo:
-        cargar_configuracion_historia_viva(
-            {"AGENTE1_HV_BASE_URL": "http://hv.local", "AGENTE1_HV_TOKEN_ARCHIVO": str(ruta)}
-        )
-
-    assert excinfo.value.code == "historia_viva_config_token_in_repo"
+    assert TOKEN not in str(excinfo.value)

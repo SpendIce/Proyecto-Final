@@ -18,18 +18,20 @@ Decisiones que no se ven en el código:
 - **Ningún texto remoto sale de acá.** Del error se toman el `codigo`, el
   `Retry-After` (segundos) y `X-Solicitud-Id` validado; el `mensaje` se
   descarta, como en los demás adapters.
-- **El token se lee en cada pedido.** `token` es un callable: rotar el token
-  (varios activos, vencen a los 180 días) no exige reiniciar el agente. Es un
+- **El transporte pide el token en cada pedido.** `token` es un callable, así
+  que otro origen del token puede rotarlo sin reconstruir el transporte. Es un
   string opaco; sólo se rechaza lo que rompería la cabecera.
 - **`cabeceras_extra` es para las pruebas.** El mock Prism elige el escenario
   con `Prefer`; esa cabecera se inyecta al construir el transporte y no puede
   pisar `Authorization`, `Idempotency-Key` ni las de contenido.
 - **El canal `ninguno` viaja como `null`.** Es la forma de `/v1` para un
   contenido sin canal propio, como una gacetilla.
-- **El token vive en un archivo fuera del repositorio.** La configuración
-  (`AGENTE1_HV_BASE_URL`, `AGENTE1_HV_TOKEN_ARCHIVO`) apunta a un archivo
-  que no puede estar dentro de un repo git ni ser legible por otros usuarios;
-  se relee en cada pedido, así que rotar el token es reemplazar el archivo.
+- **El token viene de una variable de entorno y nunca se escribe.** Lo acordó
+  Historia Viva (13/10): Ignacio emite el token en mano en cada sesión, se carga
+  directo en `AGENTE1_HV_TOKEN` y se revoca al terminar; no pasa por un
+  archivo, un chat ni un repositorio. La configuración lo toma una vez al
+  arrancar, así que rotarlo es volver a arrancar con el valor nuevo. No
+  aparece en el `repr` de la configuración ni en los códigos de error.
 """
 
 from __future__ import annotations
@@ -37,12 +39,10 @@ from __future__ import annotations
 import json
 import os
 import re
-import stat
 import time
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http.client import HTTPConnection, HTTPException, HTTPSConnection
-from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlencode, urlsplit
 
@@ -79,8 +79,8 @@ _RETRY_AFTER_RE = re.compile(r"[0-9]{1,6}\Z")
 
 _PREFIX = "AGENTE1_HV_"
 ENV_BASE_URL = "AGENTE1_HV_BASE_URL"
-ENV_TOKEN_ARCHIVO = "AGENTE1_HV_TOKEN_ARCHIVO"
-_ALLOWED_KEYS = frozenset({ENV_BASE_URL, ENV_TOKEN_ARCHIVO})
+ENV_TOKEN = "AGENTE1_HV_TOKEN"
+_ALLOWED_KEYS = frozenset({ENV_BASE_URL, ENV_TOKEN})
 MAX_TOKEN_BYTES = 4096
 
 
@@ -95,7 +95,7 @@ class ConfiguracionHistoriaVivaError(ValueError):
 @dataclass(frozen=True)
 class ConfiguracionHistoriaViva:
     base_url: str
-    token_archivo: Path
+    token: str = field(repr=False)
 
 
 def cargar_configuracion_historia_viva(
@@ -105,8 +105,7 @@ def cargar_configuracion_historia_viva(
 
     Mismo contrato que los otros loaders: una clave propia desconocida se
     rechaza, un valor vacío o una de las dos claves sin la otra es
-    configuración rota, y el archivo del token tiene que estar fuera de todo
-    repositorio git y no ser legible por el grupo ni por otros.
+    configuración rota, y el token tiene que poder ir en la cabecera tal cual.
     """
 
     env = os.environ if environ is None else environ
@@ -115,40 +114,21 @@ def cargar_configuracion_historia_viva(
     if not any(clave in env for clave in _ALLOWED_KEYS):
         return None
     base_url = (env.get(ENV_BASE_URL) or "").strip()
-    archivo = (env.get(ENV_TOKEN_ARCHIVO) or "").strip()
-    if not base_url or not archivo:
+    token = (env.get(ENV_TOKEN) or "").strip()
+    if not base_url or not token:
         raise ConfiguracionHistoriaVivaError("historia_viva_config_incomplete")
     try:
         TransporteHistoriaVivaHttp(base_url, lambda: "")
     except ValueError:
         raise ConfiguracionHistoriaVivaError("historia_viva_config_base_url") from None
-    ruta = Path(archivo).expanduser().resolve()
-    if not ruta.is_file():
-        raise ConfiguracionHistoriaVivaError("historia_viva_config_token_missing")
-    if _dentro_de_repo_git(ruta):
-        raise ConfiguracionHistoriaVivaError("historia_viva_config_token_in_repo")
-    if ruta.stat().st_mode & (stat.S_IRWXG | stat.S_IRWXO):
-        raise ConfiguracionHistoriaVivaError("historia_viva_config_token_permissions")
-    return ConfiguracionHistoriaViva(base_url=base_url, token_archivo=ruta)
-
-
-def token_desde_archivo(ruta: Path) -> Callable[[], str]:
-    """Token releído en cada pedido; si no se puede leer, el pedido no sale."""
-
-    def leer() -> str:
-        try:
-            with ruta.open("rb") as archivo:
-                datos = archivo.read(MAX_TOKEN_BYTES + 1)
-        except OSError:
-            return ""
-        if len(datos) > MAX_TOKEN_BYTES:
-            return ""
-        try:
-            return datos.decode("ascii").strip()
-        except UnicodeDecodeError:
-            return ""
-
-    return leer
+    if (
+        len(token) > MAX_TOKEN_BYTES
+        or not token.isascii()
+        or not token.isprintable()
+        or " " in token
+    ):
+        raise ConfiguracionHistoriaVivaError("historia_viva_config_token_invalid")
+    return ConfiguracionHistoriaViva(base_url=base_url, token=token)
 
 
 def construir_cliente_historia_viva(
@@ -160,14 +140,10 @@ def construir_cliente_historia_viva(
 ) -> ClienteHistoriaViva:
     transporte = TransporteHistoriaVivaHttp(
         config.base_url,
-        token_desde_archivo(config.token_archivo),
+        lambda: config.token,
         cabeceras_extra=cabeceras_extra,
     )
     return ClienteHistoriaViva(transporte, politica=politica, reloj=reloj)
-
-
-def _dentro_de_repo_git(ruta: Path) -> bool:
-    return any((ancestro / ".git").exists() for ancestro in ruta.parents)
 
 
 class _RespuestaCruda:

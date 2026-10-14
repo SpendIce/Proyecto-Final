@@ -2,7 +2,7 @@
 """Recorrido del post de efeméride HU-011 desde Historia Viva (#85, #12).
 
 Por defecto corre el flujo A2 → borrador sin red ni credenciales. Con
-`AGENTE1_HV_BASE_URL` y `AGENTE1_HV_TOKEN_ARCHIVO` en el entorno consulta una
+`AGENTE1_HV_BASE_URL` y `AGENTE1_HV_TOKEN` en el entorno consulta una
 instancia real de `/v1` (o el mock Prism del contrato) por
 `TransporteHistoriaVivaHttp`; en ese modo `--procedencia` es obligatoria
 —`insumo_a2` contra Historia Viva, `synthetic_test` contra el mock— y no se
