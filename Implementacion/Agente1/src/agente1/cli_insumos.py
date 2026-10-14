@@ -12,8 +12,10 @@ juntos (doble opt-in, igual que `workspace_e2e`): lee la pestaña real por
 `GoogleSheetsEscritorEstadoInsumos` y deja los borradores en la carpeta de
 Drive configurada. Es el modo operación, así que antes de tocar la red
 verifica la integridad de la versión contra el manifest (#92, ADR 0010): un
-árbol alterado, o un manifest ausente o inválido, no arranca. La configuración
-sale del entorno: las
+árbol alterado, o un manifest ausente o inválido, no arranca. También compara
+la huella de la configuración por entorno con la de la corrida anterior y, si
+cambió, la asienta y avisa al operador sin frenar el arranque (#94, ADR 0010).
+La configuración sale del entorno: las
 `AGENTE1_WORKSPACE_*` de siempre (planilla, plantilla, carpeta, token o el
 trío OAuth) más `AGENTE1_INSUMOS_RANGO_A1` con el rango `'Nombre'!A1:D<n>`
 de la pestaña. En vivo el generador es obligatoriamente un modelo de Ollama:
@@ -46,6 +48,13 @@ from pathlib import Path
 from typing import Sequence
 
 from .canal_form import LectorValoresCsv
+from .config_entorno import (
+    AvisoConfiguracion,
+    AvisoConfiguracionGmail,
+    cargar_destinatario_aviso,
+    revisar_configuracion_al_arrancar,
+)
+from .gmail_envio import GmailDestinoConfirmaciones, cargar_destinatarios_prueba
 from .google_workspace import (
     GoogleDrivePlantillaDestinoBorradores,
     GoogleSheetsLectorValores,
@@ -75,6 +84,7 @@ from .ollama import (
 from .procesamiento import FakeGenerator
 from .workspace_auth import construir_token_provider
 from .workspace_config import (
+    ConfiguracionWorkspace,
     ConfiguracionWorkspaceError,
     cargar_configuracion_workspace,
 )
@@ -276,6 +286,16 @@ def _dependencias_live(
         token_provider.obtener_access_token()
     except Exception:
         raise ConfiguracionWorkspaceError("workspace_auth_unavailable") from None
+    # Registro y aviso del cambio de configuración por entorno (#94, ADR 0010).
+    # Va después del gate y de la credencial, porque avisar es una llamada a
+    # Google y ninguna corrida real sale con el árbol alterado; no frena el
+    # arranque si el aviso falla.
+    _revisar_configuracion(
+        config=config,
+        directorio=directorio,
+        transport=transport,
+        token_provider=token_provider,
+    )
     try:
         return (
             GoogleSheetsLectorValores(
@@ -302,6 +322,64 @@ def _dependencias_live(
         )
     except ValueError:
         raise ConfiguracionWorkspaceError("insumos_config_invalid") from None
+
+
+def _revisar_configuracion(
+    *,
+    config: ConfiguracionWorkspace,
+    directorio: Path,
+    transport: TransporteHttp | None,
+    token_provider: object,
+) -> None:
+    """Asienta la huella de la configuración y avisa si cambió (#94, ADR 0010).
+
+    No frena el arranque: ni el aviso ni la escritura del registro levantan
+    hacia el llamador. El fail-closed es del árbol de archivos
+    (`verificar_integridad_al_arrancar`), no de la configuración por entorno.
+    El aviso sale por `gmail.send`, cercado por la lista de prueba (D12).
+    """
+
+    try:
+        revisar_configuracion_al_arrancar(
+            config=config,
+            directorio_salida=directorio,
+            aviso=_aviso_configuracion(
+                transport=transport, token_provider=token_provider
+            ),
+        )
+    except OSError:
+        # El registro vive en el mismo directorio que la corrida: si no se
+        # puede escribir, la corrida falla igual por sus propios logs y este
+        # aviso no tiene que ser lo que la detenga (ADR 0010).
+        return
+
+
+def _aviso_configuracion(
+    *, transport: TransporteHttp | None, token_provider: object
+) -> AvisoConfiguracion | None:
+    """El aviso al operador, si el entorno declara su dirección.
+
+    Sin dirección declarada —o sin la lista de prueba de Gmail— no hay aviso:
+    el cambio igual queda en la auditoría como `aviso=no_configurado`. La
+    dirección se valida contra la lista al entregar, como cualquier correo del
+    agente, así que una dirección de fuera de la lista falla con su código.
+    """
+
+    try:
+        destinatario = cargar_destinatario_aviso()
+        if destinatario is None:
+            return None
+        permitidos = cargar_destinatarios_prueba()
+    except ConfiguracionWorkspaceError:
+        return None
+    return AvisoConfiguracionGmail(
+        destinatario=destinatario,
+        destino=GmailDestinoConfirmaciones(
+            destinatarios_permitidos=permitidos,
+            token_provider=token_provider,
+            transport=transport,
+        ),
+    )
 
 
 def informe_a_dict(informe: InformeCorridaInsumos) -> dict[str, object]:
