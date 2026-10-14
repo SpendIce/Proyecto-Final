@@ -405,4 +405,11 @@ def test_manifest_corte_referencia_version_y_manifest() -> None:
     assert manifest["manifest_version_sha256"] == sha256_archivo(
         ROOT / MANIFEST_VERSION_NOMBRE
     )
+    # El dataset del corte se hashea aunque no sea un archivo controlado: sin
+    # su hash la evidencia del corte no se reproduce.
+    assert manifest["datos_sinteticos_sha256"] == {
+        "data/actividades_sinteticas.csv": sha256_archivo(
+            ROOT / "data" / "actividades_sinteticas.csv"
+        )
+    }
     assert manifest["configuracion"]["prompt_version_gacetilla"]
