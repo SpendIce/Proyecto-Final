@@ -12,7 +12,7 @@ from pathlib import Path
 
 from agente1.cli_insumos import main as main_insumos
 from agente1.cli_scheduler import main as main_scheduler
-from agente1.google_workspace import MAX_WORKSPACE_RESPONSE_BYTES
+from agente1.google_workspace import MAX_WORKSPACE_RESPONSE_BYTES, RespuestaHttp
 from agente1.insumos_corrida import COLUMNAS_INSUMOS_AGENTES_V1
 from agente1.manifest_version import (
     AUDITORIA_NOMBRE,
@@ -85,6 +85,24 @@ def escribir_tabla_vacia(ruta: Path) -> None:
 def ultima_auditoria(salida: Path) -> dict:
     lineas = (salida / "logs" / AUDITORIA_NOMBRE).read_text(encoding="utf-8").splitlines()
     return json.loads(lineas[-1])
+
+
+def ultimo_asiento_config(salida: Path) -> dict:
+    lineas = (
+        (salida / "logs" / "config-entorno.jsonl").read_text(encoding="utf-8").splitlines()
+    )
+    return json.loads(lineas[-1])
+
+
+class TransporteValoresFake:
+    """Transporte fake de la pestaña: devuelve sólo el encabezado."""
+
+    def request(self, **kwargs) -> RespuestaHttp:
+        filas = [list(COLUMNAS_INSUMOS_AGENTES_V1)]
+        return RespuestaHttp(
+            status=200,
+            body=json.dumps({"range": "Insumos!A1:D1", "values": filas}).encode(),
+        )
 
 
 def test_live_no_arranca_si_un_archivo_controlado_difiere(
@@ -209,3 +227,44 @@ def test_el_arbol_de_prueba_no_traiciona_al_barrido(tmp_path: Path) -> None:
     (raiz / "README.md").write_text("texto\n", encoding="utf-8")
 
     assert listar_controlados(raiz) == tuple(sorted(manifest["archivos_sha256"]))
+
+
+def test_live_registra_el_cambio_de_configuracion_por_entorno(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """El arranque en modo operación asienta la huella y registra el cambio.
+
+    Sin dirección de aviso declarada, el cambio igual queda en la auditoría
+    (`aviso=no_configurado`) y ningún correo puede romper la corrida.
+    """
+
+    raiz, _ = preparar_version(tmp_path)
+    configurar_entorno(monkeypatch, con_credencial=True)
+    monkeypatch.setattr("agente1.manifest_version.raiz_agente", lambda: raiz)
+    monkeypatch.delenv("AGENTE1_CONFIG_ENTORNO_AVISO_DESTINATARIO", raising=False)
+    salida = tmp_path / "salida"
+    corrida = [
+        "--directorio",
+        str(salida),
+        "--ollama-model",
+        "modelo-x",
+        "--live",
+        "--confirm-write-workspace",
+    ]
+
+    assert main_insumos(corrida, transport=TransporteValoresFake()) == 0
+    base = ultimo_asiento_config(salida)
+    assert base["resultado"] == "BASE"
+    assert base["claves_cambiadas"] == []
+
+    # Cambia un identificador de Workspace y la corrida vuelve a arrancar: el
+    # cambio queda asentado con la clave afectada y sin el valor.
+    monkeypatch.setenv("AGENTE1_WORKSPACE_SPREADSHEET_ID", "planilla-otra")
+
+    assert main_insumos(corrida, transport=TransporteValoresFake()) == 0
+    cambio = ultimo_asiento_config(salida)
+    assert cambio["resultado"] == "CAMBIO"
+    assert cambio["claves_cambiadas"] == ["spreadsheet_ref_hash"]
+    assert cambio["aviso"] == "no_configurado"
+    crudo = (salida / "logs" / "config-entorno.jsonl").read_text(encoding="utf-8")
+    assert "planilla-otra" not in crudo

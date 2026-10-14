@@ -27,6 +27,7 @@ from agente1.certificados import (
     SolicitudCertificado,
     procesar_certificado,
 )
+from agente1.config_entorno import AuditoriaConfigEntorno
 from agente1.confirmaciones import (
     RegistroConfirmacionesMemoria,
     SolicitudConfirmacion,
@@ -332,6 +333,21 @@ def test_respaldo_lleva_identidad(tmp_path: Path) -> None:
     )
 
     assert_identidad(_ultima_linea(tmp_path / "logs" / "respaldo-diario.jsonl"))
+
+
+def test_configuracion_por_entorno_lleva_identidad(tmp_path: Path) -> None:
+    AuditoriaConfigEntorno(tmp_path).anexar(
+        resultado="BASE",
+        huella="0" * 64,
+        huella_anterior=None,
+        claves=(),
+        resumen={"ambiente": "D2"},
+        aviso=None,
+        aviso_error=None,
+        ejecutado_en=datetime(2026, 10, 14, 12, 0, tzinfo=ZONA),
+    )
+
+    assert_identidad(_ultima_linea(tmp_path / "logs" / "config-entorno.jsonl"))
 
 
 def test_insumos_procesados_llevan_identidad(tmp_path: Path) -> None:
