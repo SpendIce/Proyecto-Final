@@ -265,7 +265,13 @@ def _dependencias_live(
     config = cargar_configuracion_workspace()
     insumos = cargar_configuracion_insumos()
     verificar_integridad_al_arrancar(directorio_salida=directorio)
-    token_provider = construir_token_provider(timeout_s=config.timeout_s)
+    # El directorio de salida viaja al provider para que cada token emitido
+    # deje el sha256 de la cuenta suplantada y la versión del agente en
+    # `logs/cuenta-suplantada.jsonl` (ADR 0011).
+    token_provider = construir_token_provider(
+        timeout_s=config.timeout_s,
+        directorio_auditoria=directorio,
+    )
     try:
         token_provider.obtener_access_token()
     except Exception:

@@ -123,7 +123,10 @@ def main(argv: list[str] | None = None) -> int:
                 habilitar_live=True,
                 confirmar_escritura=args.confirm_write_workspace,
                 config=config,
-                token_provider=construir_token_provider(timeout_s=config.timeout_s),
+                token_provider=construir_token_provider(
+                    timeout_s=config.timeout_s,
+                    directorio_auditoria=args.salida,
+                ),
             )
             generator = _crear_generator_live(tipo=args.tipo, modelo=args.modelo)
             ambiente = config.ambiente

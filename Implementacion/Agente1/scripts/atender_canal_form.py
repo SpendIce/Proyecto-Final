@@ -444,7 +444,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise RunnerWorkspaceError("runner_live_environment_invalid")
             config_form = cargar_configuracion_canal_form()
             token_provider = construir_token_provider(
-                timeout_s=config_ws.timeout_s
+                timeout_s=config_ws.timeout_s,
+                directorio_auditoria=args.directorio,
             )
             # Token pedido antes de cualquier lectura: si la credencial no
             # sirve, la corrida falla al preparar y no a mitad de camino.
