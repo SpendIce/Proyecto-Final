@@ -152,6 +152,8 @@ Para revisar una decisión puntual, empezar por el docstring del módulo:
 | Por qué el denominador de disponibilidad es la agenda y no las líneas del log | `src/agente1/medicion_slo.py`, docstring de módulo y de `indicador_disponibilidad` |
 | Por qué el tiempo de atención exige el CSV de respuestas del Form | `medicion_slo.py`, docstrings de módulo y de `indicador_tiempo_atencion` |
 | Por qué el SLO de aprobación a envío descuenta el tiempo fuera de la ventana | `medicion_slo.py`, docstrings de `indicador_aprobacion_envio` y de `segundos_en_ventana` |
+| Por qué el manifest de versión no se controla a sí mismo ni incluye la configuración por entorno | `src/agente1/manifest_version.py`, docstring de módulo y `RUTAS_CONTROLADAS`; ADR 0010 |
+| Por qué el gate de integridad vive en el armado del modo live y no en la CLI offline | `manifest_version.py`, docstring de módulo, y `cli_insumos.py`, `_dependencias_live` |
 
 Cada archivo de `tests/` abre con un docstring que resume qué cubre esa suite,
 de modo que la pregunta "¿dónde está probado esto?" se responda leyendo los
@@ -1084,6 +1086,49 @@ PYTHONPATH=src python -m agente1 scheduler --loop --max-disparos 2 \
 
 uv run pytest -q tests/test_scheduler.py tests/test_cli_scheduler.py
 ```
+
+## Manifest de versión e integridad al arrancar (#92)
+
+Una versión del agente lleva un **manifest** con el sha256 de todo lo
+controlado que vive en el repo: código, prompts, políticas y contratos bajo
+`src/`, `migrations/`, `uv.lock`, `pyproject.toml`, `scripts/` operativos y
+`systemd/` (ADR 0010). El manifest viaja con la versión en
+`manifest-version.json`, en la raíz del Agente 1 **fuera** de las rutas que
+recorre, así que no se controla a sí mismo. La versión sale de
+`pyproject.toml` (`[project].version`).
+
+Se genera al cortar una versión, después de cualquier cambio bajo las rutas
+controladas:
+
+```bash
+uv run python scripts/manifest_version.py --salida manifest-version.json
+```
+
+Es determinista: el mismo árbol produce el mismo archivo byte a byte, sin
+timestamps volátiles y con orden estable.
+
+En **modo operación** —las corridas con `--live`, que es como las unidades
+`systemd/` invocan el scheduler— la corrida compara el manifest con el árbol
+del host antes de pedir credenciales y de tocar la red. Si un archivo falta,
+sobra o no coincide, o si el manifest está ausente o es inválido, **no
+arranca** (código de salida 2, `{"estado": "INVALIDA", "error": ...}`) y deja
+el archivo, el hash esperado y el encontrado en
+`logs/integridad-arranque.jsonl` (formato `agente1_integridad_arranque_v1`).
+Las corridas offline (`--tabla`), la CLI local y la suite **no verifican**: el
+manifest se regenera al cortar una versión, no en cada cambio.
+
+`scripts/manifest_corte.py` dejó de mantener su lista `FUENTES` congelada en
+`gacetilla_v3`: cada manifest de corte referencia `version` y
+`manifest_version_sha256`, y sólo suma lo propio del corte (la configuración
+del adapter y la referencia Git).
+
+```bash
+uv run pytest -q tests/test_manifest_version.py tests/test_integridad_arranque.py
+```
+
+Paso en vivo para el laboratorio y la mesa —editar un prompt en el host → no
+arranca → la auditoría muestra los dos hashes → restaurar → arranca— en
+`evidencias/integridad-arranque-2026-10-14.md`.
 
 ## Nivel verificado de los SLO desde la auditoría (#88)
 

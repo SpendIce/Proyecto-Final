@@ -6,7 +6,8 @@
 - **Alcance:** corridas programadas de la pestaña «Insumos de agentes» en
   el host de la demo, dentro de la ventana de operación
 - **Relacionados:** ADR 0007 (traspaso), ADR 0008 (insumos por pestaña),
-  ADR 0009 (retención y respaldo), issues #82, #84, #86, #87, #88
+  ADR 0009 (retención y respaldo), ADR 0010 (integridad de la versión),
+  issues #82, #84, #86, #87, #88, #92
 
 ## 1. Propósito y límites
 
@@ -344,6 +345,8 @@ Fallas frecuentes (el `detalle` del log o el JSON de salida):
 | `workspace_*` / `insumos_config_*` | Variables Workspace e identidad técnica (runbook D2/D3) |
 | `scheduler_corrida_error` | Corrida fallida sin código propio: ver journal |
 | `scheduler_log_invalid` | El JSONL está corrupto: no se procesa hasta revisarlo |
+| `integridad_archivos_no_coinciden` | Un archivo controlado del checkout no coincide con `manifest-version.json` (ver §9) |
+| `manifest_version_ausente` / `manifest_version_invalido` | Falta el manifest de la versión o está dañado (ver §9) |
 | `omitida_lock` sostenida | Un disparo anterior sigue corriendo o murió con el lock (es de archivo: se libera con el proceso) |
 
 **Migrar a otro host** (ADR 0007): la operación es del operador designado
@@ -361,3 +364,68 @@ estudiantes que continúan.
    procesadas quedan protegidas por el `estado` escrito en la pestaña (la
    corrida no vuelve a tocarlas) y el `correlation_id` de cada fila sigue
    registrando despachos nuevos desde cero.
+
+## 9. Integridad de la versión al arrancar (#92, ADR 0010)
+
+El host que opera Informática puede tener un prompt, una política o un
+contrato editados a mano, sin PR y sin que la auditoría registre de dónde
+salió la pieza. Para que eso no pase desapercibido, cada versión del agente
+lleva un **manifest** con el sha256 de todo lo controlado que vive en el
+repo y, en **modo operación**, el agente lo compara con el árbol del host
+antes de pedir credenciales y de tocar la red.
+
+- **Qué controla:** `src/` (código, prompts, políticas, contratos),
+  `migrations/`, `uv.lock`, `pyproject.toml`, `scripts/` operativos y
+  `systemd/`. La configuración por entorno (IDs de planillas y Forms,
+  scopes) queda **fuera** por decisión del ADR 0010: Informática la rota sin
+  pasar por el repo.
+- **Dónde vive:** `manifest-version.json`, en la raíz del Agente 1, fuera de
+  las rutas que recorre. Viaja con la versión y se regenera al cortarla, no
+  en el host:
+
+  ```bash
+  cd Implementacion/Agente1
+  uv run python scripts/manifest_version.py --salida manifest-version.json
+  ```
+
+- **Cuándo verifica:** en modo operación, o sea la corrida con `--live` que
+  disparan las unidades de §2. Las corridas offline (`--tabla`) y los
+  ensayos no verifican.
+- **Qué hace si no coincide:** **no arranca** (código de salida 2; stdout
+  `{"estado": "INVALIDA", "error": "integridad_archivos_no_coinciden"}`) y
+  deja en `<directorio>/logs/integridad-arranque.jsonl` el archivo, el hash
+  esperado y el encontrado. Tres motivos posibles: `modificado`, `faltante`
+  o `sobrante`.
+
+```json
+{
+  "record": "agente1_integridad_arranque_v1",
+  "resultado": "FAIL",
+  "motivo": "integridad_archivos_no_coinciden",
+  "version": "0.1.0",
+  "manifest_version_sha256": "<hash del manifest>",
+  "archivos_esperados": 150,
+  "discrepancias": [
+    {
+      "archivo": "src/agente1/prompts/gacetilla_v6.txt",
+      "motivo": "modificado",
+      "hash_esperado": "<...>",
+      "hash_encontrado": "<...>"
+    }
+  ]
+}
+```
+
+**Paso en vivo (laboratorio y mesa).** Con el host en modo operación:
+arranca (`resultado=PASS`) → se edita un prompt a mano → **no arranca** y la
+auditoría muestra los dos hashes → se restaura el prompt → arranca de nuevo.
+El procedimiento completo y la reproducción offline con la salida real están
+en `Implementacion/Agente1/evidencias/integridad-arranque-2026-10-14.md`.
+
+**Diagnóstico.** Si el agente deja de arrancar por `integridad_*` o
+`manifest_version_*`, revisar la última línea de
+`logs/integridad-arranque.jsonl` y comparar el `hash_encontrado` con el
+`hash_esperado`: el archivo listado no es el de la versión instalada. La
+respuesta no es editar el host: es restaurar el archivo de la versión o
+cortar una versión nueva (ADR 0010). Volver a generar el manifest en el host
+es, por definición, cambiar la versión.
