@@ -37,10 +37,12 @@ los cambios controlados incorporados a `main` hasta esta fecha.
 ### Menor — capacidades, prompts y políticas
 
 - Pipeline HU-010: gacetilla desde un evento A3 (#83).
-- Pipeline HU-011: posts y post de efeméride desde Historia Viva (#85, #89).
+- Pipeline HU-011: posts y post de efeméride desde Historia Viva (#85).
 - Confirmaciones HU-012 y su circuito de doble aprobación por rol (#28).
 - Recordatorios de pago, pagos desde la planilla e instrucciones de pago
   (#44, #45, #46).
+- Corrida de pagos, novedades de pago y envío por Gmail de lista de prueba
+  (#39, #40, #42).
 - Plantilla de correo por actividad HU-012 (#73).
 - Certificados HU-014: línea descriptiva, lote de cierre y emisión (#74, #75).
 - Canal de pedidos por Form, registro de decisiones y canal de planilla
@@ -58,7 +60,7 @@ los cambios controlados incorporados a `main` hasta esta fecha.
 ### Parche — correcciones
 
 - Gacetillas sin lugar: el gate y el render acuerdan el campo (#6).
-- Reintento con feedback en HU-011 (#85).
+- Reintento con feedback de regla en HU-011 ante salida no conforme.
 - Idempotencia de HU-012 ante una caída (#9).
 - Presupuesto de decodificación dimensionado por el contrato (#4).
 
