@@ -236,6 +236,17 @@ fuera del alcance de esta tarea AFK.
 **Acción tomada en esta tarea.** Sólo el **veredicto escrito** (esta §8). No se
 borró, movió ni reescribió nada del directorio.
 
+**Purga ejecutada (2026-10-14, decisión de Juani).** Con `git filter-repo
+--invert-paths` sobre todo el repositorio se sacaron de la historia los cuatro
+archivos marcados arriba: `node133-backup.json`, `mensaje-original.md`,
+`img-1790777571539674121.png` e `img-1790777939890855976.png`. Los cinco
+flyers institucionales públicos quedaron. La purga reescribió los SHA de toda
+la línea de `main` y **también borró las copias del working tree**: los cuatro
+archivos ya no existen ni en el repo ni en el disco. La PII **nunca se había
+publicado**: el `main` del remoto estaba 194 commits atrás y no contenía el
+merge `2d991c8`. Queda pendiente el `force-push` para publicar la historia ya
+limpia, y el guardado de los SHA nuevos en el log de estado.
+
 **Revisión del documento vecino.** `Documentos/PoC/Corpus-Comunicaciones-Reales-SEU-2026-09-30.md`
 se revisó con el mismo criterio: **no** incluye el teléfono móvil personal y
 sólo cita correos institucionales de área. Veredicto: apto como está.

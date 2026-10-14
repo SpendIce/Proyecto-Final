@@ -4,8 +4,11 @@
 - **Proveniencia:** aportadas por J. I. Goñe, copiadas desde la casilla real
   `notificaciones@fie.undef.edu.ar` (FIE Informa, bcc `alumnosingenieria`) y
   del Instagram institucional de la FIE. Texto + 7 capturas en
-  `Adjuntos/imagenes-flat-finch/` (mapeo imagen→pieza en
-  `mensaje-original.md` de esa carpeta).
+  `Adjuntos/imagenes-flat-finch/`. El mapeo imagen→pieza vivía en
+  `mensaje-original.md` de esa carpeta, **purgado del repo y de su historia el
+  14/10/2026** junto con otras tres piezas con datos personales (ver
+  `Corpus-FIE-Informa-Historico-2026-10-13.md` §8); quedan las cinco capturas
+  públicas.
 - **Estatus:** corpus de trabajo **informal**. No son los «ejemplos
   aprobados» que la SEU tiene pendientes desde el acta del 22/09; sí son
   evidencia real del formato vigente y alcanzan para calibrar la base de
