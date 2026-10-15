@@ -12,8 +12,8 @@ consignando los factores y atributos»):
 
 - **El equipo de proyecto** completa los ítems: `Factor de calidad` + `Atributo`
   en el Anexo 2, `Componente` + `Ítem` en el Anexo 3.
-- **El laboratorio** completa las últimas columnas —nivel de competencia y
-  comentarios—, y por eso pide Word.
+- **El laboratorio** completa las últimas columnas (nivel de competencia y
+  comentarios), y por eso pide Word.
 
 Este módulo sólo aporta la plomería de `python-docx`: abrir la plantilla,
 reemplazar marcadores y armar las filas de la tabla. Lo usan los tres scripts
@@ -28,7 +28,7 @@ from typing import Any
 # Título con el que se identifica el proyecto en la cabecera de cada plantilla.
 # Es el mismo texto que usa el Anexo 1, para no tener dos títulos del proyecto.
 TITULO_PROYECTO = (
-    "Proyecto Centenario — Agente 1: Extensión Bot para la Secretaría de "
+    "Proyecto Centenario, Agente 1: Extensión Bot para la Secretaría de "
     "Extensión Universitaria de la FIE (Facultad de Ingeniería del Ejército, "
     "Universidad de la Defensa Nacional)"
 )
@@ -82,8 +82,8 @@ def reemplazar_parrafo(doc: Any, antiguo: str, nuevo: str) -> None:
 def reemplazar_en_celdas(doc: Any, antiguo: str, nuevo: str) -> None:
     """Reemplaza `antiguo` en el primer celda de tabla que lo contiene.
 
-    Sirve para el título de la tabla —`Factores de Calidad <Citar estándar
-    aplicado>`—, que es una celda combinada.
+    Sirve para el título de la tabla (`Factores de Calidad <Citar estándar
+    aplicado>`), que es una celda combinada.
     """
 
     for tabla in doc.tables:

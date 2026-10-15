@@ -1,4 +1,4 @@
-# Perfil de calidad del sistema de demostración — Agente 1 (Extension Bot)
+# Perfil de calidad del sistema de demostración: Agente 1 (Extension Bot)
 
 - **Documento:** tabla fuente del perfil de calidad declarado por el autor para la revisión de laboratorio (issues #59 y #89). De esta tabla se proyecta el Anexo 2 por atributo; la seguridad se declara aparte en el Anexo 3 (#58).
 - **Foto:** este perfil describe el inventario `Documentos/Inventario/Inventario-Componentes-Sistema-Demostracion-v1.md` en su commit de base `98be859` (2026-10-12). Si la base crece antes de la revisión, el anexo declara la foto que el laboratorio revisó, no el `main` del día.
@@ -142,8 +142,8 @@ Quedan declaradas `PENDIENTE` dentro de la tabla y no bloquean el armado:
 - **#58** (perfil de seguridad): la fila de Seguridad remite al Anexo 3.
 - **#90** (CI, cobertura y linter): brechas requeridas de analizabilidad y capacidad de prueba.
 - **Provisión D3** (parte de DEF-A1-001): la fila de adaptabilidad queda en `B` hasta una ejecución live sobre D3.
-- **Plantilla oficial del Anexo 2** (issue #57, resuelto): la entrega se vuelca sobre la plantilla `3.2 - Anexo 2 - Calidad 2025.docx`, que está en `Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/`. El equipo de proyecto completa `Factor de calidad` y `Atributo`; el laboratorio completa `Nivel de Competencia`, `Nivel de Competencia Global` y `Comentarios`. La declaración del autor —estado, motivo y evidencia— vive en el Anexo 1.
-- **Correspondencia ISO/IEC 25010:2011 (cerrado):** el documento «04 - Decisiones Cruciales - 2025» **no hace falta** (respuesta del laboratorio, 14/10): el laboratorio no lo usa —son ejemplos y referencias a normas— y el propio procedimiento nombra los estándares. No se agrega columna de correspondencia.
+- **Plantilla oficial del Anexo 2** (issue #57, resuelto): la entrega se vuelca sobre la plantilla `3.2 - Anexo 2 - Calidad 2025.docx`, que está en `Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/`. El equipo de proyecto completa `Factor de calidad` y `Atributo`; el laboratorio completa `Nivel de Competencia`, `Nivel de Competencia Global` y `Comentarios`. La declaración del autor (estado, motivo y evidencia) vive en el Anexo 1.
+- **Correspondencia ISO/IEC 25010:2011 (cerrado):** el documento «04 - Decisiones Cruciales - 2025» **no hace falta** (respuesta del laboratorio, 14/10): el laboratorio no lo usa (son ejemplos y referencias a normas) y el propio procedimiento nombra los estándares. No se agrega columna de correspondencia.
 
 ## 5. Proyección al Anexo 2
 

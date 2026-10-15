@@ -1,4 +1,4 @@
-"""Anexo 2 del laboratorio — tabla de calidad por atributo.
+"""Anexo 2 del laboratorio: tabla de calidad por atributo.
 
 Lee la tabla marcada ``TABLA-FUENTE`` de
 ``Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`` y emite la
@@ -9,8 +9,8 @@ ISO/IEC 25012 y la fila única de Seguridad que remite al Anexo 3.
 Dos salidas, con dos propósitos distintos:
 
 - **Proyección en Markdown** (``Anexo2-Calidad-Proyeccion-v1.md``): la vista de
-  trabajo, con la declaración completa del autor —estado, motivo, evidencia y
-  paso en vivo—. Es interna: no se entrega.
+  trabajo, con la declaración completa del autor (estado, motivo, evidencia y
+  paso en vivo). Es interna: no se entrega.
 - **Entrega sobre la plantilla oficial** (``--plantilla``): el ``.docx`` que sí
   va al laboratorio, volcado sobre ``3.2 - Anexo 2 - Calidad 2025.docx``.
 
@@ -69,7 +69,7 @@ COLUMNAS_ENCABEZADO = [
 
 # Título de la tabla: la plantilla pide «<Citar estándar aplicado>».
 TITULO_TABLA = (
-    "Factores de Calidad — ISO/IEC 25010:2023, con subcaracterísticas de "
+    "Factores de Calidad: ISO/IEC 25010:2023, con subcaracterísticas de "
     "ISO/IEC 25059:2023 y el conjunto reducido de ISO/IEC 25012:2023. "
     "Seguridad remite al Anexo 3"
 )
@@ -261,7 +261,7 @@ def proyectar(filas: list[FilaFuente]) -> list[tuple[str, str, str, str, str, st
 
 def emitir_markdown(filas: list[tuple[str, str, str, str, str, str]]) -> str:
     lineas = [
-        "# Anexo 2 — Tabla de calidad por atributo (proyección)",
+        "# Anexo 2: Tabla de calidad por atributo (proyección)",
         "",
         "Documento generado por `Implementacion/Agente1/scripts/anexo2_calidad.py`",
         "desde la tabla fuente `Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`",
@@ -290,8 +290,8 @@ def emitir_plantilla(
 ) -> None:
     """Volca los atributos del Anexo 2 sobre la plantilla oficial de la cátedra.
 
-    Sólo completa las columnas del equipo de proyecto —`Factor de calidad` y
-    `Atributo`—: las del laboratorio quedan vacías para que las marque al
+    Sólo completa las columnas del equipo de proyecto (`Factor de calidad` y
+    `Atributo`): las del laboratorio quedan vacías para que las marque al
     evaluar.
     """
 

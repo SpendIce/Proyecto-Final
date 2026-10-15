@@ -1,12 +1,12 @@
-"""Anexo 3 del laboratorio — perfil de seguridad por componente.
+"""Anexo 3 del laboratorio: perfil de seguridad por componente.
 
 Lee la tabla marcada ``TABLA-FUENTE`` de
 ``Documentos/Laboratorio/Perfil-Seguridad-Sistema-Demostracion-v1.md`` y emite
 la tabla del Anexo 3 por componente. Dos salidas, con dos propósitos distintos:
 
 - **Proyección en Markdown** (``Anexo3-Seguridad-Proyeccion-v1.md``): la vista
-  de trabajo, con la declaración completa del autor —estado, motivo, evidencia
-  y paso en vivo—. Es interna: no se entrega.
+  de trabajo, con la declaración completa del autor (estado, motivo, evidencia
+  y paso en vivo). Es interna: no se entrega.
 - **Entrega sobre la plantilla oficial** (``--plantilla``): el ``.docx`` que sí
   va al laboratorio, volcado sobre ``3.3 - Anexo 3 - Seguridad 2025.docx``.
 
@@ -73,7 +73,7 @@ COLUMNAS_ENCABEZADO = [
 
 # Título de la tabla: la plantilla pide «<Citar estándar aplicado>».
 TITULO_TABLA = (
-    "Factores de Seguridad — NIST CSF (a nivel Sistema), OWASP Top 10 y "
+    "Factores de Seguridad: NIST CSF (a nivel Sistema), OWASP Top 10 y "
     "OWASP Top 10 for LLM por ítem, MITRE ATT&CK para las técnicas habilitadas"
 )
 
@@ -198,7 +198,7 @@ def ordenar(filas: list[FilaFuente]) -> list[FilaFuente]:
 
 def emitir_markdown(filas: list[FilaFuente]) -> str:
     lineas = [
-        "# Anexo 3 — Perfil de seguridad por componente (proyección)",
+        "# Anexo 3: Perfil de seguridad por componente (proyección)",
         "",
         "Documento generado por `Implementacion/Agente1/scripts/anexo3_seguridad.py`",
         "desde la tabla fuente `Documentos/Laboratorio/Perfil-Seguridad-Sistema-Demostracion-v1.md`.",
@@ -234,7 +234,7 @@ def emitir_markdown(filas: list[FilaFuente]) -> str:
 def emitir_plantilla(filas: list[FilaFuente], plantilla: Path, destino: Path) -> None:
     """Volca los ítems del Anexo 3 sobre la plantilla oficial de la cátedra.
 
-    Sólo completa las columnas del equipo de proyecto —`Componente` e `Ítem`—:
+    Sólo completa las columnas del equipo de proyecto (`Componente` e `Ítem`):
     las del laboratorio quedan vacías para que las marque al evaluar.
     """
 

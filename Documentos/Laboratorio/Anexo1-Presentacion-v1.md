@@ -1,41 +1,41 @@
-# Evaluación del Proyecto – Presentación
+# Evaluación del Proyecto: Presentación
 
 Anexo 1 de la revisión de laboratorio (iLab/rLab). Documento generado por `Implementacion/Agente1/scripts/anexo1_presentacion.py`.
 
 ## Título del Proyecto
 
-Proyecto Centenario — Agente 1: Extensión Bot para la Secretaría de Extensión Universitaria de la FIE (Facultad de Ingeniería del Ejército, Universidad de la Defensa Nacional)
+Proyecto Centenario, Agente 1: Extensión Bot para la Secretaría de Extensión Universitaria de la FIE (Facultad de Ingeniería del Ejército, Universidad de la Defensa Nacional)
 
 ## Concepto General del Proyecto
 
 *(abstract)*
 
-El Agente 1 (Extensión Bot) es el agente de comunicación institucional del Proyecto Centenario (P100) de la Facultad de Ingeniería del Ejército (FIE), Universidad de la Defensa Nacional. Prepara piezas comunicacionales para la Secretaría de Extensión Universitaria (SEU) —gacetillas, publicaciones para redes sociales, correos y confirmaciones, y certificados— dentro del Proceso 4. Su producto es siempre un borrador: el agente no publica, no difunde ni decide; toda pieza que llega a un destinatario o a una publicación pasó por una validación humana registrada, y cada salida queda marcada como pendiente de validación.
+El Agente 1 (Extensión Bot) es el agente de comunicación institucional del Proyecto Centenario (P100) de la Facultad de Ingeniería del Ejército (FIE), Universidad de la Defensa Nacional. Prepara piezas comunicacionales para la Secretaría de Extensión Universitaria (SEU) dentro del Proceso 4: gacetillas, publicaciones para redes sociales, correos y confirmaciones, y certificados. Su producto es siempre un borrador: el agente no publica, no difunde ni decide; toda pieza que llega a un destinatario o a una publicación pasó por una validación humana registrada, y cada salida queda marcada como pendiente de validación.
 
 El proyecto se desarrolla a lo largo de un año académico (dos semestres de 2026) con maduración progresiva por niveles TRL: el objetivo del primer semestre es TRL 3 y el del segundo, TRL 4, en ambos casos sujeto a la decisión del gate correspondiente. Se ejecuta sobre tecnologías de código abierto y sobre la suite institucional Google Workspace; los modelos de lenguaje corren localmente (Ollama) como medida de diseño para preservar la soberanía de los datos institucionales. La estimación de costos del año de alcance se ubica en el rango de USD 0 a USD 1.400, según se utilicen o no componentes opcionales de infraestructura, respaldo o contingencia.
 
-Este documento es el Anexo 1 de la revisión de laboratorio: presenta el sistema de demostración —el Agente 1 en todo su alcance declarado, funcionando de punta a punta en vivo— y su perfil de calidad por estrato. El detalle por atributo, en el orden del estándar, está en el Anexo 2; el perfil de seguridad, en el Anexo 3.
+Este documento es el Anexo 1 de la revisión de laboratorio: presenta el sistema de demostración (el Agente 1 en todo su alcance declarado, funcionando de punta a punta en vivo) y su perfil de calidad por estrato. El detalle por atributo, en el orden del estándar, está en el Anexo 2; el perfil de seguridad, en el Anexo 3.
 
 ## Enfoque del proyecto
 
 - **Enfoque iterativo-incremental con gates por semestre.** El proyecto sigue los cinco pasos metodológicos del Director del Proyecto (relevamiento, diseño, prototipado, validación y documentación) y se gestiona con un tablero Kanban. Cada semestre cierra en un gate de evaluación TRL con su paquete de evidencia; ningún gate se declara cerrado sólo por documentación narrativa ni por demostración informal.
 - **Validación humana obligatoria.** El mecanismo es estructural y no puede deshabilitarse sin modificar el código: las piezas de difusión (gacetillas y posts) requieren la decisión de publicación registrada por quien publica o descarta el borrador; las piezas que el agente envía o emite (confirmaciones y certificados) requieren la plantilla aprobada más la aprobación de lote previa al envío.
 - **Ejecución local y fail-closed.** Los modelos corren en infraestructura propia y el agente falla cerrado en cada frontera: lo que no cumple se rechaza antes de generar, escribir o tocar el registro. La auditoría guarda códigos, conteos y hashes, nunca contenido ni datos personales en claro.
-- **Sistema de demostración sin capacidades detenidas.** El sistema corre en la laptop del autor con modelo local y sobre Google Workspace D2 con la cuenta técnica. Lo que depende de un tercero —plantillas, firmas, política de redes, identidad del personal, host D3— corre contra un destino de prueba o un insumo provisional declarado, por el mismo mecanismo productivo y nunca contra un fake, con la meta de conseguir el original.
+- **Sistema de demostración sin capacidades detenidas.** El sistema corre en la laptop del autor con modelo local y sobre Google Workspace D2 con la cuenta técnica. Lo que depende de un tercero (plantillas, firmas, política de redes, identidad del personal, host D3) corre contra un destino de prueba o un insumo provisional declarado, por el mismo mecanismo productivo y nunca contra un fake, con la meta de conseguir el original.
 - **Alcance acotado y excluido.** El agente se limita a la comunicación institucional del Proceso 4 y a las historias HU-010 a HU-014. Queda fuera el reemplazo de personal, la publicación o el envío sin validación humana, la analítica y el scraping, la atención masiva al público, la infraestructura de alto costo y toda integración externa compleja no definida.
 
 ## Estado de las capacidades contra el gate TRL 4
 
 Este anexo declara el estado de las capacidades contra el **gate TRL 4**. Las cifras y los estados de las tablas por estrato son los de la foto declarada (commit de base `98be859`, 12/10/2026). La nota sobre fechas y estado verificado del anteproyecto conserva el corte del 21/09/2026; cuando uno y otro citan un número, corresponde a su propia fecha, y la revisión de laboratorio evalúa la foto de este anexo.
 
-**Demostrado sobre el sistema de demostración.** La corrida live del 28/09/2026 quedó verificada con smoke de lectura, casos negativos y un extremo a extremo de gacetilla cuyo borrador real quedó en la carpeta autorizada, sin modificar nada existente. HU-010 a HU-014 están implementadas dentro del alcance declarado —gacetilla, post, plantilla de correo por actividad y certificado con línea descriptiva y circuito de lote—, la suite y las matrices por historia las ejercitan, y cada fila A o B de las tablas por estrato cita su evidencia versionada y su paso en vivo.
+**Demostrado sobre el sistema de demostración.** La corrida live del 28/09/2026 quedó verificada con smoke de lectura, casos negativos y un extremo a extremo de gacetilla cuyo borrador real quedó en la carpeta autorizada, sin modificar nada existente. HU-010 a HU-014 están implementadas dentro del alcance declarado (gacetilla, post, plantilla de correo por actividad y certificado con línea descriptiva y circuito de lote), la suite y las matrices por historia las ejercitan, y cada fila A o B de las tablas por estrato cita su evidencia versionada y su paso en vivo.
 
 **No demostrado.**
 
 - La validación de calidad por referentes de la SEU: la operabilidad, la reconocibilidad de la adecuación y la prueba guiada de HU-013 están previstas y su validación registrada sigue pendiente (issue #56; la prueba guiada con una persona real de la SEU no se concretó).
 - La ejecución live de los canales y del registro de decisiones como paso de la revisión: la evidencia versionada es offline y las corridas live se declaran como paso.
 - La operación sobre el host D3: no hay ejecución live porque el host todavía no llegó (DEF-A1-001 parcial).
-- Los niveles verificados de los SLO —disponibilidad, latencia por pieza, utilización de recursos, tiempo de atención y aprobación a envío— no tienen medición a la fecha (issues #50, #51 y #88); el perfil declara la ausencia en lugar de un número.
+- Los niveles verificados de los SLO (disponibilidad, latencia por pieza, utilización de recursos, tiempo de atención y aprobación a envío) no tienen medición a la fecha (issues #50, #51 y #88); el perfil declara la ausencia en lugar de un número.
 - El criterio formal del gate: la Dirección de carrera no fijó un criterio formal, la evidencia se presenta contra el TRL 4 de la documentación del P100 y el go/no-go lo fija el informe del laboratorio.
 
 **Brecha técnica abierta de HU-011.** El contrato creativo de redacción libre para los posts todavía no supera el control de contenido: el gate detecta hechos de la fuente filtrados al texto creativo y registro lingüístico no rioplatense, de modo que la variedad comunicacional depende de criterios editoriales que la SEU aún no definió. El nivel medido de conformidad al gate en redacción libre es de 1/6 con `llama3.2:3b` y 4/6 con `llama3.1:8b` (23/09/2026); el incumplimiento residual es de obediencia del modelo, lo contienen el gate fail-closed y la validación humana obligatoria, y la medición se refresca con el modelo definitivo (issue #51).
@@ -47,14 +47,14 @@ Este anexo declara el estado de las capacidades contra el **gate TRL 4**. Las ci
 El perfil se declara por **estrato**, la capa del inventario de componentes sobre la que se lee el perfil de calidad. `Sistema` agrupa los atributos transversales que ninguna capa ejerce sola. El orden de los estratos es el del inventario:
 
 - **Canal:** Transporta pedidos de la SEU hacia el agente y resultados hacia la persona. No es una conversación abierta y no verifica identidad: la identidad llega afirmada por el canal y el rol sale de un padrón externo.
-- **Interpretación:** Clasifica la solicitud a una intención de un catálogo cerrado —o la rechaza— y resuelve la actividad por identificador, por búsqueda difusa determinística o por repregunta; nunca aproxima a la intención más parecida.
-- **Generación:** Produce las piezas como borrador —gacetilla, post, plantilla de correo por actividad y certificado con línea descriptiva— con gate mecánico de salida antes de escribir.
+- **Interpretación:** Clasifica la solicitud a una intención de un catálogo cerrado (o la rechaza) y resuelve la actividad por identificador, por búsqueda difusa determinística o por repregunta; nunca aproxima a la intención más parecida.
+- **Generación:** Produce las piezas como borrador (gacetilla, post, plantilla de correo por actividad y certificado con línea descriptiva) con gate mecánico de salida antes de escribir.
 - **Gates:** Controles fail-closed que deciden antes de generar, escribir o tocar el registro: política de redes, catálogo cerrado de tipos de notificación y matriz de orígenes de inscripción.
 - **Control de pagos:** Deriva la situación de pago de cada preinscripto desde las fuentes en cada corrida, como función pura sin estado propio, y planifica el lote de recordatorios y los candidatos a confirmación de inscripción.
 - **Aprobación:** Registra la validación humana: aprobaciones semántica y utilitaria por actividad, aprobación de lote y decisión de publicación, con identidad verificada por Google y rol tomado de un padrón.
 - **Cola y envío:** Encola y entrega lo aprobado con idempotencia durable, reconciliación de reservas colgadas a envío indeterminado y retención acotada del registro; el único envío automático es la confirmación de inscripción.
 - **Persistencia y auditoría:** Audita y opera las evidencias del sistema: invariantes de seguridad sobre manifiestos sanitizados, contratos operativos fail-closed y medición del nivel verificado de los SLO. Expone códigos, conteos y hashes, nunca contenido ni destinatarios.
-- **Integraciones:** Fuentes, destinos y servicios externos detrás de puertos: planilla de actividades, Docs y Drive, Gmail (envío y buzón propio), Google Forms, Ollama local y los insumos de los agentes A3–A5.
+- **Integraciones:** Fuentes, destinos y servicios externos detrás de puertos: planilla de actividades, Docs y Drive, Gmail (envío y buzón propio), Google Forms, Ollama local y los insumos de los agentes A3 a A5.
 - **Sistema (atributos transversales):** Atributos transversales que ninguna capa ejerce sola: ausencia de fallos, disponibilidad, operabilidad, mantenibilidad, instalabilidad y los atributos de calidad de datos que dependen del dueño funcional.
 
 ## Detalle de atributos de calidad por componente

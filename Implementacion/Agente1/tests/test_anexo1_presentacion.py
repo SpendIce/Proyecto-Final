@@ -130,7 +130,7 @@ def test_el_markdown_lleva_el_encabezado_de_la_plantilla_y_escapa_pipes():
     caracteristica, atributo, estado, _ = por_estrato[0][1][0]
     por_estrato[0][1][0] = (caracteristica, atributo, estado, "motivo con | pipe")
     markdown = _modulo.emitir_markdown(por_estrato)
-    assert "# Evaluación del Proyecto – Presentación" in markdown
+    assert "# Evaluación del Proyecto: Presentación" in markdown
     assert "## Título del Proyecto" in markdown
     assert "## Lista de Control" in markdown
     assert "motivo con \\| pipe" in markdown

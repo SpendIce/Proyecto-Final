@@ -1,4 +1,4 @@
-# Anexo 2 — Tabla de calidad por atributo (proyección)
+# Anexo 2: Tabla de calidad por atributo (proyección)
 
 Documento generado por `Implementacion/Agente1/scripts/anexo2_calidad.py`
 desde la tabla fuente `Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`

@@ -1,7 +1,7 @@
-"""Anexo 1 del laboratorio — presentación del proyecto por estrato.
+"""Anexo 1 del laboratorio: presentación del proyecto por estrato.
 
-Lee la tabla fuente del perfil de calidad —la misma que alimenta el Anexo 2,
-``Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md``— y emite la
+Lee la tabla fuente del perfil de calidad (la misma que alimenta el Anexo 2,
+``Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md``) y emite la
 presentación del sistema de demostración organizada por **estrato** (componente),
 en el orden del inventario, con el estado de implementación y el motivo de cada
 atributo declarado por el autor.
@@ -13,7 +13,7 @@ reescribe (issue #58/#108).
 
 Este anexo es donde vive la declaración del autor: los Anexos 2 y 3 sólo llevan
 los ítems que después completa el laboratorio, así que el estado, el motivo y la
-evidencia quedan acá —en las tablas por componente y en la Lista de Control—.
+evidencia quedan acá, en las tablas por componente y en la Lista de Control.
 
 Dos salidas, con dos propósitos distintos:
 
@@ -84,14 +84,14 @@ DESCRIPCION_ESTRATO = {
         "externo."
     ),
     "Interpretación": (
-        "Clasifica la solicitud a una intención de un catálogo cerrado —o la "
-        "rechaza— y resuelve la actividad por identificador, por búsqueda "
+        "Clasifica la solicitud a una intención de un catálogo cerrado (o la "
+        "rechaza) y resuelve la actividad por identificador, por búsqueda "
         "difusa determinística o por repregunta; nunca aproxima a la intención "
         "más parecida."
     ),
     "Generación": (
-        "Produce las piezas como borrador —gacetilla, post, plantilla de correo "
-        "por actividad y certificado con línea descriptiva— con gate mecánico "
+        "Produce las piezas como borrador (gacetilla, post, plantilla de correo "
+        "por actividad y certificado con línea descriptiva) con gate mecánico "
         "de salida antes de escribir."
     ),
     "Gates": (
@@ -123,7 +123,7 @@ DESCRIPCION_ESTRATO = {
     "Integraciones": (
         "Fuentes, destinos y servicios externos detrás de puertos: planilla de "
         "actividades, Docs y Drive, Gmail (envío y buzón propio), Google Forms, "
-        "Ollama local y los insumos de los agentes A3–A5."
+        "Ollama local y los insumos de los agentes A3 a A5."
     ),
     "Sistema": (
         "Atributos transversales que ninguna capa ejerce sola: ausencia de "
@@ -153,8 +153,11 @@ ATRIBUTO_SEGURIDAD = "Factores de (ciber)seguridad del estrato"
 # útil de la plantilla es de 15 cm). La plantilla oficial los define desiguales;
 # el `Motivo` es el que lleva texto, así que se queda con la mayor parte. Se
 # guardan en centímetros y se convierten dentro del emisor para no importar
-# `python-docx` —dependencia opcional— al cargar el módulo.
+# `python-docx`, que es dependencia opcional, al cargar el módulo.
 ANCHOS_COLUMNAS_CM = (5.0, 1.7, 8.3)
+
+# Cuerpo de las tablas por componente, en puntos.
+TAMANO_TABLA_PT = 9
 
 # --- Prosa del documento -----------------------------------------------------
 # Estos textos se reproducen en el Markdown versionado y en el Word. No
@@ -177,8 +180,8 @@ CONCEPTO_GENERAL = [
         "del Proyecto Centenario (P100) de la Facultad de Ingeniería del "
         "Ejército (FIE), Universidad de la Defensa Nacional. Prepara piezas "
         "comunicacionales para la Secretaría de Extensión Universitaria (SEU) "
-        "—gacetillas, publicaciones para redes sociales, correos y "
-        "confirmaciones, y certificados— dentro del Proceso 4. Su producto es "
+        "dentro del Proceso 4: gacetillas, publicaciones para redes sociales, "
+        "correos y confirmaciones, y certificados. Su producto es "
         "siempre un borrador: el agente no publica, no difunde ni decide; toda "
         "pieza que llega a un destinatario o a una publicación pasó por una "
         "validación humana registrada, y cada salida queda marcada como "
@@ -198,8 +201,8 @@ CONCEPTO_GENERAL = [
     ),
     (
         "Este documento es el Anexo 1 de la revisión de laboratorio: presenta el "
-        "sistema de demostración —el Agente 1 en todo su alcance declarado, "
-        "funcionando de punta a punta en vivo— y su perfil de calidad por "
+        "sistema de demostración (el Agente 1 en todo su alcance declarado, "
+        "funcionando de punta a punta en vivo) y su perfil de calidad por "
         "estrato. El detalle por atributo, en el orden del estándar, está en el "
         "Anexo 2; el perfil de seguridad, en el Anexo 3."
     ),
@@ -232,8 +235,8 @@ ENFOQUE = [
     (
         "**Sistema de demostración sin capacidades detenidas.** El sistema corre "
         "en la laptop del autor con modelo local y sobre Google Workspace D2 con "
-        "la cuenta técnica. Lo que depende de un tercero —plantillas, firmas, "
-        "política de redes, identidad del personal, host D3— corre contra un "
+        "la cuenta técnica. Lo que depende de un tercero (plantillas, firmas, "
+        "política de redes, identidad del personal, host D3) corre contra un "
         "destino de prueba o un insumo provisional declarado, por el mismo "
         "mecanismo productivo y nunca contra un fake, con la meta de conseguir "
         "el original."
@@ -262,9 +265,9 @@ ESTADO_TRL_DEMOSTRADO = (
     "28/09/2026 quedó verificada con smoke de lectura, casos negativos y un "
     "extremo a extremo de gacetilla cuyo borrador real quedó en la carpeta "
     "autorizada, sin modificar nada existente. HU-010 a HU-014 están "
-    "implementadas dentro del alcance declarado —gacetilla, post, plantilla de "
+    "implementadas dentro del alcance declarado (gacetilla, post, plantilla de "
     "correo por actividad y certificado con línea descriptiva y circuito de "
-    "lote—, la suite y las matrices por historia las ejercitan, y cada fila A o "
+    "lote), la suite y las matrices por historia las ejercitan, y cada fila A o "
     "B de las tablas por estrato cita su evidencia versionada y su paso en vivo."
 )
 
@@ -285,8 +288,8 @@ ESTADO_TRL_NO_DEMOSTRADO = [
         "todavía no llegó (DEF-A1-001 parcial)."
     ),
     (
-        "Los niveles verificados de los SLO —disponibilidad, latencia por pieza, "
-        "utilización de recursos, tiempo de atención y aprobación a envío— no "
+        "Los niveles verificados de los SLO (disponibilidad, latencia por pieza, "
+        "utilización de recursos, tiempo de atención y aprobación a envío) no "
         "tienen medición a la fecha (issues #50, #51 y #88); el perfil declara la "
         "ausencia en lugar de un número."
     ),
@@ -435,7 +438,7 @@ def _celda(texto: str) -> str:
 
 def emitir_markdown(por_estrato: list[tuple[str, list[tuple[str, str, str, str]]]]) -> str:
     lineas: list[str] = [
-        "# Evaluación del Proyecto – Presentación",
+        "# Evaluación del Proyecto: Presentación",
         "",
         "Anexo 1 de la revisión de laboratorio (iLab/rLab). Documento generado por "
         "`Implementacion/Agente1/scripts/anexo1_presentacion.py`.",
@@ -542,7 +545,7 @@ def emitir_plantilla(
     Lista de Control.
     """
 
-    from docx.shared import Cm
+    from docx.shared import Cm, Pt
 
     doc = abrir_plantilla(plantilla)
 
@@ -598,6 +601,13 @@ def emitir_plantilla(
             celdas[0].text = _plano(f"{caracteristica} · {atributo}")
             celdas[1].text = _plano(estado)
             celdas[2].text = _plano(motivo)
+        # Las tablas son el grueso del anexo: con el cuerpo de la plantilla
+        # ocupaban doce de las dieciséis páginas.
+        for fila in tabla.rows:
+            for celda in fila.cells:
+                for parrafo in celda.paragraphs:
+                    for run in parrafo.runs:
+                        run.font.size = Pt(TAMANO_TABLA_PT)
         ancla.addnext(tabla._tbl)
         ancla = tabla._tbl
 
