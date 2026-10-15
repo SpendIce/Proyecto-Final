@@ -11,17 +11,26 @@ y las cifras y los estados son los mismos que usa el Anexo 2, así que no hay do
 números para lo mismo. La sección de seguridad **remite** al Anexo 3 y no la
 reescribe (issue #58/#108).
 
+Este anexo es donde vive la declaración del autor: los Anexos 2 y 3 sólo llevan
+los ítems que después completa el laboratorio, así que el estado, el motivo y la
+evidencia quedan acá —en las tablas por componente y en la Lista de Control—.
+
+Dos salidas, con dos propósitos distintos:
+
+- **Proyección en Markdown** (``Anexo1-Presentacion-v1.md``): la vista de
+  trabajo. Es interna: no se entrega.
+- **Entrega sobre la plantilla oficial** (``--plantilla``): el ``.docx`` que sí
+  va al laboratorio, volcado sobre ``3.1 - Anexo 1 - Presentación 2025.docx``.
+
 Uso:
 
     uv run python scripts/anexo1_presentacion.py
         # escribe Documentos/Laboratorio/Anexo1-Presentacion-v1.md
 
-    uv run --with python-docx python scripts/anexo1_presentacion.py \
-        --docx Documentos/Laboratorio/Anexo1-Presentacion-v1.docx
-        # además genera el .docx con el encabezado de la plantilla oficial
-        # «3.1 - Anexo 1 - Presentación 2025»; requiere python-docx en el
-        # entorno y no es la plantilla institucional (que llega con el
-        # material de cátedra), sólo el contenido derivado de la tabla fuente.
+    uv run --with python-docx python scripts/anexo1_presentacion.py \\
+        --plantilla "Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/3.1 - Anexo 1 - Presentación 2025.docx" \\
+        --docx Documentos/Laboratorio/Entrega-2026-10-23/Anexo1-Presentacion.docx
+        # escribe la entrega sobre la plantilla oficial. Requiere python-docx.
 """
 
 from __future__ import annotations
@@ -29,12 +38,20 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from anexo2_calidad import FilaFuente, parsear_fuente  # noqa: E402
+from plantilla_laboratorio import (  # noqa: E402
+    TITULO_PROYECTO,
+    abrir_plantilla,
+    buscar_parrafo,
+    guardar,
+    reemplazar_parrafo,
+)
 
 FUENTE = REPO / "Documentos" / "Laboratorio" / "Perfil-Calidad-Sistema-Demostracion-v1.md"
 SALIDA_MD = REPO / "Documentos" / "Laboratorio" / "Anexo1-Presentacion-v1.md"
@@ -121,6 +138,15 @@ MOTIVO_SEGURIDAD_REMITE = (
     "#108); este anexo lo remite y no lo reescribe."
 )
 
+INTRO_DETALLE = (
+    "Atributos tenidos en cuenta en cada componente, con el estado de "
+    "implementación declarado por el autor y su motivo. La escala de estados es "
+    "la de la revisión de laboratorio: A implementado satisfactoriamente, B "
+    "implementado con observaciones, C tenido en cuenta sin implementar y D "
+    "desconocido o ignorado expresamente (D lo asigna el laboratorio). Los "
+    "factores de (ciber)seguridad de cada estrato se declaran en el Anexo 3."
+)
+
 ATRIBUTO_SEGURIDAD = "Factores de (ciber)seguridad del estrato"
 
 # --- Prosa del documento -----------------------------------------------------
@@ -128,12 +154,6 @@ ATRIBUTO_SEGURIDAD = "Factores de (ciber)seguridad del estrato"
 # introducen cifras nuevas: las cifras y los estados de las tablas salen de la
 # tabla fuente, y las fechas institucionales son las del anteproyecto y del
 # glosario (`CONTEXT.md`).
-
-TITULO_PROYECTO = (
-    "Proyecto Centenario — Agente 1: Extensión Bot para la Secretaría de "
-    "Extensión Universitaria de la FIE (Facultad de Ingeniería del Ejército, "
-    "Universidad de la Defensa Nacional)"
-)
 
 REFERENCIA_FOTO = (
     "Las tablas de este anexo se derivan de la tabla fuente del perfil de "
@@ -296,45 +316,68 @@ LISTA_CONTROL = [
     (
         "Correr la suite completa (`uv run pytest -q`) y ver las matrices "
         "reproducibles por historia de usuario (`scripts/matriz_hu010.py`, "
-        "`matriz_hu011_v2.py`, `matriz_hu012.py`, `matriz_hu014.py`)."
+        "`scripts/matriz_hu011_v2.py`, `scripts/matriz_hu012.py`, "
+        "`scripts/matriz_hu014.py`). "
+        "Evidencia: `tests/` y `evidencias/` del Agente 1."
     ),
     (
         "Recorrer el canal con un pedido ambiguo y ver la repregunta con "
-        "candidatas sin persistir la prosa del pedido."
+        "candidatas sin persistir la prosa del pedido. "
+        "Evidencia: `src/agente1/canal_form.py`, `src/agente1/interpretacion.py`; "
+        "`tests/test_canal_form.py`, `tests/test_interpretacion.py`."
     ),
     (
         "Verificar el gate de generación sobre los casos adversariales: variable "
         "fuera de catálogo, dígito, fecha, importe, correo, enlace o hecho "
-        "escritos por el modelo, eco de prompting y salida truncada."
+        "escritos por el modelo, eco de prompting y salida truncada. "
+        "Evidencia: `src/agente1/procesamiento.py`, `src/agente1/politica_redes.py`; "
+        "`tests/test_plantillas_actividad.py`, `tests/test_posts.py`, "
+        "`tests/test_linea_descriptiva.py`, `tests/test_procesar_gacetilla.py`."
     ),
     (
         "Verificar la doble aprobación (semántica y utilitaria) y la aprobación "
         "de lote: sin las dos decisiones no hay encolado ni emisión, y editar la "
         "lista de cierre o la plantilla cambia el objeto y la aprobación previa "
-        "deja de aplicar."
+        "deja de aplicar. "
+        "Evidencia: `src/agente1/confirmaciones.py`, "
+        "`src/agente1/linea_descriptiva.py`; `tests/test_confirmaciones.py`, "
+        "`tests/test_linea_descriptiva.py`."
     ),
     (
         "Verificar la idempotencia durable y la reconciliación: una reserva "
         "colgada pasa a envío indeterminado sin reenviar y una re-corrida "
-        "termina duplicada."
+        "termina duplicada. "
+        "Evidencia: `src/agente1/confirmaciones.py`; "
+        "`tests/test_confirmaciones_durables.py`; "
+        "`evidencias/recuperacion-hu012-idempotencia-durable-2026-09-08.md`."
     ),
     (
         "Verificar que la auditoría y los reportes exponen sólo códigos, conteos "
-        "y hashes, sin destinatarios ni cuerpos."
+        "y hashes, sin destinatarios ni cuerpos. "
+        "Evidencia: `src/agente1/auditoria_d2.py`, "
+        "`src/agente1/operaciones_seguras.py`; "
+        "`tests/test_auditoria_seguridad_d2.py`, `tests/test_operaciones_seguras.py`."
     ),
     (
         "Verificar los límites de escritura: escribir es siempre crear nuevo y "
         "el envío por Gmail opera cercado por la lista de prueba, con rechazo "
-        "antes de tocar token o red."
+        "antes de tocar token o red. "
+        "Evidencia: `src/agente1/destinos.py`, `src/agente1/gmail_envio.py`; "
+        "`tests/test_destinos.py`, `tests/test_gmail_envio.py`."
     ),
     (
         "Verificar los insumos provisionales declarados: el sistema corre con "
         "ellos por el mecanismo productivo y ninguno queda como fake ni como "
-        "capacidad detenida."
+        "capacidad detenida. "
+        "Evidencia: el inventario de componentes del sistema de demostración "
+        "(issue #67) y la columna Estado de los dos perfiles."
     ),
     (
-        "Contrastar los estados declarados por estrato con el detalle por "
-        "atributo del Anexo 2 y con el perfil de seguridad del Anexo 3."
+        "Contrastar los estados declarados por estrato en este anexo con la "
+        "proyección del Anexo 2 y con la del Anexo 3, de las que salen los ítems "
+        "que evalúa el laboratorio. "
+        "Evidencia: `Documentos/Laboratorio/Anexo2-Calidad-Proyeccion-v1.md`, "
+        "`Documentos/Laboratorio/Anexo3-Seguridad-Proyeccion-v1.md`."
     ),
 ]
 
@@ -439,10 +482,7 @@ def emitir_markdown(por_estrato: list[tuple[str, list[tuple[str, str, str, str]]
         "",
         REFERENCIA_FOTO,
         "",
-        "Atributos tenidos en cuenta en cada componente, con el estado de "
-        "implementación declarado por el autor y su motivo. La escala de estados "
-        "y las reglas que los rigen están en el Anexo 2; los factores de "
-        "(ciber)seguridad de cada estrato se declaran en el Anexo 3.",
+        INTRO_DETALLE,
         "",
     ]
     for estrato, rows in por_estrato:
@@ -470,91 +510,89 @@ def emitir_markdown(por_estrato: list[tuple[str, list[tuple[str, str, str, str]]
     return "\n".join(lineas)
 
 
-def emitir_docx(por_estrato: list[tuple[str, list[tuple[str, str, str, str]]]], destino: Path) -> None:
-    try:
-        from docx import Document
-    except ImportError:
-        raise SystemExit(
-            "python-docx no está instalado; correr con "
-            "`uv run --with python-docx python scripts/anexo1_presentacion.py --docx …` "
-            "o instalar la dependencia en el entorno."
-        )
+def _plano(texto: str) -> str:
+    """Quita el marcado de Markdown que no tiene sentido en un .docx."""
 
-    doc = Document()
-    doc.core_properties.author = "Proyecto Centenario P100 — FIE/UNDEF"
-    doc.core_properties.last_modified_by = ""
-    doc.core_properties.title = "Anexo 1 — Presentación por estrato"
-    doc.core_properties.comments = "generado por scripts/anexo1_presentacion.py"
+    return texto.replace("**", "").replace("`", "")
 
-    doc.add_heading("Evaluación del Proyecto – Presentación", level=1)
 
-    doc.add_heading("Título del Proyecto", level=2)
-    doc.add_paragraph(TITULO_PROYECTO)
+def _encadenar(doc: Any, ancla: Any, texto: str) -> Any:
+    """Agrega un párrafo inmediatamente después del elemento `ancla`."""
 
-    doc.add_heading("Concepto General del Proyecto", level=2)
-    doc.add_paragraph("(abstract)")
-    for parrafo in CONCEPTO_GENERAL:
-        doc.add_paragraph(parrafo)
+    nuevo = doc.add_paragraph(_plano(texto))
+    ancla.addnext(nuevo._p)
+    return nuevo._p
 
-    doc.add_heading("Enfoque del proyecto", level=2)
+
+def emitir_plantilla(
+    por_estrato: list[tuple[str, list[tuple[str, str, str, str]]]],
+    plantilla: Path,
+    destino: Path,
+) -> None:
+    """Vuelca la presentación sobre la plantilla oficial «3.1 - Anexo 1».
+
+    Conserva los títulos y las viñetas de la plantilla y agrega el contenido
+    debajo de cada uno: el título, el concepto general, el enfoque, el esquema
+    de estratos, una tabla `Atributo | Estado | Motivo` por componente y la
+    Lista de Control.
+    """
+
+    doc = abrir_plantilla(plantilla)
+
+    # La plantilla trae una única tabla de ejemplo; se reemplaza por una tabla
+    # por estrato, así que se retira del documento.
+    for tabla in list(doc.tables):
+        tabla._tbl.getparent().remove(tabla._tbl)
+
+    ancla = buscar_parrafo(doc, "Título del Proyecto")._p
+    ancla = _encadenar(doc, ancla, TITULO_PROYECTO)
+
+    reemplazar_parrafo(doc, "(abstract)", CONCEPTO_GENERAL[0])
+    ancla = buscar_parrafo(doc, CONCEPTO_GENERAL[0])._p
+    for parrafo in CONCEPTO_GENERAL[1:]:
+        ancla = _encadenar(doc, ancla, parrafo)
+
+    ancla = buscar_parrafo(doc, "Enfoque del proyecto")._p
     for item in ENFOQUE:
-        doc.add_paragraph(item.replace("**", ""), style="List Bullet")
+        ancla = _encadenar(doc, ancla, f"• {item}")
 
-    doc.add_heading("Estado de las capacidades contra el gate TRL 4", level=2)
-    doc.add_paragraph(ESTADO_TRL_INTRO)
-    doc.add_paragraph(ESTADO_TRL_DEMOSTRADO.replace("**", ""))
-    doc.add_paragraph("No demostrado.")
+    ancla = _encadenar(doc, ancla, "Estado de las capacidades contra el gate TRL 4")
+    for parrafo in (ESTADO_TRL_INTRO, ESTADO_TRL_DEMOSTRADO, "No demostrado."):
+        ancla = _encadenar(doc, ancla, parrafo)
     for item in ESTADO_TRL_NO_DEMOSTRADO:
-        doc.add_paragraph(item.replace("**", ""), style="List Bullet")
-    doc.add_paragraph(ESTADO_TRL_BRECHA.replace("**", ""))
-    doc.add_paragraph(ESTADO_TRL_CIERRE.replace("**", ""))
+        ancla = _encadenar(doc, ancla, f"• {item}")
+    for parrafo in (ESTADO_TRL_BRECHA, ESTADO_TRL_CIERRE):
+        ancla = _encadenar(doc, ancla, parrafo)
 
-    doc.add_heading(
-        "Esquema general de los componentes del sistema y perfil de calidad de cada uno de ellos",
-        level=2,
-    )
-    doc.add_paragraph(
-        "El perfil se declara por estrato, la capa del inventario de componentes "
-        "sobre la que se lee el perfil de calidad. «Sistema» agrupa los atributos "
-        "transversales que ninguna capa ejerce sola. El orden de los estratos es "
-        "el del inventario:"
-    )
+    ancla = buscar_parrafo(doc, "Esquema general de los componentes")._p
     for estrato in ORDEN_ESTRATOS:
         etiqueta = ETIQUETA_ESTRATO.get(estrato, estrato)
-        doc.add_paragraph(f"{etiqueta}: {DESCRIPCION_ESTRATO[estrato]}", style="List Bullet")
+        ancla = _encadenar(doc, ancla, f"• {etiqueta}: {DESCRIPCION_ESTRATO[estrato]}")
 
-    doc.add_heading("Detalle de atributos de calidad por componente", level=2)
-    doc.add_paragraph(REFERENCIA_FOTO)
-    doc.add_paragraph(
-        "Atributos tenidos en cuenta en cada componente, con el estado de "
-        "implementación declarado por el autor y su motivo. La escala de estados "
-        "y las reglas que los rigen están en el Anexo 2; los factores de "
-        "(ciber)seguridad de cada estrato se declaran en el Anexo 3."
-    )
+    ancla = buscar_parrafo(doc, "Detalle de atributos de calidad")._p
+    ancla = _encadenar(doc, ancla, INTRO_DETALLE)
     for estrato, rows in por_estrato:
-        doc.add_heading(ETIQUETA_ESTRATO.get(estrato, estrato), level=3)
-        tabla = doc.add_table(rows=1, cols=4)
+        etiqueta = ETIQUETA_ESTRATO.get(estrato, estrato)
+        ancla = _encadenar(doc, ancla, etiqueta)
+        tabla = doc.add_table(rows=2, cols=3)
         tabla.style = "Table Grid"
-        encabezados = ["Característica (ISO/IEC 25010:2023)", "Atributo", "Estado", "Motivo"]
-        for i, texto in enumerate(encabezados):
-            tabla.rows[0].cells[i].text = texto
+        tabla.rows[0].cells[0].merge(tabla.rows[0].cells[2]).text = etiqueta
+        for i, encabezado in enumerate(("Atributo", "Estado", "Motivo")):
+            tabla.rows[1].cells[i].text = encabezado
         for caracteristica, atributo, estado, motivo in rows:
             celdas = tabla.add_row().cells
-            celdas[0].text = caracteristica
-            celdas[1].text = atributo
-            celdas[2].text = estado
-            celdas[3].text = motivo
+            celdas[0].text = _plano(f"{caracteristica} · {atributo}")
+            celdas[1].text = _plano(estado)
+            celdas[2].text = _plano(motivo)
+        ancla.addnext(tabla._tbl)
+        ancla = tabla._tbl
 
-    doc.add_heading("Lista de Control", level=2)
-    doc.add_paragraph(
-        "(Versión inicial prevista; se podrán agregar los puntos a considerar que "
-        "el laboratorio estime convenientes.)"
-    )
+    ancla = buscar_parrafo(doc, "Lista de Control")._p
     for item in LISTA_CONTROL:
-        doc.add_paragraph(item, style="List Bullet")
+        ancla = _encadenar(doc, ancla, f"• {item}")
 
-    destino.parent.mkdir(parents=True, exist_ok=True)
-    doc.save(destino)
+    guardar(doc, destino)
+
 
 
 def main() -> int:
@@ -572,10 +610,16 @@ def main() -> int:
         help="Destino de la presentación en Markdown.",
     )
     parser.add_argument(
+        "--plantilla",
+        type=Path,
+        default=None,
+        help="Plantilla oficial del Anexo 1; con --docx escribe la entrega sobre ella.",
+    )
+    parser.add_argument(
         "--docx",
         type=Path,
         default=None,
-        help="Destino del .docx derivado (requiere python-docx).",
+        help="Destino de la entrega (requiere python-docx y --plantilla).",
     )
     args = parser.parse_args()
 
@@ -591,8 +635,13 @@ def main() -> int:
     )
 
     if args.docx is not None:
-        emitir_docx(por_estrato, args.docx)
-        print(f"docx derivado escrito en {args.docx}")
+        if args.plantilla is None:
+            raise SystemExit(
+                "--docx requiere --plantilla: la entrega va sobre la plantilla "
+                "oficial de la cátedra, con las columnas del laboratorio vacías."
+            )
+        emitir_plantilla(por_estrato, args.plantilla, args.docx)
+        print(f"entrega sobre la plantilla oficial escrita en {args.docx}")
 
     return 0
 

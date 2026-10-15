@@ -6,9 +6,10 @@ desde la tabla fuente `Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracio
 
 Columnas de la plantilla oficial «3.2 - Anexo 2 - Calidad 2025.docx»:
 Factor de calidad | Atributo | Nivel de Competencia | Nivel de Competencia
-Global | Comentarios. Las columnas de nivel las completa el laboratorio;
-la declaración del autor (estado, motivo, evidencia y paso en vivo) va en
-Comentarios. Seguridad remite al Anexo 3 (#58).
+Global | Comentarios. La entrega la completa el equipo de proyecto con el
+factor y el atributo; las tres últimas columnas las completa el laboratorio
+al evaluar. Las columnas de esta proyección son la vista de trabajo del
+autor y no viajan a la plantilla. Seguridad remite al Anexo 3 (#58).
 
 | Factor de calidad | Atributo | Estado declarado (autor) | Motivo | Evidencia versionada | Paso en vivo (< 2 min) |
 |---|---|---|---|---|---|

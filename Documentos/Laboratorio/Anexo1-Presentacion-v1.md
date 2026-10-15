@@ -61,7 +61,7 @@ El perfil se declara por **estrato**, la capa del inventario de componentes sobr
 
 Las tablas de este anexo se derivan de la tabla fuente del perfil de calidad del sistema de demostración (`Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`), la misma que alimenta el Anexo 2: foto del inventario de componentes en el commit de base `98be859` (12/10/2026). El perfil de seguridad no se declara acá: cada estrato remite al Anexo 3.
 
-Atributos tenidos en cuenta en cada componente, con el estado de implementación declarado por el autor y su motivo. La escala de estados y las reglas que los rigen están en el Anexo 2; los factores de (ciber)seguridad de cada estrato se declaran en el Anexo 3.
+Atributos tenidos en cuenta en cada componente, con el estado de implementación declarado por el autor y su motivo. La escala de estados es la de la revisión de laboratorio: A implementado satisfactoriamente, B implementado con observaciones, C tenido en cuenta sin implementar y D desconocido o ignorado expresamente (D lo asigna el laboratorio). Los factores de (ciber)seguridad de cada estrato se declaran en el Anexo 3.
 
 ### Canal
 
@@ -194,12 +194,12 @@ Atributos tenidos en cuenta en cada componente, con el estado de implementación
 
 *(Versión inicial prevista; se podrán agregar los puntos a considerar que el laboratorio estime convenientes.)*
 
-- Correr la suite completa (`uv run pytest -q`) y ver las matrices reproducibles por historia de usuario (`scripts/matriz_hu010.py`, `matriz_hu011_v2.py`, `matriz_hu012.py`, `matriz_hu014.py`).
-- Recorrer el canal con un pedido ambiguo y ver la repregunta con candidatas sin persistir la prosa del pedido.
-- Verificar el gate de generación sobre los casos adversariales: variable fuera de catálogo, dígito, fecha, importe, correo, enlace o hecho escritos por el modelo, eco de prompting y salida truncada.
-- Verificar la doble aprobación (semántica y utilitaria) y la aprobación de lote: sin las dos decisiones no hay encolado ni emisión, y editar la lista de cierre o la plantilla cambia el objeto y la aprobación previa deja de aplicar.
-- Verificar la idempotencia durable y la reconciliación: una reserva colgada pasa a envío indeterminado sin reenviar y una re-corrida termina duplicada.
-- Verificar que la auditoría y los reportes exponen sólo códigos, conteos y hashes, sin destinatarios ni cuerpos.
-- Verificar los límites de escritura: escribir es siempre crear nuevo y el envío por Gmail opera cercado por la lista de prueba, con rechazo antes de tocar token o red.
-- Verificar los insumos provisionales declarados: el sistema corre con ellos por el mecanismo productivo y ninguno queda como fake ni como capacidad detenida.
-- Contrastar los estados declarados por estrato con el detalle por atributo del Anexo 2 y con el perfil de seguridad del Anexo 3.
+- Correr la suite completa (`uv run pytest -q`) y ver las matrices reproducibles por historia de usuario (`scripts/matriz_hu010.py`, `scripts/matriz_hu011_v2.py`, `scripts/matriz_hu012.py`, `scripts/matriz_hu014.py`). Evidencia: `tests/` y `evidencias/` del Agente 1.
+- Recorrer el canal con un pedido ambiguo y ver la repregunta con candidatas sin persistir la prosa del pedido. Evidencia: `src/agente1/canal_form.py`, `src/agente1/interpretacion.py`; `tests/test_canal_form.py`, `tests/test_interpretacion.py`.
+- Verificar el gate de generación sobre los casos adversariales: variable fuera de catálogo, dígito, fecha, importe, correo, enlace o hecho escritos por el modelo, eco de prompting y salida truncada. Evidencia: `src/agente1/procesamiento.py`, `src/agente1/politica_redes.py`; `tests/test_plantillas_actividad.py`, `tests/test_posts.py`, `tests/test_linea_descriptiva.py`, `tests/test_procesar_gacetilla.py`.
+- Verificar la doble aprobación (semántica y utilitaria) y la aprobación de lote: sin las dos decisiones no hay encolado ni emisión, y editar la lista de cierre o la plantilla cambia el objeto y la aprobación previa deja de aplicar. Evidencia: `src/agente1/confirmaciones.py`, `src/agente1/linea_descriptiva.py`; `tests/test_confirmaciones.py`, `tests/test_linea_descriptiva.py`.
+- Verificar la idempotencia durable y la reconciliación: una reserva colgada pasa a envío indeterminado sin reenviar y una re-corrida termina duplicada. Evidencia: `src/agente1/confirmaciones.py`; `tests/test_confirmaciones_durables.py`; `evidencias/recuperacion-hu012-idempotencia-durable-2026-09-08.md`.
+- Verificar que la auditoría y los reportes exponen sólo códigos, conteos y hashes, sin destinatarios ni cuerpos. Evidencia: `src/agente1/auditoria_d2.py`, `src/agente1/operaciones_seguras.py`; `tests/test_auditoria_seguridad_d2.py`, `tests/test_operaciones_seguras.py`.
+- Verificar los límites de escritura: escribir es siempre crear nuevo y el envío por Gmail opera cercado por la lista de prueba, con rechazo antes de tocar token o red. Evidencia: `src/agente1/destinos.py`, `src/agente1/gmail_envio.py`; `tests/test_destinos.py`, `tests/test_gmail_envio.py`.
+- Verificar los insumos provisionales declarados: el sistema corre con ellos por el mecanismo productivo y ninguno queda como fake ni como capacidad detenida. Evidencia: el inventario de componentes del sistema de demostración (issue #67) y la columna Estado de los dos perfiles.
+- Contrastar los estados declarados por estrato en este anexo con la proyección del Anexo 2 y con la del Anexo 3, de las que salen los ítems que evalúa el laboratorio. Evidencia: `Documentos/Laboratorio/Anexo2-Calidad-Proyeccion-v1.md`, `Documentos/Laboratorio/Anexo3-Seguridad-Proyeccion-v1.md`.

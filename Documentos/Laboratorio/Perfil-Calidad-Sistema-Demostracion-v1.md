@@ -142,14 +142,20 @@ Quedan declaradas `PENDIENTE` dentro de la tabla y no bloquean el armado:
 - **#58** (perfil de seguridad): la fila de Seguridad remite al Anexo 3.
 - **#90** (CI, cobertura y linter): brechas requeridas de analizabilidad y capacidad de prueba.
 - **Provisión D3** (parte de DEF-A1-001): la fila de adaptabilidad queda en `B` hasta una ejecución live sobre D3.
-- **Plantilla oficial del Anexo 2** (issue #57): la tabla de este documento se vuelca a la plantilla `3.2 - Anexo 2 - Calidad 2025.docx` cuando el entorno disponga del archivo oficial; la proyección generada por `Implementacion/Agente1/scripts/anexo2_calidad.py` produce el contenido, no la plantilla institucional.
-- **Correspondencia ISO/IEC 25010:2011:** el documento «04 - Decisiones Cruciales - 2025» no está disponible en el repo; si usa la versión 2011 del estándar se agrega la columna de correspondencia a la tabla del Anexo 2. Pendiente hasta que llegue el documento.
+- **Plantilla oficial del Anexo 2** (issue #57, resuelto): la entrega se vuelca sobre la plantilla `3.2 - Anexo 2 - Calidad 2025.docx`, que está en `Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/`. El equipo de proyecto completa `Factor de calidad` y `Atributo`; el laboratorio completa `Nivel de Competencia`, `Nivel de Competencia Global` y `Comentarios`. La declaración del autor —estado, motivo y evidencia— vive en el Anexo 1.
+- **Correspondencia ISO/IEC 25010:2011 (cerrado):** el documento «04 - Decisiones Cruciales - 2025» **no hace falta** (respuesta del laboratorio, 14/10): el laboratorio no lo usa —son ejemplos y referencias a normas— y el propio procedimiento nombra los estándares. No se agrega columna de correspondencia.
 
 ## 5. Proyección al Anexo 2
 
 El script `Implementacion/Agente1/scripts/anexo2_calidad.py` lee la tabla fuente de este documento (sección marcada `TABLA-FUENTE`) y emite:
 
 - `Documentos/Laboratorio/Anexo2-Calidad-Proyeccion-v1.md`: la tabla del Anexo 2 por atributo, en el orden de ISO/IEC 25010:2023, con las subcaracterísticas (25059), el conjunto reducido (25012) y la fila única de Seguridad que remite al Anexo 3.
-- Un `.docx` con la misma tabla cuando `python-docx` está disponible (`uv run --with python-docx python scripts/anexo2_calidad.py --docx <salida>`), con las columnas de la plantilla oficial: factor, atributo, nivel de competencia, nivel global y comentarios. Las columnas de nivel las completa el laboratorio.
+- La **entrega** sobre la plantilla oficial, con `--plantilla` y `--docx`:
 
-La proyección no agrega contenido: reordena y consolida la tabla fuente. El nivel de competencia (A-D) lo asigna el laboratorio, no el autor.
+      uv run --with python-docx python scripts/anexo2_calidad.py \
+        --plantilla "Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/3.2 - Anexo 2 - Calidad 2025.docx" \
+        --docx Documentos/Laboratorio/Anexo2-Calidad-v1.docx
+
+  Escribe `Factor de calidad` y `Atributo` en la tabla de la plantilla y deja **vacías** las tres columnas del laboratorio (`Nivel de Competencia`, `Nivel de Competencia Global` y `Comentarios`). `--docx` **requiere** `--plantilla`: es la única forma de emitir la entrega.
+
+La proyección no agrega contenido: reordena y consolida la tabla fuente. El nivel de competencia lo asigna el laboratorio, no el autor.

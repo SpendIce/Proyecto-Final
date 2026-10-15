@@ -1,4 +1,4 @@
-"""Proyección de la tabla fuente del perfil de calidad al formato del Anexo 2.
+"""Anexo 2 del laboratorio — tabla de calidad por atributo.
 
 Lee la tabla marcada ``TABLA-FUENTE`` de
 ``Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`` y emite la
@@ -6,20 +6,30 @@ tabla del Anexo 2 por atributo, en el orden de ISO/IEC 25010:2023, con las
 subcaracterísticas aplicables de ISO/IEC 25059:2023, el conjunto reducido de
 ISO/IEC 25012 y la fila única de Seguridad que remite al Anexo 3.
 
-La salida no agrega contenido: reordena y consolida la tabla fuente. Las
-columnas «Nivel de Competencia» y «Nivel de Competencia Global» quedan para el
-laboratorio, que es quien asigna el nivel.
+Dos salidas, con dos propósitos distintos:
+
+- **Proyección en Markdown** (``Anexo2-Calidad-Proyeccion-v1.md``): la vista de
+  trabajo, con la declaración completa del autor —estado, motivo, evidencia y
+  paso en vivo—. Es interna: no se entrega.
+- **Entrega sobre la plantilla oficial** (``--plantilla``): el ``.docx`` que sí
+  va al laboratorio, volcado sobre ``3.2 - Anexo 2 - Calidad 2025.docx``.
+
+El reparto de columnas lo fijan el correo del laboratorio del 14/10 y la nota al
+pie de la plantilla: el equipo de proyecto completa ``Factor de calidad`` y
+``Atributo``, y el laboratorio completa ``Nivel de Competencia``, ``Nivel de
+Competencia Global`` y ``Comentarios``. Por eso **el script no escribe la
+declaración del autor en las columnas del laboratorio**: el estado, el motivo y
+la evidencia viven en el Anexo 1.
 
 Uso:
 
     uv run python scripts/anexo2_calidad.py
         # escribe Documentos/Laboratorio/Anexo2-Calidad-Proyeccion-v1.md
 
-    uv run --with python-docx python scripts/anexo2_calidad.py \
-        --docx Documentos/Laboratorio/Anexo2-Calidad-v1.docx
-        # además genera el .docx con las columnas de la plantilla oficial.
-        # Requiere python-docx disponible en el entorno; no es la plantilla
-        # oficial de #57, sólo el contenido derivado de la tabla fuente.
+    uv run --with python-docx python scripts/anexo2_calidad.py \\
+        --plantilla "Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/3.2 - Anexo 2 - Calidad 2025.docx" \\
+        --docx Documentos/Laboratorio/Entrega-2026-10-23/Anexo2-Calidad.docx
+        # escribe la entrega sobre la plantilla oficial. Requiere python-docx.
 """
 
 from __future__ import annotations
@@ -29,10 +39,43 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from plantilla_laboratorio import (  # noqa: E402
+    TITULO_PROYECTO,
+    abrir_plantilla,
+    agregar_fila,
+    conservar_filas,
+    guardar,
+    reemplazar_en_celdas,
+    reemplazar_parrafo,
+    verificar_columnas,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parent.parent
 FUENTE = REPO / "Documentos" / "Laboratorio" / "Perfil-Calidad-Sistema-Demostracion-v1.md"
 SALIDA_MD = REPO / "Documentos" / "Laboratorio" / "Anexo2-Calidad-Proyeccion-v1.md"
+
+# Encabezado de la plantilla oficial «3.2 - Anexo 2 - Calidad 2025», para
+# verificar que la plantilla es la esperada antes de escribir.
+COLUMNAS_ENCABEZADO = [
+    "Factor de calidad",
+    "Atributo",
+    "Nivel de Competencia",
+    "Nivel de Competencia Global",
+    "Comentarios",
+]
+
+# Título de la tabla: la plantilla pide «<Citar estándar aplicado>».
+TITULO_TABLA = (
+    "Factores de Calidad — ISO/IEC 25010:2023, con subcaracterísticas de "
+    "ISO/IEC 25059:2023 y el conjunto reducido de ISO/IEC 25012:2023. "
+    "Seguridad remite al Anexo 3"
+)
+
+# Filas de la plantilla que se conservan: el título combinado y el encabezado.
+FILAS_ENCABEZADO_PLANTILLA = 2
 
 MARCADOR_INICIO = "<!-- TABLA-FUENTE:INICIO -->"
 MARCADOR_FIN = "<!-- TABLA-FUENTE:FIN -->"
@@ -226,9 +269,10 @@ def emitir_markdown(filas: list[tuple[str, str, str, str, str, str]]) -> str:
         "",
         "Columnas de la plantilla oficial «3.2 - Anexo 2 - Calidad 2025.docx»:",
         "Factor de calidad | Atributo | Nivel de Competencia | Nivel de Competencia",
-        "Global | Comentarios. Las columnas de nivel las completa el laboratorio;",
-        "la declaración del autor (estado, motivo, evidencia y paso en vivo) va en",
-        "Comentarios. Seguridad remite al Anexo 3 (#58).",
+        "Global | Comentarios. La entrega la completa el equipo de proyecto con el",
+        "factor y el atributo; las tres últimas columnas las completa el laboratorio",
+        "al evaluar. Las columnas de esta proyección son la vista de trabajo del",
+        "autor y no viajan a la plantilla. Seguridad remite al Anexo 3 (#58).",
         "",
         "| Factor de calidad | Atributo | Estado declarado (autor) | Motivo | Evidencia versionada | Paso en vivo (< 2 min) |",
         "|---|---|---|---|---|---|",
@@ -241,59 +285,30 @@ def emitir_markdown(filas: list[tuple[str, str, str, str, str, str]]) -> str:
     return "\n".join(lineas)
 
 
-def emitir_docx(filas: list[tuple[str, str, str, str, str, str]], destino: Path) -> None:
-    try:
-        from docx import Document
-    except ImportError:
+def emitir_plantilla(
+    filas: list[tuple[str, str, str, str, str, str]], plantilla: Path, destino: Path
+) -> None:
+    """Volca los atributos del Anexo 2 sobre la plantilla oficial de la cátedra.
+
+    Sólo completa las columnas del equipo de proyecto —`Factor de calidad` y
+    `Atributo`—: las del laboratorio quedan vacías para que las marque al
+    evaluar.
+    """
+
+    doc = abrir_plantilla(plantilla)
+    reemplazar_parrafo(doc, "<Título del Proyecto<", TITULO_PROYECTO)
+    reemplazar_en_celdas(doc, "Factores de Calidad", TITULO_TABLA)
+    if len(doc.tables) != 1:
         raise SystemExit(
-            "python-docx no está instalado; correr con "
-            "`uv run --with python-docx python scripts/anexo2_calidad.py --docx …` "
-            "o instalar la dependencia en el entorno."
+            f"la plantilla del Anexo 2 tiene {len(doc.tables)} tablas; se esperaba 1"
         )
+    tabla = doc.tables[0]
+    verificar_columnas(tabla, COLUMNAS_ENCABEZADO)
+    conservar_filas(tabla, FILAS_ENCABEZADO_PLANTILLA)
+    for caracteristica, atributo, _estado, _motivo, _evidencia, _paso in filas:
+        agregar_fila(tabla, [caracteristica, atributo])
+    guardar(doc, destino)
 
-    doc = Document()
-    doc.add_heading("Reporte de Evaluación — Anexo 2 (Calidad)", level=1)
-    doc.add_paragraph("Proyecto: Agente 1, Extension Bot (PPS Juan Ignacio Goñe)")
-    doc.add_paragraph(
-        "Contenido derivado de la tabla fuente "
-        "Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md "
-        "(foto del inventario, commit de base 98be859). Las columnas «Nivel de "
-        "Competencia» y «Nivel de Competencia Global» las completa el "
-        "laboratorio. La versión sobre la plantilla oficial "
-        "«3.2 - Anexo 2 - Calidad 2025.docx» queda pendiente de #57."
-    )
-    doc.add_paragraph(
-        "Factores de Calidad: ISO/IEC 25010:2023, con subcaracterísticas de "
-        "ISO/IEC 25059:2023, conjunto reducido de ISO/IEC 25012 y fila única de "
-        "Seguridad que remite al Anexo 3 (#58)."
-    )
-
-    tabla = doc.add_table(rows=1, cols=5)
-    tabla.style = "Table Grid"
-    encabezados = [
-        "Factor de calidad",
-        "Atributo",
-        "Nivel de Competencia",
-        "Nivel de Competencia Global",
-        "Comentarios",
-    ]
-    for i, texto in enumerate(encabezados):
-        tabla.rows[0].cells[i].text = texto
-
-    for caracteristica, atributo, estado, motivo, evidencia, paso in filas:
-        celdas = tabla.add_row().cells
-        celdas[0].text = caracteristica
-        celdas[1].text = atributo
-        celdas[2].text = ""
-        celdas[3].text = ""
-        partes = [f"Estado declarado por el autor: {estado}.", motivo]
-        if evidencia != "—":
-            partes.append(f"Evidencia versionada: {evidencia}.")
-        if paso != "—":
-            partes.append(f"Paso en vivo: {paso}.")
-        celdas[4].text = " ".join(partes)
-
-    doc.save(destino)
 
 
 def main() -> int:
@@ -311,10 +326,16 @@ def main() -> int:
         help="Destino de la proyección en Markdown.",
     )
     parser.add_argument(
+        "--plantilla",
+        type=Path,
+        default=None,
+        help="Plantilla oficial del Anexo 2; con --docx escribe la entrega sobre ella.",
+    )
+    parser.add_argument(
         "--docx",
         type=Path,
         default=None,
-        help="Destino del .docx derivado (requiere python-docx).",
+        help="Destino de la entrega (requiere python-docx y --plantilla).",
     )
     args = parser.parse_args()
 
@@ -326,8 +347,13 @@ def main() -> int:
     print(f"{len(filas)} atributos proyectados desde {len(filas_fuente)} filas -> {args.salida_md}")
 
     if args.docx is not None:
-        emitir_docx(filas, args.docx)
-        print(f"docx derivado escrito en {args.docx}")
+        if args.plantilla is None:
+            raise SystemExit(
+                "--docx requiere --plantilla: la entrega va sobre la plantilla "
+                "oficial de la cátedra, con las columnas del laboratorio vacías."
+            )
+        emitir_plantilla(filas, args.plantilla, args.docx)
+        print(f"entrega sobre la plantilla oficial escrita en {args.docx}")
 
     return 0
 
