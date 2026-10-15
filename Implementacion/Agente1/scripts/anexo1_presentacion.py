@@ -149,6 +149,13 @@ INTRO_DETALLE = (
 
 ATRIBUTO_SEGURIDAD = "Factores de (ciber)seguridad del estrato"
 
+# Anchos en centímetros de las columnas `Atributo | Estado | Motivo` (el ancho
+# útil de la plantilla es de 15 cm). La plantilla oficial los define desiguales;
+# el `Motivo` es el que lleva texto, así que se queda con la mayor parte. Se
+# guardan en centímetros y se convierten dentro del emisor para no importar
+# `python-docx` —dependencia opcional— al cargar el módulo.
+ANCHOS_COLUMNAS_CM = (5.0, 1.7, 8.3)
+
 # --- Prosa del documento -----------------------------------------------------
 # Estos textos se reproducen en el Markdown versionado y en el Word. No
 # introducen cifras nuevas: las cifras y los estados de las tablas salen de la
@@ -251,16 +258,14 @@ ESTADO_TRL_INTRO = (
 )
 
 ESTADO_TRL_DEMOSTRADO = (
-    "**Demostrado sobre el sistema de demostración.** El sistema corre de punta "
-    "a punta en la laptop del autor con modelo local (Ollama) y sobre Google "
-    "Workspace D2 con la cuenta técnica; la corrida live del 28/09/2026 quedó "
-    "verificada con smoke de lectura, casos negativos y un extremo a extremo de "
-    "gacetilla cuyo borrador real quedó en la carpeta autorizada, sin modificar "
-    "nada existente. HU-010 a HU-014 están implementadas dentro del alcance "
-    "declarado —gacetilla, post, plantilla de correo por actividad y certificado "
-    "con línea descriptiva y circuito de lote—, la suite y las matrices por "
-    "historia las ejercitan, y cada fila A o B de las tablas por estrato cita su "
-    "evidencia versionada y su paso en vivo."
+    "**Demostrado sobre el sistema de demostración.** La corrida live del "
+    "28/09/2026 quedó verificada con smoke de lectura, casos negativos y un "
+    "extremo a extremo de gacetilla cuyo borrador real quedó en la carpeta "
+    "autorizada, sin modificar nada existente. HU-010 a HU-014 están "
+    "implementadas dentro del alcance declarado —gacetilla, post, plantilla de "
+    "correo por actividad y certificado con línea descriptiva y circuito de "
+    "lote—, la suite y las matrices por historia las ejercitan, y cada fila A o "
+    "B de las tablas por estrato cita su evidencia versionada y su paso en vivo."
 )
 
 ESTADO_TRL_NO_DEMOSTRADO = [
@@ -537,6 +542,8 @@ def emitir_plantilla(
     Lista de Control.
     """
 
+    from docx.shared import Cm
+
     doc = abrir_plantilla(plantilla)
 
     # La plantilla trae una única tabla de ejemplo; se reemplaza por una tabla
@@ -576,6 +583,13 @@ def emitir_plantilla(
         ancla = _encadenar(doc, ancla, etiqueta)
         tabla = doc.add_table(rows=2, cols=3)
         tabla.style = "Table Grid"
+        # Anchos explícitos: la plantilla usa columnas desiguales, y dejar
+        # `add_table` en tercios iguales le da un tercio de la hoja a `Estado`,
+        # que es una letra, y envuelve el `Motivo` en una franja angosta.
+        tabla.autofit = False
+        for fila in tabla.rows:
+            for indice, ancho_cm in enumerate(ANCHOS_COLUMNAS_CM):
+                fila.cells[indice].width = Cm(ancho_cm)
         tabla.rows[0].cells[0].merge(tabla.rows[0].cells[2]).text = etiqueta
         for i, encabezado in enumerate(("Atributo", "Estado", "Motivo")):
             tabla.rows[1].cells[i].text = encabezado

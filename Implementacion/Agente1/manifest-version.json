@@ -7,7 +7,7 @@
     "migrations/0003_rechazo_timestamps_futuros.down.sql": "41980a7780ec285ffbfcc728dfbbfd59a009fde62dcb22c4630711c42f1e2867",
     "migrations/0003_rechazo_timestamps_futuros.up.sql": "aed22abf995168bda154b790a4a1a45afbd7dc3fddafe9f5a6c85e128144d72d",
     "pyproject.toml": "50f18a0b0794a3edf5e8f1650b06b6d78b2da7d825924bb58c74168d46fa604c",
-    "scripts/anexo1_presentacion.py": "3838021df4b8dad2465f207cd3b177722c74fd5b8afa48de0aa0ee7f2d306b3a",
+    "scripts/anexo1_presentacion.py": "49ebc01912c8f3c14625b8b899767bfe877515782edbd04eeaca4ea984a59cc9",
     "scripts/anexo2_calidad.py": "a7899d044f7db72767aba831217eb61664956d952b3d4ad059903ee8d3624ae0",
     "scripts/anexo3_seguridad.py": "a02e24eec393e8ea9db6d144610289bc6bdbc7797d7140904584b27eb85cc466",
     "scripts/atender_canal_form.py": "67574396f91ec3b7bb816e9d264127e0e8f499c19eee704910285b44a49c9c4f",
