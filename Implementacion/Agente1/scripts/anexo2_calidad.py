@@ -41,6 +41,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from anexos_seleccion import seleccionar_calidad  # noqa: E402
 from plantilla_laboratorio import (  # noqa: E402
     TITULO_PROYECTO,
     abrir_plantilla,
@@ -190,11 +191,16 @@ def parsear_fuente(texto: str) -> list[FilaFuente]:
     return filas
 
 
-def proyectar(filas: list[FilaFuente]) -> list[tuple[str, str, str, str, str, str]]:
+def proyectar(
+    filas: list[FilaFuente], permitir_faltantes: bool = False
+) -> list[tuple[str, str, str, str, str, str]]:
     """Agrupa por (característica, atributo) en el orden del estándar.
 
     Devuelve filas de seis celdas: característica, atributo, estado declarado,
     motivo consolidado por estrato, evidencia y paso en vivo.
+
+    ``permitir_faltantes`` lo usa el recorte de la selección: la fuente completa
+    se valida entera y después se proyecta sólo lo que se declara.
     """
 
     por_clave: dict[tuple[str, str], list[FilaFuente]] = {}
@@ -213,7 +219,7 @@ def proyectar(filas: list[FilaFuente]) -> list[tuple[str, str, str, str, str, st
             + ", ".join(f"{c}/{a}" for c, a in sobrantes)
         )
     faltantes = sorted(conocidas - set(por_clave))
-    if faltantes:
+    if faltantes and not permitir_faltantes:
         raise ValueError(
             "atributos del orden canónico sin fila en la fuente: "
             + ", ".join(f"{c}/{a}" for c, a in faltantes)
@@ -222,7 +228,11 @@ def proyectar(filas: list[FilaFuente]) -> list[tuple[str, str, str, str, str, st
     salida: list[tuple[str, str, str, str, str, str]] = []
     for caracteristica, atributos in ORDEN_CARACTERISTICAS:
         for atributo in atributos:
-            grupo = por_clave[(caracteristica, atributo)]
+            grupo = por_clave.get((caracteristica, atributo))
+            if not grupo:
+                # El recorte de la selección deja atributos afuera: no se
+                # declaran, pero siguen en el perfil.
+                continue
             estados = sorted(
                 {
                     parte.strip()
@@ -266,6 +276,9 @@ def emitir_markdown(filas: list[tuple[str, str, str, str, str, str]]) -> str:
         "Documento generado por `Implementacion/Agente1/scripts/anexo2_calidad.py`",
         "desde la tabla fuente `Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`",
         "(foto del inventario en el commit de base `98be859`, 2026-10-12).",
+        "",
+        "Declara una **selección** de hasta 3 atributos por componente "
+        "(`scripts/anexos_seleccion.py`); el perfil completo queda en la fuente.",
         "",
         "Columnas de la plantilla oficial «3.2 - Anexo 2 - Calidad 2025.docx»:",
         "Factor de calidad | Atributo | Nivel de Competencia | Nivel de Competencia",
@@ -340,7 +353,8 @@ def main() -> int:
     args = parser.parse_args()
 
     filas_fuente = parsear_fuente(args.fuente.read_text(encoding="utf-8"))
-    filas = proyectar(filas_fuente)
+    proyectar(filas_fuente)  # la fuente completa se valida entera
+    filas = proyectar(seleccionar_calidad(filas_fuente), permitir_faltantes=True)
 
     args.salida_md.parent.mkdir(parents=True, exist_ok=True)
     args.salida_md.write_text(emitir_markdown(filas), encoding="utf-8")

@@ -36,6 +36,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from anexos_seleccion import seleccionar_seguridad  # noqa: E402
 from plantilla_laboratorio import (  # noqa: E402
     TITULO_PROYECTO,
     abrir_plantilla,
@@ -204,6 +205,9 @@ def emitir_markdown(filas: list[FilaFuente]) -> str:
         "desde la tabla fuente `Documentos/Laboratorio/Perfil-Seguridad-Sistema-Demostracion-v1.md`.",
         "Los tres anexos declaran una sola foto, la del día del envío.",
         "",
+        "Declara una **selección** de hasta 3 ítems por componente "
+        "(`scripts/anexos_seleccion.py`); el perfil completo queda en la fuente.",
+        "",
         "Vista de trabajo del autor: no se entrega y no reemplaza a la plantilla oficial",
         "«3.3 - Anexo 3 - Seguridad 2025», sobre la que se escribe la entrega con `--plantilla`.",
         "Las columnas de nivel y el `Comentario` son del laboratorio y por eso no aparecen acá.",
@@ -282,7 +286,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    filas = ordenar(parsear_fuente(args.fuente.read_text(encoding="utf-8")))
+    filas = ordenar(
+        seleccionar_seguridad(parsear_fuente(args.fuente.read_text(encoding="utf-8")))
+    )
 
     args.salida_md.parent.mkdir(parents=True, exist_ok=True)
     args.salida_md.write_text(emitir_markdown(filas), encoding="utf-8")

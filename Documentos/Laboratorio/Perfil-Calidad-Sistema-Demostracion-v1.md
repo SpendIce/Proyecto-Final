@@ -159,3 +159,5 @@ El script `Implementacion/Agente1/scripts/anexo2_calidad.py` lee la tabla fuente
   Escribe `Factor de calidad` y `Atributo` en la tabla de la plantilla y deja **vacías** las tres columnas del laboratorio (`Nivel de Competencia`, `Nivel de Competencia Global` y `Comentarios`). `--docx` **requiere** `--plantilla`: es la única forma de emitir la entrega.
 
 La proyección no agrega contenido: reordena y consolida la tabla fuente. El nivel de competencia lo asigna el laboratorio, no el autor.
+
+**Este documento es el registro interno completo**; los anexos declaran una selección de hasta 3 atributos por componente (`Implementacion/Agente1/scripts/anexos_seleccion.py`), elegida para mostrar las claves del proyecto sin que cada atributo declarado se convierta en un pedido de demostración en la reunión.

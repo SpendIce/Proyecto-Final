@@ -162,6 +162,8 @@ El script `Implementacion/Agente1/scripts/anexo3_seguridad.py` lee la tabla fuen
 
 La proyección no agrega contenido: reordena y consolida la tabla fuente. Las columnas de nivel y el `Comentario` los completa el laboratorio, no el autor.
 
+**Este documento es el registro interno completo**; los anexos declaran una selección de hasta 3 ítems por componente (`Implementacion/Agente1/scripts/anexos_seleccion.py`), elegida para mostrar las claves del proyecto sin que cada ítem declarado se convierta en un pedido de demostración en la reunión. Quedan afuera, y se declaran en la reunión si el laboratorio pregunta, lo previsto y no implementado y las ausencias explícitas.
+
 ## 8. Celdas pendientes y supuestos
 
 Quedan declaradas dentro de la tabla y no bloquean el armado:

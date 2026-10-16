@@ -45,6 +45,10 @@ REPO = ROOT.parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from anexo2_calidad import FilaFuente, parsear_fuente  # noqa: E402
+from anexos_seleccion import (  # noqa: E402
+    TOPE_POR_COMPONENTE,
+    seleccionar_calidad,
+)
 from plantilla_laboratorio import (  # noqa: E402
     TITULO_PROYECTO,
     abrir_plantilla,
@@ -443,6 +447,11 @@ def emitir_markdown(por_estrato: list[tuple[str, list[tuple[str, str, str, str]]
         "Anexo 1 de la revisión de laboratorio (iLab/rLab). Documento generado por "
         "`Implementacion/Agente1/scripts/anexo1_presentacion.py`.",
         "",
+        "Vista de trabajo del anexo: declara una **selección** de hasta "
+        f"{TOPE_POR_COMPONENTE} atributos por componente (`scripts/anexos_seleccion.py`). "
+        "El perfil completo, con todo lo evaluado, queda en "
+        "`Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`.",
+        "",
         "## Título del Proyecto",
         "",
         TITULO_PROYECTO,
@@ -583,7 +592,8 @@ def emitir_plantilla(
     ancla = _encadenar(doc, ancla, INTRO_DETALLE)
     for estrato, rows in por_estrato:
         etiqueta = ETIQUETA_ESTRATO.get(estrato, estrato)
-        ancla = _encadenar(doc, ancla, etiqueta)
+        # La plantilla rotula cada tabla con una fila combinada con el nombre
+        # del componente: no hace falta repetirlo en un párrafo aparte.
         tabla = doc.add_table(rows=2, cols=3)
         tabla.style = "Table Grid"
         # Anchos explícitos: la plantilla usa columnas desiguales, y dejar
@@ -648,7 +658,7 @@ def main() -> int:
     args = parser.parse_args()
 
     filas_fuente = parsear_fuente(args.fuente.read_text(encoding="utf-8"))
-    por_estrato = proyectar_por_estrato(filas_fuente)
+    por_estrato = proyectar_por_estrato(seleccionar_calidad(filas_fuente))
 
     args.salida_md.parent.mkdir(parents=True, exist_ok=True)
     args.salida_md.write_text(emitir_markdown(por_estrato), encoding="utf-8")
