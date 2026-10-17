@@ -913,7 +913,9 @@ class CanalFormPedidos:
         # identificador de la planilla), nunca prosa. En v1 no hay nada que
         # declarar y el registro queda como siempre.
         estructura = dict(pedido.estructura) if pedido.estructura else {}
-        declarado = {k: v for k, v in estructura.items() if v} or None
+        # El filtrado de valores vacíos lo hace `_registrar_atendido` al
+        # escribir el registro; acá sólo se decide si hay algo que declarar.
+        declarado = estructura or None
         asunto = _asunto_aviso(pedido=pedido, resultado=resultado)
         cuerpo = self._cuerpo_aviso(
             pedido=pedido,
