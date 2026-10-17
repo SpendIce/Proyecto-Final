@@ -69,7 +69,7 @@
     "procedencia": "data/corpus-fie-informa-difusiones.procedencia.csv",
     "procedencia_sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc",
     "documento": "evidencias/set-evaluacion-gacetillas-fie-informa-2026-10-14.md",
-    "documento_sha256": "e13cae30db56e4040177cbbee9bb1eb4acf7a2cbaabf5cf6f163f5494643ffb1",
+    "documento_sha256": "16ff1a6aca22e645125d110e9588ada677ffa09e860d7a53011470f735de9e2b",
     "chequeos": "tests/test_set_evaluacion_fie_informa.py"
   },
   "descargos": {

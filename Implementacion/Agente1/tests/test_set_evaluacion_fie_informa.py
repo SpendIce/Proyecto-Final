@@ -315,9 +315,7 @@ def test_el_eje_1_solo_cubre_tipos_que_generan_y_declara_su_fuente_de_fidelidad(
         assert modos[tipo] == "genera", tipo
     for caso_id in eje1["casos"]:
         caso = casos[caso_id]
-        assert caso["ejes"] == ["eje_1_calidad_de_prosa_generada"] or (
-            "eje_1_calidad_de_prosa_generada" in caso["ejes"]
-        ), caso_id
+        assert "eje_1_calidad_de_prosa_generada" in caso["ejes"], caso_id
         if caso["tipo"] == "difusion_de_actividad":
             assert "la fila" in caso["fuente_de_fidelidad"], caso_id
         else:

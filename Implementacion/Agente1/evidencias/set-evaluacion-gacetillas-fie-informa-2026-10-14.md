@@ -272,18 +272,18 @@ chequeos binarios, por caso (todos deben dar verde):
 
 Por tipo, los siete, binario y automático, sin rúbrica:
 
-1. **Forma declarada por tipo** — cada tipo tiene su archivo versionado en
+1. **Forma declarada por tipo**: cada tipo tiene su archivo versionado en
    `src/agente1/contracts/formas/<tipo>_v1.json` (#121, congelado en el
    manifest de versión).
-2. **Render contra la forma** — la pieza representativa del tipo se arma con
+2. **Render contra la forma**: la pieza representativa del tipo se arma con
    el renderer único de #121 y se compara byte a byte contra
    `golden/formas/<tipo>.md`.
-3. **Gate por tipo** — núcleo común (largo, sin marcadores sin resolver, sin
+3. **Gate por tipo**: núcleo común (largo, sin marcadores sin resolver, sin
    vocabulario de proceso interno, cada hecho impreso contra lo confirmado)
    más las reglas propias del tipo (un aviso no afirma una invitación, un
    fallecimiento no inventa un nombre, un comunicado no inventa el área
    emisora).
-4. **Sin datos que la forma no imprima** — la pieza contiene exactamente lo
+4. **Sin datos que la forma no imprima**: la pieza contiene exactamente lo
    confirmado: en extrae y confirma, los datos los carga quien pide.
 
 El caso representativo por tipo es declarativo (qué pieza del corpus
