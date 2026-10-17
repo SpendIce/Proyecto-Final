@@ -32,6 +32,14 @@ ids de mentira y el registro en `<directorio>/estado-decisiones/`; en live
 sólo si el entorno declara `AGENTE1_FORM_DECISIONES_*`. Las respuestas de
 ese Form las procesa `scripts/registrar_form_decisiones.py`.
 
+El canal consulta además al modelo local como **intérprete** (#26, #27): con
+un pedido que el camino determinístico no resuelve extrae términos de
+búsqueda, y con uno que ninguna regla reconoce puede proponer una intención
+permitida. En live el intérprete es `OllamaGenerator`; en offline un fake
+declarado (`_InterpreteOffline`), como el generador. Una propuesta no genera
+nada: sale por el aviso con un enlace al mismo Form y sólo un envío nuevo la
+convierte en pedido.
+
 Un pedido «emití los certificados de <actividad>» (#75) despacha al
 circuito de lote de cierre de `certificados_emision`, cableado sólo cuando
 hay lista declarada: en offline con `--lista-csv` (más `--aprobador` y, si
@@ -208,6 +216,36 @@ class _GeneradorOffline:
                 _SALIDA_PLANTILLA_BASE + bloque_plan + _SALIDA_PLANTILLA_CIERRE
             )
         return self._salida_gacetilla
+
+
+# Salida del intérprete fake del modo offline (#27): el modelo simulado que el
+# canal usa como fallback. Como `_GeneradorOffline`, devuelve una respuesta
+# fija: propone `generar_gacetilla` con los términos normalizados de la fila
+# `SYN-001` del dataset («Taller sintético de vinculación»), que es la forma
+# que un modelo real aportaría para un pedido como «necesito la gasetiya del
+# taller sintetico». No interpreta nada: el camino determinístico de
+# `interpretacion.py` sigue siendo el único que clasifica y resuelve la
+# actividad, y sólo llega acá un pedido que ninguna regla reconoció.
+_INTERPRETE_OFFLINE_PROPUESTA = (
+    '{"intencion":"generar_gacetilla",'
+    '"terminos_busqueda":["taller","sintetico","vinculacion"]}'
+)
+
+
+class _InterpreteOffline:
+    """Intérprete fake del modo offline: propone gacetilla con una salida fija.
+
+    Simula al modelo local del fallback (#26, #27) sin red ni credenciales,
+    igual que `_GeneradorOffline` simula al generador con la ficha golden. La
+    salida es la de `_INTERPRETE_OFFLINE_PROPUESTA`; en live el intérprete es
+    un `OllamaGenerator` de verdad.
+    """
+
+    modelo = "fake-offline-interprete"
+    num_predict = None
+
+    def generar(self, prompt: str) -> str:
+        return _INTERPRETE_OFFLINE_PROPUESTA
 
 
 def _planes_desde_csvs(rutas: list[Path]) -> dict[str, PlanPago]:
@@ -512,6 +550,9 @@ def main(argv: list[str] | None = None) -> int:
                 ),
                 "certificados": emisor is not None,
             }
+            # El intérprete consulta el modelo local (#26, #27): en live es el
+            # mismo adapter de Ollama que redacta, con su propio presupuesto.
+            interprete = OllamaGenerator(modelo=args.modelo)
             modo = "live_write_opt_in"
         else:
             padron = _cargar_padron(args)
@@ -532,6 +573,7 @@ def main(argv: list[str] | None = None) -> int:
             fuente = CsvFuenteSolicitudes(args.csv)
             destino = None  # MarkdownDestinoBorradores por defecto del núcleo
             generator = _GeneradorOffline(_fake_output_desde_golden())
+            interprete = _InterpreteOffline()
             emisor = _emisor_offline(
                 args,
                 fuente=fuente,
@@ -553,6 +595,7 @@ def main(argv: list[str] | None = None) -> int:
             directorio_salida=args.directorio,
             generator=generator,
             destino=destino,
+            interprete=interprete,
             emisor_certificados=emisor,
             planes_pago=planes_pago,
         )
