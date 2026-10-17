@@ -49,7 +49,7 @@ procedimiento.
   con `["instagram", "linkedin", "web", "correo", null]` (#117).
 - `CONTRACT_VERSION` = `historia_viva_v1_1.1.0-rc2` (#117).
 
-
+## [0.3.0] - 2026-10-17
 
 El canal del Form declara el tipo de gacetilla, pide la actividad sólo para
 los tipos que la llevan y resuelve el área emisora por un padrón cerrado
