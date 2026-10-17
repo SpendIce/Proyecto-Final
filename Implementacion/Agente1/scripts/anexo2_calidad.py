@@ -275,7 +275,9 @@ def emitir_markdown(filas: list[tuple[str, str, str, str, str, str]]) -> str:
         "",
         "Documento generado por `Implementacion/Agente1/scripts/anexo2_calidad.py`",
         "desde la tabla fuente `Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`",
-        "(foto del inventario en el commit de base `98be859`, 2026-10-12).",
+        "(foto del corte del 17/10/2026 en el commit de base `3e392c5`, 2026-10-17: "
+        "los siete tipos de gacetilla declarados (#121), el set de evaluación de dos "
+        "ejes (#111) y el tipo en el canal (#122)).",
         "",
         "Declara una **selección** de hasta 3 atributos por componente "
         "(`scripts/anexos_seleccion.py`); el perfil completo queda en la fuente.",
