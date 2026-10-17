@@ -80,6 +80,12 @@ class PedidoCanal:
     id_pedido: str
     solicitante: IdentidadSolicitante
     texto: str
+    # Las columnas estructuradas declaradas por el canal (#122), cuando la
+    # forma de la hoja las tiene. Vocabulario cerrado del contrato de la
+    # hoja: identificadores de tipos de gacetilla, de actividad de la
+    # planilla y de área emisora del padrón. `None` en los pedidos de la
+    # forma v1, donde no hay campos estructurados que declarar.
+    estructura: Mapping[str, str] | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -93,6 +99,8 @@ class PedidoCanal:
             raise ValueError("pedido de canal sin identidad de solicitante válida")
         if not isinstance(self.texto, str):
             raise ValueError("pedido de canal sin texto")
+        if self.estructura is not None and not isinstance(self.estructura, Mapping):
+            raise ValueError("estructura de pedido de canal inválida")
 
 
 class CanalInteraccion(Protocol):

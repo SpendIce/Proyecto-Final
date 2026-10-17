@@ -20,6 +20,41 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.3.0] - 2026-10-17
+
+El canal del Form declara el tipo de gacetilla, pide la actividad sólo para
+los tipos que la llevan y resuelve el área emisora por un padrón cerrado
+(#122). Es un cambio **Menor**: la forma v1 de la hoja sigue siendo el
+default y ningún contrato vivo cambia su comportamiento; la forma v2 del
+canal es opt-in por `AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO` y las listas
+cerradas son contratos nuevos versionados, no reescrituras de contratos
+vigentes. La forma v1 se versiona retroactivamente, tal como ya se leía.
+
+### Menor — capacidades, prompts y políticas
+
+- Contratos versionados de la hoja de respuestas del Form: `canal_form_respuestas_v1`
+  (la forma de una sola pregunta abierta, retroactiva) y
+  `canal_form_respuestas_v2` (tipo de gacetilla como primera pregunta, 
+  actividad condicional, área emisora y pedido libre) (#122).
+- Padrón cerrado de áreas emisoras (`contracts/areas_emisoras_v1.json`,
+  provisional, con las firmas de área observadas en el corpus): la firma del
+  área que la pieza imprime sale del padrón, por el placeholder
+  `{area_emisora}` de la forma declarada del tipo, sin editar formas (#122).
+- El canal v2 valida el tipo contra la lista cerrada de
+  `tipos_gacetilla_v1` y la actividad es condicional: «No es una actividad /
+  no figura» no registra ninguna actividad, y una fila que no cumple las
+  listas cerradas termina en un desenlace acotado del canal (aviso con
+  mensaje fijo, registro con código, sin núcleo y sin generación) (#122).
+- El pedido estructurado despacha por el mismo clasificador determinístico
+  de #115 (`gacetilla actividad <id>`); el registro de atendidos de la
+  forma v2 declara el contrato de hoja leído, los campos estructurados que
+  trajo la fila y el origen de los hechos de la pieza (fuente institucional
+  o declaración de la solicitud) (#122).
+- La sincronización automática del desplegable de actividades (Apps Script)
+  queda declarada como destino del canal, no construida: el desplegable se
+  carga a mano como insumo provisional con identificadores de la planilla
+  (#122).
+
 ## [0.2.0] - 2026-10-17
 
 La gacetilla declara su tipo y el tipo declara su modo y su forma (ADR 0012).

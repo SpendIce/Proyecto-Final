@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:canal-form-respuestas:v2",
+  "title": "Forma de la hoja de respuestas del Form de pedidos con tipo declarado (v2)",
+  "description": "Form de pedidos con el tipo de gacetilla como primera pregunta (lista cerrada), actividad condicional, area emisora por padron cerrado y un campo de texto libre para el resto del pedido. La SEU todavia no conocio el Form, asi que la interfaz no esta congelada y se puede cambiar. Quien crea el Form declara estas preguntas en este orden; el agente sigue sin crear ni escribir el Form: solo lee la hoja de respuestas.",
+  "x-contract-version": "canal_form_respuestas_v2",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL: la interfaz pendiente de revision con la SEU.",
+  "x-decision": "#122",
+  "x-adr-012-conexion": "Los otros seis tipos declaran su tipo en el campo de tipo y confirman sus datos ahi; el tipo no se infiere de la prosa (ADR 0012). El circuito de prosa libre #115 queda como camino de respaldo: lo que desemboca sin tipo declarado sigue siendo gacetilla de actividad.",
+  "x-contrato-hoja-previa": "canal_form_respuestas_v1",
+  "x-contrato-tipos": "urn:proyecto-centenario:agente1:tipos-gacetilla:v1",
+  "x-contrato-areas": "urn:proyecto-centenario:agente1:areas-emisoras:v1",
+  "x-insumo-provisional": "El desplegable de actividades se carga a mano con identificadores de la planilla de actividades (insumo provisional). Su sincronizacion automatica (Apps Script) queda declarada como destino del canal y no se construye en esta iteracion; el agente sigue sin escribir el Form.",
+  "columnas": {
+    "marca_temporal": 0,
+    "correo": 1,
+    "tipo_gacetilla": 2,
+    "actividad": 3,
+    "area_emisora": 4,
+    "pedido": 5
+  },
+  "preguntas": [
+    {
+      "columna": "tipo_gacetilla",
+      "obligatoria": true,
+      "lista_cerrada": "los siete identificadores de tipos_gacetilla_v1 (las opciones del desplegable son los identificadores tal cual)",
+      "orden": "primera pregunta: el tipo manda y selecciona la forma declarada"
+    },
+    {
+      "columna": "actividad",
+      "condicional": "solo se pregunta si el tipo declarado lleva actividad (hoy difusion_de_actividad)",
+      "valores": "identificadores de la planilla de actividades",
+      "ultima_opcion": {
+        "etiqueta": "No es una actividad / no figura",
+        "efecto": "no da de alta ninguna actividad: para tipos que llevan actividad es desenlace acotado sin generar (cargarla en la planilla institucional no es tarea del agente); lleva a los tipos que no la necesitan"
+      }
+    },
+    {
+      "columna": "area_emisora",
+      "obligatoria_si": "el contrato de entrada del tipo exige area_emisora",
+      "lista_cerrada": "los identificadores de areas_emisoras_v1; la firma que imprime la pieza sale del padron, no del texto de la hoja"
+    },
+    {
+      "columna": "pedido",
+      "libre": true,
+      "entrada": "no confiable (ADR 0001): se transporta al nucleo y nunca se persiste ni entra a un prompt"
+    }
+  ],
+  "etiqueta_sin_actividad": "No es una actividad / no figura"
+}

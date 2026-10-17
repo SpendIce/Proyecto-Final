@@ -11,12 +11,15 @@ siga pendiente.
 Dos modos, como en `workspace_e2e.py`:
 
 - **offline** (default): la "hoja" es un CSV local con la misma forma de
-  columnas (marca temporal, correo, pedido), el aviso se escribe en
+  columnas que el contrato declarado —v1: marca temporal, correo, pedido;
+  v2 (#122): marca temporal, correo, tipo, actividad, área emisora y
+  pedido—, el aviso se escribe en
   `avisos-offline.jsonl` bajo el directorio de estado en lugar de salir por
   Gmail, y el borrador queda en `borradores/` como Markdown. No abre red ni
   usa credenciales. El padrón sigue siendo un archivo externo —`--padron`
   o `AGENTE1_PADRON_ROLES_PATH`— porque la autorización por rol se ensaya
-  igual que en producción, no se simula.
+  igual que en producción, no se simula. La forma de la hoja se declara con
+  la misma variable que en live: `AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO`.
 - **live**: requiere `--live` y `--confirm-write-workspace` juntos, y el
   ambiente D2 en `AGENTE1_WORKSPACE_AMBIENTE`. La configuración sale del
   entorno (`AGENTE1_WORKSPACE_*` para la fuente de actividades, la carpeta
@@ -63,6 +66,9 @@ from pathlib import Path
 from agente1.canal import atender_canal
 from agente1.canal_form import (
     ATENDIDOS_NOMBRE,
+    CONTRATO_HOJA_V1,
+    CONTRATOS_HOJA,
+    ENV_HOJA_CONTRATO,
     CanalFormError,
     CanalFormPedidos,
     LectorValoresCsv,
@@ -514,6 +520,7 @@ def main(argv: list[str] | None = None) -> int:
                 directorio_estado=directorio_estado,
                 form_id=config_form.form_id,
                 entry_id=config_form.entry_id,
+                contrato_hoja=config_form.contrato_hoja,
                 decisiones=decisiones_live,
             )
             fuente = GoogleSheetsFuenteSolicitudes(
@@ -556,6 +563,15 @@ def main(argv: list[str] | None = None) -> int:
             modo = "live_write_opt_in"
         else:
             padron = _cargar_padron(args)
+            # La forma de la hoja se declara igual que en live (#122): la
+            # misma variable del entorno elige el contrato; un valor
+            # desconocido falla cerrado antes de tocar el canal, con el
+            # mismo código que la carga de configuración.
+            contrato_hoja_offline = (
+                os.environ.get(ENV_HOJA_CONTRATO, "").strip() or CONTRATO_HOJA_V1
+            )
+            if contrato_hoja_offline not in CONTRATOS_HOJA:
+                raise RunnerWorkspaceError("canal_form_config_invalid")
             canal = CanalFormPedidos(
                 lector=LectorValoresCsv(args.respuestas_csv),
                 padron=padron,
@@ -565,6 +581,7 @@ def main(argv: list[str] | None = None) -> int:
                 directorio_estado=directorio_estado,
                 form_id="form_offline_demo",
                 entry_id="entry.000000001",
+                contrato_hoja=contrato_hoja_offline,
                 # Offline el circuito completo se ensaya siempre: el aviso
                 # trae los links del Form de decisiones y el objeto queda
                 # declarado para `registrar_form_decisiones.py`.
