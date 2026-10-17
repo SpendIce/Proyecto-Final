@@ -42,6 +42,26 @@ Decisiones que no se ven en el código:
 - **Sin material no hay post.** Una consulta vacía termina `INCOMPLETA` /
   `material_insuficiente` sin invocar al generador: no hay hueco que el
   modelo pueda rellenar con una afirmación inventada.
+- **Un fragmento por post, filtrado por fecha antes de generar.** De los
+  fragmentos que devuelve Historia Viva se descartan los que no sustentan la
+  fecha consultada: la fecha que la fuente sostiene tiene que caer DENTRO del
+  período, el solapamiento no alcanza, y la precisión declarada se interpreta
+  tal cual, porque los límites de un mes, un año o una década no son fechas
+  exactas. Si ninguna sustenta el período se informa material insuficiente
+  (causa temporal), sin invocar al generador.
+- **Se elige el primero que entra completo, en orden de Historia Viva.** Entre
+  los elegibles no hay ranking por precisión ni por cercanía: se conserva el
+  orden de respuesta y se toma el primero que entra completo en el canal,
+  presupuestando el texto citado, la cita, la expresión temporal, la
+  estructura y el espacio que ocupan la creatividad y los hashtags. Si no
+  entra, se prueba el siguiente; si ninguno entra se informa material no
+  utilizable (causa de extensión), distinto de una falla de generación. El
+  gate final de extensión y el reintento acotado siguen vigentes: que la
+  fuente quepa no demuestra que el modelo haya cumplido el contrato.
+- **Las referencias descartadas quedan a la vista de quien valida.** El
+  borrador lleva, fuera del texto publicable y de su cómputo de extensión, una
+  lista breve de referencias no utilizadas con su motivo; no se generan posts
+  alternativos ni se agrega un circuito de selección humana.
 - **Procedencia declarada, no inferida.** `procedencia` es del vocabulario
   `PROCEDENCIAS_EFEMERIDE`: `insumo_a2` para el material del acervo de A2 y
   `synthetic_test` para las corridas con fragmentos sintéticos (el fake y los
@@ -149,6 +169,22 @@ PROCEDENCIAS_EFEMERIDE = frozenset(
     {PROCEDENCIA_INSUMO_A2, PROCEDENCIA_SINTETICA}
 )
 
+# Motivos por los que una referencia recuperada no llega al post. El código va
+# a la auditoría; la frase, al borrador, a la vista de quien valida. Una
+# referencia se descarta por fecha (no sustenta el período consultado), por
+# extensión (no entra completa en el canal) o porque el post cita una sola y
+# ya se eligió otra.
+MOTIVO_FUERA_DEL_PERIODO = "fuera_del_periodo_consultado"
+MOTIVO_NO_ENTRA_EN_CANAL = "no_entra_completo_en_el_canal"
+MOTIVO_NO_UTILIZADA = "no_utilizada_una_referencia_por_post"
+MOTIVOS_EXCLUSION = {
+    MOTIVO_FUERA_DEL_PERIODO: (
+        "la fecha sustentada queda fuera del período consultado"
+    ),
+    MOTIVO_NO_ENTRA_EN_CANAL: "no entra completa en el canal",
+    MOTIVO_NO_UTILIZADA: "no se usa: el post cita una sola referencia",
+}
+
 MAX_TEMA_CARACTERES = 300
 
 # Feedback del reintento en el vocabulario de la pieza: los códigos son los
@@ -189,6 +225,12 @@ def procesar_post_efemeride(
     `BORRADOR — NO PUBLICAR`. `desde`/`hasta` acotan el período consultado,
     `precision` declara cuánto puede decir `expresion_temporal` y `tema`
     acota la búsqueda sólo cuando la solicitud lo determina.
+
+    El post cita una sola referencia: se filtran los fragmentos que sustentan
+    la fecha consultada antes de generar y, entre los elegibles, se publica el
+    primero que entra completo en el canal, en el orden que devuelve el
+    puerto. `limite` es el tope de recuperación, no la cantidad de fragmentos
+    publicados: se pide más de uno justamente para poder descartar al primero.
     """
 
     contrato_efectivo = contrato or CONTRATO_CREATIVO_EFEMERIDE_V1
@@ -359,7 +401,14 @@ def procesar_post_efemeride(
             extra_fields={"source_error_code": "historia_viva_response_invalid"},
             contrato=contrato_efectivo,
         )
-    if not material.hay_material:
+    # Filtro temporal ANTES de generar: la fecha que la fuente sostiene tiene
+    # que caer DENTRO del período consultado. El solapamiento no alcanza (una
+    # fuente «entre 2015 y 2019» no sustenta una efeméride de abril de 2016) y
+    # la precisión declarada se interpreta tal cual: los límites de un mes, un
+    # año o una década no son fechas exactas. Se conserva el orden de Historia
+    # Viva y se registran los motivos de lo que se descarta.
+    elegibles, excluidos = _filtrar_por_periodo(material)
+    if not elegibles:
         return _fallo_efemeride(
             log_path=log_path,
             id_efemeride=id_efemeride,
@@ -372,19 +421,38 @@ def procesar_post_efemeride(
             procedencia=procedencia,
             estado="INCOMPLETA",
             resultado="material_insuficiente",
-            error="La consulta no devolvió material histórico",
+            error=(
+                "La consulta no devolvió material histórico"
+                if not material.hay_material
+                else "Ningún fragmento sustentado por la fuente cae dentro "
+                "del período consultado"
+            ),
             validation_errors=["material_insuficiente"],
+            extra_fields={
+                "motivo_material": (
+                    "sin_material"
+                    if not material.hay_material
+                    else "sin_fecha_elegible"
+                )
+            },
             contrato=contrato_efectivo,
             material=material,
+            elegibles=elegibles,
+            exclusiones=excluidos,
         )
+    material_elegible = MaterialEfemeride(
+        rango_consultado=material.rango_consultado,
+        fragmentos=elegibles,
+    )
     # Controles sobre la fuente previos a generar: el renderer copia estos
     # valores tal cual al post, así que lo que no sea seguro copiar se frena
-    # acá. El gate de acciones institucionales no se aplica al texto citado
-    # (es afirmación atribuida a la fuente, no estado del borrador); el del
-    # texto creativo corre igual que en `posts.py`.
+    # acá. Sólo se controlan los elegibles: lo que se descarta por fecha no se
+    # renderiza ni se cita. El gate de acciones institucionales no se aplica al
+    # texto citado (es afirmación atribuida a la fuente, no estado del
+    # borrador); el del texto creativo corre igual que en `posts.py`.
     valores_renderizados = [
         valor
-        for fragmento in material.fragmentos
+        for fragmento in elegibles
         for valor in (
             fragmento.texto,
             _cita_publicable(fragmento),
@@ -412,17 +480,21 @@ def procesar_post_efemeride(
             validation_errors=["source_rendering_unsafe"],
             contrato=contrato_efectivo,
             material=material,
+            elegibles=elegibles,
+            exclusiones=excluidos,
         )
 
-    datos = _material_como_datos(material)
+    datos = _material_como_datos(material_elegible)
     prompt = _construir_prompt_efemeride(
         plantilla, datos, canal, politica_efectiva, contrato_efectivo
     )
-    hechos_fuente = _hechos_fuente_efemeride(material)
+    hechos_fuente = _hechos_fuente_efemeride(material_elegible)
     inicio_generacion = time.perf_counter()
     prompt_efectivo = prompt
     intento = 0
     contenido = ""
+    publicado: Fragmento | None = None
+    exclusiones: tuple[tuple[Fragmento, str], ...] = excluidos
     while True:
         intento += 1
         try:
@@ -445,6 +517,9 @@ def procesar_post_efemeride(
                 material=material,
                 datos=datos,
                 intento=intento,
+                elegibles=elegibles,
+                exclusiones=excluidos,
+                publicado=publicado,
             )
         except Exception:
             return _fallo_efemeride(
@@ -464,6 +539,9 @@ def procesar_post_efemeride(
                 material=material,
                 datos=datos,
                 intento=intento,
+                elegibles=elegibles,
+                exclusiones=excluidos,
+                publicado=publicado,
             )
         contenido_crudo = (
             unicodedata.normalize("NFC", salida_cruda.strip())
@@ -481,22 +559,51 @@ def procesar_post_efemeride(
             contrato_efectivo,
             hechos_extra=hechos_fuente,
         )
-        contenido = (
-            _renderizar_post_efemeride(material, canal, creatividad)
-            if creatividad is not None and not errores
-            else ""
-        )
-        if contenido:
-            errores.extend(
-                _validar_render_efemeride(
-                    contenido, material, canal, creatividad, politica_efectiva
-                )
+        contenido = ""
+        publicado = None
+        exclusiones_intento = excluidos
+        if creatividad is not None and not errores:
+            # Selección por extensión: se conserva el orden de Historia Viva y
+            # se toma el primer elegible que entra COMPLETO en el canal,
+            # presupuestando el texto citado, la cita, la expresión temporal,
+            # la estructura y el espacio que ocupan la creatividad y los
+            # hashtags de este intento. Los que no entran y los que quedan
+            # después del elegido quedan como referencias no utilizadas.
+            publicado, descartes = _seleccionar_que_entra(
+                material_elegible, canal, creatividad, politica_efectiva
             )
+            exclusiones_intento = _exclusiones_en_orden(
+                material, publicado, excluidos, descartes
+            )
+            if publicado is None:
+                errores.append("length_out_of_range")
+            else:
+                material_candidato = MaterialEfemeride(
+                    rango_consultado=material.rango_consultado,
+                    fragmentos=(publicado,),
+                )
+                contenido = _renderizar_post_efemeride(
+                    material_candidato, canal, creatividad
+                )
+                errores.extend(
+                    _validar_render_efemeride(
+                        contenido,
+                        material_candidato,
+                        canal,
+                        creatividad,
+                        politica_efectiva,
+                    )
+                )
         if not errores:
+            exclusiones = exclusiones_intento
             break
         if intento >= MAX_INTENTOS_GENERACION or any(
             codigo not in CODIGOS_REINTENTABLES for codigo in errores
         ):
+            # «No entra ninguno» no es una falla del modelo sino del material
+            # para ese canal: se informa como tal, sin borrador y sin
+            # confundirlo con una salida no conforme.
+            solo_longitud = set(errores) == {"length_out_of_range"}
             return _fallo_efemeride(
                 log_path=log_path,
                 id_efemeride=id_efemeride,
@@ -507,16 +614,27 @@ def procesar_post_efemeride(
                 correlation_id=correlation_id,
                 inicio=inicio_generacion,
                 procedencia=procedencia,
-                estado="FALLIDA",
+                estado="INCOMPLETA" if solo_longitud else "FALLIDA",
                 resultado=(
-                    "salida_no_conforme" if contenido_crudo else "salida_vacia"
+                    "material_no_utilizable"
+                    if solo_longitud
+                    else (
+                        "salida_no_conforme" if contenido_crudo else "salida_vacia"
+                    )
                 ),
-                error="La salida generada no cumple el contrato mínimo",
+                error=(
+                    "Ningún fragmento elegible entra completo en el canal"
+                    if solo_longitud
+                    else "La salida generada no cumple el contrato mínimo"
+                ),
                 validation_errors=list(dict.fromkeys(errores)),
                 contrato=contrato_efectivo,
                 material=material,
                 datos=datos,
                 intento=intento,
+                elegibles=elegibles,
+                exclusiones=exclusiones_intento,
+                publicado=publicado,
             )
         _registrar(
             log_path,
@@ -531,6 +649,9 @@ def procesar_post_efemeride(
                 correlation_id=correlation_id,
                 latencia_s=round(time.perf_counter() - inicio_generacion, 6),
                 procedencia=procedencia,
+                elegibles=elegibles,
+                exclusiones=exclusiones_intento,
+                publicado=publicado,
             )
             | _campos_auditoria_efemeride(contrato_efectivo, canal, intento)
             | {
@@ -549,6 +670,7 @@ def procesar_post_efemeride(
         f"{BORRADOR_MARKER}"
         f"{_linea_procedencia(procedencia, desde, hasta)}\n\n"
         f"{contenido}\n"
+        f"{_bloque_referencias_no_utilizadas(exclusiones)}"
     )
     destino_efectivo = destino or MarkdownDestinoBorradores(directorio_salida)
     id_borrador = f"{id_efemeride}-{canal}"
@@ -574,6 +696,9 @@ def procesar_post_efemeride(
             reconciliation_ref_hash=exc.reconciliation_ref_hash,
             contrato=contrato_efectivo,
             intento=intento,
+            elegibles=elegibles,
+            exclusiones=exclusiones,
+            publicado=publicado,
         )
     except Exception:
         return _fallo_destino_efemeride(
@@ -593,6 +718,9 @@ def procesar_post_efemeride(
             reconciliation_ref_hash=None,
             contrato=contrato_efectivo,
             intento=intento,
+            elegibles=elegibles,
+            exclusiones=exclusiones,
+            publicado=publicado,
         )
     _registrar(
         log_path,
@@ -607,6 +735,9 @@ def procesar_post_efemeride(
             correlation_id=correlation_id,
             latencia_s=round(time.perf_counter() - inicio_generacion, 6),
             procedencia=procedencia,
+            elegibles=elegibles,
+            exclusiones=exclusiones,
+            publicado=publicado,
         )
         | _campos_auditoria_efemeride(contrato_efectivo, canal, intento)
         | {
@@ -668,6 +799,132 @@ def _parametros_validos(
         ):
             return False
     return True
+
+
+# --- Selección del fragmento ---------------------------------------------------
+
+
+def _filtrar_por_periodo(
+    material: MaterialEfemeride,
+) -> tuple[tuple[Fragmento, ...], tuple[tuple[Fragmento, str], ...]]:
+    """Separa los fragmentos que sustentan la fecha de los que no.
+
+    La fecha que la fuente sostiene tiene que quedar DENTRO del período
+    consultado: el solapamiento no alcanza. La comparación usa los límites del
+    rango tal como vienen de la fuente, así que una precisión de mes, año o
+    década se respeta sin tratarla como un día exacto. Conserva el orden de
+    respuesta de Historia Viva. Devuelve los elegibles y, por separado, los
+    descartados con su motivo.
+    """
+
+    rango_consultado = material.rango_consultado
+    elegibles: list[Fragmento] = []
+    excluidos: list[tuple[Fragmento, str]] = []
+    for fragmento in material.fragmentos:
+        if rango_consultado.contiene(fragmento.rango):
+            elegibles.append(fragmento)
+        else:
+            excluidos.append((fragmento, MOTIVO_FUERA_DEL_PERIODO))
+    return tuple(elegibles), tuple(excluidos)
+
+
+def _seleccionar_que_entra(
+    material_elegible: MaterialEfemeride,
+    canal: str,
+    creatividad: dict[str, object],
+    politica: PoliticaPost,
+) -> tuple[Fragmento | None, tuple[tuple[Fragmento, str], ...]]:
+    """Elige el primer elegible que entra completo y lista los descartes.
+
+    Conserva el orden devuelto por Historia Viva: no hay ranking por precisión
+    ni por cercanía. El presupuesto de extensión se mide sobre el post ya
+    renderizado con la creatividad de este intento, porque el espacio que
+    ocupan gancho, prosa, cta y hashtags sólo se conoce cuando el modelo los
+    produjo. Devuelve el fragmento elegido (o `None` si ninguno entra) y los
+    motivos de los no usados.
+    """
+
+    fragmentos = material_elegible.fragmentos
+    for indice, fragmento in enumerate(fragmentos):
+        candidato = MaterialEfemeride(
+            rango_consultado=material_elegible.rango_consultado,
+            fragmentos=(fragmento,),
+        )
+        longitud = _longitud_publicable(
+            _renderizar_post_efemeride(candidato, canal, creatividad)
+        )
+        if longitud is not None and longitud <= politica.max_chars:
+            descartes = tuple(
+                (previo, MOTIVO_NO_ENTRA_EN_CANAL)
+                for previo in fragmentos[:indice]
+            ) + tuple(
+                (posterior, MOTIVO_NO_UTILIZADA)
+                for posterior in fragmentos[indice + 1 :]
+            )
+            return fragmento, descartes
+    return None, tuple(
+        (fragmento, MOTIVO_NO_ENTRA_EN_CANAL) for fragmento in fragmentos
+    )
+
+
+def _longitud_publicable(contenido: str) -> int | None:
+    """Caracteres del texto publicable más los hashtags, como el gate.
+
+    Es el mismo cómputo que aplica `_validar_render_efemeride`: la selección y
+    el gate no pueden discrepar sobre qué entra. Devuelve `None` si el
+    contenido no tiene la estructura del post, porque entonces el problema es
+    otro y no la extensión.
+    """
+
+    _, separador_texto, cuerpo = contenido.partition("\nTEXTO:\n")
+    texto, separador_hashtags, hashtags = cuerpo.rpartition("\nHASHTAGS:\n")
+    if not separador_texto or not separador_hashtags:
+        return None
+    return len(texto) + len(hashtags)
+
+
+def _exclusiones_en_orden(
+    material: MaterialEfemeride,
+    publicado: Fragmento | None,
+    excluidos: tuple[tuple[Fragmento, str], ...],
+    descartes: tuple[tuple[Fragmento, str], ...],
+) -> tuple[tuple[Fragmento, str], ...]:
+    """Los motivos de exclusión en el orden que devolvió Historia Viva.
+
+    Junta los descartes por fecha y los de extensión (o por citar una sola
+    referencia) y los reordena según el material original, para que la lista
+    del borrador siga el mismo orden que la respuesta del puerto.
+    """
+
+    motivos = dict(excluidos)
+    motivos.update(descartes)
+    return tuple(
+        (fragmento, motivos[fragmento])
+        for fragmento in material.fragmentos
+        if fragmento is not publicado
+    )
+
+
+def _bloque_referencias_no_utilizadas(
+    exclusiones: tuple[tuple[Fragmento, str], ...],
+) -> str:
+    """Referencias descartadas y su motivo, fuera del texto publicable.
+
+    Va después del bloque que se publicaría y no entra en el cómputo de
+    extensión: el gate mide el post, no esta nota para quien valida. Sólo
+    lleva identificadores y expresiones temporales, nunca la prosa de la
+    fuente.
+    """
+
+    if not exclusiones:
+        return ""
+    lineas = ["", "REFERENCIAS NO UTILIZADAS"]
+    for fragmento, motivo in exclusiones:
+        lineas.append(
+            f"- {fragmento.pieza_id} / {fragmento.fragmento_id} "
+            f"({fragmento.rango.expresion_temporal()}): {MOTIVOS_EXCLUSION[motivo]}"
+        )
+    return "\n".join(lineas) + "\n"
 
 
 def _material_como_datos(material: MaterialEfemeride) -> dict[str, object]:
@@ -766,9 +1023,10 @@ def _renderizar_post_efemeride(
 ) -> str:
     """Arma el post: creatividad del modelo + material citado literalmente.
 
-    Función pura y determinista, sin decisión propia: cada fragmento queda en
-    una sola línea seguida de su `Fuente:`, igual que `descripcion` en
-    `posts.py`. Nada rellena lo que la fuente no trajo.
+    Función pura y determinista, sin decisión propia: cada fragmento del
+    material que reciba queda en una sola línea seguida de su `Fuente:`, igual
+    que `descripcion` en `posts.py`. El flujo le pasa un material de un solo
+    fragmento, ya elegido; nada rellena lo que la fuente no trajo.
     """
 
     lineas = [
@@ -806,11 +1064,10 @@ def _validar_render_efemeride(
 
     if contenido != _renderizar_post_efemeride(material, canal, creatividad):
         return ["renderer_invariant_violation"]
-    _, separador_texto, cuerpo = contenido.partition("\nTEXTO:\n")
-    texto, separador_hashtags, hashtags = cuerpo.rpartition("\nHASHTAGS:\n")
-    if not separador_texto or not separador_hashtags:
+    longitud = _longitud_publicable(contenido)
+    if longitud is None:
         return ["document_structure"]
-    if len(texto) + len(hashtags) > politica.max_chars:
+    if longitud > politica.max_chars:
         return ["length_out_of_range"]
     return []
 
@@ -843,6 +1100,9 @@ def _registro_base_efemeride(
     correlation_id: str,
     latencia_s: float,
     procedencia: str,
+    elegibles: tuple[Fragmento, ...] | None = None,
+    exclusiones: tuple[tuple[Fragmento, str], ...] | None = None,
+    publicado: Fragmento | None = None,
 ) -> dict[str, object]:
     """Campos comunes de la línea JSONL del pipeline de efeméride.
 
@@ -850,6 +1110,12 @@ def _registro_base_efemeride(
     declarada (`data_origin`), la versión del contrato de consulta a A2 y el
     material por conteos e identificadores: piezas y fragmentos citables son
     ids de la fuente, nunca su contenido. `tema` viaja como hash, no en claro.
+
+    La recuperación se separa de la publicación: `hv_fragmentos` cuenta lo que
+    devolvió el puerto, `hv_fragmentos_elegibles` lo que sustenta el período y
+    `hv_fragmentos_publicados` el único fragmento que llegó al post (0 o 1).
+    `hv_consulta.limite` conserva el tope pedido, que no se reduce a uno.
+    `referencias_excluidas` lista referencias y motivos, nunca prosa.
     """
 
     registro = {
@@ -871,8 +1137,18 @@ def _registro_base_efemeride(
         "hv_fragmentos": (
             len(material.fragmentos) if material is not None else None
         ),
+        "hv_fragmentos_elegibles": (
+            len(elegibles) if elegibles is not None else None
+        ),
+        "hv_fragmentos_publicados": (
+            1 if publicado is not None else (None if material is None else 0)
+        ),
         "hv_piezas_fuente": (
-            list(material.piezas_fuente()) if material is not None else None
+            [publicado.pieza_id]
+            if publicado is not None
+            else (
+                list(material.piezas_fuente()) if material is not None else None
+            )
         ),
         "policy_version": politica.version,
         "policy_status": politica.status,
@@ -893,6 +1169,16 @@ def _registro_base_efemeride(
         ),
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+    if exclusiones is not None:
+        registro["referencias_excluidas"] = [
+            {
+                "referencia": (
+                    f"{fragmento.pieza_id} / {fragmento.fragmento_id}"
+                ),
+                "motivo": motivo,
+            }
+            for fragmento, motivo in exclusiones
+        ]
     format_mode = getattr(generator, "format_mode", None)
     format_schema_hash = getattr(generator, "format_schema_hash", None)
     if format_mode is not None and format_schema_hash is not None:
@@ -921,6 +1207,9 @@ def _fallo_efemeride(
     material: MaterialEfemeride | None = None,
     datos: dict[str, object] | None = None,
     intento: int = 0,
+    elegibles: tuple[Fragmento, ...] | None = None,
+    exclusiones: tuple[tuple[Fragmento, str], ...] | None = None,
+    publicado: Fragmento | None = None,
 ) -> ResultadoProceso:
     registro = _registro_base_efemeride(
         id_efemeride=id_efemeride,
@@ -933,6 +1222,9 @@ def _fallo_efemeride(
         correlation_id=correlation_id,
         latencia_s=round(time.perf_counter() - inicio, 6),
         procedencia=procedencia,
+        elegibles=elegibles,
+        exclusiones=exclusiones,
+        publicado=publicado,
     ) | _campos_auditoria_efemeride(contrato, canal, intento) | {
         "estado": estado,
         "resultado": resultado,
@@ -971,6 +1263,9 @@ def _fallo_destino_efemeride(
     reconciliation_ref_hash: str | None,
     contrato: ContratoCreativo,
     intento: int,
+    elegibles: tuple[Fragmento, ...] | None = None,
+    exclusiones: tuple[tuple[Fragmento, str], ...] | None = None,
+    publicado: Fragmento | None = None,
 ) -> ResultadoProceso:
     code_seguro = (
         code if code in DESTINATION_ERROR_CODES else "destination_unavailable"
@@ -986,6 +1281,9 @@ def _fallo_destino_efemeride(
         correlation_id=correlation_id,
         latencia_s=round(time.perf_counter() - inicio, 6),
         procedencia=procedencia,
+        elegibles=elegibles,
+        exclusiones=exclusiones,
+        publicado=publicado,
     ) | _campos_auditoria_efemeride(contrato, canal, intento) | {
         "estado": "FALLIDA",
         "resultado": "destination_failure",

@@ -20,12 +20,26 @@ en el issue #17).
   efeméride a A2. Historia Viva devuelve fragmentos citables, no prosa, y el
   modelo tampoco escribe hechos: redacta `gancho`, `prosa`, `cta` y hashtags
   del contrato `post_creative_efemeride_v1` mientras el renderer intercala
-  cada fragmento literalmente con su cita.
+  literalmente el fragmento elegido con su cita.
 - Que **la cita conserva la identidad completa de la fuente**: cada
   fragmento se renderiza con `pieza_id / fragmento_id (, ubicacion)
   (expresión temporal)`. La expresión sale de
   `RangoHistorico.expresion_temporal`: una pieza con precisión `mes` se cita
   como «agosto de 1926», nunca como día exacto, aunque el rango traiga días.
+- Que **el post cita una sola referencia, elegida por fecha y por extensión**.
+  De los fragmentos que devuelve el puerto se descartan los que no sustentan
+  la fecha consultada (la fecha de la fuente tiene que caer dentro del
+  período, el solapamiento no alcanza y la precisión de mes, año o década no
+  se trata como un día exacto). Entre los elegibles se conserva el orden de
+  Historia Viva y se publica el primero que entra completo en el canal,
+  presupuestando el texto citado, la cita, la expresión temporal, la
+  estructura y el espacio que ocupan la creatividad y los hashtags; si no
+  entra, se prueba el siguiente. Las referencias no utilizadas y su motivo
+  quedan en el borrador, fuera del texto publicable y de su cómputo de
+  extensión. Sin elegibles, la causa es temporal (`material_insuficiente`);
+  sin ninguno que entre, la causa es de extensión (`material_no_utilizable`),
+  distinta de una falla de generación. La consulta no se reduce a un
+  fragmento: se pide el límite completo para poder descartar al primero.
 - Que la salida del modelo pasa **los mismos gates de HU-011** —mismo parser
   de `posts.py`, mismos códigos, mismo reintento acotado con feedback— y que
   `hechos_extra` declara además los textos citados, las citas, la expresión
@@ -102,9 +116,10 @@ Qué verificar después:
 
 1. `salida/post-efemeride-demo/borradores/efemeride-*-instagram.md`:
    empieza con `# BORRADOR — NO PUBLICAR`, sigue la línea
-   `_Procedencia: material sintético de prueba …_` y el post intercala cada
+   `_Procedencia: material sintético de prueba …_`, el post publica un solo
    fragmento con su `Fuente: pie-sint-… / frg-sint-… (, página N)
-   (expresión)`; el de precisión `mes` figura como «agosto de 1926».
+   (expresión)` y cierra con la lista `REFERENCIAS NO UTILIZADAS` de los
+   fragmentos descartados, con su motivo, fuera del texto publicable.
 2. `salida/post-efemeride-demo/logs/ejecuciones.jsonl`: una línea
    `PENDIENTE_VALIDACION` / `borrador_generado` con `data_origin`,
    `hv_consulta` (tema hasheado cuando se pasa `--tema`), `hv_fragmentos`,

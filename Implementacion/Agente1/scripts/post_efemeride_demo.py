@@ -15,13 +15,15 @@ Las fases:
 1. **Generación** — `procesar_post_efemeride` consulta el puerto
    `HistoriaViva` con un `HistoriaVivaFake` alimentado desde
    `--fragmentos` (`data/fragmentos_historia_viva_sinteticos.json`),
-   compone el material con `componer_material_efemeride` y genera el post
-   con `FakeGenerator`: la creatividad es la salida de muestra del script.
-   El borrador queda `PENDIENTE_VALIDACION` en
-   `<directorio>/borradores/`, con las citas `pieza / fragmento
-   (expresión temporal)` de cada fragmento y la línea `_Procedencia:_
-   `synthetic_test`: el material es sintético aunque tenga la forma del
-   insumo de A2.
+   compone el material con `componer_material_efemeride`, filtra los
+   fragmentos que sustentan la fecha consultada y elige, en el orden que
+   devuelve el puerto, el primero que entra completo en el canal. El
+   borrador queda `PENDIENTE_VALIDACION` en `<directorio>/borradores/`, con
+   el texto citado y la cita `pieza / fragmento (expresión temporal)` del
+   fragmento elegido, la línea `_Procedencia: …_` y, fuera del texto
+   publicable, la lista de referencias no utilizadas con su motivo. Un post
+   cita una sola referencia: el material es sintético aunque tenga la forma
+   del insumo de A2 (`synthetic_test`).
 2. **Decisión** — el borrador se declara `publicacion` pendiente en el
    registro de decisiones (`<directorio>/estado-decisiones/`) y se mintean
    los links `publique`/`descarte`, igual que haría el correo de «borrador
@@ -29,7 +31,10 @@ Las fases:
 3. **Sin material** — la misma pieza sobre un período sin fragmentos
    (`--desde-vacio`/`--hasta-vacio`) termina `INCOMPLETA` /
    `material_insuficiente` sin invocar al generador ni escribir borrador:
-   la efeméride sin sustento no se disimula con prosa inventada.
+   la efeméride sin sustento no se disimula con prosa inventada. Si hay
+   fragmentos pero ninguno sustenta el período, la causa es temporal; si
+   ninguno entra en el canal, termina `INCOMPLETA` /
+   `material_no_utilizable`.
 
 Salida: un JSON por fase con estados, ids y enlaces — nunca el texto del
 post ni el contenido de los fragmentos en stdout.

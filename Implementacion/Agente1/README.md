@@ -1333,14 +1333,23 @@ post por el mismo carril estructurado de `posts.py`. El contrato creativo
 `CANDIDATO_NO_INSTITUCIONAL` (issue #17).
 
 La pieza queda `PENDIENTE_VALIDACION` con `BORRADOR — NO PUBLICAR`: el modelo
-sólo redacta la envoltura creativa y el renderer intercala cada fragmento
-literalmente, con su cita `pieza / fragmento (expresión temporal)` —una pieza
-con precisión de mes se cita como «agosto de 1926», nunca como día exacto—.
-Una consulta sin material termina `INCOMPLETA` sin invocar al generador, y la
+sólo redacta la envoltura creativa y el renderer intercala un solo fragmento
+literalmente, con su cita `pieza / fragmento (expresión temporal)` (una pieza
+con precisión de mes se cita como «agosto de 1926», nunca como día exacto).
+Un post cita una sola referencia: de los fragmentos recuperados se descartan
+los que no sustentan la fecha consultada (el solapamiento no alcanza y la
+precisión de mes, año o década no se trata como un día exacto) y, entre los
+elegibles, en el orden que devuelve Historia Viva, se publica el primero que
+entra completo en el canal. Si ninguno entra, no hay borrador. Las referencias
+no utilizadas y su motivo quedan en el borrador, fuera del texto publicable y
+de su cómputo de extensión. Una consulta sin material termina `INCOMPLETA` sin
+invocar al generador; si hay fragmentos y ninguno sustenta la fecha, también
+(`material_insuficiente`, causa temporal), y si ninguno entra en el canal
+termina `INCOMPLETA` / `material_no_utilizable` (causa de extensión). La
 procedencia declarada (`insumo_a2` o `synthetic_test`) viaja a la auditoría
 como `data_origin` y al borrador como línea `_Procedencia:_`. Los errores de
-configuración —una política incompatible con la allowlist o un contrato
-creativo que no sea de la familia `post_creative_efemeride`— terminan
+configuración (una política incompatible con la allowlist o un contrato
+creativo que no sea de la familia `post_creative_efemeride`) terminan
 `INVALIDA` antes de tocar el puerto. La publicación pasa por la misma decisión
 `publique`/`descarte` del Form de #72: el objeto es el id del borrador,
 `efemeride-<período>-<hash>-<canal>`.
