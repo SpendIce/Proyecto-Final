@@ -44,6 +44,14 @@ _Evitar_: generacion, cuando los datos ya los aporto una persona
 Conjunto de partes institucionales fijas de un tipo de gacetilla: encabezado, pie, firmante, formulas y etiquetas. Se versiona por tipo y el agente la copia tal cual; el modelo nunca la escribe.
 _Evitar_: plantilla (esa es de las piezas que el agente envia o emite), estilo, formato libre
 
+**Area emisora**:
+Area que declara emitir una gacetilla, elegida de una lista cerrada y versionada (padron como el ADR 0005), no escrita en texto libre. Determina la firma que imprime la pieza en su pie: el nombre del area sale del padron, nunca del texto de quien pidio la pieza.
+_Evitar_: firma libre, area escrita a mano, desde el Form
+
+**Canal del Form**:
+Circuito por el que entra la solicitud estructurada: el Form declara el tipo de gacetilla como primera pregunta, la actividad solo cuando el tipo la necesita, y el area emisora sobre el padron. El agente lee la hoja de respuestas versionada; no escribe el Form y no construye su sincronizacion automatica (Apps Script queda declarada como destino).
+_Evitar_: chat, bot, interfaz libre
+
 **Ejemplo aprobado**:
 Pieza que la SEU ya publico y que sirve de referencia de formato, estructura y registro para lo que genera el Agente 1. No es referencia de ortografia ni es una plantilla aprobada: el agente no completa variables sobre ella.
 _Evitar_: plantilla, modelo, muestra (las muestras son borradores del agente)
