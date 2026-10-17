@@ -453,6 +453,7 @@ scheduler §6.2.
 | Estado | Significado | Qué hacer |
 |---|---|---|
 | `PENDIENTE_VALIDACION` | Borrador generado que espera validación humana; lleva `BORRADOR — NO PUBLICAR`. | Es el estado normal de toda pieza hasta que una persona decide. |
+| `PENDIENTE_CONFIRMACION` | El pedido no se reconoció y el modelo propuso una intención permitida; no hay borrador. El aviso trae el enlace al mismo Form, prellenado por código. | Abrir el enlace no hace nada: revisá, editá si hace falta y **enviá** el formulario; ese envío es el pedido que genera. |
 | `FALLIDA` / `INCOMPLETA` / `INICIADA` | La ejecución no produjo un borrador válido. | Revisar el código del gate o del contrato (§5.6). |
 | `ENVIO_INDETERMINADO` / `EMISION_INDETERMINADA` | El envío o la emisión pudo haber ocurrido o no (p. ej. una caída, o una restauración posterior al respaldo). | **Incidente S1**: no se reenvía solo; cruzar contra Gmail Enviados y decidir por caso. |
 | `ENVIADA_SIMULADA` / `EMITIDA_SIMULADA` | El envío o la emisión se hizo contra el destino declarado, en un ambiente controlado. | Registrar; son los estados terminales que la retención purga a los 30 días. |
@@ -509,10 +510,26 @@ Enviados (ADR 0009; runbook §6.1–6.2).
 
 ### 6.5 Uso aceptable del modelo
 
-El modelo **sólo redacta**: nunca decide envíos, nunca publica y ninguna pieza
-llega a un destinatario sin pasar por validación humana. No recibe datos
-personales que no necesite la pieza y corre **sólo en local** (loopback), sin
-enviar prompts ni datos a APIs de LLM externas (ADR 0001).
+El modelo **redacta y, de forma acotada, clasifica**: nunca decide envíos,
+nunca publica y ninguna pieza llega a un destinatario sin pasar por validación
+humana. Sus usos están cerrados y su salida se valida contra un contrato antes
+de usarse:
+
+- **Redacta** el contenido de la pieza. Nunca escribe montos, fechas, enlaces ni
+  datos de la persona: esos van como variables que completa el renderer.
+- **Extrae términos de búsqueda** cuando el camino determinístico no resuelve la
+  actividad: aporta la forma normalizada de lo que la persona escribió, y el
+  código sigue siendo el único que elige la actividad.
+- **Propone una intención** (`generar_gacetilla` o `generar_post`) sólo cuando
+  ninguna regla reconoce el pedido. La propuesta no genera nada: vuelve por
+  correo con un enlace al mismo Form, prellenado por código, y recién el envío
+  de ese formulario (un pedido nuevo, con identidad, rol, actividad y gates
+  verificados otra vez) produce el borrador: el circuito Form → correo → Form.
+  Abrir el enlace no ejecuta nada.
+
+No recibe datos personales que no necesite la pieza y corre **sólo en local**
+(loopback), sin enviar prompts ni datos a APIs de LLM externas (ADR 0001, con
+su enmienda del 16/10/2026).
 
 ---
 

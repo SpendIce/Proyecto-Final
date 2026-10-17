@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import json
+from datetime import datetime, timedelta, timezone
 from email import message_from_bytes, policy
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -236,6 +237,8 @@ def _atender(
     fuente=None,
     generator=None,
     registro=None,
+    interprete=None,
+    reloj=None,
 ):
     return atender_canal(
         canal,
@@ -244,6 +247,8 @@ def _atender(
         generator=generator or FakeGenerator(_BORRADOR_CONFORME),
         destino=_destino_drive(router),
         registro_pendientes=registro,
+        reloj=reloj,
+        interprete=interprete,
     )
 
 
@@ -276,6 +281,32 @@ def _correos_gmail(router: TransporteRouter) -> list[object]:
 
 def _cuerpo(mensaje: object) -> str:
     return mensaje.get_body(("plain",)).get_content()
+
+
+class _InterpretePropuesta:
+    """Intérprete fake del canal: devuelve una propuesta fija.
+
+    Guarda los prompts recibidos para poder afirmar que el modelo no se
+    consulta cuando la clasificación determinística ya reconoció el pedido.
+    """
+
+    modelo = "fake-interprete-canal"
+    num_predict = None
+
+    def __init__(self, respuesta: str) -> None:
+        self._respuesta = respuesta
+        self.prompts: list[str] = []
+
+    def generar(self, prompt: str) -> str:
+        self.prompts.append(prompt)
+        return self._respuesta
+
+
+def _propuesta_json(intencion: str = "generar_gacetilla", *terminos: str) -> str:
+    return json.dumps(
+        {"intencion": intencion, "terminos_busqueda": list(terminos)},
+        ensure_ascii=False,
+    )
 
 
 class _FuenteAmbiguasCompletas:
@@ -1134,3 +1165,257 @@ def test_canal_offline_sobre_csv_atiende_el_pedido_completo(
     assert not any(
         s["host"] == "sheets.googleapis.com" for s in router.solicitudes
     )
+
+
+# --- Propuesta de intención por correo y confirmación por el Form (#27) ---------
+
+
+PROSA_NO_RECONOCIDA = "Necesito la gasetiya del taller sintetico"
+TERMINOS_PROPUESTA = ("taller", "sintetico", "vinculacion")
+
+
+def _enlace_correo(router: TransporteRouter) -> str:
+    cuerpo = _cuerpo(_correos_gmail(router)[-1])
+    enlaces = [
+        linea.strip()
+        for linea in cuerpo.splitlines()
+        if "docs.google.com/forms" in linea
+    ]
+    assert len(enlaces) == 1, "la propuesta ofrece exactamente un enlace"
+    return enlaces[0]
+
+
+def _reenviar(
+    tmp_path: Path,
+    router: TransporteRouter,
+    texto: str,
+    *,
+    padron: PadronRoles | None = None,
+    marca: str = "2026-10-10 09:40:00",
+):
+    """Un segundo envío del Form, como lo haría la persona con el enlace.
+
+    Conserva la fila del pedido original (ya atendida, así que se omite) y
+    agrega la respuesta nueva con otra marca temporal.
+    """
+
+    original = (
+        router.values[1]
+        if len(router.values) > 1
+        else fila_respuesta(texto=PROSA_NO_RECONOCIDA)
+    )
+    router.values = [
+        ENCABEZADOS_HOJA,
+        original,
+        fila_respuesta(texto=texto, marca=marca),
+    ]
+    canal = CanalFormPedidos(
+        lector=GoogleSheetsLectorValores(
+            spreadsheet_id="sheet_respuestas-1",
+            rango_a1="'Form Responses 1'!A1:C200",
+            token_provider=TokenFijo(),
+            transport=router,
+            timeout_s=5,
+        ),
+        padron=padron or _padron_default(),
+        avisos=GmailDestinoConfirmaciones(
+            destinatarios_permitidos={CORREO_SOLICITANTE},
+            token_provider=TokenFijo(),
+            transport=router,
+            timeout_s=5,
+        ),
+        directorio_estado=tmp_path / "estado",
+        form_id=FORM_ID,
+        entry_id=ENTRY_ID,
+    )
+    return canal
+
+
+def test_la_propuesta_vuelve_por_correo_con_enlace_y_no_genera(tmp_path: Path) -> None:
+    """Caso «gasetiya»: el modelo propone gacetilla, la actividad se resuelve
+    por código y el aviso lleva el enlace prellenado. Nada se generó."""
+    canal, router = crear_canal(
+        tmp_path, values=[ENCABEZADOS_HOJA, fila_respuesta(texto=PROSA_NO_RECONOCIDA)]
+    )
+    interprete = _InterpretePropuesta(_propuesta_json("generar_gacetilla", *TERMINOS_PROPUESTA))
+
+    resultados = _atender(canal, router, tmp_path, interprete=interprete)
+
+    assert [r.estado for r in resultados] == ["PENDIENTE_CONFIRMACION"]
+    assert interprete.prompts, "el modelo propone cuando no se reconoce el pedido"
+    # No se despachó ningún pipeline generador: ni copia en Drive ni Docs.
+    hosts = {s["host"] for s in router.solicitudes}
+    assert "www.googleapis.com" not in hosts
+    assert "docs.googleapis.com" not in hosts
+    assert not (tmp_path / "salida" / "borradores").exists()
+
+    (registro,) = _atendidos(tmp_path)
+    assert registro["estado"] == "PENDIENTE_CONFIRMACION"
+    assert registro["intencion"] == "generar_gacetilla"
+    assert registro["aviso"] == "enviada"
+
+    enlace = _enlace_correo(router)
+    ref = registro["id_pedido"][:12]
+    assert parse_qs(urlparse(enlace).query)[ENTRY_ID][0] == (
+        f"gacetilla actividad SYN-001 (pedido {ref})"
+    )
+    # El aviso nombra la actividad con datos institucionales, nunca la prosa.
+    cuerpo = _cuerpo(_correos_gmail(router)[-1])
+    assert "Taller sintético de vinculación" in cuerpo
+    assert "gasetiya" not in cuerpo
+
+
+def test_el_enlace_de_la_propuesta_genera_al_reenviarlo_sin_estado_pendiente(
+    tmp_path: Path,
+) -> None:
+    """Abrir el enlace no genera; enviarlo sí. La resolución es por el
+    identificador explícito del prellenado, así que no depende del registro
+    pendiente ni de su vencimiento de quince minutos."""
+    registro_pendientes = RegistroPendientesMemoria()
+    canal, router = crear_canal(
+        tmp_path, values=[ENCABEZADOS_HOJA, fila_respuesta(texto=PROSA_NO_RECONOCIDA)]
+    )
+    interprete = _InterpretePropuesta(_propuesta_json("generar_gacetilla", *TERMINOS_PROPUESTA))
+    _atender(
+        canal,
+        router,
+        tmp_path,
+        registro=registro_pendientes,
+        interprete=interprete,
+    )
+    (registro,) = _atendidos(tmp_path)
+    enlace = _enlace_correo(router)
+    prellenado = parse_qs(urlparse(enlace).query)[ENTRY_ID][0]
+    # Ni abrir el enlace ni mirarlo dejó estado: no hay pendiente que venza.
+    assert registro_pendientes.obtener(CORREO_SOLICITANTE) is None
+
+    # Media hora después y con el registro pendiente viejo vacío, el envío del
+    # prellenado produce el borrador esperado.
+    canal_reenvio = _reenviar(tmp_path, router, prellenado)
+    pasada = datetime(2026, 10, 10, 10, 10, tzinfo=timezone.utc) + timedelta(minutes=31)
+    resultados = _atender(
+        canal_reenvio,
+        router,
+        tmp_path,
+        registro=registro_pendientes,
+        reloj=lambda: pasada,
+    )
+
+    assert [r.estado for r in resultados] == ["PENDIENTE_VALIDACION"]
+    assert resultados[0].borrador_path is None
+    assert resultados[0].referencia_borrador is not None
+    assert any(s["host"] == "www.googleapis.com" for s in router.solicitudes)
+    assert len(_atendidos(tmp_path)) == 2
+    assert _atendidos(tmp_path)[1]["intencion"] == "generar_gacetilla"
+
+
+def test_un_cambio_de_padron_entre_la_propuesta_y_el_reenvio_no_hereda_permisos(
+    tmp_path: Path,
+) -> None:
+    """El enlace es trazabilidad, no autorización: si el rol cambió, el pedido
+    nuevo se evalúa con los datos actuales y se rechaza."""
+    canal, router = crear_canal(
+        tmp_path, values=[ENCABEZADOS_HOJA, fila_respuesta(texto=PROSA_NO_RECONOCIDA)]
+    )
+    interprete = _InterpretePropuesta(_propuesta_json("generar_gacetilla", *TERMINOS_PROPUESTA))
+    _atender(canal, router, tmp_path, interprete=interprete)
+    enlace = _enlace_correo(router)
+    prellenado = parse_qs(urlparse(enlace).query)[ENTRY_ID][0]
+    envios_antes = len(_correos_gmail(router))
+
+    # La persona ya no está en el padrón cuando envía el enlace.
+    canal_reenvio = _reenviar(
+        tmp_path,
+        router,
+        prellenado,
+        padron=PadronRoles({CORREO_COORDINADORA: "auxiliar_seu"}),
+    )
+    resultados = _atender(canal_reenvio, router, tmp_path)
+
+    assert [r.estado for r in resultados] == ["RECHAZADA"]
+    ultimo_registro = _atendidos(tmp_path)[-1]
+    assert ultimo_registro["rol"] == ROL_NO_EN_PADRON
+    assert ultimo_registro["rol_origen"] == "fuera_de_padron"
+    assert not any(s["host"] == "www.googleapis.com" for s in router.solicitudes)
+    assert len(_correos_gmail(router)) == envios_antes + 1
+
+
+def test_un_reenvio_editado_usa_la_actividad_que_el_pedido_nuevo_nombra(
+    tmp_path: Path,
+) -> None:
+    """El prellenado es un punto de partida editable: si la persona cambia la
+    actividad, el pedido nuevo se resuelve con lo que dice el texto, no con la
+    referencia de trazabilidad del pedido original."""
+    canal, router = crear_canal(
+        tmp_path, values=[ENCABEZADOS_HOJA, fila_respuesta(texto=PROSA_NO_RECONOCIDA)]
+    )
+    interprete = _InterpretePropuesta(_propuesta_json("generar_gacetilla", *TERMINOS_PROPUESTA))
+    _atender(canal, router, tmp_path, interprete=interprete)
+    ref = _atendidos(tmp_path)[0]["id_pedido"][:12]
+
+    canal_reenvio = _reenviar(
+        tmp_path, router, f"gacetilla actividad SYN-005 (pedido {ref})"
+    )
+    _atender(canal_reenvio, router, tmp_path)
+
+    registro = json.loads(
+        (
+            tmp_path / "salida" / "logs" / "interpretaciones-hu013.jsonl"
+        ).read_text(encoding="utf-8").splitlines()[-1]
+    )
+    assert registro["id_actividad"] == "SYN-005"
+    assert registro["modelo_utilizado"] is False
+
+
+def test_la_propuesta_de_post_pide_la_red_y_el_prellenado_no_la_inventa(
+    tmp_path: Path,
+) -> None:
+    """El canal de un post no se puede prellenar: nombrar la red ya haría
+    reconocer el pedido. El aviso pide agregarla antes de enviar."""
+    canal, router = crear_canal(
+        tmp_path, values=[ENCABEZADOS_HOJA, fila_respuesta(texto="Quiero una placa del taller sintetico")]
+    )
+    interprete = _InterpretePropuesta(_propuesta_json("generar_post", *TERMINOS_PROPUESTA))
+
+    resultados = _atender(canal, router, tmp_path, interprete=interprete)
+
+    assert [r.estado for r in resultados] == ["PENDIENTE_CONFIRMACION"]
+    cuerpo = _cuerpo(_correos_gmail(router)[-1])
+    enlace = _enlace_correo(router)
+    ref = _atendidos(tmp_path)[0]["id_pedido"][:12]
+    assert parse_qs(urlparse(enlace).query)[ENTRY_ID][0] == (
+        f"post actividad SYN-001 (pedido {ref})"
+    )
+    assert "instagram" in cuerpo and "linkedin" in cuerpo
+    assert not any(s["host"] == "www.googleapis.com" for s in router.solicitudes)
+
+    # Enviado tal cual, sin la red, el pedido queda acotado en el mismo
+    # `canal_no_encontrado` que ya usa un post reconocido sin canal.
+    canal_reenvio = _reenviar(
+        tmp_path, router, "post actividad SYN-001 (pedido " + ref + ")"
+    )
+    resultados_reenvio = _atender(canal_reenvio, router, tmp_path)
+
+    assert [r.estado for r in resultados_reenvio] == ["INCOMPLETA"]
+    assert _atendidos(tmp_path)[-1]["estado"] == "INCOMPLETA"
+
+
+def test_la_propuesta_no_persiste_ni_la_prosa_ni_el_correo(
+    tmp_path: Path,
+) -> None:
+    prosa = "Necesito la gasetiya ZZZQQ919 del taller sintetico"
+    canal, router = crear_canal(
+        tmp_path, values=[ENCABEZADOS_HOJA, fila_respuesta(texto=prosa)]
+    )
+    interprete = _InterpretePropuesta(_propuesta_json("generar_gacetilla", *TERMINOS_PROPUESTA))
+
+    _atender(canal, router, tmp_path, interprete=interprete)
+
+    crudo = (tmp_path / "estado" / ATENDIDOS_NOMBRE).read_text(encoding="utf-8")
+    assert "ZZZQQ919" not in crudo
+    assert CORREO_SOLICITANTE not in crudo
+    cuerpo = _cuerpo(_correos_gmail(router)[-1])
+    assert "ZZZQQ919" not in cuerpo
+    # Los términos que aportó el modelo tampoco viajan al aviso: la actividad
+    # se nombra con el título institucional.
+    assert CORREO_SOLICITANTE not in cuerpo

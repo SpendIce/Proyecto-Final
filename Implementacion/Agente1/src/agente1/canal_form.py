@@ -79,6 +79,19 @@ post, si el canal no quedó resuelto, el pedido vuelve `INCOMPLETA` con
 `canal_no_encontrado` y el aviso siguiente explica qué falta —la persona
 puede completar el campo antes de enviar.
 
+Propuesta de intención (#27): cuando el núcleo devuelve
+`PENDIENTE_CONFIRMACION` (el pedido no se reconoció y el modelo propuso una
+intención permitida con la actividad resuelta por código), el aviso no lleva
+links de decisión ni de borrador: lleva el resumen institucional y **un**
+enlace al mismo Form, prellenado por código con la palabra clave de la
+intención permitida y el identificador de la actividad. Abrir el enlace no
+ejecuta nada; revisar y enviar el formulario constituye un pedido nuevo, que
+el núcleo vuelve a clasificar, resolver y autorizar por rol. Si la propuesta
+es de un post, el canal de la red no se puede prellenar (nombrarlo ya haría
+reconocer el pedido por el camino determinístico), así que el aviso pide
+agregarlo antes de enviar. La propuesta no despacha ningún pipeline generador
+y el aviso no copia prosa del usuario ni del modelo.
+
 La prosa del pedido sigue siendo entrada no confiable (ADR 0001): este
 adapter la transporta al núcleo y nunca la persiste —no figura en el
 registro de atendidos, ni en los avisos, ni en los links— y nunca entra a
@@ -118,6 +131,7 @@ from .google_workspace import (
 from .interpretacion import (
     CandidataActividad,
     IdentidadSolicitante,
+    PropuestaIntencion,
     ResultadoInterpretacion,
 )
 from .registro_auditoria import escribir_registro
@@ -198,6 +212,7 @@ _ETIQUETA_DECISION = {
 _FRASES_ASUNTO = {
     "PENDIENTE_VALIDACION": "tu borrador está listo",
     "PENDIENTE_DESAMBIGUACION": "elegí la actividad",
+    "PENDIENTE_CONFIRMACION": "confirmá el pedido",
     "PENDIENTE_APROBACION": "espera la aprobación del lote",
     "EMITIDA": "certificados emitidos",
     "EMITIDA_PARCIAL": "certificados emitidos con entregas fallidas",
@@ -767,6 +782,42 @@ class CanalFormPedidos:
                     for decision in sorted(enlaces):
                         etiqueta = _ETIQUETA_DECISION.get(decision, decision)
                         lineas.append(f"  {etiqueta}: {enlaces[decision]}")
+        elif resultado.estado == "PENDIENTE_CONFIRMACION":
+            # #27: el pedido no se reconoció, el modelo propuso una intención
+            # permitida y la actividad se resolvió por código. No hay borrador
+            # ni nada que decidir: sólo un pedido nuevo que la persona revisa y
+            # envía. El aviso lleva texto fijo más el resumen institucional y
+            # el enlace prellenado con identificadores; ni la prosa del pedido
+            # ni la salida del modelo viajan acá.
+            lineas.append(
+                f"Tu pedido (ref. {ref}) no se reconoció como una pieza del "
+                "catálogo, así que no se generó nada."
+            )
+            if resultado.resumen:
+                lineas.append(_una_linea(resultado.resumen))
+            enlace = self._enlace_propuesta(pedido, resultado.propuesta)
+            lineas.extend(
+                (
+                    "",
+                    "Si es correcto, revisá el formulario y envialo: ese "
+                    "envío es un pedido nuevo y recién ahí se genera.",
+                )
+            )
+            if enlace is not None:
+                lineas.append(
+                    "Abrir el enlace no confirma nada. Podés editarlo antes "
+                    "de enviarlo:"
+                )
+                lineas.append(enlace)
+            if resultado.intencion == "generar_post":
+                # El canal del post no se puede prellenar: nombrar la red en
+                # el pedido ya lo haría reconocer por el camino determinístico,
+                # así que una propuesta de post nunca lo trae. Se pide acá, con
+                # el mismo circuito de aclaración que ya usa la repregunta.
+                lineas.append(
+                    "Si es un post, agregá «instagram» o «linkedin» en el "
+                    "campo antes de enviar: sin la red no se genera."
+                )
         elif resultado.estado == "PENDIENTE_DESAMBIGUACION":
             lineas.append(
                 f"Tu pedido (ref. {ref}) necesita que elijas la actividad."
@@ -816,6 +867,31 @@ class CanalFormPedidos:
                 lineas.append(_una_linea(resultado.resumen))
         return f"{MARCADOR_BORRADOR}\n\n" + "\n".join(lineas) + "\n"
 
+    def _enlace_propuesta(
+        self, pedido: PedidoCanal, propuesta: PropuestaIntencion | None
+    ) -> str | None:
+        """Link prellenado de la propuesta (#27): ids, nunca prosa.
+
+        Arma **por código** el texto del pedido nuevo: la palabra clave de la
+        intención permitida y el identificador de la actividad resuelta, con
+        la referencia corta del pedido original como trazabilidad. El núcleo
+        vuelve a clasificar, resolver la actividad y autorizar por rol ese
+        texto cuando la persona lo envíe: el enlace no es una autorización ni
+        una confirmación. `None` si el resultado no trae propuesta o si la
+        intención no tiene palabra clave.
+        """
+
+        if not isinstance(propuesta, PropuestaIntencion):
+            return None
+        keyword = _KEYWORD_POR_INTENCION.get(propuesta.intencion)
+        if keyword is None:
+            return None
+        valor = (
+            f"{keyword} actividad {propuesta.id_actividad} "
+            f"(pedido {_ref_pedido(pedido.id_pedido)})"
+        )
+        return self._url_prellenada(valor)
+
     def _enlace_repregunta(
         self,
         pedido: PedidoCanal,
@@ -839,6 +915,11 @@ class CanalFormPedidos:
             f"{keyword} actividad {candidata.id_actividad} "
             f"(pedido {_ref_pedido(pedido.id_pedido)})"
         )
+        return self._url_prellenada(valor)
+
+    def _url_prellenada(self, valor: str) -> str:
+        """URL del Form de pedidos con un valor precargado en su único campo."""
+
         return (
             f"https://docs.google.com/forms/d/e/{self._form_id}/viewform"
             f"?usp=pp_url&{self._entry_id}={quote(valor, safe='')}"

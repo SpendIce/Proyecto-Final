@@ -46,6 +46,15 @@ Cobertura, en orden:
     inyectado; hay una sola interacción pendiente por persona y no se mezcla
     entre personas distintas; un pedido nuevo y completo descarta la
     pendiente; perder la pendiente no rompe nada.
+12. La prosa tampoco entra al registro por el camino de repregunta.
+13. Fallback con modelo local (#26): su única salida admitida es una intención
+    del catálogo cerrado más términos de búsqueda estructurados, validada
+    contra el contrato; nunca ve la planilla y nunca decide la intención de un
+    pedido ya reconocido.
+14. Propuesta de intención con confirmación por el Form (#27): cuando ninguna
+    regla reconoce el pedido, el modelo puede proponer gacetilla o post; la
+    propuesta no despacha ningún pipeline, la actividad la resuelve el código
+    y el enlace prellenado sólo genera al reenviarse como pedido nuevo.
 """
 
 from __future__ import annotations
@@ -67,6 +76,7 @@ from agente1.interpretacion import (
     INTENCIONES,
     INTENCIONES_CON_DESPACHO,
     INTENCIONES_POR_ID,
+    INTENCIONES_PROPONIBLES,
     NUM_PREDICT_FALLBACK,
     ROLES_HABILITADOS,
     VENCIMIENTO_PENDIENTE,
@@ -1936,17 +1946,15 @@ def test_una_falla_del_interprete_no_propaga_excepcion(tmp_path: Path) -> None:
     assert registro["modelo_utilizado"] is False
 
 
-def test_el_modelo_no_clasifica_la_solicitud(tmp_path: Path) -> None:
-    """ADR 0001 descartó "dejar que el modelo interpretara libremente la
-    solicitud" —"paga inferencia y superficie de ataque para una decisión
-    ternaria"— y fija que "el modelo, cuando interviene, sólo extrae términos
-    de búsqueda estructurados".
+def test_el_modelo_propone_intencion_sin_clasificar_ni_despachar(tmp_path: Path) -> None:
+    """Reemplaza al histórico `test_el_modelo_no_clasifica_la_solicitud`.
 
-    Consecuencia aceptada: un tipeo en la palabra que nombra la pieza deja el
-    pedido en `fuera_de_alcance` y se rechaza sin consultar el modelo, aunque
-    el modelo podría haberlo recuperado. La tensión con el criterio de
-    aceptación de #26 está elevada como consulta; el ADR manda mientras no se
-    enmiende.
+    La enmienda del 16/10/2026 del ADR 0001 (issue #27) cambia esa consecuencia
+    aceptada: un pedido que la clasificación determinística no reconoce
+    («gasetiya» por «gacetilla») deja que el modelo **proponga** una intención
+    permitida, y la propuesta no despacha ningún pipeline. Nada de esto genera
+    un borrador: para generar, la persona tiene que revisar y enviar de nuevo
+    el pedido, que se interpreta y autoriza otra vez desde cero.
     """
     interprete = _InterpreteFake(
         _salida_interprete("generar_gacetilla", "taller", "sintetico", "vinculacion")
@@ -1956,12 +1964,21 @@ def test_el_modelo_no_clasifica_la_solicitud(tmp_path: Path) -> None:
         tmp_path, "Necesito la gasetiya del taller sintetico", interprete=interprete
     )
 
-    assert interprete.prompts == [], "la clasificación no consulta el modelo"
-    assert resultado.estado == "RECHAZADA"
+    assert interprete.prompts, "el modelo propone cuando la clasificación no reconoce"
+    assert resultado.estado == "PENDIENTE_CONFIRMACION"
     assert resultado.borrador_path is None
+    assert resultado.referencia_borrador is None
+    assert resultado.propuesta is not None
+    assert resultado.propuesta.intencion == "generar_gacetilla"
+    assert resultado.propuesta.id_actividad == "SYN-001"
     registro = _ultima_linea(resultado.log_path)
-    assert registro["intencion"] == "fuera_de_alcance"
-    assert registro["modelo_utilizado"] is False
+    assert registro["intencion"] == "generar_gacetilla"
+    assert registro["id_actividad"] == "SYN-001"
+    assert registro["modelo_utilizado"] is True
+    # La propuesta no despachó ningún pipeline generador: no hay correlación
+    # de pipeline ni texto del pedido en la auditoría.
+    assert registro["pipeline_correlation_id"] is None
+    assert "gasetiya" not in resultado.log_path.read_text(encoding="utf-8")
 
 
 def test_el_modelo_no_puede_cambiar_el_pipeline_que_eligio_el_camino_deterministico(
@@ -2154,3 +2171,218 @@ def test_la_guarda_del_seam_no_atrapa_una_cancelacion(tmp_path: Path) -> None:
             registro_pendientes=RegistroPendientesMemoria(),
             reloj=_reloj_cancelado,
         )
+
+
+# --- 14. Propuesta de intención con confirmación por el Form (#27) ------------
+#
+# Enmienda del 16/10/2026 del ADR 0001: cuando la clasificación determinística
+# no reconoce el pedido, el modelo puede **proponer** una intención permitida
+# (`generar_gacetilla` o `generar_post`) con su salida estructurada. La
+# propuesta no despacha ningún pipeline generador, la actividad la sigue
+# resolviendo el código (el modelo sólo aporta términos) y la confirmación
+# exige un pedido nuevo, que se interpreta y autoriza otra vez desde cero.
+
+
+_PROSA_NO_RECONOCIDA = "Necesito la gasetiya del taller sintetico"
+
+
+def test_sin_modelo_un_pedido_no_reconocido_pide_reformular(tmp_path: Path) -> None:
+    """La degradación sin modelo no rompe la disponibilidad: el pedido se
+    rechaza con el código del catálogo y un mensaje que dice qué hacer."""
+    resultado = _interpretar(tmp_path, _PROSA_NO_RECONOCIDA)
+
+    assert resultado.estado == "RECHAZADA"
+    assert resultado.borrador_path is None
+    assert resultado.propuesta is None
+    assert "Reformulá" in (resultado.error or "")
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "fuera_de_alcance"
+    assert registro["resultado"] == "fuera_de_alcance"
+    assert registro["modelo_utilizado"] is False
+
+
+@pytest.mark.parametrize(
+    "salida",
+    [
+        "no soy json",
+        "{}",
+        json.dumps({"intencion": "generar_gacetilla"}),
+        _salida_interprete("borrar_todo_y_publicar", "taller"),
+        _salida_interprete("generar_gacetilla", "x" * 41),
+    ],
+)
+def test_una_salida_invalida_no_propone_y_pide_reformular(
+    salida: str, tmp_path: Path
+) -> None:
+    """Una salida que no pasa el contrato (incluida una intención inyectada
+    que no existe en el catálogo) no propone nada: mismo desenlace acotado."""
+    interprete = _InterpreteFake(salida)
+
+    resultado = _interpretar(tmp_path, _PROSA_NO_RECONOCIDA, interprete=interprete)
+
+    assert resultado.estado == "RECHAZADA"
+    assert resultado.borrador_path is None
+    assert resultado.propuesta is None
+    assert "Reformulá" in (resultado.error or "")
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "fuera_de_alcance"
+    assert registro["modelo_utilizado"] is False
+    assert "borrar_todo_y_publicar" not in resultado.log_path.read_text(
+        encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize(
+    "intencion_no_proponible",
+    sorted(IDS_INTENCIONES - INTENCIONES_PROPONIBLES),
+)
+def test_el_modelo_no_propone_intenciones_fuera_del_conjunto_permitido(
+    intencion_no_proponible: str, tmp_path: Path
+) -> None:
+    """El modelo puede proponer sólo gacetilla o post: cualquier otra
+    intención del catálogo (incluidas las que sí tienen pipeline) no
+    despacha nada desde acá."""
+    interprete = _InterpreteFake(
+        _salida_interprete(intencion_no_proponible, "taller", "sintetico")
+    )
+
+    resultado = _interpretar(tmp_path, _PROSA_NO_RECONOCIDA, interprete=interprete)
+
+    assert resultado.estado == "RECHAZADA"
+    assert resultado.borrador_path is None
+    assert resultado.propuesta is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "fuera_de_alcance"
+    assert registro["modelo_utilizado"] is True
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        CASOS_NEGATIVOS["ajustar_borrador"],
+        CASOS_NEGATIVOS["generar_newsletter"],
+        CASOS_NEGATIVOS["generar_mail"],
+    ],
+)
+def test_una_accion_reconocida_fuera_de_alcance_no_consulta_el_modelo(
+    texto: str, tmp_path: Path
+) -> None:
+    """Una acción que el catálogo ya reconoce (aunque no tenga despacho) no se
+    reconvierte en otra: se rechaza con su código y el modelo ni se invoca."""
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_gacetilla", "taller", "sintetico", "vinculacion")
+    )
+
+    resultado = _interpretar(tmp_path, texto, interprete=interprete)
+
+    assert interprete.prompts == [], "una intención ya reconocida no se reclasifica"
+    assert resultado.estado == "RECHAZADA"
+    assert resultado.borrador_path is None
+    assert resultado.propuesta is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["resultado"] == INTENCIONES_POR_ID[resultado.intencion][
+        "codigo_rechazo"
+    ]
+    assert registro["modelo_utilizado"] is False
+
+
+def test_una_propuesta_ambigua_reutiliza_la_aclaracion_sin_estado_pendiente(
+    tmp_path: Path,
+) -> None:
+    """Con varias candidatas no hay propuesta que confirmar: se reutiliza la
+    aclaración de #25. No se guarda interacción pendiente: el enlace resuelve
+    por identificador explícito y la propuesta no depende de ese estado ni de
+    su vencimiento de quince minutos."""
+    registro_pendientes = RegistroPendientesMemoria()
+    identidad = _identidad(identificador="persona-propuesta-ambigua")
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_gacetilla", "taller", "robotica", "educativa")
+    )
+
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero una gasetiya del taller de robotica educativa",
+        solicitante=identidad,
+        fuente=_FuenteConActividadesAmbiguas(),
+        registro_pendientes=registro_pendientes,
+        interprete=interprete,
+    )
+
+    assert resultado.estado == "PENDIENTE_DESAMBIGUACION"
+    assert resultado.borrador_path is None
+    assert resultado.propuesta is None
+    assert len(resultado.candidatas) == 2
+    assert registro_pendientes.obtener(identidad.identificador) is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "generar_gacetilla"
+    assert registro["modelo_utilizado"] is True
+
+
+def test_una_propuesta_sin_actividad_queda_incompleta(tmp_path: Path) -> None:
+    """Sin ninguna actividad que ofrecer, el desenlace es el de #23, también
+    para una propuesta: no hay nada que confirmar ni que prellenar."""
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_gacetilla", "taller", "sintetico")
+    )
+
+    resultado = _interpretar(
+        tmp_path,
+        _PROSA_NO_RECONOCIDA,
+        fuente=_FuenteSinActividades(),
+        interprete=interprete,
+    )
+
+    assert resultado.estado == "INCOMPLETA"
+    assert resultado.borrador_path is None
+    assert resultado.propuesta is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "generar_gacetilla"
+    assert registro["id_actividad"] is None
+    assert registro["resultado"] == "identificador_no_encontrado"
+
+
+def test_una_propuesta_de_post_conserva_la_intencion_sin_canal(tmp_path: Path) -> None:
+    """Un pedido que no nombra la red se reconoce por el modelo como post; el
+    canal no se inventa: la propuesta viaja sin él y el canal lo pide el aviso
+    (mismo circuito de aclaración que la repregunta)."""
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_post", "taller", "sintetico", "vinculacion")
+    )
+
+    resultado = _interpretar(
+        tmp_path,
+        "Quiero una placa del taller sintetico",
+        interprete=interprete,
+    )
+
+    assert resultado.estado == "PENDIENTE_CONFIRMACION"
+    assert resultado.propuesta is not None
+    assert resultado.propuesta.intencion == "generar_post"
+    assert resultado.propuesta.id_actividad == "SYN-001"
+    assert resultado.resumen == "Post para 'Taller sintético de vinculación' (2026-08-05)."
+    assert resultado.borrador_path is None
+
+
+def test_una_propuesta_no_persiste_la_prosa_ni_la_identidad(
+    tmp_path: Path,
+) -> None:
+    interprete = _InterpreteFake(
+        _salida_interprete("generar_gacetilla", "taller", "sintetico", "vinculacion")
+    )
+    identidad = _identidad(identificador="persona-propuesta-hash")
+
+    resultado = _interpretar(
+        tmp_path,
+        "Necesito una gasetiya ZZZQQ919 del taller sintetico",
+        solicitante=identidad,
+        interprete=interprete,
+    )
+
+    assert resultado.estado == "PENDIENTE_CONFIRMACION"
+    crudo = resultado.log_path.read_text(encoding="utf-8")
+    assert "ZZZQQ919" not in crudo
+    assert identidad.identificador not in crudo
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["solicitante_hash"] is not None
+    assert registro["identidad_verificada"] is False
+    assert registro["correlation_id"] == resultado.correlation_id

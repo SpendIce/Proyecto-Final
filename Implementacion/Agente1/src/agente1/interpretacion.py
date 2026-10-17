@@ -37,6 +37,18 @@ inyectado— y perder el estado nunca rompe nada: la persona vuelve a
 preguntar. Hay como mucho una interacción pendiente por persona: la más
 reciente reemplaza a cualquier anterior.
 
+**Propuesta de intención (#27).** Cuando la clasificación determinística no
+reconoce el pedido (`fuera_de_alcance`), el modelo puede **proponer** una
+intención permitida (`generar_gacetilla` o `generar_post`) con la misma salida
+estructurada del fallback. La propuesta no genera nada: se devuelve por el
+canal y la persona tiene que revisar y enviar de nuevo el Form, que constituye
+un pedido nuevo con identidad, rol, permisos y actividad verificados otra vez.
+La actividad la sigue resolviendo el código (el modelo sólo aporta términos);
+si hay varias candidatas o ninguna se reutiliza la aclaración de #25 y, para
+un post sin canal, se pide el canal. Sin propuesta válida, con salida inválida
+o con el modelo no disponible, se pide reformular. Ver la enmienda del
+16/10/2026 del ADR 0001 y `_proponer_intencion`.
+
 Deliberadamente **no** entran acá:
 
 - el canal de interacción como adapter (#24) — no confundir con el canal de
@@ -66,8 +78,10 @@ Decisiones que no se ven en el código:
   por la validación humana. Ver ADR 0001.
 - **La clasificación es determinística y el catálogo es cerrado.** Un texto
   que no activa ninguna palabra clave del catálogo se clasifica
-  `fuera_de_alcance`; no se aproxima a la intención más parecida. Ver
-  ADR 0001.
+  `fuera_de_alcance`; no se aproxima a la intención más parecida. Esa
+  clasificación sigue siendo la que decide el despacho: la propuesta de
+  intención del modelo no la reemplaza, sólo puede pedir un pedido nuevo. Ver
+  ADR 0001 y «Propuesta de intención».
 - **El canal de `generar_post` se resuelve con código determinístico, nunca
   con el modelo.** `_resolver_canal` reconoce la mención literal de
   "Instagram" o "LinkedIn" en la prosa. Un pedido que no menciona ninguno de
@@ -162,6 +176,16 @@ INTENCIONES_CON_DESPACHO = frozenset(
         "generar_plantilla_actividad",
     }
 )
+
+# Intenciones que el modelo puede **proponer** cuando la clasificación
+# determinística no reconoció el pedido (ADR 0001, enmienda del 16/10/2026).
+# Es un poder distinto del de despachar: `INTENCIONES_CON_DESPACHO` dice qué
+# intención sabe producir un borrador y este conjunto dice qué intención puede
+# sugerir el modelo. Proponer no habilita el despacho. Se declara del lado del
+# código, por la misma razón que `INTENCIONES_CON_DESPACHO`: una salida del
+# modelo no puede ampliar por sí sola lo que el agente está dispuesto a
+# proponer.
+INTENCIONES_PROPONIBLES = frozenset({"generar_gacetilla", "generar_post"})
 
 
 # --- Fallback con modelo local (#26) ----------------------------------------
@@ -871,6 +895,117 @@ def _buscar_actividad_con_terminos(
     return _resolver_actividad_por_similitud(texto + " " + " ".join(terminos), fuente)
 
 
+def _proponer_intencion(
+    *,
+    texto: str,
+    fuente: FuenteSolicitudes,
+    interprete: Generator | None,
+    log_path: Path,
+    correlation_id: str,
+    solicitante: IdentidadSolicitante,
+) -> "ResultadoInterpretacion":
+    """Propone una intención permitida, o pide reformular. Nunca despacha.
+
+    Es el único uso del modelo que no es "extraer términos", y sólo entra
+    cuando la clasificación determinística **no** reconoció el pedido
+    (`fuera_de_alcance`). Su salida ya validada contra el catálogo
+    (`_validar_salida_fallback`) se acepta nada más que si es una de las
+    `INTENCIONES_PROPONIBLES`; cualquier otro desenlace (modelo ausente,
+    salida inválida, intención del catálogo que no se puede proponer) termina
+    en el mismo pedido de reformular, sin generar nada. Una acción reconocida
+    fuera de alcance no llega hasta acá: se rechaza en la rama general.
+
+    La actividad la resuelve el **código** con la misma maquinaria de #23/#26:
+    el modelo sólo aporta términos de búsqueda. Sin actividad única se
+    reutiliza la aclaración de #25 (candidatas y links que mintea el canal) y
+    sin ninguna candidata queda el mismo desenlace de #23. Deliberadamente no
+    se guarda una interacción pendiente: la propuesta no depende de ese estado
+    entre turnos y el enlace resuelve por identificador explícito, así que
+    tampoco hereda su vencimiento de quince minutos.
+    """
+
+    interpretado = _interpretar_con_modelo(texto, interprete)
+    if interpretado is None or interpretado.intencion not in INTENCIONES_PROPONIBLES:
+        # `modelo_utilizado` sigue la convención del resto del módulo: una
+        # salida validada ya intervino, aunque no alcance para proponer. El
+        # desenlace es el rechazo terminal del catálogo, con un mensaje que le
+        # dice a la persona qué hacer para recuperar el pedido. La intención
+        # que el modelo sugirió sin poder proponerla no se adopta como
+        # registro: el pedido sigue siendo `fuera_de_alcance` y la auditoría
+        # sólo deja constancia de que el modelo intervino.
+        return _finalizar(
+            log_path=log_path,
+            correlation_id=correlation_id,
+            texto=texto,
+            solicitante=solicitante,
+            intencion=INTENCION_FUERA_DE_ALCANCE,
+            id_actividad=None,
+            modelo_utilizado=interpretado is not None,
+            estado="RECHAZADA",
+            resultado=INTENCION_FUERA_DE_ALCANCE,
+            error=(
+                "El pedido no se reconoció como una pieza del catálogo. "
+                "Reformulá el pedido indicando si querés una gacetilla o un "
+                "post, y sobre qué actividad."
+            ),
+        )
+
+    intencion = interpretado.intencion
+    id_actividad = _extraer_identificador_explicito(texto)
+    if id_actividad is None:
+        id_actividad = _buscar_actividad_con_terminos(
+            texto, interpretado.terminos, fuente
+        )
+    if id_actividad is None:
+        candidatas = _generar_candidatas(texto, fuente)
+        if not candidatas:
+            return _finalizar(
+                log_path=log_path,
+                correlation_id=correlation_id,
+                texto=texto,
+                solicitante=solicitante,
+                intencion=intencion,
+                id_actividad=None,
+                modelo_utilizado=True,
+                estado="INCOMPLETA",
+                resultado="identificador_no_encontrado",
+                error=(
+                    "No se reconoció ni un identificador explícito ni una "
+                    "actividad única y clara en el pedido"
+                ),
+            )
+        return _finalizar(
+            log_path=log_path,
+            correlation_id=correlation_id,
+            texto=texto,
+            solicitante=solicitante,
+            intencion=intencion,
+            id_actividad=None,
+            modelo_utilizado=True,
+            estado="PENDIENTE_DESAMBIGUACION",
+            resultado="repregunta_generada",
+            error=None,
+            resumen=_resumen_repregunta(candidatas),
+            candidatas=candidatas,
+        )
+
+    propuesta = PropuestaIntencion(intencion=intencion, id_actividad=id_actividad)
+    return _finalizar(
+        log_path=log_path,
+        correlation_id=correlation_id,
+        texto=texto,
+        solicitante=solicitante,
+        intencion=intencion,
+        id_actividad=id_actividad,
+        modelo_utilizado=True,
+        estado="PENDIENTE_CONFIRMACION",
+        resultado="propuesta_generada",
+        error=None,
+        resumen=_resumen_propuesta(fuente, intencion, id_actividad),
+        propuesta=propuesta,
+    )
+
+
 @dataclass(frozen=True)
 class CandidataActividad:
     """Una actividad candidata ofrecida en una repregunta.
@@ -1079,6 +1214,7 @@ ESTADOS_RESULTADO = frozenset(
     {
         "PENDIENTE_VALIDACION",
         "PENDIENTE_DESAMBIGUACION",
+        "PENDIENTE_CONFIRMACION",
         "PENDIENTE_APROBACION",
         "EMITIDA",
         "EMITIDA_PARCIAL",
@@ -1088,6 +1224,38 @@ ESTADOS_RESULTADO = frozenset(
         "RECHAZADA",
     }
 )
+
+
+@dataclass(frozen=True)
+class PropuestaIntencion:
+    """Intención que el modelo propone, con la actividad resuelta por código.
+
+    Lleva sólo lo que el canal necesita para prellenar el pedido nuevo: la
+    intención permitida y el identificador de la actividad resuelta. No lleva
+    el canal del post: en este canal, nombrar la red ya hace que el pedido se
+    reconozca por el camino determinístico, así que una propuesta de post
+    siempre llega sin canal y el aviso pide agregarlo antes de enviar. No
+    habilita nada por sí sola: la propuesta no despacha ningún pipeline.
+
+    `id_actividad` sale del identificador explícito de la prosa o de
+    `fuente.enumerar()`, nunca del modelo. Una propuesta siempre tiene
+    actividad: si hubiera varias o ninguna, no hay propuesta que confirmar y
+    el desenlace es la aclaración de actividad de #25.
+    """
+
+    intencion: str
+    id_actividad: str
+
+    def __post_init__(self) -> None:
+        if self.intencion not in INTENCIONES_PROPONIBLES:
+            raise ValueError("intención propuesta fuera del conjunto permitido")
+        if (
+            not isinstance(self.id_actividad, str)
+            or not self.id_actividad.strip()
+            or "\r" in self.id_actividad
+            or "\n" in self.id_actividad
+        ):
+            raise ValueError("propuesta sin actividad válida")
 
 
 @dataclass(frozen=True)
@@ -1106,6 +1274,12 @@ class ResultadoInterpretacion:
     `{"tipo", "objeto_id", "detalle"}` con identificadores, nunca texto:
     el canal los declara pendientes y mintea sus links prellenados al
     responder. Para las demás intenciones queda vacío.
+
+    `propuesta` sólo se completa en `PENDIENTE_CONFIRMACION`: es la intención
+    que el modelo propuso, más la actividad resuelta por código, para un
+    pedido que la clasificación determinística no reconoció. No habilita el
+    despacho: el canal la usa para prellenar el pedido nuevo que la persona
+    tiene que revisar y enviar. Ver `PropuestaIntencion`.
     """
 
     estado: str
@@ -1118,6 +1292,7 @@ class ResultadoInterpretacion:
     error: str | None = None
     candidatas: "tuple[CandidataActividad, ...]" = ()
     objetos_decision: "tuple[dict[str, object], ...]" = ()
+    propuesta: "PropuestaIntencion | None" = None
 
 
 def _interpretar_solicitud_sin_guarda(
@@ -1148,12 +1323,14 @@ def _interpretar_solicitud_sin_guarda(
     el modelo. `reloj` por defecto es `datetime.now(timezone.utc)`; las
     pruebas lo inyectan para no depender de esperas reales (#25).
 
-    `interprete` es el modelo local del fallback (#26). También es opcional y
-    por la misma razón: sin él, un pedido que el camino determinístico no
-    resuelve termina en repregunta igual que antes, con menor cobertura y sin
-    perder disponibilidad. Es un `Generator` distinto del que redacta los
-    borradores porque hace otra cosa —extrae términos, no redacta— y porque
-    así ninguna prueba determinística depende de que exista.
+    `interprete` es el modelo local del fallback (#26, #27). También es
+    opcional y por la misma razón: sin él, un pedido que el camino
+    determinístico no resuelve termina en repregunta igual que antes, con
+    menor cobertura y sin perder disponibilidad, y uno que no se reconoce
+    termina pidiendo reformular. Es un `Generator` distinto del que redacta
+    los borradores porque hace otra cosa (extrae términos o propone una
+    intención, no redacta) y porque así ninguna prueba determinística depende
+    de que exista.
 
     `emisor_certificados` es el callable del circuito de lote de cierre de
     HU-014/#75 (`procesar_emision_certificados` ya configurado con su fuente,
@@ -1230,15 +1407,14 @@ def _interpretar_solicitud_sin_guarda(
     interpretado: TerminosInterpretados | None = None
 
     # La clasificación de la intención es **siempre** determinística. El modelo
-    # no la decide: ADR 0001 descartó explícitamente "dejar que el modelo
-    # interpretara libremente la solicitud" porque paga superficie de ataque
-    # por una decisión ternaria, y fija que "el modelo, cuando interviene,
-    # sólo extrae términos de búsqueda estructurados". Un pedido cuya
-    # clasificación no resuelve se rechaza sin consultar el modelo, aunque eso
-    # deje sin recuperar un tipeo en la palabra que nombra la pieza. La
-    # tensión entre esa limitación y el criterio de aceptación de #26 está
-    # elevada en el issue #27, que la deja como decisión institucional: cambiar
-    # esto mueve el límite de confianza que el ADR fijó a propósito.
+    # no la decide: ADR 0001 descartó "dejar que el modelo interpretara
+    # libremente la solicitud", y un pedido ya reconocido no se reclasifica ni
+    # se convierte en otra acción. La enmienda del 16/10/2026 agrega un único
+    # uso nuevo de su salida: cuando **ninguna** regla reconoce el pedido
+    # (`fuera_de_alcance`), el modelo puede *proponer* una intención permitida
+    # (`generar_gacetilla` o `generar_post`) que no despacha nada y exige que
+    # la persona envíe un pedido nuevo. Ver `_proponer_intencion` y el issue
+    # #27.
     if intencion in INTENCIONES_CON_DESPACHO:
         intencion_efectiva = intencion
         id_actividad = _extraer_identificador_explicito(texto)
@@ -1267,13 +1443,16 @@ def _interpretar_solicitud_sin_guarda(
                     modelo_utilizado = True
             if interpretado is not None:
                 # El campo `intencion` de la salida se valida contra el
-                # catálogo (ver `_validar_salida_fallback`) y desde acá se usa
-                # en **una sola dirección**: para rechazar. Si el modelo dice
-                # que el pedido no corresponde a una intención con despacho, se
-                # rechaza. Nunca se usa para habilitar una intención ni para
-                # cambiar el pipeline que ya eligió el camino determinístico:
-                # eso sería la interpretación libre que descartó ADR 0001.
-                # Restringirlo a rechazar sólo puede reducir lo que se genera.
+                # catálogo (ver `_validar_salida_fallback`) y dentro de una
+                # intención **ya reconocida** se usa en una sola dirección:
+                # para rechazar. Si el modelo dice que el pedido no corresponde
+                # a una intención con despacho, se rechaza. Nunca se usa para
+                # habilitar una intención ni para cambiar el pipeline que ya
+                # eligió el camino determinístico: eso sería la interpretación
+                # libre que descartó ADR 0001. Restringirlo a rechazar sólo
+                # puede reducir lo que se genera. El uso para *proponer* existe
+                # únicamente en `_proponer_intencion`, y sólo cuando la
+                # clasificación no reconoció el pedido.
                 if interpretado.intencion not in INTENCIONES_CON_DESPACHO:
                     entrada_rechazo = INTENCIONES_POR_ID[interpretado.intencion]
                     return _finalizar(
@@ -1373,16 +1552,29 @@ def _interpretar_solicitud_sin_guarda(
         id_actividad = referencia.id_actividad
         _descartar_pendiente(registro_pendientes, solicitante.identificador)
     else:
-        # Sin pendiente que resolver: mismo rechazo que sin esta historia.
-        # Único punto de decisión sobre "esta intención produce un borrador
-        # o se rechaza": cubre en la misma rama `fuera_de_alcance` (nunca se
-        # aproxima a la más parecida), `ajustar_borrador` (reconocida, fuera
-        # de alcance de esta iteración) y las intenciones sin pipeline
-        # construido (`generar_newsletter`, `generar_mail`).
-        # `INTENCIONES_CON_DESPACHO` es la única fuente de verdad de qué
-        # intención despacha de verdad: ni el catálogo por sí solo ni una
-        # intención declarada `ACTIVA` alcanzan para producir un borrador si
-        # no está también acá.
+        # Sin pendiente que resolver. La clasificación determinística tampoco
+        # reconoció el pedido: es el único caso en el que el modelo puede
+        # intervenir para **proponer** una intención permitida (ADR 0001,
+        # enmienda del 16/10/2026). Una acción ya reconocida fuera de alcance
+        # (`ajustar_borrador`, `generar_newsletter`, `generar_mail`) no se
+        # reconvierte: se rechaza con su código, sin consultar el modelo.
+        if intencion == INTENCION_FUERA_DE_ALCANCE:
+            return _proponer_intencion(
+                texto=texto_seguro,
+                fuente=fuente,
+                interprete=interprete,
+                log_path=log_path,
+                correlation_id=correlation_id,
+                solicitante=solicitante,
+            )
+        # Único punto de decisión sobre "esta intención produce un borrador o
+        # se rechaza" para las que no tienen despacho: cubre
+        # `ajustar_borrador` (reconocida, fuera de alcance de esta iteración)
+        # y las intenciones sin pipeline construido (`generar_newsletter`,
+        # `generar_mail`). `INTENCIONES_CON_DESPACHO` es la única fuente de
+        # verdad de qué intención despacha de verdad: ni el catálogo por sí
+        # solo ni una intención declarada `ACTIVA` alcanzan para producir un
+        # borrador si no está también acá.
         entrada_catalogo = INTENCIONES_POR_ID[intencion]
         return _finalizar(
             log_path=log_path,
@@ -1392,8 +1584,9 @@ def _interpretar_solicitud_sin_guarda(
             intencion=intencion,
             id_actividad=None,
             # Siempre `False`: acá se llega sin haber consultado el modelo,
-            # porque la clasificación es determinística (ADR 0001). Se pasa
-            # explícito para que no dependa del valor por defecto.
+            # porque la intención ya fue reconocida por el camino
+            # determinístico (ADR 0001). Se pasa explícito para que no dependa
+            # del valor por defecto.
             modelo_utilizado=False,
             estado="RECHAZADA",
             resultado=str(entrada_catalogo["codigo_rechazo"]),
@@ -1665,6 +1858,32 @@ def _resumen_post_desde_fuente(
     return f"Post de {canal} para '{titulo.strip()}'."
 
 
+def _resumen_propuesta(
+    fuente: FuenteSolicitudes, intencion: str, id_actividad: str
+) -> str | None:
+    """Resumen de la pieza propuesta, a partir de datos institucionales.
+
+    No hay borrador que resumir (la propuesta no genera): se nombra la pieza y
+    la actividad con el mismo título y la misma fecha que usan los resúmenes de
+    éxito, nunca la prosa del pedido ni la salida del modelo.
+    """
+
+    try:
+        fila = fuente.obtener(id_actividad)
+    except Exception:
+        return None
+    if not isinstance(fila, dict):
+        return None
+    titulo = fila.get("titulo", "")
+    if not isinstance(titulo, str) or not titulo.strip():
+        return None
+    pieza = "Post" if intencion == "generar_post" else "Gacetilla"
+    fecha_inicio = fila.get("fecha_inicio", "")
+    if isinstance(fecha_inicio, str) and fecha_inicio.strip():
+        return f"{pieza} para '{titulo.strip()}' ({fecha_inicio.strip()})."
+    return f"{pieza} para '{titulo.strip()}'."
+
+
 def _resumen_plantilla_actividad(resultado: "ResultadoPlantillaActividad") -> str:
     """Resumen de la plantilla generada, a partir del propio resultado.
 
@@ -1699,6 +1918,7 @@ def _finalizar(
     candidatas: "tuple[CandidataActividad, ...]" = (),
     modelo_utilizado: bool = False,
     objetos_decision: "tuple[dict[str, object], ...]" = (),
+    propuesta: "PropuestaIntencion | None" = None,
 ) -> ResultadoInterpretacion:
     if estado not in ESTADOS_RESULTADO:
         estado = "FALLIDA"
@@ -1739,6 +1959,7 @@ def _finalizar(
         error=error,
         candidatas=candidatas,
         objetos_decision=objetos_decision,
+        propuesta=propuesta,
     )
 
 
