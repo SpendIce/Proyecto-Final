@@ -364,7 +364,7 @@ def test_auditoria_registra_hash_y_version(clave_rsa: Path, tmp_path: Path):
     entrada = json.loads(lineas[0])
     assert entrada["record"] == CUENTA_AUDITORIA_RECORD
     assert entrada["cuenta_suplantada_sha256"] == sha256_cuenta(CUENTA)
-    assert entrada["version"] == "0.2.0"
+    assert entrada["version"] == "0.3.0"
     assert entrada["resultado"] == "emitido"
     assert entradas_iso(entrada["ejecutado_en"])
     assert CUENTA not in lineas[0]

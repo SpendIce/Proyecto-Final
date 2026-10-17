@@ -1320,3 +1320,112 @@ def test_runner_plan_duplicado_sobre_la_actividad_rechaza(
     assert json.loads(capsys.readouterr().out.strip())["resultado"] == (
         "plan_actividad_duplicada"
     )
+
+
+def test_runner_hoja_v2_offline_despacha_difusion_declarada(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """El runner offline lee la hoja con el contrato declarado (#122): con
+    `AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO=canal_form_respuestas_v2`, una fila
+    de difusión con actividad despacha igual que la repregunta y el
+    registro deja la forma de hoja y lo declarado."""
+
+    modulo = _cargar_runner_canal()
+    monkeypatch.setenv("AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO", (
+        "canal_form_respuestas_v2"
+    ))
+    pedidos = tmp_path / "pedidos-v2.csv"
+    pedidos.write_text(
+        "Marca temporal,Correo,Tipo de gacetilla,Actividad,Área emisora,Pedido\n"
+        "2026-10-10 09:00:00,solicitante@example.invalid,difusion_de_actividad,"
+        "SYN-001,,\n",
+        encoding="utf-8",
+    )
+    padron = tmp_path / "padron.csv"
+    padron.write_text(
+        "correo,rol\n"
+        f"solicitante@example.invalid,{next(iter(ROLES_HABILITADOS))}\n",
+        encoding="utf-8",
+    )
+
+    salida = modulo.main(
+        [
+            "--directorio",
+            str(tmp_path / "trabajo"),
+            "--respuestas-csv",
+            str(pedidos),
+            "--csv",
+            str(DATASET),
+            "--padron",
+            str(padron),
+        ]
+    )
+
+    assert salida == 0
+    lineas = [
+        json.loads(linea)
+        for linea in capsys.readouterr().out.splitlines()
+        if linea.strip()
+    ]
+    assert lineas[0]["estado"] == "PENDIENTE_VALIDACION"
+    assert lineas[0]["intencion"] == "generar_gacetilla"
+    registro = json.loads(
+        (
+            tmp_path
+            / "trabajo"
+            / "estado-canal-form"
+            / "atendidos-canal-form.jsonl"
+        ).read_text(encoding="utf-8")
+    )
+    assert registro["contrato_hoja"] == "canal_form_respuestas_v2"
+    assert registro["declarado"] == {
+        "tipo": "difusion_de_actividad",
+        "actividad": "SYN-001",
+    }
+    assert registro["estado"] == "PENDIENTE_VALIDACION"
+
+
+def test_runner_hoja_contrato_desconocido_rechaza(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Un valor de `AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO` fuera de la lista
+    cerrada falla cerrado en el runner offline, con el mismo código que la
+    carga de configuración en live y sin leer la hoja."""
+
+    modulo = _cargar_runner_canal()
+    monkeypatch.setenv("AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO", (
+        "canal_form_respuestas_v99"
+    ))
+    pedidos = tmp_path / "pedidos.csv"
+    pedidos.write_text(
+        "Marca temporal,Correo,Pedido\n"
+        "2026-10-10 09:00:00,solicitante@example.invalid,gacetilla SYN-001\n",
+        encoding="utf-8",
+    )
+    padron = tmp_path / "padron.csv"
+    padron.write_text(
+        "correo,rol\n"
+        f"solicitante@example.invalid,{next(iter(ROLES_HABILITADOS))}\n",
+        encoding="utf-8",
+    )
+
+    salida = modulo.main(
+        [
+            "--directorio",
+            str(tmp_path / "trabajo"),
+            "--respuestas-csv",
+            str(pedidos),
+            "--csv",
+            str(DATASET),
+            "--padron",
+            str(padron),
+        ]
+    )
+
+    assert salida == 2
+    lineas = capsys.readouterr().out.splitlines()
+    assert json.loads(lineas[0])["resultado"] == "canal_form_config_invalid"

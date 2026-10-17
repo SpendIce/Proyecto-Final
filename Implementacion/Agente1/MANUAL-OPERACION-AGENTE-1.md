@@ -449,11 +449,38 @@ scheduler §6.2.
 
 ### 5.9 Canal de pedidos, decisiones y padrón
 
+El canal de pedidos lee la hoja de respuestas con un contrato versionado:
+`canal_form_respuestas_v1` (una sola pregunta abierta, default) y
+`canal_form_respuestas_v2`, opt-in con
+`AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO=canal_form_respuestas_v2`. Esa misma
+variable elige la forma de hoja en los dos modos: el runner offline la lee
+también, y un valor desconocido falla cerrado con
+`canal_form_config_invalid` antes de leer nada. La v2 pide el
+**tipo de gacetilla** como primera pregunta (lista cerrada del catálogo de
+tipos), la **actividad** sólo para los tipos que la llevan y el **área
+emisora** por el padrón cerrado de `contracts/areas_emisoras_v1.json`. El
+desplegable de actividades se carga a mano como insumo provisional con
+identificadores de la planilla de actividades; su sincronización automática
+(Apps Script) queda declarada como destino del canal y no existe hoy.
+
+En la forma v2, una fila que declara un tipo fuera de la lista cerrada, una
+actividad que no corresponde («No es una actividad / no figura», campo
+vacío, texto libre) o un área fuera del padrón **no llega al núcleo**:
+termina en un desenlace acotado con aviso al correo del pedido y línea en el
+registro de atendidos (`estado: INVALIDA`, `resultado: <código del
+bloqueo>`, `origen_hechos: solicitud`), sin generar nada. Cargar una
+actividad en la planilla institucional no es tarea del agente: la planilla
+manda. Una difusión con identificador bien formado de una actividad no
+cargada entra al núcleo igual que por prosa y vuelve `INVALIDA` sin
+generación.
+
 | Código | Significado | Qué hacer |
 |---|---|---|
-| `canal_form_config_incomplete` / `canal_form_config_invalid` / `canal_form_config_unknown_key` | Configuración del canal de pedidos por Form. | Revisar el env file. |
-| `canal_form_decisiones_config_incomplete` / `canal_form_decisiones_config_invalid` / `canal_form_decisiones_config_unknown_key` | Configuración del Form de decisiones. | Revisar el env file. |
+| `canal_form_config_incomplete` / `canal_form_config_invalid` / `canal_form_config_unknown_key` | Configuración del canal de pedidos por Form, incluida la versión de contrato de hoja (`AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO`). | Revisar el env file. |
+| `canal_form_hoja_contrato_desconocido` / `canal_form_hoja_contrato_invalido` | El contrato de la hoja de respuestas no está declarado o su contenido no es legible. | Confirmar la versión declarada y que el archivo del repo exista y tenga sus columnas. |
+| `canal_form_areas_padron_invalido` | El padrón cerrado de áreas emisoras no se puede leer o está mal armado. | Revisar `contracts/areas_emisoras_v1.json`; el arranque sin padrón de áreas no habilita a medias. |
 | `canal_form_registry_invalid` / `canal_form_registry_unavailable` | El registro de atendidos está dañado o no está. | Revisar `atendidos-canal-form.jsonl`. |
+| `canal_form_decisiones_config_incomplete` / `canal_form_decisiones_config_invalid` / `canal_form_decisiones_config_unknown_key` | Configuración del Form de decisiones. | Revisar el env file. |
 | `decisiones_registry_invalid` | El registro de decisiones está dañado. | Revisar `decisiones-procesadas.jsonl`. |
 | `decision_objeto_invalid` / `decision_tipo_invalid` / `decision_link_invalid` / `decision_detalle_invalid` | La decisión no corresponde a un objeto, tipo, enlace o detalle válidos. | Registrar la decisión con el objeto y el rol correctos. |
 

@@ -340,5 +340,5 @@ def test_el_asiento_lleva_la_identidad_de_la_version(tmp_path: Path) -> None:
     assert asiento["record"] == "agente1_config_entorno_v1"
     assert asiento["ejecutado_en"] == "2026-10-14T12:00:00+00:00"
     # La identidad la agrega `registro_auditoria` (#93), no este módulo.
-    assert asiento["version_agente"] == "0.2.0"
+    assert asiento["version_agente"] == "0.3.0"
     assert len(asiento["manifest_version_sha256"]) == 64

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:canal-form-respuestas:v1",
+  "title": "Forma de la hoja de respuestas del Form de pedidos (v1)",
+  "description": "Hoja de respuestas de un Form de correo verificado con una sola pregunta abierta. El adapter la lee por posicion de columna, nunca por enunciado: los titulos de las preguntas son texto libre y no sirven de contrato. Versionado retroactivo (#122): esta forma ya era la que leia el canal antes de tener contrato propio; reproducirla aca le da version al comportamiento vigente.",
+  "x-contract-version": "canal_form_respuestas_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-decision": "#71 (HU-013); versionado retroactivo por #122",
+  "x-lectura": "columnas_por_posicion, filas con segunda columna no-correo omitidas (cubre el encabezado y restos de edicion)",
+  "x-contrato-hoja-siguiente": "canal_form_respuestas_v2 (#122)",
+  "columnas": {
+    "marca_temporal": 0,
+    "correo": 1,
+    "pedido": 2
+  }
+}

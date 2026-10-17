@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:areas-emisoras:v1",
+  "title": "Padron de areas emisoras de piezas de FIE Informa",
+  "description": "Lista cerrada y versionada de areas que pueden emitir una pieza por FIE Informa y la firma de area que la pieza imprime en su pie. La firma de la pieza sale de esta lista: un campo de texto libre reproduciria el bug ya visto (una pieza firmada por un area que no la emitio). El id viaja declarado en la solicitud; la firma institucional que imprime la pieza sale de aca, no del texto de la planilla de respuestas. Doctrine de padron cerrado: ADR 0005.",
+  "x-contract-version": "areas_emisoras_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL: la lista y sus nombres pendientes de confirmacion SEU.",
+  "x-decision": "#122",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, apartado «Pie (firma)»: firmas de area observadas por tipo.",
+  "x-origen": "Equipo tecnico del PPS. Las areas y sus firmas salieron del corpus historico y no fueron aprobadas por la SEU.",
+  "areas": [
+    {
+      "id": "cursos_complementarios",
+      "nombre": "Departamento de Cursos Complementarios"
+    },
+    {
+      "id": "secretaria_de_extension",
+      "nombre": "Secretaría de Extensión Universitaria"
+    },
+    {
+      "id": "secretaria_academica",
+      "nombre": "Secretaría Académica"
+    },
+    {
+      "id": "doe",
+      "nombre": "DOE"
+    }
+  ]
+}
