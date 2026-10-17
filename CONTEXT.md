@@ -17,7 +17,7 @@ Pedido de una pieza comunicacional sobre una actividad, que una persona de la SE
 _Evitar_: actividad, fila de la planilla de actividades
 
 **Pieza comunicacional**:
-Contenido institucional preparado para un canal y un publico determinados, como una gacetilla, un post, un correo, un newsletter o un certificado.
+Contenido institucional preparado para un canal y un publico determinados, como una gacetilla, un post, un correo o un certificado.
 _Evitar_: publicacion, cuando todavia no fue validada ni difundida
 
 **Borrador**:
@@ -25,8 +25,24 @@ Pieza comunicacional generada que no tiene autorizacion para publicarse, enviars
 _Evitar_: contenido aprobado, publicacion
 
 **FIE Informa**:
-Canal de correo institucional por el que la FIE difunde a su comunidad piezas de la SEU y de otras areas. Cada pieza se redacta como un documento con nombre «Fie informa D-M <titulo>».
-_Evitar_: newsletter, gacetilla, cuando se habla del canal y no de la pieza
+Canal de correo institucional por el que la FIE difunde a su comunidad piezas de la SEU y de otras areas. Cada pieza se redacta como un documento con nombre «Fie informa D-M <titulo>». Las piezas que viajan por este canal son gacetillas.
+_Evitar_: gacetilla y newsletter cuando se habla del canal y no de la pieza; newsletter como si fuera el canal
+
+**Gacetilla**:
+Pieza comunicacional del canal FIE Informa. El Agente 1 la prepara como borrador y su forma depende del tipo de gacetilla: no hay una sola forma de gacetilla.
+_Evitar_: newsletter como sinonimo (es un tipo de gacetilla), mail, correo (correo es el canal)
+
+**Tipo de gacetilla**:
+Clase de pieza que viaja por FIE Informa: difusion de actividad, cronica de evento, aviso de otra area, convocatoria interna, saludo o efemeride, fallecimiento y newsletter. El tipo determina la forma declarada, el firmante, los campos obligatorios y el modo de produccion. Es un conjunto cerrado y viaja declarado en la solicitud; nunca se aproxima a la clase mas parecida.
+_Evitar_: intencion, categoria libre, tipo deducido sin confirmacion
+
+**Modo de produccion**:
+Forma en que se obtiene el cuerpo de una gacetilla, declarada por tipo. *Genera*: el modelo escribe la prosa a partir de datos estructurados. *Extrae y confirma*: los datos los carga quien pide y el agente solo los formatea, sin prosa generada.
+_Evitar_: generacion, cuando los datos ya los aporto una persona
+
+**Forma declarada**:
+Conjunto de partes institucionales fijas de un tipo de gacetilla: encabezado, pie, firmante, formulas y etiquetas. Se versiona por tipo y el agente la copia tal cual; el modelo nunca la escribe.
+_Evitar_: plantilla (esa es de las piezas que el agente envia o emite), estilo, formato libre
 
 **Ejemplo aprobado**:
 Pieza que la SEU ya publico y que sirve de referencia de formato, estructura y registro para lo que genera el Agente 1. No es referencia de ortografia ni es una plantilla aprobada: el agente no completa variables sobre ella.
