@@ -1,15 +1,19 @@
 """Set de evaluación de gacetillas contra el corpus FIE INFORMA (issue #111).
 
 El set vive en `data/corpus-fie-informa-difusiones.csv` con el encabezado
-exacto de `COLUMNAS_ACTIVIDADES_V2`, de modo que cada caso corre por el mismo
-pipeline HU-010 que `actividades_sinteticas.csv`. Estos chequeos NO reinventan
-un validador: ejercitan el gate existente (`procesar_fila_csv` y sus
-validaciones) y agregan las regresiones del set —procedencia por campo, slots
-por tipo, manifest congelado por hash y la regresión nueva de que la salida no
-reproduce las erratas del corpus, que necesita #105—.
+exacto de `COLUMNAS_ACTIVIDADES_V2`, de modo que cada caso de difusión corre
+por el mismo pipeline HU-010 que `actividades_sinteticas.csv`. Estos chequeos
+NO reinventan un validador: ejercitan el gate existente (`procesar_fila_csv`
+y sus validaciones) y agregan las regresiones del set —procedencia por campo,
+slots por tipo, manifest congelado por hash y la regresión nueva de que la
+salida no reproduce las erratas del corpus, que necesita #105—.
 
-Los chequeos son de contrato, no de calidad: no puntúan parecido a un FIE
-INFORMA. Eso lo hace la rúbrica humana, sujeta a la aprobación de Juani.
+Desde el adendo del 17/10 (#120 con #121) el set tiene dos ejes: el eje 1
+(rúbrica humana 1 a 4) sólo sobre los tipos que generan, y el eje 2
+(conformidad de forma, binario y automático) sobre los siete tipos del
+contrato `tipos_gacetilla_v1`. Los chequeos de acá son de contrato, no de
+calidad: no puntúan parecido a un FIE INFORMA; eso lo hace la rúbrica humana
+aprobada por Juani el 16/10, cuyas corridas de medición todavía no corrieron.
 """
 
 from __future__ import annotations
@@ -48,6 +52,8 @@ MANIFEST = (
 DOCUMENTO = (
     ROOT / "evidencias" / "set-evaluacion-gacetillas-fie-informa-2026-10-14.md"
 )
+CONTRATO_TIPOS = ROOT / "src" / "agente1" / "contracts" / "tipos_gacetilla_v1.json"
+PROMPT_SALUDO = ROOT / "src" / "agente1" / "prompts" / "saludo_o_efemeride_v1.txt"
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -56,6 +62,15 @@ def _sha256(path: Path) -> str:
 def _leer_filas(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as archivo:
         return list(csv.DictReader(archivo))
+
+
+def _manifest() -> dict:
+    return json.loads(MANIFEST.read_text(encoding="utf-8"))
+
+
+def _tipos_del_contrato() -> list[dict]:
+    contrato = json.loads(CONTRATO_TIPOS.read_text(encoding="utf-8"))
+    return contrato["tipos"]
 
 
 FILAS = _leer_filas(DATASET)
@@ -82,16 +97,6 @@ ERRATAS_CORPUS = ("visitaros", "FRACIA", "NOTIFICAS", "elpe", "Secretaria", "act
 # lectura pública. El marcador `BORRADOR — NO PUBLICAR` se descuenta porque es
 # metadato del artefacto, no prosa del correo.
 TERMINOS_PROCESO_INTERNO = ("revisión", "validación", "aprobación", "borrador", "pendiente")
-
-TIPOS_FIE_INFORMA = (
-    "difusion de actividad",
-    "cronica",
-    "aviso/comunicado",
-    "saludo/efemeride",
-    "convocatoria interna",
-    "fallecimiento",
-)
-
 
 def _ficha_conforme(fila: dict[str, str]) -> str:
     """Arma la ficha que el pipeline valida, con los hechos de la fila.
@@ -267,17 +272,155 @@ def test_el_manifest_esta_congelado_por_hash_y_no_copia_contenido():
     assert "http" not in serializado
 
 
-def test_los_slots_por_tipo_estan_documentados_sin_casos_de_tipos_sin_pipeline():
-    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+def test_los_slots_por_tipo_cubren_los_siete_tipos_del_contrato_con_los_dos_ejes():
+    modos = {tipo["id"]: tipo["modo"] for tipo in _tipos_del_contrato()}
+    manifest = _manifest()
     slots = manifest["slots_por_tipo"]
 
-    assert tuple(slots) == TIPOS_FIE_INFORMA
-    assert slots["difusion de actividad"]["casos"] > 0
+    assert tuple(slots) == tuple(modos)
     for tipo, slot in slots.items():
-        if tipo != "difusion de actividad":
-            assert slot["casos"] == 0
-            assert slot["motivo"]
-            assert slot["pipeline_existe"] is False
+        assert slot["modo"] == modos[tipo], tipo
+        assert (ROOT / slot["forma_declarada"]).is_file(), tipo
+        assert (ROOT / slot["golden"]).is_file(), tipo
+        assert slot["eje_2"]["casos"] >= 1, tipo
+    # El eje 1 (rúbrica) sólo tiene casos en los tipos que generan.
+    for tipo, slot in slots.items():
+        if modos[tipo] == "genera":
+            assert slot["eje_1"]["casos"] >= 1, tipo
+        else:
+            assert slot["eje_1"]["casos"] == 0, tipo
+
+
+def test_el_manifest_declara_los_dos_ejes_y_sus_descargos_verbatim():
+    manifest = _manifest()
+    descargos = manifest["descargos"]
+    ejes = [eje["id"] for eje in manifest["ejes"]]
+
+    assert "no declara conformidad de calidad" in descargos["eje_2"]
+    assert "aplica sólo al eje 1" in descargos["umbral"]
+    assert ejes == [
+        "eje_1_calidad_de_prosa_generada",
+        "eje_2_conformidad_de_forma",
+    ]
+
+
+def test_el_eje_1_solo_cubre_tipos_que_generan_y_declara_su_fuente_de_fidelidad():
+    modos = {tipo["id"]: tipo["modo"] for tipo in _tipos_del_contrato()}
+    manifest = _manifest()
+    eje1 = manifest["ejes"][0]
+    casos = manifest["casos"]
+
+    assert eje1["id"] == "eje_1_calidad_de_prosa_generada"
+    for tipo in eje1["tipos"]:
+        assert modos[tipo] == "genera", tipo
+    for caso_id in eje1["casos"]:
+        caso = casos[caso_id]
+        assert caso["ejes"] == ["eje_1_calidad_de_prosa_generada"] or (
+            "eje_1_calidad_de_prosa_generada" in caso["ejes"]
+        ), caso_id
+        if caso["tipo"] == "difusion_de_actividad":
+            assert "la fila" in caso["fuente_de_fidelidad"], caso_id
+        else:
+            # En un saludo la fuente de fidelidad no es una fila del CSV:
+            # son la ocasión y la fecha que declara la pieza.
+            assert "ocasión" in caso["fuente_de_fidelidad"], caso_id
+            assert "fecha" in caso["fuente_de_fidelidad"], caso_id
+
+
+def test_el_saludo_se_sienta_en_los_dos_ejes_con_su_prompt_existente():
+    manifest = _manifest()
+    caso = manifest["casos"]["FIE-SAL-01"]
+
+    assert caso["tipo"] == "saludo_o_efemeride"
+    assert caso["ejes"] == [
+        "eje_1_calidad_de_prosa_generada",
+        "eje_2_conformidad_de_forma",
+    ]
+    assert caso["fuente_de_fidelidad"] == (
+        "la ocasión y la fecha que declara la pieza (Día del Ingeniero)"
+    )
+    # El tipo se sienta en el eje 1 porque su prompt existe y está versionado.
+    assert PROMPT_SALUDO.is_file()
+    assert caso["prompt"] == "src/agente1/prompts/saludo_o_efemeride_v1.txt"
+
+
+def test_los_siete_tipos_declaran_caso_de_forma_con_su_forma_y_su_golden():
+    ids_tipo = {tipo["id"] for tipo in _tipos_del_contrato()}
+    manifest = _manifest()
+    eje2 = manifest["ejes"][1]
+    entradas = {entrada["tipo"]: entrada for entrada in eje2["casos_por_tipo"]}
+
+    # Los siete tipos, sin excepción, cada uno con un caso representativo.
+    assert set(entradas) == ids_tipo
+    for tipo, entrada in entradas.items():
+        forma = ROOT / entrada["forma_declarada"]
+        assert forma.is_file(), tipo
+        assert json.loads(forma.read_text(encoding="utf-8"))["tipo"] == tipo
+        assert (ROOT / entrada["golden"]).is_file(), tipo
+        caso = manifest["casos"][entrada["caso"]]
+        assert caso["tipo"] == tipo, entrada["caso"]
+        assert "eje_2_conformidad_de_forma" in caso["ejes"], entrada["caso"]
+        assert entrada["pieza"]
+
+
+def test_misas_y_vacunacion_y_tutores_no_cargan_como_difusion():
+    # El pedido original de Juani entra por su propio tipo, no por difusión:
+    # la misa y la vacunación son avisos de otra área, la convocatoria de
+    # tutores es convocatoria interna (#103 §3), y sólo declaran el eje 2.
+    manifest = _manifest()
+    casos = manifest["casos"]
+
+    assert casos["FIE-AVI-01"]["tipo"] == "aviso_de_otra_area"
+    assert "misa" in casos["FIE-AVI-01"]["pieza"].lower()
+    assert casos["FIE-AVI-02"]["tipo"] == "aviso_de_otra_area"
+    assert "vacunación" in casos["FIE-AVI-02"]["pieza"].lower()
+    assert casos["FIE-CON-01"]["tipo"] == "convocatoria_interna"
+    assert "tutores" in casos["FIE-CON-01"]["pieza"].lower()
+    for caso_id in ("FIE-AVI-01", "FIE-AVI-02", "FIE-CON-01"):
+        assert casos[caso_id]["ejes"] == ["eje_2_conformidad_de_forma"], caso_id
+        assert casos[caso_id]["tipo"] != "difusion_de_actividad"
+
+
+def test_el_balseiro_queda_pendiente_de_transcripcion_sin_inventar_datos():
+    manifest = _manifest()
+    caso = manifest["casos"]["FIE-DIF-09"]
+    sin_fila = "FIE-DIF-09" not in IDS
+
+    assert caso["tipo"] == "difusion_de_actividad"
+    assert caso["estado"] == "PENDIENTE_SEU"
+    assert caso["data_source"] == "PENDIENTE_SEU"
+    assert caso["fuente_de_fidelidad"].startswith("PENDIENTE_SEU")
+    assert caso["pipeline"] is False
+    assert caso["ejes"] == ["eje_1_calidad_de_prosa_generada"]
+    # La pieza está identificada, pero no hay fila en el CSV y ningún dato
+    # institucional inventado (no hay fecha, horario, lugar ni organiza).
+    assert "28-5" in caso["pieza"]
+    assert "Balseiro" in caso["pieza"]
+    assert sin_fila
+    for campo in ("fecha_inicio", "hora", "lugar", "organiza"):
+        assert campo not in caso
+
+
+def test_la_rubrica_esta_aprobada_y_las_corridas_siguen_sin_ejecutarse():
+    manifest = _manifest()
+
+    assert manifest["human_review"] == "RUBRICA_APROBADA_JUANI_2026-10-16"
+    assert manifest["institutional_quality_assessed"] is False
+    # El manifest no lista la aprobación de la rúbrica entre lo que no acredita
+    # (ya está aprobada), pero sí lo que sigue sin producirse: la medición.
+    no_acredita = " ".join(manifest["no_acredita"])
+    assert "aprobación de la rúbrica por Juani" not in no_acredita
+    assert "las corridas no se ejecutaron" in no_acredita
+
+
+def test_prode_y_recreativas_quedan_fuera_de_los_dos_ejes():
+    modos_tipos = {tipo["id"] for tipo in _tipos_del_contrato()}
+    manifest = _manifest()
+    fuera = manifest["fuera_de_alcance"]
+
+    assert "prode" in " ".join(fuera["piezas"]).lower()
+    # Ningún caso del set declara un tipo fuera del catálogo cerrado.
+    assert all(caso["tipo"] in modos_tipos for caso in manifest["casos"].values())
 
 
 def test_el_documento_del_set_declara_los_bloques_obligatorios():
@@ -289,11 +432,17 @@ def test_el_documento_del_set_declara_los_bloques_obligatorios():
         "Procedencia por campo",
         "Slots por tipo",
         "Campos provisionales",
+        "Los dos ejes",
+        "El caso Balseiro (28-5): pendiente de transcripción",
+        "PENDIENTE_SEU",
         "Rúbrica humana",
         "Chequeos automáticos",
         "aprobación de Juani",
     ):
         assert bloque in texto, f"falta el bloque: {bloque}"
+    # El umbral del eje 1 y el descargo del eje 2, con todas las letras.
+    assert "no declara conformidad de calidad" in texto
+    assert "aplica sólo al eje 1" in texto
     for dimension in (
         "parecido a un FIE INFORMA",
         "fidelidad de sentido",

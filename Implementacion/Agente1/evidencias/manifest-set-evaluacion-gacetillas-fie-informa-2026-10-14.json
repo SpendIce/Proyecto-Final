@@ -1,13 +1,15 @@
 {
   "schema_version": "set_evaluacion_fie_informa_v1",
-  "titulo": "Set de evaluación de gacetillas contra el corpus FIE INFORMA (difusiones de actividad)",
+  "titulo": "Set de evaluación de gacetillas contra el corpus FIE INFORMA: calidad de la prosa generada (eje 1) y conformidad de forma (eje 2)",
   "fecha": "2026-10-14",
+  "actualizacion": "2026-10-17",
   "issue": "#111",
   "decision_origen": "#104",
-  "tipo_de_set": "DATOS_Y_RUBRICA",
-  "pipeline": "HU-010",
+  "decision_ejes": "#120 (adendo del 17/10) y #121 (tipos, modos y formas declaradas)",
+  "tipo_de_set": "DATOS_Y_RUBRICA_Y_CONFORMIDAD_DE_FORMA",
+  "pipeline": "HU-010 (eje 1, difusión de actividad) y renderer y gate por tipo de #121 (eje 2 y saludo)",
   "data_origin": "CORPUS_FIE_INFORMA_RECONSTRUIDO",
-  "human_review": "PENDIENTE_APROBACION_RUBRICA",
+  "human_review": "RUBRICA_APROBADA_JUANI_2026-10-16",
   "institutional_quality_assessed": false,
   "trl3_claimed": false,
   "congelado_por_hash": true,
@@ -67,49 +69,319 @@
     "procedencia": "data/corpus-fie-informa-difusiones.procedencia.csv",
     "procedencia_sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc",
     "documento": "evidencias/set-evaluacion-gacetillas-fie-informa-2026-10-14.md",
-    "documento_sha256": "1f14f9774e6f037c332c9ab58ee4b35745b99d3ac1997714a3ebac47400ac2b8",
+    "documento_sha256": "e13cae30db56e4040177cbbee9bb1eb4acf7a2cbaabf5cf6f163f5494643ffb1",
     "chequeos": "tests/test_set_evaluacion_fie_informa.py"
   },
-  "casos": [
-    "FIE-DIF-01",
-    "FIE-DIF-02",
-    "FIE-DIF-03",
-    "FIE-DIF-04",
-    "FIE-DIF-05",
-    "FIE-DIF-06",
-    "FIE-DIF-07",
-    "FIE-DIF-08"
+  "descargos": {
+    "eje_2": "Declarar conformidad de forma no declara conformidad de calidad.",
+    "umbral": "El umbral de conformidad (automático 100% y mediana humana >= 3 con ningún caso < 2) aplica sólo al eje 1."
+  },
+  "ejes": [
+    {
+      "id": "eje_1_calidad_de_prosa_generada",
+      "que_mide": "La rúbrica humana 1 a 4 por dimensión sobre la prosa que genera el modelo. Es el instrumento aprobado el 16/10 y no cambia: las mismas tres dimensiones y las mismas anclas.",
+      "como": "humano (rúbrica 1 a 4, mediana de tres corridas por dimensión)",
+      "aplica_a": "sólo los tipos cuyo modo es genera (contrato tipos_gacetilla_v1): difusion_de_actividad y saludo_o_efemeride",
+      "tipos": ["difusion_de_actividad", "saludo_o_efemeride"],
+      "fuente_de_fidelidad": "se declara por caso: en difusión es la fila de la actividad del dataset; en saludo es la ocasión y la fecha de la pieza",
+      "casos": ["FIE-DIF-01", "FIE-DIF-02", "FIE-DIF-03", "FIE-DIF-04", "FIE-DIF-05", "FIE-DIF-06", "FIE-DIF-07", "FIE-DIF-08", "FIE-SAL-01"],
+      "casos_pendientes": ["FIE-DIF-09"],
+      "protocolo": {
+        "corridas_por_caso": 3,
+        "criterio_automatico": "el caso pasa sólo si las tres corridas pasan",
+        "criterio_humano": "mediana de las tres corridas por dimensión",
+        "umbral_conformidad": "automático 100% en verde y mediana humana >= 3 en cada dimensión sin ningún caso < 2",
+        "umbral_aplica_a": "sólo al eje 1"
+      },
+      "dimensiones_humanas": [
+        "parecido a un FIE INFORMA",
+        "fidelidad de sentido",
+        "claridad y uso"
+      ]
+    },
+    {
+      "id": "eje_2_conformidad_de_forma",
+      "que_mide": "Cada tipo de gacetilla, sin excepción: que la pieza sea reconocible de su tipo con su encabezado, su firmante, su pie, sus fórmulas y sus etiquetas, y que contenga exactamente lo confirmado. Un tipo que extrae y confirma no tiene prosa del agente, así que puntuarlo con la rúbrica sería puntuar el texto de quien pidió; lo que se verifica es la forma.",
+      "como": "binario y automático (chequeo determinista, sin rúbrica)",
+      "metodo": "render con el renderer único de #121 contra la forma declarada del tipo, gate por tipo y comparación byte a byte contra el golden del tipo",
+      "aplica_a": "los siete tipos del contrato tipos_gacetilla_v1, sin excepción",
+      "form_declarada_raiz": "src/agente1/contracts/formas/",
+      "golden_raiz": "golden/formas/",
+      "casos_por_tipo": [
+        {
+          "tipo": "difusion_de_actividad",
+          "modo": "genera",
+          "caso": "FIE-DIF-01",
+          "pieza": "Fie informa 26-5 (Diplomatura Universitaria en Formación Integral para Instructores de Tiro)",
+          "forma_declarada": "src/agente1/contracts/formas/difusion_de_actividad_v1.json",
+          "golden": "golden/formas/difusion_de_actividad.md"
+        },
+        {
+          "tipo": "cronica_de_evento",
+          "modo": "extrae_y_confirma",
+          "caso": "FIE-CRO-01",
+          "pieza": "Fie informa 12-5 (recorrida institucional)",
+          "forma_declarada": "src/agente1/contracts/formas/cronica_de_evento_v1.json",
+          "golden": "golden/formas/cronica_de_evento.md"
+        },
+        {
+          "tipo": "aviso_de_otra_area",
+          "modo": "extrae_y_confirma",
+          "caso": "FIE-AVI-01",
+          "pieza": "Fie informa 2-7 (misa)",
+          "forma_declarada": "src/agente1/contracts/formas/aviso_de_otra_area_v1.json",
+          "golden": "golden/formas/aviso_de_otra_area.md",
+          "caso_adicional": {
+            "caso": "FIE-AVI-02",
+            "pieza": "aviso de vacunación (pieza del corpus, sin fecha en el listado de pares de duplicados)",
+            "nota": "caso adicional del mismo tipo: la conformidad de forma se declara por tipo y por golden, no por caso"
+          }
+        },
+        {
+          "tipo": "convocatoria_interna",
+          "modo": "extrae_y_confirma",
+          "caso": "FIE-CON-01",
+          "pieza": "Convocatoria Tutores 2027 (9-6)",
+          "forma_declarada": "src/agente1/contracts/formas/convocatoria_interna_v1.json",
+          "golden": "golden/formas/convocatoria_interna.md"
+        },
+        {
+          "tipo": "saludo_o_efemeride",
+          "modo": "genera",
+          "caso": "FIE-SAL-01",
+          "pieza": "Fie informa 16-6 (Día del Ingeniero)",
+          "forma_declarada": "src/agente1/contracts/formas/saludo_o_efemeride_v1.json",
+          "golden": "golden/formas/saludo_o_efemeride.md"
+        },
+        {
+          "tipo": "fallecimiento",
+          "modo": "extrae_y_confirma",
+          "caso": "FIE-FAL-01",
+          "pieza": "comunicado de fallecimiento, plantilla con huecos (fórmula fija del corpus)",
+          "forma_declarada": "src/agente1/contracts/formas/fallecimiento_v1.json",
+          "golden": "golden/formas/fallecimiento.md",
+          "nota": "la pieza básica del corpus es una plantilla con huecos, sin datos de personas: por eso es el representante"
+        },
+        {
+          "tipo": "newsletter",
+          "modo": "extrae_y_confirma",
+          "caso": "FIE-NEW-01",
+          "pieza": "Fie informa 18-6 (newsletter, boletín de un observatorio)",
+          "forma_declarada": "src/agente1/contracts/formas/newsletter_v1.json",
+          "golden": "golden/formas/newsletter.md"
+        }
+      ]
+    }
   ],
+  "casos": {
+    "FIE-DIF-01": {
+      "tipo": "difusion_de_actividad",
+      "ejes": ["eje_1_calidad_de_prosa_generada", "eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 26-5 (Diplomatura Universitaria en Formación Integral para Instructores de Tiro)",
+      "fuente_de_fidelidad": "la fila FIE-DIF-01 de data/corpus-fie-informa-difusiones.csv",
+      "pipeline": true
+    },
+    "FIE-DIF-02": {
+      "tipo": "difusion_de_actividad",
+      "ejes": ["eje_1_calidad_de_prosa_generada", "eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 8-6 (Curso IA Aplicada a la Gestión Documental I - 3ª Edición)",
+      "fuente_de_fidelidad": "la fila FIE-DIF-02 de data/corpus-fie-informa-difusiones.csv",
+      "pipeline": true
+    },
+    "FIE-DIF-03": {
+      "tipo": "difusion_de_actividad",
+      "ejes": ["eje_1_calidad_de_prosa_generada", "eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 29-6 (Conferencia: Los desafíos de la conquista del espacio)",
+      "fuente_de_fidelidad": "la fila FIE-DIF-03 de data/corpus-fie-informa-difusiones.csv",
+      "pipeline": true
+    },
+    "FIE-DIF-04": {
+      "tipo": "difusion_de_actividad",
+      "ejes": ["eje_1_calidad_de_prosa_generada", "eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 15-5 (Día de la Escarapela)",
+      "fuente_de_fidelidad": "la fila FIE-DIF-04 de data/corpus-fie-informa-difusiones.csv",
+      "pipeline": true
+    },
+    "FIE-DIF-05": {
+      "tipo": "difusion_de_actividad",
+      "ejes": ["eje_1_calidad_de_prosa_generada", "eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 2-6 (2º Jornada CTID+I 2026)",
+      "fuente_de_fidelidad": "la fila FIE-DIF-05 de data/corpus-fie-informa-difusiones.csv",
+      "pipeline": true
+    },
+    "FIE-DIF-06": {
+      "tipo": "difusion_de_actividad",
+      "ejes": ["eje_1_calidad_de_prosa_generada", "eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 1-6 (Semana de la Ingeniería - FIUBA)",
+      "fuente_de_fidelidad": "la fila FIE-DIF-06 de data/corpus-fie-informa-difusiones.csv",
+      "pipeline": true
+    },
+    "FIE-DIF-07": {
+      "tipo": "difusion_de_actividad",
+      "ejes": ["eje_1_calidad_de_prosa_generada", "eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 30-6 (Diplomatura Universitaria en Infraestructuras Antárticas)",
+      "fuente_de_fidelidad": "la fila FIE-DIF-07 de data/corpus-fie-informa-difusiones.csv",
+      "pipeline": true
+    },
+    "FIE-DIF-08": {
+      "tipo": "difusion_de_actividad",
+      "ejes": ["eje_1_calidad_de_prosa_generada", "eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 30-6 (Diplomatura Universitaria en Geomática Aplicada a la Defensa Nacional)",
+      "fuente_de_fidelidad": "la fila FIE-DIF-08 de data/corpus-fie-informa-difusiones.csv",
+      "pipeline": true
+    },
+    "FIE-DIF-09": {
+      "tipo": "difusion_de_actividad",
+      "ejes": ["eje_1_calidad_de_prosa_generada"],
+      "pieza": "Fie informa 28-5 (Experiencia académica en el Instituto Balseiro)",
+      "fuente_de_fidelidad": "PENDIENTE_SEU: la fila de la actividad (transcripción al contrato v2) no está cargada; el cuerpo de la pieza está en custodia local",
+      "estado": "PENDIENTE_SEU",
+      "estado_nota": "única difusión del corpus con los datos en el cuerpo y no en el flyer; nombra al expositor (dato personal, hay que anonimizarlo al transcribir). No se inventan fecha, horario, lugar ni organiza: el caso se declara pendiente y no corre por el pipeline hasta que la SEU habilite la transcripción",
+      "data_source": "PENDIENTE_SEU",
+      "pipeline": false
+    },
+    "FIE-SAL-01": {
+      "tipo": "saludo_o_efemeride",
+      "ejes": ["eje_1_calidad_de_prosa_generada", "eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 16-6 (Día del Ingeniero)",
+      "fuente_de_fidelidad": "la ocasión y la fecha que declara la pieza (Día del Ingeniero)",
+      "prompt": "src/agente1/prompts/saludo_o_efemeride_v1.txt",
+      "pipeline": true
+    },
+    "FIE-CRO-01": {
+      "tipo": "cronica_de_evento",
+      "ejes": ["eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 12-5 (recorrida institucional)",
+      "pipeline": true
+    },
+    "FIE-AVI-01": {
+      "tipo": "aviso_de_otra_area",
+      "ejes": ["eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 2-7 (misa)",
+      "pipeline": true
+    },
+    "FIE-AVI-02": {
+      "tipo": "aviso_de_otra_area",
+      "ejes": ["eje_2_conformidad_de_forma"],
+      "pieza": "aviso de vacunación (pieza del corpus, sin fecha en el listado de pares de duplicados)",
+      "pipeline": true
+    },
+    "FIE-CON-01": {
+      "tipo": "convocatoria_interna",
+      "ejes": ["eje_2_conformidad_de_forma"],
+      "pieza": "Convocatoria Tutores 2027 (9-6)",
+      "pipeline": true
+    },
+    "FIE-FAL-01": {
+      "tipo": "fallecimiento",
+      "ejes": ["eje_2_conformidad_de_forma"],
+      "pieza": "comunicado de fallecimiento, plantilla con huecos (fórmula fija del corpus)",
+      "pipeline": true
+    },
+    "FIE-NEW-01": {
+      "tipo": "newsletter",
+      "ejes": ["eje_2_conformidad_de_forma"],
+      "pieza": "Fie informa 18-6 (newsletter, boletín de un observatorio)",
+      "pipeline": true
+    }
+  },
+  "fuera_de_alcance": {
+    "descripcion": "Piezas del corpus que la decisión del 17/10 declara fuera de los dos ejes, salvo que la SEU las priorice en #106",
+    "piezas": [
+      "pronósticos PRODE del Mundial y su sistema (recreativo, con enlaces)",
+      "piezas recreativas asociadas (4tos de final, 16avos)",
+      "afiche-programa de jornada sin cuerpo (Programa / otro)"
+    ]
+  },
   "slots_por_tipo": {
-    "difusion de actividad": {
-      "casos": 8,
-      "pipeline_existe": true,
-      "motivo": "tipo cargado en el set (HU-010)"
+    "difusion_de_actividad": {
+      "modo": "genera",
+      "eje_1": {
+        "casos": 8,
+        "pendientes": 1,
+        "motivo_pendiente": "FIE-DIF-09 (Balseiro) declarado PENDIENTE_SEU hasta transcribir la fila"
+      },
+      "eje_2": {
+        "casos": 1
+      },
+      "forma_declarada": "src/agente1/contracts/formas/difusion_de_actividad_v1.json",
+      "golden": "golden/formas/difusion_de_actividad.md",
+      "pipeline_de_pieza": true,
+      "pipeline_csv_hu010": "data/corpus-fie-informa-difusiones.csv"
     },
-    "cronica": {
-      "casos": 0,
-      "pipeline_existe": false,
-      "motivo": "no existe código del tipo; slot vacío documentado"
+    "cronica_de_evento": {
+      "modo": "extrae_y_confirma",
+      "eje_1": {
+        "casos": 0
+      },
+      "eje_2": {
+        "casos": 1
+      },
+      "forma_declarada": "src/agente1/contracts/formas/cronica_de_evento_v1.json",
+      "golden": "golden/formas/cronica_de_evento.md",
+      "pipeline_de_pieza": true,
+      "nota": "genera desde Historia Viva queda como destino declarado (adendo del 17/10 en #120); en este ciclo extrae y confirma"
     },
-    "aviso/comunicado": {
-      "casos": 0,
-      "pipeline_existe": false,
-      "motivo": "no existe código del tipo; slot vacío documentado"
+    "aviso_de_otra_area": {
+      "modo": "extrae_y_confirma",
+      "eje_1": {
+        "casos": 0
+      },
+      "eje_2": {
+        "casos": 2
+      },
+      "forma_declarada": "src/agente1/contracts/formas/aviso_de_otra_area_v1.json",
+      "golden": "golden/formas/aviso_de_otra_area.md",
+      "pipeline_de_pieza": true
     },
-    "saludo/efemeride": {
-      "casos": 0,
-      "pipeline_existe": false,
-      "motivo": "no existe código del tipo; slot vacío documentado"
+    "convocatoria_interna": {
+      "modo": "extrae_y_confirma",
+      "eje_1": {
+        "casos": 0
+      },
+      "eje_2": {
+        "casos": 1
+      },
+      "forma_declarada": "src/agente1/contracts/formas/convocatoria_interna_v1.json",
+      "golden": "golden/formas/convocatoria_interna.md",
+      "pipeline_de_pieza": true
     },
-    "convocatoria interna": {
-      "casos": 0,
-      "pipeline_existe": false,
-      "motivo": "no existe código del tipo; slot vacío documentado"
+    "saludo_o_efemeride": {
+      "modo": "genera",
+      "eje_1": {
+        "casos": 1
+      },
+      "eje_2": {
+        "casos": 1
+      },
+      "forma_declarada": "src/agente1/contracts/formas/saludo_o_efemeride_v1.json",
+      "golden": "golden/formas/saludo_o_efemeride.md",
+      "prompt": "src/agente1/prompts/saludo_o_efemeride_v1.txt",
+      "pipeline_de_pieza": true
     },
     "fallecimiento": {
-      "casos": 0,
-      "pipeline_existe": false,
-      "motivo": "no existe código del tipo; slot vacío documentado"
+      "modo": "extrae_y_confirma",
+      "eje_1": {
+        "casos": 0
+      },
+      "eje_2": {
+        "casos": 1
+      },
+      "forma_declarada": "src/agente1/contracts/formas/fallecimiento_v1.json",
+      "golden": "golden/formas/fallecimiento.md",
+      "pipeline_de_pieza": true
+    },
+    "newsletter": {
+      "modo": "extrae_y_confirma",
+      "eje_1": {
+        "casos": 0
+      },
+      "eje_2": {
+        "casos": 1
+      },
+      "forma_declarada": "src/agente1/contracts/formas/newsletter_v1.json",
+      "golden": "golden/formas/newsletter.md",
+      "pipeline_de_pieza": true
     }
   },
   "protocolo": {
@@ -121,18 +393,21 @@
       "parecido a un FIE INFORMA",
       "fidelidad de sentido",
       "claridad y uso"
-    ]
+    ],
+    "umbral_aplica_a": "sólo al eje 1"
   },
   "no_incluye": [
     "contenido de los .docx originales",
     "imágenes o flyers del corpus",
     "datos personales, teléfonos o correos personales",
     "enlaces internos ni enlaces reales de inscripción",
-    "puntajes humanos (rúbrica pendiente de aprobación)"
+    "puntajes humanos (corridas de medición aún no ejecutadas)",
+    "transcripción del caso Balseiro (FIE-DIF-09), declarada pendiente hasta que la SEU autorice la fuente del dato"
   ],
   "no_acredita": [
-    "aprobación de la rúbrica por Juani",
-    "medición humana",
+    "medición humana con puntajes registrados (la rúbrica está aprobada, las corridas no se ejecutaron)",
+    "conformidad de calidad de la prosa en el eje 2: declarar conformidad de forma no declara conformidad de calidad",
+    "aprobación institucional de las formas declaradas y del catálogo de tipos (PROVISIONAL_NO_INSTITUCIONAL)",
     "validación de la SEU",
     "Gate G2",
     "TRL 3"

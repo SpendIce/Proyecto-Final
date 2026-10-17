@@ -1,7 +1,8 @@
-# Set de evaluación de gacetillas — corpus FIE INFORMA (difusiones de actividad)
+# Set de evaluación de gacetillas — corpus FIE INFORMA (dos ejes)
 
-- **Ticket:** #111 (implementa la decisión #104, resuelta el 2026-10-14).
-- **Fecha:** 2026-10-14.
+- **Ticket:** #111 (implementa la decisión #104, resuelta el 2026-10-14; los
+  dos ejes implementan el adendo del 17/10 de #120 y las formas de #121).
+- **Fecha:** 2026-10-14; re-congelado el 2026-10-17.
 - **Artefactos del set:**
   - `data/corpus-fie-informa-difusiones.csv` — filas reconstruidas, con el
     encabezado exacto de `COLUMNAS_ACTIVIDADES_V2` (15 columnas).
@@ -14,9 +15,40 @@
   reutiliza el pipeline HU-010 y su gate de validación.
 
 **Estado de aprobación.** Los chequeos automáticos corren y pasan en la
-suite. La **rúbrica humana queda sujeta a la aprobación de Juani antes de
-medir**: hasta esa aprobación, el set no produjo ningún puntaje humano y no se
-declara conformidad institucional.
+suite. La **rúbrica humana quedó aprobada por Juani el 16/10**: las anclas 1 a
+4 de las tres dimensiones son el instrumento del eje 1. El set todavía no
+produjo ningún puntaje humano (las corridas de medición no se ejecutaron) y no
+se declara conformidad institucional.
+
+## Los dos ejes
+
+La ampliación del 17/10 (#120 con #121) parte el set en dos ejes: el set deja
+de cubrir sólo difusión de actividad y pasa a cubrir **los siete tipos de
+gacetilla del contrato** (`src/agente1/contracts/tipos_gacetilla_v1.json`),
+cada uno con el eje que le corresponde.
+
+| Eje | Qué mide | Cómo | A qué tipos aplica |
+|---|---|---|---|
+| **Eje 1: calidad de la prosa generada** | La rúbrica 1 a 4 por dimensión, con el umbral vigente (automático 100 %, mediana humana ≥ 3, ningún caso < 2) | Humano | Sólo los tipos que **generan**: difusión de actividad y saludo o efeméride |
+| **Eje 2: conformidad de forma** | Binario y automático: ¿la pieza es un FIE INFORMA reconocible de su tipo, con su encabezado, su firmante, su pie, sus fórmulas y sus etiquetas, y contiene exactamente lo confirmado? | Automático (chequeo determinista, sin rúbrica) | **Los siete tipos, sin excepción** |
+
+Dos reglas que el manifest declara con todas las letras y que este documento
+repite:
+
+1. **Declarar conformidad de forma no declara conformidad de calidad.** El eje
+   2 es un chequeo determinista de forma; puntuar 1 a 4 algo determinista no
+   diría nada. Es la vía por la que entran las misas, la vacunación, la
+   convocatoria de tutores y el fallecimiento.
+2. **El umbral vigente aplica sólo al eje 1.** Automático 100 % en verde y
+   mediana humana ≥ 3 en cada dimensión sin ningún caso < 2 es el umbral del
+   eje 1; el eje 2 no tiene rúbrica ni umbral humano.
+
+La rúbrica no se rehace: **la rúbrica vigente es el instrumento del eje 1 y no
+cambia porque el set crezca**; sólo cambia qué tipos la usan. Lo único que se
+declara por caso es **contra qué se mide la fidelidad de sentido** cuando el
+tipo genera, porque la fuente cambia: en difusión es la fila de la actividad;
+en un saludo son la ocasión y la fecha. Eso vive en cada caso, no en la
+rúbrica.
 
 ## Criterio de inclusión
 
@@ -31,6 +63,11 @@ extensión** (tipo con pipeline: HU-010) y cumple las tres condiciones:
 3. **Los datos del flyer se pueden transcribir** a los 15 campos del contrato
    v2 sin traer datos personales, teléfonos, enlaces internos ni metadatos de
    autor.
+
+Este criterio arma las filas del dataset del eje 1 para difusión. La
+ampliación del 17/10 mantiene el criterio para las filas del CSV y agrega dos
+vías de entrada nuevas, fuera de este criterio: el caso Balseiro (pendiente,
+ver más abajo) y los casos de forma del eje 2 (ver «Slots por tipo»).
 
 Piezas incluidas (8 filas, 6 piezas lógicas; la pieza «Diplomaturas segundo
 semestre» aporta dos actividades):
@@ -53,21 +90,50 @@ actividad.
 
 ## Piezas dudosas excluidas
 
-Se excluyen y se declaran las piezas que **no cumplen** el criterio. Ninguna
-es un caso cargado:
+Se excluyen del criterio del **eje 1** (filas del CSV de difusión) y se
+declaran las piezas que **no cumplen** el criterio. La ampliación del 17/10 no
+las vuelve difusión: las re-clasifica al tipo que les corresponde del
+contrato, y entran por ahí (eje 2) o quedan fuera de alcance. Ninguna es un
+caso cargado del CSV:
 
-| Pieza | Por qué queda afuera |
-|---|---|
-| Experiencia académica en el Instituto Balseiro (28-5) | El flyer es una foto del expositor, no un afiche con datos; la fecha, el horario y el lugar viajan en el **cuerpo**, no en el flyer. Además nombra al expositor (dato personal). |
-| Becas Progresar (24-6) | Aviso de un trámite administrativo («Plataforma Oficial»), no una actividad por realizarse. |
-| Nueva ART (4-6) | Aviso de servicio, no una actividad. |
-| Suspensión de Actividad Académica (26-5) | Aviso de una suspensión, no una invitación. |
-| Inicio de inscripción a exámenes (26-6) | Aviso académico con la fecha en el cuerpo; no hay flyer con datos. |
-| Convocatoria Tutores 2027 (9-6) | Convocatoria interna con datos en el cuerpo, sin flyer. Cae en el tipo «convocatoria interna», hoy sin pipeline. |
-| Saludo del Director (9-7) | Saludo/efeméride, no una actividad por realizarse (tipo sin pipeline). |
-| Crónicas («Noticias FIE», recorridas, ceremonias, capacitaciones) | Hecho ya ocurrido; tipo sin pipeline. |
-| PRODE y FE DE ERRATAS | Recreativo con enlaces; tipo sin pipeline y con enlaces internos de casilla. |
-| Newsletter, fallecimiento, avisos de estacionamiento / misa / vacuna | Tipos sin pipeline. |
+| Pieza | Por qué queda afuera del eje 1 | Destino según el 17/10 |
+|---|---|---|
+| Becas Progresar (24-6) | Aviso de un trámite administrativo («Plataforma Oficial»), no una actividad por realizarse. | Aviso de otra área (eje 2, no representante del tipo) |
+| Nueva ART (4-6) | Aviso de servicio, no una actividad. | Aviso de otra área (eje 2, no representante del tipo) |
+| Suspensión de Actividad Académica (26-5) | Aviso de una suspensión, no una invitación. | Aviso de otra área (eje 2, no representante del tipo) |
+| Inicio de inscripción a exámenes (26-6) | Aviso académico con la fecha en el cuerpo; no hay flyer con datos. | Aviso de otra área (eje 2, no representante del tipo) |
+| Saludo del Director (9-7) | Saludo/efeméride, no una actividad por realizarse. | Saludo o efeméride (eje 1 y 2); el representante del tipo es el Día del Ingeniero (16-6), que entra como FIE-SAL-01 |
+| Newsletter (18-6) | Boletín con adjunto, no es difusión. | Newsletter: entra como FIE-NEW-01 (eje 2) |
+| Comunicados de fallecimiento | Fórmula fija, no es difusión. | Fallecimiento: entra como FIE-FAL-01 (eje 2), con la plantilla con huecos como representante |
+| Misa (2-7) y aviso de vacunación | Avisos de otra área con datos en el cuerpo. | Aviso de otra área: la misa entra como FIE-AVI-01 y la vacunación como FIE-AVI-02 (eje 2) |
+| Convocatoria Tutores 2027 (9-6) | Convocatoria interna con datos en el cuerpo, sin flyer. | Convocatoria interna: entra como FIE-CON-01 (eje 2) |
+| Crónicas («Noticias FIE», recorridas, ceremonias, capacitaciones) | Hecho ya ocurrido; no hay prosa que puntuar. | Crónica de evento: el representante del tipo es la recorrida institucional (12-5), que entra como FIE-CRO-01 |
+| PRODE y FE DE ERRATAS | Recreativo con enlaces internos de casilla. | Fuera de los dos ejes, salvo que la SEU lo priorice en #106 |
+
+El caso Balseiro ya no está en esta tabla: deja de ser dudoso y pasa a ser un
+caso declarado del eje 1 que espera su fuente de datos.
+
+### El caso Balseiro (28-5): pendiente de transcripción
+
+La pieza «Experiencia académica en el Instituto Balseiro» (28-5) es la única
+difusión del corpus con los datos **en el cuerpo** y no en el flyer, y nombra
+al expositor (dato personal; el repo es público y el set prohíbe datos
+personales). La decisión del 17/10 la suma al eje 1, **transcrita al contrato
+igual que las otras y con el nombre del expositor anonimizado**.
+
+Estado del caso `FIE-DIF-09` en el manifest: **PENDIENTE_SEU**.
+
+- La transcripción exige leer el cuerpo del `.docx` original, que está en
+  custodia local fuera del repo (el análisis #103 no transcribe ese cuerpo) y
+  no hay fila en `data/`: **no se inventan fecha, horario, lugar, organiza ni
+  contacto**.
+- La fuente de fidelidad del caso (la fila de la actividad) queda declarada
+  pendiente de ese dato. El caso **no corre por el pipeline** hasta que la SEU
+  habilite la transcripción.
+- Al transcribir: el expositor entra anonimizado y la fila declara su
+  procedencia por campo en el sidecar, con las mismas convenciones que las
+  otras filas (`flyer` cuando aplique, `provisional` para lo declarado,
+  `PENDIENTE_SEU` para lo que la SEU tenga que confirmar).
 
 **Diferencia con el conteo «9» de #103.** El análisis del corpus (#103, §3)
 estima «unas 9» difusiones. El criterio explícito del issue —texto mínimo y
@@ -103,22 +169,46 @@ Reglas de transcripción aplicadas:
 
 ## Slots por tipo
 
-El set se diseña **capability-gated**: declara los tipos de FIE INFORMA de
-#106 con slots vacíos documentados. Un slot se llena cuando #106 prioriza el
-tipo **y** existe su pipeline. Hoy sólo «difusión de actividad» tiene pipeline
-(HU-010) y casos cargados.
+Desde #121 los siete tipos del contrato (`tipos_gacetilla_v1`) tienen forma
+declarada, renderer único y gate por tipo, así que **ningún slot queda vacío
+por falta de pipeline**: los tipos que extraen y confirman se cubren con el
+chequeo mecánico de forma del eje 2 (un caso representativo por tipo), y los
+que generan se cubren además con la rúbrica del eje 1.
 
-| Tipo (#106) | Casos | Pipeline | Motivo del slot vacío |
-|---|---|---|---|
-| difusión de actividad | 8 | sí (HU-010) | tipo cargado |
-| crónica | 0 | no | no existe código; #104 §2 verificó que no hay pipeline |
-| aviso/comunicado | 0 | no | no existe código |
-| saludo/efeméride | 0 | no | no existe código |
-| convocatoria interna | 0 | no | no existe código |
-| fallecimiento | 0 | no | no existe código |
+| Tipo (contrato) | Modo | Eje 1 (rúbrica) | Eje 2 (forma) | Caso del eje 2 | Fuente declarada |
+|---|---|---|---|---|---|
+| difusion_de_actividad | genera | 8 casos + 1 pendiente | 1 | FIE-DIF-01 (pieza 26-5) | la fila de la actividad del dataset |
+| cronica_de_evento | extrae y confirma | 0 (no genera) | 1 | FIE-CRO-01 (recorrida, 12-5) | lo confirmado |
+| aviso_de_otra_area | extrae y confirma | 0 (no genera) | 2 | FIE-AVI-01 (misa, 2-7) + FIE-AVI-02 (vacunación) | lo confirmado |
+| convocatoria_interna | extrae y confirma | 0 (no genera) | 1 | FIE-CON-01 (tutores 2027, 9-6) | lo confirmado |
+| saludo_o_efemeride | genera | 1 | 1 | FIE-SAL-01 (Día del Ingeniero, 16-6) | la ocasión y la fecha de la pieza |
+| fallecimiento | extrae y confirma | 0 (no genera) | 1 | FIE-FAL-01 (plantilla con huecos) | lo confirmado |
+| newsletter | extrae y confirma | 0 (no genera) | 1 | FIE-NEW-01 (newsletter, 18-6) | lo confirmado |
 
-Los posts de redes (HU-011) quedan como slot aparte, con la B2 de la SEU
-todavía abierta (#105). **No se cargan casos de tipos sin pipeline.**
+Lo que dispara cada caso:
+
+- **Difusión (eje 1):** las 8 filas de `data/corpus-fie-informa-difusiones.csv`
+  corren por HU-010; FIE-DIF-09 (Balseiro, 28-5) queda declarado PENDIENTE_SEU
+  sin fila hasta tener la transcripción.
+- **Difusión (eje 2):** el representante es la pieza del 26-5, la misma que
+  FIE-DIF-01.
+- **Saludo o efeméride (eje 1):** el prompt `saludo_o_efemeride_v1` existe en
+  `src/agente1/prompts/`, así que el tipo se sienta en el eje con su caso
+  FIE-SAL-01; su fuente de fidelidad declarada es la ocasión y la fecha, no una
+  fila del CSV.
+- **Misa y vacunación (eje 2):** van al slot `aviso_de_otra_area`, no a
+  difusión: son avisos de otra área en el corpus (#103 §3).
+- **Convocatoria de tutores (eje 2):** slot `convocatoria_interna` (la pieza
+  del 9-6).
+- **Fallecimiento (eje 2):** slot `fallecimiento`; el representante es la
+  plantilla con huecos, que no trae datos de personas.
+
+**Fuera de los dos ejes:** el PRODE y las piezas recreativas (4tos de final,
+16avos) y el afiche-programa sin cuerpo, salvo que la SEU los priorice en
+#106.
+
+Los posts de redes (HU-011) siguen como slot aparte, con la B2 de la SEU
+todavía abierta (#105).
 
 ## Campos provisionales
 
@@ -136,9 +226,12 @@ re-congela el manifest.
 
 ## Rúbrica humana
 
-Puntúa una persona (Juani) **1 a 4 por caso y por dimensión**, con estas anclas
-escritas. **La rúbrica queda sujeta a la aprobación de Juani antes de medir**:
-las anclas son una propuesta del equipo, no un instrumento aprobado.
+Puntúa una persona (Juani) **1 a 4 por caso y por dimensión**. La rúbrica fue
+aprobada: **la aprobación de Juani quedó registrada el 16/10** y las anclas 1 a
+4 de las tres dimensiones son el instrumento vigente del eje 1. El instrumento
+**no cambia** con la ampliación a los dos ejes: sólo cambia qué tipos la usan
+(sólo los que generan). Las corridas de medición siguen sin ejecutarse: la
+aprobación de la rúbrica no produce puntajes.
 
 Dimensiones: (a) **parecido a un FIE INFORMA**, (b) **fidelidad de sentido**,
 (c) **claridad y uso**.
@@ -172,6 +265,32 @@ chequeos binarios, por caso (todos deben dar verde):
     salida contienen las erratas tipificadas en #103 §5 («visitaros»,
     «FRACIA», «NOTIFICAS», «elpe», «Secretaria», «activiad»). Es la regresión
     que **#105** necesita para no enseñar los errores del corpus vía few-shot.
+    Esta lista es el conjunto de chequeos del **eje 1**: estructura, hechos y
+    registro de la prosa generada de difusión.
+
+### Chequeos automáticos del eje 2 (conformidad de forma)
+
+Por tipo, los siete, binario y automático, sin rúbrica:
+
+1. **Forma declarada por tipo** — cada tipo tiene su archivo versionado en
+   `src/agente1/contracts/formas/<tipo>_v1.json` (#121, congelado en el
+   manifest de versión).
+2. **Render contra la forma** — la pieza representativa del tipo se arma con
+   el renderer único de #121 y se compara byte a byte contra
+   `golden/formas/<tipo>.md`.
+3. **Gate por tipo** — núcleo común (largo, sin marcadores sin resolver, sin
+   vocabulario de proceso interno, cada hecho impreso contra lo confirmado)
+   más las reglas propias del tipo (un aviso no afirma una invitación, un
+   fallecimiento no inventa un nombre, un comunicado no inventa el área
+   emisora).
+4. **Sin datos que la forma no imprima** — la pieza contiene exactamente lo
+   confirmado: en extrae y confirma, los datos los carga quien pide.
+
+El caso representativo por tipo es declarativo (qué pieza del corpus
+representa al tipo); el chequeo mecánico es el mismo para todos los casos del
+tipo, porque la conformidad es de la forma. Estas verificaciones corren en
+`tests/test_gacetillas_formas.py` (#121) y el set las declara en su manifest
+con el mapeo tipo-caso-forma-golden.
 
 **Protocolo de corrida (decisión #104 §6).** **n = 3** por caso con la config
 congelada de #51. Un caso pasa el automático **sólo si las tres corridas
@@ -181,7 +300,8 @@ decisión de este ticket.
 **Umbral de aceptación (decisión #104 §8).** «Conforme» sólo si el automático da
 **100 %** de los casos en verde **y** la mediana humana es **≥ 3** en cada
 dimensión sin ningún caso < 2. Si no se alcanza, se declara el nivel real y la
-brecha, sin maquillar.
+brecha, sin maquillar. **Este umbral aplica sólo al eje 1**: declarar
+conformidad de forma (eje 2) no declara conformidad de calidad.
 
 **Interfaz con #105 (decisión #104 §9).** El set registra por caso: resultado
 automático, puntaje humano por dimensión, versiones (prompt / contrato /
@@ -212,9 +332,17 @@ ningún automático**.
 
 ## Límites y lo que no acredita
 
-- Los chequeos son de **contrato**, no de calidad institucional: no puntúan
-  parecido a un FIE INFORMA ni verdad semántica.
-- **No hay puntaje humano** ni aprobación de la rúbrica todavía.
+- Los chequeos del eje 1 son de **contrato**, no de calidad institucional: no
+  puntúan parecido a un FIE INFORMA ni verdad semántica.
+- **Rúbrica aprobada (16/10), corridas de medición no ejecutadas**: el set
+  todavía no produjo ningún puntaje humano.
+- **Declarar conformidad de forma no declara conformidad de calidad.** El eje
+  2 verifica forma; la calidad se evalúa con la rúbrica del eje 1, sólo en los
+  tipos que generan.
+- Las formas declaradas y el catálogo de tipos siguen
+  **PROVISIONAL_NO_INSTITUCIONAL**: sin aprobación de la SEU.
 - El set **no acredita** validación de la SEU, Gate G2 ni TRL 3.
 - Los originales del corpus **no** están en el repo; el manifest cita su
-  `sha256` sin copiar contenido.
+  `sha256` sin copiar contenido. Los casos representativos del eje 2 se citan
+  por nombre de pieza, sin hash propio (el hash va con la custodia local);
+  FIE-DIF-09 (Balseiro) queda PENDIENTE_SEU sin transcribir.
