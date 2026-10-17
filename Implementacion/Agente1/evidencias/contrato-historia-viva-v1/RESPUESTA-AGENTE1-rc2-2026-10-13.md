@@ -17,7 +17,7 @@ sigue leyendo la planilla de actividades de la SEU.
 | ---- | --------- |
 | Sesión presencial | **Sí, el martes 27/10.** La hora la coordinamos por mensaje. El recorrido de seis pasos que propusiste me sirve tal cual |
 | Día de la prueba de laboratorio (2–6/11) | Todavía no lo tengo: el laboratorio no confirmó. Te aviso apenas lo sepa |
-| C16: en qué momento registra el Aporte el Agente 1 | Te lo confirmo antes del 18/11 |
+| C16: en qué momento registra el Aporte el Agente 1 | **Al publicarse**: cuando una persona autorizada registra la decisión de publicación (`publique`) en el Form de decisiones sobre una pieza que citó fuentes de Historia Viva (nunca al generar el borrador ni si se descarta) |
 
 ## Pedido nuevo: una prueba corta de lectura antes del 23/10
 

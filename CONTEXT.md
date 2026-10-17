@@ -92,6 +92,10 @@ _Evitar_: defecto de software
 Agente 2 del Proyecto Centenario, responsable del acervo historico institucional validado; entrega fuentes recuperables al Agente 1 y recibe aportes pendientes de validacion.
 _Evitar_: generador de efemerides, redactor de contenido para el Agente 1
 
+**Aporte**:
+Pieza comunicacional de difusion que el Agente 1 elaboro citando fuentes de Historia Viva y que, una vez registrada su decision de publicacion (`publique`), se envia a Historia Viva para que quede asentada en el acervo como pieza pendiente de validacion. Un borrador sin decision de publicacion o descartado no se aporta.
+_Evitar_: insumo, borrador no validado, publicacion automatica
+
 **Insumo de agente**:
 Entrada que un agente del P100 (A3, A4 o A5) le entrega al Agente 1 para que produzca una pieza. El Agente 1 le responde al productor con el estado del insumo (borrador generado o rechazado), nunca con la pieza. Historia Viva no entrega insumos: el Agente 1 la consulta.
 _Evitar_: pedido de agente, mensaje entre agentes, orden
