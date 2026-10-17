@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:tipos-gacetilla:v1",
+  "title": "Tipos de gacetilla del canal FIE Informa",
+  "description": "Conjunto cerrado de tipos de gacetilla. El tipo viaja declarado en la solicitud y selecciona la forma declarada, el contrato de entrada, las reglas de gate propias del tipo y el modo de produccion. Una solicitud no se aproxima al tipo mas parecido: se declara o se confirma.",
+  "x-contract-version": "tipos_gacetilla_v1",
+  "x-decision": "#120",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. Los tipos y sus formas no fueron aprobados por la SEU.",
+  "modos": {
+    "genera": "El modelo escribe la prosa del cuerpo a partir de datos estructurados. Exige prompt propio del tipo.",
+    "extrae_y_confirma": "Los datos los carga quien pide y el agente solo los formatea. No hay prosa generada ni prompt, y el gate compara contra lo confirmado."
+  },
+  "tipos": [
+    {
+      "id": "difusion_de_actividad",
+      "nombre": "Difusion de actividad de extension",
+      "modo": "genera",
+      "requiere_actividad": true
+    },
+    {
+      "id": "cronica_de_evento",
+      "nombre": "Cronica de evento",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false,
+      "destino_declarado": "genera desde Historia Viva cuando el Acervo tenga el material del evento (ver el adendo del 17/10 en #120)"
+    },
+    {
+      "id": "aviso_de_otra_area",
+      "nombre": "Aviso de otra area",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false
+    },
+    {
+      "id": "convocatoria_interna",
+      "nombre": "Convocatoria interna",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false
+    },
+    {
+      "id": "saludo_o_efemeride",
+      "nombre": "Saludo o efemeride",
+      "modo": "genera",
+      "requiere_actividad": false
+    },
+    {
+      "id": "fallecimiento",
+      "nombre": "Comunicado de fallecimiento",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false
+    },
+    {
+      "id": "newsletter",
+      "nombre": "Newsletter",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false
+    }
+  ]
+}
