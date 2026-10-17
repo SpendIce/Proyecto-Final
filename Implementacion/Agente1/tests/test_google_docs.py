@@ -231,7 +231,7 @@ def test_core_audita_docs_huerfano_sin_id_token_contenido_o_body(tmp_path):
         "Organiza: Equipo de prueba\n\n"
         "## CONTACTO\npruebas@example.invalid\n\n"
         "## BAJADA\nCaso sintético controlado.\n\n"
-        "## CUERPO\nLa actividad requiere validación humana."
+        "## CUERPO\nLa facultad acompaña la actividad con información para el público asistente."
     )
 
     resultado = procesar_solicitud(

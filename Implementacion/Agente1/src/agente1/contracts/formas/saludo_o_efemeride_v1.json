@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:forma-gacetilla:saludo_o_efemeride:v1",
+  "title": "Forma declarada de la gacetilla de saludo o efemeride",
+  "description": "Partes institucionales fijas del tipo saludo o efemeride y plan de armado. El modelo escribe una o dos frases de saludo institucional; el encabezado, el pie y el firmante salen de esta forma. Es uno de los dos tipos que generan prosa.",
+  "schema_version": "forma_gacetilla_saludo_o_efemeride_v1",
+  "tipo": "saludo_o_efemeride",
+  "modo": "genera",
+  "x-decision": "#121",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. La forma no fue aprobada por la SEU.",
+  "salida_modelo": {
+    "clase": "prosa_directa",
+    "prompt_version": "saludo_o_efemeride_v1",
+    "max_palabras": 60
+  },
+  "encabezado": {
+    "nombre_doc": "Fie informa {dia}-{mes} {titulo}",
+    "asunto": "Asunto: {titulo}"
+  },
+  "pie": "",
+  "firmante": "Facultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+  "formulas": {},
+  "etiquetas": {},
+  "cuerpo": [
+    {"clase": "prosa", "campos": ["cuerpo"]},
+    {"clase": "pie"}
+  ]
+}

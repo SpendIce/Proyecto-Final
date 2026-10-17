@@ -39,7 +39,6 @@ import hashlib
 import json
 import re
 import time
-import unicodedata
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -60,6 +59,29 @@ from .fuentes import (
     FuenteSolicitudes,
     FuenteSolicitudesError,
 )
+from .gacetillas import (
+    MAX_BORRADOR_CHARS as _MAX_BORRADOR_CHARS,
+)
+from .gacetillas import (
+    TIPO_DIFUSION,
+    TipoGacetillaError,
+    cargar_entrada,
+    cargar_forma,
+    fecha_larga,
+    validar_pieza,
+)
+from .gacetillas import (
+    campos_obligatorios as _campos_obligatorios,
+)
+from .gacetillas import (
+    nombre_doc as _nombre_doc_gacetilla,
+)
+from .gacetillas import (
+    normalizar_texto as _normalizar_texto,
+)
+from .gacetillas import (
+    renderizar as _renderizar_pieza,
+)
 from .presupuesto import (
     MENSAJE_PRESUPUESTO_AGOTADO,
     RESULTADO_PRESUPUESTO_AGOTADO,
@@ -68,13 +90,22 @@ from .presupuesto import (
 from .registro_auditoria import escribir_registro
 
 HU = "HU-010"
+# Alias histórico: las pruebas y el resto del módulo nombran `_fecha_larga`. La
+# implementación vive en `gacetillas` para que el renderer y el gate tengan una
+# sola definición del formato de fecha del corpus.
+_fecha_larga = fecha_larga
+# La forma declarada de difusión es la primera que existe (ADR 0012). De ella
+# salen el prompt vigente y el nombre del contrato de entrada; del contrato de
+# entrada salen los campos obligatorios. Ningún texto institucional fijo vive
+# en este módulo: el marco lo copia `gacetillas.renderizar` desde la forma.
+_FORMA_DIFUSION = cargar_forma(TIPO_DIFUSION)
 # Estas tres versiones se escriben en cada línea del log. Si alguna cambia hay
 # que subirle el número: es lo que permite explicar, meses después, por qué dos
 # ejecuciones de la misma fila dieron textos distintos.
-PROMPT_VERSION = "gacetilla_v7"
-CONTRACT_VERSION = "gacetilla_input_v2"
-RENDERER_VERSION = "gacetilla_mail_renderer_v3"
-MAX_BORRADOR_CHARS = 5000
+PROMPT_VERSION = str(_FORMA_DIFUSION["salida_modelo"]["prompt_version"])
+CONTRACT_VERSION = str(cargar_entrada(TIPO_DIFUSION)["x-contract-version"])
+RENDERER_VERSION = "gacetilla_forma_declarada_v4"
+MAX_BORRADOR_CHARS = _MAX_BORRADOR_CHARS
 # Prefijo del nombre del Doc del borrador. El título del Doc no lleva la marca
 # completa (`BORRADOR_MARKER`, que va en el cuerpo): lleva este prefijo, para
 # que un borrador se reconozca al mirarlo desde Drive, donde el cuerpo no se ve.
@@ -245,6 +276,7 @@ def procesar_fila_csv(
     id_solicitud: str,
     directorio_salida: Path,
     generator: Generator,
+    tipo: str = TIPO_DIFUSION,
 ) -> ResultadoProceso:
     """Atajo para el camino local: CSV como fuente y Markdown como destino."""
 
@@ -253,6 +285,7 @@ def procesar_fila_csv(
         id_solicitud=id_solicitud,
         directorio_salida=directorio_salida,
         generator=generator,
+        tipo=tipo,
     )
 
 
@@ -264,6 +297,7 @@ def procesar_solicitud(
     generator: Generator,
     destino: DestinoBorradores | None = None,
     procedencia: ProcedenciaInsumo | None = None,
+    tipo: str = TIPO_DIFUSION,
 ) -> ResultadoProceso:
     """Ejecuta el pipeline de gacetilla para una solicitud.
 
@@ -271,8 +305,15 @@ def procesar_solicitud(
     generador, de la fuente ni del destino: cada falla se traduce a un estado y
     a una línea de auditoría. Estados posibles: `PENDIENTE_VALIDACION` (hay
     borrador), `INCOMPLETA` (faltan datos obligatorios), `INVALIDA` (la
-    solicitud no existe o el id no es válido) y `FALLIDA` (falló el generador,
-    la salida no cumplió el contrato, o falló el destino).
+    solicitud no existe, el id no es válido o el tipo no se produce por este
+    pipeline) y `FALLIDA` (falló el generador, la salida no cumplió el
+    contrato, o falló el destino).
+
+    `tipo` es el tipo de gacetilla declarado (ADR 0012). Este pipeline produce
+    los tipos cuya forma declara salida de clase `ficha_actividad`, hoy sólo
+    difusión de actividad; los otros seis se producen por
+    `gacetillas.confirmar_pieza` o `gacetillas.generar_pieza`. El tipo selecciona
+    el contrato de entrada, la forma declarada y el gate.
 
     El `correlation_id` se genera antes de tocar nada para que hasta el fallo
     más temprano quede correlacionado con el resto de la evidencia.
@@ -286,6 +327,29 @@ def procesar_solicitud(
 
     correlation_id = str(uuid.uuid4())
     inicio_fuente = time.perf_counter()
+    try:
+        forma = cargar_forma(tipo)
+    except TipoGacetillaError:
+        return _resultado_tipo_invalido(
+            id_solicitud=id_solicitud,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=round(time.perf_counter() - inicio_fuente, 6),
+            tipo=tipo,
+            procedencia=procedencia,
+        )
+    clase_salida = str((forma.get("salida_modelo") or {}).get("clase"))
+    if clase_salida != "ficha_actividad":
+        return _resultado_tipo_invalido(
+            id_solicitud=id_solicitud,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            correlation_id=correlation_id,
+            latencia_s=round(time.perf_counter() - inicio_fuente, 6),
+            tipo=tipo,
+            procedencia=procedencia,
+        )
     try:
         _validar_id_solicitud(id_solicitud)
     except (TypeError, ValueError):
@@ -339,7 +403,7 @@ def procesar_solicitud(
     # decide qué exige cada pieza, y este contrato no los declara obligatorios
     # —la SEU todavía no fijó si deben exigirse. Tampoco `lugar`: hay
     # actividades sin sede definida.
-    faltantes = [campo for campo in CAMPOS_OBLIGATORIOS if not fila.get(campo, "").strip()]
+    faltantes = [campo for campo in _campos_obligatorios(tipo) if not fila.get(campo, "").strip()]
     if faltantes:
         # El nombre de los campos faltantes sí va al log: son nombres de
         # columna del contrato, no datos de la actividad.
@@ -353,6 +417,8 @@ def procesar_solicitud(
                     "id_solicitud": id_solicitud,
                     "HU": HU,
                     "contract_version": CONTRACT_VERSION,
+                    "tipo_gacetilla": tipo,
+                    "forma_version": str(forma["schema_version"]),
                     "modelo": generator.modelo,
                     "num_predict": _num_predict(generator),
                     "prompt_version": PROMPT_VERSION,
@@ -511,6 +577,8 @@ def procesar_solicitud(
                 "id_solicitud": id_solicitud,
                 "HU": HU,
                 "contract_version": CONTRACT_VERSION,
+                "tipo_gacetilla": tipo,
+                "forma_version": str(forma["schema_version"]),
                 "modelo": generator.modelo,
                 "num_predict": _num_predict(generator),
                 "prompt_version": PROMPT_VERSION,
@@ -686,6 +754,65 @@ def _resultado_fuente_fallida(
                 "resultado": resultado,
                 "error": error,
                 "source_error_code": source_error_code,
+                "input_hash": None,
+                "output_hash": None,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+            procedencia,
+        ),
+    )
+    return ResultadoProceso(
+        estado=estado,
+        borrador_path=None,
+        log_path=log_path,
+        correlation_id=correlation_id,
+        error=error,
+    )
+
+
+def _resultado_tipo_invalido(
+    *,
+    id_solicitud: object,
+    directorio_salida: Path,
+    generator: Generator,
+    correlation_id: str,
+    latencia_s: float,
+    tipo: str,
+    procedencia: ProcedenciaInsumo | None = None,
+) -> ResultadoProceso:
+    """El tipo no esta declarado o no se produce por el pipeline de actividad.
+
+    Es `INVALIDA` y no `FALLIDA` porque no hay nada que reintentar: la
+    correccion es declarar un tipo del contrato cerrado o usar el seam del
+    tipo. El `id_solicitud` se registra como hash, igual que en el resto de los
+    caminos que no pudieron confirmar que la solicitud exista.
+    """
+
+    estado = "INVALIDA"
+    resultado = "tipo_no_declarado"
+    error = "El tipo de gacetilla no se produce por este pipeline"
+    log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
+    _registrar(
+        log_path,
+        _con_procedencia(
+            {
+                "correlation_id": correlation_id,
+                "id_solicitud": None,
+                "id_solicitud_hash": (
+                    _hash_texto(id_solicitud)
+                    if isinstance(id_solicitud, str)
+                    else None
+                ),
+                "HU": HU,
+                "contract_version": CONTRACT_VERSION,
+                "tipo_gacetilla": tipo if isinstance(tipo, str) else None,
+                "modelo": generator.modelo,
+                "num_predict": _num_predict(generator),
+                "prompt_version": PROMPT_VERSION,
+                "latencia_s": latencia_s,
+                "estado": estado,
+                "resultado": resultado,
+                "error": error,
                 "input_hash": None,
                 "output_hash": None,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -931,48 +1058,10 @@ def _validar_salida(contenido: str, fila: dict[str, str]) -> list[str]:
     return errores
 
 
-_MESES_ES = (
-    "enero", "febrero", "marzo", "abril", "mayo", "junio",
-    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-)
-_DIAS_ES = (
-    "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo",
-)
-
-# Firma constante observada en los correos FIE Informa del corpus real
-# (Documentos/PoC/Corpus-Comunicaciones-Reales-SEU-2026-09-30.md). Es parte
-# del renderer: ningún texto generado puede alterarla ni omitirla.
-_FIRMA_INSTITUCIONAL = (
-    "Facultad de Ingeniería del Ejército\n"
-    '"Grl Div Manuel N Savio"\n'
-    "UNDEF\n"
-    "Tel: (011) 4779-3300\n"
-    "Av. Cabildo 15 – CABA\n"
-    "www.fie.undef.edu.ar"
-)
-
-# Pie fijo de difusión, tomado del corpus FIE Informa de la SEU (#102, decisión
-# 7) y confirmado para el borrador de gacetilla: va entre «Consultas:» y la
-# firma institucional. Es fijo y no depende de la actividad: `organiza` queda en
-# las líneas de hechos del cuerpo y el contacto en «Consultas:».
-_PIE_DIFUSION = (
-    "Departamento de Cursos Complementarios\n"
-    "Secretaría de Extensión Universitaria"
-)
-
-
-def _fecha_larga(iso: str) -> str | None:
-    """«2026-08-05» → «miércoles 5 de agosto de 2026», el formato de fecha de
-    los correos reales. Misma fecha, otra escritura: no agrega ningún dato."""
-
-    try:
-        fecha_dt = datetime.strptime(iso.strip(), "%Y-%m-%d")
-    except (ValueError, AttributeError):
-        return None
-    return (
-        f"{_DIAS_ES[fecha_dt.weekday()]} {fecha_dt.day} de "
-        f"{_MESES_ES[fecha_dt.month - 1]} de {fecha_dt.year}"
-    )
+# Partes institucionales de difusión: se leen de la forma declarada, no se
+# escriben acá. Ningún texto fijo del canal vive en el código (ADR 0012).
+_FIRMA_INSTITUCIONAL = str(_FORMA_DIFUSION["firmante"])
+_PIE_DIFUSION = str(_FORMA_DIFUSION["pie"])
 
 
 def _fecha_generacion() -> date:
@@ -991,135 +1080,49 @@ def _nombre_doc(fila: dict[str, str], generado_en: date) -> str:
 
     «BORRADOR — Fie informa D-M <título>» con la fecha de generación en
     día-mes y el título de la fila. El prefijo va primero porque el nombre es
-    lo único que se ve desde Drive. No es prosa del modelo: se arma
-    determinísticamente con el título de la fuente y los espacios se colapsan a
-    uno para que el nombre sea una sola línea. El cuerpo del correo no lleva
-    esta línea.
+    lo único que se ve desde Drive. La convención «Fie informa D-M» la declara
+    la forma del tipo; el cuerpo del correo no lleva esta línea.
     """
 
-    titulo = " ".join(fila["titulo"].split())
-    return (
-        f"{PREFIJO_BORRADOR_DOC}"
-        f"Fie informa {generado_en.day}-{generado_en.month} {titulo}"
-    )
+    return f"{PREFIJO_BORRADOR_DOC}{_nombre_doc_gacetilla(TIPO_DIFUSION, fila, generado_en)}"
 
 
 def _renderizar_mail(fila: dict[str, str], ficha: "re.Match[str]") -> str:
     """Arma el correo FIE Informa a partir de la ficha validada y la fila.
 
-    Función pura y determinista (mismo patrón que `_renderizar_post_estructurado`
-    de posts): la prosa viene de la ficha que ya pasó el gate, y los hechos
-    —fechas, hora, modalidad, duración, organiza, lugar, inscripción,
-    contacto— se copian de la fila, nunca del texto generado. Los campos
-    opcionales del contrato v2 se omiten si la fuente no los informa.
-
-    El cuerpo no lleva la línea «Fie informa D/M»: el nombre del Doc se aplica
-    desde el destino (ver `_nombre_doc`), no dentro del correo. El pie de
-    difusión es fijo y va después de «Consultas:» y antes de la firma.
+    Delega en el renderer único de `gacetillas`: el marco (asunto, etiquetas,
+    pie y firmante) sale de la forma declarada de difusión y los hechos se
+    copian de la fila. Acá no queda ninguna frase institucional literal: la
+    antigua línea fija de invitación se retiró (ADR 0012) y la introducción la
+    aporta la prosa del modelo en `bajada` y `cuerpo`.
     """
 
     secciones = ficha.groupdict()
-    lineas = [f"Asunto: {fila['titulo'].strip()}", ""]
-    publico = fila.get("publico", "").strip()
-    if publico:
-        lineas += [
-            "La Facultad de Ingeniería del Ejército invita a "
-            f"{publico} a participar de la siguiente actividad.",
-            "",
-        ]
-    lineas += [
-        secciones["bajada"].strip(),
-        "",
-        secciones["cuerpo"].strip(),
-        "",
-        f"📅 {_fecha_larga(fila['fecha_inicio']) or fila['fecha_inicio'].strip()}",
-    ]
-    fecha_fin = fila.get("fecha_fin", "").strip()
-    if fecha_fin:
-        lineas.append(f"Finaliza: {_fecha_larga(fecha_fin) or fecha_fin}")
-    hora = fila.get("hora", "").strip()
-    if hora:
-        lineas.append(f"🕒 {hora}")
-    modalidad = fila.get("modalidad", "").strip()
-    if modalidad:
-        lineas.append(f"Modalidad: {modalidad}")
-    duracion_horas = fila.get("duracion_horas", "").strip()
-    if duracion_horas:
-        lineas.append(f"Duración: {duracion_horas} h")
-    lineas.append(f"Organiza: {fila['organiza'].strip()}")
-    if fila.get("lugar", "").strip():
-        lineas.append(f"Lugar: {fila['lugar'].strip()}")
-    fecha_limite = fila.get("fecha_limite_inscripcion", "").strip()
-    if fecha_limite:
-        lineas.append(
-            f"Inscripción hasta: {_fecha_larga(fecha_limite) or fecha_limite}"
-        )
-    if fila.get("enlace_inscripcion", "").strip():
-        lineas.append(f"Inscripción: {fila['enlace_inscripcion'].strip()}")
-    lineas += [
-        "",
-        f"Consultas: {fila['contacto'].strip()}",
-        "",
-        _PIE_DIFUSION,
-        "",
-        "--",
-        _FIRMA_INSTITUCIONAL,
-    ]
-    return "\n".join(lineas)
+    return _renderizar_pieza(
+        TIPO_DIFUSION,
+        fila,
+        prosa={
+            "bajada": secciones["bajada"].strip(),
+            "cuerpo": secciones["cuerpo"].strip(),
+        },
+    )
 
 
 def _validar_render_mail(contenido_mail: str, fila: dict[str, str]) -> list[str]:
-    """Control posterior al render: cada hecho de la fila que el correo declara
-    tiene que aparecer literal en el artefacto. Detecta que el renderer haya
-    perdido o alterado un dato entre la ficha validada y el documento guardado.
+    """Gate de la pieza renderizada: núcleo común más reglas de difusión.
+
+    Delega en `gacetillas.validar_pieza`, que compara la pieza contra los hechos
+    de la fila. El código histórico de hecho perdido se conserva como
+    `renderer_fact_missing` para que la auditoría y las regresiones del pipeline
+    sigan diciendo lo mismo.
     """
 
-    normalizado = _normalizar_texto(contenido_mail)
-    faltantes = [
-        campo
-        for campo in ("titulo", "organiza", "contacto")
-        if _normalizar_texto(fila[campo]) not in normalizado
+    errores = validar_pieza(TIPO_DIFUSION, contenido_mail, fila)
+    return [
+        "renderer_fact_missing" if error == "hecho_perdido" else error
+        for error in errores
     ]
-    # Las fechas se imprimen en formato largo («miércoles 5 de agosto de
-    # 2026»); se acepta esa escritura o la ISO literal de la fila.
-    for campo_fecha in ("fecha_inicio", "fecha_fin", "fecha_limite_inscripcion"):
-        fecha_iso = fila.get(campo_fecha, "").strip()
-        if not fecha_iso:
-            continue
-        if (
-            _normalizar_texto(fecha_iso) not in normalizado
-            and _normalizar_texto(_fecha_larga(fecha_iso) or "") not in normalizado
-        ):
-            faltantes.append(campo_fecha)
-    # `duracion_horas` se imprime como «<valor> h»: el valor sigue estando
-    # literal en el artefacto, así que el control de presencia no cambia.
-    for opcional in (
-        "lugar",
-        "hora",
-        "modalidad",
-        "duracion_horas",
-        "enlace_inscripcion",
-    ):
-        valor = fila.get(opcional, "").strip()
-        if valor and _normalizar_texto(valor) not in normalizado:
-            faltantes.append(opcional)
-    return ["renderer_fact_missing"] if faltantes else []
 
 
 def _num_predict(generator: Generator) -> int | None:
     return getattr(generator, "num_predict", None)
-
-
-def _normalizar_texto(valor: str) -> str:
-    """Forma comparable de un texto: sin acentos, sin caso y sin espacios de más.
-
-    Se usa sólo para *comparar* hechos contra la fuente. El borrador conserva
-    el texto tal como lo escribió el modelo: acá no se reescribe nada.
-    """
-
-    sin_acentos = "".join(
-        caracter
-        for caracter in unicodedata.normalize("NFKD", valor)
-        if not unicodedata.combining(caracter)
-    )
-    return " ".join(sin_acentos.casefold().split())

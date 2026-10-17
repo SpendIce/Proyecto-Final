@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:forma-gacetilla:convocatoria_interna:v1",
+  "title": "Forma declarada de la gacetilla de convocatoria interna",
+  "description": "Partes institucionales fijas del tipo convocatoria interna y plan de armado. Convoca a un destinatario declarado y cierra con el area emisora confirmada: el agente no inventa ninguna de las dos. El modo es extrae y confirma, sin modelo.",
+  "schema_version": "forma_gacetilla_convocatoria_interna_v1",
+  "tipo": "convocatoria_interna",
+  "modo": "extrae_y_confirma",
+  "x-decision": "#121",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo», bloque «Aviso de otra area», adaptado a la clase convocatoria interna",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. La forma no fue aprobada por la SEU.",
+  "salida_modelo": null,
+  "encabezado": {
+    "nombre_doc": "Fie informa {dia}-{mes} {titulo}",
+    "asunto": "Asunto: {titulo}"
+  },
+  "pie": "{area_emisora}",
+  "firmante": "Facultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+  "formulas": {
+    "convocatoria": "Se convoca a {destinatarios} a {convocatoria}.",
+    "requisitos": "Requisitos: {requisitos}.",
+    "fecha_limite": "{fecha_larga}"
+  },
+  "etiquetas": {
+    "fecha_limite": "Fecha límite: ",
+    "contacto": "Consultas: "
+  },
+  "cuerpo": [
+    {"clase": "formula", "id": "convocatoria"},
+    {"clase": "formula", "id": "requisitos"},
+    {"clase": "campos", "campos": ["fecha_limite"]},
+    {"clase": "campos", "campos": ["contacto"]},
+    {"clase": "pie"}
+  ]
+}

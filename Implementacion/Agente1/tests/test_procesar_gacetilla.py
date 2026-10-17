@@ -62,9 +62,10 @@ def salida_conforme(
         "## CONTACTO\n"
         f"{contacto}\n\n"
         "## BAJADA\n"
-        "Borrador sintético para validar el flujo técnico.\n\n"
+        "Propuesta abierta para acercar la ingeniería a la comunidad.\n\n"
         "## CUERPO\n"
-        "La actividad requiere revisión humana antes de cualquier publicación."
+        "La facultad acompaña la actividad con información y un espacio de "
+        "consulta para el público asistente."
     )
 
 
@@ -129,12 +130,9 @@ def test_fila_completa_genera_borrador_pendiente_y_log(tmp_path):
     assert resultado.borrador_path.read_text(encoding="utf-8") == (
         "# BORRADOR — NO PUBLICAR\n\n"
         "Asunto: Taller sintético de vinculación\n\n"
-        "La Facultad de Ingeniería del Ejército invita a "
-        "Comunidad universitaria ficticia a participar de la siguiente "
-        "actividad.\n\n"
-        "Borrador sintético para validar el flujo técnico.\n\n"
-        "La actividad requiere revisión humana antes de cualquier "
-        "publicación.\n\n"
+        "Propuesta abierta para acercar la ingeniería a la comunidad.\n\n"
+        "La facultad acompaña la actividad con información y un espacio de "
+        "consulta para el público asistente.\n\n"
         "📅 miércoles 5 de agosto de 2026\n"
         "Organiza: Equipo de prueba\n"
         "Lugar: Aula de prueba\n\n"
@@ -267,7 +265,10 @@ def test_prompt_versionado_solo_solicita_un_borrador(tmp_path):
     )
 
     assert f"PROMPT_VERSION: {PROMPT_VERSION}" in generator.prompt
-    assert "CONTRACT_VERSION: gacetilla_input_v2" in generator.prompt
+    assert (
+        "CONTRACT_VERSION: gacetilla_entrada_difusion_de_actividad_v1"
+        in generator.prompt
+    )
     assert "PROVISIONAL_NO_INSTITUCIONAL" in generator.prompt
     assert "## DATOS DE LA ACTIVIDAD" in generator.prompt
     assert generator.prompt.index("## DATOS DE LA ACTIVIDAD") < generator.prompt.index(
@@ -532,7 +533,8 @@ def _procesar_con_cuerpo(tmp_path: Path, cuerpo: str):
         contacto="contacto@example.invalid",
         lugar="Aula 4",
     ).replace(
-        "La actividad requiere revisión humana antes de cualquier publicación.", cuerpo
+        "La facultad acompaña la actividad con información y un espacio de consulta para el público asistente.",
+        cuerpo,
     )
     return procesar_fila_csv(
         csv_path=csv_path,

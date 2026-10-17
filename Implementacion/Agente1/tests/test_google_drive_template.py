@@ -297,7 +297,7 @@ def test_core_audita_drive_403_con_codigo_seguro_sin_filtrar_datos(tmp_path):
         "Organiza: Equipo de prueba\n\n"
         "## CONTACTO\npruebas@example.invalid\n\n"
         "## BAJADA\nCaso sintético controlado.\n\n"
-        "## CUERPO\nLa actividad requiere validación humana."
+        "## CUERPO\nLa facultad acompaña la actividad con información para el público asistente."
     )
 
     resultado = procesar_solicitud(

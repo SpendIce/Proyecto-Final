@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:forma-gacetilla:cronica_de_evento:v1",
+  "title": "Forma declarada de la gacetilla de cronica de evento",
+  "description": "Partes institucionales fijas del tipo cronica de evento («Noticias FIE») y plan de armado. El cuerpo es texto corrido que confirma una persona: el modo es extrae y confirma, sin modelo. El rotulo del corpus viene con errata («NOTIFICAS FIE»); se usa la forma correcta porque el agente copia el registro, no los errores.",
+  "schema_version": "forma_gacetilla_cronica_de_evento_v1",
+  "tipo": "cronica_de_evento",
+  "modo": "extrae_y_confirma",
+  "x-decision": "#121",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. La forma no fue aprobada por la SEU.",
+  "x-destino_declarado": "genera desde Historia Viva cuando el Acervo tenga el material del evento (adendo del 17/10 en #120)",
+  "salida_modelo": null,
+  "encabezado": {
+    "nombre_doc": "Fie informa {dia}-{mes} {titulo}",
+    "asunto": "Asunto: {titulo}"
+  },
+  "pie": "",
+  "firmante": "Facultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+  "formulas": {
+    "rotulo": "NOTICIAS FIE"
+  },
+  "etiquetas": {},
+  "cuerpo": [
+    {"clase": "formula", "id": "rotulo"},
+    {"clase": "prosa", "campos": ["cuerpo"]},
+    {"clase": "pie"}
+  ]
+}

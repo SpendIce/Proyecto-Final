@@ -88,7 +88,7 @@ def test_core_usa_destino_inyectado_despues_del_gate(tmp_path, monkeypatch):
         "Organiza: Equipo de prueba\n\n"
         "## CONTACTO\npruebas@example.invalid\n\n"
         "## BAJADA\nCaso sintético controlado.\n\n"
-        "## CUERPO\nLa actividad requiere validación humana."
+        "## CUERPO\nLa facultad acompaña la actividad con información para el público asistente."
     )
     destino = DestinoCaptura()
     # El nombre del Doc depende de la fecha de generación: se fija para que la
@@ -113,10 +113,8 @@ def test_core_usa_destino_inyectado_despues_del_gate(tmp_path, monkeypatch):
     # validada es la entrada intermedia del renderer determinista.
     mail_esperado = (
         "Asunto: Actividad destino\n\n"
-        "La Facultad de Ingeniería del Ejército invita a Comunidad ficticia "
-        "a participar de la siguiente actividad.\n\n"
         "Caso sintético controlado.\n\n"
-        "La actividad requiere validación humana.\n\n"
+        "La facultad acompaña la actividad con información para el público asistente.\n\n"
         "📅 miércoles 5 de agosto de 2026\n"
         "Organiza: Equipo de prueba\n\n"
         "Consultas: pruebas@example.invalid\n\n"

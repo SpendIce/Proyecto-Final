@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:entrada-gacetilla:saludo_o_efemeride:v1",
+  "title": "Contrato de entrada de la gacetilla de saludo o efemeride",
+  "description": "El saludo o efemeride se carga con el titulo de la efemeride; el texto de saludo lo escribe el modelo con el prompt propio del tipo. No necesita actividad.",
+  "x-contract-version": "gacetilla_entrada_saludo_o_efemeride_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-decision": "#121",
+  "x-tipo": "saludo_o_efemeride",
+  "x-modo": "genera",
+  "x-requiere_actividad": false,
+  "x-interpretacion_fallback": true,
+  "type": "object",
+  "required": ["titulo"],
+  "no_aplican": [
+    "id_actividad",
+    "descripcion",
+    "fecha_inicio",
+    "fecha_fin",
+    "fecha_limite_inscripcion",
+    "hora",
+    "modalidad",
+    "duracion_horas",
+    "publico",
+    "organiza",
+    "contacto",
+    "fuente",
+    "enlace_inscripcion",
+    "lugar",
+    "nombre",
+    "rol",
+    "dia",
+    "hecho",
+    "condicion",
+    "area_emisora",
+    "destinatarios",
+    "convocatoria",
+    "requisitos",
+    "enlace_adjunto"
+  ],
+  "properties": {
+    "titulo": {"type": "string", "minLength": 1},
+    "cuerpo": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Texto de saludo que produce el modelo con el prompt propio del tipo."
+    }
+  },
+  "additionalProperties": false
+}

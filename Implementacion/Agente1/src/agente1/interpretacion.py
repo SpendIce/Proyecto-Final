@@ -143,11 +143,11 @@ from .procesamiento import Generator, procesar_solicitud
 from .registro_auditoria import escribir_registro
 
 HU = "HU-013"
-CONTRACT_VERSION = "intenciones_v3"
+CONTRACT_VERSION = "intenciones_v4"
 
 CATALOGO_INTENCIONES = json.loads(
     files("agente1")
-    .joinpath("contracts", "intenciones_v3.schema.json")
+    .joinpath("contracts", "intenciones_v4.schema.json")
     .read_text(encoding="utf-8")
 )
 INTENCIONES = tuple(CATALOGO_INTENCIONES["intenciones"])
@@ -191,18 +191,18 @@ INTENCIONES_PROPONIBLES = frozenset({"generar_gacetilla", "generar_post"})
 # --- Fallback con modelo local (#26) ----------------------------------------
 # El modelo interviene sólo cuando el camino determinístico no resolvió, y su
 # única salida admitida es una intención del catálogo más términos de búsqueda
-# estructurados. `interpretacion_fallback_v3` es el contrato de esa salida; su
-# enum tiene que ser el mismo catálogo que `intenciones_v3`, y hay una prueba
+# estructurados. `interpretacion_fallback_v4` es el contrato de esa salida; su
+# enum tiene que ser el mismo catálogo que `intenciones_v4`, y hay una prueba
 # que falla si dejan de coincidir. Ver ADR 0001.
 CONTRATO_FALLBACK = json.loads(
     files("agente1")
-    .joinpath("contracts", "interpretacion_fallback_v3.schema.json")
+    .joinpath("contracts", "interpretacion_fallback_v4.schema.json")
     .read_text(encoding="utf-8")
 )
 CONTRATO_FALLBACK_VERSION = str(CONTRATO_FALLBACK["x-contract-version"])
 PROMPT_FALLBACK = (
     files("agente1")
-    .joinpath("prompts", "interpretacion_fallback_v3.txt")
+    .joinpath("prompts", "interpretacion_fallback_v4.txt")
     .read_text(encoding="utf-8")
 )
 MAX_TERMINOS_FALLBACK = int(
@@ -252,16 +252,12 @@ PATRON_GACETILLA = re.compile(r"\bgacetill\w*\b")
 PATRON_POST = re.compile(r"\b(?:post\w*|instagram\w*|linkedin\w*)\b")
 # `emitir_certificados` (#75) tiene pipeline propio: la prosa sólo sirve
 # para clasificar y resolver la actividad; el circuito de lote de cierre
-# toma todos sus datos de la actividad y de la planilla del Aux. Va antes
-# que newsletter/mail para que «mandá los certificados por mail» se
-# entienda como emisión y no como un pedido de `generar_mail`.
+# toma todos sus datos de la actividad y de la planilla del Aux.
 PATRON_CERTIFICADOS = re.compile(r"\bcertificad\w*\b")
-PATRON_NEWSLETTER = re.compile(r"\b(?:newsletter\w*|boletin\w*)\b")
-PATRON_MAIL = re.compile(r"\b(?:mail\w*|correo\w*|email\w*)\b")
 # «plantilla» es el artefacto del pedido, igual que «gacetilla» o «post».
-# Va antes de `PATRON_MAIL` porque el pedido canónico de #73 nombra los
-# correos — «la plantilla para los correos de la actividad» — y tiene que
-# despachar la plantilla, no rechazar como un mail suelto sin pipeline.
+# El pedido canónico de #73 nombra los correos — «la plantilla para los
+# correos de la actividad» — y tiene que despachar la plantilla: un correo
+# suelto es el canal, no una pieza, y no hay intención para eso.
 PATRON_PLANTILLA = re.compile(r"\bplantilla\w*\b")
 
 
@@ -283,12 +279,8 @@ def _clasificar_intencion(texto: str) -> str:
         return "generar_post"
     if PATRON_CERTIFICADOS.search(normalizado):
         return "emitir_certificados"
-    if PATRON_NEWSLETTER.search(normalizado):
-        return "generar_newsletter"
     if PATRON_PLANTILLA.search(normalizado):
         return "generar_plantilla_actividad"
-    if PATRON_MAIL.search(normalizado):
-        return "generar_mail"
     return INTENCION_FUERA_DE_ALCANCE
 
 
@@ -781,7 +773,7 @@ class TerminosInterpretados:
 
 
 def _validar_salida_fallback(salida: str) -> TerminosInterpretados | None:
-    """Valida la salida del modelo contra `interpretacion_fallback_v3`.
+    """Valida la salida del modelo contra `interpretacion_fallback_v4`.
 
     Devuelve `None` ante cualquier desvío —JSON inválido, claves faltantes o
     de más, tipos equivocados, término demasiado largo, o una intención que no
@@ -1556,8 +1548,8 @@ def _interpretar_solicitud_sin_guarda(
         # reconoció el pedido: es el único caso en el que el modelo puede
         # intervenir para **proponer** una intención permitida (ADR 0001,
         # enmienda del 16/10/2026). Una acción ya reconocida fuera de alcance
-        # (`ajustar_borrador`, `generar_newsletter`, `generar_mail`) no se
-        # reconvierte: se rechaza con su código, sin consultar el modelo.
+        # (`ajustar_borrador`) no se reconvierte: se rechaza con su código, sin
+        # consultar el modelo.
         if intencion == INTENCION_FUERA_DE_ALCANCE:
             return _proponer_intencion(
                 texto=texto_seguro,
@@ -1568,13 +1560,13 @@ def _interpretar_solicitud_sin_guarda(
                 solicitante=solicitante,
             )
         # Único punto de decisión sobre "esta intención produce un borrador o
-        # se rechaza" para las que no tienen despacho: cubre
-        # `ajustar_borrador` (reconocida, fuera de alcance de esta iteración)
-        # y las intenciones sin pipeline construido (`generar_newsletter`,
-        # `generar_mail`). `INTENCIONES_CON_DESPACHO` es la única fuente de
-        # verdad de qué intención despacha de verdad: ni el catálogo por sí
-        # solo ni una intención declarada `ACTIVA` alcanzan para producir un
-        # borrador si no está también acá.
+        # se rechaza" para las que no tienen despacho. Desde #121 sólo queda
+        # `ajustar_borrador` (reconocida, fuera de alcance de esta iteración):
+        # un newsletter es un tipo de gacetilla y un mail es el canal, así que
+        # no hay intenciones pendientes por tipo. `INTENCIONES_CON_DESPACHO` es
+        # la única fuente de verdad de qué intención despacha de verdad: ni el
+        # catálogo por sí solo ni una intención declarada `ACTIVA` alcanzan
+        # para producir un borrador si no está también acá.
         entrada_catalogo = INTENCIONES_POR_ID[intencion]
         return _finalizar(
             log_path=log_path,

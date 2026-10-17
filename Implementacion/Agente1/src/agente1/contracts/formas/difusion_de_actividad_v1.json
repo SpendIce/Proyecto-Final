@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:forma-gacetilla:difusion_de_actividad:v1",
+  "title": "Forma declarada de la gacetilla de difusion de actividad",
+  "description": "Partes institucionales fijas del tipo difusion de actividad y plan de armado de la pieza. El agente copia encabezado, pie, firmante, formulas y etiquetas; el modelo solo aporta la prosa de la bajada y el cuerpo. La frase fija de invitacion que el renderer agregaba antes de la prosa sale: la introduccion la aporta la prosa del modelo.",
+  "schema_version": "forma_gacetilla_difusion_de_actividad_v1",
+  "tipo": "difusion_de_actividad",
+  "modo": "genera",
+  "x-decision": "#121",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. La forma no fue aprobada por la SEU.",
+  "salida_modelo": {
+    "clase": "ficha_actividad",
+    "prompt_version": "gacetilla_v8"
+  },
+  "encabezado": {
+    "nombre_doc": "Fie informa {dia}-{mes} {titulo}",
+    "asunto": "Asunto: {titulo}"
+  },
+  "pie": "Departamento de Cursos Complementarios\nSecretaría de Extensión Universitaria",
+  "firmante": "Facultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+  "formulas": {
+    "fecha_inicio": "{fecha_larga}",
+    "fecha_fin": "{fecha_larga}",
+    "fecha_limite_inscripcion": "{fecha_larga}",
+    "duracion_horas": "{valor} h"
+  },
+  "etiquetas": {
+    "fecha_inicio": "📅 ",
+    "fecha_fin": "Finaliza: ",
+    "hora": "🕒 ",
+    "modalidad": "Modalidad: ",
+    "duracion_horas": "Duración: ",
+    "organiza": "Organiza: ",
+    "lugar": "Lugar: ",
+    "fecha_limite_inscripcion": "Inscripción hasta: ",
+    "enlace_inscripcion": "Inscripción: ",
+    "contacto": "Consultas: "
+  },
+  "cuerpo": [
+    {"clase": "prosa", "campos": ["bajada", "cuerpo"]},
+    {
+      "clase": "campos",
+      "campos": [
+        "fecha_inicio",
+        "fecha_fin",
+        "hora",
+        "modalidad",
+        "duracion_horas",
+        "organiza",
+        "lugar",
+        "fecha_limite_inscripcion",
+        "enlace_inscripcion"
+      ]
+    },
+    {"clase": "campos", "campos": ["contacto"]},
+    {"clase": "pie"}
+  ]
+}

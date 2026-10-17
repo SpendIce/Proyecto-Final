@@ -20,6 +20,41 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.2.0] - 2026-10-17
+
+La gacetilla declara su tipo y el tipo declara su modo y su forma (ADR 0012).
+Es un cambio **Mayor** porque cambian contratos de interfaz: el catálogo de
+intenciones, el contrato de entrada y el renderer.
+
+### Mayor — contratos de interfaz
+
+- Contrato cerrado de tipos de gacetilla (`tipos_gacetilla_v1.json`) con los
+  siete tipos del corpus, su modo de producción y si necesitan actividad
+  (#120).
+- Catálogo de intenciones v4: `generar_newsletter` y `generar_mail` dejan de
+  ser intenciones porque un newsletter es un tipo de gacetilla y un mail es el
+  canal; `generar_gacetilla` declara `tipo_gacetilla` como parámetro cerrado
+  (#121). El fallback de interpretación pasa a v4 con el mismo enum.
+- Contrato de entrada por tipo (`contracts/entradas/<tipo>_v1.json`), con sus
+  `required` y sus campos que no aplican. `gacetilla_input_v2` queda como el
+  contrato de actividad que sólo reusa difusión (#121).
+- Forma declarada por tipo (`contracts/formas/<tipo>_v1.json`), con
+  `schema_version` propia. La frase fija de invitación sale del renderer: el
+  marco se copia de la forma y la introducción la aporta la prosa del modelo
+  en los tipos que generan (#121).
+
+### Menor — capacidades, prompts y políticas
+
+- Renderer único y gate único para los siete tipos (`gacetillas.py`): núcleo
+  común más reglas por tipo; en los tipos que extraen y confirman el gate
+  compara contra lo confirmado y no interviene el fallback de interpretación
+  (#121).
+- Prompt `gacetilla_v8` (difusión) y prompt corto `saludo_o_efemeride_v1`; los
+  cinco tipos que extraen y confirman no tienen prompt ni llaman al modelo
+  (#121).
+- Casos de conformidad de forma con golden por tipo en `golden/formas/`, y
+  actualización del golden `SYN-001` y de la matriz `matriz_hu010.py` (#121).
+
 ## [0.1.0] - 2026-10-14
 
 Primera versión etiquetada. Es el sistema de demostración completo del Agente 1

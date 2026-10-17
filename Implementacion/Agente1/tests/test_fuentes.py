@@ -230,7 +230,7 @@ def test_procesamiento_consume_el_port_sin_conocer_csv(tmp_path):
         "Organiza: Equipo de prueba\n\n"
         "## CONTACTO\npruebas@example.invalid\n\n"
         "## BAJADA\nCaso sintético controlado.\n\n"
-        "## CUERPO\nLa actividad requiere validación humana."
+        "## CUERPO\nLa facultad acompaña la actividad con información para el público asistente."
     )
 
     resultado = procesar_solicitud(
@@ -347,7 +347,7 @@ def test_core_normaliza_lugar_opcional_e_ignora_extras_sin_filtrarlos(
                 f"Organiza: Equipo de prueba{linea_lugar}\n\n"
                 "## CONTACTO\npruebas@example.invalid\n\n"
                 "## BAJADA\nCaso sintético controlado.\n\n"
-                "## CUERPO\nLa actividad requiere validación humana."
+                "## CUERPO\nLa facultad acompaña la actividad con información para el público asistente."
             )
 
     generator = GeneratorQueCaptura()

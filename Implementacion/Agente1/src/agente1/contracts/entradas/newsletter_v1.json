@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:entrada-gacetilla:newsletter:v1",
+  "title": "Contrato de entrada de la gacetilla de newsletter",
+  "description": "El newsletter es un tipo de gacetilla: se carga con el titulo del boletin, el destino declarado del adjunto y el area emisora confirmada. Un mail es el canal, no un campo ni una intencion. No necesita actividad.",
+  "x-contract-version": "gacetilla_entrada_newsletter_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-decision": "#121",
+  "x-tipo": "newsletter",
+  "x-modo": "extrae_y_confirma",
+  "x-requiere_actividad": false,
+  "x-interpretacion_fallback": false,
+  "type": "object",
+  "required": ["titulo", "enlace_adjunto", "area_emisora"],
+  "no_aplican": [
+    "id_actividad",
+    "descripcion",
+    "fecha_inicio",
+    "fecha_fin",
+    "fecha_limite_inscripcion",
+    "hora",
+    "modalidad",
+    "duracion_horas",
+    "publico",
+    "organiza",
+    "contacto",
+    "fuente",
+    "enlace_inscripcion",
+    "lugar",
+    "nombre",
+    "rol",
+    "dia",
+    "hecho",
+    "condicion",
+    "destinatarios",
+    "convocatoria",
+    "requisitos"
+  ],
+  "properties": {
+    "titulo": {"type": "string", "minLength": 1},
+    "enlace_adjunto": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Destino declarado del adjunto. No se reproduce un enlace interno de casilla."
+    },
+    "area_emisora": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

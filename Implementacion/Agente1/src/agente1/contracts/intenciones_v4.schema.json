@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:intenciones:v4",
+  "title": "Catalogo cerrado de intenciones para la interpretacion en lenguaje natural (HU-013, #121)",
+  "description": "Toda solicitud en lenguaje natural se clasifica a una de estas intenciones o se rechaza; nunca se aproxima a la mas parecida. `pipeline_integrado` distingue una propiedad estable del catalogo (aplicacion) de un hecho de esta iteracion (si el seam de HU-013 ya despacha esa intencion a un pipeline). Desde #121 no hay intenciones por tipo de gacetilla: un newsletter es un TIPO de gacetilla y un mail es el canal, asi que `generar_gacetilla` declara el tipo como parametro cerrado y `generar_newsletter`/`generar_mail` dejan de existir como intenciones.",
+  "x-contract-version": "intenciones_v4",
+  "x-reemplaza": "intenciones_v3",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-hu": "HU-013",
+  "x-issue": "#20, #22, #75, #73, #121",
+  "x-decision": "#120, #121",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-origen": "Equipo tecnico del PPS. El catalogo de intenciones y los roles habilitados no fueron aprobados por la SEU.",
+  "aplicaciones": {
+    "ACTIVA": "Intencion legitima del catalogo cerrado, reconocida por la clasificacion deterministica.",
+    "RECONOCIDA_FUERA_DE_ALCANCE": "Intencion identificable en la prosa cuya ejecucion excede el alcance de la iteracion vigente: requiere un gate propio que todavia no existe. Se responde como fuera de alcance con codigo explicito, nunca en silencio.",
+    "NO_APLICADA_PENDIENTE_PIPELINE": "Intencion versionada en el contrato sin pipeline propio construido todavia. No debe presentarse como habilitada."
+  },
+  "intenciones": [
+    {
+      "id": "generar_gacetilla",
+      "aplicacion": "ACTIVA",
+      "pipeline": "gacetilla",
+      "pipeline_integrado": true,
+      "codigo_rechazo": null,
+      "descripcion": "Pedido de una gacetilla institucional. Despachada al pipeline de HU-010 (procesar_solicitud) para los tipos que declaran salida de ficha de actividad, y a los seams declarativos de `gacetillas` para los demas.",
+      "parametros": [
+        {
+          "nombre": "tipo_gacetilla",
+          "requerido": true,
+          "tipo": "string",
+          "enum": [
+            "difusion_de_actividad",
+            "cronica_de_evento",
+            "aviso_de_otra_area",
+            "convocatoria_interna",
+            "saludo_o_efemeride",
+            "fallecimiento",
+            "newsletter"
+          ],
+          "x-contrato": "urn:proyecto-centenario:agente1:tipos-gacetilla:v1",
+          "descripcion": "Tipo de gacetilla declarado. Selecciona la forma declarada, el contrato de entrada, las reglas de gate propias del tipo y el modo de produccion. No se infiere de la prosa ni se aproxima a la clase mas parecida."
+        }
+      ]
+    },
+    {
+      "id": "generar_post",
+      "aplicacion": "ACTIVA",
+      "pipeline": "post",
+      "pipeline_integrado": true,
+      "codigo_rechazo": null,
+      "descripcion": "Pedido de un post de redes. Despachado al pipeline estructurado de HU-011 (procesar_post_estructurado) con el canal resuelto de forma deterministica desde la prosa (HU-013/#22)."
+    },
+    {
+      "id": "emitir_certificados",
+      "aplicacion": "ACTIVA",
+      "pipeline": "certificados_emision",
+      "pipeline_integrado": true,
+      "codigo_rechazo": null,
+      "descripcion": "Pedido de emision de los certificados de una actividad sobre su lista de cierre (HU-014, #75). Despachado al circuito de `certificados_emision`: exige la linea descriptiva aprobada (#74) y el lote aprobado por el rol utilitario via el Form de decisiones, y entrega por Gmail con lista de prueba. El trigger automatico al cerrar la actividad es HU-015, fuera de alcance."
+    },
+    {
+      "id": "fuera_de_alcance",
+      "aplicacion": "ACTIVA",
+      "pipeline": null,
+      "pipeline_integrado": true,
+      "codigo_rechazo": "fuera_de_alcance",
+      "descripcion": "Ninguna intencion del catalogo corresponde a la solicitud. Resultado terminal: no se aproxima a la mas parecida. Un pedido que nombra solo el canal («mandale un mail») o un tipo sin declarar no despacha por si solo."
+    },
+    {
+      "id": "ajustar_borrador",
+      "aplicacion": "RECONOCIDA_FUERA_DE_ALCANCE",
+      "pipeline": null,
+      "pipeline_integrado": false,
+      "codigo_rechazo": "ajustar_borrador_fuera_de_alcance",
+      "descripcion": "Unica intencion donde la prosa deberia influir en la generacion. Merece su propio incremento con su propio gate."
+    },
+    {
+      "id": "generar_plantilla_actividad",
+      "aplicacion": "ACTIVA",
+      "pipeline": "plantilla_actividad",
+      "pipeline_integrado": true,
+      "codigo_rechazo": null,
+      "descripcion": "Pedido de la plantilla de correo para los envios de HU-012 de una actividad. Despachada al pipeline de #73 (procesar_plantilla_actividad): el modelo solo redacta prosa descriptiva y las variables de montos, fechas, enlaces y destinatario se resuelven por render determinista. La plantilla y su lote quedan pendientes de decision humana (#72)."
+    }
+  ],
+  "roles_habilitados_provisionales": [
+    "coordinador_seu",
+    "auxiliar_seu"
+  ],
+  "x-roles-origen": "Equipo tecnico del PPS, a partir de las personas de HU-013 (coordinador y auxiliar de la SEU). Pendiente de definicion institucional de roles y permisos."
+}

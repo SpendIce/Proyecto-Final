@@ -173,8 +173,6 @@ def test_catalogo_declara_exactamente_las_intenciones_de_la_spec() -> None:
         "generar_plantilla_actividad",
         "fuera_de_alcance",
         "ajustar_borrador",
-        "generar_newsletter",
-        "generar_mail",
     }
     assert INTENCIONES_POR_ID["generar_gacetilla"]["aplicacion"] == "ACTIVA"
     assert INTENCIONES_POR_ID["generar_post"]["aplicacion"] == "ACTIVA"
@@ -188,11 +186,29 @@ def test_catalogo_declara_exactamente_las_intenciones_de_la_spec() -> None:
         INTENCIONES_POR_ID["ajustar_borrador"]["aplicacion"]
         == "RECONOCIDA_FUERA_DE_ALCANCE"
     )
-    for pendiente in ("generar_newsletter", "generar_mail"):
-        assert (
-            INTENCIONES_POR_ID[pendiente]["aplicacion"]
-            == "NO_APLICADA_PENDIENTE_PIPELINE"
-        )
+    # #121: un newsletter es un tipo de gacetilla y un mail es el canal. No
+    # quedan intenciones por tipo ni intenciones pendientes de pipeline.
+    assert "generar_newsletter" not in IDS_INTENCIONES
+    assert "generar_mail" not in IDS_INTENCIONES
+
+
+def test_generar_gacetilla_declara_el_tipo_como_parametro_cerrado() -> None:
+    """El tipo viaja declarado y es el mismo enum que `tipos_gacetilla_v1`."""
+
+    gacetilla = INTENCIONES_POR_ID["generar_gacetilla"]
+    parametros = {parametro["nombre"]: parametro for parametro in gacetilla["parametros"]}
+
+    tipo = parametros["tipo_gacetilla"]
+    assert tipo["requerido"] is True
+    assert tipo["enum"] == [
+        "difusion_de_actividad",
+        "cronica_de_evento",
+        "aviso_de_otra_area",
+        "convocatoria_interna",
+        "saludo_o_efemeride",
+        "fallecimiento",
+        "newsletter",
+    ]
 
 
 def test_intencion_pendiente_de_pipeline_no_aparece_habilitada() -> None:
@@ -218,8 +234,6 @@ def test_intencion_pendiente_de_pipeline_no_aparece_habilitada() -> None:
 CASOS_NEGATIVOS: dict[str, str] = {
     "fuera_de_alcance": "¿A qué hora cierra la biblioteca los sábados?",
     "ajustar_borrador": "Corregí el borrador de la gacetilla SYN-001, quedó mal",
-    "generar_newsletter": "Preparen el newsletter mensual con la actividad SYN-001",
-    "generar_mail": "Mandale un mail a los inscriptos de SYN-001",
 }
 
 
@@ -2260,8 +2274,6 @@ def test_el_modelo_no_propone_intenciones_fuera_del_conjunto_permitido(
     "texto",
     [
         CASOS_NEGATIVOS["ajustar_borrador"],
-        CASOS_NEGATIVOS["generar_newsletter"],
-        CASOS_NEGATIVOS["generar_mail"],
     ],
 )
 def test_una_accion_reconocida_fuera_de_alcance_no_consulta_el_modelo(
@@ -2283,6 +2295,31 @@ def test_una_accion_reconocida_fuera_de_alcance_no_consulta_el_modelo(
     assert registro["resultado"] == INTENCIONES_POR_ID[resultado.intencion][
         "codigo_rechazo"
     ]
+    assert registro["modelo_utilizado"] is False
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        "Preparen el newsletter mensual con la actividad SYN-001",
+        "Mandale un mail a los inscriptos de SYN-001",
+    ],
+)
+def test_newsletter_y_mail_no_son_intenciones_propias(texto: str, tmp_path: Path) -> None:
+    """#121: un newsletter es un tipo de gacetilla y un mail es el canal.
+
+    Un pedido que sólo nombra el tipo o el canal no despacha una pieza: el tipo
+    se declara en la solicitud (canal del Form, #122) y no se aproxima por
+    palabra clave. El resultado es el rechazo terminal del catálogo.
+    """
+
+    resultado = _interpretar(tmp_path, texto)
+
+    assert resultado.estado == "RECHAZADA"
+    assert resultado.borrador_path is None
+    registro = _ultima_linea(resultado.log_path)
+    assert registro["intencion"] == "fuera_de_alcance"
+    assert registro["resultado"] == "fuera_de_alcance"
     assert registro["modelo_utilizado"] is False
 
 

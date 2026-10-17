@@ -400,7 +400,7 @@ class GeneratorIntegracion:
             "Organiza: Equipo de prueba\nLugar: Aula ficticia\n\n"
             "## CONTACTO\npruebas@example.invalid\n\n"
             "## BAJADA\nCaso sintético controlado.\n\n"
-            "## CUERPO\nLa actividad requiere validación humana."
+            "## CUERPO\nLa facultad acompaña la actividad con información para el público asistente."
         )
 
 

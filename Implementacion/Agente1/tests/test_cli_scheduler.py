@@ -60,9 +60,9 @@ SALIDA_CONFORME = (
     "## CONTACTO\n"
     "pruebas@example.invalid\n\n"
     "## BAJADA\n"
-    "Borrador sintético para validar el flujo técnico.\n\n"
+    "Propuesta abierta para acercar la ingeniería a la comunidad.\n\n"
     "## CUERPO\n"
-    "La actividad requiere revisión humana antes de cualquier publicación."
+    "La facultad acompaña la actividad con información y un espacio de consulta para el público asistente."
 )
 
 

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:forma-gacetilla:newsletter:v1",
+  "title": "Forma declarada de la gacetilla de newsletter",
+  "description": "Partes institucionales fijas del tipo newsletter y plan de armado. La pieza es una linea con el destino declarado del adjunto y el pie del area emisora confirmada. Un newsletter es un tipo de gacetilla, no una intencion distinta, y un mail es el canal. El modo es extrae y confirma, sin modelo.",
+  "schema_version": "forma_gacetilla_newsletter_v1",
+  "tipo": "newsletter",
+  "modo": "extrae_y_confirma",
+  "x-decision": "#121",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. La forma no fue aprobada por la SEU.",
+  "salida_modelo": null,
+  "encabezado": {
+    "nombre_doc": "Fie informa {dia}-{mes} {titulo}",
+    "asunto": "Asunto: {titulo}"
+  },
+  "pie": "{area_emisora}",
+  "firmante": "Facultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+  "formulas": {
+    "adjunto": "Link archivo adjunto:\n{enlace_adjunto}"
+  },
+  "etiquetas": {},
+  "cuerpo": [
+    {"clase": "formula", "id": "adjunto"},
+    {"clase": "pie"}
+  ]
+}
