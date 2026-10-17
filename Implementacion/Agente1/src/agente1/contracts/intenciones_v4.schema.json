@@ -23,7 +23,7 @@
       "pipeline": "gacetilla",
       "pipeline_integrado": true,
       "codigo_rechazo": null,
-      "descripcion": "Pedido de una gacetilla institucional. Despachada al pipeline de HU-010 (procesar_solicitud) para los tipos que declaran salida de ficha de actividad, y a los seams declarativos de `gacetillas` para los demas.",
+      "descripcion": "Pedido de una gacetilla institucional. Despachada al pipeline de HU-010 (procesar_solicitud), que arma la difusion de actividad a partir de la ficha de la actividad referenciada. Los demas tipos se declaran en el campo de tipo del canal del Form (#122) y alli confirman sus datos: los seams declarativos de `gacetillas` (`generar_pieza`, `confirmar_pieza`) toman el despacho a partir de esa iteracion. El tipo no se infiere de la prosa; sin tipo declarado el pedido es una gacetilla de actividad.",
       "parametros": [
         {
           "nombre": "tipo_gacetilla",

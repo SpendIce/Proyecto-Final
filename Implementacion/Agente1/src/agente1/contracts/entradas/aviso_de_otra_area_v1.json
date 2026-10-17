@@ -7,7 +7,6 @@
   "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
   "x-decision": "#121",
   "x-tipo": "aviso_de_otra_area",
-  "x-modo": "extrae_y_confirma",
   "x-requiere_actividad": false,
   "x-interpretacion_fallback": false,
   "type": "object",

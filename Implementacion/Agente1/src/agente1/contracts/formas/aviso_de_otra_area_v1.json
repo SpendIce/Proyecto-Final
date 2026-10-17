@@ -5,7 +5,6 @@
   "description": "Partes institucionales fijas del tipo aviso de otra area y plan de armado. La pieza informa un hecho: no invita a participar y no afirma una invitacion. El area emisora la confirma quien pide y determina el pie; el agente no la inventa.",
   "schema_version": "forma_gacetilla_aviso_de_otra_area_v1",
   "tipo": "aviso_de_otra_area",
-  "modo": "extrae_y_confirma",
   "x-decision": "#121",
   "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
   "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",

@@ -1586,15 +1586,20 @@ def _interpretar_solicitud_sin_guarda(
         )
 
     # A partir de acá, `intencion_efectiva` e `id_actividad` están resueltos
-    # —directamente, o por una referencia a una interacción pendiente— y el
-    # despacho es idéntico al de #22/#23. `generar_gacetilla` y
-    # `generar_post` comparten la misma forma de despacho (pipeline ->
-    # resumen a partir de la fuente) pero difieren en un dato de entrada: el
+    # (directamente, o por una referencia a una interacción pendiente) y el
+    # despacho es idéntico al de #22/#23. `generar_gacetilla` despacha al
+    # pipeline de HU-010: produce la difusión de actividad a partir de la
+    # ficha referenciada. Los seis tipos restantes declaran su tipo en el
+    # campo de tipo del canal del Form (#122) y confirman sus datos ahí; no
+    # se infieren del texto ni se aproximan a difusión. El despacho a los
+    # seams declarativos de `gacetillas` llega con la iteración del canal.
+    # `generar_post` comparte la misma forma de despacho (pipeline ->
+    # resumen a partir de la fuente) pero difiere en un dato de entrada: el
     # post necesita además el canal, resuelto acá mismo con código
     # determinístico (`_resolver_canal`), nunca por el modelo. Si este turno
     # no lo nombra pero vino de una pendiente que sí lo tenía resuelto, se
-    # usa el de la pendiente — la respuesta a una repregunta no debería
-    # tener que repetir un dato que ya se dio. El canal nombrado en este
+    # usa el de la pendiente (la respuesta a una repregunta no debería
+    # tener que repetir un dato que ya se dio). El canal nombrado en este
     # turno siempre gana: la persona puede corregirlo («la 1, para
     # linkedin»).
     objetos_decision: "tuple[dict[str, object], ...]" = ()

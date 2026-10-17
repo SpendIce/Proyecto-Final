@@ -25,8 +25,8 @@ import pytest
 from agente1 import FakeGenerator
 from agente1.gacetillas import (
     TIPO_DIFUSION,
-    TipoGeneraError,
-    TipoNoGeneraError,
+    ConfirmacionNoHabilitadaError,
+    GeneracionNoHabilitadaError,
     campos_obligatorios,
     campos_que_no_aplican,
     cargar_entrada,
@@ -153,14 +153,16 @@ def test_los_siete_tipos_declaran_forma_versionada_y_contrato_de_entrada():
 
         assert forma["schema_version"] == f"forma_gacetilla_{tipo}_v1"
         assert forma["tipo"] == tipo
-        assert forma["modo"] == modo_de(tipo)
+        # La fuente del modo es el contrato de tipos: la forma ni la entrada
+        # lo repiten, que es como se evita decidirlo en dos lugares.
+        assert "modo" not in forma
         for parte in ("encabezado", "pie", "firmante", "formulas", "etiquetas"):
             assert parte in forma, f"{tipo} no declara {parte}"
         assert forma["firmante"].strip()
         assert forma["encabezado"]["asunto"] == "Asunto: {titulo}"
 
         assert entrada["x-tipo"] == tipo
-        assert entrada["x-modo"] == modo_de(tipo)
+        assert "x-modo" not in entrada
         assert entrada["x-contract-version"].startswith("gacetilla_entrada_")
         assert campos_obligatorios(tipo), f"{tipo} no declara required"
         assert campos_que_no_aplican(tipo), f"{tipo} no declara campos que no aplican"
@@ -244,9 +246,9 @@ def test_la_difusion_no_repite_la_frase_fija_de_invitacion_y_sigue_siendo_fie_in
 def test_los_cinco_tipos_que_extraen_no_llaman_al_modelo_ni_necesitan_prompt(tipo):
     forma = cargar_forma(tipo)
 
-    assert forma["modo"] == "extrae_y_confirma"
+    assert modo_de(tipo) == "extrae_y_confirma"
     assert forma["salida_modelo"] is None
-    with pytest.raises(TipoNoGeneraError):
+    with pytest.raises(GeneracionNoHabilitadaError):
         generar_pieza(tipo, _campos(tipo), GeneratorQueNoDebeInvocarse())
     # El contrato de entrada lo declara y el fallback de interpretación no
     # interviene: los datos los carga quien pide.
@@ -262,11 +264,11 @@ def test_los_dos_tipos_que_generan_tienen_prompt_versionado(tipo):
     ).read_text(encoding="utf-8")
 
     assert plantilla.splitlines()[0] == f"PROMPT_VERSION: {prompt_version}"
-    assert forma["modo"] == "genera"
+    assert modo_de(tipo) == "genera"
 
 
 def test_el_saludo_se_genera_con_su_prompt_corto_y_el_gate_lo_controla():
-    with pytest.raises(TipoGeneraError):
+    with pytest.raises(ConfirmacionNoHabilitadaError):
         confirmar_pieza("saludo_o_efemeride", {"titulo": "Día del Ingeniero"})
 
     pieza, errores = generar_pieza(

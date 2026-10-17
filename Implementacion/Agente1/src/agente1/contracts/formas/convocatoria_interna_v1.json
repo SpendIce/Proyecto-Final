@@ -5,7 +5,6 @@
   "description": "Partes institucionales fijas del tipo convocatoria interna y plan de armado. Convoca a un destinatario declarado y cierra con el area emisora confirmada: el agente no inventa ninguna de las dos. El modo es extrae y confirma, sin modelo.",
   "schema_version": "forma_gacetilla_convocatoria_interna_v1",
   "tipo": "convocatoria_interna",
-  "modo": "extrae_y_confirma",
   "x-decision": "#121",
   "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
   "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo», bloque «Aviso de otra area», adaptado a la clase convocatoria interna",

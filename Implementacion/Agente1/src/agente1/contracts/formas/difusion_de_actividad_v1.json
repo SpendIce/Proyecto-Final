@@ -5,7 +5,6 @@
   "description": "Partes institucionales fijas del tipo difusion de actividad y plan de armado de la pieza. El agente copia encabezado, pie, firmante, formulas y etiquetas; el modelo solo aporta la prosa de la bajada y el cuerpo. La frase fija de invitacion que el renderer agregaba antes de la prosa sale: la introduccion la aporta la prosa del modelo.",
   "schema_version": "forma_gacetilla_difusion_de_actividad_v1",
   "tipo": "difusion_de_actividad",
-  "modo": "genera",
   "x-decision": "#121",
   "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
   "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",

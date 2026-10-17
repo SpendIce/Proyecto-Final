@@ -5,7 +5,6 @@
   "description": "Partes institucionales fijas del tipo newsletter y plan de armado. La pieza es una linea con el destino declarado del adjunto y el pie del area emisora confirmada. Un newsletter es un tipo de gacetilla, no una intencion distinta, y un mail es el canal. El modo es extrae y confirma, sin modelo.",
   "schema_version": "forma_gacetilla_newsletter_v1",
   "tipo": "newsletter",
-  "modo": "extrae_y_confirma",
   "x-decision": "#121",
   "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
   "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",

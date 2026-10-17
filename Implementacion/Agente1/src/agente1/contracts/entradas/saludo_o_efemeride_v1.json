@@ -7,7 +7,6 @@
   "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
   "x-decision": "#121",
   "x-tipo": "saludo_o_efemeride",
-  "x-modo": "genera",
   "x-requiere_actividad": false,
   "x-interpretacion_fallback": true,
   "type": "object",

@@ -5,7 +5,6 @@
   "description": "Partes institucionales fijas del tipo fallecimiento y plan de armado. La formula es la del corpus, con los datos confirmados por quien pide: el agente no inventa el nombre, el rol, el dia, la hora ni el lugar. Sin esos datos la pieza queda incompleta y no se emite. El modo es extrae y confirma, sin modelo.",
   "schema_version": "forma_gacetilla_fallecimiento_v1",
   "tipo": "fallecimiento",
-  "modo": "extrae_y_confirma",
   "x-decision": "#121",
   "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
   "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",

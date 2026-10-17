@@ -63,6 +63,7 @@ from .gacetillas import (
     MAX_BORRADOR_CHARS as _MAX_BORRADOR_CHARS,
 )
 from .gacetillas import (
+    PATRON_PROSA_SIN_DATOS,
     TIPO_DIFUSION,
     TipoGacetillaError,
     cargar_entrada,
@@ -119,7 +120,6 @@ PREFIJO_BORRADOR_DOC = "BORRADOR — "
 # renderer desde la fila.
 MAX_CUERPO_WORDS = 120
 MAX_BAJADA_WORDS = 40
-PATRON_PROSA_SIN_DATOS = re.compile(r"\d|@|https?://|www\.|\$")
 CONTRATO_ENTRADA = json.loads(
     files("agente1")
     .joinpath("contracts", "gacetilla_input_v2.schema.json")

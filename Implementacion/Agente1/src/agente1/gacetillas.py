@@ -31,7 +31,7 @@ from __future__ import annotations
 import json
 import re
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import date, datetime
 from functools import lru_cache
 from importlib.resources import files
@@ -62,6 +62,11 @@ TOKENS_INVITACION = ("invita", "invitamos", "participar", "anotate", "sumate")
 # `<descripcion>` en los esqueletos.
 PATRON_MARCADOR = re.compile(r"[{}]|<[^<>\n]+>")
 
+# Datos directos que no pueden entrar en la prosa: cifras, correos, enlaces y
+# dinero. Es la misma regla que ya usaba el pipeline de HU-010 y aca la usan la
+# prosa directa de los tipos que generan y el set de evaluacion.
+PATRON_PROSA_SIN_DATOS = re.compile(r"\d|@|https?://|www\.|\$")
+
 # Placeholders que no son campos de la pieza sino auxiliares del renderer: no
 # se cuentan como hechos que tengan que aparecer.
 _PLACEHOLDERS_RESERVADOS = frozenset({"dia", "mes", "valor", "fecha_larga"})
@@ -80,13 +85,17 @@ class TipoGacetillaError(ValueError):
     """El tipo pedido no esta declarado en el contrato cerrado."""
 
 
-class TipoNoGeneraError(ValueError):
-    """Se pidio generar prosa para un tipo cuyo modo es extrae y confirma."""
+class GeneracionNoHabilitadaError(ValueError):
+    """Se pidio generar prosa para un tipo cuyo modo es extrae y confirma: la
+    generacion no esta habilitada para ese tipo; sus datos los confirma quien
+    pide.
+    """
 
 
-class TipoGeneraError(ValueError):
-    """Se pidio confirmar un tipo cuyo modo es genera (su prosa la escribe el modelo)."""
-
+class ConfirmacionNoHabilitadaError(ValueError):
+    """Se pidio confirmar un tipo cuyo modo es genera: la confirmacion no
+    aplica porque su prosa la escribe el modelo y la valida el gate.
+    """
 
 class Generator(Protocol):
     """Puerto minimo del generador, compatible con el de `procesamiento`."""
@@ -392,7 +401,7 @@ def _regla_emisor_confirmado(forma: Mapping[str, object], pieza: str, campos: Ma
 # fallecimiento no puede inventar un nombre, un comunicado no puede inventar un
 # area emisora. Se declaran aca, del lado del codigo, para que el catalogo no
 # pueda habilitar un tipo sin su regla.
-REGLAS_POR_TIPO: dict[str, tuple] = {
+REGLAS_POR_TIPO: dict[str, tuple[Callable[[Mapping[str, object], str, Mapping[str, str]], list[str]], ...]] = {
     "aviso_de_otra_area": (_regla_aviso_no_invita,),
     "fallecimiento": (_regla_fallecimiento_nombre,),
     "convocatoria_interna": (_regla_emisor_confirmado,),
@@ -406,7 +415,7 @@ def validar_pieza(tipo: str, pieza: str, campos: Mapping[str, str]) -> list[str]
     Nucleo comun para los siete tipos: largo, marca de plantilla sin resolver,
     sin proceso interno y cada hecho referenciado por la forma presente en la
     pieza. Reglas por tipo: las de `REGLAS_POR_TIPO`. Devuelve una lista de
-    codigos —no un booleano— para que la auditoria diga que fallo.
+    codigos, no un booleano, para que la auditoria diga que fallo.
 
     En un tipo que extrae y confirma, `campos` es lo confirmado; la comparacion
     es contra eso y nunca contra texto generado.
@@ -458,7 +467,7 @@ def _validar_prosa_directa(forma: Mapping[str, object], salida: str) -> list[str
         return ["prosa_muy_larga"]
     if re.search(r"[.!?]$", salida) is None:
         return ["prosa_sin_puntuacion"]
-    if re.search(r"\d|@|https?://|www\.|\$", salida):
+    if PATRON_PROSA_SIN_DATOS.search(salida):
         return ["prosa_con_datos"]
     normalizado = normalizar_texto(salida)
     if any(termino in normalizado for termino in TERMINOS_PROCESO_INTERNO):
@@ -474,12 +483,13 @@ def generar_pieza(
     La forma declara la clase de salida (`salida_modelo.clase`). Los tipos con
     clase `ficha_actividad` (difusion) los orquesta `procesamiento`, que conoce
     su ficha; aca solo se produce la prosa directa (saludo o efemeride). Nunca
-    se genera para un tipo que extrae y confirma: eso levanta `TipoNoGeneraError`.
+    se genera para un tipo que extrae y confirma: eso levanta
+    `GeneracionNoHabilitadaError`.
     """
 
     forma = cargar_forma(tipo)
-    if forma["modo"] != "genera":
-        raise TipoNoGeneraError(tipo)
+    if modo_de(tipo) != "genera":
+        raise GeneracionNoHabilitadaError(tipo)
     clase = str((forma.get("salida_modelo") or {}).get("clase"))
     if clase != "prosa_directa":
         raise TipoGacetillaError(
@@ -503,7 +513,7 @@ def confirmar_pieza(tipo: str, campos: Mapping[str, str]) -> tuple[str, list[str
     """
 
     if modo_de(tipo) != "extrae_y_confirma":
-        raise TipoGeneraError(tipo)
+        raise ConfirmacionNoHabilitadaError(tipo)
     faltantes = [campo for campo in campos_obligatorios(tipo) if not _texto(campos, campo)]
     if faltantes:
         return "", ["campos_obligatorios_ausentes"]

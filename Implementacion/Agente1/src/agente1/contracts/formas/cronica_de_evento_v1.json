@@ -5,7 +5,6 @@
   "description": "Partes institucionales fijas del tipo cronica de evento («Noticias FIE») y plan de armado. El cuerpo es texto corrido que confirma una persona: el modo es extrae y confirma, sin modelo. El rotulo del corpus viene con errata («NOTIFICAS FIE»); se usa la forma correcta porque el agente copia el registro, no los errores.",
   "schema_version": "forma_gacetilla_cronica_de_evento_v1",
   "tipo": "cronica_de_evento",
-  "modo": "extrae_y_confirma",
   "x-decision": "#121",
   "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
   "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
