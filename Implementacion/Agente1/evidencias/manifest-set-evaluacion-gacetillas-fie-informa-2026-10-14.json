@@ -1,0 +1,140 @@
+{
+  "schema_version": "set_evaluacion_fie_informa_v1",
+  "titulo": "Set de evaluación de gacetillas contra el corpus FIE INFORMA (difusiones de actividad)",
+  "fecha": "2026-10-14",
+  "issue": "#111",
+  "decision_origen": "#104",
+  "tipo_de_set": "DATOS_Y_RUBRICA",
+  "pipeline": "HU-010",
+  "data_origin": "CORPUS_FIE_INFORMA_RECONSTRUIDO",
+  "human_review": "PENDIENTE_APROBACION_RUBRICA",
+  "institutional_quality_assessed": false,
+  "trl3_claimed": false,
+  "congelado_por_hash": true,
+  "corpus": {
+    "descripcion": "Corpus FIE INFORMA histórico analizado en #103; originales fuera del repo",
+    "ubicacion_de_originales": "fuera del repositorio (custodia local, ADR 0007)",
+    "zip_sha256": "aa8c64fa1ef79dbfa8e91be484b85a2cfebd18d5979b5cb4b4c63471a80fac46",
+    "manifest_origen": "MANIFEST-2026-10-13.txt",
+    "piezas_incluidas": [
+      {
+        "pieza": "Fie informa 26-5 DIPLOMATURA UNIVERSITARIA EN FORMACIÓN INTEGRAL PARA INSTRUCTORES DE TIRO.docx",
+        "sha256": "bf274aab0c8a608425048a96038cd7f331ccb270036d2bdf472dcf34ed670699",
+        "casos": ["FIE-DIF-01"]
+      },
+      {
+        "pieza": "Fie informa 8-6. Curso Inteligencia Artificial Aplicada a la Gestión Documental I - 3ª Edicióndocx.docx",
+        "sha256": "652eaa75a8722415b8e8a40695fc555407c19221b73d8ce47d728147cae0354b",
+        "casos": ["FIE-DIF-02"]
+      },
+      {
+        "pieza": "Fie informa 29-6 Conferencia LOS DESAFÍOS DE LA CONQUISTA DEL ESPACIO.docx",
+        "sha256": "fc25c495f30858150dede42e980b2735cda5ce6be08a6e6cae7bd1a7b171d86a",
+        "casos": ["FIE-DIF-03"]
+      },
+      {
+        "pieza": "Fie informa 15-5 Entrega de escarapelas en la FIE.docx",
+        "sha256": "1485fcfb01d7b5046b0a603d5fb58291757ec1bc12d67a65ea397dbe4700d3f3",
+        "casos": ["FIE-DIF-04"]
+      },
+      {
+        "pieza": "Fie informa 2-6 2º Jornada CTID+I 2026.docx",
+        "sha256": "6666b2f2eb9819e2af8e51328d068299c7b691a16edf7bc19d3bae84e848c231",
+        "casos": ["FIE-DIF-05"]
+      },
+      {
+        "pieza": "Fie informa 1-6 Semana de la ingeniería-FIUBA.docx",
+        "sha256": "d70e5c9b7a09e14340bd5b5f87c9cffac08c1fa9cfedd9fe984fe084aef91cc1",
+        "casos": ["FIE-DIF-06"]
+      },
+      {
+        "pieza": "Fie informa 30-6 Diplomaturas segundo semestre.docx",
+        "sha256": "bf73d49a59b526a798c3892eff4798e4f5e01f3c0ca083f0aa424cc7554f7325",
+        "casos": ["FIE-DIF-07", "FIE-DIF-08"]
+      }
+    ],
+    "piezas_revision": [
+      {
+        "pieza": "Fie informa 4-6 Nueva Fecha de Inicio Diplomatura Universitaria en Formación Integral para Instructores de Tiro.docx",
+        "sha256": "f7bfc44ecb22b1fc7613745aabd9a5d53c90c4b4a1c26b53931a2f4a1094b3de",
+        "revisa": "FIE-DIF-01"
+      }
+    ]
+  },
+  "artefactos": {
+    "dataset": "data/corpus-fie-informa-difusiones.csv",
+    "dataset_sha256": "9cbf5032a040f940af4be07ffcf5a919acc584b6fa591538513bb6ffe73149a0",
+    "procedencia": "data/corpus-fie-informa-difusiones.procedencia.csv",
+    "procedencia_sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc",
+    "documento": "evidencias/set-evaluacion-gacetillas-fie-informa-2026-10-14.md",
+    "documento_sha256": "1f14f9774e6f037c332c9ab58ee4b35745b99d3ac1997714a3ebac47400ac2b8",
+    "chequeos": "tests/test_set_evaluacion_fie_informa.py"
+  },
+  "casos": [
+    "FIE-DIF-01",
+    "FIE-DIF-02",
+    "FIE-DIF-03",
+    "FIE-DIF-04",
+    "FIE-DIF-05",
+    "FIE-DIF-06",
+    "FIE-DIF-07",
+    "FIE-DIF-08"
+  ],
+  "slots_por_tipo": {
+    "difusion de actividad": {
+      "casos": 8,
+      "pipeline_existe": true,
+      "motivo": "tipo cargado en el set (HU-010)"
+    },
+    "cronica": {
+      "casos": 0,
+      "pipeline_existe": false,
+      "motivo": "no existe código del tipo; slot vacío documentado"
+    },
+    "aviso/comunicado": {
+      "casos": 0,
+      "pipeline_existe": false,
+      "motivo": "no existe código del tipo; slot vacío documentado"
+    },
+    "saludo/efemeride": {
+      "casos": 0,
+      "pipeline_existe": false,
+      "motivo": "no existe código del tipo; slot vacío documentado"
+    },
+    "convocatoria interna": {
+      "casos": 0,
+      "pipeline_existe": false,
+      "motivo": "no existe código del tipo; slot vacío documentado"
+    },
+    "fallecimiento": {
+      "casos": 0,
+      "pipeline_existe": false,
+      "motivo": "no existe código del tipo; slot vacío documentado"
+    }
+  },
+  "protocolo": {
+    "corridas_por_caso": 3,
+    "criterio_automatico": "el caso pasa sólo si las tres corridas pasan",
+    "criterio_humano": "mediana de las tres corridas por dimensión",
+    "umbral_conformidad": "automático 100% en verde y mediana humana >= 3 en cada dimensión sin ningún caso < 2",
+    "dimensiones_humanas": [
+      "parecido a un FIE INFORMA",
+      "fidelidad de sentido",
+      "claridad y uso"
+    ]
+  },
+  "no_incluye": [
+    "contenido de los .docx originales",
+    "imágenes o flyers del corpus",
+    "datos personales, teléfonos o correos personales",
+    "enlaces internos ni enlaces reales de inscripción",
+    "puntajes humanos (rúbrica pendiente de aprobación)"
+  ],
+  "no_acredita": [
+    "aprobación de la rúbrica por Juani",
+    "medición humana",
+    "validación de la SEU",
+    "Gate G2",
+    "TRL 3"
+  ]
+}
