@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:forma-gacetilla:aviso_de_otra_area:v1",
+  "title": "Forma declarada de la gacetilla de aviso de otra area",
+  "description": "Partes institucionales fijas del tipo aviso de otra area y plan de armado. La pieza informa un hecho: no invita a participar y no afirma una invitacion. El area emisora la confirma quien pide y determina el pie; el agente no la inventa.",
+  "schema_version": "forma_gacetilla_aviso_de_otra_area_v1",
+  "tipo": "aviso_de_otra_area",
+  "x-decision": "#121",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. La forma no fue aprobada por la SEU.",
+  "salida_modelo": null,
+  "encabezado": {
+    "nombre_doc": "Fie informa {dia}-{mes} {titulo}",
+    "asunto": "Asunto: {titulo}"
+  },
+  "pie": "{area_emisora}",
+  "firmante": "Facultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+  "formulas": {
+    "aviso_con_fecha": "Se informa a la comunidad {publico} que {hecho}, a partir del {fecha}, {condicion}.",
+    "aviso_sin_fecha": "Se informa a la comunidad {publico} que {hecho}, {condicion}.",
+    "cierre": "Muchas gracias"
+  },
+  "fechas": ["fecha"],
+  "etiquetas": {},
+  "cuerpo": [
+    {
+      "clase": "opcional",
+      "campo": "fecha",
+      "formula": "aviso_con_fecha",
+      "formula_alterna": "aviso_sin_fecha"
+    },
+    {"clase": "formula", "id": "cierre"},
+    {"clase": "pie"}
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:forma-gacetilla:fallecimiento:v1",
+  "title": "Forma declarada de la gacetilla de fallecimiento",
+  "description": "Partes institucionales fijas del tipo fallecimiento y plan de armado. La formula es la del corpus, con los datos confirmados por quien pide: el agente no inventa el nombre, el rol, el dia, la hora ni el lugar. Sin esos datos la pieza queda incompleta y no se emite. El modo es extrae y confirma, sin modelo.",
+  "schema_version": "forma_gacetilla_fallecimiento_v1",
+  "tipo": "fallecimiento",
+  "x-decision": "#121",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. La forma no fue aprobada por la SEU.",
+  "salida_modelo": null,
+  "encabezado": {
+    "nombre_doc": "Fie informa {dia}-{mes} {titulo}",
+    "asunto": "Asunto: {titulo}"
+  },
+  "pie": "",
+  "firmante": "Facultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+  "formulas": {
+    "fallecimiento": "Con profundo pesar informamos el fallecimiento de {nombre}, quien fuera {rol}.",
+    "responso": "El {dia} se realizará un responso a las {hora} en {lugar}.",
+    "acompanamiento": "Acompañamos a su familia en este doloroso momento y elevamos nuestras plegarias por su eterno descanso."
+  },
+  "etiquetas": {},
+  "cuerpo": [
+    {"clase": "formula", "id": "fallecimiento"},
+    {"clase": "formula", "id": "responso"},
+    {"clase": "formula", "id": "acompanamiento"},
+    {"clase": "pie"}
+  ]
+}

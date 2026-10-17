@@ -32,8 +32,8 @@ def salida_conforme_cli() -> str:
         "## DATOS DE LA ACTIVIDAD\nFecha: 2026-08-08\n"
         "Organiza: Equipo de prueba\nLugar: Aula ficticia\n\n"
         "## CONTACTO\npruebas@example.invalid\n\n"
-        "## BAJADA\nBorrador sintético para validar la CLI.\n\n"
-        "## CUERPO\nEsta actividad requiere revisión humana antes de publicarse."
+        "## BAJADA\nPropuesta abierta para acercar la ingeniería a la comunidad.\n\n"
+        "## CUERPO\nLa facultad acompaña la actividad con información y un espacio de consulta para el público asistente."
     )
 
 

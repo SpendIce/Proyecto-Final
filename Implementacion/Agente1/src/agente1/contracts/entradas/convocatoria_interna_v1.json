@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:entrada-gacetilla:convocatoria_interna:v1",
+  "title": "Contrato de entrada de la gacetilla de convocatoria interna",
+  "description": "La convocatoria interna se carga con destinatarios, convocatoria, requisitos, fecha limite, area emisora y contacto, todos confirmados por quien pide. No necesita actividad, modalidad, duracion ni inscripcion.",
+  "x-contract-version": "gacetilla_entrada_convocatoria_interna_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-decision": "#121",
+  "x-tipo": "convocatoria_interna",
+  "x-requiere_actividad": false,
+  "x-interpretacion_fallback": false,
+  "type": "object",
+  "required": [
+    "titulo",
+    "destinatarios",
+    "convocatoria",
+    "requisitos",
+    "fecha_limite",
+    "area_emisora",
+    "contacto"
+  ],
+  "no_aplican": [
+    "id_actividad",
+    "descripcion",
+    "fecha_inicio",
+    "fecha_fin",
+    "hora",
+    "modalidad",
+    "duracion_horas",
+    "publico",
+    "organiza",
+    "fuente",
+    "enlace_inscripcion",
+    "lugar",
+    "nombre",
+    "rol",
+    "dia",
+    "hecho",
+    "condicion",
+    "enlace_adjunto"
+  ],
+  "properties": {
+    "titulo": {"type": "string", "minLength": 1},
+    "destinatarios": {"type": "string", "minLength": 1},
+    "convocatoria": {"type": "string", "minLength": 1},
+    "requisitos": {"type": "string", "minLength": 1},
+    "fecha_limite": {"type": "string", "minLength": 1},
+    "area_emisora": {"type": "string", "minLength": 1},
+    "contacto": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

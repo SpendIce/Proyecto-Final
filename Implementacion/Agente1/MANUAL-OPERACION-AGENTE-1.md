@@ -368,6 +368,20 @@ murió con el lock.
 
 ### 5.6 Generación y gate (calidad, no operación)
 
+Una gacetilla declara su **tipo** y el tipo declara su **modo** y su **forma**
+(ADR 0012). Sin tipo declarado no hay pieza: el agente no aproxima la clase más
+parecida. Los siete tipos del corpus y su modo están en
+`src/agente1/contracts/tipos_gacetilla_v1.json`; las partes institucionales
+fijas de cada tipo, en `src/agente1/contracts/formas/<tipo>_v1.json`; sus
+campos, en `src/agente1/contracts/entradas/<tipo>_v1.json`.
+
+- **Difusión de actividad** y **saludo o efeméride** *generan*: el modelo
+  escribe la prosa con el prompt del tipo y el renderer le pone la forma.
+- **Crónica de evento, aviso de otra área, convocatoria interna, fallecimiento
+  y newsletter** *extraen y confirman*: los datos los carga quien pide y el
+  agente sólo los formatea. No llaman al modelo, no tienen prompt y el gate
+  compara la pieza contra **lo confirmado**, no contra texto generado.
+
 Cuando el modelo produce una salida que no cumple, el agente **no crea
 borrador**: la ejecución queda `FALLIDA` con un código del *gate*. Son la señal
 de que el contenido no es apto, no de que el sistema esté roto. Ejemplos de
@@ -376,9 +390,12 @@ códigos reales: `data_structure`, `document_structure`,
 `unexpected_place`, `length_out_of_range`, `output_too_long`,
 `personal_data`, `prompt_injection_echo`, `source_fact_in_creative_field`,
 `source_fact_in_template`, `non_rioplatense_register` y la familia
-`unauthorized_*` (fechas, montos, lugares, enlaces, afirmaciones, etc.). El
-inventario completo está en `src/agente1/posts.py` y en la política de redes
-versionada.
+`unauthorized_*` (fechas, montos, lugares, enlaces, afirmaciones, etc.). En las
+gacetillas, el núcleo común agrega `marcador_sin_resolver`, `proceso_interno` y
+`hecho_perdido`, y cada tipo suma su regla: `aviso_afirma_invitacion`,
+`fallecimiento_sin_nombre_confirmado` y `emisor_area_no_confirmada`. El
+inventario completo está en `src/agente1/posts.py`, en `gacetillas.py` y en la
+política de redes versionada.
 
 Qué hacer: **no** tocar el gate para que "pase". Si la regla es correcta y el
 modelo falla seguido, es una decisión sobre el modelo o el prompt, que entra

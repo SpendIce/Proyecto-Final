@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:entrada-gacetilla:aviso_de_otra_area:v1",
+  "title": "Contrato de entrada de la gacetilla de aviso de otra area",
+  "description": "El aviso informa un hecho de otra area. Los datos los confirma quien pide: publico, hecho, condicion y area emisora. La fecha es opcional porque hay avisos sin fecha de inicio. No necesita actividad, modalidad, duracion ni inscripcion.",
+  "x-contract-version": "gacetilla_entrada_aviso_de_otra_area_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-decision": "#121",
+  "x-tipo": "aviso_de_otra_area",
+  "x-requiere_actividad": false,
+  "x-interpretacion_fallback": false,
+  "type": "object",
+  "required": ["titulo", "publico", "hecho", "condicion", "area_emisora"],
+  "no_aplican": [
+    "id_actividad",
+    "descripcion",
+    "fecha_inicio",
+    "fecha_fin",
+    "fecha_limite_inscripcion",
+    "hora",
+    "modalidad",
+    "duracion_horas",
+    "organiza",
+    "contacto",
+    "fuente",
+    "enlace_inscripcion",
+    "lugar",
+    "nombre",
+    "rol",
+    "dia",
+    "destinatarios",
+    "convocatoria",
+    "requisitos",
+    "enlace_adjunto"
+  ],
+  "properties": {
+    "titulo": {"type": "string", "minLength": 1},
+    "publico": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Calificación de la comunidad destinataria (por ejemplo, educativa). La formula la lee como «a la comunidad {publico}»."
+    },
+    "hecho": {"type": "string", "minLength": 1},
+    "fecha": {"type": "string", "x-required": false},
+    "condicion": {"type": "string", "minLength": 1},
+    "area_emisora": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

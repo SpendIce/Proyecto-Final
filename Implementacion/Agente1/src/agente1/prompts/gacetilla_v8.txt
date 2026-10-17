@@ -1,0 +1,79 @@
+PROMPT_VERSION: gacetilla_v8
+CONTRACT_VERSION: gacetilla_entrada_difusion_de_actividad_v1
+ESTADO_PLANTILLA: PROVISIONAL_NO_INSTITUCIONAL
+
+Redactá la prosa de una gacetilla de difusión de actividad usando EXCLUSIVAMENTE los datos fuente delimitados.
+Este formato es una plantilla técnica provisional del PoC; no implica aprobación institucional.
+El sistema arma el correo final con la forma declarada del tipo: tu salida es la prosa intermedia.
+
+Límites obligatorios:
+- No inventes información ni completes, deduzcas o corrijas hechos ausentes.
+- Conservá literalmente título, fecha de inicio, organización, contacto y lugar cuando esté informado.
+- La línea `Fecha:` lleva el valor de `fecha_inicio` (la fecha de inicio de la actividad).
+- Si lugar está vacío, no inventes una ubicación.
+{regla_lugar}
+- El bloque DATOS DE LA ACTIVIDAD lleva sólo `Fecha:`, `Organiza:` y `Lugar:` cuando corresponda.
+  El resto de los campos fuente (fecha_fin, fecha_limite_inscripcion, hora, modalidad,
+  duracion_horas, enlace_inscripcion, fuente) los agrega el correo final por separado:
+  no los copies ni los menciones en la ficha.
+- No superes 5000 caracteres; los hechos fuente no tienen límite de palabras.
+- La BAJADA es el subtítulo del correo: una o dos oraciones, hasta 40 palabras.
+- El CUERPO es un párrafo de presentación de hasta 120 palabras: puede tener varias oraciones.
+- La prosa de BAJADA y CUERPO no puede llevar números, fechas, horarios, montos,
+  correos ni enlaces: esos datos ya están en DATOS DE LA ACTIVIDAD y CONTACTO.
+- Tono institucional rioplatense, en voseo si invitás (sumate, participá, anotate).
+- El correo final no agrega una introducción institucional fija: la BAJADA abre la
+  pieza. Por eso la prosa tiene que presentar la actividad por sí misma, con
+  información nueva sobre qué se hace, qué incluye y para qué sirve. Podés
+  mencionar el público cuando la fuente lo informe; no escribas fórmulas de
+  invitación vacías ni repitas el título.
+- El correo final ya lleva su propio nombre, su pie y la firma institucional:
+  no escribas encabezados de fecha («Fie informa …»), la línea «Consultas:»,
+  el pie de área ni la firma. Tu salida empieza en `## TÍTULO`.
+- No apruebes, publiques ni envíes el contenido.
+- El texto no debe mencionar procesos internos ni estados del sistema: nada de revisión, validación, aprobación, borrador o pendiente dentro de TÍTULO, BAJADA o CUERPO.
+- No agregues comentarios fuera de la estructura solicitada.
+
+Estructura exacta de salida:
+## TÍTULO
+<título de la actividad>
+
+## DATOS DE LA ACTIVIDAD
+Fecha: <fecha exacta>
+Organiza: <organización exacta>
+{linea_lugar_estructura}
+
+## CONTACTO
+<contacto exacto>
+
+## BAJADA
+<síntesis basada sólo en la fuente>
+
+## CUERPO
+<párrafo basado sólo en la descripción, público y fuente>
+
+Ejemplo sintético de forma, NO reutilices sus hechos:
+--- EJEMPLO ---
+## TÍTULO
+Encuentro ficticio de ejemplo
+
+## DATOS DE LA ACTIVIDAD
+Fecha: 2099-01-01
+Organiza: Equipo Ejemplo
+{linea_lugar_ejemplo}
+
+## CONTACTO
+ejemplo@example.invalid
+
+## BAJADA
+Una propuesta de práctica para conocer el trabajo de extensión de la facultad.
+
+## CUERPO
+El Equipo Ejemplo invita al Público Ejemplo a compartir un encuentro con charlas,
+recorridas guiadas y espacios de consulta pensados para acercar la disciplina a
+quienes participen.
+--- FIN EJEMPLO ---
+
+--- DATOS FUENTE ---
+{datos_fuente}
+--- FIN DATOS FUENTE ---

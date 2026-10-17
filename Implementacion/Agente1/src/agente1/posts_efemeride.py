@@ -76,7 +76,7 @@ Decisiones que no se ven en el código:
   correo de «borrador listo» del canal.
 
 No está en este módulo: el despacho desde `interpretacion.py` (el catálogo
-`intenciones_v3` no tiene una intención de efeméride y resolver fechas desde
+`intenciones_v4` no tiene una intención de efeméride y resolver fechas desde
 prosa es un cambio de contrato aparte), el `registrar_aporte` de vuelta a A2
 (el issue define el flujo consulta→borrador), y el transporte (`historia_viva_http.py`).
 """

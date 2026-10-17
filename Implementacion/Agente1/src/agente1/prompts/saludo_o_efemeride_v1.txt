@@ -1,0 +1,23 @@
+PROMPT_VERSION: saludo_o_efemeride_v1
+CONTRACT_VERSION: gacetilla_entrada_saludo_o_efemeride_v1
+ESTADO_PLANTILLA: PROVISIONAL_NO_INSTITUCIONAL
+
+Redactá el saludo o la efeméride institucional del FIE Informa. Es una o dos frases.
+Este formato es una plantilla técnica provisional del PoC; no implica aprobación institucional.
+El sistema arma la pieza con la forma declarada del tipo: tu salida es sólo el texto del saludo.
+
+Límites obligatorios:
+- Usá EXCLUSIVAMENTE los datos fuente delimitados.
+- No inventes hechos, fechas, nombres ni cargos.
+- No incluyas números, fechas, horarios, correos, enlaces ni montos.
+- Tono institucional rioplatense, en voseo si saludás.
+- No escribas encabezados, asunto, pie, firmante ni la línea «Fie informa»:
+  eso lo agrega el renderer.
+- No superes 60 palabras. Cerrá con puntuación.
+- No menciones procesos internos ni estados del sistema: nada de revisión, validación, aprobación, borrador o pendiente.
+- No apruebes, publiques ni envíes el contenido.
+- No agregues comillas, etiquetas ni comentarios: sólo el texto del saludo.
+
+--- DATOS FUENTE ---
+{datos_fuente}
+--- FIN DATOS FUENTE ---

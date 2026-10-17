@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:interpretacion-fallback:v4",
+  "title": "Unica salida admitida del modelo en el fallback de interpretacion (HU-013)",
+  "description": "Cuando el camino deterministico no resuelve un pedido, el modelo interviene con un unico proposito: extraer de la prosa una intencion del catalogo cerrado y terminos de busqueda estructurados. No redacta, no decide y no ve el contenido de la planilla. La intencion se valida contra `intenciones_v4` antes de usarse: el enum de este contrato tiene que coincidir exactamente con los identificadores de ese catalogo, y hay una prueba que falla si dejan de coincidir. Los terminos alimentan la misma resolucion deterministica de actividad que ya existe; no se usan para nada mas. Desde #121 no hay intenciones por tipo de gacetilla: el tipo es un parametro declarado de `generar_gacetilla`, no una intencion del fallback.",
+  "x-contract-version": "interpretacion_fallback_v4",
+  "x-reemplaza": "interpretacion_fallback_v3",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-hu": "HU-013",
+  "x-issue": "#26, #75, #73, #121",
+  "x-origen": "Equipo tecnico del PPS. No fue aprobado por la SEU.",
+  "type": "object",
+  "required": [
+    "intencion",
+    "terminos_busqueda"
+  ],
+  "properties": {
+    "intencion": {
+      "type": "string",
+      "maxLength": 30,
+      "enum": [
+        "generar_gacetilla",
+        "generar_post",
+        "emitir_certificados",
+        "generar_plantilla_actividad",
+        "ajustar_borrador",
+        "fuera_de_alcance"
+      ]
+    },
+    "terminos_busqueda": {
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 40
+      }
+    }
+  },
+  "additionalProperties": false
+}
