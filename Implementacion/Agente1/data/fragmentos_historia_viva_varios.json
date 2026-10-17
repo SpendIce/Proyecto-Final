@@ -1,0 +1,50 @@
+{
+  "descripcion": "Fragmentos sintéticos con varios resultados para el recorrido del post de efeméride HU-011 (#116). Reproducen el caso en que el primer resultado no entra completo en el canal y otro posterior sí. No son material institucional: tienen la forma del contrato candidato de Historia Viva y se cargan en HistoriaVivaFake con procedencia synthetic_test.",
+  "fragmentos": [
+    {
+      "fragmento_id": "frg-var-001",
+      "pieza_id": "pie-var-acta-001",
+      "texto": "El acta del período consigna, a lo largo de varias páginas, el detalle de las deliberaciones sobre el plan de estudios, la designación de autoridades, la asignación de partidas para obras y la organización de los cursos de extensión, con anexos que enumeran los pedidos de las delegaciones y las respuestas de la mesa directiva. El acta del período consigna, a lo largo de varias páginas, el detalle de las deliberaciones sobre el plan de estudios, la designación de autoridades, la asignación de partidas para obras y la organización de los cursos de extensión, con anexos que enumeran los pedidos de las delegaciones y las respuestas de la mesa directiva. El acta del período consigna, a lo largo de varias páginas, el detalle de las deliberaciones sobre el plan de estudios, la designación de autoridades, la asignación de partidas para obras y la organización de los cursos de extensión, con anexos que enumeran los pedidos de las delegaciones y las respuestas de la mesa directiva. El acta del período consigna, a lo largo de varias páginas, el detalle de las deliberaciones sobre el plan de estudios, la designación de autoridades, la asignación de partidas para obras y la organización de los cursos de extensión, con anexos que enumeran los pedidos de las delegaciones y las respuestas de la mesa directiva.",
+      "rango": {
+        "desde": "1926-08-07",
+        "hasta": "1926-08-07",
+        "precision": "dia"
+      },
+      "tipo": "acta",
+      "resumen_pieza": "Acta sintética extensa de prueba",
+      "url_original": "https://ejemplo.invalid/acervo/pie-var-acta-001",
+      "validada_el": "2026-01-15",
+      "ubicacion": "página 12"
+    },
+    {
+      "fragmento_id": "frg-var-002",
+      "pieza_id": "pie-var-gacetilla-002",
+      "texto": "La gacetilla interna anuncia la primera cursada con inscripción abierta a la comunidad.",
+      "rango": {
+        "desde": "1926-08-08",
+        "hasta": "1926-08-08",
+        "precision": "dia"
+      },
+      "tipo": "gacetilla",
+      "resumen_pieza": "Gacetilla interna sintética de prueba",
+      "url_original": "https://ejemplo.invalid/acervo/pie-var-gacetilla-002",
+      "validada_el": "2026-01-20",
+      "ubicacion": null
+    },
+    {
+      "fragmento_id": "frg-var-003",
+      "pieza_id": "pie-var-nota-003",
+      "texto": "Una nota de la época reseña las obras del pabellón nuevo y la ampliación de los talleres.",
+      "rango": {
+        "desde": "1926-08-01",
+        "hasta": "1926-08-31",
+        "precision": "mes"
+      },
+      "tipo": "nota",
+      "resumen_pieza": "Nota sintética de prueba",
+      "url_original": "https://ejemplo.invalid/acervo/pie-var-nota-003",
+      "validada_el": "2026-01-22",
+      "ubicacion": "página 2"
+    }
+  ]
+}

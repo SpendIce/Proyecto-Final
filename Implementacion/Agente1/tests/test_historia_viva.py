@@ -121,6 +121,28 @@ def test_un_rango_invertido_se_rechaza():
         rango(date(1930, 1, 1), date(1926, 1, 1))
 
 
+def test_contiene_exige_que_la_fecha_quede_adentro_y_no_alcance_solapamiento():
+    """El período contiene un rango sólo si lo encierra entero.
+
+    Un año o una década que solapan el mes consultado no quedan adentro: esa
+    fecha no sustenta la efeméride, que es el acuerdo de #97.
+    """
+
+    abril_2016 = rango(date(2016, 4, 1), date(2016, 4, 30), "mes")
+
+    assert abril_2016.contiene(rango(date(2016, 4, 15), date(2016, 4, 15)))
+    assert abril_2016.contiene(abril_2016)
+    assert not abril_2016.contiene(
+        rango(date(2016, 1, 1), date(2016, 12, 31), "anio")
+    )
+    assert not abril_2016.contiene(
+        rango(date(2015, 1, 1), date(2019, 12, 31), "rango")
+    )
+    assert not abril_2016.contiene(
+        rango(date(2016, 3, 1), date(2016, 4, 15), "rango")
+    )
+
+
 def test_la_cita_identifica_el_pasaje_y_no_solo_el_documento():
     assert fragmento().cita() == "pie-001, página 3 (7 de agosto de 1926)"
     assert fragmento(ubicacion=None).cita() == "pie-001 (7 de agosto de 1926)"

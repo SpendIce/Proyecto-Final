@@ -160,6 +160,18 @@ class RangoHistorico:
 
         return self.precision == "dia" and self.desde == self.hasta
 
+    def contiene(self, otro: RangoHistorico) -> bool:
+        """Si el otro rango cae entero DENTRO de éste.
+
+        Es el control de la fecha sustentada: un hecho queda ubicado en el
+        período consultado sólo si su rango completo cabe adentro. El
+        solapamiento parcial no alcanza, y como los límites de una precisión
+        de mes, año o década ya son los del período que representan, la
+        comparación los respeta sin tratarlos como un día exacto.
+        """
+
+        return self.desde <= otro.desde and otro.hasta <= self.hasta
+
     def expresion_temporal(self) -> str:
         """Cómo se puede nombrar este rango sin afirmar de más.
 
