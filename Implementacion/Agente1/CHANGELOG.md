@@ -20,7 +20,36 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
-## [0.3.0] - 2026-10-17
+## [0.4.0] - 2026-10-17
+
+El aporte a Historia Viva manda el vocabulario exacto de la `1.1.0-rc2` de la
+`/v1` (#117): `TIPOS_CONTENIDO_APORTE` pasa a `{"gacetilla", "post",
+"comunicado", "newsletter"}`: se quita `mail` (un mail es el canal `correo`,
+no un tipo de contenido) y entra `comunicado`. El espejo
+`contracts/historia_viva_v1.schema.json` y `CONTRACT_VERSION` pasan a
+`historia_viva_v1_1.1.0-rc2`, con la huella del paquete rc2
+(`a0082324…52a7f0ea`, resolución del issue #101).
+
+Es un cambio **Mayor**: cambia un contrato de interfaz, el contrato de
+Historia Viva. El número, 0.4.0, sigue el precedente de este repositorio: en
+el corte del #121 un cambio de clase Mayor bajó de `0.1.0` a `0.2.0`, y el
+procedimiento marca «sube X» pero con `X=0` y el contrato de la `/v1`
+todavía en borrador (rc2, congelado el 30/10) una `1.0.0` declararía una
+estabilidad que no existe. Declaro la desviación acá, como pide el
+procedimiento.
+
+### Mayor — contratos de interfaz
+
+- `TIPOS_CONTENIDO_APORTE` = `{"gacetilla", "post", "comunicado",
+  "newsletter"}`; `mail` se rechaza con `ValueError` en el gate del cliente
+  (#117).
+- Espejo del contrato `historia_viva_v1.schema.json`: `$id` y
+  `x-contract-version` en `historia_viva_v1_1.1.0-rc2`, huella rc2 en
+  `description`, `.TipoContenido.enum` con las cuatro formas y `.Canal.enum`
+  con `["instagram", "linkedin", "web", "correo", null]` (#117).
+- `CONTRACT_VERSION` = `historia_viva_v1_1.1.0-rc2` (#117).
+
+
 
 El canal del Form declara el tipo de gacetilla, pide la actividad sólo para
 los tipos que la llevan y resuelve el área emisora por un padrón cerrado

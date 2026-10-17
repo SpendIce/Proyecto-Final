@@ -1295,7 +1295,7 @@ permite forzar la falla de una operación por separado.
 `historia_viva_cliente.py` es la capa cliente de ese seam: `ClienteHistoriaViva`
 implementa el puerto sobre un `TransporteHistoriaViva` inyectado que devuelve
 cuerpos crudos, y valida cada respuesta contra el contrato `/v1` de Historia
-Viva (`openapi-agentes.yaml` 1.1.0-rc1, borrador hasta el congelado del
+Viva (`openapi-agentes.yaml` 1.1.0-rc2, borrador hasta el congelado del
 30/10), espejado en `contracts/historia_viva_v1.schema.json`. Lo que el
 contrato no contempla se rechaza con `historia_viva_response_invalid`; lo que
 falta no se inventa. El timeout y los reintentos son objetos de configuración

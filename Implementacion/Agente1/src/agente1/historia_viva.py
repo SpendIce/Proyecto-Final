@@ -42,10 +42,10 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Protocol
 
-# Contrato `/v1` de Historia Viva que respalda el puerto (OpenAPI 1.1.0-rc1,
+# Contrato `/v1` de Historia Viva que respalda el puerto (OpenAPI 1.1.0-rc2,
 # borrador hasta el congelado del 30/10). La auditoría de los flujos que
 # consultan el puerto lo registra; el cliente lo valida.
-CONTRACT_VERSION = "historia_viva_v1_1.1.0-rc1"
+CONTRACT_VERSION = "historia_viva_v1_1.1.0-rc2"
 CONTRACT_STATUS = "BORRADOR_HISTORIA_VIVA"
 
 # Límite y tope de la búsqueda, según la propuesta respondida en
@@ -101,7 +101,9 @@ CODIGOS_ERROR = frozenset(
     }
 )
 
-TIPOS_CONTENIDO_APORTE = frozenset({"gacetilla", "post", "newsletter", "mail"})
+# El vocabulario sale de la rc2 de `/v1` (#101): las confirmaciones no se
+# aportan (`mail` es el canal `correo`) y `comunicado` entra como tipo.
+TIPOS_CONTENIDO_APORTE = frozenset({"gacetilla", "post", "comunicado", "newsletter"})
 CANALES_APORTE = frozenset({"instagram", "linkedin", "web", "correo", "ninguno"})
 # Único estado que A1 puede declarar al registrar un aporte. No existe
 # "publicado": el MVP produce borradores y no conoce una URL final.
