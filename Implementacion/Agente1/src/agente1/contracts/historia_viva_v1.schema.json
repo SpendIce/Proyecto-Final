@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:proyecto-centenario:historia-viva:v1:1.1.0-rc1",
+  "$id": "urn:proyecto-centenario:historia-viva:v1:1.1.0-rc2",
   "title": "Espejo de las formas de /v1 de Historia Viva que consume el Agente 1",
-  "description": "Copia de los esquemas de components/schemas de openapi-agentes.yaml 1.1.0-rc1 (paquete contratojuan de Ignacio Becerra, huella 2af852e591ede5701adf7599be69d992fe6112d55fc44459e71feab9f8c60d7b) que el cliente de A1 decodifica. La fuente es el OpenAPI de Historia Viva: si cambia, se actualiza este espejo y el decodificador, nunca al revés. Faltan a propósito Efemeride y Relato: A1 no consume GET /v1/efemerides ni GET /v1/relatos.",
-  "x-contract-version": "historia_viva_v1_1.1.0-rc1",
+  "description": "Copia de los esquemas de components/schemas de openapi-agentes.yaml 1.1.0-rc2 (paquete contratojuan de Ignacio Becerra, huella a0082324f2bb7ed9f3b5e1bc843ce6847a2db90ce501632268e3e58d52a7f0ea) que el cliente de A1 decodifica. La fuente es el OpenAPI de Historia Viva: si cambia, se actualiza este espejo y el decodificador, nunca al revés. Faltan a propósito Efemeride y Relato: A1 no consume GET /v1/efemerides ni GET /v1/relatos.",
+  "x-contract-version": "historia_viva_v1_1.1.0-rc2",
   "x-status": "BORRADOR_HISTORIA_VIVA",
   "x-issue": 17,
   "x-congelado": "2026-10-30",
@@ -18,8 +18,8 @@
       "description": "Enum abierto: A1 lo trata como string opaco.",
       "examples": ["fotografia", "acta", "resolucion", "convenio", "memoria", "nota", "plano", "planilla", "video"]
     },
-    "TipoContenido": {"type": "string", "enum": ["gacetilla", "post", "comunicado"]},
-    "Canal": {"type": ["string", "null"], "enum": ["instagram", "linkedin", "web", null]},
+    "TipoContenido": {"type": "string", "enum": ["gacetilla", "post", "comunicado", "newsletter"]},
+    "Canal": {"type": ["string", "null"], "enum": ["instagram", "linkedin", "web", "correo", null]},
     "Momento": {"type": "string", "format": "date-time", "pattern": "Z$"},
     "Fecha": {"type": "string", "format": "date"},
     "Error": {

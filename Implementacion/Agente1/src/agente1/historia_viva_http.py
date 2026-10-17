@@ -56,7 +56,7 @@ from .historia_viva_cliente import (
 
 MAX_RESPUESTA_BYTES = 8 * 1_048_576
 
-# Traducción de cada `codigo` de `/v1` (1.1.0-rc1) al vocabulario cerrado.
+# Traducción de cada `codigo` de `/v1` (1.1.0-rc2) al vocabulario cerrado.
 CODIGOS_V1 = {
     "parametros_invalidos": "historia_viva_request_invalid",
     "idempotency_key_reutilizada": "historia_viva_request_invalid",

@@ -238,6 +238,14 @@ def test_un_aporte_valido_queda_pendiente_de_validacion() -> None:
     assert recepcion.duplicado is False
 
 
+def test_el_aporte_no_admite_mail_como_tipo_de_contenido() -> None:
+    """Un mail es el canal `correo`, no un tipo de contenido: la rc2 de `/v1`
+    trae `comunicado` en su lugar y el gate del cliente frena al aporte."""
+
+    with pytest.raises(ValueError):
+        aporte(tipo_contenido="mail")
+
+
 def test_nada_viaja_hasta_que_a1_inicia() -> None:
     """Pull significa que el transporte no se toca sin una llamada del puerto."""
 
@@ -740,7 +748,7 @@ def test_el_espejo_del_contrato_coincide_con_el_runtime() -> None:
     for nombre in ("Fragmento", "RespuestaFragmentos", "Pieza", "AporteCreado"):
         assert defs[nombre]["additionalProperties"] is False
     assert defs["PrecisionFecha"]["enum"] == list(PRECISIONES_FECHA)
-    # A1 genera más tipos y canales que los que `/v1` acepta hoy: el pedido
-    # de ampliarlos va en `PEDIDOS-AGENTE1.md` del paquete de respuesta.
-    assert set(defs["TipoContenido"]["enum"]) <= TIPOS_CONTENIDO_APORTE | {"comunicado"}
-    assert set(defs["Canal"]["enum"]) - {None} <= CANALES_APORTE
+    # El aporte manda exactamente el vocabulario de la rc2 de `/v1`: `mail` no
+    # es un tipo de contenido, el mail aparece como canal `correo` (#101, #117).
+    assert set(defs["TipoContenido"]["enum"]) == TIPOS_CONTENIDO_APORTE
+    assert set(defs["Canal"]["enum"]) - {None} == CANALES_APORTE - {"ninguno"}

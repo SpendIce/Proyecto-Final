@@ -3,7 +3,7 @@
 `historia_viva.py` define el puerto y los tipos; este módulo es la capa que los
 produce a partir de respuestas crudas: consume un `TransporteHistoriaViva`
 intercambiable, valida cada respuesta contra el contrato `/v1` de Historia
-Viva (`openapi-agentes.yaml` 1.1.0-rc1, borrador hasta el congelado del
+Viva (`openapi-agentes.yaml` 1.1.0-rc2, borrador hasta el congelado del
 30-oct-2026) y devuelve los objetos del dominio (`Fragmento`, `Pieza`,
 `RecepcionAporte`). El esquema que se valida está espejado en
 `contracts/historia_viva_v1.schema.json`.
