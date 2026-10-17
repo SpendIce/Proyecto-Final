@@ -173,8 +173,11 @@ REFERENCIA_FOTO = (
     "Las tablas de este anexo se derivan de la tabla fuente del perfil de "
     "calidad del sistema de demostración "
     "(`Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`), la "
-    "misma que alimenta el Anexo 2: foto del inventario de componentes en el "
-    "commit de base `98be859` (12/10/2026). El perfil de seguridad no se declara "
+    "misma que alimenta el Anexo 2: foto del corte del 17/10/2026, sobre la "
+    "base `3e392c5` (2026-10-17), la de los siete tipos de gacetilla "
+    "declarados (#121), el set de evaluación de dos ejes (#111) y el tipo en "
+    "el canal (#122); el inventario sin cambios desde `293db20` (14/10). El "
+    "perfil de seguridad no se declara "
     "acá: cada estrato remite al Anexo 3."
 )
 
@@ -258,7 +261,8 @@ ENFOQUE = [
 ESTADO_TRL_INTRO = (
     "Este anexo declara el estado de las capacidades contra el **gate TRL 4**. "
     "Las cifras y los estados de las tablas por estrato son los de la foto "
-    "declarada (commit de base `98be859`, 12/10/2026). La nota sobre fechas y "
+    "declarada en el corte del 17/10/2026, sobre la base `3e392c5` "
+    "(2026-10-17). La nota sobre fechas y "
     "estado verificado del anteproyecto conserva el corte del 21/09/2026; "
     "cuando uno y otro citan un número, corresponde a su propia fecha, y la "
     "revisión de laboratorio evalúa la foto de este anexo."
@@ -269,13 +273,26 @@ ESTADO_TRL_DEMOSTRADO = (
     "28/09/2026 quedó verificada con smoke de lectura, casos negativos y un "
     "extremo a extremo de gacetilla cuyo borrador real quedó en la carpeta "
     "autorizada, sin modificar nada existente. HU-010 a HU-014 están "
-    "implementadas dentro del alcance declarado (gacetilla, post, plantilla de "
-    "correo por actividad y certificado con línea descriptiva y circuito de "
-    "lote), la suite y las matrices por historia las ejercitan, y cada fila A o "
+    "implementadas dentro del alcance declarado: la gacetilla declara los "
+    "siete tipos del corpus, dos que generan prosa con prompt propio "
+    "(difusión de actividad y saludo o efeméride) y cinco que extraen y "
+    "confirman sin prosa del modelo (crónica de evento, aviso de otra área, "
+    "convocatoria interna, fallecimiento y newsletter), cada tipo con su forma "
+    "declarada, su contrato de entrada y su gate, y un renderer único que "
+    "escribe las partes institucionales fijas, que el modelo nunca escribe "
+    "(#121); además post, plantilla de correo por actividad y certificado con "
+    "línea descriptiva y circuito de lote. La suite y las "
+    "matrices por historia las ejercitan, y cada fila A o "
     "B de las tablas por estrato cita su evidencia versionada y su paso en vivo."
 )
 
 ESTADO_TRL_NO_DEMOSTRADO = [
+    (
+        "La forma declarada de los siete tipos de gacetilla y su modo por tipo "
+        "siguen sin aprobación institucional de la SEU: los archivos de forma "
+        "están marcados `PROVISIONAL_NO_INSTITUCIONAL` y la aprobación entra "
+        "por la validación humana obligatoria (issue #121)."
+    ),
     (
         "La validación de calidad por referentes de la SEU: la operabilidad, la "
         "reconocibilidad de la adecuación y la prueba guiada de HU-013 están "
