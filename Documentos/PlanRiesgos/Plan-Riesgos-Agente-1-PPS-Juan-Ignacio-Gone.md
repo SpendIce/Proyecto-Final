@@ -4,7 +4,7 @@
 **Autor del PPS:** Juan Ignacio Gone  
 **Artefacto:** evaluacion del proyecto de desarrollo y plan de riesgos  
 **Estado:** borrador academico trazable  
-**Ultima actualizacion:** 2026-10-12
+**Ultima actualizacion:** 2026-10-19
 
 ## 1. Proposito
 
@@ -99,6 +99,7 @@ Se adopta una escala simple, consistente con el material DSI2 de gestion de ries
 | R-TRA-01 | No se correlacionan fila, prompt, plantilla, output, aprobador y version -> evidencia no auditable | Trazabilidad | 3 | 3 | 9 | Alto | CONEAU, DoD auditoria, TRL | Juan Ignacio Gone / Responsable Tecnico IA |
 | R-TEC-01 | Ollama/hardware local no alcanza latencia o estabilidad esperada -> dependencia de API externa o incumplimiento de rendimiento | Tecnico | 2 | 3 | 6 | Alto | Stack local, RNF performance, TRL 3 | Responsable Tecnico IA |
 | R-TEC-02 | La contingencia de API externa con datos anonimizados se vuelve dependencia transitoria -> procesamiento fuera del entorno local | Tecnico | 1 | 2 | 2 | Bajo | RNF datos, decision de fallback | Responsable Tecnico IA |
+| R-TEC-03 | El sistema de demostracion corre en un unico host (servidor `labredesfie` de la facultad, compartido con el laboratorio de redes, sin GPU ni permisos de administrador) y no tiene respaldo offline -> si el servidor, la red interna u Ollama fallan durante la revision de laboratorio o la presentacion de cursada del 18/11, el sistema no se puede mostrar en vivo | Tecnico | 1 | 3 | 3 | Bajo | Requisito de catedra (la demo no corre en localhost), issues #49 (host enmendado), #68 (fuera de alcance), #118 y #119 | Juan Ignacio Gone |
 | R-INT-01 | Cambios de permisos, cuotas o APIs de Google Workspace bloquean triggers -> interrupcion de flujos S1/S2 | Integracion | 2 | 2 | 4 | Medio | Sheets, Docs, Gmail, Apps Script | Responsable Tecnico IA |
 | R-INT-02 | Contratos de datos A2-A5 no estan definidos -> A1 recibe insumos no normalizados o fuera de alcance | Integracion | 2 | 2 | 4 | Medio | A2->A1, A3->A1, A4->A1, A5->A1 | Responsable Tecnico IA / Pares P100 |
 | R-ADOP-01 | Personal SEU no participa en codiseno y validacion -> baja adopcion, tono desalineado y TRL sin usuarios reales | Adopcion | 3 | 3 | 9 | Alto | P4, validacion SEU, checklist 1-4 | Coordinador de Extension |
@@ -129,7 +130,7 @@ La version vigente de `Contenido/bible/Procesos y Agentes.md` incorpora una matr
 | R-EVAL-01 | R-07 | Sin correlato en la matriz vigente | La bible elimino el riesgo de contenido que no cumple DoD por falencias del plan de pruebas (ex R-07); las metricas sin baseline siguen gestionadas localmente |
 | R-CAL-01 | R-06, R-07 | Sin correlato en la matriz vigente | La bible elimino la identificacion incompleta de riesgos emergentes (ex R-06) y el DoD/plan de pruebas (ex R-07); la cobertura local de calidad se mantiene |
 
-Los riesgos aceptados (R-ALC-04, R-GOB-02, R-DAT-02, R-TEC-02) son decisiones locales del PPS sin equivalente en la matriz de programa de la bible.
+Los riesgos aceptados (R-ALC-04, R-GOB-02, R-DAT-02, R-TEC-02, R-TEC-03) son decisiones locales del PPS sin equivalente en la matriz de programa de la bible.
 
 Riesgos de la matriz vigente sin equivalente local directo (nivel programa, se registran aca para no perderlos): R-04 (costo de hardware especializado), R-08 (perfil insuficiente del equipo para las tecnologias criticas), R-12 (demora en poner el sistema operativo frente a las necesidades de la SEU), R-13 (apoyo sostenido de las autoridades para la continuidad presupuestaria), R-19 (poisoning de datos de entrenamiento/RAG — relevante si se adopta la opcion candidata de fine-tuning registrada el 22/09) y R-20 (saturacion por rafaga de solicitudes).
 
@@ -166,6 +167,7 @@ Nota de costos: el presupuesto total calculado en la seccion de costos de la bib
 | R-TRA-01 | Correlation ID por solicitud; log estructurado con input, output, validador, estado, version y evidencia | No se puede reconstruir una pieza generada de punta a punta | Rehacer registro desde evidencia disponible; bloquear gate si es sistemico | Muestra de trazabilidad, indice de evidencias |
 | R-TEC-01 | Ejecutar spike de hardware/modelo local antes de prometer rendimiento; definir fallback aprobado y anonimizado | Latencia >30 s sostenida o caidas del entorno local | Reducir modelo/carga, usar cola asincrona o API externa solo como contingencia aprobada | Benchmark, reporte de entorno, decision de fallback |
 | R-TEC-02 | Respuesta: ACEPTAR solo como contingencia aprobada, con anonimizacion y registro de decision | Se procesan datos identificables en API externa o la contingencia se vuelve permanente | Revocar la contingencia, volver al entorno local y auditar los datos enviados | Decision de fallback registrada, anonimizacion verificada |
+| R-TEC-03 | Respuesta: ACEPTAR condicionado a que todas las exposiciones sean presenciales en la facultad y a que el sistema pase un smoke live en el servidor antes de cada una. La catedra exige que la demo no corra en localhost; el host es de la facultad y la red interna rara vez cae, por lo que no se prepara respaldo offline (decision del 2026-10-19) | Una exposicion pasa a ser remota o fuera de la facultad; el servidor se reinicia y Ollama o el agente no vuelven a levantarse (corren en espacio de usuario, sin servicio del sistema); el smoke previo falla; el laboratorio anuncia mantenimiento para la fecha | Reabrir como riesgo activo: levantar Ollama y el agente a mano con el procedimiento documentado, coordinar con el laboratorio y, si no se recupera, escalar al tutor para reprogramar la exposicion | Smoke live previo registrado, procedimiento de arranque en el servidor, comunicacion con el laboratorio |
 | R-INT-01 | Pruebas periodicas de Apps Script, cuotas, permisos y APIs; cuenta de servicio con permisos minimos | Trigger falla o Google cambia permisos/cuotas | Activar trigger manual/documentado y reconfigurar permisos | Log de prueba end-to-end, nota de incidencia |
 | R-INT-02 | Definir contratos minimos de datos con A2-A5: campos, origen, estados, responsabilidad y validacion | A1 recibe texto/datos sin origen o incompatible con plantilla | Procesar como insumo manual no automatizado hasta normalizar contrato | Contrato de interfaz, ejemplo real |
 | R-ADOP-01 | Agenda de validaciones SEU, roles suplentes, sesiones cortas de codiseno y walkthroughs | Validadores no responden o no asisten a dos hitos seguidos | Replanificar gate, usar muestra reducida y registrar falta de disponibilidad | Minutas, invitaciones, checklists |
@@ -224,7 +226,7 @@ Un riesgo debe escalar al Director del Proyecto o tutor cuando ocurra cualquiera
 
 ## 12. Riesgos residuales aceptables
 
-Los riesgos aceptados estan registrados en la seccion 6 con su respuesta en la seccion 7: la aceptacion es una politica de manejo y no exime del registro, la trazabilidad ni la revision periodica. Son R-ALC-04, R-GOB-02, R-DAT-02 y R-TEC-02, todos con exposicion baja y aceptacion condicionada a que se mantengan las condiciones declaradas; si una condicion se rompe, el riesgo se reabre como activo.
+Los riesgos aceptados estan registrados en la seccion 6 con su respuesta en la seccion 7: la aceptacion es una politica de manejo y no exime del registro, la trazabilidad ni la revision periodica. Son R-ALC-04, R-GOB-02, R-DAT-02, R-TEC-02 y R-TEC-03, todos con exposicion baja y aceptacion condicionada a que se mantengan las condiciones declaradas; si una condicion se rompe, el riesgo se reabre como activo.
 
 No se consideran aceptables (lineas rojas, no riesgos):
 
