@@ -114,15 +114,15 @@ def test_ollama_envia_generate_no_streaming_y_devuelve_respuesta():
     assert generator.modelo == "llama3.2:3b"
 
 
-@pytest.mark.parametrize("timeout_s", [0, -1, 120.01])
+@pytest.mark.parametrize("timeout_s", [0, -1, 300.01])
 def test_ollama_rechaza_timeout_fuera_del_limite(timeout_s):
     with pytest.raises(ValueError, match="timeout"):
         OllamaGenerator(modelo="llama3.2:3b", timeout_s=timeout_s)
 
 
 def test_ollama_timeout_default_y_maximo_operativo():
-    assert DEFAULT_OLLAMA_TIMEOUT_S == 45
-    generator = OllamaGenerator(modelo="llama3.2:3b", timeout_s=120)
+    assert DEFAULT_OLLAMA_TIMEOUT_S == 180
+    generator = OllamaGenerator(modelo="llama3.2:3b", timeout_s=300)
 
     assert generator.modelo == "llama3.2:3b"
 

@@ -34,8 +34,16 @@ from urllib.parse import urlsplit
 from .presupuesto import MENSAJE_PRESUPUESTO_AGOTADO, PresupuestoAgotadoError
 
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
-DEFAULT_OLLAMA_TIMEOUT_S = 45.0
-MAX_OLLAMA_TIMEOUT_S = 120.0
+# El timeout se deriva del peor caso medido en el host de la demo, no de la
+# llamada más lenta que se vio: en `labredesfie` (CPU, sin GPU) llama3.1:8b
+# procesó el prompt a 22 tokens/s y generó a 5 tokens/s en los peores casos,
+# con prompts de hasta 1189 tokens. Emitir los 512 tokens del presupuesto por
+# defecto a esas tasas lleva ~156 s; el tope cubre los 1024 de
+# `MAX_OLLAMA_NUM_PREDICT` (~258 s). Un timeout alto no demora a un modelo
+# rápido: es un techo, no una espera. Ver
+# `evidencias/medicion-modelos-servidor-fie-2026-10-19.md`.
+DEFAULT_OLLAMA_TIMEOUT_S = 180.0
+MAX_OLLAMA_TIMEOUT_S = 300.0
 # El presupuesto por defecto se deriva del contrato, no de una corrida que
 # anduvo: `presupuesto.presupuesto_minimo_num_predict` da 482 tokens para el
 # documento más grande que admite el contrato creativo vigente, medido con el
@@ -77,7 +85,10 @@ class OllamaGenerator:
         if not modelo.strip():
             raise ValueError("modelo inválido")
         if not math.isfinite(timeout_s) or not 0 < timeout_s <= MAX_OLLAMA_TIMEOUT_S:
-            raise ValueError("timeout debe ser mayor que 0 y menor o igual a 120 segundos")
+            raise ValueError(
+                "timeout debe ser mayor que 0 y menor o igual a "
+                f"{MAX_OLLAMA_TIMEOUT_S:g} segundos"
+            )
         if (
             isinstance(num_predict, bool)
             or not isinstance(num_predict, int)

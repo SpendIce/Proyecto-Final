@@ -219,7 +219,9 @@ def _timeout_ollama(value: str) -> float:
     except ValueError:
         raise argparse.ArgumentTypeError("debe ser un número") from None
     if not 0 < timeout_s <= MAX_OLLAMA_TIMEOUT_S:
-        raise argparse.ArgumentTypeError("debe ser mayor que 0 y menor o igual a 120")
+        raise argparse.ArgumentTypeError(
+            f"debe ser mayor que 0 y menor o igual a {MAX_OLLAMA_TIMEOUT_S:g}"
+        )
     return timeout_s
 
 
