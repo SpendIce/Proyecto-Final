@@ -93,7 +93,7 @@
 <body>
 <header>
   <h1>Plan de riesgos — Agente 1, Extension Bot</h1>
-  <div class="sub">Proyecto Centenario (P100) · Autor del PPS: Juan Ignacio Goñe · Última actualización: 2026-10-12 ·
+  <div class="sub">Proyecto Centenario (P100) · Autor del PPS: Juan Ignacio Goñe · Última actualización: 2026-10-19 ·
     Fuente: <code>Documentos/PlanRiesgos/Plan-Riesgos-Agente-1-PPS-Juan-Ignacio-Gone.md</code></div>
 </header>
 <div class="wrap">
@@ -167,7 +167,7 @@
     <code>.md</code> versionado; este HTML es una vista de lectura para la presentación.
     Niveles: <b style="color:var(--alto)">Alto = 16 riesgos</b> ·
     <b style="color:var(--medio)">Medio = 3</b> ·
-    <b style="color:#15803d">Bajo = 4 (todos aceptados ✓)</b>.
+    <b style="color:#15803d">Bajo = 5 (todos aceptados ✓)</b>.
     Exposición máxima del registro: 9 (R-ALC-03, R-GOB-01, R-REQ-01, R-DAT-01, R-LLM-01, R-TRA-01, R-ADOP-01, R-CAL-01).
   </footer>
 </div>
@@ -264,6 +264,11 @@ const RIESGOS = [
   ala:"Se procesan datos identificables en API externa o la contingencia se vuelve permanente",
   con:"Revocar la contingencia, volver al entorno local y auditar los datos enviados",
   evi:"Decisión de fallback registrada, anonimización verificada"},
+ {id:"R-TEC-03",desc:"El sistema de demostración corre en un único host (servidor labredesfie de la facultad, compartido con el laboratorio de redes, sin GPU ni permisos de administrador) y no tiene respaldo offline → si el servidor, la red interna u Ollama fallan durante la revisión de laboratorio o la presentacion de cursada del 18/11, el sistema no se puede mostrar en vivo",cat:"Técnico",p:1,i:3,traza:"Requisito de cátedra (demo no localhost), #49, #68, #118, #119",resp:"J.I. Goñe",aceptado:true,
+  mit:"ACEPTAR condicionado a exposiciones presenciales en la facultad y a un smoke live en el servidor antes de cada una; sin respaldo offline (decisión del 2026-10-19)",
+  ala:"Exposición remota o fuera de la facultad; reinicio del servidor sin que Ollama o el agente vuelvan a levantarse; smoke previo fallido; mantenimiento del laboratorio en la fecha",
+  con:"Reabrir como riesgo activo: levantar Ollama y el agente a mano, coordinar con el laboratorio y, si no se recupera, escalar al tutor para reprogramar",
+  evi:"Smoke live previo registrado, procedimiento de arranque en el servidor, comunicación con el laboratorio"},
  {id:"R-INT-01",desc:"Cambios de permisos, cuotas o APIs de Google Workspace bloquean triggers → interrupción de flujos S1/S2",cat:"Integración",p:2,i:2,traza:"Sheets, Docs, Gmail, Apps Script",resp:"Responsable Técnico IA",
   mit:"Pruebas periódicas de Apps Script, cuotas, permisos y APIs; cuenta de servicio con permisos mínimos",
   ala:"Trigger falla o Google cambia permisos/cuotas",
