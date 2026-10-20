@@ -57,6 +57,22 @@ FILA_OFFLINE = {
     "enlace_inscripcion": "",
     "lugar": "Aula de prueba",
 }
+FICHA_OFFLINE_GACETILLA = """## TÍTULO
+Taller sintético de vinculación
+
+## DATOS DE LA ACTIVIDAD
+Fecha: 2026-08-05
+Organiza: Equipo de prueba
+Lugar: Aula de prueba
+
+## CONTACTO
+pruebas@example.invalid
+
+## BAJADA
+Actividad ficticia para validar el flujo.
+
+## CUERPO
+El Equipo de prueba invita a la Comunidad universitaria ficticia."""
 
 
 class _ParserSeguro(argparse.ArgumentParser):
@@ -70,12 +86,10 @@ def _emitir(payload: dict[str, object]) -> None:
 
 def _respuesta_offline(tipo: str, canal: str | None) -> str:
     if tipo == "gacetilla":
-        path = ROOT / "golden" / "SYN-001.md"
-        marcador = "# BORRADOR — NO PUBLICAR\n\n"
-        contenido = path.read_text(encoding="utf-8")
-        if not contenido.startswith(marcador):
-            raise RunnerWorkspaceError("runner_offline_fixture_invalid")
-        return contenido.removeprefix(marcador).strip()
+        # El generador devuelve la ficha; el mail FIE Informa lo arma después el
+        # renderer determinista (#107, #121). El golden ya es el mail renderizado
+        # y no sirve como salida del modelo (#138).
+        return FICHA_OFFLINE_GACETILLA
     fixture_path = ROOT / "data" / "workspace_e2e_creativity_v2.synthetic.json"
     try:
         fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
