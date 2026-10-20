@@ -87,8 +87,37 @@ def _resumen_latencias(valores: list[float]) -> dict[str, float | None]:
     }
 
 
-def _generador(modelo: str, args, *, schema: dict[str, object] | None):
-    return OllamaGenerator(
+class _GeneradorQueGuarda:
+    """Delega en el generador real y guarda la respuesta cruda (#51).
+
+    Los rechazos del gate sólo dejan hashes; para mejorar un prompt hay que
+    leer qué escribió el modelo. El pipeline recibe la misma respuesta.
+    """
+
+    def __init__(self, generador: OllamaGenerator, destino: Path, etiqueta: str) -> None:
+        self._generador = generador
+        self._destino = destino
+        self._etiqueta = etiqueta
+
+    def __getattr__(self, nombre: str):
+        return getattr(self._generador, nombre)
+
+    def generar(self, prompt: str) -> str:
+        respuesta = self._generador.generar(prompt)
+        with self._destino.open("a", encoding="utf-8") as archivo:
+            archivo.write(
+                json.dumps(
+                    {"caso": self._etiqueta, "respuesta": respuesta}, ensure_ascii=False
+                )
+                + "\n"
+            )
+        return respuesta
+
+
+def _generador(
+    modelo: str, args, *, schema: dict[str, object] | None, etiqueta: str = ""
+):
+    generador = OllamaGenerator(
         modelo=modelo,
         base_url=args.base_url,
         timeout_s=args.timeout,
@@ -96,6 +125,11 @@ def _generador(modelo: str, args, *, schema: dict[str, object] | None):
         format_schema=schema,
         think=False if args.sin_thinking else None,
     )
+    if args.guardar_respuestas:
+        return _GeneradorQueGuarda(
+            generador, args.salida.resolve() / "respuestas.jsonl", etiqueta
+        )
+    return generador
 
 
 def main() -> int:
@@ -120,6 +154,11 @@ def main() -> int:
         nargs="+",
         default=list(ACTIVIDADES_COMPLETAS),
         help="Ids a medir (#51 usa actividades reales del corpus FIE INFORMA).",
+    )
+    parser.add_argument(
+        "--guardar-respuestas",
+        action="store_true",
+        help="Guarda la respuesta cruda del modelo en <salida>/respuestas.jsonl.",
     )
     parser.add_argument(
         "--sin-thinking",
@@ -156,7 +195,12 @@ def main() -> int:
         for id_solicitud in args.actividades:
             if args.incluir_gacetillas:
                 orden += 1
-                generator = _generador(args.modelo, args, schema=None)
+                generator = _generador(
+                    args.modelo,
+                    args,
+                    schema=None,
+                    etiqueta=f"gacetilla/{id_solicitud}/ciclo-{ciclo}",
+                )
                 inicio = time.perf_counter()
                 resultado = procesar_fila_csv(
                     csv_path=dataset,
@@ -197,7 +241,10 @@ def main() -> int:
             for canal in CANALES:
                 orden += 1
                 generator = _generador(
-                    args.modelo, args, schema=CONTRATO_CREATIVO_V3.schema
+                    args.modelo,
+                    args,
+                    schema=CONTRATO_CREATIVO_V3.schema,
+                    etiqueta=f"post_{canal}/{id_solicitud}/ciclo-{ciclo}",
                 )
                 inicio = time.perf_counter()
                 resultado = procesar_post_estructurado(
