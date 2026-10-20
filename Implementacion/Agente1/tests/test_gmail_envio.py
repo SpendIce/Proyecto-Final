@@ -222,7 +222,10 @@ def test_envio_real_post_a_gmail_send_con_mime_completo():
         str(mensaje["Subject"])
         == "[BORRADOR — NO ENVIAR] Confirmación de inscripción"
     )
-    assert str(mensaje["X-Agente1-Idempotency-Key"]) == "a" * 64
+    # El valor del header se compara normalizado: Python 3.12.3 devuelve el
+    # espacio de continuación del encabezado como parte del valor y 3.12.14 no.
+    # Lo que importa es que la clave completa viaje, no el espacio de formato.
+    assert str(mensaje["X-Agente1-Idempotency-Key"]).strip() == "a" * 64
     cuerpo = mensaje.get_content()
     assert cuerpo.startswith("# BORRADOR — NO PUBLICAR")
     assert "BORRADOR — NO ENVIAR" in cuerpo
