@@ -711,7 +711,7 @@ def _construir_prompt_estructurado(
     contrato: ContratoCreativo,
 ) -> str:
     plantilla = files("agente1").joinpath(
-        "prompts", f"post_{canal}_structured_{contrato.prompt_suffix}.txt"
+        "prompts", f"post_{canal}_structured_{contrato.sufijo_prompt(canal)}.txt"
     ).read_text(encoding="utf-8")
     datos = json.dumps(fila, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     prompt = (
@@ -957,6 +957,15 @@ class ContratoCreativo:
     hashtags_seguros: frozenset[str]
     catalogo_por_canal: dict[str, dict[str, list[str]]] | None
     catalogo_version: str | None
+    # Un canal puede adelantar su prompt sin tocar el del otro: el encabezado
+    # con la versión viaja en el prompt, así que renombrar un archivo que no
+    # cambió movería la salida con `temperature=0` (#51).
+    prompt_suffix_por_canal: dict[str, str] | None = None
+
+    def sufijo_prompt(self, canal: str) -> str:
+        if self.prompt_suffix_por_canal and canal in self.prompt_suffix_por_canal:
+            return self.prompt_suffix_por_canal[canal]
+        return self.prompt_suffix
 
 
 def _construir_contrato_creativo(
@@ -965,6 +974,7 @@ def _construir_contrato_creativo(
     renderer_version: str,
     prompt_suffix: str,
     borrador_suffix: str,
+    prompt_suffix_por_canal: dict[str, str] | None = None,
 ) -> ContratoCreativo:
     propiedades = contrato["properties"]
     campos_texto = ("gancho", "prosa", "cta")
@@ -974,6 +984,7 @@ def _construir_contrato_creativo(
         renderer_version=renderer_version,
         prompt_suffix=prompt_suffix,
         borrador_suffix=borrador_suffix,
+        prompt_suffix_por_canal=prompt_suffix_por_canal,
         schema=contrato,
         campos=frozenset(contrato["required"]),
         limites={campo: propiedades[campo]["maxLength"] for campo in campos_texto},
@@ -1004,6 +1015,7 @@ CONTRATO_CREATIVO_V3 = _construir_contrato_creativo(
     renderer_version=STRUCTURED_RENDERER_VERSION,
     prompt_suffix="v4",
     borrador_suffix="-v3",
+    prompt_suffix_por_canal={"linkedin": "v5"},
 )
 # Detecta referencias a lugares genéricos en minúscula ("en el aula", "desde la
 # sede"). La versión anterior usaba `\S+` como objeto, de modo que matcheaba
@@ -1294,7 +1306,7 @@ def _campos_auditoria_estructurada(
         "renderer_version": structured.renderer_version,
         "creative_catalog_version": structured.catalogo_version,
         "prompt_version": (
-            f"post_{canal}_structured_{structured.prompt_suffix}"
+            f"post_{canal}_structured_{structured.sufijo_prompt(canal)}"
             if canal in CANALES
             else None
         ),

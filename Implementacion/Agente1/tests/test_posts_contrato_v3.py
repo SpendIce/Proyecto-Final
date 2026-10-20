@@ -220,3 +220,21 @@ def test_patron_lugar_detecta_lugares_genericos(texto: str) -> None:
 def test_patron_lugar_no_marca_sintagmas_que_no_son_lugares(texto: str) -> None:
     """El patrón anterior usaba `\\S+` y marcaba cualquier "en X" del español."""
     assert PATRON_REFERENCIA_LUGAR.search(texto) is None
+
+
+def test_v3_linkedin_usa_su_prompt_v5_e_instagram_sigue_en_v4(tmp_path: Path) -> None:
+    # #51: LinkedIn adelantó su prompt; el de Instagram no cambia ni de nombre,
+    # porque el encabezado con la versión viaja en el prompt.
+    assert CONTRATO_CREATIVO_V3.sufijo_prompt("linkedin") == "v5"
+    assert CONTRATO_CREATIVO_V3.sufijo_prompt("instagram") == "v4"
+
+    resultado = procesar_post_estructurado(
+        fuente=CsvFuenteSolicitudes(DATASET),
+        id_solicitud="SYN-001",
+        canal="linkedin",
+        directorio_salida=tmp_path,
+        generator=FakeGenerator(json.dumps(CREATIVIDAD_LIBRE, ensure_ascii=False)),
+        contrato=CONTRATO_CREATIVO_V3,
+    )
+    registro = json.loads(resultado.log_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert registro["prompt_version"] == "post_linkedin_structured_v5"
