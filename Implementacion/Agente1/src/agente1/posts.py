@@ -1643,29 +1643,63 @@ SUSTANTIVOS_GENERICOS_ACTIVIDAD = frozenset(
 )
 
 
-def _contiene_fragmento_significativo(texto: str, hecho: str) -> bool:
-    """Detecta fragmentos de hechos sin confundir artículos o preposiciones.
+# Palabras significativas del título que, copiadas seguidas y en el mismo
+# orden, ya son un fragmento del título y no una mención del tema (#139).
+MIN_PALABRAS_FRAGMENTO_TITULO = 3
 
-    El gate estructurado no permite que la creatividad replique hechos de la
-    fuente: el renderer los agrega en secciones fijas. Comparar sólo la frase
-    completa dejaba pasar, por ejemplo, ``Taller`` cuando el título era
-    ``Taller sintético de vinculación``. Se rechazan palabras de al menos cinco
-    caracteres que no sean conectores ni sustantivos genéricos de actividad
-    (`SUSTANTIVOS_GENERICOS_ACTIVIDAD`, confirmado por la SEU el 22/09); sigue
-    siendo un control mecánico conservador y la revisión semántica corresponde
-    a la SEU.
+
+def _es_palabra_significativa(palabra: str) -> bool:
+    return not (
+        len(palabra) < 5
+        or palabra in {"desde", "hasta", "sobre", "entre"}
+        or palabra in SUSTANTIVOS_GENERICOS_ACTIVIDAD
+    )
+
+
+def _contiene_fragmento_significativo(texto: str, hecho: str) -> bool:
+    """Detecta el título copiado en la zona creativa, no la mención del tema.
+
+    El renderer pone el título en su sección fija; la creatividad no tiene que
+    duplicarlo. Hasta #139 bastaba **una** palabra significativa del título
+    para rechazar: con títulos sintéticos («Taller sintético de vinculación»)
+    era evitable, pero con títulos reales que nombran el tema («Diplomatura en
+    Infraestructuras Antárticas») era el primer motivo de rechazo de salidas
+    correctas en todos los modelos medidos (#51, 20/10). Repetir el tema es
+    redundancia, no un hecho inventado: los hechos siguen cubiertos por
+    `_contiene_hecho` y por los gates de número, fecha, lugar y modalidad.
+
+    Se rechaza el título completo y cualquier tramo literal del título con al
+    menos `MIN_PALABRAS_FRAGMENTO_TITULO` palabras significativas (de cinco
+    caracteres o más, sin conectores ni `SUSTANTIVOS_GENERICOS_ACTIVIDAD`).
+    «la conquista del espacio» pasa; «desafíos de la conquista del espacio»
+    no. Sigue siendo un control mecánico; la revisión semántica es de la SEU.
     """
-    palabras = re.findall(r"[^\W_]+", _normalizar_hecho(hecho), flags=re.UNICODE)
-    for palabra in palabras:
-        if (
-            len(palabra) < 5
-            or palabra in {"desde", "hasta", "sobre", "entre"}
-            or palabra in SUSTANTIVOS_GENERICOS_ACTIVIDAD
-        ):
-            continue
-        patron = re.compile(r"(?<!\w)" + re.escape(palabra) + r"(?!\w)")
-        if patron.search(_normalizar_hecho(texto)) is not None:
-            return True
+    patron_palabra = re.compile(r"[^\W_]+", flags=re.UNICODE)
+    titulo = patron_palabra.findall(_normalizar_hecho(hecho))
+    if not titulo:
+        return False
+    palabras = patron_palabra.findall(_normalizar_hecho(texto))
+    if any(
+        palabras[inicio : inicio + len(titulo)] == titulo
+        for inicio in range(len(palabras) - len(titulo) + 1)
+    ):
+        return True
+    for i in range(len(titulo)):
+        for j in range(len(palabras)):
+            if i > 0 and j > 0 and titulo[i - 1] == palabras[j - 1]:
+                continue  # sólo se cuentan tramos desde su comienzo
+            significativas = 0
+            k = 0
+            while (
+                i + k < len(titulo)
+                and j + k < len(palabras)
+                and titulo[i + k] == palabras[j + k]
+            ):
+                if _es_palabra_significativa(titulo[i + k]):
+                    significativas += 1
+                    if significativas >= MIN_PALABRAS_FRAGMENTO_TITULO:
+                        return True
+                k += 1
     return False
 
 

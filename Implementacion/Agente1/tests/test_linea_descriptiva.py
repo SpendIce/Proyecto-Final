@@ -309,12 +309,21 @@ def test_gate_rechaza_linea_no_conforme(linea: object, codigo: str) -> None:
 
 
 def test_gate_rechaza_repetir_el_titulo_de_la_actividad() -> None:
-    # «robótica» y «educativa» son las palabras distintivas del título.
+    errores = validar_linea_descriptiva(
+        "Taller de robótica educativa aplicada al aula.",
+        titulo_actividad="Taller de robótica educativa",
+    )
+    assert "source_fact_in_creative_field" in errores
+
+
+def test_gate_acepta_nombrar_el_tema_del_titulo() -> None:
+    # Hasta #139 «robótica» y «educativa» sueltas rechazaban la línea. Dos
+    # palabras significativas seguidas nombran el tema; no copian el título.
     errores = validar_linea_descriptiva(
         "La robótica educativa aplicada al aula.",
         titulo_actividad="Taller de robótica educativa",
     )
-    assert "source_fact_in_creative_field" in errores
+    assert "source_fact_in_creative_field" not in errores
 
 
 def test_gate_sin_titulo_no_exige_coincidencia() -> None:

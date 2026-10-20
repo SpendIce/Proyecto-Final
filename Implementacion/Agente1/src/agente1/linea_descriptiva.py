@@ -198,8 +198,8 @@ def validar_linea_descriptiva(
 
     `titulo_actividad` es opcional: quien lo tiene (la generación con la
     fila; el certificado con su campo `actividad`) exige además que la
-    línea no repita las palabras distintivas del título, igual que el gate
-    creativo de HU-011.
+    línea no copie el título —completo o un tramo con tres o más palabras
+    significativas—, igual que el gate creativo de HU-011 (#139).
     """
 
     if not isinstance(linea, str):
@@ -259,8 +259,8 @@ def validar_linea_descriptiva(
     if titulo_actividad and _contiene_fragmento_significativo(
         normalizada, titulo_actividad
     ):
-        # El título lo renderiza la plantilla: una línea que repite sus
-        # palabras distintivas está duplicando un hecho, no describiendo.
+        # El título lo renderiza la plantilla: una línea que lo copia está
+        # duplicando un hecho. Nombrar el tema no es copiarlo (#139).
         errores.append("source_fact_in_creative_field")
     return tuple(dict.fromkeys(errores))
 

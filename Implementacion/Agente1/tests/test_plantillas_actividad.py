@@ -521,11 +521,12 @@ def test_titulo_literal_copiado_se_rechaza(tmp_path: Path) -> None:
     assert "source_fact_in_template" in errores
 
 
-def test_palabra_distintiva_del_titulo_se_rechaza(tmp_path: Path) -> None:
-    """Ni siquiera un fragmento significativo del título: «vinculación»."""
+def test_palabra_distintiva_del_titulo_ya_no_se_rechaza(tmp_path: Path) -> None:
+    """Hasta #139 «vinculación» sola rechazaba la plantilla; nombrar el tema
+    con una palabra del título no es copiarlo."""
     salida = PLANTILLA_CONFORME + "\nUn espacio de vinculación abierto.\n"
-    errores = _errores_de_gate(tmp_path, salida)
-    assert "source_fact_in_template" in errores
+    resultado = _generar(tmp_path, salida=salida)
+    assert resultado.estado == "PENDIENTE_VALIDACION"
 
 
 def test_inyeccion_o_eco_de_prompting_se_rechaza(tmp_path: Path) -> None:
