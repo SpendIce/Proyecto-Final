@@ -398,7 +398,7 @@ def test_el_prompt_no_lleva_la_estructura_ni_las_variables(
 
     sin_plan, con_plan = espia.prompts
     assert sin_plan == con_plan
-    assert "PROMPT_VERSION: plantilla_actividad_generacion_v3" in sin_plan
+    assert "PROMPT_VERSION: plantilla_actividad_generacion_v4" in sin_plan
     for ausente in ("LÍMITES", "PLANTILLA_BASE", "{{", "PENDIENTE_SEU"):
         assert ausente not in sin_plan
     datos = json.loads(

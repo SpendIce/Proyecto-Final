@@ -96,7 +96,7 @@ from .registro_auditoria import escribir_registro
 
 HU = "HU-014"
 CONTRACT_VERSION = "linea_descriptiva_v1"
-PROMPT_VERSION = "linea_descriptiva_v3"
+PROMPT_VERSION = "linea_descriptiva_v4"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 
 # Extensión de la línea: límites técnicos provisionales, en el espíritu de
