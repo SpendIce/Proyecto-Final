@@ -23,13 +23,21 @@
 // "Guardar progreso" del visor, que reescribe este mismo archivo.
 
 window.GANTT_PROGRESS = {
-  // Corte de revision: 2026-09-22. Contrastado contra la suite vigente (932
-  // pruebas verdes), el Registro de Defectos, la matriz HU-DoD y el acta de la
-  // reunion SEU del 22/09 (Respuestas-SEU-Reunion-2026-09-22.md).
-  // Actualizado al 2026-09-28 con la primera corrida live de Workspace D2.
+  // Corte de revision: 2026-10-19 (noche), previo a la presentacion de avance
+  // del 2026-10-21. El plan (.mmd) no se toca: no hay rebaseline ni estados
+  // nuevos. Contrastado contra: git log desde 2026-09-20; los issues abiertos
+  // y cerrados del repo al 19/10; Implementacion/Agente1/evidencias/ (medicion
+  // del servidor 2026-10-19, contrato Historia Viva rc2, anexos 2026-10-17,
+  // SLO 2026-10-12, cuenta de servicio 2026-10-14); la suite y el CI del
+  // Agente 1 (run 39302694001 del 2026-10-19: 1 failed, 2284 passed, 5
+  // skipped, en rojo); el Registro de Defectos; y la visita a la SEU del
+  // 2026-10-19 (actas y cierre en Documentos/Reuniones/SEU-2026-10-19/,
+  // todavia fuera de Git al corte). Este corte NO agrega tareas nuevas a
+  // done: las 24 que siguen abiertas estan explicadas abajo y en
+  // Revision-Avance-2026-10-19.md.
 
   "s0a": { done: true, at: "2026-07-06", nota: "Ollama user-local restaurado, llama3.2:3b descargado (.claude/persistence.md)" },
-  "s0b": { done: true, at: "2026-09-28", nota: "Cuenta tecnica dedicada del Agente 1 (institucional DSI/FIE) con OAuth2 verificado en vivo: scopes drive/documents/spreadsheets concedidos y lectura de la carpeta autorizada confirmada. Credencial de hoy: token efimero; el mecanismo definitivo sigue con DSI (issue #15). Evidencia: notas/workspace-live-d2-2026-09-28.md" },
+  "s0b": { done: true, at: "2026-09-28", nota: "Cuenta tecnica dedicada del Agente 1 (institucional DSI/FIE) con OAuth2 verificado en vivo: scopes drive/documents/spreadsheets concedidos y lectura de la carpeta autorizada confirmada. Credencial de hoy: token efimero. El mecanismo definitivo (cuenta de servicio con delegacion, #98) esta implementado offline desde el 14/10; su instalacion en el host y la baja de la OAuth siguen en #99. Evidencia live: notas/workspace-live-d2-2026-09-28.md" },
   "s0c": { done: true, at: "2026-07-10", nota: "Esqueleto del proyecto y logging basico verificados por la suite de pruebas" },
   "m0":  { done: true, at: "2026-07-10", nota: "Entorno offline suficiente para construir el MVP. Conexion Workspace live sigue BLOQUEADO_EXTERNO (DEF-A1-001)" },
 
@@ -46,14 +54,14 @@ window.GANTT_PROGRESS = {
 
   "s4a": { done: true, at: "2026-08-26", nota: "Contrato, modelo de datos y puerto local de confirmacion implementados en HU-012; no hay endpoint ni trigger institucional live" },
   "s4b": { done: true, at: "2026-09-08", nota: "Idempotencia y transiciones atomicas verificadas primero en memoria (26/08) y luego de forma durable (issue #9): RegistroConfirmacionesArchivo conserva estado en disco y reconciliar_envios_reservados cierra reservas colgadas hacia ENVIO_INDETERMINADO sin volver a entregar. 18 pruebas nuevas, dos de concurrencia" },
-  "s4c": { done: true, at: "2026-08-26", nota: "Plantilla provisional y puerto de entrega fake verificados; Gmail/Workspace y plantilla institucional continuan BLOQUEADO_EXTERNO (DEF-A1-001, DEF-A1-002)" },
+  "s4c": { done: true, at: "2026-08-26", nota: "Plantilla provisional y puerto de entrega fake verificados. Gmail quedo habilitado con lista de prueba (#40/#41) y sin envio live; la plantilla institucional sigue BLOQUEADO_EXTERNO (DEF-A1-002)" },
 
   "s5b": { done: true, at: "2026-09-09", nota: "Modulo agente1/interpretacion.py: clasificacion deterministica contra catalogo cerrado (intenciones_v1), resolucion difusa de actividad sobre el indice de enumerar(), repregunta con candidatas y estado entre turnos, y fallback con LLM local cuyo presupuesto se deriva del contrato y se aplica fail-closed. Sin LangGraph y sin dependencias de runtime. Ocho tickets (#19-#26), suite 588 -> 749. No incluye s5a (autenticacion) ni la validacion SEU" },
   "s5c": { done: true, at: "2026-09-09", nota: "Tarea reformulada el 2026-09-21: el plan original decia 'persistir transcript' y contradecia la spec de HU-013 (#18), que prohibe conservar la prosa escrita por las personas. Lo implementado es el fallback fuera de alcance (#26) mas la persistencia del solo derivado estructurado: la pendiente de repregunta guarda orden, id, titulo y fecha de cada candidata, la intencion y el vencimiento (#25), con una prueba que falla si aparece prosa. Hecho en el mismo corte que s5b" },
 
   "s4d": { done: true, at: "2026-09-21", nota: "Cola de envio propia sin Celery/Redis (merge feature/s4d-envio-asincrono): estado ENVIO_ENCOLADO tras la doble aprobacion, ColaEnviosMemoria y ColaEnviosArchivo con encolado idempotente y orden FIFO, worker drenar_envios con un intento por item por corrida y presupuesto de reintentos (3) hacia FALLIDA. Sigue sin adapter de correo real ni broker: el destino es el fake. 28 pruebas nuevas" },
 
-  "s6a": { done: true, at: "2026-09-21", nota: "Slice offline de HU-014 (issue #29, merge feature/hu014-certificados): plantilla provisional de certificado y maquina de estados HITL con el mismo circuito de doble aprobacion de HU-012 (semantica + utilitaria). La plantilla institucional real queda PENDIENTE_SEU" },
+  "s6a": { done: true, at: "2026-09-21", nota: "Slice offline de HU-014 (issue #29, merge feature/hu014-certificados): plantilla provisional de certificado y maquina de estados HITL con el mismo circuito de doble aprobacion de HU-012 (semantica + utilitaria). El 19/10 llego la plantilla institucional de aprobacion (issue #126), pero no esta integrada; la variante de asistencia sigue pendiente" },
   "s6b": { done: true, at: "2026-09-21", nota: "PDF determinista generado con stdlib pura (sin dependencias nuevas): el borrador lleva la marca BORRADOR - NO EMITIR y el emitido no; bytes reproducibles verificados en regresion" },
   "s6c": { done: true, at: "2026-09-21", nota: "Emision bloqueada sin las dos aprobaciones registradas (mismo circuito que HU-012); el destino es DestinoCertificadosFake y la emision real sigue pendiente de SEU/DSI" },
   "s6d": { done: true, at: "2026-09-21", nota: "62 pruebas nuevas cubren datos faltantes, rechazo, rol invalido, duplicados, recuperacion durable y emision simulada controlada (matriz_conformidad_hu014_v1, 12 casos)" },
@@ -64,11 +72,14 @@ window.GANTT_PROGRESS = {
   //
   // s1c  - copia de plantilla y volcado en Docs verificados live el 28/09
   //        (doc real en la carpeta autorizada); lo que falta es la plantilla
-  //        institucional aprobada (DEF-A1-002) — la usada es provisional.
-  // s1e  - validacion SEU de gacetillas: BLOQUEADO_EXTERNO (DEF-A1-005). Paquete de nueve muestras listo, acta pendiente.
+  //        institucional aprobada (DEF-A1-002) - la usada es provisional.
+  //        El 19/10 la SEU entrego el manual de identidad 2026 y una plantilla
+  //        de certificado, no una plantilla de gacetilla; DEF-A1-002 sigue
+  //        BLOQUEADO_EXTERNO.
+  // s1e  - validacion SEU de gacetillas: BLOQUEADO_EXTERNO (DEF-A1-005). Paquete de nueve muestras listo, acta pendiente. La visita del 19/10 no reviso muestras ni hubo Juan Manuel; JOS-P5 sigue pendiente.
   // m1   - el DoD de HU-010 incluye Sheets, Docs, plantilla y validacion
-  //        humana: Sheets y Docs ya corrieron live el 28/09; quedan abiertas
-  //        la plantilla institucional y la validacion SEU.
+  //        humana: Sheets y Docs ya corrieron live el 28/09; al 19/10 quedan
+  //        abiertas la plantilla institucional (s1c) y la validacion SEU (s1e).
   // s2d  - validacion SEU de posts y criterios definitivos por canal: la mitad
   //        tecnica se hizo el 22/09 — la SEU confirmo los criterios por canal
   //        (acta) y se implementaron el mismo dia (politica v1 con 17 reglas
@@ -83,24 +94,32 @@ window.GANTT_PROGRESS = {
   //        medicion-hu011-v3-positivo-2026-09-23.md). Misma noche,
   //        comparacion de modelos (evidencia
   //        medicion-hu011-v3-modelos-2026-09-23.md): llama3.1:8b da 4/6
-  //        y mistral:7b da 0/6 — el modelo concreto importa, no solo el
-  //        tamano.
-  // m2   - Gate TRL 3 PENDIENTE: falta criterio formal (DEF-A1-006) y validacion SEU.
+  //        y mistral:7b da 0/6 - el modelo concreto importa, no solo el
+  //        tamano. El 19/10 no hubo revision de muestras (JOS-P5 pendiente);
+  //        los criterios por canal del 22/09 siguen vigentes.
+  // m2   - Gate TRL 3 PENDIENTE: falta criterio formal (DEF-A1-006, BLOQUEADO_EXTERNO) y validacion SEU.
   // s3a  - D2 provisionado y verificado live el 28/09: cuenta tecnica
   //        dedicada, carpeta autorizada, planilla y plantilla sinteticas, y
   //        E2E completo con borrador real. El mecanismo de credencial ya
   //        existe y esta verificado: refresh token OAuth sobre proyecto
-  //        dentro del tenant FIE (consent Internal, durable). Pendientes
-  //        con DSI: aval formal del mecanismo, D3, revocacion/rotacion
-  //        probada y host (issue #15 sigue abierto).
+  //        dentro del tenant FIE (consent Internal, durable). El issue #15 se
+  //        cerro el 08/10 con la parte tecnica cumplida y derivo D3, host y
+  //        aval formal a #63/#64; al 19/10 D3 y el host institucional siguen
+  //        pendientes (#119 abierto).
   // s3b  - SEU designo revisor titular/suplente y se documento el circuito; el
   //        22/09 quedaron confirmados los roles nominales (semantica: Juan
   //        Manuel; utilitaria y firma final: Sebastian Moreira, Secretario de
-  //        Extension). Falta la revision de las muestras (asincronica en curso).
-  // m3   - depende de s3a y s3b.
+  //        Extension). Falta la revision de las muestras (asincronica en
+  //        curso). El 19/10 no se revisaron muestras; la aprobacion de
+  //        contenido paso a una sola persona (Juan Manuel o Josefina, por
+  //        delegacion de Moreira), cambio registrado en #125.
+  // m3   - depende de s3a y s3b; al 19/10 ninguno de los dos esta completo.
   // m6   - "HU-014 operativa con DoD": el slice offline esta hecho (s6a-s6e),
   //        pero el DoD exige plantilla institucional de la SEU y validacion
-  //        humana real: ambas siguen BLOQUEADO_EXTERNO.
+  //        humana real. El 19/10 llego la plantilla de aprobacion (ficha de
+  //        la SEU, issue #126), pero no esta integrada; la variante de
+  //        asistencia y el aprobador final del lote siguen pendientes. No se
+  //        declara emision institucional por recibir el archivo.
   // s4e  - duplicados y destinatario invalido probados, y desde el 2026-09-21
   //        el envio exige las dos aprobaciones del circuito (semantica RGC +
   //        utilitaria Coordinador, DEF-A1-016 cerrado como RESUELTO_TECNICO,
@@ -109,13 +128,16 @@ window.GANTT_PROGRESS = {
   //        situacion de pagos y aprobacion: extension implementada y mergeada
   //        el mismo 22/09 (issue #33, catalogo tipos_notificacion_v1) con
   //        situacion_pagos bloqueada fail-closed; la fuente de datos de pagos
-  //        sigue DESCONOCIDO hasta respuesta SEU.
-  // m4   - depende de s4d y s4e, y de un adapter de correo que no existe.
+  //        sigue DESCONOCIDO hasta respuesta SEU. El 19/10 no hubo validacion
+  //        SEU del item; #125 cambia la aprobacion a una sola persona y
+  //        requiere adaptacion.
+  // m4   - depende de s4d y s4e, y de un adapter de correo real que al 19/10
+  //        sigue sin existir.
   //
   // Sprint 5 (HU-013) arranca el 2026-09-15. El diseno esta cerrado y
-  // especificado (issue #18 con ocho tickets, #19 a #26) y la implementacion
-  // empezo, pero ninguna tarea del cronograma esta completa todavia: s5a-s5d
-  // y m5 no llevan marca. Avance por ticket al 2026-09-09:
+  // especificado (issue #18 con ocho tickets, #19 a #26). Al corte del
+  // 2026-10-19 estan marcadas s5b y s5c; s5a, s5d y m5 siguen sin marca.
+  // Avance por ticket al 2026-09-09:
   //
   //   #19 CERRADO  - enumerar actividades desde el puerto de fuente. Prefactor
   //                  de s5b: habilita construir el indice de busqueda. Ambos
@@ -181,16 +203,42 @@ window.GANTT_PROGRESS = {
   //        auditoria lleva identidad_verificada: false. La autenticacion
   //        institucional sigue BLOQUEADO_EXTERNO (DEF-A1-001, issue #15). La
   //        evidencia de #24 no acredita control de acceso y no hay que leerla
-  //        asi.
+  //        asi. El 19/10 Josefina acepto la lectura directa del buzon, pero
+  //        la habilitacion tecnica sigue pendiente; eso no es autenticacion
+  //        de personal.
   // s5d  - renombrada el 2026-09-21 a "Regresion de solicitudes y prueba
   //        guiada de usabilidad con SEU". La mitad automatizable ya existe:
   //        las solicitudes validas y las fuera de alcance tienen cobertura de
-  //        regresion desde los tickets #19-#26. La mitad humana tiene fecha:
-  //        Juan Manuel confirmo la prueba guiada para el viernes 25/09
-  //        (instrumento de sesion en el issue #32). El recorrido quedo
-  //        documentado en #24
+  //        regresion desde los tickets #19-#26. La mitad humana tenia fecha
+  //        para el viernes 25/09 (instrumento de sesion en el issue #32),
+  //        pero la prueba no se hizo: JOS-P4 sigue pendiente y no hay fecha
+  //        nueva. El recorrido quedo documentado en #24
   //        (evidencias/recorrido-prueba-guiada-canal-planilla.md).
-  // m5   - "HU-013 operativa con DoD": depende de s5a y s5d.
+  // m5   - "HU-013 operativa con DoD": depende de s5a y s5d; al 19/10 ambas
+  //        siguen abiertas.
+  //
+  // Sprint 7 y cierre: al 2026-10-19 ninguna tarea esta completa.
+  //
+  // s7a  - contratos y mocks con A3-A5 y puerto A2 con fakes; el contrato
+  //        con Historia Viva (#17) sigue abierto, asi que no cubre A2-A5
+  //        completo. Evidencia: Contrato-Candidato-Insumos-A2-A5-Agente-1.md,
+  //        contracts/insumos/a3_evento_gacetilla_v1.schema.json, ADR 0008.
+  // s7b  - integracion progresiva: depende de s7a y del contrato #17.
+  // s7c  - hay suite amplia y E2E D2 del 28/09, pero el CI del 19/10 esta en
+  //        rojo (run 39302694001) y el E2E en el servidor de la demo (#118)
+  //        no corrio. No se acredita "unitarias, integracion y E2E" completo.
+  // s7d  - auditoria de seguridad D2/D3 y pruebas de prompt injection como
+  //        dato, offline; permisos y revocacion reales siguen pendientes.
+  // m7   - "Suite de pruebas en verde y cobertura registrada": el CI del
+  //        19/10 fallo (1 failed, 2284 passed, 5 skipped). No se declara.
+  // c1   - validacion con usuarios SEU: sin sesion agendada; JOS-D5 registra
+  //        que nadie de la SEU asistira al 18/11.
+  // c2   - sin defectos CRITICA abiertos, pero hay ALTA bloqueados y el CI
+  //        no esta verde.
+  // c3   - el tag agente1-v0.1.0 existe, pero al corte no hay release
+  //        candidate con paquete de evidencias cerrado.
+  // c4   - depende de c1-c3.
+  // m8   - depende de c1-c4 y del Gate TRL 4.
   //
   // Nota de alcance: cerrar los ocho tickets NO acredita validacion
   // institucional ni nivel TRL, como dice #18 explicitamente. La evidencia es
