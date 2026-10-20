@@ -54,12 +54,12 @@ window.GANTT_PROGRESS = {
 
   "s4a": { done: true, at: "2026-08-26", nota: "Contrato, modelo de datos y puerto local de confirmacion implementados en HU-012; no hay endpoint ni trigger institucional live" },
   "s4b": { done: true, at: "2026-09-08", nota: "Idempotencia y transiciones atomicas verificadas primero en memoria (26/08) y luego de forma durable (issue #9): RegistroConfirmacionesArchivo conserva estado en disco y reconciliar_envios_reservados cierra reservas colgadas hacia ENVIO_INDETERMINADO sin volver a entregar. 18 pruebas nuevas, dos de concurrencia" },
-  "s4c": { done: true, at: "2026-08-26", nota: "Plantilla provisional y puerto de entrega fake verificados. Gmail quedo habilitado con lista de prueba (#40/#41) y sin envio live; la plantilla institucional sigue BLOQUEADO_EXTERNO (DEF-A1-002)" },
+  "s4c": { done: true, at: "2026-08-26", nota: "Plantilla provisional y puerto de entrega fake verificados. Gmail quedo habilitado con lista de prueba (#40/#41); el modo produccion existe desde #141 pero no esta habilitado. La plantilla institucional sigue BLOQUEADO_EXTERNO (DEF-A1-002)" },
 
   "s5b": { done: true, at: "2026-09-09", nota: "Modulo agente1/interpretacion.py: clasificacion deterministica contra catalogo cerrado (intenciones_v1), resolucion difusa de actividad sobre el indice de enumerar(), repregunta con candidatas y estado entre turnos, y fallback con LLM local cuyo presupuesto se deriva del contrato y se aplica fail-closed. Sin LangGraph y sin dependencias de runtime. Ocho tickets (#19-#26), suite 588 -> 749. No incluye s5a (autenticacion) ni la validacion SEU" },
   "s5c": { done: true, at: "2026-09-09", nota: "Tarea reformulada el 2026-09-21: el plan original decia 'persistir transcript' y contradecia la spec de HU-013 (#18), que prohibe conservar la prosa escrita por las personas. Lo implementado es el fallback fuera de alcance (#26) mas la persistencia del solo derivado estructurado: la pendiente de repregunta guarda orden, id, titulo y fecha de cada candidata, la intencion y el vencimiento (#25), con una prueba que falla si aparece prosa. Hecho en el mismo corte que s5b" },
 
-  "s4d": { done: true, at: "2026-09-21", nota: "Cola de envio propia sin Celery/Redis (merge feature/s4d-envio-asincrono): estado ENVIO_ENCOLADO tras la doble aprobacion, ColaEnviosMemoria y ColaEnviosArchivo con encolado idempotente y orden FIFO, worker drenar_envios con un intento por item por corrida y presupuesto de reintentos (3) hacia FALLIDA. Sigue sin adapter de correo real ni broker: el destino es el fake. 28 pruebas nuevas" },
+  "s4d": { done: true, at: "2026-09-21", nota: "Cola de envio propia sin Celery/Redis (merge feature/s4d-envio-asincrono): estado ENVIO_ENCOLADO tras la doble aprobacion, ColaEnviosMemoria y ColaEnviosArchivo con encolado idempotente y orden FIFO, worker drenar_envios con un intento por item por corrida y presupuesto de reintentos (3) hacia FALLIDA. Sigue sin broker; el destino de prueba es el fake y el adapter Gmail existe con lista de prueba. Desde #141 tiene modo produccion opt-in. 28 pruebas nuevas" },
 
   "s6a": { done: true, at: "2026-09-21", nota: "Slice offline de HU-014 (issue #29, merge feature/hu014-certificados): plantilla provisional de certificado y maquina de estados HITL con el mismo circuito de doble aprobacion de HU-012 (semantica + utilitaria). El 19/10 llego la plantilla institucional de aprobacion (issue #126), pero no esta integrada; la variante de asistencia sigue pendiente" },
   "s6b": { done: true, at: "2026-09-21", nota: "PDF determinista generado con stdlib pura (sin dependencias nuevas): el borrador lleva la marca BORRADOR - NO EMITIR y el emitido no; bytes reproducibles verificados en regresion" },
@@ -130,8 +130,9 @@ window.GANTT_PROGRESS = {
   //        sigue DESCONOCIDO hasta respuesta SEU. El 19/10 no hubo validacion
   //        SEU del item; #125 cambia la aprobacion a una sola persona y
   //        requiere adaptacion.
-  // m4   - depende de s4d y s4e, y de un adapter de correo real que al 19/10
-  //        sigue sin existir.
+  // m4   - el adapter Gmail existe con lista de prueba y modo produccion
+  //        (#141); lo que falta es que los renderers compongan el cuerpo de
+  //        la plantilla aprobada por tipo y la lista real de la SEU.
   //
   // Sprint 5 (HU-013) arranca el 2026-09-15. El diseno esta cerrado y
   // especificado (issue #18 con ocho tickets, #19 a #26). Al corte del
