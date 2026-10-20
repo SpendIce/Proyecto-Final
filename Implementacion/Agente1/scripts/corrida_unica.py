@@ -42,7 +42,7 @@ Decisiones que no se ven en el código:
   crear otro borrador en Drive. Los manifiestos nuevos se copian a la
   evidencia de la corrida.
 - **El modelo no se decide acá.** Se toma por parámetro (`--modelo`), con
-  `llama3.2:3b` por defecto para la gacetilla, como pide #51.
+  El modelo entra por parámetro; para la demo del 21/10 es `gemma4:e4b` (#51).
 """
 
 from __future__ import annotations
@@ -819,7 +819,7 @@ def _paso_gacetilla(
             detalle += (
                 " Mirá el resultado del runner y el manifiesto en "
                 f"{opciones.salida_e2e}/manifests/. Si falló la generación, "
-                "probá con el modelo por defecto (llama3.2:3b)."
+                "no cambies de modelo en vivo: mirá el rechazo y mostrá la evidencia de la mañana."
             )
         return ResultadoPaso(
             False, detalle, exit_code=resultado.codigo, comandos=[entrada]

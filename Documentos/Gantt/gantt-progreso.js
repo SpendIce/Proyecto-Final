@@ -207,9 +207,9 @@ window.GANTT_PROGRESS = {
   //        contracts/insumos/a3_evento_gacetilla_v1.schema.json, ADR 0008.
   // s7b  - integracion progresiva: depende de s7a y del contrato #17.
   // s7c  - hay suite amplia y E2E D2 del 28/09, y la suite y el CI de main
-  //        estan verdes (run 39455797467), pero la corrida E2E en el servidor
-  //        de la demo (#118) todavia no esta versionada. No se acredita
-  //        "unitarias, integracion y E2E" completo.
+  //        estan verdes (run 39455797467), pero no se llego a la corrida E2E
+  //        en el servidor de la demo (#118) por falta de acceso a Sheets y
+  //        Docs. No se acredita "unitarias, integracion y E2E" completo.
   // s7d  - auditoria de seguridad D2/D3 y pruebas de prompt injection como
   //        dato, offline; permisos y revocacion reales siguen pendientes.
   // c1   - validacion con usuarios SEU: sin sesion agendada; JOS-D5 registra

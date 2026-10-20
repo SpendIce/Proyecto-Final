@@ -2,7 +2,13 @@
 
 **Para:** Juan Ignacio Goñe, Agente 1 (Extension Bot), Proceso 4.
 **Uso:** mesa de examen con Cicerchia y Q&A con invitados externos que preguntan sobre IA.
-**Evidencia principal:** medición del 19/10/2026 en `labredesfie`, código `cff6a16`. Datos sintéticos. No acredita validación SEU, Gate G2 ni TRL 3.
+**Evidencia principal:** medición del 19/10/2026 en `labredesfie`, código `cff6a16`, y validación final del 20/10 en `main` (`87e7ab5`). Datos reales del corpus FIE INFORMA. No acredita validación SEU, Gate G2 ni TRL 3.
+
+## Actualización 20/10: modelo elegido
+
+El modelo único del sistema de demostración es **`gemma4:e4b`** (Ollama 0.40.6, `think=false`, temperatura 0, `num_predict` 512, timeout 180 s). Validación final en `labredesfie`: **44/48 (91,7 %)** en gacetilla+posts, **48/48 revalidado** tras DEF-A1-026; HU-014 **18/18**; HU-012 **18/18**; canal **16/16**. Las respuestas que comparan 3b/8b son la **línea base del 19/10** y quedan como historia; no son la configuración vigente.
+
+El E2E en el servidor **no se corrió**: falta acceso a Sheets y Docs. Por eso `s7c` sigue abierto y la demo tiene Plan B.
 
 ## Cómo usar este banco
 
@@ -59,7 +65,7 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Implementacion/Agente1/README.md` (el gate no evalúa tono ni verdad semántica); `Implementacion/Agente1/evidencias/set-evaluacion-gacetillas-fie-informa-2026-10-14.md` (límites); `Implementacion/Agente1/evidencias/checklist-validacion-humana-hu010.md`.
 
 **P: ¿Y si el modelo rechaza todo? Un gate que dice que no a todo no sirve.**
-**R:** Coincido. El gate es fail-closed, pero rechazar mucho es un límite de capacidad, no una virtud. En HU-011 el 3b rechaza casi todo en redacción libre; eso muestra que el modelo no alcanza, no que el sistema sea seguro. La seguridad está en no publicar; la utilidad está en que alguna pieza pase y sea buena.
+**R:** Coincido. El gate es fail-closed, pero rechazar mucho es un límite de capacidad, no una virtud. En la línea base, el 3b rechazaba casi todo en redacción libre; eso muestra que el modelo no alcanzaba, no que el sistema sea seguro. La seguridad está en no publicar; la utilidad está en que alguna pieza pase y sea buena.
 **Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; `Implementacion/Agente1/evidencias/set-evaluacion-gacetillas-fie-informa-2026-10-14.md`.
 
 **P: ¿Qué pasa con un pedido que no está en el catálogo?**
@@ -75,12 +81,12 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Implementacion/Agente1/evidencias/set-evaluacion-gacetillas-fie-informa-2026-10-14.md`.
 
 **P: ¿Qué midieron el 19/10 en el servidor?**
-**R:** Dos modelos con el código vigente. Con 3b, HU-010 dio 12/12 entre las dos corridas; HU-011 en la matriz v3 dio 0/6 y 1/6, y 0/12 en capacidad por canal. Con 8b, HU-010 dio 9/12; Instagram dio 12/12 en capacidad y LinkedIn 0/12; la llamada más lenta fue 88 s.
-**Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; issue #50.
+**R:** La línea base del 19/10 comparó 3b y 8b: con 3b, HU-010 dio 12/12 entre las dos corridas y HU-011 quedó casi nulo en redacción libre; con 8b, Instagram dio 12/12 y LinkedIn 0/12. La selección final del 20/10 es `gemma4:e4b`: 44/48 en gacetilla+posts, 48/48 revalidado, HU-014 18/18, HU-012 18/18 y canal 16/16.
+**Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; issue #50; issue #51 (resolución del 20/10).
 
-**P: ¿Van a usar 3b para gacetillas y 8b para Instagram?**
-**R:** Es una opción con sustento en los datos, no una decisión tomada. El 3b es estable en gacetillas y más rápido; el 8b resuelve Instagram pero es más lento y falla LinkedIn. La decisión de modelo y de alcance sigue abierta en #51.
-**Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; issue #51 (comentarios del 19/10).
+**P: ¿Qué modelo van a usar?**
+**R:** Uno solo: `gemma4:e4b`, en Ollama 0.40.6 sobre el servidor, sin GPU. Configuración congelada: `think=false`, temperatura 0, `num_predict` 512 y timeout de 180 s. La validación final dio 44/48 en gacetilla+posts (48/48 revalidado) y 18/18 en HU-014 y HU-012. No se cambia de modelo en vivo.
+**Evidencia:** issue #51 (resolución del 20/10); `Documentos/Presentacion/Checklist-Miercoles-2026-10-21.md`.
 
 **P: ¿Por qué debería creerles la métrica?**
 **R:** Porque está el host, el commit, los modelos, las dos versiones de Ollama y los hashes de los datos crudos. Además, el propio proyecto se corrigió: el dato de «+30 min por pieza» se retiró del anteproyecto por falta de fuente. La métrica es chica y declara sus límites; no es un benchmark comercial.
@@ -107,7 +113,7 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Implementacion/Agente1/evidencias/set-evaluacion-gacetillas-fie-informa-2026-10-14.md`.
 
 **P: ¿La latencia cumple el requisito de 30 segundos?**
-**R:** No de forma pareja. Con 3b, la gacetilla con mail dio p50 20 s y máximo 41 s; el post de Instagram dio p50 44 s. Con 8b, Instagram dio p50 29 s y LinkedIn 63 s. El objetivo de 30 s se cumple en algunos casos, no en todos.
+**R:** No de forma pareja. Con `gemma4:e4b`, la gacetilla dio p50 45 s y máximo 67 s; la pieza más lenta del set fue 110 s. El objetivo de 30 s no se cumple de forma pareja; el timeout congelado es 180 s.
 **Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md` (latencia por pieza); `Agentes/extension_bot_experto.md` (RNF < 30 s).
 
 **P: ¿Cuánto tiempo ahorra el agente?**
@@ -151,11 +157,11 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Contenido/Definicion/criterios-evaluacion-cicerchia.md` (restricciones tecnológicas); `Documentos/Anteproyecto/Anteproyecto-PPS-Juan-Ignacio-Gone.tex` (tabla de costos y plataforma); `Documentos/PlanDespliegue/Plan-Despliegue-Agente-1-PPS-Juan-Ignacio-Gone.md` (exclusión de APIs externas con datos reales sin aprobación).
 
 **P: ¿Por qué sin GPU?**
-**R:** Porque el host de la demo no tiene GPU y los dos modelos medidos entran en 31 GB de RAM. El 3b usa unos 3,3 GB y el 8b unos 6 GB; la memoria no es la restricción. Un modelo más grande no se midió en este host; la modernización está prevista, no es de este ciclo.
+**R:** Porque el host de la demo no tiene GPU. `gemma4:e4b` fue el modelo elegido y la memoria de 31 GB no fue la restricción. Un modelo más grande no se midió en este host; la modernización está prevista, no es de este ciclo.
 **Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md` (host y RAM); issue #119.
 
 **P: ¿Alcanza la latencia para el volumen de la SEU?**
-**R:** El volumen informado es de unas 12 publicaciones mensuales; el informe proyecta 36 generaciones mensuales y ≈26 minutos de cómputo a p50 con 3b. No es una restricción de capacidad. El problema no es el volumen: es la conformidad de contenido y el timeout en el host.
+**R:** El volumen informado es de unas 12 publicaciones mensuales. La capacidad no es la restricción: el cuello es la conformidad de contenido, el gate y el timeout en el host.
 **Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; `Documentos/PoC/Definiciones-SEU-Operacion-Agente-1-2026-08-26.md` (volumen de referencia).
 
 **P: ¿Cuánto cuesta?**
@@ -347,12 +353,12 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 ## 11. HU-011 y posts en el servidor
 
 **P: ¿Qué pasa con HU-011 y los posts en el servidor?**
-**R:** Con el código vigente, el 3b no resuelve posts en redacción libre. El 8b resuelve Instagram (12/12 en capacidad) pero no LinkedIn (0/12) y necesita timeout de 90 a 120 s. La decisión de modelo y de alcance está abierta en #51, y cualquier cambio de alcance pasa por Dirección.
-**Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; issue #51 (comentarios del 19/10); issue #128 (*Not yet specified*).
+**R:** Con `gemma4:e4b`, la validación final dio 44/48 en gacetilla+posts (91,7 %), 48/48 revalidado; Instagram se muestra y LinkedIn queda como límite declarado por el gate. La decisión de alcance sigue con Dirección. No se cambia de modelo en vivo.
+**Evidencia:** issue #51 (resolución del 20/10); issue #128 (*Not yet specified*).
 
 **P: ¿Por qué Instagram sí y LinkedIn no?**
-**R:** Con 8b, Instagram dio 6/6 en cada una de las dos corridas; LinkedIn dio 0/6 en ambas, siempre por el mismo código: `source_fact_in_creative_field`. Con 3b, el rechazo dominante es `non_rioplatense_register`. No es un problema de infraestructura: es el modelo y el contrato.
-**Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`.
+**R:** Con `gemma4:e4b`, Instagram se muestra; LinkedIn sigue como límite declarado: el gate lo rechaza y se muestra como la garantía funcionando. No es un problema de infraestructura: es el contrato y el alcance.
+**Evidencia:** issue #51 (resolución del 20/10); `Documentos/Presentacion/Deck-Avance-2026-10-21.md`.
 
 **P: ¿Por qué 90 a 120 s si la llamada más lenta fue 88 s?**
 **R:** Porque 88 s es el máximo medido, no el peor caso de cualquier prompt. El rango de 90 a 120 s deja margen sobre ese máximo. Después del corte, para cubrir 1024 tokens de salida, el default se llevó a 180 s y el tope a 300 s; el número sale del log de Ollama, no de una estimación.
@@ -362,17 +368,17 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **R:** El mecanismo cubre siete tipos, pero cuáles entran al PPS lo decide #106, que sigue abierto. La prioridad de la SEU del 19/10 puso difusión de actividades y efemérides arriba; avisos de otras áreas, convocatorias y fallecimientos quedaron abajo. No está decidido que todos se implementen.
 **Evidencia:** `docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md`; `Implementacion/Agente1/evidencias/set-evaluacion-gacetillas-fie-informa-2026-10-14.md`; issue #106.
 
-**P: ¿Se puede usar 3b para gacetillas y 8b para Instagram?**
-**R:** Es una opción con sustento en los datos: 3b para gacetillas y 8b para Instagram. No está decidida. La decisión de modelo y de alcance está en #51, y el 8b obliga a subir el timeout y a aceptar más latencia.
-**Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; issue #51.
+**P: ¿Un solo modelo o uno por HU?**
+**R:** Uno solo: `gemma4:e4b` para todas las HU. La comparación 3b/8b quedó como línea base; #51 cerró el 20/10 con un modelo único y una configuración congelada.
+**Evidencia:** issue #51 (resolución del 20/10).
 
 **P: ¿HU-011 se delega o sale del MVP?**
-**R:** No está decidido. El banco no decide alcance. La pregunta abierta es de #51 y del mapa padre; cualquier cambio de alcance pasa por Dirección. Lo único que se puede decir hoy es el estado medido: 3b no resuelve redacción libre y 8b no resuelve LinkedIn.
-**Evidencia:** issue #51 (comentario del 19/10); issue #128 (*Not yet specified*); `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`.
+**R:** LinkedIn queda como límite declarado; la decisión de alcance sigue con Dirección y el banco no la decide. Instagram se muestra con `gemma4:e4b`; no se cambia de modelo en vivo.
+**Evidencia:** issue #51 (resolución del 20/10); issue #128 (*Not yet specified*).
 
 **P: ¿Qué se muestra el 21/10 con posts?**
-**R:** El orden de la demo es gacetilla, después HU-014 y después HU-012 si llegan. Los posts no son parte del guion principal. Si hay tiempo y la decisión de #51 lo permite, se puede mostrar Instagram con 8b; no conviene prometerlo.
-**Evidencia:** issue #128 (Destination y ventanas); issue #133 (orden del deck); issue #51.
+**R:** El guion principal es gacetilla, después HU-014 y después HU-012. Los posts no son parte del guion principal; si hay tiempo y el acceso lo permite, se muestra Instagram con `gemma4:e4b`. LinkedIn no. Si falta Sheets/Docs, el Plan B es HU-014 y HU-012 offline más la evidencia de la gacetilla.
+**Evidencia:** issue #128 (Destination y ventanas); `Documentos/Presentacion/Checklist-Miercoles-2026-10-21.md`.
 
 ---
 
@@ -423,7 +429,7 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Documentos/PoC/Plan-Recuperacion-MVP-Agente-1-2026-08-17.md`; `Contenido/Definicion/criterios-evaluacion-cicerchia.md`; `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`.
 
 **P: ¿HU-010 y HU-011 cumplen su DoD?**
-**R:** HU-010 tiene 12/12 en gacetillas con 3b en el servidor y recorridos offline; HU-011 no alcanza conformidad en redacción libre y LinkedIn no lo resuelve ninguno de los dos modelos. El DoD incluye validación SEU, que no está registrada. Por eso no declaro ninguna de las dos cerrada.
+**R:** HU-010 tiene 12/12 con 3b y la validación final de `gemma4:e4b` dio 44/48 en gacetilla+posts; LinkedIn sigue como límite declarado. El DoD incluye validación SEU, que no está registrada. Por eso no declaro ninguna de las dos cerrada.
 **Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; `Implementacion/Agente1/evidencias/checklist-validacion-humana-hu010.md`; `Contenido/Definicion/criterios-evaluacion-cicerchia.md` (DoD).
 
 **P: ¿Dónde está la evidencia?**
@@ -478,8 +484,8 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **R:** Puede producir una intención válida o un rechazo, pero no una instrucción nueva. La defensa no es adivinar la intención del atacante: es no darle al texto libre el poder de cambiar el comportamiento. Si la intención es válida, todavía quedan el gate y la validación humana.
 **Evidencia:** `docs/adr/0001-entrada-no-confiable-y-catalogo-cerrado-de-intenciones.md`; `Documentos/Laboratorio/Anexo3-Seguridad-Proyeccion-v1.md`.
 
-**P: ¿Por qué debería confiar en un modelo de 3B para comunicación institucional?**
-**R:** No le pediría confianza al modelo. Le pediría confianza al proceso: hechos de la fuente, forma declarada, gate, borrador y revisión humana. El 3B pasa el gate en gacetillas en la medición; no alcanza para posts en redacción libre, y eso se dice.
+**P: ¿Por qué debería confiar en un modelo de 4B para comunicación institucional?**
+**R:** No le pediría confianza al modelo. Le pediría confianza al proceso: hechos de la fuente, forma declarada, gate, borrador y revisión humana. `gemma4:e4b` pasa el gate en gacetillas y en la validación final; LinkedIn sigue como límite declarado, y eso se dice.
 **Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; `docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md`.
 
 ---

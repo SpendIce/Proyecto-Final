@@ -53,7 +53,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 - Tres piezas: el estado del plan, la arquitectura compartida y una corrida en vivo en el servidor de la facultad.
 - 01 · El Gantt semanal. Cómo va el plan: 47 tareas e hitos, 27 con `done` y 20 sin marcar. Corte 19/10/2026.
 - 02 · La arquitectura P100 en tres capas. Lo compartido hoy, lo proyectado con condición de entrada y la frontera del Agente 1.
-- 03 · La demo en vivo. En `labredesfie`, operado desde la facultad: gacetilla, certificados y confirmaciones.
+- 03 · La demo en el servidor. En `labredesfie`, operado desde la facultad: gacetilla, certificados y confirmaciones.
 
 **Notas de orador**
 
@@ -72,11 +72,12 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 - 47 tareas e hitos en el plan. 27 con `done`. 20 sin marcar.
 - Barras por sprint: S0 4/4, S1 4/6, S2 3/5, S3 3/5, S4 4/6, S5 3/5, S6 5/6, S7 1/5, Cierre 0/5.
-- Lo que avanzó desde septiembre: contrato Historia Viva rc2 (57/57 contra mock), cuenta de servicio (ADR 0011), certificados con línea descriptiva, medición 3b/8b en el servidor (19/10), anexos 1–3.
+- Lo que avanzó desde septiembre: contrato Historia Viva rc2 (57/57 contra mock), cuenta de servicio (ADR 0011), certificados con línea descriptiva, modelo gemma4:e4b seleccionado (44/48 medido; 48/48 revalidado), anexos 1–3.
 
 **Notas de orador**
 
 - El corte es del lunes 19 a la noche.
+- El modelo elegido es `gemma4:e4b` (Ollama 0.40.6, `think=false`, temperatura 0, `num_predict` 512, timeout 180 s). La validación final dio 44/48 medido y 48/48 revalidado.
 - Los sprints con más avance son S0, S4 y S6: bootstrap, confirmaciones y certificados.
 - Cierre está en cero y S7 tiene sólo m7; el E2E del servidor y la validación institucional siguen pendientes.
 - La franja de abajo es lo que sí avanzó desde septiembre: contrato, identidad, certificados, medición y anexos.
@@ -93,8 +94,8 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 - s1e · m1 · s2d · s4e · s5d · c1: validación SEU de muestras. El paquete está listo desde septiembre; la visita del 19/10 dio definiciones, no revisión de muestras.
 - s3a: servidor y D3. D3 provisional: servidor y carpeta compartida en uso; la unidad institucional sigue pendiente.
-- HU-011 · posts: el 3b no resuelve redacción libre; el 8b resuelve Instagram pero no LinkedIn. La decisión de alcance está abierta.
-- s7c: E2E en el servidor de la demo. Pendiente de versionar la corrida; no se declara sin evidencia.
+- HU-011 · posts: LinkedIn queda como límite declarado; Instagram se muestra con gemma4:e4b. La decisión de alcance sigue con Dirección.
+- s7c: E2E en el servidor de la demo. No se llegó por falta de acceso a Sheets y Docs; si no se restablece, se muestra la evidencia offline.
 - No marcamos lo que no podemos sostener. El detalle está en el informe del Gantt.
 
 **Notas de orador**
@@ -107,9 +108,9 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 **Preguntas probables**
 
-- **¿Qué pasa con los posts?** El 3b no resuelve redacción libre y el 8b resuelve Instagram pero no LinkedIn. La decisión de modelo y alcance está abierta en #51 y cualquier cambio pasa por Dirección. Ver banco §11.
+- **¿Qué pasa con los posts?** LinkedIn queda como límite declarado; Instagram se muestra con gemma4:e4b. La decisión de alcance sigue con Dirección. Ver banco §11.
 - **¿La SEU está bloqueando el proyecto?** No. La SEU todavía no revisó las muestras; el resto del circuito técnico sigue avanzando. Ver banco §9 y §13.
-- **¿Por qué el E2E no está marcado?** Porque la corrida en el servidor todavía no está versionada. Se marca cuando exista la evidencia, no antes.
+- **¿Por qué el E2E no está marcado?** Porque no se llegó a la corrida por falta de acceso a Sheets y Docs. Se marca cuando exista la evidencia, no antes.
 
 ## Lámina 5 · Arquitectura P100 en tres capas
 
@@ -147,7 +148,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 - Pestaña de insumos en D2 (ADR 0008): A3–A5 entregan filas con envelope `agente1.insumo.v1`; A1 las sondea, responde estado y procesa cada `correlation_id` una sola vez. Probado offline; la corrida live está preparada y no ejecutada.
 - Historia Viva `/v1` (rc2): 57/57 escenarios y 39/39 casos contra el mock Prism. La API real se prueba el 27/10; el tag del 30/10 todavía no está congelado.
 - Identidad Workspace (ADR 0011): cuenta de servicio con delegación de dominio, lista cerrada y auditoría por token. El paso live y la baja de la OAuth anterior están en #99.
-- `labredesfie` con Ollama (medición 19/10): Xeon E-2224G, 4 núcleos sin GPU, 31 GB de RAM. Modelos 3b y 8b medidos. Es el host de la demo.
+- `labredesfie` con Ollama (medición 19/10): Xeon E-2224G, 4 núcleos sin GPU, 31 GB de RAM. gemma4:e4b seleccionado, 44/48 medido y 48/48 revalidado. Es el host de la demo.
 - Manifest y auditoría (ADR 0010): 184 archivos controlados al 19/10; si un hash no coincide, el agente no arranca.
 - «Compartido» no significa «productivo en vivo»: cada pieza tiene un límite declarado y verificable.
 
@@ -216,22 +217,22 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 - **¿Quién es responsable de lo que se publica?** Una persona con rol del Proceso 4. El RACI no cambia: RGC valida y COORD aprueba. Ver banco §9.
 - **¿El agente puede publicar solo?** No. No hay ruta de publicación ni de envío sin una persona.
 
-## Lámina 9 · La demo en vivo
+## Lámina 9 · La demo en el servidor
 
 **Texto visible**
 
 - Host: `labredesfie`. Servidor de la facultad, operado desde la facultad. No es localhost.
-- Ollama 0.40.6 en loopback, sin GPU, sin sudo, un solo host y sin respaldo offline.
-- 1 · Gacetilla: Sheets → modelo local → Google Doc marcado `BORRADOR`.
+- Ollama 0.40.6 en loopback, gemma4:e4b, sin GPU, sin sudo, un solo host y sin respaldo offline.
+- 1 · Gacetilla: Sheets → gemma4:e4b → Google Doc marcado `BORRADOR`.
 - 2 · HU-014 · certificados: dos aprobaciones de línea y del lote → PDF de prueba `SIN VALIDEZ`.
 - 3 · HU-012 · confirmaciones: correo simulado con marca `BORRADOR — NO ENVIAR`.
-- Corte a los 45 minutos: si sólo entra la gacetilla, es un resultado válido. Si algo falla, se muestra la evidencia de la mañana y no se depura en clase.
+- **Plan A:** gacetilla live → HU-014 → HU-012. **Plan B** si falta Sheets/Docs: HU-014 y HU-012 offline + evidencia de la gacetilla. Corte a los 45 min.
 
 **Notas de orador**
 
 - La demo corre en el servidor de la facultad. No es localhost y no hay respaldo offline: el riesgo R-TEC-03 está aceptado con esa condición.
-- El orden es gacetilla, certificados y confirmaciones. La gacetilla es el flujo completo de comunicación.
-- En la gacetilla miren tres cosas: lee la planilla, genera con el modelo local y deja el documento marcado como borrador.
+- Plan A: gacetilla, certificados y confirmaciones. Si falta el acceso a Sheets/Docs, Plan B: certificados y confirmaciones offline, y la evidencia de la gacetilla. La gacetilla es el flujo completo de comunicación.
+- En la gacetilla miren tres cosas: lee la planilla, genera con `gemma4:e4b` y deja el documento marcado como borrador. No se cambia de modelo en vivo.
 - En HU-014 miren el gate: sin las dos aprobaciones de línea y la del lote no hay PDF. El certificado es de prueba y dice `SIN VALIDEZ`.
 - En HU-012 miren el correo simulado: sale marcado `BORRADOR — NO ENVIAR` y no se envía nada real.
 - Si el reloj aprieta, cortamos a los 45 minutos. Que sólo entre la gacetilla es un resultado válido, no una falla.
@@ -246,7 +247,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 **Texto visible**
 
-- Límites: validación SEU pendiente (revisión de muestras); un solo host, sin respaldo offline (R-TEC-03); contrato `/v1` en rc2, API real el 27/10; posts con decisión de alcance abierta; el sistema no está en producción.
+- Límites: validación SEU pendiente (revisión de muestras); un solo host, sin respaldo offline (R-TEC-03); contrato `/v1` en rc2, API real el 27/10; LinkedIn como límite declarado; acceso a Sheets y Docs pendiente para el E2E live; el sistema no está en producción.
 - Hitos: 23/10 anexos al laboratorio; 27/10 prueba con la API real de Historia Viva; 2–6/11 revisión de laboratorio; 18/11 presentación de cursada.
 - Los hitos no dependen sólo del código. La API real es de Historia Viva, la revisión es del laboratorio y la validación es de la SEU.
 
@@ -255,7 +256,8 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 - Los límites no son un descargo: son las condiciones con las que el sistema se puede usar hoy.
 - La validación de la SEU es el límite más importante: sin muestras revisadas no se puede declarar el DoD de las historias.
 - El contrato está en rc2 y la API real se prueba el 27/10. Hasta entonces, la interoperabilidad está probada contra mock.
-- Los posts dependen de la decisión de #51: el 3b no resuelve redacción libre y el 8b no resuelve LinkedIn.
+- El acceso a Sheets y Docs es el bloqueante del E2E live: si no se restablece, se muestra la evidencia offline y se declara el límite.
+- Los posts: LinkedIn queda como límite declarado; Instagram se muestra con gemma4:e4b. La decisión de alcance sigue con Dirección.
 - Los cuatro hitos ordenan el resto del año. Tres de ellos dependen de una contraparte, no sólo del equipo.
 
 **Preguntas probables**

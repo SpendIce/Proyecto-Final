@@ -562,7 +562,7 @@ h1 span{color:var(--azul-16)}
     </div>
     <div class="bloque">
       <div class="bn">03</div>
-      <h3>La demo en vivo</h3>
+      <h3>La demo en el servidor</h3>
       <p>En <code>labredesfie</code>, operado desde la facultad: gacetilla, certificados y confirmaciones, en ese orden.</p>
       <div class="det">No es localhost · sin respaldo offline</div>
     </div>
@@ -601,12 +601,12 @@ h1 span{color:var(--azul-16)}
   </div>
 
   <div class="franja">
-    <div class="fh"><b>Lo que avanzó desde septiembre</b><span>Evidencia versionada al 19/10</span></div>
+    <div class="fh"><b>Lo que avanzó desde septiembre</b><span>Evidencia versionada al 20/10</span></div>
     <ul>
       <li><b>Contrato Historia Viva</b>rc2 · 57/57 contra mock</li>
       <li><b>Cuenta de servicio</b>ADR 0011 · delegación y auditoría</li>
       <li><b>Certificados</b>línea descriptiva</li>
-      <li><b>Servidor</b>medición 3b/8b · 19/10</li>
+      <li><b>Modelo</b>gemma4:e4b · 44/48</li>
       <li><b>Anexos 1–3</b>al laboratorio</li>
     </ul>
   </div>
@@ -635,12 +635,12 @@ h1 span{color:var(--azul-16)}
     <div class="fila">
       <span class="ids">HU-011 · posts</span>
       <span class="tema">Redacción libre y LinkedIn</span>
-      <span class="por">El 3b no resuelve redacción libre; el 8b resuelve Instagram pero no LinkedIn. La decisión de alcance está abierta.</span>
+      <span class="por">LinkedIn queda como límite declarado; Instagram se muestra con gemma4:e4b. La decisión de alcance sigue con Dirección.</span>
     </div>
     <div class="fila">
       <span class="ids">s7c</span>
       <span class="tema">E2E en el servidor de la demo</span>
-      <span class="por">Pendiente de versionar la corrida; no se declara sin evidencia.</span>
+      <span class="por">No se llegó al E2E por falta de acceso a Sheets y Docs; si no se restablece, se muestra la evidencia offline.</span>
     </div>
   </div>
 
@@ -685,7 +685,7 @@ h1 span{color:var(--azul-16)}
             <div class="nodo"><b>D2 · Insumos</b><span>bus de entrada de A1<br>ADR 0008</span></div>
             <div class="nodo"><b>Historia Viva</b><span>contrato /v1 rc2<br>mock 57/57</span></div>
             <div class="nodo"><b>Cuenta de servicio</b><span>lista cerrada<br>ADR 0011</span></div>
-            <div class="nodo"><b>labredesfie</b><span>Ollama · host de la demo<br>medición 19/10</span></div>
+            <div class="nodo"><b>labredesfie</b><span>Ollama · host de la demo<br>gemma4:e4b</span></div>
             <div class="nodo"><b>Manifest</b><span>auditoría fail-closed<br>ADR 0010</span></div>
           </div>
         </div>
@@ -759,9 +759,9 @@ h1 span{color:var(--azul-16)}
       <div class="pie">Verificado offline; el paso live contra Google y la baja de la OAuth anterior están en #99.</div>
     </div>
     <div class="card c2">
-      <div class="tag">Medición 19/10</div>
+      <div class="tag">Selección 20/10</div>
       <h3><code>labredesfie</code> con Ollama</h3>
-      <p>Xeon E-2224G, 4 núcleos sin GPU, 31 GB de RAM. Ollama 0.40.6 en loopback; modelos 3b y 8b medidos con el código vigente. Es el host de la demo.</p>
+      <p>Xeon E-2224G, 4 núcleos sin GPU, 31 GB de RAM. Ollama 0.40.6 en loopback; gemma4:e4b seleccionado, 44/48 medido y 48/48 revalidado. Es el host de la demo.</p>
       <div class="pie">Hoy sólo corre A1: no hay servicio del sistema ni procesos que se levanten solos tras un reinicio.</div>
     </div>
     <div class="card c2">
@@ -877,10 +877,10 @@ h1 span{color:var(--azul-16)}
 <!-- ================== 09 · DEMO ================== -->
 <section class="slide">
   <div class="cab">
-    <div class="kicker">03 · Demo en vivo · servidor de la facultad</div>
+    <div class="kicker">03 · Demo en el servidor · facultad</div>
     <div class="num">09 / 11</div>
   </div>
-  <h2>La demo en vivo</h2>
+  <h2>La demo en el servidor</h2>
 
   <div class="demo">
     <div class="servidor">
@@ -888,7 +888,7 @@ h1 span{color:var(--azul-16)}
       <div class="host">labredesfie</div>
       <p>Servidor de la facultad, operado desde la facultad. No es localhost: la cátedra no admite que la demo corra en la laptop.</p>
       <div class="datos">
-        <b>Ollama 0.40.6</b> en loopback<br>
+        <b>Ollama 0.40.6</b> · <b>gemma4:e4b</b><br>
         <b>Sin GPU · sin sudo</b><br>
         <b>Un solo host</b>, sin respaldo offline
       </div>
@@ -900,7 +900,7 @@ h1 span{color:var(--azul-16)}
           <div class="pn">1</div>
           <div>
             <h3>Gacetilla</h3>
-            <p>Sheets → modelo local → Google Doc marcado <code>BORRADOR</code>.</p>
+            <p>Sheets → gemma4:e4b → Google Doc marcado <code>BORRADOR</code>.</p>
           </div>
         </div>
         <div class="paso-demo">
@@ -921,7 +921,7 @@ h1 span{color:var(--azul-16)}
 
       <div class="corte">
         <div class="min">Corte · 45 min</div>
-        <p>Si sólo entra la gacetilla, es un resultado válido. Si algo falla, se muestra la evidencia de la mañana y no se depura en clase.</p>
+        <p><b>Plan A:</b> gacetilla live → HU-014 → HU-012. <b>Plan B</b> si falta Sheets/Docs: HU-014 y HU-012 offline + evidencia de la gacetilla. Corte a los 45 min.</p>
       </div>
     </div>
   </div>
@@ -942,7 +942,8 @@ h1 span{color:var(--azul-16)}
         <li><b>Validación SEU pendiente.</b> Revisión de las muestras generadas.</li>
         <li><b>Un solo host, sin respaldo offline</b> (R-TEC-03).</li>
         <li><b>Contrato <code>/v1</code> en rc2.</b> La API real se prueba el 27/10.</li>
-        <li><b>Posts: decisión abierta.</b> El 3b no resuelve redacción libre; el 8b resuelve Instagram, no LinkedIn.</li>
+        <li><b>Posts: LinkedIn como límite declarado.</b> La decisión de alcance sigue con Dirección.</li>
+        <li><b>Acceso a Sheets y Docs pendiente</b> para el E2E live.</li>
         <li><b>El sistema no está en producción.</b></li>
       </ul>
     </div>

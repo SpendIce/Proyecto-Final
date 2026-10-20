@@ -251,6 +251,17 @@ Es un resultado válido, no una falla. Se muestra la gacetilla y se dice:
 
 No se inventa una corrida ni se muestra una salida vieja como si fuera de hoy.
 
+### Si falta el acceso a Sheets y Docs
+
+No se insiste ni se pide permiso en caliente. Se pasa al **Plan B**:
+
+1. Correr HU-014 y HU-012 offline en el servidor, en ese orden.
+2. Mostrar la evidencia de la gacetilla: `corrida.json` y el borrador de la mañana.
+3. Decir que el E2E live quedó pendiente por acceso a Sheets/Docs, no por el agente ni por el modelo.
+4. No mostrar una salida vieja como si fuera de hoy.
+
+La gacetilla offline en el servidor sirve para mostrar el pipeline, pero no acredita Workspace live.
+
 ### Si la gacetilla live falla
 
 1. No depurar frente a la clase.
