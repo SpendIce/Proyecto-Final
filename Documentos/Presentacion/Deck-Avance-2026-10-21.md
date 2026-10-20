@@ -51,7 +51,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 **Texto visible**
 
 - Tres piezas: el estado del plan, la arquitectura compartida y una corrida en vivo en el servidor de la facultad.
-- 01 · El Gantt semanal. Cómo va el plan: 47 tareas e hitos, 23 con `done` y 24 sin marcar. Corte 19/10/2026.
+- 01 · El Gantt semanal. Cómo va el plan: 47 tareas e hitos, 26 con `done` y 21 sin marcar. Corte 19/10/2026.
 - 02 · La arquitectura P100 en tres capas. Lo compartido hoy, lo proyectado con condición de entrada y la frontera del Agente 1.
 - 03 · La demo en vivo. En `labredesfie`, operado desde la facultad: gacetilla, certificados y confirmaciones.
 
@@ -70,8 +70,8 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 **Texto visible**
 
-- 47 tareas e hitos en el plan. 23 con `done`. 24 sin marcar.
-- Barras por sprint: S0 4/4, S1 3/6, S2 3/5, S3 2/5, S4 4/6, S5 2/5, S6 5/6, S7 0/5, Cierre 0/5.
+- 47 tareas e hitos en el plan. 26 con `done`. 21 sin marcar.
+- Barras por sprint: S0 4/4, S1 4/6, S2 3/5, S3 3/5, S4 4/6, S5 3/5, S6 5/6, S7 0/5, Cierre 0/5.
 - Lo que avanzó desde septiembre: contrato Historia Viva rc2 (57/57 contra mock), cuenta de servicio (ADR 0011), certificados con línea descriptiva, medición 3b/8b en el servidor (19/10), anexos 1–3.
 
 **Notas de orador**
@@ -91,8 +91,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 **Texto visible**
 
-- s1e · s2d · s3b · s4e · s5d · c1: validación SEU de muestras. El paquete está listo desde septiembre; la visita del 19/10 dio definiciones, no revisión de muestras.
-- s1c · m1: forma FIE INFORMA y muestras. La forma sale del corpus FIE INFORMA; falta la revisión de las muestras y el archivo de plantilla en Docs sigue siendo sintético.
+- s1e · m1 · s2d · s4e · s5d · c1: validación SEU de muestras. El paquete está listo desde septiembre; la visita del 19/10 dio definiciones, no revisión de muestras.
 - s3a: servidor y D3. D3 provisional: servidor y carpeta compartida en uso; la unidad institucional sigue pendiente.
 - HU-011 · posts: el 3b no resuelve redacción libre; el 8b resuelve Instagram pero no LinkedIn. La decisión de alcance está abierta.
 - s7c · m7: E2E en el servidor de la demo. Pendiente de versionar la corrida; no se declara sin evidencia.
@@ -100,11 +99,10 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 **Notas de orador**
 
-- No voy a recorrer las 24 tareas sin marcar. Hay cinco frentes que explican casi todo.
+- No voy a recorrer las 21 tareas sin marcar. Hay cuatro frentes que explican casi todo.
 - El primero es la validación de la SEU: el paquete de muestras está listo desde septiembre y la visita del 19/10 aportó definiciones, no revisión.
-- El segundo es la forma FIE INFORMA: la referencia está aprobada; falta la revisión de las muestras y el archivo de plantilla en Docs sigue siendo sintético.
-- El tercero es el servidor y D3: el servidor ya corre como host de cómputo sobre D2; D3 como ambiente completo sigue abierto.
-- Posts y E2E tienen estado propio: la decisión de modelo y alcance está en #51, y el E2E se acredita con la corrida en el servidor.
+- El segundo es el servidor y D3: el servidor ya corre como host de cómputo sobre D2; D3 como ambiente completo sigue abierto.
+- El tercero son los posts y el E2E: la decisión de modelo y alcance está en #51, y el E2E se acredita con la corrida en el servidor.
 - La frase que resume la lámina: no marco lo que no puedo sostener con un archivo, un issue o una corrida.
 
 **Preguntas probables**

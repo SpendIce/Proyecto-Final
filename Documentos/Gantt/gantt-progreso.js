@@ -32,9 +32,10 @@ window.GANTT_PROGRESS = {
   // Agente 1 (run 39302694001 del 2026-10-19: 1 failed, 2284 passed, 5
   // skipped, en rojo); el Registro de Defectos; y la visita a la SEU del
   // 2026-10-19 (actas y cierre en Documentos/Reuniones/SEU-2026-10-19/,
-  // todavia fuera de Git al corte). Este corte NO agrega tareas nuevas a
-  // done: las 24 que siguen abiertas estan explicadas abajo y en
-  // Revision-Avance-2026-10-19.md.
+  // todavia fuera de Git al corte). El 20/10 se suman s1c, s3b y s5a con la
+  // evidencia de la forma FIE INFORMA, los roles/criterios del 22/09 y el
+  // canal Form con correo verificado. Quedan 21 tareas abiertas, explicadas
+  // abajo y en Revision-Avance-2026-10-19.md.
 
   "s0a": { done: true, at: "2026-07-06", nota: "Ollama user-local restaurado, llama3.2:3b descargado (.claude/persistence.md)" },
   "s0b": { done: true, at: "2026-09-28", nota: "Cuenta tecnica dedicada del Agente 1 (institucional DSI/FIE) con OAuth2 verificado en vivo: scopes drive/documents/spreadsheets concedidos y lectura de la carpeta autorizada confirmada. Credencial de hoy: token efimero. El mecanismo definitivo (cuenta de servicio con delegacion, #98) esta implementado offline desde el 14/10; su instalacion en el host y la baja de la OAuth siguen en #99. Evidencia live: notas/workspace-live-d2-2026-09-28.md" },
@@ -43,7 +44,8 @@ window.GANTT_PROGRESS = {
 
   "s1a": { done: true, at: "2026-07-15", nota: "Pipeline de gacetilla offline funcional. Reforzado el 2026-09-08 con la plantilla gacetilla_v3, que decide la linea de lugar por caso y cierra DEF-A1-014" },
   "s1b": { done: true, at: "2026-09-28", nota: "Adapter de Sheets verificado live: lectura real de la planilla sintetica D2 por API (lectura_confirmada) y consumo dentro del E2E. Negativos live: source_request_not_found y workspace_auth_unavailable sin tocar red. Evidencia: notas/workspace-live-d2-2026-09-28.md" },
-  "s1d": { done: true, at: "2026-09-08", nota: "Cinco casos sinteticos ejecutados: tres completos generan borrador y dos incompletos se rechazan sin invocar al modelo (matriz-conformidad-hu010-2026-07-20.md). Reverificado live tras DEF-A1-014: 6/6 borradores en dos intentos, identicos byte a byte, mas cuatro casos negativos de lugar. Regresion en test_matriz_hu010.py. No incluye validacion SEU (s1e) ni Workspace live (s1b, s1c)" },
+  "s1d": { done: true, at: "2026-09-08", nota: "Cinco casos sinteticos ejecutados: tres completos generan borrador y dos incompletos se rechazan sin invocar al modelo (matriz-conformidad-hu010-2026-07-20.md). Reverificado live tras DEF-A1-014: 6/6 borradores en dos intentos, identicos byte a byte, mas cuatro casos negativos de lugar. Regresion en test_matriz_hu010.py. No incluye la validacion SEU (s1e)" },
+  "s1c": { done: true, at: "2026-10-19", nota: "Forma FIE INFORMA aprobada como referencia de formato y estructura (Brief SEU 19/10); la salida a Docs corrio live el 28/09. El archivo de plantilla en Docs usado en esa corrida es sintetico; la revision de las muestras generadas es s1e" },
 
   "s2a": { done: true, at: "2026-08-07", nota: "Contrato/politicas de canal offline resueltas en 537402a (DEF-A1-004 RESUELTO_TECNICO)" },
   "s2b": { done: true, at: "2026-08-12", nota: "Prototipo de post offline resuelto en 537402a (DEF-A1-004 RESUELTO_TECNICO)" },
@@ -51,13 +53,15 @@ window.GANTT_PROGRESS = {
 
   "s3c": { done: true, at: "2026-08-26", nota: "Spike PostgreSQL cerrado tecnicamente: migraciones 0001-0003, timestamps futuros rechazados, rollback a cero tablas y forward final en PostgreSQL 16 efimero. Medicion registrada el 26/08; la regresion integral vigente al corte 2026-09-08 es de 588 pruebas verdes. No hay adapter ni integracion operativa" },
   "s3d": { done: true, at: "2026-08-26", nota: "Logging seguro con correlation ID, hashes, versiones y controles D2/D3 verificado en la regresion local; no incluye secretos ni acceso Workspace live" },
+  "s3b": { done: true, at: "2026-09-22", nota: "Roles nominales y criterios por canal confirmados en el acta del 22/09 (semantica: Juan Manuel; utilitaria y firma final: Sebastian Moreira, luego delegacion a Juan Manuel o Josefina, #125). La revision de las muestras es s1e/s2d" },
 
   "s4a": { done: true, at: "2026-08-26", nota: "Contrato, modelo de datos y puerto local de confirmacion implementados en HU-012; no hay endpoint ni trigger institucional live" },
   "s4b": { done: true, at: "2026-09-08", nota: "Idempotencia y transiciones atomicas verificadas primero en memoria (26/08) y luego de forma durable (issue #9): RegistroConfirmacionesArchivo conserva estado en disco y reconciliar_envios_reservados cierra reservas colgadas hacia ENVIO_INDETERMINADO sin volver a entregar. 18 pruebas nuevas, dos de concurrencia" },
   "s4c": { done: true, at: "2026-08-26", nota: "Plantilla provisional y puerto de entrega fake verificados. Gmail quedo habilitado con lista de prueba (#40/#41); el modo produccion existe desde #141 pero no esta habilitado. La plantilla institucional sigue BLOQUEADO_EXTERNO (DEF-A1-002)" },
 
-  "s5b": { done: true, at: "2026-09-09", nota: "Modulo agente1/interpretacion.py: clasificacion deterministica contra catalogo cerrado (intenciones_v1), resolucion difusa de actividad sobre el indice de enumerar(), repregunta con candidatas y estado entre turnos, y fallback con LLM local cuyo presupuesto se deriva del contrato y se aplica fail-closed. Sin LangGraph y sin dependencias de runtime. Ocho tickets (#19-#26), suite 588 -> 749. No incluye s5a (autenticacion) ni la validacion SEU" },
+  "s5b": { done: true, at: "2026-09-09", nota: "Modulo agente1/interpretacion.py: clasificacion deterministica contra catalogo cerrado (intenciones_v1), resolucion difusa de actividad sobre el indice de enumerar(), repregunta con candidatas y estado entre turnos, y fallback con LLM local cuyo presupuesto se deriva del contrato y se aplica fail-closed. Sin LangGraph y sin dependencias de runtime. Ocho tickets (#19-#26), suite 588 -> 749. No incluye la validacion SEU" },
   "s5c": { done: true, at: "2026-09-09", nota: "Tarea reformulada el 2026-09-21: el plan original decia 'persistir transcript' y contradecia la spec de HU-013 (#18), que prohibe conservar la prosa escrita por las personas. Lo implementado es el fallback fuera de alcance (#26) mas la persistencia del solo derivado estructurado: la pendiente de repregunta guarda orden, id, titulo y fecha de cada candidata, la intencion y el vencimiento (#25), con una prueba que falla si aparece prosa. Hecho en el mismo corte que s5b" },
+  "s5a": { done: true, at: "2026-10-20", nota: "El canal es el Form de pedidos con correo verificado por Google y rol por padron externo (ADR 0005), no un chat. El .mmd conserva el nombre legado 'Chat interno'; el anteproyecto y CONTEXT.md declaran que el Agente 1 no es un chatbot. El padron queda provisional hasta confirmacion de la SEU" },
 
   "s4d": { done: true, at: "2026-09-21", nota: "Cola de envio propia sin Celery/Redis (merge feature/s4d-envio-asincrono): estado ENVIO_ENCOLADO tras la doble aprobacion, ColaEnviosMemoria y ColaEnviosArchivo con encolado idempotente y orden FIFO, worker drenar_envios con un intento por item por corrida y presupuesto de reintentos (3) hacia FALLIDA. Sigue sin broker; el destino de prueba es el fake y el adapter Gmail existe con lista de prueba. Desde #141 tiene modo produccion opt-in. 28 pruebas nuevas" },
 
@@ -70,16 +74,10 @@ window.GANTT_PROGRESS = {
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
   //
-  // s1c  - la forma de la gacetilla de difusion sale del corpus FIE INFORMA,
-  //        que la SEU reconoce como referencia aprobada de formato y
-  //        estructura. La copia de plantilla y el volcado en Docs corrieron
-  //        live el 28/09, pero el archivo de plantilla en Docs usado en esa
-  //        corrida es sintetico y falta la revision de las muestras
-  //        generadas (DEF-A1-005).
   // s1e  - validacion SEU de gacetillas: BLOQUEADO_EXTERNO (DEF-A1-005). Paquete de nueve muestras listo, acta pendiente. La visita del 19/10 no reviso muestras ni hubo Juan Manuel; JOS-P5 sigue pendiente.
   // m1   - el DoD de HU-010 incluye Sheets, Docs, plantilla y validacion
-  //        humana: Sheets y Docs ya corrieron live el 28/09; al 19/10 quedan
-  //        abiertas la plantilla institucional (s1c) y la validacion SEU (s1e).
+  //        humana: Sheets, Docs y la forma FIE INFORMA estan; falta la
+  //        validacion SEU de las muestras (s1e).
   // s2d  - validacion SEU de posts y criterios definitivos por canal: la mitad
   //        tecnica se hizo el 22/09 — la SEU confirmo los criterios por canal
   //        (acta) y se implementaron el mismo dia (politica v1 con 17 reglas
@@ -105,14 +103,7 @@ window.GANTT_PROGRESS = {
   //        trabajo se usa como plano de archivos: eso se declara D3
   //        provisional. La unidad institucional de D3 (#100), el aval formal
   //        y el host institucional siguen abiertos (#63/#64, #119).
-  // s3b  - SEU designo revisor titular/suplente y se documento el circuito; el
-  //        22/09 quedaron confirmados los roles nominales (semantica: Juan
-  //        Manuel; utilitaria y firma final: Sebastian Moreira, Secretario de
-  //        Extension). Falta la revision de las muestras (asincronica en
-  //        curso). El 19/10 no se revisaron muestras; la aprobacion de
-  //        contenido paso a una sola persona (Juan Manuel o Josefina, por
-  //        delegacion de Moreira), cambio registrado en #125.
-  // m3   - depende de s3a y s3b; al 19/10 ninguno de los dos esta completo.
+  // m3   - depende de s3a; s3b esta completo desde el 22/09.
   // m6   - "HU-014 operativa con DoD": el slice offline esta hecho (s6a-s6e),
   //        pero el DoD exige plantilla institucional de la SEU y validacion
   //        humana real. El 19/10 llego la plantilla de aprobacion (ficha de
@@ -136,7 +127,7 @@ window.GANTT_PROGRESS = {
   //
   // Sprint 5 (HU-013) arranca el 2026-09-15. El diseno esta cerrado y
   // especificado (issue #18 con ocho tickets, #19 a #26). Al corte del
-  // 2026-10-19 estan marcadas s5b y s5c; s5a, s5d y m5 siguen sin marca.
+  // 2026-10-19 estan marcadas s5a, s5b y s5c; s5d y m5 siguen sin marca.
   // Avance por ticket al 2026-09-09:
   //
   //   #19 CERRADO  - enumerar actividades desde el puerto de fuente. Prefactor
@@ -191,21 +182,11 @@ window.GANTT_PROGRESS = {
   //                  Con este ticket s5b queda completa y se marca arriba.
   //                  Suite 702 -> 749.
   //
-  // Con #26 cerrado, HU-013 tiene sus ocho tickets integrados. De las cuatro
-  // tareas del sprint 5 quedan marcadas s5b y s5c; s5c se reformulo el
-  // 2026-09-21 porque el plan original ("persistir transcript") contradecia
-  // la spec de HU-013, y la tarea del .mmd quedo reescrita acorde. Las otras
-  // dos NO se marcan, porque no se completan con mas codigo:
+  // Con #26 cerrado, HU-013 tiene sus ocho tickets integrados. Quedan
+  // marcadas s5a, s5b y s5c; s5c se reformulo el 2026-09-21 porque el plan
+  // original ("persistir transcript") contradecia la spec de HU-013. s5d
+  // sigue sin marca porque la prueba guiada con la SEU no se hizo:
   //
-  // s5a  - "Chat interno con autenticacion de personal SEU". El Form de
-  //        pedidos restringido al dominio verifica el correo con Google y
-  //        asigna el rol por el padron externo (ADR 0005); el nucleo audita
-  //        identidad_verificada: false porque la verificacion la hace el
-  //        canal, no el nucleo. Lo que falta no es un SSO ni un login propio:
-  //        es que la SEU mantenga y confirme el padron de correos y roles, y
-  //        decidir si el canal interno usa el Form. La tarea del cronograma
-  //        pide un chat interno; el Form no es un chat, por eso sigue sin
-  //        marcar.
   // s5d  - renombrada el 2026-09-21 a "Regresion de solicitudes y prueba
   //        guiada de usabilidad con SEU". La mitad automatizable ya existe:
   //        las solicitudes validas y las fuera de alcance tienen cobertura de
@@ -214,10 +195,10 @@ window.GANTT_PROGRESS = {
   //        pero la prueba no se hizo: JOS-P4 sigue pendiente y no hay fecha
   //        nueva. El recorrido quedo documentado en #24
   //        (evidencias/recorrido-prueba-guiada-canal-planilla.md).
-  // m5   - "HU-013 operativa con DoD": depende de s5a y s5d; al 19/10 ambas
-  //        siguen abiertas.
+  // m5   - "HU-013 operativa con DoD": depende de s5d; s5a esta completo
+  //        con el canal Form y la identidad por correo verificado.
   //
-  // Sprint 7 y cierre: al 2026-10-19 ninguna tarea esta completa.
+  // Sprint 7 y cierre: al 2026-10-19 no hay tareas completas; el 20/10 se suma m7.
   //
   // s7a  - contratos y mocks con A3-A5 y puerto A2 con fakes; el contrato
   //        con Historia Viva (#17) sigue abierto, asi que no cubre A2-A5
