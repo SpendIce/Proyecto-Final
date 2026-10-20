@@ -137,22 +137,30 @@ tmux new -s ollama 'export OLLAMA_HOST=127.0.0.1:11434; <binario-de-0406> serve'
 No se actualiza Ollama. La versión se congela con el modelo: 0.40.6 es la de
 la medición y la que el runner espera por defecto.
 
-Precargar el modelo de la gacetilla (sin sudo, sin descargar nada si ya está):
+Precargar el modelo de la gacetilla (sin sudo, sin descargar nada si ya está).
+#51 decidió `gemma4:e4b` como modelo único del sistema de demostración
+(validación del 20/10: 44/48 medido en gacetillas y posts, 48/48 re-validado
+con DEF-A1-026; HU-014 y HU-012 18/18). Pesa 6,6 GB y la carga en frío es lenta:
+se precarga con `keep_alive` largo para que no se descargue antes de la demo
+(el valor por defecto de Ollama son 5 minutos):
 
 ```bash
-<binario-de-0406> run llama3.2:3b "listo"
+curl -s http://127.0.0.1:11434/api/generate -d '{"model":"gemma4:e4b","keep_alive":"3h"}'
 <binario-de-0406> ps
 ```
 
-`llama3.2:3b` tiene que aparecer cargado. El modelo de la demo **no está
-decidido** (#51): el runner usa `llama3.2:3b` por defecto y no elige por su
-cuenta. Si #51 ya decidió otro, se pasa `--modelo` y se anota en la evidencia.
+`gemma4:e4b` tiene que aparecer cargado. El runner usa `llama3.2:3b` por
+defecto y no elige por su cuenta: **en los pasos 5 y 6 se pasa
+`--modelo gemma4:e4b`**, que queda anotado en `host.txt`. Configuración
+congelada de la medición: sin razonamiento (`gemma4:e4b` no razona si no se
+le pide), temperatura 0, `num_predict` 512, timeout 180 s. Gacetilla medida:
+mediana 45 s, máximo 67 s.
 
 ## 5. 8:00 a 8:10: dry-run (no toca red ni Workspace)
 
 ```bash
 cd ~/p100/Agente1/Implementacion/Agente1
-uv run python scripts/corrida_unica.py --id-solicitud <id-de-la-fila>
+uv run python scripts/corrida_unica.py --id-solicitud <id-de-la-fila> --modelo gemma4:e4b
 ```
 
 El dry-run valida raíz, commit, host, Python, variables, clave (archivo, 600,
@@ -166,7 +174,7 @@ mensaje y se repite. Los códigos de salida están en la tabla de abajo.
 ## 6. 8:10 a 8:55: corrida live, en el orden de la demo
 
 ```bash
-uv run python scripts/corrida_unica.py --live --id-solicitud <id-de-la-fila> --presupuesto-min 45
+uv run python scripts/corrida_unica.py --live --id-solicitud <id-de-la-fila> --presupuesto-min 45 --modelo gemma4:e4b
 ```
 
 Orden interno, que es el de la presentación:
@@ -226,7 +234,7 @@ se revisa antes de compartirla. No se commitea en `main` sin pedido.
 | Preflight | 1 | `PREFLIGHT: ...` con la variable, el permiso o el JSON que falla | Corregir entorno/clave y repetir el dry-run. No seguir a live. | «La configuración del host no está completa; lo arreglo y vuelvo a correr.» |
 | Ollama | 2 | Versión distinta de 0.40.6 o modelo ausente | Levantar el binario de 0.40.6 de `~/ollama`; `ollama pull` sólo si falta el modelo. No actualizar. | «El servidor tiene que usar la versión congelada de la medición; no la cambio en vivo.» |
 | Smoke | 3 | `workspace_auth_unavailable` (puede ser el par, la lista cerrada o la clave) | Revisar el par, los permisos 600 y que la cuenta esté en la lista cerrada. Si Google deniega, no reintentar en caliente. | «La lectura de la planilla no está autorizada; el circuito live queda bloqueado y sigo con lo offline.» |
-| Gacetilla | 4 | `FALLIDA`, `BLOQUEADA_RECONCILIACION` o timeout | No repetir si está bloqueada: reconciliar. Si fue generación, probar el modelo por defecto. | «No se creó otro documento; miro el manifiesto y muestro la evidencia de la mañana.» |
+| Gacetilla | 4 | `FALLIDA`, `BLOQUEADA_RECONCILIACION` o timeout | No repetir si está bloqueada: reconciliar. Si fue generación (el gate rechazó la salida), **no cambiar de modelo en vivo** (#51, Q5): se muestra el rechazo y después la evidencia de la mañana. El runner sugiere probar `llama3.2:3b`: no aplica a esta demo. | «No se creó otro documento; miro el manifiesto y muestro la evidencia de la mañana.» |
 | HU-014 | 5 | `PENDIENTE_APROBACION` inesperado o decisión rechazada | Verificar el rol del padrón y el catálogo; el circuito no emite parcial. | «El gate de aprobación es el que tiene que frenar; el certificado es de prueba y sin validez.» |
 | HU-012 | 6 | El canal no clasifica o el lote no encola | Revisar el CSV sintético y el padrón; el lote es idempotente. | «Los correos son simulados y llevan `BORRADOR — NO ENVIAR`; no sale correo real.» |
 | Presupuesto | 7 | `CORTE_PRESUPUESTO` con la lista de pasos pendientes | Nada: es el corte previsto. | «Cortamos acá para no comernos la clase; lo que sigue queda para la próxima.» |
