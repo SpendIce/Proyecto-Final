@@ -10,8 +10,8 @@ traceback.
 Pasos:
 
 1. **Preflight** (offline): raíz del repo, commit, host, Python, variables
-   de Workspace, credencial de la cuenta de servicio (archivo fuera del
-   repo, modo 600, JSON parseable) y los datos sintéticos de HU-014/HU-012.
+   de Workspace, credencial durable (cuenta de servicio o, como
+   contingencia, el trío OAuth anterior) y los datos sintéticos de HU-014/HU-012.
 2. **Ollama** (live): `GET /api/version` contra el loopback y comparación
    con la versión congelada de la medición (#50), más `GET /api/tags` para
    confirmar que el modelo está descargado.
@@ -70,7 +70,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from agente1.workspace_auth import (  # noqa: E402
+    CLIENT_ID_ENV,
+    CLIENT_SECRET_ENV,
     IMPERSONATED_ACCOUNT_ENV,
+    REFRESH_TOKEN_ENV,
     SERVICE_ACCOUNT_KEY_ENV,
 )
 
@@ -464,10 +467,23 @@ def _preflight(
 
     clave = contexto.environ.get(SERVICE_ACCOUNT_KEY_ENV, "").strip()
     cuenta = contexto.environ.get(IMPERSONATED_ACCOUNT_ENV, "").strip()
-    presentes = [nombre for nombre, valor in (
-        (SERVICE_ACCOUNT_KEY_ENV, clave),
-        (IMPERSONATED_ACCOUNT_ENV, cuenta),
-    ) if valor]
+    oauth = {
+        CLIENT_ID_ENV: contexto.environ.get(CLIENT_ID_ENV, "").strip(),
+        CLIENT_SECRET_ENV: contexto.environ.get(CLIENT_SECRET_ENV, "").strip(),
+        REFRESH_TOKEN_ENV: contexto.environ.get(REFRESH_TOKEN_ENV, "").strip(),
+    }
+    presentes = [
+        nombre
+        for nombre, valor in (
+            (SERVICE_ACCOUNT_KEY_ENV, clave),
+            (IMPERSONATED_ACCOUNT_ENV, cuenta),
+        )
+        if valor
+    ]
+    oauth_presentes = [nombre for nombre, valor in oauth.items() if valor]
+    usa_cuenta_servicio = len(presentes) == 2
+    usa_oauth = len(oauth_presentes) == 3
+
     if len(presentes) == 1:
         falta = (
             IMPERSONATED_ACCOUNT_ENV
@@ -482,17 +498,34 @@ def _preflight(
             f"definida y falta {falta}. El par es todo o nada; no hay "
             "respaldo silencioso. Exportá las dos variables o ninguna.",
         )
-    elif not presentes:
+    elif usa_cuenta_servicio:
+        agregar("credencial", True, "par de la cuenta de servicio completo")
+    elif oauth_presentes and not usa_oauth:
+        faltan_oauth = [nombre for nombre in oauth if not oauth[nombre]]
         agregar(
             "credencial",
             False,
-            "no hay credencial de cuenta de servicio configurada",
-            "Faltan AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY y "
-            "AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT. Exportá el par completo "
-            "desde el shell; nunca por argv.",
+            "el trío OAuth está a medias",
+            "El trío OAuth anterior está incompleto: falta "
+            + ", ".join(faltan_oauth)
+            + ". Es todo o nada; exportá el trío completo o ninguna.",
+        )
+    elif usa_oauth:
+        agregar(
+            "credencial",
+            True,
+            "trío OAuth anterior completo (Plan B)",
+            "Se usará el refresh token OAuth anterior como contingencia. "
+            "La identidad objetivo sigue siendo la cuenta de servicio (#99).",
         )
     else:
-        agregar("credencial", True, "par de la cuenta de servicio completo")
+        agregar(
+            "credencial",
+            False,
+            "no hay credencial durable configurada",
+            "Configurá el par de la cuenta de servicio o, como contingencia, "
+            "el trío OAuth anterior. Nunca por argv.",
+        )
 
     faltantes = [
         nombre
@@ -588,6 +621,9 @@ def _preflight(
                     "`private_key`. No es el JSON de la cuenta de servicio: "
                     "volvé a descargarlo de la consola de Google.",
                 )
+    elif usa_oauth:
+        # La credencial OAuth ya se validó arriba; no hay archivo de clave.
+        pass
     else:
         agregar(
             "clave_archivo",

@@ -8,7 +8,7 @@
 
 El modelo único del sistema de demostración es **`gemma4:e4b`** (Ollama 0.40.6, `think=false`, temperatura 0, `num_predict` 512, timeout 180 s). Validación final en `labredesfie`: **44/48 (91,7 %)** en gacetilla+posts, **48/48 revalidado** tras DEF-A1-026; HU-014 **18/18**; HU-012 **18/18**; canal **16/16**. Las respuestas que comparan 3b/8b son la **línea base del 19/10** y quedan como historia; no son la configuración vigente.
 
-El E2E en el servidor **no se corrió**: falta acceso a Sheets y Docs. Por eso `s7c` sigue abierto y la demo tiene Plan B.
+El E2E en el servidor **no se corrió**: falta acceso a Sheets y Docs. Por eso `s7c` sigue abierto y la demo tiene Plan B: OAuth anterior como contingencia y, si tampoco, HU-014/HU-012 offline. La identidad objetivo sigue siendo la cuenta de servicio (#99).
 
 ## Cómo usar este banco
 

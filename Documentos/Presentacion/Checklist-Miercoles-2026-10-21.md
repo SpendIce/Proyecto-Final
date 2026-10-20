@@ -59,6 +59,8 @@ AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY
 AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT
 ```
 
+**Plan B de credencial:** en lugar del par de cuenta de servicio se puede usar el trío `AGENTE1_WORKSPACE_OAUTH_{CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN}`. Nunca los dos a la vez: si el par está, la cuenta de servicio tiene prioridad. Ver «Si falta el acceso a Sheets y Docs».
+
 Si el archivo no existe, crealo con `umask 077` y esas nueve variables; los
 IDs son los confirmados por DSI/SEU, no se inventan. Si falta el par de la
 cuenta de servicio, se agrega **sólo la ruta y la
@@ -253,7 +255,17 @@ No se inventa una corrida ni se muestra una salida vieja como si fuera de hoy.
 
 ### Si falta el acceso a Sheets y Docs
 
-No se insiste ni se pide permiso en caliente. Se pasa al **Plan B**:
+**Plan B1: OAuth anterior.** El agente conserva `OAuthRefreshTokenProvider` como respaldo explícito hasta #99. Si el problema es la cuenta de servicio:
+
+1. Cargar el trío `AGENTE1_WORKSPACE_OAUTH_CLIENT_ID`, `AGENTE1_WORKSPACE_OAUTH_CLIENT_SECRET` y `AGENTE1_WORKSPACE_OAUTH_REFRESH_TOKEN` desde el env viejo, fuera del repo.
+2. **Quitar** `AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY` y `AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT`: si están, la cuenta de servicio tiene prioridad.
+3. Correr `uv run python scripts/workspace_smoke.py --live --id-solicitud <id>`.
+4. Si autentica pero devuelve `sheets_headers_invalid`, el problema es la planilla/rango, no la credencial: el env viejo apunta a `Solicitudes!A1:I10` (9 columnas) y la hoja actual usa 15. Corregir `AGENTE1_WORKSPACE_RANGO_A1`.
+5. Si el smoke pasa, la gacetilla live vuelve a estar disponible. El `corrida_unica.py` ya acepta el trío OAuth en el preflight.
+
+Es una **contingencia declarada**: la identidad objetivo sigue siendo la cuenta de servicio (#99), no el OAuth que se retira. No versionar el trío.
+
+**Plan B2: offline.** Si el OAuth tampoco sirve:
 
 1. Correr HU-014 y HU-012 offline en el servidor, en ese orden.
 2. Mostrar la evidencia de la gacetilla: `corrida.json` y el borrador de la mañana.

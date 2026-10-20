@@ -381,6 +381,36 @@ def test_fail_fast_no_ejecuta_los_pasos_siguientes(tmp_path: Path) -> None:
     assert estados["hu012"] == "no_ejecutado"
 
 
+def test_el_preflight_acepta_el_trio_oauth_como_plan_b(tmp_path: Path) -> None:
+    modulo = _cargar_script()
+    entorno = _entorno(tmp_path)
+    del entorno["AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY"]
+    del entorno["AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT"]
+    entorno.update(
+        {
+            "AGENTE1_WORKSPACE_OAUTH_CLIENT_ID": "cliente.apps.googleusercontent.com",
+            "AGENTE1_WORKSPACE_OAUTH_CLIENT_SECRET": "secreto-sintetico",
+            "AGENTE1_WORKSPACE_OAUTH_REFRESH_TOKEN": "refresh-sintetico",
+        }
+    )
+    salida = io.StringIO()
+
+    codigo = modulo.ejecutar(
+        _opciones(modulo, tmp_path, live=False),
+        _contexto(
+            modulo,
+            entorno,
+            ejecutar=_EjecutorQueFalla(),
+            consultar=_ConsultarQueFalla(),
+            salida=salida,
+        ),
+    )
+
+    assert codigo == 0
+    assert "trío OAuth anterior completo (Plan B)" in salida.getvalue()
+    assert "$ " not in salida.getvalue()
+
+
 def test_par_de_credenciales_a_medias_falla_antes_de_todo(tmp_path: Path) -> None:
     modulo = _cargar_script()
     entorno = _entorno(tmp_path)
