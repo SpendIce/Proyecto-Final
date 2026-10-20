@@ -110,6 +110,18 @@ def main() -> int:
         "--num-predict", type=int, default=DEFAULT_OLLAMA_NUM_PREDICT
     )
     parser.add_argument(
+        "--csv",
+        type=Path,
+        default=ROOT / "data" / "actividades_sinteticas.csv",
+        help="Dataset de actividades (por defecto, el sintético de #50).",
+    )
+    parser.add_argument(
+        "--actividades",
+        nargs="+",
+        default=list(ACTIVIDADES_COMPLETAS),
+        help="Ids a medir (#51 usa actividades reales del corpus FIE INFORMA).",
+    )
+    parser.add_argument(
         "--sin-thinking",
         action="store_true",
         help="Envía think=false: necesario para modelos con razonamiento (#51).",
@@ -135,13 +147,13 @@ def main() -> int:
 
     salida = args.salida.resolve()
     salida.mkdir(parents=True, exist_ok=True)
-    dataset = ROOT / "data" / "actividades_sinteticas.csv"
+    dataset = args.csv.resolve()
     fuente = CsvFuenteSolicitudes(dataset)
     mediciones: list[dict[str, object]] = []
     orden = 0
 
     for ciclo in range(args.ciclos):
-        for id_solicitud in ACTIVIDADES_COMPLETAS:
+        for id_solicitud in args.actividades:
             if args.incluir_gacetillas:
                 orden += 1
                 generator = _generador(args.modelo, args, schema=None)

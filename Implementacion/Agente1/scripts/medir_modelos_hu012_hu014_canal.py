@@ -88,8 +88,18 @@ def _resumen(todos: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
-def _medir_hu014(gen, salida: Path, ciclos: int) -> list[dict[str, object]]:
-    filas = _filas(CSV_SINTETICAS) + _filas(CSV_NBLM)
+def _seleccion(csv_path: Path, ids: list[str] | None) -> list[dict[str, str]]:
+    filas = _filas(csv_path)
+    if ids is None:
+        return filas
+    por_id = {f["id_actividad"]: f for f in filas}
+    return [por_id[i] for i in ids]
+
+
+def _medir_hu014(
+    gen, salida: Path, ciclos: int, csv_path: Path, ids: list[str] | None
+) -> list[dict[str, object]]:
+    filas = _seleccion(csv_path, ids) + _filas(CSV_NBLM)
     casos = []
     for ciclo in range(ciclos):
         for fila in filas:
@@ -111,9 +121,13 @@ def _medir_hu014(gen, salida: Path, ciclos: int) -> list[dict[str, object]]:
     return casos
 
 
-def _medir_hu012(gen, salida: Path, ciclos: int) -> list[dict[str, object]]:
+def _medir_hu012(
+    gen, salida: Path, ciclos: int, csv_path: Path, ids: list[str] | None
+) -> list[dict[str, object]]:
     plan = cargar_plan_pagos_csv(PLAN_NBLM)
-    actividades = [(CSV_SINTETICAS, f["id_actividad"], None) for f in _filas(CSV_SINTETICAS)]
+    actividades = [
+        (csv_path, f["id_actividad"], None) for f in _seleccion(csv_path, ids)
+    ]
     actividades += [(CSV_NBLM, f["id_actividad"], plan) for f in _filas(CSV_NBLM)]
     casos = []
     for ciclo in range(ciclos):
@@ -187,6 +201,13 @@ def main() -> int:
     parser.add_argument("--ciclos", type=int, default=2)
     parser.add_argument("--sin-thinking", action="store_true")
     parser.add_argument(
+        "--csv",
+        type=Path,
+        default=CSV_SINTETICAS,
+        help="Actividades para HU-014/HU-012; NotebookLM (con plan) se suma siempre.",
+    )
+    parser.add_argument("--actividades", nargs="+", help="Ids del --csv (por defecto, todas).")
+    parser.add_argument(
         "--solo", choices=("hu014", "hu012", "canal"), action="append"
     )
     parser.add_argument("--confirm-live-llm", action="store_true", required=True)
@@ -209,12 +230,14 @@ def main() -> int:
         "timeout_s": args.timeout,
         "num_predict": args.num_predict,
         "ciclos": args.ciclos,
+        "csv": args.csv.name,
+        "actividades": args.actividades,
     }
     for parte in partes:
         if parte == "hu014":
-            nuevos = _medir_hu014(gen, salida, args.ciclos)
+            nuevos = _medir_hu014(gen, salida, args.ciclos, args.csv, args.actividades)
         elif parte == "hu012":
-            nuevos = _medir_hu012(gen, salida, args.ciclos)
+            nuevos = _medir_hu012(gen, salida, args.ciclos, args.csv, args.actividades)
         else:
             nuevos = _medir_canal(gen, args.ciclos)
         casos.extend(nuevos)
