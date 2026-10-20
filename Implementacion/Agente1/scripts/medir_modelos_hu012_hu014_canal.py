@@ -53,6 +53,38 @@ FRASES = DATA / "frases_ambiguas_fallback.csv"
 ESTADO_OK = "PENDIENTE_VALIDACION"
 
 
+class _GeneradorQueGuarda:
+    """Delega en el generador real y guarda la respuesta cruda para revisarla.
+
+    Las salidas rechazadas por el gate sólo quedan como hash en la auditoría;
+    para saber por qué falla un modelo hace falta leer el texto. No cambia la
+    medición: el pipeline recibe exactamente la misma respuesta.
+    """
+
+    def __init__(self, generador, destino: Path) -> None:
+        self._generador = generador
+        self._destino = destino
+        self.modelo = generador.modelo
+        self.num_predict = generador.num_predict
+        self.etiqueta = ""
+
+    def generar(self, prompt: str) -> str:
+        respuesta = self._generador.generar(prompt)
+        with self._destino.open("a", encoding="utf-8") as archivo:
+            archivo.write(
+                json.dumps(
+                    {"caso": self.etiqueta, "respuesta": respuesta}, ensure_ascii=False
+                )
+                + "\n"
+            )
+        return respuesta
+
+
+def _etiquetar(gen, etiqueta: str) -> None:
+    if isinstance(gen, _GeneradorQueGuarda):
+        gen.etiqueta = etiqueta
+
+
 def _filas(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as archivo:
         return list(csv.DictReader(archivo))
@@ -103,6 +135,7 @@ def _medir_hu014(
     casos = []
     for ciclo in range(ciclos):
         for fila in filas:
+            _etiquetar(gen, f"HU-014/{fila['id_actividad']}/ciclo-{ciclo}")
             inicio = time.perf_counter()
             resultado = generar_linea_descriptiva(
                 fila=fila, directorio_salida=salida / "hu014", generator=gen
@@ -132,6 +165,7 @@ def _medir_hu012(
     casos = []
     for ciclo in range(ciclos):
         for csv_path, id_actividad, plan_actividad in actividades:
+            _etiquetar(gen, f"HU-012/{id_actividad}/ciclo-{ciclo}")
             inicio = time.perf_counter()
             resultado = procesar_plantilla_actividad(
                 fuente=CsvFuenteSolicitudes(csv_path),
@@ -163,6 +197,7 @@ def _medir_canal(gen, ciclos: int) -> list[dict[str, object]]:
     casos = []
     for ciclo in range(ciclos):
         for indice, fila in enumerate(frases):
+            _etiquetar(gen, f"canal/frase-{indice + 1}/ciclo-{ciclo}")
             inicio = time.perf_counter()
             terminos = _interpretar_con_modelo(fila["frase"], gen)
             latencia = round(time.perf_counter() - inicio, 3)
@@ -201,6 +236,11 @@ def main() -> int:
     parser.add_argument("--ciclos", type=int, default=2)
     parser.add_argument("--sin-thinking", action="store_true")
     parser.add_argument(
+        "--guardar-respuestas",
+        action="store_true",
+        help="Guarda la respuesta cruda del modelo en respuestas.jsonl (datos sintéticos o públicos).",
+    )
+    parser.add_argument(
         "--csv",
         type=Path,
         default=CSV_SINTETICAS,
@@ -222,11 +262,13 @@ def main() -> int:
     )
     salida = args.salida
     salida.mkdir(parents=True, exist_ok=True)
+    if args.guardar_respuestas:
+        gen = _GeneradorQueGuarda(gen, salida / "respuestas.jsonl")
     partes = args.solo or ["hu014", "hu012", "canal"]
     casos: list[dict[str, object]] = []
     resumen: dict[str, object] = {
         "modelo": args.modelo,
-        "think": gen.think,
+        "think": False if args.sin_thinking else None,
         "timeout_s": args.timeout,
         "num_predict": args.num_predict,
         "ciclos": args.ciclos,
