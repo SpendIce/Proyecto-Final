@@ -8,7 +8,7 @@
 
 El modelo único del sistema de demostración es **`gemma4:e4b`** (Ollama 0.40.6, `think=false`, temperatura 0, `num_predict` 512, timeout 180 s). Validación final en `labredesfie`: **44/48 (91,7 %)** en gacetilla+posts, **48/48 revalidado** tras DEF-A1-026; HU-014 **18/18**; HU-012 **18/18**; canal **16/16**. Las respuestas que comparan 3b/8b son la **línea base del 19/10** y quedan como historia; no son la configuración vigente.
 
-El E2E en el servidor **no se corrió**: falta acceso a Sheets y Docs. Por eso `s7c` sigue abierto y la demo tiene Plan B: OAuth anterior como contingencia y, si tampoco, HU-014/HU-012 offline. La identidad objetivo sigue siendo la cuenta de servicio (#99).
+El E2E en el servidor con `gemma4:e4b` **todavía no se corrió**. El camino Workspace del Plan B (OAuth + hoja v2 sintética) **sí se verificó live**: smoke `lectura_confirmada` y E2E `PENDIENTE_VALIDACION` con un stub de Ollama; el borrador quedó en Drive. La corrida completa con el modelo real es el paso que queda para la demo, y `s7c` sigue abierto. La identidad objetivo sigue siendo la cuenta de servicio (#99).
 
 ## Cómo usar este banco
 
@@ -387,6 +387,10 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **P: ¿Qué pasa si se cae el servidor durante la demo?**
 **R:** No hay respaldo offline. El riesgo R-TEC-03 está aceptado y condicionado a que la demo sea presencial en la facultad y a que haya un smoke live previo. Si falla, se levantan Ollama y el agente a mano; si no se recupera, se escala al tutor para reprogramar.
 **Evidencia:** `Documentos/PlanRiesgos/Plan-Riesgos-Agente-1-PPS-Juan-Ignacio-Gone.md` (R-TEC-03); issue #118.
+
+**P: ¿Qué pasa si la cuenta de servicio no tiene acceso a Sheets y Docs?**
+**R:** Hay un Plan B ya armado. El wrapper `scripts/corrida_plan_b_oauth.sh` carga un entorno fuera del repo con el OAuth anterior y una hoja v2 sintética, borra el par de la cuenta de servicio y corre la demo con `gemma4:e4b`. El camino Workspace ya está verificado: el smoke live dio `lectura_confirmada` y el E2E generó un borrador en Drive con un stub de Ollama. Si el modelo real no cumple el contrato, el gate rechaza y no se publica. La hoja de producción y la cuenta de servicio siguen en #99; el OAuth es una contingencia declarada.
+**Evidencia:** `Implementacion/Agente1/evidencias/plan-b-oauth-workspace-2026-10-20.md`; `Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh`.
 
 **P: ¿Qué disponibilidad tienen?**
 **R:** El requisito es 99 %. La última medición de disponibilidad dio 30/30 corridas a tiempo en una ventana del 12/10, con n = 30. Es una muestra de un host único, no una garantía de producción; los demás SLO tienen muestra insuficiente.

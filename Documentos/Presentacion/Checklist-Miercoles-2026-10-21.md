@@ -59,7 +59,7 @@ AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY
 AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT
 ```
 
-**Plan B de credencial:** en lugar del par de cuenta de servicio se puede usar el trío `AGENTE1_WORKSPACE_OAUTH_{CLIENT_ID,CLIENT_SECRET,REFRESH_TOKEN}`. Nunca los dos a la vez: si el par está, la cuenta de servicio tiene prioridad. Ver «Si falta el acceso a Sheets y Docs».
+**Plan B de credencial:** no se edita `workspace-d2.env` ni se comentan líneas a mano. El wrapper `scripts/corrida_plan_b_oauth.sh` carga un entorno separado, `~/.config/agente1/workspace-d2-planb.env` (fuera del repo, chmod 600), con el trío OAuth, la hoja v2 sintética, la carpeta y la plantilla. El wrapper borra el par de la cuenta de servicio y el access token antes de correr. Ver «Si falta el acceso a Sheets y Docs».
 
 Si el archivo no existe, crealo con `umask 077` y esas nueve variables; los
 IDs son los confirmados por DSI/SEU, no se inventan. Si falta el par de la
@@ -255,15 +255,44 @@ No se inventa una corrida ni se muestra una salida vieja como si fuera de hoy.
 
 ### Si falta el acceso a Sheets y Docs
 
-**Plan B1: OAuth anterior.** El agente conserva `OAuthRefreshTokenProvider` como respaldo explícito hasta #99. Si el problema es la cuenta de servicio:
+**Plan B1: OAuth anterior + hoja v2 sintética.** Ya está armado y probado en su mitad Workspace: el smoke live leyó la planilla y el E2E generó un borrador en Drive con un stub de Ollama. El wrapper hace el cambio de credencial sin tocar el entorno de la cuenta de servicio.
 
-1. Cargar el trío `AGENTE1_WORKSPACE_OAUTH_CLIENT_ID`, `AGENTE1_WORKSPACE_OAUTH_CLIENT_SECRET` y `AGENTE1_WORKSPACE_OAUTH_REFRESH_TOKEN` desde el env viejo, fuera del repo.
-2. **Quitar** `AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY` y `AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT`: si están, la cuenta de servicio tiene prioridad.
-3. Correr `uv run python scripts/workspace_smoke.py --live --id-solicitud <id>`.
-4. Si autentica pero devuelve `sheets_headers_invalid`, el problema es la planilla/rango, no la credencial: el env viejo apunta a `Solicitudes!A1:I10` (9 columnas) y la hoja actual usa 15. Corregir `AGENTE1_WORKSPACE_RANGO_A1`.
-5. Si el smoke pasa, la gacetilla live vuelve a estar disponible. El `corrida_unica.py` ya acepta el trío OAuth en el preflight.
+1. Copiar el entorno Plan B desde la máquina del autor, con la red de la FIE:
 
-Es una **contingencia declarada**: la identidad objetivo sigue siendo la cuenta de servicio (#99), no el OAuth que se retira. No versionar el trío.
+```bash
+scp ~/.config/agente1/workspace-d2-planb.env fie-server:~/.config/agente1/workspace-d2-planb.env
+ssh fie-server 'chmod 600 ~/.config/agente1/workspace-d2-planb.env'
+```
+
+El archivo trae el trío OAuth, la hoja v2 sintética (`Actividades!A1:O100`), la carpeta y la plantilla. Nunca se versiona.
+
+2. En el servidor, actualizar el repo a `main` para tener el wrapper y el preflight OAuth:
+
+```bash
+ssh fie-server 'cd ~/p100/Agente1 && git pull --ff-only'
+```
+
+3. En el servidor, desde el repo, verificar sin escribir:
+
+```bash
+ssh fie-server 'cd ~/p100/Agente1 && bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh --check'
+```
+
+Hace el dry-run del preflight y un smoke live de sólo lectura con `SYN-002`. Tiene que terminar con `lectura_confirmada`.
+
+4. Si el check pasa, correr la demo completa:
+
+```bash
+ssh fie-server 'cd ~/p100/Agente1 && bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh'
+```
+
+Corre Ollama con `gemma4:e4b`, el smoke, la gacetilla live y HU-014/HU-012 offline. El E2E deja un `BORRADOR — NO PUBLICAR` en la carpeta `Agentes`.
+
+5. Si el modelo no cumple el contrato, el gate rechaza y se muestra el rechazo. No se cambia de modelo ni se publica.
+
+6. La hoja v2 sintética es la garantía del camino. La hoja de producción y la cuenta de servicio siguen en #99. Si la hoja de producción ya es v2 y el OAuth tiene acceso, se puede apuntar el overlay a esa hoja; no es necesario para la demo.
+
+Es una **contingencia declarada**: la identidad objetivo sigue siendo la cuenta de servicio (#99), no el OAuth que se retira. No versionar el overlay.
 
 **Plan B2: offline.** Si el OAuth tampoco sirve:
 
