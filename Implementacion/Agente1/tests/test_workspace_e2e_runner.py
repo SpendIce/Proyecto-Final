@@ -105,7 +105,7 @@ def test_compone_post_y_exige_canal(tmp_path: Path) -> None:
     manifest = json.loads(resultado.manifest_path.read_text(encoding="utf-8"))
     assert manifest["pipeline_version"] == "workspace_hu011_structured_v2"
     assert manifest["contract_version"] == "post_input_v2+post_creative_output_v2"
-    assert manifest["renderer_version"] == "post_deterministic_renderer_v5"
+    assert manifest["renderer_version"] == "post_deterministic_renderer_v6"
 
     with pytest.raises(RunnerWorkspaceError, match="runner_channel_required"):
         _run(tmp_path / "otro", tipo="post", canal=None, respuesta=POST)

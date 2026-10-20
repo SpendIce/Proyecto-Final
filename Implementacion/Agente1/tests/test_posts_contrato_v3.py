@@ -189,7 +189,7 @@ def test_v3_audita_su_propia_version_de_contrato_y_prompt(tmp_path: Path) -> Non
     )
 
     assert registro["output_contract_version"] == "post_creative_output_v3"
-    assert registro["prompt_version"] == "post_instagram_structured_v5"
+    assert registro["prompt_version"] == "post_instagram_structured_v6"
     assert registro["creative_catalog_version"] is None
 
 
@@ -222,12 +222,11 @@ def test_patron_lugar_no_marca_sintagmas_que_no_son_lugares(texto: str) -> None:
     assert PATRON_REFERENCIA_LUGAR.search(texto) is None
 
 
-def test_v3_ambos_canales_usan_el_prompt_v5(tmp_path: Path) -> None:
-    # #51: LinkedIn adelantó su v5 y después Instagram recibió el mismo bloque
-    # de rechazos frecuentes (lugar, modalidad, armado de la cursada, quién
-    # organiza).
-    assert CONTRATO_CREATIVO_V3.sufijo_prompt("linkedin") == "v5"
-    assert CONTRATO_CREATIVO_V3.sufijo_prompt("instagram") == "v5"
+def test_v3_ambos_canales_usan_el_prompt_v6(tmp_path: Path) -> None:
+    # #51: los dos canales comparten el bloque de rechazos frecuentes (lugar,
+    # modalidad, armado de la cursada, quién organiza, descripción repetida).
+    assert CONTRATO_CREATIVO_V3.sufijo_prompt("linkedin") == "v6"
+    assert CONTRATO_CREATIVO_V3.sufijo_prompt("instagram") == "v6"
 
     resultado = procesar_post_estructurado(
         fuente=CsvFuenteSolicitudes(DATASET),
@@ -238,7 +237,7 @@ def test_v3_ambos_canales_usan_el_prompt_v5(tmp_path: Path) -> None:
         contrato=CONTRATO_CREATIVO_V3,
     )
     registro = json.loads(resultado.log_path.read_text(encoding="utf-8").splitlines()[-1])
-    assert registro["prompt_version"] == "post_linkedin_structured_v5"
+    assert registro["prompt_version"] == "post_linkedin_structured_v6"
 
 
 @pytest.mark.parametrize("canal", ["instagram", "linkedin"])
@@ -272,7 +271,38 @@ def test_v3_el_maximo_de_cada_campo_entra_con_la_actividad_mas_larga(
 def test_un_canal_puede_adelantar_su_prompt_sin_mover_al_otro() -> None:
     from dataclasses import replace
 
-    contrato = replace(CONTRATO_CREATIVO_V3, prompt_suffix_por_canal={"linkedin": "v6"})
+    contrato = replace(CONTRATO_CREATIVO_V3, prompt_suffix_por_canal={"linkedin": "v7"})
 
-    assert contrato.sufijo_prompt("linkedin") == "v6"
-    assert contrato.sufijo_prompt("instagram") == "v5"
+    assert contrato.sufijo_prompt("linkedin") == "v7"
+    assert contrato.sufijo_prompt("instagram") == "v6"
+
+
+@pytest.mark.parametrize(
+    ("entrada", "esperado"),
+    [
+        (
+            "la inteligencia artificial transforma la gestión. este curso aborda modelos de lenguaje.",
+            "La inteligencia artificial transforma la gestión. Este curso aborda modelos de lenguaje.",
+        ),
+        ("¿qué impulsa la conquista espacial? ¡enterate!", "¿Qué impulsa la conquista espacial? ¡Enterate!"),
+        ("«exploración» es la palabra.", "«Exploración» es la palabra."),
+        ("Herramientas como NotebookLM y chatbots.", "Herramientas como NotebookLM y chatbots."),
+    ],
+)
+def test_renderer_pone_mayuscula_al_comienzo_de_cada_oracion(entrada: str, esperado: str) -> None:
+    from agente1.posts import _con_mayuscula_inicial
+
+    assert _con_mayuscula_inicial(entrada) == esperado
+
+
+def test_el_post_guardado_lleva_mayuscula_inicial_aunque_el_modelo_no(tmp_path: Path) -> None:
+    creatividad = dict(CREATIVIDAD_LIBRE)
+    creatividad["prosa"] = "te invitamos a sumarte a una propuesta abierta. es para compartir experiencias."
+    creatividad["cta"] = "sumate y participá de la propuesta."
+
+    resultado = _generar(creatividad, CONTRATO_CREATIVO_V3, tmp_path)
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    borrador = resultado.borrador_path.read_text(encoding="utf-8")
+    assert "Te invitamos a sumarte a una propuesta abierta. Es para compartir experiencias." in borrador
+    assert "Sumate y participá de la propuesta." in borrador

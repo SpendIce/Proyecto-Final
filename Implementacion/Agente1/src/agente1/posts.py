@@ -95,7 +95,8 @@ STRUCTURED_OUTPUT_CONTRACT_VERSION = "post_creative_output_v2"
 # planilla v2 (fecha_fin, fecha_limite_inscripcion, hora, modalidad,
 # duracion_horas, enlace_inscripcion). La versión etiqueta el formato del
 # render, compartido por los contratos creativos v2 (catálogo) y v3 (prosa).
-STRUCTURED_RENDERER_VERSION = "post_deterministic_renderer_v5"
+# v6 pone mayúscula al comienzo de cada oración de gancho, prosa y CTA (#51).
+STRUCTURED_RENDERER_VERSION = "post_deterministic_renderer_v6"
 CANALES = frozenset(CANALES_SOPORTADOS)
 # Campos cuyo contenido el renderer sí puede poner en el post. Son también los
 # que se buscan dentro del texto creativo para rechazarlo: si el modelo
@@ -1025,9 +1026,9 @@ CONTRATO_CREATIVO_V2 = _construir_contrato_creativo(
 CONTRATO_CREATIVO_V3 = _construir_contrato_creativo(
     CONTRATO_SALIDA_ESTRUCTURADA_V3,
     renderer_version=STRUCTURED_RENDERER_VERSION,
-    # #51: Instagram alcanzó a LinkedIn en v5; `prompt_suffix_por_canal`
-    # queda para cuando un canal tenga que adelantarse otra vez.
-    prompt_suffix="v5",
+    # #51: v6 en los dos canales (Instagram había alcanzado a LinkedIn en v5);
+    # `prompt_suffix_por_canal` queda para cuando un canal tenga que adelantarse.
+    prompt_suffix="v6",
     borrador_suffix="-v3",
 )
 # Detecta referencias a lugares genéricos en minúscula ("en el aula", "desde la
@@ -1204,6 +1205,26 @@ def _parsear_creatividad_estructurada(
     return creatividad, list(dict.fromkeys(errores))
 
 
+# Comienzo de oración en minúscula, admitiendo signos de apertura delante.
+_INICIO_ORACION_EN_MINUSCULA = re.compile(
+    r"(^|[.!?…]\s+)([¿¡«\"(]*)([a-záéíóúüñ])", flags=re.MULTILINE
+)
+
+
+def _con_mayuscula_inicial(texto: str) -> str:
+    """Pone en mayúscula la primera letra de cada oración.
+
+    En la ronda 3 de #51, qwen3.5:4b escribía en LinkedIn oraciones enteras en
+    minúscula («la inteligencia artificial transforma…»). Es tipografía, no
+    contenido: se corrige acá en vez de rechazar el post, y como el renderer
+    es determinista el control de `_validar_render_estructurado` sigue valiendo.
+    """
+
+    return _INICIO_ORACION_EN_MINUSCULA.sub(
+        lambda m: m.group(1) + m.group(2) + m.group(3).upper(), texto
+    )
+
+
 def _renderizar_post_estructurado(
     fila: dict[str, str], canal: str, creatividad: dict[str, object]
 ) -> str:
@@ -1221,9 +1242,9 @@ def _renderizar_post_estructurado(
     lineas = [
         f"CANAL: {canal}",
         "TEXTO:",
-        str(creatividad["gancho"]),
+        _con_mayuscula_inicial(str(creatividad["gancho"])),
         "",
-        str(creatividad["prosa"]),
+        _con_mayuscula_inicial(str(creatividad["prosa"])),
         "",
     ]
     # La descripción es el "qué" de la actividad: sin ella el post queda
@@ -1262,7 +1283,7 @@ def _renderizar_post_estructurado(
         [
             f"Contacto: {fila['contacto']}",
             "",
-            str(creatividad["cta"]),
+            _con_mayuscula_inicial(str(creatividad["cta"])),
             "HASHTAGS:",
             " ".join(creatividad["hashtags"]),
         ]
