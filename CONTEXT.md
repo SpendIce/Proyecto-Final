@@ -126,6 +126,10 @@ _Evitar_: pedido de agente, mensaje entre agentes, orden
 
 ### Evaluacion del PPS
 
+**Presentacion de avance**:
+Exposicion mensual del estado del proyecto en la asignatura PPS, en la anteultima clase de cada mes: primero el Gantt de tareas con su avance y despues una demo del sistema tal como esta. Cada alumno presenta la suya. No habilita ni aprueba nada; algunas ediciones suman a la Direccion de Carrera e invitados externos (la del 21/10/2026, con Cicerchia e invitados que preguntan sobre IA).
+_Evitar_: presentacion de cursada, entrega parcial, gate
+
 **Presentacion de cursada**:
 Ultima instancia de la asignatura, el 18/11/2026: el Agente 1 se demuestra funcionando en vivo ante el profesor de la materia, la Direccion de Carrera y la SEU. Funciona como examen parcial y da el aprobado de la cursada; **no** es la instancia final del Proyecto. Para esa fecha el sistema se presenta con al menos el 80 % del proyecto completo y funcionando, y cuenta con la revision de laboratorio previa.
 _Evitar_: mesa final, presentacion final, defensa, gate TRL
