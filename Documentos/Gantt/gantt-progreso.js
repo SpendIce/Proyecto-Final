@@ -101,10 +101,10 @@ window.GANTT_PROGRESS = {
   // s3a  - D2 provisionado y verificado live el 28/09: cuenta tecnica
   //        dedicada, carpeta autorizada, planilla y plantilla sinteticas, y
   //        E2E completo con borrador real. El servidor de la facultad corre
-  //        como host de computo sobre D2 desde el 19/10. El issue #15 se
-  //        cerro el 08/10 con la parte tecnica cumplida. D3 como ambiente
-  //        completo (unidad compartida y recursos propios, #100), el aval
-  //        formal y el host institucional siguen abiertos (#63/#64, #119).
+  //        como host de computo desde el 19/10 y la carpeta compartida de
+  //        trabajo se usa como plano de archivos: eso se declara D3
+  //        provisional. La unidad institucional de D3 (#100), el aval formal
+  //        y el host institucional siguen abiertos (#63/#64, #119).
   // s3b  - SEU designo revisor titular/suplente y se documento el circuito; el
   //        22/09 quedaron confirmados los roles nominales (semantica: Juan
   //        Manuel; utilitaria y firma final: Sebastian Moreira, Secretario de
@@ -196,15 +196,15 @@ window.GANTT_PROGRESS = {
   // la spec de HU-013, y la tarea del .mmd quedo reescrita acorde. Las otras
   // dos NO se marcan, porque no se completan con mas codigo:
   //
-  // s5a  - "Chat interno con autenticacion de personal SEU". El canal existe
-  //        (#24: puerto, fake y adapter de planilla offline) pero la identidad
-  //        es AFIRMADA por el canal y no verificada (ADR 0002): cada linea de
-  //        auditoria lleva identidad_verificada: false. La autenticacion
-  //        institucional sigue BLOQUEADO_EXTERNO (DEF-A1-001, issue #15). La
-  //        evidencia de #24 no acredita control de acceso y no hay que leerla
-  //        asi. El 19/10 Josefina acepto la lectura directa del buzon, pero
-  //        la habilitacion tecnica sigue pendiente; eso no es autenticacion
-  //        de personal.
+  // s5a  - "Chat interno con autenticacion de personal SEU". El Form de
+  //        pedidos restringido al dominio verifica el correo con Google y
+  //        asigna el rol por el padron externo (ADR 0005); el nucleo audita
+  //        identidad_verificada: false porque la verificacion la hace el
+  //        canal, no el nucleo. Lo que falta no es un SSO ni un login propio:
+  //        es que la SEU mantenga y confirme el padron de correos y roles, y
+  //        decidir si el canal interno usa el Form. La tarea del cronograma
+  //        pide un chat interno; el Form no es un chat, por eso sigue sin
+  //        marcar.
   // s5d  - renombrada el 2026-09-21 a "Regresion de solicitudes y prueba
   //        guiada de usabilidad con SEU". La mitad automatizable ya existe:
   //        las solicitudes validas y las fuera de alcance tienen cobertura de
