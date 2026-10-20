@@ -81,11 +81,11 @@ from .posts import (
     PATRON_IMPORTE,
     PATRON_INYECCION,
     PATRON_LUGAR_ETIQUETADO,
-    PATRON_LUGAR_PROPIO,
     PATRON_REFERENCIA_LUGAR,
     PATRON_TUTEO,
     PATRON_URL,
     _contiene_fragmento_significativo,
+    menciona_lugar_propio,
 )
 from .presupuesto import (
     MENSAJE_PRESUPUESTO_AGOTADO,
@@ -96,7 +96,7 @@ from .registro_auditoria import escribir_registro
 
 HU = "HU-014"
 CONTRACT_VERSION = "linea_descriptiva_v1"
-PROMPT_VERSION = "linea_descriptiva_v1"
+PROMPT_VERSION = "linea_descriptiva_v4"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 
 # Extensión de la línea: límites técnicos provisionales, en el espíritu de
@@ -117,7 +117,9 @@ _OBJETO_PREFIX = "linea_descriptiva-"
 # organización, contacto y enlaces quedan afuera a propósito: el modelo no
 # puede copiar un hecho que nunca vio. Son exactamente los campos que
 # describen el contenido de la actividad.
-CAMPOS_PROMPT = ("titulo", "descripcion", "publico")
+# Desde v3 (#51) el público queda afuera: con el público a la vista los
+# modelos lo copiaban en la línea, y el certificado describe el contenido.
+CAMPOS_PROMPT = ("titulo", "descripcion")
 CAMPOS_REQUERIDOS = ("id_actividad", "titulo", "descripcion")
 
 # Fechas escritas en letras: meses y días de semana. Las fechas numéricas
@@ -240,7 +242,7 @@ def validar_linea_descriptiva(
         errores.append("unauthorized_amount")
     if (
         PATRON_LUGAR_ETIQUETADO.search(normalizada)
-        or PATRON_LUGAR_PROPIO.search(normalizada)
+        or menciona_lugar_propio(normalizada)
         or PATRON_REFERENCIA_LUGAR.search(normalizada)
     ):
         errores.append("unauthorized_place")
@@ -291,7 +293,7 @@ def construir_prompt_linea(fila: Mapping[str, str]) -> str:
 
     plantilla = (
         files("agente1")
-        .joinpath("prompts", "linea_descriptiva_v1.txt")
+        .joinpath("prompts", f"{PROMPT_VERSION}.txt")
         .read_text(encoding="utf-8")
     )
     datos = json.dumps(

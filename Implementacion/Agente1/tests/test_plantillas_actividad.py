@@ -398,13 +398,13 @@ def test_el_prompt_no_lleva_la_estructura_ni_las_variables(
 
     sin_plan, con_plan = espia.prompts
     assert sin_plan == con_plan
-    assert "PROMPT_VERSION: plantilla_actividad_generacion_v2" in sin_plan
+    assert "PROMPT_VERSION: plantilla_actividad_generacion_v4" in sin_plan
     for ausente in ("LÍMITES", "PLANTILLA_BASE", "{{", "PENDIENTE_SEU"):
         assert ausente not in sin_plan
     datos = json.loads(
         sin_plan.split("DATOS_JSON_INICIO", 1)[1].split("DATOS_JSON_FIN", 1)[0]
     )
-    assert set(datos) == {"titulo", "descripcion", "publico"}
+    assert set(datos) == {"titulo", "descripcion"}
 
 
 # --- Generación: fallas de fuente, generador y salida -------------------------

@@ -94,7 +94,8 @@ def test_runner_compara_seis_borradores_y_no_genera_para_incompletos(tmp_path: P
             assert caso["policy_version"] == f"post_{canal}_policy_provisional_v1"
             assert caso["policy_status"] == "PROVISIONAL_NO_INSTITUCIONAL"
             assert caso["policy_limits"] == {
-                "max_chars": 1000,
+                # DEF-A1-025: el techo técnico es el límite de cada plataforma.
+                "max_chars": 2200 if canal == "instagram" else 3000,
                 "min_hashtags": 1,
                 # La SEU confirmó hasta 5 hashtags en Instagram; el de
                 # LinkedIn es un techo técnico, no editorial.

@@ -85,7 +85,7 @@ designado (`Validacion-SEU/reunion-seu-2026-09-22.json`, consolidado en
 
 | Parámetro | Instagram | LinkedIn | Origen |
 |---|---:|---:|---|
-| `max_chars` | 1000 | 1000 | Techo técnico interno; editorialmente la SEU confirmó «sin límite» (`RED-EXT-03`) |
+| `max_chars` | 2200 | 3000 | Techo técnico interno igual al límite de cada plataforma (`DEF-A1-025`; antes 1000, arbitrario); editorialmente la SEU confirmó «sin límite» (`RED-EXT-03`) |
 | `min_hashtags` | 1 | 1 | Equipo técnico, provisional |
 | `max_hashtags` | 5 | 10 | IG: `CONFIRMADO_SEU` 22/09 (máx. 5). LI: techo técnico interno; editorialmente sin tope (`RED-HTG-05`) |
 | `max_emojis` | 3 | 0 | IG: `CONFIRMADO_SEU` 22/09 («casi nunca», para datos puntuales). LI: derivado del tono confirmado |

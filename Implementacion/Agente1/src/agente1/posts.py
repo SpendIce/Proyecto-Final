@@ -95,7 +95,8 @@ STRUCTURED_OUTPUT_CONTRACT_VERSION = "post_creative_output_v2"
 # planilla v2 (fecha_fin, fecha_limite_inscripcion, hora, modalidad,
 # duracion_horas, enlace_inscripcion). La versión etiqueta el formato del
 # render, compartido por los contratos creativos v2 (catálogo) y v3 (prosa).
-STRUCTURED_RENDERER_VERSION = "post_deterministic_renderer_v5"
+# v6 pone mayúscula al comienzo de cada oración de gancho, prosa y CTA (#51).
+STRUCTURED_RENDERER_VERSION = "post_deterministic_renderer_v6"
 CANALES = frozenset(CANALES_SOPORTADOS)
 # Campos cuyo contenido el renderer sí puede poner en el post. Son también los
 # que se buscan dentro del texto creativo para rechazarlo: si el modelo
@@ -157,6 +158,40 @@ PATRON_LUGAR_PROPIO = re.compile(
     r"\b(?:en|desde)\s+(?:(?:el|la|los|las)\s+)?"
     r"([A-ZÁÉÍÓÚÜÑ][\wÁÉÍÓÚÜÑáéíóúüñ-]*)",
 )
+# Regiones tan amplias que no pueden ser la sede de una actividad: cuando
+# aparecen después de «en» son el tema («la soberanía en la Patagonia y la
+# Antártida»), no un lugar inventado. Ver DEF-A1-026. Una ciudad, una sede o un
+# edificio con nombre propio se siguen rechazando.
+REGIONES_TEMA = frozenset(
+    {
+        "america",
+        "antartida",
+        "antartica",
+        "argentina",
+        "atlantico",
+        "latinoamerica",
+        "malvinas",
+        "patagonia",
+        "sudamerica",
+    }
+)
+
+
+def menciona_lugar_propio(texto: str) -> bool:
+    """¿Hay un «en/desde» + nombre propio que no sea una región-tema?"""
+
+    return any(
+        _sin_tildes(match.group(1)).casefold() not in REGIONES_TEMA
+        for match in PATRON_LUGAR_PROPIO.finditer(texto)
+    )
+
+
+def _sin_tildes(texto: str) -> str:
+    return "".join(
+        caracter
+        for caracter in unicodedata.normalize("NFD", texto)
+        if unicodedata.category(caracter) != "Mn"
+    )
 # Verbos de acto institucional. Un borrador no puede afirmar que algo fue
 # aprobado, confirmado u oficializado: esa afirmación sólo puede hacerla la
 # institución, y aparecería en un texto todavía no validado. También se aplica
@@ -711,7 +746,7 @@ def _construir_prompt_estructurado(
     contrato: ContratoCreativo,
 ) -> str:
     plantilla = files("agente1").joinpath(
-        "prompts", f"post_{canal}_structured_{contrato.prompt_suffix}.txt"
+        "prompts", f"post_{canal}_structured_{contrato.sufijo_prompt(canal)}.txt"
     ).read_text(encoding="utf-8")
     datos = json.dumps(fila, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     prompt = (
@@ -905,12 +940,24 @@ PATRON_CIRCUITO_NO_AUTORIZADO = re.compile(
 # personas del singular que aparecen en la práctica —incluidos "descubre" y
 # "puedes", falsos negativos detectados en el spike v3— y evita las formas
 # átonas que coinciden con el voseo ("enterate", "animate").
-PATRON_TUTEO = re.compile(
-    r"\b(?:inscr[ií]bete|reg[ií]strate|[uú]nete|participa|comp[aá]rtelo|"
-    r"desc[uú]brelo|aprovecha|con[ée]ctate|"
-    r"descubre|comparte|aprende|conoce|explora|disfruta|"
+#
+# Las formas de imperativo que coinciden con la tercera persona del indicativo
+# («explora», «comparte», «participa») sólo cuentan como tuteo al comienzo de
+# una oración o cláusula, que es donde va el imperativo: «esta actividad explora
+# la integración industrial» es tercera persona y es correcta. Rechazarlas en
+# cualquier posición tumbaba posts y líneas bien escritas (#51, 20/10).
+_TUTEO_INEQUIVOCO = (
+    r"inscr[ií]bete|reg[ií]strate|[uú]nete|comp[aá]rtelo|"
+    r"desc[uú]brelo|con[ée]ctate|"
     r"suscríbete|entérate|anímate|prepárate|"
-    r"puedes|tienes|quieres|sabes|eres|descubres|encuentras)\b",
+    r"puedes|tienes|quieres|sabes|eres|descubres|encuentras"
+)
+_TUTEO_AMBIGUO = (
+    r"participa|aprovecha|descubre|comparte|aprende|conoce|explora|disfruta"
+)
+PATRON_TUTEO = re.compile(
+    rf"\b(?:{_TUTEO_INEQUIVOCO})\b"
+    rf"|(?:^|[.!?¡¿:;,\n«\"(]\s*)(?:{_TUTEO_AMBIGUO})\b",
     flags=re.IGNORECASE,
 )
 # Eco de vocabulario de prompting en la salida. Si aparece, o el modelo está
@@ -957,6 +1004,15 @@ class ContratoCreativo:
     hashtags_seguros: frozenset[str]
     catalogo_por_canal: dict[str, dict[str, list[str]]] | None
     catalogo_version: str | None
+    # Un canal puede adelantar su prompt sin tocar el del otro: el encabezado
+    # con la versión viaja en el prompt, así que renombrar un archivo que no
+    # cambió movería la salida con `temperature=0` (#51).
+    prompt_suffix_por_canal: dict[str, str] | None = None
+
+    def sufijo_prompt(self, canal: str) -> str:
+        if self.prompt_suffix_por_canal and canal in self.prompt_suffix_por_canal:
+            return self.prompt_suffix_por_canal[canal]
+        return self.prompt_suffix
 
 
 def _construir_contrato_creativo(
@@ -965,6 +1021,7 @@ def _construir_contrato_creativo(
     renderer_version: str,
     prompt_suffix: str,
     borrador_suffix: str,
+    prompt_suffix_por_canal: dict[str, str] | None = None,
 ) -> ContratoCreativo:
     propiedades = contrato["properties"]
     campos_texto = ("gancho", "prosa", "cta")
@@ -974,6 +1031,7 @@ def _construir_contrato_creativo(
         renderer_version=renderer_version,
         prompt_suffix=prompt_suffix,
         borrador_suffix=borrador_suffix,
+        prompt_suffix_por_canal=prompt_suffix_por_canal,
         schema=contrato,
         campos=frozenset(contrato["required"]),
         limites={campo: propiedades[campo]["maxLength"] for campo in campos_texto},
@@ -1002,7 +1060,9 @@ CONTRATO_CREATIVO_V2 = _construir_contrato_creativo(
 CONTRATO_CREATIVO_V3 = _construir_contrato_creativo(
     CONTRATO_SALIDA_ESTRUCTURADA_V3,
     renderer_version=STRUCTURED_RENDERER_VERSION,
-    prompt_suffix="v4",
+    # #51: v6 en los dos canales (Instagram había alcanzado a LinkedIn en v5);
+    # `prompt_suffix_por_canal` queda para cuando un canal tenga que adelantarse.
+    prompt_suffix="v6",
     borrador_suffix="-v3",
 )
 # Detecta referencias a lugares genéricos en minúscula ("en el aula", "desde la
@@ -1159,7 +1219,7 @@ def _parsear_creatividad_estructurada(
         errores.append("unauthorized_amount")
     if (
         PATRON_LUGAR_ETIQUETADO.search(texto_creativo)
-        or PATRON_LUGAR_PROPIO.search(texto_creativo)
+        or menciona_lugar_propio(texto_creativo)
         or PATRON_REFERENCIA_LUGAR.search(texto_creativo)
     ):
         errores.append("unauthorized_place")
@@ -1179,6 +1239,26 @@ def _parsear_creatividad_estructurada(
     return creatividad, list(dict.fromkeys(errores))
 
 
+# Comienzo de oración en minúscula, admitiendo signos de apertura delante.
+_INICIO_ORACION_EN_MINUSCULA = re.compile(
+    r"(^|[.!?…]\s+)([¿¡«\"(]*)([a-záéíóúüñ])", flags=re.MULTILINE
+)
+
+
+def _con_mayuscula_inicial(texto: str) -> str:
+    """Pone en mayúscula la primera letra de cada oración.
+
+    En la ronda 3 de #51, qwen3.5:4b escribía en LinkedIn oraciones enteras en
+    minúscula («la inteligencia artificial transforma…»). Es tipografía, no
+    contenido: se corrige acá en vez de rechazar el post, y como el renderer
+    es determinista el control de `_validar_render_estructurado` sigue valiendo.
+    """
+
+    return _INICIO_ORACION_EN_MINUSCULA.sub(
+        lambda m: m.group(1) + m.group(2) + m.group(3).upper(), texto
+    )
+
+
 def _renderizar_post_estructurado(
     fila: dict[str, str], canal: str, creatividad: dict[str, object]
 ) -> str:
@@ -1196,9 +1276,9 @@ def _renderizar_post_estructurado(
     lineas = [
         f"CANAL: {canal}",
         "TEXTO:",
-        str(creatividad["gancho"]),
+        _con_mayuscula_inicial(str(creatividad["gancho"])),
         "",
-        str(creatividad["prosa"]),
+        _con_mayuscula_inicial(str(creatividad["prosa"])),
         "",
     ]
     # La descripción es el "qué" de la actividad: sin ella el post queda
@@ -1237,7 +1317,7 @@ def _renderizar_post_estructurado(
         [
             f"Contacto: {fila['contacto']}",
             "",
-            str(creatividad["cta"]),
+            _con_mayuscula_inicial(str(creatividad["cta"])),
             "HASHTAGS:",
             " ".join(creatividad["hashtags"]),
         ]
@@ -1294,7 +1374,7 @@ def _campos_auditoria_estructurada(
         "renderer_version": structured.renderer_version,
         "creative_catalog_version": structured.catalogo_version,
         "prompt_version": (
-            f"post_{canal}_structured_{structured.prompt_suffix}"
+            f"post_{canal}_structured_{structured.sufijo_prompt(canal)}"
             if canal in CANALES
             else None
         ),

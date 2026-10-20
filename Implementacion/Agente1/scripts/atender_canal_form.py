@@ -192,7 +192,9 @@ class _GeneradorOffline:
         self._salida_gacetilla = salida_gacetilla
 
     def generar(self, prompt: str) -> str:
-        if "PROMPT_VERSION: plantilla_actividad_generacion_v2" in prompt:
+        # Por prefijo y no por versión exacta: subir el prompt (#51) no tiene
+        # que dejar al canal offline devolviendo una gacetilla como plantilla.
+        if "PROMPT_VERSION: plantilla_actividad_generacion_" in prompt:
             return _SALIDA_PLANTILLA
         return self._salida_gacetilla
 

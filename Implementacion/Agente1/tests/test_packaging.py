@@ -148,7 +148,7 @@ def test_recursos_plantilla_actividad_hu012_son_empaquetables():
     )
     generacion = (
         files("agente1")
-        .joinpath("prompts", "plantilla_actividad_generacion_v2.txt")
+        .joinpath("prompts", "plantilla_actividad_generacion_v4.txt")
         .read_text(encoding="utf-8")
     )
 
@@ -157,7 +157,7 @@ def test_recursos_plantilla_actividad_hu012_son_empaquetables():
     assert contrato["x-hu"] == "HU-012"
     assert "TEMPLATE_VERSION: plantilla_actividad_base_provisional_v1" in base
     assert "PENDIENTE_SEU" in base
-    assert "PROMPT_VERSION: plantilla_actividad_generacion_v2" in generacion
+    assert "PROMPT_VERSION: plantilla_actividad_generacion_v4" in generacion
     assert "CONTRACT_VERSION: plantilla_actividad_v2" in generacion
     for nombre in (
         "DestinatarioActividad",

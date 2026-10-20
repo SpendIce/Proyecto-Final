@@ -189,7 +189,7 @@ def test_v3_audita_su_propia_version_de_contrato_y_prompt(tmp_path: Path) -> Non
     )
 
     assert registro["output_contract_version"] == "post_creative_output_v3"
-    assert registro["prompt_version"] == "post_instagram_structured_v4"
+    assert registro["prompt_version"] == "post_instagram_structured_v6"
     assert registro["creative_catalog_version"] is None
 
 
@@ -220,3 +220,89 @@ def test_patron_lugar_detecta_lugares_genericos(texto: str) -> None:
 def test_patron_lugar_no_marca_sintagmas_que_no_son_lugares(texto: str) -> None:
     """El patrón anterior usaba `\\S+` y marcaba cualquier "en X" del español."""
     assert PATRON_REFERENCIA_LUGAR.search(texto) is None
+
+
+def test_v3_ambos_canales_usan_el_prompt_v6(tmp_path: Path) -> None:
+    # #51: los dos canales comparten el bloque de rechazos frecuentes (lugar,
+    # modalidad, armado de la cursada, quién organiza, descripción repetida).
+    assert CONTRATO_CREATIVO_V3.sufijo_prompt("linkedin") == "v6"
+    assert CONTRATO_CREATIVO_V3.sufijo_prompt("instagram") == "v6"
+
+    resultado = procesar_post_estructurado(
+        fuente=CsvFuenteSolicitudes(DATASET),
+        id_solicitud="SYN-001",
+        canal="linkedin",
+        directorio_salida=tmp_path,
+        generator=FakeGenerator(json.dumps(CREATIVIDAD_LIBRE, ensure_ascii=False)),
+        contrato=CONTRATO_CREATIVO_V3,
+    )
+    registro = json.loads(resultado.log_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert registro["prompt_version"] == "post_linkedin_structured_v6"
+
+
+@pytest.mark.parametrize("canal", ["instagram", "linkedin"])
+def test_v3_el_maximo_de_cada_campo_entra_con_la_actividad_mas_larga(
+    canal: str, tmp_path: Path
+) -> None:
+    """DEF-A1-025: con el techo de 1000 la ficha de FIE-DIF-02 ocupaba unos
+    680 caracteres y un post con campos dentro de sus propios límites se
+    rechazaba por `length_out_of_range`. El techo de la plataforma no debe
+    poder violarse respetando los límites por campo."""
+    creatividad = {
+        "gancho": "¿Querés conocer una propuesta nueva? " + "a" * 123,
+        "prosa": "Una propuesta para compartir experiencias. " + "b" * 457,
+        "cta": "Encontrá los detalles en el enlace. " + "c" * 124,
+        "hashtags": ["#FIE", "#UNDEF", "#Ingenieria", "#Cursos", "#inscripciones"],
+    }
+    assert [len(creatividad[c]) for c in ("gancho", "prosa", "cta")] == [160, 500, 160]
+
+    resultado = procesar_post_estructurado(
+        fuente=CsvFuenteSolicitudes(ROOT / "data" / "corpus-fie-informa-difusiones.csv"),
+        id_solicitud="FIE-DIF-02",
+        canal=canal,
+        directorio_salida=tmp_path,
+        generator=FakeGenerator(json.dumps(creatividad, ensure_ascii=False)),
+        contrato=CONTRATO_CREATIVO_V3,
+    )
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+
+
+def test_un_canal_puede_adelantar_su_prompt_sin_mover_al_otro() -> None:
+    from dataclasses import replace
+
+    contrato = replace(CONTRATO_CREATIVO_V3, prompt_suffix_por_canal={"linkedin": "v7"})
+
+    assert contrato.sufijo_prompt("linkedin") == "v7"
+    assert contrato.sufijo_prompt("instagram") == "v6"
+
+
+@pytest.mark.parametrize(
+    ("entrada", "esperado"),
+    [
+        (
+            "la inteligencia artificial transforma la gestión. este curso aborda modelos de lenguaje.",
+            "La inteligencia artificial transforma la gestión. Este curso aborda modelos de lenguaje.",
+        ),
+        ("¿qué impulsa la conquista espacial? ¡enterate!", "¿Qué impulsa la conquista espacial? ¡Enterate!"),
+        ("«exploración» es la palabra.", "«Exploración» es la palabra."),
+        ("Herramientas como NotebookLM y chatbots.", "Herramientas como NotebookLM y chatbots."),
+    ],
+)
+def test_renderer_pone_mayuscula_al_comienzo_de_cada_oracion(entrada: str, esperado: str) -> None:
+    from agente1.posts import _con_mayuscula_inicial
+
+    assert _con_mayuscula_inicial(entrada) == esperado
+
+
+def test_el_post_guardado_lleva_mayuscula_inicial_aunque_el_modelo_no(tmp_path: Path) -> None:
+    creatividad = dict(CREATIVIDAD_LIBRE)
+    creatividad["prosa"] = "te invitamos a sumarte a una propuesta abierta. es para compartir experiencias."
+    creatividad["cta"] = "sumate y participá de la propuesta."
+
+    resultado = _generar(creatividad, CONTRATO_CREATIVO_V3, tmp_path)
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    borrador = resultado.borrador_path.read_text(encoding="utf-8")
+    assert "Te invitamos a sumarte a una propuesta abierta. Es para compartir experiencias." in borrador
+    assert "Sumate y participá de la propuesta." in borrador
