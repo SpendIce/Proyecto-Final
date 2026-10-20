@@ -51,36 +51,32 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 **Texto visible**
 
 - Tres piezas: el estado del plan, la arquitectura compartida y una corrida en vivo en el servidor de la facultad.
-- 01 · El Gantt semanal. El plan intacto y el avance marcado con evidencia: 47 tareas e hitos, 23 con `done` y 24 sin marcar. Corte 19/10/2026, sin rebaseline.
+- 01 · El Gantt semanal. Cómo va el plan: 47 tareas e hitos, 23 con `done` y 24 sin marcar. Corte 19/10/2026.
 - 02 · La arquitectura P100 en tres capas. Lo compartido hoy, lo proyectado con condición de entrada y la frontera del Agente 1.
 - 03 · La demo en vivo. En `labredesfie`, operado desde la facultad: gacetilla, certificados y confirmaciones.
-- Alcance: es una presentación de avance, no cierra el PPS, el Gate G2 ni el TRL.
 
 **Notas de orador**
 
 - Ordeno la presentación en tres bloques para que se entienda qué es evidencia y qué es horizonte.
-- El Gantt no se rebaselineó: lo que cambió es la lectura del avance, no las fechas ni los IDs del plan.
+- El Gantt muestra el avance por sprint, no el detalle de cada tarea.
 - La arquitectura es una propuesta para llegar a una vista común con Ignacio, no un diseño cerrado de los cinco agentes.
 - La demo corre en el servidor de la facultad porque la cátedra no admite localhost.
-- Aclaro desde acá: esto no cierra el PPS, ni el Gate G2, ni el TRL.
 
 **Preguntas probables**
 
 - **¿Por qué tan pocas láminas?** Porque es una presentación de avance y el detalle está en los informes. Preferí pocas ideas sostenidas con evidencia. Ver banco §13.
-- **¿Esto cierra el PPS?** No. El PPS cierra en febrero de 2027; hoy se muestra el estado al 21/10. Ver banco §13.
 
-## Lámina 3 · El plan no se toca; el avance se marca con evidencia
+## Lámina 3 · Cómo va el plan, con evidencia
 
 **Texto visible**
 
 - 47 tareas e hitos en el plan. 23 con `done`. 24 sin marcar.
-- El `.mmd` conserva IDs y fechas. Cambia la lectura del avance, no el plan.
 - Barras por sprint: S0 4/4, S1 3/6, S2 3/5, S3 2/5, S4 4/6, S5 2/5, S6 5/6, S7 0/5, Cierre 0/5.
 - Lo que avanzó desde septiembre: contrato Historia Viva rc2 (57/57 contra mock), cuenta de servicio (ADR 0011), certificados con línea descriptiva, medición 3b/8b en el servidor (19/10), anexos 1–3.
 
 **Notas de orador**
 
-- El corte es del lunes 19 a la noche y no agregué ninguna tarea nueva a `done` para esta presentación.
+- El corte es del lunes 19 a la noche.
 - Los sprints con más avance son S0, S4 y S6: bootstrap, confirmaciones y certificados.
 - S7 y Cierre están en cero porque dependen de la integración en el servidor y de la validación institucional, no de código que falte escribir.
 - La franja de abajo es lo que sí avanzó desde septiembre: contrato, identidad, certificados, medición y anexos.
@@ -89,7 +85,6 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 **Preguntas probables**
 
 - **¿Por qué no está todo el Gantt en verde?** Porque hay tareas bloqueadas por terceros y no las marco sin evidencia. El detalle está en `Revision-Avance-2026-10-19.md`. Ver banco §13.
-- **¿Movieron fechas del plan?** No. El `.mmd` no se tocó; se contrastó contra `gantt-progreso.js`.
 - **¿Qué es lo más importante que avanzó?** El contrato con Historia Viva probado contra el mock y la cuenta de servicio de DSI. La API real se prueba el 27/10.
 
 ## Lámina 4 · Lo que no está marcado, y por qué
@@ -97,26 +92,26 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 **Texto visible**
 
 - s1e · s2d · s3b · s4e · s5d · c1: validación SEU de muestras. El paquete está listo desde septiembre; la visita del 19/10 dio definiciones, no revisión de muestras.
-- s1c · m1: plantilla institucional de gacetilla. La salida a Docs corrió live el 28/09; falta la plantilla aprobada.
-- s3a: D3 y aval formal de DSI. D2 está live; D3 y el aval siguen abiertos.
+- s1c · m1: forma FIE INFORMA y muestras. La forma sale del corpus FIE INFORMA; falta la revisión de las muestras y el archivo de plantilla en Docs sigue siendo sintético.
+- s3a: servidor y D3. El servidor corre como host de cómputo sobre D2; D3 como ambiente completo sigue abierto.
 - HU-011 · posts: el 3b no resuelve redacción libre; el 8b resuelve Instagram pero no LinkedIn. La decisión de alcance está abierta.
-- s7c · m7: E2E en el servidor de la demo. Se corre el 21/10; no se declara antes.
+- s7c · m7: E2E en el servidor de la demo. Pendiente de versionar la corrida; no se declara sin evidencia.
 - No marcamos lo que no podemos sostener. El detalle está en el informe del Gantt.
 
 **Notas de orador**
 
 - No voy a recorrer las 24 tareas sin marcar. Hay cinco frentes que explican casi todo.
 - El primero es la validación de la SEU: el paquete de muestras está listo desde septiembre y la visita del 19/10 aportó definiciones, no revisión.
-- El segundo es la plantilla de gacetilla; la salida a Docs ya se probó en vivo, lo que falta es la plantilla aprobada.
-- El tercero es D3 y el aval de DSI. D2 está live desde el 28/09.
-- Posts y E2E tienen estado propio: la decisión de modelo y alcance está en #51, y el E2E se corre hoy, no antes.
+- El segundo es la forma FIE INFORMA: la referencia está aprobada; falta la revisión de las muestras y el archivo de plantilla en Docs sigue siendo sintético.
+- El tercero es el servidor y D3: el servidor ya corre como host de cómputo sobre D2; D3 como ambiente completo sigue abierto.
+- Posts y E2E tienen estado propio: la decisión de modelo y alcance está en #51, y el E2E se acredita con la corrida en el servidor.
 - La frase que resume la lámina: no marco lo que no puedo sostener con un archivo, un issue o una corrida.
 
 **Preguntas probables**
 
 - **¿Qué pasa con los posts?** El 3b no resuelve redacción libre y el 8b resuelve Instagram pero no LinkedIn. La decisión de modelo y alcance está abierta en #51 y cualquier cambio pasa por Dirección. Ver banco §11.
 - **¿La SEU está bloqueando el proyecto?** No. La SEU todavía no revisó las muestras; el resto del circuito técnico sigue avanzando. Ver banco §9 y §13.
-- **¿Por qué el E2E no está marcado si la demo es hoy?** Porque se corre hoy. No lo declaro antes de que exista la evidencia.
+- **¿Por qué el E2E no está marcado?** Porque la corrida en el servidor todavía no está versionada. Se marca cuando exista la evidencia, no antes.
 
 ## Lámina 5 · Arquitectura P100 en tres capas
 
@@ -253,7 +248,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 **Texto visible**
 
-- Límites: validación SEU pendiente (muestras y plantilla); un solo host, sin respaldo offline (R-TEC-03); contrato `/v1` en rc2, API real el 27/10; posts con decisión de alcance abierta; el sistema no está en producción.
+- Límites: validación SEU pendiente (revisión de muestras); un solo host, sin respaldo offline (R-TEC-03); contrato `/v1` en rc2, API real el 27/10; posts con decisión de alcance abierta; el sistema no está en producción.
 - Hitos: 23/10 anexos al laboratorio; 27/10 prueba con la API real de Historia Viva; 2–6/11 revisión de laboratorio; 18/11 presentación de cursada.
 - Los hitos no dependen sólo del código. La API real es de Historia Viva, la revisión es del laboratorio y la validación es de la SEU.
 
