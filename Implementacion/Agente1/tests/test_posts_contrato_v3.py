@@ -189,7 +189,7 @@ def test_v3_audita_su_propia_version_de_contrato_y_prompt(tmp_path: Path) -> Non
     )
 
     assert registro["output_contract_version"] == "post_creative_output_v3"
-    assert registro["prompt_version"] == "post_instagram_structured_v4"
+    assert registro["prompt_version"] == "post_instagram_structured_v5"
     assert registro["creative_catalog_version"] is None
 
 
@@ -222,11 +222,12 @@ def test_patron_lugar_no_marca_sintagmas_que_no_son_lugares(texto: str) -> None:
     assert PATRON_REFERENCIA_LUGAR.search(texto) is None
 
 
-def test_v3_linkedin_usa_su_prompt_v5_e_instagram_sigue_en_v4(tmp_path: Path) -> None:
-    # #51: LinkedIn adelantó su prompt; el de Instagram no cambia ni de nombre,
-    # porque el encabezado con la versión viaja en el prompt.
+def test_v3_ambos_canales_usan_el_prompt_v5(tmp_path: Path) -> None:
+    # #51: LinkedIn adelantó su v5 y después Instagram recibió el mismo bloque
+    # de rechazos frecuentes (lugar, modalidad, armado de la cursada, quién
+    # organiza).
     assert CONTRATO_CREATIVO_V3.sufijo_prompt("linkedin") == "v5"
-    assert CONTRATO_CREATIVO_V3.sufijo_prompt("instagram") == "v4"
+    assert CONTRATO_CREATIVO_V3.sufijo_prompt("instagram") == "v5"
 
     resultado = procesar_post_estructurado(
         fuente=CsvFuenteSolicitudes(DATASET),
@@ -266,3 +267,12 @@ def test_v3_el_maximo_de_cada_campo_entra_con_la_actividad_mas_larga(
     )
 
     assert resultado.estado == "PENDIENTE_VALIDACION"
+
+
+def test_un_canal_puede_adelantar_su_prompt_sin_mover_al_otro() -> None:
+    from dataclasses import replace
+
+    contrato = replace(CONTRATO_CREATIVO_V3, prompt_suffix_por_canal={"linkedin": "v6"})
+
+    assert contrato.sufijo_prompt("linkedin") == "v6"
+    assert contrato.sufijo_prompt("instagram") == "v5"

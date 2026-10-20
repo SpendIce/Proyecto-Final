@@ -1025,9 +1025,10 @@ CONTRATO_CREATIVO_V2 = _construir_contrato_creativo(
 CONTRATO_CREATIVO_V3 = _construir_contrato_creativo(
     CONTRATO_SALIDA_ESTRUCTURADA_V3,
     renderer_version=STRUCTURED_RENDERER_VERSION,
-    prompt_suffix="v4",
+    # #51: Instagram alcanzó a LinkedIn en v5; `prompt_suffix_por_canal`
+    # queda para cuando un canal tenga que adelantarse otra vez.
+    prompt_suffix="v5",
     borrador_suffix="-v3",
-    prompt_suffix_por_canal={"linkedin": "v5"},
 )
 # Detecta referencias a lugares genéricos en minúscula ("en el aula", "desde la
 # sede"). La versión anterior usaba `\S+` como objeto, de modo que matcheaba
