@@ -11,10 +11,11 @@ Guía rápida de módulos:
 - `procesamiento`  HU-010, gacetillas.
 - `posts`          HU-011, posts por canal con contrato creativo y renderer.
 - `confirmaciones` HU-012, notificaciones a inscriptos (fake, o Gmail con
-                             lista de prueba).
+                             lista de prueba o aprobada en producción).
 - `fuentes` / `destinos`      puertos de entrada y salida.
 - `google_workspace`          adapters de Sheets, Drive y Docs.
-- `gmail_envio`               adapter de `gmail.send` con lista de prueba.
+- `gmail_envio`               adapter de `gmail.send` con lista de prueba
+                              o modo producción con lista aprobada (#141).
 - `workspace_e2e`             runner con idempotencia y manifests.
 - `workspace_config`          configuración por entorno.
 - `ollama`                    generador local.

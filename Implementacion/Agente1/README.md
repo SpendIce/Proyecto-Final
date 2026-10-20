@@ -515,7 +515,7 @@ en memoria (`DestinoConfirmacionesFake`) o el adapter Gmail con lista de
 prueba (`GmailDestinoConfirmaciones`, ver más abajo). El estado terminal del
 lifecycle conserva su nombre histórico aunque la entrega haya sido real;
 el campo `delivery_mode` de la auditoría distingue `fake` de
-`gmail_test_list`.
+`gmail_test_list` y de `gmail_production`.
 
 ```bash
 PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
@@ -690,42 +690,59 @@ cuándo se entrega, no qué se entrega.
 uv run pytest -q tests/test_cola_envios.py
 ```
 
-### Destino Gmail con lista de prueba (D11/D12)
+### Destino Gmail: modo prueba y modo producción (D11/D12, #141)
 
 `src/agente1/gmail_envio.py` implementa el mismo puerto
 `DestinoConfirmaciones` contra `gmail.send`
 (`POST gmail.googleapis.com /gmail/v1/users/me/messages/send`), con el mismo
 transporte HTTP intercambiable de los adapters de Workspace. Es el primer
 destino que manda correo de verdad, y entra cercado por las decisiones D11
-y D12 del diseño de control de pagos:
+y D12 del diseño de control de pagos. Hay un solo adapter con dos modos; el
+default no cambia.
 
-- **La lista de direcciones de prueba es condición de existencia.** Sale de
+- **El modo prueba es el default.** Se usa cuando `AGENTE1_GMAIL_MODO` no
+  está definida (o vale `prueba`). La lista de direcciones sale de
   `AGENTE1_GMAIL_DESTINATARIOS_PRUEBA` (variable de entorno, separadas por
   coma, fuera del repo). Ausente, vacía o con una dirección inválida, el
   destino no se construye: `gmail_test_list_missing`/`gmail_test_list_invalid`.
+- **El modo producción es un opt-in explícito.** Se habilita con
+  `AGENTE1_GMAIL_MODO=produccion` y exige su propia lista,
+  `AGENTE1_GMAIL_DESTINATARIOS_APROBADOS`, también fuera del repo. Sin esa
+  lista, vacía o inválida, el destino no se construye:
+  `gmail_production_list_missing`/`gmail_production_list_invalid`. Un valor
+  desconocido del modo es `gmail_mode_invalid`. La lista real y la plantilla
+  por tipo las aprueba la SEU; el ticket #141 no las inventa.
 - **La lista se re-verifica en cada entrega, antes del token y de la red.**
   Un destinatario fuera de la lista levanta `EntregaRechazadaError`
-  (`recipient_off_test_list`): el registro queda `FALLIDA` —terminal, sin
-  reintentos— aunque el envío tenga las dos aprobaciones. Pasar a
-  destinatarios reales es un cambio de configuración, no de código.
-- **El cuerpo lleva las dos marcas de borrador.** El adapter exige que el
-  cuerpo empiece con `BORRADOR — NO ENVIAR` (la marca de HU-012) y le
-  antepone `# BORRADOR — NO PUBLICAR` antes de armar el MIME: mientras rija
-  la lista, el correo se declara no publicable.
+  (`recipient_off_test_list` en prueba, `recipient_off_approved_list` en
+  producción): el registro queda `FALLIDA` (terminal, sin reintentos)
+  aunque el envío tenga las dos aprobaciones.
+- **Las marcas de borrador son del modo prueba.** Ahí el adapter exige que
+  el cuerpo empiece con `BORRADOR — NO ENVIAR` (la marca de HU-012) y le
+  antepone `# BORRADOR — NO PUBLICAR` antes de armar el MIME. En producción
+  no exige ni antepone ninguna y rechaza con `draft_marker_in_production` un
+  cuerpo que todavía las traiga: un texto que dice «NO ENVIAR» no sale a un
+  destinatario institucional.
 - **El candado sigue siendo por tipo exacto.** `procesar_confirmacion` y
   `drenar_envios` habilitan exactamente `DestinoConfirmacionesFake` o
   `GmailDestinoConfirmaciones`; una subclase, un envoltorio o cualquier otro
   objeto sigue dando `offline_destination_required` (vía síncrona) o un
   worker que no procesa (vía encolada).
+- **La auditoría registra el modo.** `delivery_mode` vale `fake`,
+  `gmail_test_list` o `gmail_production`.
 - **La auditoría D2 admite exactamente un servicio de distribución.** El
   check `no_distribution_endpoints` pasa el `POST` de `messages.send` sólo si
-  el manifest declara `gmail_send.test_list_active`; cualquier otra ruta de
+  el manifest declara `gmail_send.test_list_active` o
+  `gmail_send.production_active`, nunca las dos; cualquier otra ruta de
   Gmail —lectura incluida— y cualquier otro servicio siguen prohibidos.
 
 Las pruebas (`tests/test_gmail_envio.py`) inyectan transporte y token fake:
 éxito, errores HTTP, timeout, respuesta excesiva y todos los rechazos de
-política sin una sola llamada de red. **No hay ejecución live ni
-destinatarios institucionales**: lo demostrado es el mecanismo cercado.
+política sin una sola llamada de red, en los dos modos. **No hay ejecución
+live ni destinatarios institucionales**: lo demostrado es el mecanismo
+cercado. El procedimiento de habilitación y lo que falta para operar en
+producción están en
+`evidencias/modo-produccion-gmail-2026-10-20.md`.
 
 Las APIs primarias (`SolicitudConfirmacion`, `AprobacionHumana`,
 `ResultadoConfirmacion`, `RegistroConfirmacionesMemoria`,

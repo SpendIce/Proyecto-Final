@@ -54,7 +54,7 @@ from .config_entorno import (
     cargar_destinatario_aviso,
     revisar_configuracion_al_arrancar,
 )
-from .gmail_envio import GmailDestinoConfirmaciones, cargar_destinatarios_prueba
+from .gmail_envio import GmailDestinoConfirmaciones
 from .google_workspace import (
     GoogleDrivePlantillaDestinoBorradores,
     GoogleSheetsLectorValores,
@@ -369,17 +369,15 @@ def _aviso_configuracion(
         destinatario = cargar_destinatario_aviso()
         if destinatario is None:
             return None
-        permitidos = cargar_destinatarios_prueba()
-    except ConfiguracionWorkspaceError:
-        return None
-    return AvisoConfiguracionGmail(
-        destinatario=destinatario,
-        destino=GmailDestinoConfirmaciones(
-            destinatarios_permitidos=permitidos,
+        # El modo y la lista salen del mismo entorno que el resto del envío:
+        # sin `AGENTE1_GMAIL_MODO` esto es la lista de prueba de siempre.
+        destino = GmailDestinoConfirmaciones.desde_entorno(
             token_provider=token_provider,
             transport=transport,
-        ),
-    )
+        )
+    except ConfiguracionWorkspaceError:
+        return None
+    return AvisoConfiguracionGmail(destinatario=destinatario, destino=destino)
 
 
 def informe_a_dict(informe: InformeCorridaInsumos) -> dict[str, object]:

@@ -391,3 +391,96 @@ def test_la_declaracion_gmail_del_manifest_es_de_contrato_cerrado(
     # Contrato inválido: fail-closed, no un check «con matices».
     assert reporte["status"] == "INVALID"
     assert reporte["checks"] == []
+
+
+# --- La otra cara de la excepción: modo producción con lista aprobada (#141) ---
+# El mismo endpoint de `gmail.send` se admite con una declaración explícita de
+# modo producción. El contrato sigue cerrado: los dos modos no pueden estar
+# activos a la vez, y sin declaración el envío sigue prohibido.
+
+
+def test_gmail_send_pasa_con_modo_produccion_declarado() -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["gmail_send"] = {"production_active": True}
+
+    assert _check_distribucion(auditar_manifest(manifest)) is True
+
+
+def test_gmail_send_produccion_admite_hash_de_la_lista_aprobada() -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["gmail_send"] = {
+        "production_active": True,
+        "recipients_hash": "d" * 64,
+    }
+
+    assert _check_distribucion(auditar_manifest(manifest)) is True
+
+
+def test_gmail_send_con_modo_produccion_inactivo_sigue_fallando() -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["gmail_send"] = {"production_active": False}
+
+    reporte = auditar_manifest(manifest)
+
+    assert reporte["status"] == "FAIL"
+    assert _check_distribucion(reporte) is False
+
+
+def test_los_dos_modos_activos_a_la_vez_son_contrato_invalido() -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["gmail_send"] = {
+        "test_list_active": True,
+        "production_active": True,
+    }
+
+    reporte = auditar_manifest(manifest)
+
+    # Ambigüedad bajo la que se envió: fail-closed, no un check con matices.
+    assert reporte["status"] == "INVALID"
+    assert reporte["checks"] == []
+
+
+@pytest.mark.parametrize(
+    "declaracion",
+    [
+        {"production_active": "yes"},
+        {"test_list_active": None},
+        {"production_active": None},
+        {"production_active": True, "sorpresa": 1},
+        {"recipients_hash": "c" * 64},
+        {},
+    ],
+)
+def test_la_declaracion_de_produccion_tambien_es_de_contrato_cerrado(
+    declaracion: object,
+) -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["gmail_send"] = declaracion
+
+    reporte = auditar_manifest(manifest)
+
+    assert reporte["status"] == "INVALID"
+    assert reporte["checks"] == []
+
+
+def test_produccion_no_habilita_ninguna_otra_ruta_de_gmail() -> None:
+    manifest = _manifest_seguro()
+    manifest["http_calls"].append(_llamada_gmail_send())
+    manifest["http_calls"].append(
+        {
+            "method": "POST",
+            "host": "gmail.googleapis.com",
+            "target": "/gmail/v1/users/me/messages/abc/modify",
+        }
+    )
+    manifest["gmail_send"] = {"production_active": True}
+
+    reporte = auditar_manifest(manifest)
+
+    assert reporte["status"] == "FAIL"
+    assert _check_distribucion(reporte) is False

@@ -76,7 +76,8 @@ def auditar_manifest(manifest: object) -> dict[str, object]:
     - `remote_errors_redacted`: ¿los errores del proveedor filtran datos?
     - `no_distribution_endpoints`: ¿aparece alguna llamada capaz de enviar,
       compartir o cambiar permisos, distinta del único servicio admitido —
-      `gmail.send` de la cuenta técnica, sólo con lista de prueba activa?
+      `gmail.send` de la cuenta técnica, sólo con lista de prueba activa o con
+      el modo producción declarado?
     - `revocation_blocks`: al revocar permisos, ¿se detuvo sin producir salida?
     - `outputs_are_drafts`: ¿toda salida quedó marcada como borrador y en
       estado pendiente de validación?
@@ -115,7 +116,7 @@ def auditar_manifest(manifest: object) -> dict[str, object]:
             "no_distribution_endpoints",
             _sin_endpoints_distribucion(
                 manifest["http_calls"],
-                gmail_lista_activa=_lista_prueba_gmail_activa(manifest),
+                gmail_envio_declarado=_gmail_envio_declarado(manifest),
             ),
         ),
         _check(
@@ -265,20 +266,36 @@ def _declaracion_gmail_valida(declaracion: object) -> bool:
 
     Es la única declaración que puede habilitar una llamada de distribución:
     `test_list_active` afirma que el envío operó cercado por la lista de
-    direcciones de prueba de D12. `recipients_hash` es opcional y deja
-    huella verificable de qué lista se usó sin exponer las direcciones.
-    Ausente, la sección equivale a «sin lista»: ninguna llamada de Gmail
-    pasa el control.
+    direcciones de prueba de D12, y `production_active` que operó en el modo
+    producción con lista aprobada (ticket #141). Las dos no pueden estar
+    activas a la vez: un manifest que declara ambas no dice bajo qué control
+    se envió, y ese silencio no se interpreta a favor del envío.
+    `recipients_hash` es opcional y deja huella verificable de qué lista se
+    usó sin exponer las direcciones. Ausente, la sección equivale a «sin
+    lista»: ninguna llamada de Gmail pasa el control.
     """
 
     if declaracion is None:
         return True
     if not isinstance(declaracion, dict) or not set(declaracion) <= {
         "test_list_active",
+        "production_active",
         "recipients_hash",
     }:
         return False
-    if not isinstance(declaracion.get("test_list_active"), bool):
+    if (
+        "test_list_active" not in declaracion
+        and "production_active" not in declaracion
+    ):
+        return False
+    declaradas = (
+        declaracion.get("test_list_active"),
+        declaracion.get("production_active"),
+    )
+    for clave in ("test_list_active", "production_active"):
+        if clave in declaracion and not isinstance(declaracion[clave], bool):
+            return False
+    if declaradas == (True, True):
         return False
     recipients_hash = declaracion.get("recipients_hash")
     return recipients_hash is None or (
@@ -287,18 +304,25 @@ def _declaracion_gmail_valida(declaracion: object) -> bool:
     )
 
 
-def _lista_prueba_gmail_activa(manifest: Mapping[str, object]) -> bool:
-    """`True` sólo si el manifest declara la lista de prueba vigente."""
+def _gmail_envio_declarado(manifest: Mapping[str, object]) -> bool:
+    """`True` si el manifest declara un modo de envío con su lista.
+
+    Alcanza con uno de los dos modos: la declaración cerrada ya garantiza que
+    no vienen los dos activos a la vez.
+    """
 
     declaracion = manifest.get("gmail_send")
     return (
         isinstance(declaracion, dict)
-        and declaracion.get("test_list_active") is True
+        and (
+            declaracion.get("test_list_active") is True
+            or declaracion.get("production_active") is True
+        )
     )
 
 
 def _sin_endpoints_distribucion(
-    http_calls: object, *, gmail_lista_activa: bool
+    http_calls: object, *, gmail_envio_declarado: bool
 ) -> bool:
     """Ninguna llamada puede distribuir contenido ni cambiar permisos.
 
@@ -316,8 +340,9 @@ def _sin_endpoints_distribucion(
       Envío, etiquetas, modificación, borrado o el buzón de otro usuario
       caen afuera por método o por forma de ruta.
     - Envío restringido (D12): `POST /gmail/v1/users/me/messages/send`,
-      admitida sólo cuando el manifest declara `gmail_send.test_list_active`.
-      Gmail sin lista activa sigue fallando.
+      admitida sólo cuando el manifest declara `gmail_send.test_list_active`
+      o `gmail_send.production_active`. Gmail sin lista activa, o con las dos
+      declaraciones a la vez, sigue fallando.
     """
 
     if not isinstance(http_calls, list):
@@ -339,7 +364,7 @@ def _sin_endpoints_distribucion(
             if (
                 method == "POST"
                 and target == GMAIL_SEND_TARGET
-                and gmail_lista_activa
+                and gmail_envio_declarado
             ):
                 continue
             return False
