@@ -81,11 +81,11 @@ from .posts import (
     PATRON_IMPORTE,
     PATRON_INYECCION,
     PATRON_LUGAR_ETIQUETADO,
-    PATRON_LUGAR_PROPIO,
     PATRON_REFERENCIA_LUGAR,
     PATRON_TUTEO,
     PATRON_URL,
     _contiene_fragmento_significativo,
+    menciona_lugar_propio,
 )
 from .presupuesto import (
     MENSAJE_PRESUPUESTO_AGOTADO,
@@ -242,7 +242,7 @@ def validar_linea_descriptiva(
         errores.append("unauthorized_amount")
     if (
         PATRON_LUGAR_ETIQUETADO.search(normalizada)
-        or PATRON_LUGAR_PROPIO.search(normalizada)
+        or menciona_lugar_propio(normalizada)
         or PATRON_REFERENCIA_LUGAR.search(normalizada)
     ):
         errores.append("unauthorized_place")

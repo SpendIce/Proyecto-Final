@@ -158,6 +158,40 @@ PATRON_LUGAR_PROPIO = re.compile(
     r"\b(?:en|desde)\s+(?:(?:el|la|los|las)\s+)?"
     r"([A-ZÁÉÍÓÚÜÑ][\wÁÉÍÓÚÜÑáéíóúüñ-]*)",
 )
+# Regiones tan amplias que no pueden ser la sede de una actividad: cuando
+# aparecen después de «en» son el tema («la soberanía en la Patagonia y la
+# Antártida»), no un lugar inventado. Ver DEF-A1-026. Una ciudad, una sede o un
+# edificio con nombre propio se siguen rechazando.
+REGIONES_TEMA = frozenset(
+    {
+        "america",
+        "antartida",
+        "antartica",
+        "argentina",
+        "atlantico",
+        "latinoamerica",
+        "malvinas",
+        "patagonia",
+        "sudamerica",
+    }
+)
+
+
+def menciona_lugar_propio(texto: str) -> bool:
+    """¿Hay un «en/desde» + nombre propio que no sea una región-tema?"""
+
+    return any(
+        _sin_tildes(match.group(1)).casefold() not in REGIONES_TEMA
+        for match in PATRON_LUGAR_PROPIO.finditer(texto)
+    )
+
+
+def _sin_tildes(texto: str) -> str:
+    return "".join(
+        caracter
+        for caracter in unicodedata.normalize("NFD", texto)
+        if unicodedata.category(caracter) != "Mn"
+    )
 # Verbos de acto institucional. Un borrador no puede afirmar que algo fue
 # aprobado, confirmado u oficializado: esa afirmación sólo puede hacerla la
 # institución, y aparecería en un texto todavía no validado. También se aplica
@@ -1185,7 +1219,7 @@ def _parsear_creatividad_estructurada(
         errores.append("unauthorized_amount")
     if (
         PATRON_LUGAR_ETIQUETADO.search(texto_creativo)
-        or PATRON_LUGAR_PROPIO.search(texto_creativo)
+        or menciona_lugar_propio(texto_creativo)
         or PATRON_REFERENCIA_LUGAR.search(texto_creativo)
     ):
         errores.append("unauthorized_place")
