@@ -91,29 +91,17 @@ _ENTRY_DECISION_OFFLINE = "entry.000000023"
 _CORREO_SEMANTICA = "rgc@example.invalid"
 _CORREO_UTILITARIA = "coord@example.invalid"
 
-# Salida del generador fake para la plantilla con plan de pago: prosa
-# descriptiva sin un solo dato — todo valor viaja como `{{variable}}` —
-# porque el gate de `plantilla_actividad_v1` descarta la salida entera
-# ante un dígito, una fecha, un importe, un correo o un enlace. La
-# variante sin plan quita el bloque de pago: sin plan esas variables
-# están prohibidas.
-_PLANTILLA_BASE = (
-    "Hola {{nombre_destinatario}},\n\n"
-    "Te escribimos por tu preinscripción a {{actividad}}, que comienza el "
-    "{{fecha_inicio}}.\n\n"
+# Salida del generador fake: desde `plantilla_actividad_v2` (#140) el
+# modelo devuelve sólo un párrafo de prosa descriptiva, sin un solo dato ni
+# variable. El saludo, las variables, el bloque de pago (con plan) y el
+# contacto los compone el pipeline.
+_PROSA_PLANTILLA = (
     "La propuesta acerca contenidos y herramientas de la facultad a la "
     "comunidad, con un formato abierto y pensado para quienes se acercan "
     "por primera vez. Las instancias de trabajo combinan encuentros "
     "guiados con espacios de consulta, y el equipo docente acompaña a "
-    "cada participante durante todo el recorrido.\n"
+    "cada participante durante todo el recorrido."
 )
-_PLANTILLA_BLOQUE_PLAN = (
-    "\nEl valor y las formas de pago de la actividad son:\n"
-    "{{detalle_cuotas}}\n"
-    "Medios de pago: {{medios_pago}}.\n"
-    "{{bonificaciones}}\n"
-)
-_PLANTILLA_CIERRE = "\nContacto: {{contacto}}\n"
 
 
 class _ParserSeguro(argparse.ArgumentParser):
@@ -196,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--plan-csv",
         type=Path,
-        help="Plan de pago en formato largo. Con plan, la plantilla exige las variables de cuotas y medios.",
+        help="Plan de pago en formato largo. Con plan, el cuerpo compuesto lleva las variables de cuotas y medios.",
     )
     parser.add_argument(
         "--padron-csv",
@@ -236,14 +224,11 @@ def main(argv: list[str] | None = None) -> int:
             raise RunnerWorkspaceError("plan_actividad_distinta")
 
         # --- Fase 1: generación ---------------------------------------
-        salida = _PLANTILLA_BASE + (
-            _PLANTILLA_BLOQUE_PLAN if plan is not None else ""
-        ) + _PLANTILLA_CIERRE
         resultado = procesar_plantilla_actividad(
             fuente=CsvFuenteSolicitudes(args.csv),
             id_solicitud=args.actividad,
             directorio_salida=directorio,
-            generator=FakeGenerator(salida),
+            generator=FakeGenerator(_PROSA_PLANTILLA),
             planes_pago=(
                 {args.actividad: plan} if plan is not None else None
             ),

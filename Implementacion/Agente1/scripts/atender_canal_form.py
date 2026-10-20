@@ -164,31 +164,16 @@ def _fake_output_desde_golden() -> str:
 
 
 # Salida del generator fake para la intención `generar_plantilla_actividad`
-# (#73): prosa descriptiva sin un solo dato — todo valor viaja como
-# `{{variable}}`— porque el gate de `plantilla_actividad_v1` descarta la
-# salida entera ante un dígito, una fecha, un importe, un correo o un
-# enlace en el texto. Hay una variante por cada forma del pedido:
-#
-# - con plan de pago, el contrato exige `{{detalle_cuotas}}` y
-#   `{{medios_pago}}`; sin plan esas variables están prohibidas. El fake
-#   elige mirando el prompt — el listado de variables requeridas que el
-#   pipeline le armó al modelo—, igual que un modelo real decidiría.
-_SALIDA_PLANTILLA_BASE = (
-    "Hola {{nombre_destinatario}},\n\n"
-    "Te escribimos por tu preinscripción a {{actividad}}, que comienza el "
-    "{{fecha_inicio}}.\n\n"
+# (#73): desde `plantilla_actividad_v2` (#140) el modelo devuelve sólo un
+# párrafo de prosa descriptiva, sin un solo dato ni variable. El saludo,
+# las variables, el bloque de pago (cuando hay plan) y el contacto los
+# compone el pipeline, así que la misma prosa sirve con plan y sin él.
+_SALIDA_PLANTILLA = (
     "La propuesta acerca contenidos y herramientas de la facultad a la "
     "comunidad, con un formato abierto y pensado para quienes se acercan "
     "por primera vez. Las instancias de trabajo combinan encuentros "
     "guiados con espacios de consulta, y el equipo docente acompaña a "
-    "cada participante durante todo el recorrido.\n"
-)
-_SALIDA_PLANTILLA_CIERRE = "\nContacto: {{contacto}}\n"
-_SALIDA_PLANTILLA_BLOQUE_PLAN = (
-    "\nEl valor y las formas de pago de la actividad son:\n"
-    "{{detalle_cuotas}}\n"
-    "Medios de pago: {{medios_pago}}.\n"
-    "{{bonificaciones}}\n"
+    "cada participante durante todo el recorrido."
 )
 
 
@@ -196,9 +181,8 @@ class _GeneradorOffline:
     """Generator fake del modo offline, con una salida por tipo de pieza.
 
     Reconoce el prompt de plantilla de actividad por su `PROMPT_VERSION`
-    declarada en el propio texto que el pipeline le pasa al modelo, y
-    devuelve la variante con o sin bloque de plan según las variables
-    requeridas que el prompt enumera. Para cualquier otro prompt devuelve
+    declarada en el propio texto que el pipeline le pasa al modelo y
+    devuelve la prosa de la plantilla. Para cualquier otro prompt devuelve
     la ficha golden, como `FakeGenerator`.
     """
 
@@ -208,19 +192,8 @@ class _GeneradorOffline:
         self._salida_gacetilla = salida_gacetilla
 
     def generar(self, prompt: str) -> str:
-        if "PROMPT_VERSION: plantilla_actividad_generacion_v1" in prompt:
-            # El bloque de pago sólo va si el prompt declara la actividad
-            # arancelada en sus DATOS_JSON: la mención de {{detalle_cuotas}}
-            # en la base no alcanza para distinguir, porque está en el
-            # texto del prompt cualquiera sea el plan.
-            bloque_plan = (
-                _SALIDA_PLANTILLA_BLOQUE_PLAN
-                if '"arancelada": true' in prompt
-                else ""
-            )
-            return (
-                _SALIDA_PLANTILLA_BASE + bloque_plan + _SALIDA_PLANTILLA_CIERRE
-            )
+        if "PROMPT_VERSION: plantilla_actividad_generacion_v2" in prompt:
+            return _SALIDA_PLANTILLA
         return self._salida_gacetilla
 
 
