@@ -93,7 +93,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 - s1e · s2d · s3b · s4e · s5d · c1: validación SEU de muestras. El paquete está listo desde septiembre; la visita del 19/10 dio definiciones, no revisión de muestras.
 - s1c · m1: forma FIE INFORMA y muestras. La forma sale del corpus FIE INFORMA; falta la revisión de las muestras y el archivo de plantilla en Docs sigue siendo sintético.
-- s3a: servidor y D3. El servidor corre como host de cómputo sobre D2; D3 como ambiente completo sigue abierto.
+- s3a: servidor y D3. D3 provisional: servidor y carpeta compartida en uso; la unidad institucional sigue pendiente.
 - HU-011 · posts: el 3b no resuelve redacción libre; el 8b resuelve Instagram pero no LinkedIn. La decisión de alcance está abierta.
 - s7c · m7: E2E en el servidor de la demo. Pendiente de versionar la corrida; no se declara sin evidencia.
 - No marcamos lo que no podemos sostener. El detalle está en el informe del Gantt.
