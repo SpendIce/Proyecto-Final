@@ -270,6 +270,9 @@ def test_el_tema_viaja_en_la_consulta_y_en_la_auditoria_como_hash(tmp_path: Path
 
 # --- Selección del fragmento por fecha y por extensión ---------------------------
 
+# Los fragmentos «que no entran» miden 3500 caracteres: más que el techo de
+# LinkedIn (3000), el mayor de los dos canales desde DEF-A1-025.
+
 
 @pytest.mark.parametrize("canal", ["instagram", "linkedin"])
 def test_el_primero_que_no_entra_se_descarta_y_se_prueba_el_siguiente(
@@ -281,7 +284,7 @@ def test_el_primero_que_no_entra_se_descarta_y_se_prueba_el_siguiente(
         fragmento(
             fragmento_id="frg-largo",
             pieza_id="pie-largo",
-            texto="x" * 1500,
+            texto="x" * 3500,
         ),
         fragmento(
             fragmento_id="frg-util",
@@ -304,7 +307,7 @@ def test_el_primero_que_no_entra_se_descarta_y_se_prueba_el_siguiente(
     borrador = resultado.borrador_path.read_text(encoding="utf-8")
     assert "Un texto breve que entra." in borrador
     assert "Fuente: pie-util / frg-util (7 de agosto de 1926)" in borrador
-    assert "x" * 1500 not in borrador
+    assert "x" * 3500 not in borrador
     assert "REFERENCIAS NO UTILIZADAS" in borrador
     assert (
         "- pie-largo / frg-largo (7 de agosto de 1926): no entra completa en el "
@@ -327,7 +330,7 @@ def test_la_consulta_no_se_limita_a_uno_para_poder_descartar_al_primero(
     tmp_path: Path,
 ):
     cliente = cliente_con_fragmentos(
-        fragmento(fragmento_id="frg-001", pieza_id="pie-001", texto="x" * 1500),
+        fragmento(fragmento_id="frg-001", pieza_id="pie-001", texto="x" * 3500),
         fragmento(
             fragmento_id="frg-002",
             pieza_id="pie-002",
@@ -1027,7 +1030,7 @@ def test_sin_fragmento_que_entre_informa_material_no_utilizable(
 ):
     """Si ningún candidato entra completo, no hay borrador y se dice por qué."""
 
-    cliente = cliente_con_fragmentos(fragmento(texto="x" * 1500))
+    cliente = cliente_con_fragmentos(fragmento(texto="x" * 3500))
     politica = POLITICAS_DEFAULT[canal]
 
     resultado = procesar_post_efemeride(

@@ -30,25 +30,25 @@
   "canales": {
     "instagram": {
       "policy_version": "post_instagram_policy_provisional_v1",
-      "max_chars": 1000,
+      "max_chars": 2200,
       "min_hashtags": 1,
       "max_hashtags": 5,
       "max_emojis": 2,
       "max_exclamaciones": 2,
       "tono_declarado": "Académico, con audiencia diferenciada: profesionales en cursos y congresos, perfiles más jóvenes en carreras. Registro rioplatense con voseo.",
       "origen_valores": "CONFIRMADO_SEU_2026-09-22",
-      "observacion": "Extensión sin límite editorial: max_chars es un techo técnico interno, no un criterio SEU. Emojis casi nunca, sólo para datos puntuales (hora, día, consultas, inscripción): se conserva un tope interno de 2. CTA: el enlace va en el perfil."
+      "observacion": "Extensión sin límite editorial: max_chars es un techo técnico interno, no un criterio SEU; desde DEF-A1-025 coincide con el límite de la plataforma (2200 caracteres por publicación). Emojis casi nunca, sólo para datos puntuales (hora, día, consultas, inscripción): se conserva un tope interno de 2. CTA: el enlace va en el perfil."
     },
     "linkedin": {
       "policy_version": "post_linkedin_policy_provisional_v1",
-      "max_chars": 1000,
+      "max_chars": 3000,
       "min_hashtags": 1,
       "max_hashtags": 10,
       "max_emojis": 0,
       "max_exclamaciones": 0,
       "tono_declarado": "Académico, orientado a público más profesional; mismo criterio que Instagram, sin diferenciación fuerte entre plataformas. Registro rioplatense.",
       "origen_valores": "CONFIRMADO_SEU_2026-09-22",
-      "observacion": "Sin tope editorial de hashtags: max_hashtags queda como techo técnico interno. CTA: el enlace va en el post."
+      "observacion": "Extensión sin límite editorial: max_chars es un techo técnico interno que, desde DEF-A1-025, coincide con el límite de la plataforma (3000 caracteres por publicación). Sin tope editorial de hashtags: max_hashtags queda como techo técnico interno. CTA: el enlace va en el post."
     }
   },
 

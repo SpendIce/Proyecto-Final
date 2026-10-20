@@ -238,3 +238,31 @@ def test_v3_linkedin_usa_su_prompt_v5_e_instagram_sigue_en_v4(tmp_path: Path) ->
     )
     registro = json.loads(resultado.log_path.read_text(encoding="utf-8").splitlines()[-1])
     assert registro["prompt_version"] == "post_linkedin_structured_v5"
+
+
+@pytest.mark.parametrize("canal", ["instagram", "linkedin"])
+def test_v3_el_maximo_de_cada_campo_entra_con_la_actividad_mas_larga(
+    canal: str, tmp_path: Path
+) -> None:
+    """DEF-A1-025: con el techo de 1000 la ficha de FIE-DIF-02 ocupaba unos
+    680 caracteres y un post con campos dentro de sus propios límites se
+    rechazaba por `length_out_of_range`. El techo de la plataforma no debe
+    poder violarse respetando los límites por campo."""
+    creatividad = {
+        "gancho": "¿Querés conocer una propuesta nueva? " + "a" * 123,
+        "prosa": "Una propuesta para compartir experiencias. " + "b" * 457,
+        "cta": "Encontrá los detalles en el enlace. " + "c" * 124,
+        "hashtags": ["#FIE", "#UNDEF", "#Ingenieria", "#Cursos", "#inscripciones"],
+    }
+    assert [len(creatividad[c]) for c in ("gancho", "prosa", "cta")] == [160, 500, 160]
+
+    resultado = procesar_post_estructurado(
+        fuente=CsvFuenteSolicitudes(ROOT / "data" / "corpus-fie-informa-difusiones.csv"),
+        id_solicitud="FIE-DIF-02",
+        canal=canal,
+        directorio_salida=tmp_path,
+        generator=FakeGenerator(json.dumps(creatividad, ensure_ascii=False)),
+        contrato=CONTRATO_CREATIVO_V3,
+    )
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
