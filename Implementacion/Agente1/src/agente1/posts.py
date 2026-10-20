@@ -905,12 +905,24 @@ PATRON_CIRCUITO_NO_AUTORIZADO = re.compile(
 # personas del singular que aparecen en la práctica —incluidos "descubre" y
 # "puedes", falsos negativos detectados en el spike v3— y evita las formas
 # átonas que coinciden con el voseo ("enterate", "animate").
-PATRON_TUTEO = re.compile(
-    r"\b(?:inscr[ií]bete|reg[ií]strate|[uú]nete|participa|comp[aá]rtelo|"
-    r"desc[uú]brelo|aprovecha|con[ée]ctate|"
-    r"descubre|comparte|aprende|conoce|explora|disfruta|"
+#
+# Las formas de imperativo que coinciden con la tercera persona del indicativo
+# («explora», «comparte», «participa») sólo cuentan como tuteo al comienzo de
+# una oración o cláusula, que es donde va el imperativo: «esta actividad explora
+# la integración industrial» es tercera persona y es correcta. Rechazarlas en
+# cualquier posición tumbaba posts y líneas bien escritas (#51, 20/10).
+_TUTEO_INEQUIVOCO = (
+    r"inscr[ií]bete|reg[ií]strate|[uú]nete|comp[aá]rtelo|"
+    r"desc[uú]brelo|con[ée]ctate|"
     r"suscríbete|entérate|anímate|prepárate|"
-    r"puedes|tienes|quieres|sabes|eres|descubres|encuentras)\b",
+    r"puedes|tienes|quieres|sabes|eres|descubres|encuentras"
+)
+_TUTEO_AMBIGUO = (
+    r"participa|aprovecha|descubre|comparte|aprende|conoce|explora|disfruta"
+)
+PATRON_TUTEO = re.compile(
+    rf"\b(?:{_TUTEO_INEQUIVOCO})\b"
+    rf"|(?:^|[.!?¡¿:;,\n«\"(]\s*)(?:{_TUTEO_AMBIGUO})\b",
     flags=re.IGNORECASE,
 )
 # Eco de vocabulario de prompting en la salida. Si aparece, o el modelo está
