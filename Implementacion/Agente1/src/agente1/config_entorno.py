@@ -28,10 +28,12 @@ Decisiones que no se ven en el código:
 - **Nada de esto frena el arranque.** Ni el aviso ni la escritura del registro
   levantan hacia el llamador: el cambio queda asentado como mejor se pueda y la
   corrida sigue (ADR 0010). El fail-closed es del árbol de archivos, no de acá.
-- **El aviso va a UNA dirección declarada, no a la lista de prueba entera.** La
+- **El aviso va a UNA dirección declarada, no a la lista entera.** La
   dirección sale de `AGENTE1_CONFIG_ENTORNO_AVISO_DESTINATARIO` y tiene que
-  estar en `AGENTE1_GMAIL_DESTINATARIOS_PRUEBA` (D12); sin dirección declarada
-  el cambio se asienta `aviso=no_configurado` y no sale correo.
+  estar en la lista del modo de envío vigente: la de prueba (D12) por
+  omisión, o la aprobada si `AGENTE1_GMAIL_MODO=produccion` (ticket #141).
+  Sin dirección declarada el cambio se asienta `aviso=no_configurado` y no
+  sale correo.
 - **El cuerpo del aviso sólo nombra claves y cita hashes.** Los valores de los
   identificadores no viajan ni a la auditoría ni al correo: el aviso dice *qué*
   cambió, no *a qué*, y así no se convierte en un canal de fuga.
@@ -49,7 +51,7 @@ from pathlib import Path
 from typing import Protocol
 
 from .confirmaciones import MARCADOR_BORRADOR, email_valido
-from .gmail_envio import GmailDestinoConfirmaciones
+from .gmail_envio import MODO_ENVIO_PRUEBA, GmailDestinoConfirmaciones
 from .registro_auditoria import escribir_registro
 from .workspace_config import ConfiguracionWorkspace, ConfiguracionWorkspaceError
 
@@ -313,12 +315,15 @@ def cargar_destinatario_aviso(
 
 
 class AvisoConfiguracionGmail:
-    """Aviso real por `gmail.send`, cercado por la lista de prueba (D12).
+    """Aviso real por `gmail.send`, cercado por la lista del destino.
 
     Reusa `GmailDestinoConfirmaciones`, el único destino de correo habilitado:
     la dirección tiene que estar en la lista o la entrega se rechaza antes de
-    la red, y el cuerpo sale con la marca de borrador como cualquier correo del
-    agente. La clave de idempotencia es un hash del aviso, no un dato.
+    la red. En modo prueba el cuerpo sale con la marca de borrador como
+    cualquier correo del agente; en modo producción (ticket #141) sale sin
+    marca, porque el destinatario es el operador real y el modo producción no
+    admite cuerpos marcados. La clave de idempotencia es un hash del aviso, no
+    un dato.
     """
 
     def __init__(
@@ -330,13 +335,18 @@ class AvisoConfiguracionGmail:
         self._destino = destino
 
     def avisar(self, *, asunto: str, cuerpo: str) -> str:
+        cuerpo_final = (
+            MARCADOR_BORRADOR + "\n" + cuerpo
+            if self._destino.modo == MODO_ENVIO_PRUEBA
+            else cuerpo
+        )
         self._destino.entregar(
             idempotency_key=hashlib.sha256(
                 f"aviso-config-entorno|{asunto}|{cuerpo}".encode("utf-8")
             ).hexdigest(),
             destinatario=self._destinatario,
             asunto=asunto,
-            cuerpo=MARCADOR_BORRADOR + "\n" + cuerpo,
+            cuerpo=cuerpo_final,
         )
         return AVISO_ENVIADO
 

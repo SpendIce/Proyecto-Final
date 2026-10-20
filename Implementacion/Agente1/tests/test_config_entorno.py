@@ -36,7 +36,11 @@ from agente1.config_entorno import (
     huella_configuracion,
     revisar_configuracion_al_arrancar,
 )
-from agente1.gmail_envio import GMAIL_SEND_TARGET, GmailDestinoConfirmaciones
+from agente1.gmail_envio import (
+    GMAIL_SEND_TARGET,
+    MODO_ENVIO_PRODUCCION,
+    GmailDestinoConfirmaciones,
+)
 from agente1.google_workspace import MAX_WORKSPACE_RESPONSE_BYTES, RespuestaHttp
 from agente1.workspace_config import (
     ConfiguracionWorkspaceError,
@@ -342,3 +346,36 @@ def test_el_asiento_lleva_la_identidad_de_la_version(tmp_path: Path) -> None:
     # La identidad la agrega `registro_auditoria` (#93), no este módulo.
     assert asiento["version_agente"] == "0.4.0"
     assert len(asiento["manifest_version_sha256"]) == 64
+
+
+# --- El aviso en modo producción (#141) ---------------------------------
+
+
+def test_el_aviso_en_modo_prueba_conserva_la_marca_de_borrador() -> None:
+    transport = TransporteCaptura(respuesta_envio_ok())
+
+    aviso_gmail(transport).avisar(asunto="Cambió la configuración", cuerpo="Detalle.")
+
+    correo = texto_del_correo(transport.solicitudes[0])
+    assert "BORRADOR — NO ENVIAR" in correo
+
+
+def test_el_aviso_en_modo_produccion_no_lleva_marcas() -> None:
+    transport = TransporteCaptura(respuesta_envio_ok())
+    aviso = AvisoConfiguracionGmail(
+        destinatario=OPERADOR,
+        destino=GmailDestinoConfirmaciones(
+            destinatarios_permitidos=[OPERADOR],
+            token_provider=TokenFijo(),
+            transport=transport,
+            modo=MODO_ENVIO_PRODUCCION,
+        ),
+    )
+
+    assert aviso.avisar(asunto="Cambió la configuración", cuerpo="Detalle.") == AVISO_ENVIADO
+
+    assert transport.solicitudes[0]["target"] == GMAIL_SEND_TARGET
+    correo = texto_del_correo(transport.solicitudes[0])
+    assert "Detalle." in correo
+    assert "BORRADOR — NO ENVIAR" not in correo
+    assert "BORRADOR — NO PUBLICAR" not in correo

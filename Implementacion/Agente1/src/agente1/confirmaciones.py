@@ -4,8 +4,9 @@ Prepara el texto de una confirmación de inscripción y gobierna su ciclo de
 vida completo —incluida la aprobación humana y la entrega— con una salida
 posible por tipo exacto: `DestinoConfirmacionesFake`, o
 `GmailDestinoConfirmaciones` de `gmail_envio.py`, el adapter de `gmail.send`
-que sólo puede construirse con una lista de direcciones de prueba activa
-(D12). El control se verifica en tiempo de ejecución comparando el tipo
+que sólo puede construirse con una lista de direcciones activa: la de prueba
+(D12) o, en modo producción, la lista aprobada por la SEU (ticket #141). El
+control se verifica en tiempo de ejecución comparando el tipo
 exacto —nunca `isinstance`— así que ni una subclase ni un envoltorio del
 fake o del Gmail se cuelan como destino. El candado anterior era más chico:
 «sólo el fake». La ampliación actual quedó documentada en el registro de
@@ -18,8 +19,8 @@ reintento no duplica— y eso no depende de qué destino ejecuta la entrega.
 La capacidad nueva es un adapter detrás del mismo puerto, no lógica de
 control nueva. `ENVIADA_SIMULADA` sigue siendo el nombre del estado
 terminal de entrega —el sufijo es histórico— y lo que distingue al destino
-que entregó es el `delivery_mode` de la línea de auditoría: `fake` o
-`gmail_test_list`.
+que entregó es el `delivery_mode` de la línea de auditoría: `fake`,
+`gmail_test_list` o `gmail_production`.
 
 Estados: `PENDIENTE_VALIDACION` → `APROBADA_SEMANTICA` | `APROBADA_UTILITARIA`
 según cuál de las dos aprobaciones llega primero, y de ahí → `APROBADA` cuando
@@ -351,12 +352,13 @@ class EntregaRechazadaError(RuntimeError):
     """Rechazo de política de una entrega, antes de cualquier llamada de red.
 
     Lo levanta un destino cuando la entrega está prohibida en sí —un
-    destinatario fuera de la lista de prueba, un cuerpo sin la marca de
-    borrador— a diferencia de una falla del medio, que podría resolverse en
-    un reintento. `code` es el identificador auditable del motivo y termina
-    como `resultado` en la línea de auditoría. El circuito la lleva a
-    `FALLIDA` de una vez: reintentar un rechazo de política no tiene sentido
-    y gastaría el presupuesto de intentos contra una decisión que no cambia.
+    destinatario fuera de la lista del modo, un cuerpo con la marca que ese
+    modo no admite— a diferencia de una falla del medio, que podría
+    resolverse en un reintento. `code` es el identificador auditable del
+    motivo y termina como `resultado` en la línea de auditoría. El circuito
+    la lleva a `FALLIDA` de una vez: reintentar un rechazo de política no
+    tiene sentido y gastaría el presupuesto de intentos contra una decisión
+    que no cambia.
     """
 
     def __init__(self, code: str) -> None:
@@ -365,14 +367,15 @@ class EntregaRechazadaError(RuntimeError):
 
 
 def _destino_habilitado_para_entrega(destino: object) -> bool:
-    """«Fake exacto, o Gmail con lista de prueba», siempre por tipo exacto.
+    """«Fake exacto, o Gmail con lista», siempre por tipo exacto.
 
     Es el control vigente del circuito (D12): la entrega existe contra
     `DestinoConfirmacionesFake` o contra `GmailDestinoConfirmaciones`, que
-    no puede construirse sin una lista de direcciones de prueba cargada.
-    Una subclase, un envoltorio o cualquier otro destino se rechaza, porque
-    se compara `type(...) is` y no `isinstance`. El import diferido rompe el
-    ciclo: `gmail_envio` implementa el puerto definido en este módulo.
+    no puede construirse sin una lista de direcciones cargada: la de prueba
+    o, en modo producción, la lista aprobada (ticket #141). Una subclase, un
+    envoltorio o cualquier otro destino se rechaza, porque se compara
+    `type(...) is` y no `isinstance`. El import diferido rompe el ciclo:
+    `gmail_envio` implementa el puerto definido en este módulo.
     """
 
     if type(destino) is DestinoConfirmacionesFake:
@@ -386,16 +389,21 @@ def _modo_entrega(destino: object) -> str:
     """Identificador del destino que entregó, para la línea de auditoría.
 
     `ENVIADA_SIMULADA` es el nombre histórico del estado terminal; el modo
-    es lo que distingue si la entrega fue en memoria (`fake`) o un envío
-    real por `gmail.send` cercado por la lista (`gmail_test_list`).
+    es lo que distingue si la entrega fue en memoria (`fake`), un envío real
+    cercado por la lista de prueba (`gmail_test_list`) o un envío real del
+    modo producción con lista aprobada (`gmail_production`).
     """
 
     if type(destino) is DestinoConfirmacionesFake:
         return "fake"
-    from .gmail_envio import GmailDestinoConfirmaciones
+    from .gmail_envio import MODO_ENVIO_PRODUCCION, GmailDestinoConfirmaciones
 
     if type(destino) is GmailDestinoConfirmaciones:
-        return "gmail_test_list"
+        return (
+            "gmail_production"
+            if destino.modo == MODO_ENVIO_PRODUCCION
+            else "gmail_test_list"
+        )
     return "desconocido"
 
 
@@ -1230,7 +1238,7 @@ def drenar_envios(
     ):
         raise ValueError("presupuesto de reintentos inválido")
     # El mismo candado que `procesar_confirmacion`: la entrega sólo existe
-    # contra el fake explícito o el Gmail con lista de prueba. Acá no hay
+    # contra el fake explícito o el Gmail con lista. Acá no hay
     # Invalida que devolver porque el worker no procesa solicitudes:
     # simplemente no trabaja.
     if not _destino_habilitado_para_entrega(destino):
@@ -1362,10 +1370,11 @@ def drenar_envios(
                 cuerpo=actual.cuerpo,
             )
         except EntregaRechazadaError as exc:
-            # Rechazo de política —destinatario fuera de la lista de prueba,
-            # cuerpo sin marca de borrador—: no hay transitorio que esperar.
-            # El registro queda FALLIDA de una vez y el ítem sale de la cola,
-            # sin gastar intentos contra una decisión que no cambia.
+            # Rechazo de política —destinatario fuera de la lista del modo,
+            # cuerpo con una marca que el modo no admite—: no hay transitorio
+            # que esperar. El registro queda FALLIDA de una vez y el ítem sale
+            # de la cola, sin gastar intentos contra una decisión que no
+            # cambia.
             registro.transicionar(
                 clave, frozenset({"ENVIO_RESERVADO"}), "FALLIDA"
             )
@@ -1545,8 +1554,8 @@ def procesar_confirmacion(
 ) -> ResultadoConfirmacion:
     """Genera y opcionalmente entrega a un destino habilitado, bajo aprobación.
 
-    El destino habilitado es el fake explícito o el Gmail con lista de prueba
-    (D12), siempre por tipo exacto: el control vive en
+    El destino habilitado es el fake explícito o el Gmail con lista (D12),
+    siempre por tipo exacto: el control vive en
     `_destino_habilitado_para_entrega` y se aplica igual en la vía síncrona y
     en el worker `drenar_envios`.
 
@@ -1661,7 +1670,7 @@ def procesar_confirmacion(
         )
     # Control central de la HU: todo pedido de envío que pueda terminar en una
     # entrega exige un destino habilitado —el fake explícito o el Gmail con
-    # lista de prueba— por tipo exacto y no con isinstance, para que una
+    # lista— por tipo exacto y no con isinstance, para que una
     # subclase o un envoltorio no pueda pasar por acá. La lista del Gmail se
     # exige al construir el adapter: si el objeto existe, la lista existe.
     # Una decisión de rechazo no entrega nunca, así que no exige destino.
@@ -1926,9 +1935,10 @@ def _entregar(
             cuerpo=cuerpo,
         )
     except EntregaRechazadaError as exc:
-        # El destino rechazó la entrega por política antes de la red (un
-        # destinatario fuera de la lista de prueba, un cuerpo sin marca):
-        # FALLIDA es terminal —no hay reintento de una prohibición.
+        # El destino rechazó la entrega por política antes de la red: un
+        # destinatario fuera de la lista del modo o un cuerpo con la marca que
+        # el modo no admite. FALLIDA es terminal: no hay reintento de una
+        # prohibición.
         registro.transicionar(
             idempotency_key, frozenset({"ENVIO_RESERVADO"}), "FALLIDA"
         )

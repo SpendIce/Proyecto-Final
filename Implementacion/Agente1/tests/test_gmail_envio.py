@@ -1,11 +1,13 @@
-"""Adapter `gmail.send` con lista de prueba (D11/D12, ticket #40).
+"""Adapter `gmail.send` con lista de prueba y modo producción (D11/D12, #40/#141).
 
 Cubre la construcción cercada —sin lista no hay destino—, la validación por
 entrega antes de cualquier llamada de red, el envío real contra transporte
 fake, la traducción de errores HTTP a códigos y la integración con el
 circuito de HU-012: el candado pasó de «sólo el fake por tipo exacto» a
 «fake, o Gmail con lista activa», y una subclase, un envoltorio o cualquier
-otro destino sigue rechazado. Ninguna prueba usa red.
+otro destino sigue rechazado. El modo producción (#141) agrega su propia
+lista aprobada, falla cerrado sin ella y no lleva marcas de borrador. Ninguna
+prueba usa red.
 """
 
 import base64
@@ -23,19 +25,26 @@ from agente1.confirmaciones import (
     ColaEnviosMemoria,
     DestinoConfirmacionesFake,
     EntregaRechazadaError,
+    ItemEnvio,
     RegistroConfirmacionesMemoria,
     SolicitudConfirmacion,
     drenar_envios,
     procesar_confirmacion,
 )
 from agente1.gmail_envio import (
+    DESTINATARIOS_APROBADOS_ENV,
     DESTINATARIOS_PRUEBA_ENV,
     GMAIL_HOST,
     GMAIL_SEND_TARGET,
+    MODO_ENVIO_ENV,
+    MODO_ENVIO_PRODUCCION,
+    MODO_ENVIO_PRUEBA,
     AdjuntoCorreo,
     GmailDestinoConfirmaciones,
     GmailEnvioError,
+    cargar_destinatarios_aprobados,
     cargar_destinatarios_prueba,
+    cargar_modo_envio,
 )
 from agente1.google_workspace import (
     MAX_WORKSPACE_RESPONSE_BYTES,
@@ -45,7 +54,15 @@ from agente1.google_workspace import (
 from agente1.workspace_config import ConfiguracionWorkspaceError
 
 LISTA = frozenset({"ana.perez@example.test", "beto@example.test"})
+LISTA_APROBADA = frozenset(
+    {"direccion.extension@example.test", "coordinacion@example.test"}
+)
 CUERPO_BORRADOR = "BORRADOR — NO ENVIAR\n\nCuerpo de la confirmación.\n"
+CUERPO_APROBADO = (
+    "Estimada comunidad:\n\n"
+    "La actividad quedó confirmada. Los esperamos.\n\n"
+    "Secretaría de Extensión Universitaria\n"
+)
 
 
 class TokenFijo:
@@ -751,3 +768,370 @@ def test_correo_sin_adjunto_no_cambia():
     mensaje = mensaje_de(transporte.solicitudes[0])
     assert not mensaje.is_multipart()
     assert mensaje.get_content_type() == "text/plain"
+
+
+# --- Modo producción opt-in (#141) --------------------------------------------
+# El default no cambia: sin `AGENTE1_GMAIL_MODO` todo sigue como en la sección
+# anterior. Producción se habilita con un nombre explícito y su propia lista
+# aprobada, vive fuera del repo y falla cerrado si falta o si un destinatario
+# queda afuera. El transporte y el token siguen siendo fakes.
+
+
+def destino_produccion(
+    respuestas: list[RespuestaHttp | Exception],
+    **kwargs,
+) -> tuple[GmailDestinoConfirmaciones, TransporteSecuencia, TokenFijo]:
+    return crear_destino(
+        respuestas,
+        destinatarios_permitidos=kwargs.pop(
+            "destinatarios_permitidos", LISTA_APROBADA
+        ),
+        modo=MODO_ENVIO_PRODUCCION,
+        **kwargs,
+    )
+
+
+def test_el_modo_por_defecto_sigue_siendo_prueba():
+    assert cargar_modo_envio({}) == MODO_ENVIO_PRUEBA
+    destino, _, _ = crear_destino([])
+    assert destino.modo == MODO_ENVIO_PRUEBA
+
+    desde_env = GmailDestinoConfirmaciones.desde_entorno(
+        {DESTINATARIOS_PRUEBA_ENV: "ana.perez@example.test"},
+        token_provider=TokenFijo(),
+        transport=TransporteSecuencia([]),
+    )
+    assert desde_env.modo == MODO_ENVIO_PRUEBA
+    assert desde_env._destinatarios_permitidos == {"ana.perez@example.test"}
+
+
+@pytest.mark.parametrize("crudo", ["", "   ", "produccion_total", "PROD", "test"])
+def test_modo_desconocido_o_vacio_falla_cerrado(crudo):
+    with pytest.raises(ConfiguracionWorkspaceError) as error:
+        cargar_modo_envio({MODO_ENVIO_ENV: crudo})
+    assert error.value.code == "gmail_mode_invalid"
+
+    with pytest.raises(ConfiguracionWorkspaceError) as error:
+        GmailDestinoConfirmaciones(
+            destinatarios_permitidos=LISTA_APROBADA,
+            token_provider=TokenFijo(),
+            transport=TransporteSecuencia([]),
+            modo=crudo,
+        )
+    assert error.value.code == "gmail_mode_invalid"
+
+
+def test_modo_se_normaliza_sin_espacios_ni_mayusculas():
+    assert cargar_modo_envio({MODO_ENVIO_ENV: " Produccion "}) == MODO_ENVIO_PRODUCCION
+
+
+def test_produccion_sin_lista_aprobada_no_se_construye():
+    with pytest.raises(ConfiguracionWorkspaceError) as error:
+        GmailDestinoConfirmaciones.desde_entorno(
+            {MODO_ENVIO_ENV: MODO_ENVIO_PRODUCCION},
+            token_provider=TokenFijo(),
+            transport=TransporteSecuencia([]),
+        )
+    assert error.value.code == "gmail_production_list_missing"
+
+
+def test_produccion_no_usa_la_lista_de_prueba_como_sustituta():
+    entorno = {
+        MODO_ENVIO_ENV: MODO_ENVIO_PRODUCCION,
+        DESTINATARIOS_PRUEBA_ENV: "ana.perez@example.test",
+    }
+    with pytest.raises(ConfiguracionWorkspaceError) as error:
+        GmailDestinoConfirmaciones.desde_entorno(
+            entorno, token_provider=TokenFijo(), transport=TransporteSecuencia([])
+        )
+    assert error.value.code == "gmail_production_list_missing"
+
+
+@pytest.mark.parametrize(
+    "lista_invalida",
+    [
+        [],
+        (),
+        ["   "],
+        ["no-es-un-email"],
+        ["direccion.extension@example.test", "mal@"],
+        [123],
+        "direccion.extension@example.test",
+        None,
+        [f"usuario{i}@example.test" for i in range(1001)],
+    ],
+)
+def test_produccion_con_lista_invalida_no_se_construye(lista_invalida):
+    with pytest.raises(ConfiguracionWorkspaceError) as error:
+        GmailDestinoConfirmaciones(
+            destinatarios_permitidos=lista_invalida,
+            token_provider=TokenFijo(),
+            transport=TransporteSecuencia([]),
+            modo=MODO_ENVIO_PRODUCCION,
+        )
+    assert error.value.code == "gmail_production_list_invalid"
+
+
+def test_produccion_lee_la_lista_aprobada_y_no_la_de_prueba():
+    lista = cargar_destinatarios_aprobados(
+        {
+            DESTINATARIOS_APROBADOS_ENV: (
+                " Direccion.Extension@example.test , coordinacion@example.test"
+            )
+        }
+    )
+    assert lista == LISTA_APROBADA
+
+    destino = GmailDestinoConfirmaciones.desde_entorno(
+        {
+            MODO_ENVIO_ENV: MODO_ENVIO_PRODUCCION,
+            DESTINATARIOS_PRUEBA_ENV: "ana.perez@example.test",
+            DESTINATARIOS_APROBADOS_ENV: (
+                "direccion.extension@example.test, coordinacion@example.test"
+            ),
+        },
+        token_provider=TokenFijo(),
+        transport=TransporteSecuencia([]),
+    )
+    assert destino.modo == MODO_ENVIO_PRODUCCION
+    assert destino._destinatarios_permitidos == LISTA_APROBADA
+    assert "ana.perez@example.test" not in destino._destinatarios_permitidos
+
+
+def test_produccion_destinatario_fuera_de_lista_se_rechaza_antes_de_la_red():
+    destino, transporte, tokens = destino_produccion([])
+
+    with pytest.raises(EntregaRechazadaError) as error:
+        destino.entregar(
+            idempotency_key="a" * 64,
+            destinatario="ana.perez@example.test",
+            asunto="Asunto institucional",
+            cuerpo=CUERPO_APROBADO,
+        )
+
+    assert error.value.code == "recipient_off_approved_list"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
+def test_produccion_envia_sin_marcas_de_borrador():
+    destino, transporte, tokens = destino_produccion(
+        [RespuestaHttp(200, b'{"id":"m1"}')]
+    )
+
+    destino.entregar(
+        idempotency_key="a" * 64,
+        destinatario="direccion.extension@example.test",
+        asunto="Confirmación de la actividad",
+        cuerpo=CUERPO_APROBADO,
+    )
+
+    assert tokens.invocaciones == 1
+    (llamada,) = transporte.solicitudes
+    assert llamada["method"] == "POST"
+    assert llamada["host"] == GMAIL_HOST
+    assert llamada["target"] == GMAIL_SEND_TARGET
+    assert llamada["headers"]["Authorization"] == "Bearer TOKEN_GMAIL_SECRETO"
+    assert llamada["max_response_bytes"] == MAX_WORKSPACE_RESPONSE_BYTES
+    mensaje = mensaje_de(llamada)
+    assert str(mensaje["To"]) == "direccion.extension@example.test"
+    assert str(mensaje["Subject"]) == "Confirmación de la actividad"
+    cuerpo = mensaje.get_content().replace("\r\n", "\n")
+    assert cuerpo == CUERPO_APROBADO
+    assert "BORRADOR — NO ENVIAR" not in cuerpo
+    assert "BORRADOR — NO PUBLICAR" not in cuerpo
+    assert not cuerpo.startswith("# BORRADOR")
+
+
+@pytest.mark.parametrize(
+    "cuerpo",
+    [CUERPO_BORRADOR, "# BORRADOR — NO PUBLICAR\n\nTexto aprobado.\n"],
+)
+def test_produccion_rechaza_un_cuerpo_con_marcas_de_borrador(cuerpo):
+    destino, transporte, tokens = destino_produccion([])
+
+    with pytest.raises(EntregaRechazadaError) as error:
+        destino.entregar(
+            idempotency_key="a" * 64,
+            destinatario="direccion.extension@example.test",
+            asunto="Asunto institucional",
+            cuerpo=cuerpo,
+        )
+
+    assert error.value.code == "draft_marker_in_production"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
+def test_prueba_sigue_exigiendo_la_marca_de_borrador():
+    destino, transporte, tokens = crear_destino([])
+
+    with pytest.raises(EntregaRechazadaError) as error:
+        destino.entregar(
+            idempotency_key="a" * 64,
+            destinatario="ana.perez@example.test",
+            asunto="Asunto",
+            cuerpo=CUERPO_APROBADO,
+        )
+
+    assert error.value.code == "draft_marker_missing"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
+def test_produccion_con_adjunto_valido_mantiene_mime_multipart():
+    destino, transporte, _ = destino_produccion(
+        [RespuestaHttp(200, b'{"id":"m1"}')]
+    )
+
+    destino.entregar(
+        idempotency_key="a" * 64,
+        destinatario="direccion.extension@example.test",
+        asunto="Certificado",
+        cuerpo=CUERPO_APROBADO,
+        adjunto=AdjuntoCorreo(nombre="cert-001.pdf", contenido=PDF_SINTETICO),
+    )
+
+    mensaje = mensaje_de(transporte.solicitudes[0])
+    assert mensaje.is_multipart()
+    partes = list(mensaje.iter_parts())
+    texto = partes[0].get_content().replace("\r\n", "\n")
+    assert texto == CUERPO_APROBADO
+    assert "BORRADOR — NO PUBLICAR" not in texto
+    assert partes[1].get_content_type() == "application/pdf"
+    assert partes[1].get_filename() == "cert-001.pdf"
+    assert transporte.solicitudes[0]["target"] == GMAIL_SEND_TARGET
+
+
+@pytest.mark.parametrize(
+    "adjunto",
+    [
+        AdjuntoCorreo(nombre="cert?.pdf", contenido=PDF_SINTETICO),
+        AdjuntoCorreo(nombre="cert.pdf", contenido=b""),
+        AdjuntoCorreo(
+            nombre="cert.txt", contenido=PDF_SINTETICO, tipo_mime="text/plain"
+        ),
+        "cert.pdf",
+    ],
+)
+def test_produccion_rechaza_adjunto_invalido_antes_de_la_red(adjunto):
+    destino, transporte, tokens = destino_produccion([])
+
+    with pytest.raises(EntregaRechazadaError) as error:
+        destino.entregar(
+            idempotency_key="a" * 64,
+            destinatario="direccion.extension@example.test",
+            asunto="Certificado",
+            cuerpo=CUERPO_APROBADO,
+            adjunto=adjunto,
+        )
+
+    assert error.value.code == "attachment_contract_invalid"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
+@pytest.mark.parametrize(
+    ("respuesta", "codigo"),
+    [
+        (RespuestaHttp(400, b"secreto@example.invalid"), "gmail_request_invalid"),
+        (RespuestaHttp(401, b"secreto@example.invalid"), "gmail_auth_denied"),
+        (RespuestaHttp(429, b"secreto@example.invalid"), "gmail_rate_limited"),
+        (RespuestaHttp(500, b"secreto@example.invalid"), "gmail_unavailable"),
+        (
+            RespuestaHttp(200, b"x" * (MAX_WORKSPACE_RESPONSE_BYTES + 1)),
+            "gmail_response_too_large",
+        ),
+        (TimeoutError("timeout secreto@example.invalid"), "gmail_unavailable"),
+    ],
+)
+def test_produccion_traduce_errores_del_medio_con_el_mismo_codigo(respuesta, codigo):
+    destino, transporte, _ = destino_produccion([respuesta])
+
+    with pytest.raises(GmailEnvioError) as error:
+        destino.entregar(
+            idempotency_key="a" * 64,
+            destinatario="direccion.extension@example.test",
+            asunto="Asunto institucional",
+            cuerpo=CUERPO_APROBADO,
+        )
+
+    assert error.value.code == codigo
+    assert len(transporte.solicitudes) == 1
+    assert "secreto@example.invalid" not in str(error.value)
+
+
+def test_el_worker_audita_el_modo_produccion(tmp_path: Path):
+    registro = RegistroConfirmacionesMemoria()
+    cola = ColaEnviosMemoria()
+    clave = "d" * 64
+    assert registro.crear(clave, "Asunto institucional", CUERPO_APROBADO)
+    assert registro.transicionar(
+        clave, frozenset({"PENDIENTE_VALIDACION"}), "APROBADA"
+    )
+    assert registro.transicionar(clave, frozenset({"APROBADA"}), "ENVIO_ENCOLADO")
+    assert cola.encolar(
+        ItemEnvio(
+            idempotency_key=clave,
+            destinatario="direccion.extension@example.test",
+            input_hash="e" * 64,
+        )
+    )
+    destino, transporte, _ = destino_produccion(
+        [RespuestaHttp(200, b'{"id":"m1"}')]
+    )
+
+    (resultado,) = drenar_envios(
+        registro=registro,
+        cola=cola,
+        destino=destino,
+        directorio_salida=tmp_path / "salida",
+    )
+
+    assert resultado.resolucion == "entregada"
+    assert len(transporte.solicitudes) == 1
+    lineas = (
+        (tmp_path / "salida" / "logs" / "confirmaciones-hu012.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    )
+    ultima = json.loads(lineas[-1])
+    assert ultima["delivery_mode"] == "gmail_production"
+    assert ultima["estado"] == "ENVIADA_SIMULADA"
+
+
+def test_el_circuito_sigue_armando_el_borrador_y_produccion_lo_rechaza(tmp_path: Path):
+    """El paso que falta: la plantilla aprobada por tipo (SEU).
+
+    `procesar_confirmacion` compone su cuerpo con `BORRADOR — NO ENVIAR`. Un
+    destino de producción lo rechaza antes de la red y el registro queda
+    `FALLIDA`: el modo producción no manda un borrador marcado a un
+    destinatario institucional. Cuando la SEU apruebe la plantilla por tipo,
+    el renderer tendrá que dejar de marcarla en producción.
+    """
+
+    registro = RegistroConfirmacionesMemoria()
+    aprobar_ambos(tmp_path, registro, solicitud())
+    destino, transporte, tokens = destino_produccion(
+        [], destinatarios_permitidos=LISTA_APROBADA | {"ana.perez@example.test"}
+    )
+
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        destino=destino,
+        enviar=True,
+    )
+
+    assert resultado.estado == "FALLIDA"
+    assert resultado.error == "draft_marker_in_production"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
+def test_repr_en_produccion_tampoco_expone_las_direcciones():
+    destino, _, _ = destino_produccion([])
+    representacion = repr(destino)
+    assert "direccion.extension@example.test" not in representacion
+    assert "produccion" in representacion
