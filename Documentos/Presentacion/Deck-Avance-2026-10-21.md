@@ -51,7 +51,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 **Texto visible**
 
 - Tres piezas: el estado del plan, la arquitectura compartida y una corrida en vivo en el servidor de la facultad.
-- 01 · El Gantt semanal. Cómo va el plan: 47 tareas e hitos, 26 con `done` y 21 sin marcar. Corte 19/10/2026.
+- 01 · El Gantt semanal. Cómo va el plan: 47 tareas e hitos, 27 con `done` y 20 sin marcar. Corte 19/10/2026.
 - 02 · La arquitectura P100 en tres capas. Lo compartido hoy, lo proyectado con condición de entrada y la frontera del Agente 1.
 - 03 · La demo en vivo. En `labredesfie`, operado desde la facultad: gacetilla, certificados y confirmaciones.
 
@@ -70,17 +70,17 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 **Texto visible**
 
-- 47 tareas e hitos en el plan. 26 con `done`. 21 sin marcar.
-- Barras por sprint: S0 4/4, S1 4/6, S2 3/5, S3 3/5, S4 4/6, S5 3/5, S6 5/6, S7 0/5, Cierre 0/5.
+- 47 tareas e hitos en el plan. 27 con `done`. 20 sin marcar.
+- Barras por sprint: S0 4/4, S1 4/6, S2 3/5, S3 3/5, S4 4/6, S5 3/5, S6 5/6, S7 1/5, Cierre 0/5.
 - Lo que avanzó desde septiembre: contrato Historia Viva rc2 (57/57 contra mock), cuenta de servicio (ADR 0011), certificados con línea descriptiva, medición 3b/8b en el servidor (19/10), anexos 1–3.
 
 **Notas de orador**
 
 - El corte es del lunes 19 a la noche.
 - Los sprints con más avance son S0, S4 y S6: bootstrap, confirmaciones y certificados.
-- S7 y Cierre están en cero porque dependen de la integración en el servidor y de la validación institucional, no de código que falte escribir.
+- Cierre está en cero y S7 tiene sólo m7; el E2E del servidor y la validación institucional siguen pendientes.
 - La franja de abajo es lo que sí avanzó desde septiembre: contrato, identidad, certificados, medición y anexos.
-- Si alguien pregunta por el CI: la suite local está verde, el run del 19/10 tiene un test en rojo y por eso no marqué el hito.
+- El CI de main está verde en el run 39455797467; por eso m7 está marcado. La suite local es 2377 passed / 8 skipped.
 
 **Preguntas probables**
 
@@ -94,7 +94,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 - s1e · m1 · s2d · s4e · s5d · c1: validación SEU de muestras. El paquete está listo desde septiembre; la visita del 19/10 dio definiciones, no revisión de muestras.
 - s3a: servidor y D3. D3 provisional: servidor y carpeta compartida en uso; la unidad institucional sigue pendiente.
 - HU-011 · posts: el 3b no resuelve redacción libre; el 8b resuelve Instagram pero no LinkedIn. La decisión de alcance está abierta.
-- s7c · m7: E2E en el servidor de la demo. Pendiente de versionar la corrida; no se declara sin evidencia.
+- s7c: E2E en el servidor de la demo. Pendiente de versionar la corrida; no se declara sin evidencia.
 - No marcamos lo que no podemos sostener. El detalle está en el informe del Gantt.
 
 **Notas de orador**

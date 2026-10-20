@@ -4,7 +4,7 @@
 - **Corte:** 2026-10-19, noche, antes de la presentación de avance del miércoles 2026-10-21 a las 09:00.
 - **Plan:** `Documentos/Gantt/diagrama-gantt-implementacion-semanal.mmd`. No se modificó: no hay rebaseline ni estados nuevos.
 - **Avance:** `Documentos/Gantt/gantt-progreso.js`.
-- **Resultado:** 47 IDs en el `.mmd`; 26 con `done: true` y 21 sin marca. El 20/10 se sumaron s1c, s3b y s5a; m7 queda para el cierre del CI.
+- **Resultado:** 47 IDs en el `.mmd`; 27 con `done: true` y 20 sin marca. El 20/10 se sumaron s1c, s3b, s5a y m7.
 
 ## 1. Corte y fuentes usadas
 
@@ -33,9 +33,9 @@ La documentación de la visita se usó como contexto; las afirmaciones de esta r
 | Sprint 4 - HU-012 Confirmaciones | 6 | 4 | 2 |
 | Sprint 5 - HU-013 Lenguaje natural | 5 | 3 | 2 |
 | Sprint 6 - HU-014 Certificados | 6 | 5 | 1 |
-| Sprint 7 - Integración y pruebas | 5 | 0 | 5 |
+| Sprint 7 - Integración y pruebas | 5 | 1 | 4 |
 | Cierre - Validación y Gate TRL 4 | 5 | 0 | 5 |
-| **Total** | **47** | **26** | **21** |
+| **Total** | **47** | **27** | **20** |
 
 ## 3. Lo marcado vigente al corte
 
@@ -69,6 +69,7 @@ No hay altas nuevas en este corte. La tabla conserva lo que ya estaba marcado y 
 | s6c | Bloqueo sin aprobación y cola de aprobación al validador | 2026-09-21 | `src/agente1/certificados.py` y `tests/test_certificados_emision.py`: emisión bloqueada sin las dos aprobaciones; destino `DestinoCertificadosFake`. |
 | s6d | Probar datos faltantes, rechazo y emisión controlada | 2026-09-21 | `tests/test_matriz_hu014.py`: matriz de conformidad HU-014, 12 casos y 62 pruebas nuevas. |
 | s6e | Registro de emisión, logs y evidencia | 2026-09-21 | `evidencias/recorrido-emision-certificados-hu014.md` y `evidencias/limites-hu014-offline.md`: `pdf_hash`, reconciliación de `EMISION_RESERVADA` y límites documentados. |
+| m7 | Suite de pruebas en verde y cobertura registrada | 2026-10-20 | Suite local 2377 passed / 8 skipped; cobertura 90 % registrada; CI de main verde en el run `39455797467` (`f2dfbf6`). |
 
 ## 4. Lo NO marcado al corte
 
@@ -89,11 +90,10 @@ Esta es la tabla que revisa Juani. Las frases son borradores para decir en voz a
 | m6 | HU-014 operativa con DoD | **Pendiente y bloqueada por la SEU en la validación.** El slice offline está hecho (s6a a s6e). La plantilla de aprobación llegó el 2026-10-19 (#126), pero no está integrada; faltan la variante de asistencia, el aprobador final del lote y la validación humana. | "HU-014 está completa en lo técnico; la plantilla llegó el 19 de octubre, falta integrarla y validar el lote." |
 | s7a | Definir contratos y mocks con A2-A5 sin orquestar | **Pendiente.** Hay contratos y mocks para A3 a A5 y un puerto A2 con fakes, pero el contrato con Historia Viva (#17) sigue abierto; no cubre A2-A5 completo. | "Los contratos con A3 a A5 y el mock de A2 están; el contrato con Historia Viva sigue abierto." |
 | s7b | Integrar insumos disponibles de A2-A5 progresivo | **Pendiente.** Depende de s7a y del contrato #17. | "La integración con A2 a A5 depende de cerrar ese contrato." |
-| s7c | Pruebas unitarias, integración y E2E | **Pendiente.** Hay suite amplia y un E2E D2 del 2026-09-28, pero el CI del 2026-10-19 está en rojo (run `39302694001`) y la corrida E2E en el servidor de la demo (#118) todavía no está versionada. | "Tenemos suite y un E2E en D2, pero el CI está en rojo y el E2E en el servidor de la demo no corrió." |
+| s7c | Pruebas unitarias, integración y E2E | **Pendiente.** Hay suite amplia y un E2E D2 del 2026-09-28, y la suite y el CI de main están verdes (run `39455797467`), pero la corrida E2E en el servidor de la demo (#118) todavía no está versionada. | "Tenemos suite y un E2E en D2, pero el CI está en rojo y el E2E en el servidor de la demo no corrió." |
 | s7d | Probar seguridad, permisos y prompt injection | **Pendiente.** La auditoría de seguridad D2/D3 y las pruebas de prompt injection son offline; permisos y revocación reales siguen pendientes. | "La seguridad está auditada offline; permisos y revocación reales todavía no se probaron." |
-| m7 | Suite de pruebas en verde y cobertura registrada | **Pendiente.** La suite local está verde el 2026-10-19 (2282 passed, 8 skipped), pero el CI del mismo día falló (1 failed, 2284 passed, 5 skipped). La cobertura del 90 % quedó registrada en el log del run. No se declara el hito con el CI en rojo. | "La suite local está verde, pero el CI del 19 de octubre tiene un test en rojo; no declaro el hito hasta que vuelva a verde." |
 | c1 | Validar con usuarios SEU, checklist 1-4 y trazabilidad | **Bloqueada por la SEU.** No hay sesión de validación agendada; JOS-D5 registra que nadie de la SEU asistirá al 18/11. | "La validación con usuarios de la SEU no tiene fecha, y para el 18 de noviembre la SEU nos dijo que no va a asistir." |
-| c2 | Cerrar defectos críticos y regresión completa | **Pendiente.** No hay defectos `CRITICA` abiertos, pero hay defectos `ALTA` bloqueados y el CI no está verde. | "No hay defectos críticos abiertos, pero hay defectos altos bloqueados y el CI no está verde." |
+| c2 | Cerrar defectos críticos y regresión completa | **Pendiente.** No hay defectos `CRITICA` abiertos, pero hay defectos `ALTA` bloqueados. | "No hay defectos críticos abiertos, pero hay defectos altos bloqueados." |
 | c3 | Release candidata y paquete de evidencias | **Pendiente.** El tag `agente1-v0.1.0` existe, pero al corte no hay release candidate con paquete de evidencias cerrado. | "Todavía no hay release candidate con el paquete de evidencias cerrado." |
 | c4 | Auditoría go/no-go e informe de avance final | **Pendiente.** Depende de c1 a c3. | "Depende de la validación y de la release." |
 | m8 | Gate TRL 4 validado y cierre del año | **Pendiente.** Depende de c1 a c4 y del Gate TRL 4. | "El Gate TRL 4 depende del cierre completo." |
@@ -112,7 +112,7 @@ No queda ninguna tarea reformulada sin marcar. La única reformulación del per�
 
 ## 6. Observaciones para Juani
 
-1. **El 20/10 se marcaron s1c, s3b y s5a.** La forma FIE INFORMA está aprobada, los roles y criterios del 22/09 están confirmados, y el canal interno es el Form con correo verificado, no un chat. m7 queda a la espera del run de CI.
+1. **El 20/10 se marcaron s1c, s3b, s5a y m7.** La forma FIE INFORMA está aprobada, los roles y criterios del 22/09 están confirmados, el canal interno es el Form con correo verificado (no un chat) y el CI de main está verde en el run `39455797467`.
 2. **El plan queda intacto.** El `.mmd` conserva sus fechas y sus IDs. Lo que cambia es solo la lectura del avance en `gantt-progreso.js` y este informe.
 2. **La visita del 19/10 no cerró validaciones.** Aportó definiciones (aprobación única, lotes de pagos, remitente, calendario, plantilla de certificado), pero no reemplaza la revisión de muestras ni la prueba guiada. Por eso s1e, s2d, s4e, s5d y c1 siguen sin marca.
 3. **La plantilla de certificado llegó, pero no alcanza para m6.** La ficha de la SEU dice expresamente que recibir el archivo no demuestra que el renderer lo use ni habilita la emisión institucional. Falta integrarla (#126), definir la variante de asistencia y designar quién aprueba el lote.

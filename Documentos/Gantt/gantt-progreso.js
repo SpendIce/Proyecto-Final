@@ -70,6 +70,7 @@ window.GANTT_PROGRESS = {
   "s6c": { done: true, at: "2026-09-21", nota: "Emision bloqueada sin las dos aprobaciones registradas (mismo circuito que HU-012); el destino es DestinoCertificadosFake y la emision real sigue pendiente de SEU/DSI" },
   "s6d": { done: true, at: "2026-09-21", nota: "62 pruebas nuevas cubren datos faltantes, rechazo, rol invalido, duplicados, recuperacion durable y emision simulada controlada (matriz_conformidad_hu014_v1, 12 casos)" },
   "s6e": { done: true, at: "2026-09-21", nota: "Log de emision con hashes (pdf_hash) sin datos personales en claro, reconciliacion de EMISION_RESERVADA hacia EMISION_INDETERMINADA y doc de limites en evidencias/limites-hu014-offline.md" },
+  "m7":  { done: true, at: "2026-10-20", nota: "Suite local 2377 passed / 8 skipped; cobertura 90% registrada. CI de main verde en el run 39455797467 (f2dfbf6)" },
 
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
@@ -198,25 +199,22 @@ window.GANTT_PROGRESS = {
   // m5   - "HU-013 operativa con DoD": depende de s5d; s5a esta completo
   //        con el canal Form y la identidad por correo verificado.
   //
-  // Sprint 7 y cierre: al 2026-10-19 no hay tareas completas; el 20/10 se suma m7.
+  // Sprint 7 y cierre: el 20/10 se suma m7 con el CI verde; s7c, s7d y el cierre siguen abiertos.
   //
   // s7a  - contratos y mocks con A3-A5 y puerto A2 con fakes; el contrato
   //        con Historia Viva (#17) sigue abierto, asi que no cubre A2-A5
   //        completo. Evidencia: Contrato-Candidato-Insumos-A2-A5-Agente-1.md,
   //        contracts/insumos/a3_evento_gacetilla_v1.schema.json, ADR 0008.
   // s7b  - integracion progresiva: depende de s7a y del contrato #17.
-  // s7c  - hay suite amplia y E2E D2 del 28/09, pero el CI del 19/10 esta en
-  //        rojo (run 39302694001) y la corrida E2E en el servidor de la demo
-  //        (#118) todavia no esta versionada. No se acredita "unitarias,
-  //        integracion y E2E" completo.
+  // s7c  - hay suite amplia y E2E D2 del 28/09, y la suite y el CI de main
+  //        estan verdes (run 39455797467), pero la corrida E2E en el servidor
+  //        de la demo (#118) todavia no esta versionada. No se acredita
+  //        "unitarias, integracion y E2E" completo.
   // s7d  - auditoria de seguridad D2/D3 y pruebas de prompt injection como
   //        dato, offline; permisos y revocacion reales siguen pendientes.
-  // m7   - "Suite de pruebas en verde y cobertura registrada": el CI del
-  //        19/10 fallo (1 failed, 2284 passed, 5 skipped). No se declara.
   // c1   - validacion con usuarios SEU: sin sesion agendada; JOS-D5 registra
   //        que nadie de la SEU asistira al 18/11.
-  // c2   - sin defectos CRITICA abiertos, pero hay ALTA bloqueados y el CI
-  //        no esta verde.
+  // c2   - sin defectos CRITICA abiertos, pero hay ALTA bloqueados.
   // c3   - el tag agente1-v0.1.0 existe, pero al corte no hay release
   //        candidate con paquete de evidencias cerrado.
   // c4   - depende de c1-c3.
