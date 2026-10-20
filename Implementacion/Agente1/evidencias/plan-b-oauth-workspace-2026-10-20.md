@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-10-20
 **Alcance:** verificar el camino Sheets → Doc con la credencial OAuth anterior, antes de la demo del 21/10.
-**Resultado:** smoke live `lectura_confirmada`; E2E live `PENDIENTE_VALIDACION` con un **stub de Ollama**, no con `gemma4:e4b`.
+**Resultado:** smoke live `lectura_confirmada`; corrida completa del wrapper 6/6 con un **stub de Ollama**; E2E `PENDIENTE_VALIDACION`.
 **Límite principal:** el modelo real se prueba en el servidor con `gemma4:e4b`; esta evidencia acredita el camino de Workspace, no la calidad del modelo.
 
 ## Qué se armó
@@ -48,6 +48,25 @@ Resultado:
 
 El manifest registra `destination_type: google_drive_template`, `output_hash: 4d90674d183899d7f325397baafa33c04a444fb069cc372438985e85af2a63bc` y `resultado: borrador_generado`.
 
+### Corrida completa del wrapper
+
+Con el mismo stub se corrió el comando que mañana se usa en el servidor:
+
+```bash
+bash scripts/corrida_plan_b_oauth.sh
+```
+
+Resultado: **6/6 pasos**.
+
+- Preflight: `credencial: trío OAuth anterior completo (Plan B)`.
+- Ollama: 0.40.6 y `gemma4:e4b` (el stub imita `/api/version`, `/api/tags` y `/api/generate`).
+- Smoke: `lectura_confirmada` (`1894f377-6f1a-4bf8-99f7-2fac97119cf8`).
+- Gacetilla: `PENDIENTE_VALIDACION` (`9ca76777-bbf1-41e9-a6a1-9ea110821e1d`), con borrador en Drive.
+- HU-014: `EMITIDA`, 2 certificados entregados en modo offline.
+- HU-012: `ENVIO_ENCOLADO`, 3 correos simulados con `BORRADOR — NO ENVIAR`.
+
+El stub no es el modelo de la demo. La corrida real con `gemma4:e4b` en `labredesfie` es el paso que queda; el resto del wrapper (OAuth, Sheets, Docs, HU-014 y HU-012) quedó ejercitado.
+
 ### Documento creado
 
 En la carpeta `Agentes` quedó el documento `BORRADOR — Fie informa 20-10 Taller sintético de vinculación (demo)`. La exportación a texto verificó:
@@ -61,7 +80,7 @@ No se compartió, publicó ni envió nada.
 
 ## Límites
 
-- **El modelo no es real.** El E2E usó un stub; el modelo `gemma4:e4b` se prueba en `labredesfie` con el wrapper, que corre `corrida_unica.py --live`.
+- **El modelo no es real.** La corrida completa del wrapper usó un stub; el modelo `gemma4:e4b` se prueba en `labredesfie` con el mismo wrapper.
 - **La hoja no es la de producción.** Es una hoja v2 sintética; la hoja de producción y la cuenta de servicio siguen en #99.
 - **La identidad OAuth se retira.** Es una contingencia declarada, no la identidad objetivo (ADR 0011).
 - **No hay validación SEU.** El documento queda en `PENDIENTE_VALIDACION` y con la marca de borrador.

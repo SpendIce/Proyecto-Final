@@ -288,6 +288,8 @@ ssh fie-server 'cd ~/p100/Agente1 && bash Implementacion/Agente1/scripts/corrida
 
 Corre Ollama con `gemma4:e4b`, el smoke, la gacetilla live y HU-014/HU-012 offline. El E2E deja un `BORRADOR — NO PUBLICAR` en la carpeta `Agentes`.
 
+La corrida completa del wrapper se probó localmente con un stub de Ollama: 6/6. En el servidor, el paso 2 usa el `gemma4:e4b` real; el resto es el mismo camino.
+
 5. Si el modelo no cumple el contrato, el gate rechaza y se muestra el rechazo. No se cambia de modelo ni se publica.
 
 6. La hoja v2 sintética es la garantía del camino. La hoja de producción y la cuenta de servicio siguen en #99. Si la hoja de producción ya es v2 y el OAuth tiene acceso, se puede apuntar el overlay a esa hoja; no es necesario para la demo.
