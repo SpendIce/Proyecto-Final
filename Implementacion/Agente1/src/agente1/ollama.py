@@ -81,6 +81,7 @@ class OllamaGenerator:
         timeout_s: float = DEFAULT_OLLAMA_TIMEOUT_S,
         num_predict: int = DEFAULT_OLLAMA_NUM_PREDICT,
         format_schema: dict[str, object] | None = None,
+        think: bool | None = None,
     ) -> None:
         if not modelo.strip():
             raise ValueError("modelo inválido")
@@ -106,6 +107,14 @@ class OllamaGenerator:
             format_schema
         )
         self.format_mode = "json_schema" if self._format_schema is not None else None
+        # Los modelos con razonamiento (Qwen3, Qwen3.5) piensan antes de
+        # responder salvo que se lo desactive: en CPU eso multiplica la
+        # latencia y consume el `num_predict` antes de la respuesta. `None` no
+        # envía el campo y deja el comportamiento de los modelos que no
+        # razonan exactamente como estaba (#51).
+        if think is not None and not isinstance(think, bool):
+            raise ValueError("think debe ser booleano o None")
+        self.think = think
 
     def generar(self, prompt: str) -> str:
         deadline = time.monotonic() + self._timeout_s
@@ -120,6 +129,8 @@ class OllamaGenerator:
         }
         if self._format_schema is not None:
             solicitud["format"] = self._format_schema
+        if self.think is not None:
+            solicitud["think"] = self.think
         payload = json.dumps(
             solicitud,
             ensure_ascii=False,

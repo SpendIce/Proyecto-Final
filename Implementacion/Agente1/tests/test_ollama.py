@@ -365,3 +365,26 @@ def test_ollama_no_marca_agotamiento_cuando_el_modelo_termina_solo():
 
         assert generator.generar("PROMPT") == "Borrador completo."
 
+
+
+def test_ollama_no_envia_think_por_defecto():
+    cuerpo = json.dumps({"response": "ok", "done": True}).encode()
+    with servidor_ollama(cuerpo=cuerpo) as (base_url, solicitudes):
+        OllamaGenerator(modelo="llama3.2:3b", base_url=base_url, timeout_s=5).generar("P")
+
+    assert "think" not in json.loads(solicitudes[0]["body"])
+
+
+def test_ollama_envia_think_false_para_modelos_con_razonamiento():
+    cuerpo = json.dumps({"response": "ok", "done": True}).encode()
+    with servidor_ollama(cuerpo=cuerpo) as (base_url, solicitudes):
+        OllamaGenerator(
+            modelo="qwen3.5:4b", base_url=base_url, timeout_s=5, think=False
+        ).generar("P")
+
+    assert json.loads(solicitudes[0]["body"])["think"] is False
+
+
+def test_ollama_rechaza_think_no_booleano():
+    with pytest.raises(ValueError):
+        OllamaGenerator(modelo="qwen3.5:4b", think="no")

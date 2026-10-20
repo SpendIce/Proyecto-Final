@@ -94,6 +94,7 @@ def _generador(modelo: str, args, *, schema: dict[str, object] | None):
         timeout_s=args.timeout,
         num_predict=args.num_predict,
         format_schema=schema,
+        think=False if args.sin_thinking else None,
     )
 
 
@@ -107,6 +108,11 @@ def main() -> int:
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument(
         "--num-predict", type=int, default=DEFAULT_OLLAMA_NUM_PREDICT
+    )
+    parser.add_argument(
+        "--sin-thinking",
+        action="store_true",
+        help="Envía think=false: necesario para modelos con razonamiento (#51).",
     )
     parser.add_argument(
         "--ciclos",
