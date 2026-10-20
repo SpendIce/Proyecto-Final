@@ -70,12 +70,12 @@ window.GANTT_PROGRESS = {
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
   //
-  // s1c  - copia de plantilla y volcado en Docs verificados live el 28/09
-  //        (doc real en la carpeta autorizada); lo que falta es la plantilla
-  //        institucional aprobada (DEF-A1-002) - la usada es provisional.
-  //        El 19/10 la SEU entrego el manual de identidad 2026 y una plantilla
-  //        de certificado, no una plantilla de gacetilla; DEF-A1-002 sigue
-  //        BLOQUEADO_EXTERNO.
+  // s1c  - la forma de la gacetilla de difusion sale del corpus FIE INFORMA,
+  //        que la SEU reconoce como referencia aprobada de formato y
+  //        estructura. La copia de plantilla y el volcado en Docs corrieron
+  //        live el 28/09, pero el archivo de plantilla en Docs usado en esa
+  //        corrida es sintetico y falta la revision de las muestras
+  //        generadas (DEF-A1-005).
   // s1e  - validacion SEU de gacetillas: BLOQUEADO_EXTERNO (DEF-A1-005). Paquete de nueve muestras listo, acta pendiente. La visita del 19/10 no reviso muestras ni hubo Juan Manuel; JOS-P5 sigue pendiente.
   // m1   - el DoD de HU-010 incluye Sheets, Docs, plantilla y validacion
   //        humana: Sheets y Docs ya corrieron live el 28/09; al 19/10 quedan
@@ -100,12 +100,11 @@ window.GANTT_PROGRESS = {
   // m2   - Gate TRL 3 PENDIENTE: falta criterio formal (DEF-A1-006, BLOQUEADO_EXTERNO) y validacion SEU.
   // s3a  - D2 provisionado y verificado live el 28/09: cuenta tecnica
   //        dedicada, carpeta autorizada, planilla y plantilla sinteticas, y
-  //        E2E completo con borrador real. El mecanismo de credencial ya
-  //        existe y esta verificado: refresh token OAuth sobre proyecto
-  //        dentro del tenant FIE (consent Internal, durable). El issue #15 se
-  //        cerro el 08/10 con la parte tecnica cumplida y derivo D3, host y
-  //        aval formal a #63/#64; al 19/10 D3 y el host institucional siguen
-  //        pendientes (#119 abierto).
+  //        E2E completo con borrador real. El servidor de la facultad corre
+  //        como host de computo sobre D2 desde el 19/10. El issue #15 se
+  //        cerro el 08/10 con la parte tecnica cumplida. D3 como ambiente
+  //        completo (unidad compartida y recursos propios, #100), el aval
+  //        formal y el host institucional siguen abiertos (#63/#64, #119).
   // s3b  - SEU designo revisor titular/suplente y se documento el circuito; el
   //        22/09 quedaron confirmados los roles nominales (semantica: Juan
   //        Manuel; utilitaria y firma final: Sebastian Moreira, Secretario de
@@ -225,8 +224,9 @@ window.GANTT_PROGRESS = {
   //        contracts/insumos/a3_evento_gacetilla_v1.schema.json, ADR 0008.
   // s7b  - integracion progresiva: depende de s7a y del contrato #17.
   // s7c  - hay suite amplia y E2E D2 del 28/09, pero el CI del 19/10 esta en
-  //        rojo (run 39302694001) y el E2E en el servidor de la demo (#118)
-  //        no corrio. No se acredita "unitarias, integracion y E2E" completo.
+  //        rojo (run 39302694001) y la corrida E2E en el servidor de la demo
+  //        (#118) todavia no esta versionada. No se acredita "unitarias,
+  //        integracion y E2E" completo.
   // s7d  - auditoria de seguridad D2/D3 y pruebas de prompt injection como
   //        dato, offline; permisos y revocacion reales siguen pendientes.
   // m7   - "Suite de pruebas en verde y cobertura registrada": el CI del
