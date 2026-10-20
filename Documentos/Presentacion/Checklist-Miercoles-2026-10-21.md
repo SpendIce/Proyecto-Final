@@ -260,6 +260,7 @@ No se inventa una corrida ni se muestra una salida vieja como si fuera de hoy.
 1. Copiar el entorno Plan B desde la máquina del autor, con la red de la FIE:
 
 ```bash
+ssh fie-server 'mkdir -p ~/.config/agente1 && chmod 700 ~/.config/agente1'
 scp ~/.config/agente1/workspace-d2-planb.env fie-server:~/.config/agente1/workspace-d2-planb.env
 ssh fie-server 'chmod 600 ~/.config/agente1/workspace-d2-planb.env'
 ```
@@ -269,7 +270,7 @@ El archivo trae el trío OAuth, la hoja v2 sintética (`Actividades!A1:O100`), l
 2. En el servidor, actualizar el repo a `main` para tener el wrapper y el preflight OAuth:
 
 ```bash
-ssh fie-server 'cd ~/p100/Agente1 && git pull --ff-only'
+ssh fie-server 'cd ~/p100/Agente1 && git switch main && git pull --ff-only'
 ```
 
 3. En el servidor, desde el repo, verificar sin escribir:
