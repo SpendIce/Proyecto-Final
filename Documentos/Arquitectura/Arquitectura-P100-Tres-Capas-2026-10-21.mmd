@@ -1,0 +1,48 @@
+%%{init: {"flowchart": {"htmlLabels": false, "curve": "basis"}}}%%
+flowchart TB
+  subgraph C1["CAPA 1 · Lo compartido hoy, con evidencia (19/10)"]
+    direction LR
+    BUS["D2 · Insumos de agentes<br/>bus de entrada de A1<br/>ADR 0008"] ~~~ HV["Historia Viva<br/>contrato /v1 rc2<br/>mock 57/57"] ~~~ ID["Cuenta de servicio DSI<br/>lista cerrada<br/>ADR 0011"] ~~~ SRV["labredesfie + Ollama<br/>host de la demo<br/>medición 19/10"] ~~~ AUD["Manifest + auditoría<br/>fail-closed<br/>ADR 0010"]
+  end
+
+  subgraph C2["CAPA 2 · Lo proyectado por la bible, con condición de entrada"]
+    direction LR
+    AS["Apps Script<br/>triggers sin persona"] ~~~ CR["Celery + Redis<br/>concurrencia o volumen"] ~~~ FA["FastAPI<br/>servicio multi-consumidor"] ~~~ LC["LangChain / LlamaIndex<br/>RAG o cadena multi-paso"] ~~~ DK["Docker<br/>entorno multi-servicio"] ~~~ LG["LangGraph<br/>estado, ciclos, varios agentes<br/>NO está en la bible"]
+  end
+
+  GATE["Condición de entrada<br/>volumen · concurrencia · integración"]
+
+  subgraph C3["CAPA 3 · Frontera de A1: no orquesta"]
+    direction LR
+    IN["Consume<br/>insumos A3-A5<br/>Historia Viva<br/>planilla D2"] --> A1["A1 Extensión Bot<br/>redacta borradores<br/>PENDIENTE_VALIDACION"] --> OUT["Produce<br/>borradores<br/>decisiones por Form<br/>aportes a Historia Viva"] --> HUMAN["Validación humana<br/>publica o descarta<br/>lo hace una persona"]
+  end
+
+  subgraph FL["LOS 7 FLUJOS DE LA BIBLIA"]
+    direction LR
+    F1["F1 Actividad → Comunicación<br/>IMPLEMENTADO (tramo A1)"] ~~~ F2["F2 RRSS → Analítica<br/>PROYECTADO"] ~~~ F3["F3 Repositorio histórico<br/>POR CONTRATO"] ~~~ F4["F4 Vinculación<br/>POR CONTRATO"] ~~~ F5["F5 Atención<br/>PROYECTADO"] ~~~ F6["F6 KPIs integrados<br/>PROYECTADO"] ~~~ F7["F7 Gestión acad.-admin.<br/>IMPLEMENTADO (tramo A1)<br/>+ coordinación PROYECTADA"]
+  end
+
+  C1 --> C3
+  C2 --> GATE
+  GATE -.->|"sólo si se cumple"| C3
+  C1 ~~~ C2
+  C2 ~~~ C3
+  C3 ~~~ FL
+
+  classDef hoy fill:#d1fae5,stroke:#047857,color:#064e3b,stroke-width:2px;
+  classDef contrato fill:#fef3c7,stroke:#b45309,color:#78350f,stroke-width:2px;
+  classDef proyectado fill:#e5e7eb,stroke:#6b7280,color:#111827,stroke-width:2px;
+  classDef a1 fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a,stroke-width:2px;
+  classDef humano fill:#fce7f3,stroke:#be185d,color:#831843,stroke-width:2px;
+  classDef hibrido fill:#ede9fe,stroke:#6d28d9,color:#3b0764,stroke-width:2px;
+  classDef gate fill:#ffffff,stroke:#111827,color:#111827,stroke-width:1px,stroke-dasharray: 5 5;
+
+  class BUS,HV,ID,SRV,AUD hoy;
+  class AS,CR,FA,LC,DK,LG proyectado;
+  class A1,IN,OUT a1;
+  class HUMAN humano;
+  class F1 hoy;
+  class F3,F4 contrato;
+  class F2,F5,F6 proyectado;
+  class F7 hibrido;
+  class GATE gate;
