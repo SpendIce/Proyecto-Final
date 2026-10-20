@@ -96,7 +96,7 @@ from .registro_auditoria import escribir_registro
 
 HU = "HU-014"
 CONTRACT_VERSION = "linea_descriptiva_v1"
-PROMPT_VERSION = "linea_descriptiva_v1"
+PROMPT_VERSION = "linea_descriptiva_v2"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 
 # Extensión de la línea: límites técnicos provisionales, en el espíritu de
@@ -291,7 +291,7 @@ def construir_prompt_linea(fila: Mapping[str, str]) -> str:
 
     plantilla = (
         files("agente1")
-        .joinpath("prompts", "linea_descriptiva_v1.txt")
+        .joinpath("prompts", f"{PROMPT_VERSION}.txt")
         .read_text(encoding="utf-8")
     )
     datos = json.dumps(
