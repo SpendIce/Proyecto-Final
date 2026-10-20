@@ -1,0 +1,271 @@
+# Checklist: miércoles 21/10/2026, 7:00 a 9:00, servidor `labredesfie`
+
+Objetivo de la mañana: dejar el Agente 1 **corriendo en el servidor** y con la
+evidencia guardada, para que a las 9:00 la presentación sea *correr y mirar*,
+no depurar. El servidor no se alcanza desde casa: todo lo de esta checklist
+pasa en la red de la facultad. Si `ssh fie-server` da timeout, estás fuera de
+la red: no insistas desde la laptop.
+
+Regla de oro: si un paso falla, **no se depura en clase**. Se anota el código,
+se muestra la evidencia parcial y se sigue con lo que esté sano.
+
+## Antes de salir de casa (lunes/martes)
+
+- [ ] La rama de #132 está mergeada en `main` y `scripts/corrida_unica.py`
+      existe en el remoto. Sin eso, el servidor no tiene el runner.
+- [ ] La clave JSON de la cuenta de servicio está en la laptop, **fuera del
+      repo**, con `chmod 600`. No se copia por Git, ni por chat, ni por correo.
+- [ ] Están a mano los IDs confirmados por DSI/SEU para la planilla D2
+      (planilla, rango, carpeta, plantilla) y la cuenta por la que se hace
+      pasar el agente. No se inventan.
+
+## 1. 7:00 a 7:15: red, SSH y copia de la clave
+
+Si #99 ya dejó la clave instalada en el servidor y el preflight del dry-run la
+encuentra con permisos 600, **no la pises**: verificá y seguí. Si no está,
+copiala una sola vez:
+
+```bash
+ssh fie-server 'hostname; whoami; mkdir -p ~/.config/agente1; chmod 700 ~/.config/agente1'
+scp -p <ruta-local-de-la-clave>.json fie-server:~/.config/agente1/cuenta-servicio.json
+ssh fie-server 'chmod 600 ~/.config/agente1/cuenta-servicio.json; stat -c "%a %n" ~/.config/agente1/cuenta-servicio.json'
+```
+
+Tiene que imprimir `600`. Si imprime `644` u otro valor, `chmod 600` y repetir.
+
+La clave **nunca** se agrega al repo, ni siquiera a `tmp/`. Si `git status` la
+muestra, se borra del índice y se avisa.
+
+## 2. 7:15 a 7:30: variables de Workspace
+
+El entorno vive fuera del repo, en `~/.config/agente1/workspace-d2.env`, con
+`chmod 600`. Si ya existe, **no se reescribe**: se verifican los nombres.
+
+```bash
+ssh fie-server 'test -f ~/.config/agente1/workspace-d2.env && chmod 600 ~/.config/agente1/workspace-d2.env && grep -o "^AGENTE1_WORKSPACE_[A-Z0-9_]*" ~/.config/agente1/workspace-d2.env | sort -u || echo "FALTA workspace-d2.env"'
+```
+
+Tienen que estar, como mínimo:
+
+```text
+AGENTE1_WORKSPACE_AMBIENTE
+AGENTE1_WORKSPACE_SPREADSHEET_ID
+AGENTE1_WORKSPACE_RANGO_A1
+AGENTE1_WORKSPACE_FOLDER_ID
+AGENTE1_WORKSPACE_TEMPLATE_ID
+AGENTE1_WORKSPACE_TIMEOUT_S
+AGENTE1_WORKSPACE_MAX_RESPONSE_BYTES
+AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY
+AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT
+```
+
+Si el archivo no existe, crealo con `umask 077` y esas nueve variables; los
+IDs son los confirmados por DSI/SEU, no se inventan. Si falta el par de la
+cuenta de servicio, se agrega **sólo la ruta y la
+cuenta**, nunca el contenido del JSON:
+
+```bash
+umask 077
+cat >> ~/.config/agente1/workspace-d2.env <<'EOF'
+AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY=/home/jgone/.config/agente1/cuenta-servicio.json
+AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT=<cuenta-confirmada-por-DSI>
+EOF
+chmod 600 ~/.config/agente1/workspace-d2.env
+```
+
+Cargar el entorno en la sesión de trabajo y comprobar **sólo presencia**, sin
+imprimir valores:
+
+```bash
+set -a; . ~/.config/agente1/workspace-d2.env; set +a
+python3 - <<'PY'
+import os
+nombres = [n for n in os.environ if n.startswith("AGENTE1_WORKSPACE_")]
+print("variables AGENTE1_WORKSPACE_*:", len(nombres))
+print("par de cuenta de servicio:", bool(os.environ.get("AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY")) and bool(os.environ.get("AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT")))
+PY
+```
+
+Si el par está a medias, el runner falla cerrado en el preflight. No hay
+fallback silencioso a la OAuth.
+
+## 3. 7:30 a 7:45: código y dependencias
+
+```bash
+cd ~/p100/Agente1
+git fetch origin
+git switch main
+git pull --ff-only
+git rev-parse --short HEAD
+test -f Implementacion/Agente1/scripts/corrida_unica.py || echo "FALTA corrida_unica.py: #132 no está mergeado"
+cd Implementacion/Agente1
+uv sync
+uv run python -c 'import agente1; print("agente1 importa")'
+```
+
+Anotar el commit corto: va a quedar en la evidencia. Si `git pull` no es
+fast-forward, **no mergear ni rebasear en el servidor**: avisar y seguir con el
+commit que ya estaba, anotándolo.
+
+No se corta versión ni se regenera `manifest-version.json`. El manifest queda
+viejo entre cortes a propósito.
+
+## 4. 7:45 a 8:00: Ollama 0.40.6 y modelo precargado
+
+El servidor no tiene sudo. Ollama corre como proceso de `jgone` en loopback
+`:11434`.
+
+```bash
+export OLLAMA_HOST=127.0.0.1:11434
+curl -s http://127.0.0.1:11434/api/version
+```
+
+- Si responde `{"version":"0.40.6"}`, ya está levantado: no se toca.
+- Si no responde, levantar el binario de 0.40.6 que vive en `~/ollama` (el de
+  la medición de #50). Si `~/ollama/bin/ollama` no existe, ubicarlo:
+
+```bash
+find ~/ollama -maxdepth 3 -type f -name ollama
+```
+
+Y arrancarlo en una sesión de tmux para que no se muera al cerrar la terminal:
+
+```bash
+tmux new -s ollama 'export OLLAMA_HOST=127.0.0.1:11434; <binario-de-0406> serve'
+```
+
+No se actualiza Ollama. La versión se congela con el modelo: 0.40.6 es la de
+la medición y la que el runner espera por defecto.
+
+Precargar el modelo de la gacetilla (sin sudo, sin descargar nada si ya está):
+
+```bash
+<binario-de-0406> run llama3.2:3b "listo"
+<binario-de-0406> ps
+```
+
+`llama3.2:3b` tiene que aparecer cargado. El modelo de la demo **no está
+decidido** (#51): el runner usa `llama3.2:3b` por defecto y no elige por su
+cuenta. Si #51 ya decidió otro, se pasa `--modelo` y se anota en la evidencia.
+
+## 5. 8:00 a 8:10: dry-run (no toca red ni Workspace)
+
+```bash
+cd ~/p100/Agente1/Implementacion/Agente1
+uv run python scripts/corrida_unica.py --id-solicitud <id-de-la-fila>
+```
+
+El dry-run valida raíz, commit, host, Python, variables, clave (archivo, 600,
+JSON), scripts y CSV sintéticos. Imprime el plan de los seis pasos y deja
+evidencia en `evidencias/corrida-AAAA-MM-DD-HHMM/` con `host.txt`,
+`corrida.json` y `transcripcion.log`.
+
+Si el preflight falla, **no se pasa a `--live`**: se corrige lo que dice el
+mensaje y se repite. Los códigos de salida están en la tabla de abajo.
+
+## 6. 8:10 a 8:55: corrida live, en el orden de la demo
+
+```bash
+uv run python scripts/corrida_unica.py --live --id-solicitud <id-de-la-fila> --presupuesto-min 45
+```
+
+Orden interno, que es el de la presentación:
+
+1. Ollama 0.40.6 y modelo descargado.
+2. Smoke de Workspace: una lectura de sólo lectura.
+3. Gacetilla E2E: crea un borrador en Drive, pendiente de validación humana.
+4. HU-014: certificados con lista sintética, dos aprobaciones de línea y
+   aprobación del lote, todo offline.
+5. HU-012: pedido de plantilla por el canal del Form y lote completo con los
+   CSV sintéticos, todo offline.
+
+El corte de 45 minutos se evalúa **antes de cada paso**. Si se agota, el
+runner corta con `CORTE_PRESUPUESTO` (código 7) y dice qué quedó sin correr.
+Si la clase empieza y hay poco tiempo, usar un presupuesto menor (por ejemplo
+`--presupuesto-min 20`) para que sólo entre la gacetilla.
+
+Si el ensayo de la mañana ya creó el borrador con ese `--id-solicitud`, la
+corrida de la clase devuelve `DUPLICADA`: es correcto, no se crea otro
+documento en Drive. Para **mostrar la creación** en vivo, usar otra fila de la
+planilla (otro id). No borrar `tmp/workspace-e2e` para forzar una creación:
+el registro de idempotencia es lo que evita duplicar el documento.
+
+## 7. 8:55 a 9:00: evidencia y cierre
+
+La corrida deja:
+
+```text
+Implementacion/Agente1/evidencias/corrida-AAAA-MM-DD-HHMM/
+├── host.txt              host, commit, Python, modo, modelo, resultado
+├── corrida.json          pasos, estados, duración, exit code, sanitizado
+├── transcripcion.log     salida completa, sanitizada
+├── workspace-e2e/        manifiestos nuevos del E2E (si los hubo)
+├── hu014/                lista, línea, decisiones y log de emisión
+└── hu012/                pedido, borradores y entregas simuladas
+```
+
+La auditoría de tokens del E2E queda en el registro estable
+`tmp/workspace-e2e/logs/cuenta-suplantada.jsonl`; no se copia a la evidencia
+de la corrida para no mezclar emisiones de días distintos.
+
+Para traerla a la laptop:
+
+```bash
+ssh fie-server 'cd ~/p100/Agente1/Implementacion/Agente1 && ls -d evidencias/corrida-*'
+scp -r fie-server:~/p100/Agente1/Implementacion/Agente1/evidencias/corrida-<sello> .
+rg -n --glob '!*.pdf' 'BEGIN [A-Z ]*PRIVATE KEY|ya29\.' corrida-<sello> || echo "sin secretos aparentes"
+```
+
+La evidencia no lleva la ruta de la clave ni el contenido del `.env`; aun así,
+se revisa antes de compartirla. No se commitea en `main` sin pedido.
+
+## Tabla de fallas: qué mirar y qué decir
+
+| Paso | Código | Qué se ve | Qué hacer | Qué decir |
+|---|---:|---|---|---|
+| Preflight | 1 | `PREFLIGHT: ...` con la variable, el permiso o el JSON que falla | Corregir entorno/clave y repetir el dry-run. No seguir a live. | «La configuración del host no está completa; lo arreglo y vuelvo a correr.» |
+| Ollama | 2 | Versión distinta de 0.40.6 o modelo ausente | Levantar el binario de 0.40.6 de `~/ollama`; `ollama pull` sólo si falta el modelo. No actualizar. | «El servidor tiene que usar la versión congelada de la medición; no la cambio en vivo.» |
+| Smoke | 3 | `workspace_auth_unavailable` (puede ser el par, la lista cerrada o la clave) | Revisar el par, los permisos 600 y que la cuenta esté en la lista cerrada. Si Google deniega, no reintentar en caliente. | «La lectura de la planilla no está autorizada; el circuito live queda bloqueado y sigo con lo offline.» |
+| Gacetilla | 4 | `FALLIDA`, `BLOQUEADA_RECONCILIACION` o timeout | No repetir si está bloqueada: reconciliar. Si fue generación, probar el modelo por defecto. | «No se creó otro documento; miro el manifiesto y muestro la evidencia de la mañana.» |
+| HU-014 | 5 | `PENDIENTE_APROBACION` inesperado o decisión rechazada | Verificar el rol del padrón y el catálogo; el circuito no emite parcial. | «El gate de aprobación es el que tiene que frenar; el certificado es de prueba y sin validez.» |
+| HU-012 | 6 | El canal no clasifica o el lote no encola | Revisar el CSV sintético y el padrón; el lote es idempotente. | «Los correos son simulados y llevan `BORRADOR — NO ENVIAR`; no sale correo real.» |
+| Presupuesto | 7 | `CORTE_PRESUPUESTO` con la lista de pasos pendientes | Nada: es el corte previsto. | «Cortamos acá para no comernos la clase; lo que sigue queda para la próxima.» |
+| Uso | 64 | `error: argumentos inválidos` | Revisar el comando; no se imprimen argumentos por seguridad. | (no aplica) |
+
+### Si sólo entra la gacetilla
+
+Es un resultado válido, no una falla. Se muestra la gacetilla y se dice:
+
+> «La gacetilla es el flujo completo de comunicación: lee la planilla, genera
+> con el modelo local y deja un borrador en Drive para validación humana. Los
+> certificados y las confirmaciones usan el mismo pipeline con otros gates;
+> quedan para la próxima corrida.»
+
+No se inventa una corrida ni se muestra una salida vieja como si fuera de hoy.
+
+### Si la gacetilla live falla
+
+1. No depurar frente a la clase.
+2. Mostrar `corrida.json` y el manifiesto de la mañana.
+3. Si hace falta mostrar el pipeline, correr el E2E offline **en el servidor**
+   (fuente y destino en memoria) y aclarar que no acredita Workspace:
+
+```bash
+uv run python scripts/workspace_e2e.py --tipo gacetilla --salida /tmp/demo-offline-$(date +%H%M)
+```
+
+4. Decir que el bloqueo es de credencial o de red y que el circuito live queda
+   pendiente de #118. No se promete lo que no corrió.
+
+## Lo que NO se hace
+
+- No se versiona la clave JSON, ni el `.env`, ni `tmp/`.
+- No se usa `sudo`: Ollama y el agente corren en espacio de usuario.
+- No se actualiza Ollama ni se cambia el modelo por cuenta propia.
+- No se corta versión ni se regenera `manifest-version.json`.
+- No se publica, comparte ni envía nada: el E2E deja borradores y las
+  confirmaciones son simuladas.
+- No se borra `tmp/workspace-e2e`: es el registro de idempotencia del E2E.
+- No se borra `~/.config/agente1/`.
+- No se rebaselinea el Gantt ni se agregan estados nuevos.
+- No se corre la demo desde la laptop como host.
