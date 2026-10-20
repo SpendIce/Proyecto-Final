@@ -138,7 +138,7 @@ def test_recursos_plantilla_actividad_hu012_son_empaquetables():
 
     contrato = json.loads(
         files("agente1")
-        .joinpath("contracts", "plantilla_actividad_v1.json")
+        .joinpath("contracts", "plantilla_actividad_v2.json")
         .read_text(encoding="utf-8")
     )
     base = (
@@ -148,17 +148,17 @@ def test_recursos_plantilla_actividad_hu012_son_empaquetables():
     )
     generacion = (
         files("agente1")
-        .joinpath("prompts", "plantilla_actividad_generacion_v1.txt")
+        .joinpath("prompts", "plantilla_actividad_generacion_v2.txt")
         .read_text(encoding="utf-8")
     )
 
-    assert contrato["x-contract-version"] == "plantilla_actividad_v1"
+    assert contrato["x-contract-version"] == "plantilla_actividad_v2"
     assert contrato["x-status"] == "PROVISIONAL_NO_INSTITUCIONAL"
     assert contrato["x-hu"] == "HU-012"
     assert "TEMPLATE_VERSION: plantilla_actividad_base_provisional_v1" in base
     assert "PENDIENTE_SEU" in base
-    assert "PROMPT_VERSION: plantilla_actividad_generacion_v1" in generacion
-    assert "CONTRACT_VERSION: plantilla_actividad_v1" in generacion
+    assert "PROMPT_VERSION: plantilla_actividad_generacion_v2" in generacion
+    assert "CONTRACT_VERSION: plantilla_actividad_v2" in generacion
     for nombre in (
         "DestinatarioActividad",
         "ResultadoLoteActividad",

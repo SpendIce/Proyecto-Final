@@ -8,14 +8,21 @@ tiene dos tramos, separados a propósito por la aprobación humana:
 
 1. **Generación** (`procesar_plantilla_actividad`, despachada por la
    intención `generar_plantilla_actividad` de `interpretacion.py`). El
-   modelo ve la plantilla base provisional marcada `PENDIENTE_SEU` y los
-   datos institucionales de la actividad, y escribe sólo prosa: montos,
-   cuotas, fechas, horarios, enlaces y datos del destinatario quedan como
-   variables del catálogo `contracts/plantilla_actividad_v1.json`. El
-   gate descarta la salida entera ante cualquier incumplimiento: variable
-   faltante, renombrada, desconocida o sin dato que la llene; dígito,
-   fecha, importe, correo o enlace en el texto; hecho de la fuente
-   copiado; inyección o registro fuera del rioplatense. El éxito es un
+   modelo ve sólo el título, la descripción y el público de la actividad
+   y devuelve **un párrafo de prosa descriptiva**, sin saludo, sin cierre
+   y sin variables (#140). El código compone el cuerpo alrededor de esa
+   prosa con las variables del catálogo
+   `contracts/plantilla_actividad_v2.json` —destinatario, actividad,
+   inicio, contacto y, con plan, cuotas, medios y bonificaciones—, el
+   mismo patrón que la gacetilla (#107, #121). Hasta v1 el modelo recibía
+   la plantilla base entera y escribía el cuerpo con las variables: con
+   actividades reales copiaba el bloque `LÍMITES`, rompía u omitía
+   variables y agregaba hechos sueltos (0/5 en los cuatro modelos medidos
+   para #51). El gate descarta la salida entera ante cualquier
+   incumplimiento: llaves, saludo o cierre en la prosa; dígito, fecha,
+   importe, correo o enlace en el texto; hecho de la fuente copiado;
+   inyección o registro fuera del rioplatense. El cuerpo compuesto vuelve
+   a pasar el gate de variables del catálogo. El éxito es un
    borrador `PENDIENTE_VALIDACION`, con dos objetos abiertos a decisión
    en el Form (#72): la plantilla (aprobación semántica y utilitaria) y
    el lote de envíos de la actividad (aprobación utilitaria).
@@ -116,16 +123,18 @@ from .procesamiento import (
 )
 
 HU = "HU-012"
-CONTRACT_VERSION = "plantilla_actividad_v1"
-TEMPLATE_VERSION = "plantilla_actividad_generada_v1"
+CONTRACT_VERSION = "plantilla_actividad_v2"
+TEMPLATE_VERSION = "plantilla_actividad_generada_v2"
+# La estructura del cuerpo sigue siendo la de la base provisional v1; desde
+# #140 la compone `_componer_cuerpo` y el modelo ya no la ve.
 BASE_TEMPLATE_VERSION = "plantilla_actividad_base_provisional_v1"
-PROMPT_VERSION = "plantilla_actividad_generacion_v1"
+PROMPT_VERSION = "plantilla_actividad_generacion_v2"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 CIRCUITO = "plantilla_actividad"
 
 CONTRATO = json.loads(
     files("agente1")
-    .joinpath("contracts", "plantilla_actividad_v1.json")
+    .joinpath("contracts", f"{CONTRACT_VERSION}.json")
     .read_text(encoding="utf-8")
 )
 CAMPOS_FILA_OBLIGATORIOS = tuple(CONTRATO["campos_fila_obligatorios"])
@@ -142,6 +151,8 @@ VARIABLES_CONOCIDAS = (
 MAX_PLANTILLA_CHARS = int(CONTRATO["max_plantilla_chars"])
 MIN_PROSA_PALABRAS = int(CONTRATO["min_prosa_palabras"])
 MAX_PLANTILLA_PALABRAS = int(CONTRATO["max_plantilla_palabras"])
+MAX_PROSA_PALABRAS = int(CONTRATO["max_prosa_palabras"])
+MAX_PROSA_CHARS = int(CONTRATO["max_prosa_chars"])
 
 # La variable de fila se habilita sólo cuando la columna existe y trae
 # dato: mapea cada nombre de variable a su columna de la planilla.
@@ -179,11 +190,6 @@ CAMPOS_HECHOS_FILA = (
     "fuente",
 )
 
-TEXTO_PLANTILLA_BASE = (
-    files("agente1")
-    .joinpath("prompts", f"{BASE_TEMPLATE_VERSION}.txt")
-    .read_text(encoding="utf-8")
-)
 _TEXTO_PROMPT = (
     files("agente1")
     .joinpath("prompts", f"{PROMPT_VERSION}.txt")
@@ -224,6 +230,15 @@ PATRON_MARCO_DOCUMENTO = re.compile(
     r"\b(?:L[ÍI]MITES|TEMPLATE_VERSION|POLICY_STATUS|ESTADO_INSTITUCIONAL|"
     r"PROMPT_VERSION|CONTRACT_VERSION|BASE_TEMPLATE|PLANTILLA_BASE|"
     r"DATOS_JSON|BORRADOR)\b"
+)
+
+# Saludo o cierre al principio de una línea de la prosa: el código ya pone
+# «Hola {{nombre_destinatario}},» y el contacto; repetirlos duplicaría el
+# saludo o metería una firma que nadie aprobó.
+PATRON_SALUDO_O_CIERRE = re.compile(
+    r"^\s*(?:hola|estimad[oa]s?|querid[oa]s?|saludos|atentamente|"
+    r"cordialmente|un\s+saludo)\b",
+    flags=re.IGNORECASE | re.MULTILINE,
 )
 
 _LINEA_PROVISIONAL = (
@@ -459,7 +474,7 @@ def procesar_plantilla_actividad(
         plan = None
 
     inicio = time.perf_counter()
-    prompt = _construir_prompt(fila, plan)
+    prompt = _construir_prompt(fila)
     try:
         contenido_generado = generator.generar(prompt)
     except PresupuestoAgotadoError:
@@ -501,7 +516,10 @@ def procesar_plantilla_actividad(
             resultado="salida_vacia",
             error="El generador devolvió contenido vacío",
         )
-    errores = _validar_plantilla(contenido, fila, plan)
+    cuerpo = _componer_cuerpo(contenido, plan)
+    errores = sorted(
+        set(_validar_prosa(contenido) + _validar_plantilla(cuerpo, fila, plan))
+    )
     if errores:
         return _resultado_fallido(
             fila=fila,
@@ -515,7 +533,7 @@ def procesar_plantilla_actividad(
             validation_errors=errores,
         )
 
-    documento = _armar_documento(contenido, id_solicitud)
+    documento = _armar_documento(cuerpo, id_solicitud)
     borrador = f"{BORRADOR_MARKER}{documento}"
     destino_efectivo = destino or MarkdownDestinoBorradores(directorio_salida)
     try:
@@ -578,55 +596,75 @@ def procesar_plantilla_actividad(
     )
 
 
-def _construir_prompt(fila: dict[str, str], plan: PlanPago | None) -> str:
-    """El prompt del tramo de redacción: base, catálogo de variables y
-    sólo los datos que la prosa necesita para ser pertinente.
+def _construir_prompt(fila: dict[str, str]) -> str:
+    """El prompt del tramo de redacción: sólo lo que la prosa necesita.
 
-    Los montos, vencimientos, medios de pago y fechas NO entran al
-    prompt: son datos que el render completa desde el plan y la fila, y
-    dárselos al modelo invitaría a escribirlos — el gate los rechazaría
-    igual, pero la defensa es no exponerlos. Del plan viajan sólo su
-    existencia y la forma del pago (cantidad de cuotas, si hay
-    bonificaciones declaradas), nunca los valores.
+    Desde #140 el modelo no ve la plantilla base ni el catálogo de
+    variables: escribe un párrafo y el código compone el resto. Tampoco ve
+    la modalidad, el organizador, la duración ni el plan de pago: son
+    hechos que el cuerpo o el render ponen desde la fila, y dárselos
+    invitaba a escribirlos — el gate los rechazaría igual, pero la defensa
+    es no exponerlos. El bloque de pago lo agrega `_componer_cuerpo`.
     """
 
-    requeridas = sorted(VARIABLES_REQUERIDAS | (
-        VARIABLES_PLAN_REQUERIDAS if plan is not None else frozenset()
-    ))
-    disponibles = sorted(
-        variable
-        for variable, columna in COLUMNA_POR_VARIABLE_FILA.items()
-        if fila.get(columna, "").strip()
-    ) + (
-        sorted(VARIABLES_PLAN_OPCIONALES) if plan is not None else []
-    )
     datos = {
         "titulo": fila.get("titulo", ""),
         "descripcion": fila.get("descripcion", ""),
         "publico": fila.get("publico", ""),
-        "organiza": fila.get("organiza", ""),
-        "modalidad": fila.get("modalidad", ""),
-        "duracion_horas": fila.get("duracion_horas", ""),
-        "arancelada": plan is not None,
-        "cantidad_cuotas": len(plan.cuotas) if plan is not None else 0,
-        "con_bonificaciones": (
-            bool(plan.categorias_bonificadas) if plan is not None else False
-        ),
     }
-    prompt = _TEXTO_PROMPT
-    for marcador, valor in {
-        "plantilla_base": TEXTO_PLANTILLA_BASE,
-        "variables_requeridas": "\n".join(
-            f"- {{{{{variable}}}}}" for variable in requeridas
-        ),
-        "variables_disponibles": "\n".join(
-            f"- {{{{{variable}}}}}" for variable in disponibles
-        )
-        or "- (ninguna)",
-        "datos_fuente": json.dumps(datos, ensure_ascii=False, indent=2),
-    }.items():
-        prompt = prompt.replace("{" + marcador + "}", valor)
-    return prompt
+    return _TEXTO_PROMPT.replace(
+        "{datos_fuente}", json.dumps(datos, ensure_ascii=False, indent=2)
+    )
+
+
+def _componer_cuerpo(prosa: str, plan: PlanPago | None) -> str:
+    """El cuerpo de la plantilla con la prosa del modelo en su lugar.
+
+    Reproduce la estructura de la base provisional v1: saludo, línea de
+    preinscripción e inicio, prosa, bloque de pago cuando la actividad
+    declara plan, y contacto. Las variables las pone el código, así que
+    las requeridas aparecen siempre una vez y las de pago sólo con plan.
+    """
+
+    bloque_plan = (
+        "El valor y las formas de pago de la actividad son:\n"
+        "{{detalle_cuotas}}\n"
+        "Medios de pago: {{medios_pago}}.\n"
+        "{{bonificaciones}}\n\n"
+        if plan is not None
+        else ""
+    )
+    return (
+        "Hola {{nombre_destinatario}},\n\n"
+        "Te escribimos por tu preinscripción a {{actividad}}.\n"
+        "Inicio: {{fecha_inicio}}.\n\n"
+        f"{prosa.strip()}\n\n"
+        f"{bloque_plan}"
+        "Contacto: {{contacto}}\n"
+    )
+
+
+def _validar_prosa(prosa: str) -> list[str]:
+    """Gate propio del párrafo del modelo, antes de componer el cuerpo.
+
+    Los hechos, datos dinámicos y marcas del documento los controla
+    `_validar_plantilla` sobre el cuerpo compuesto; acá va lo que sólo
+    tiene sentido sobre la prosa suelta: que no traiga llaves (las
+    variables son del código), ni saludo o cierre, y que su extensión sea
+    la de un párrafo.
+    """
+
+    errores: list[str] = []
+    if "{" in prosa or "}" in prosa:
+        errores.append("template_variable_in_prose")
+    if PATRON_SALUDO_O_CIERRE.search(prosa):
+        errores.append("greeting_or_closing_in_prose")
+    palabras = len(_PALABRA_RE.findall(_PLACEHOLDER_RE.sub(" ", prosa)))
+    if palabras < MIN_PROSA_PALABRAS:
+        errores.append("template_too_short")
+    if palabras > MAX_PROSA_PALABRAS or len(prosa) > MAX_PROSA_CHARS:
+        errores.append("output_too_long")
+    return errores
 
 
 def _variables_permitidas(
@@ -652,7 +690,11 @@ def _variables_permitidas(
 def _validar_plantilla(
     contenido: str, fila: dict[str, str], plan: PlanPago | None
 ) -> list[str]:
-    """Gate mecánico de la plantilla generada. Nunca se recorta.
+    """Gate mecánico del cuerpo de la plantilla. Nunca se recorta.
+
+    Desde #140 recibe el cuerpo que compuso `_componer_cuerpo` con la
+    prosa del modelo adentro: los controles de variables verifican la
+    composición, y los de texto, la prosa.
 
     Controles: variables (catálogo cerrado, requeridas presentes una
     vez, permitidas con dato, ninguna repetida ni mal formada), ningún
@@ -744,7 +786,7 @@ def _validar_plantilla(
 
 
 def _armar_documento(contenido: str, actividad_id: str) -> str:
-    """El documento versionado: el cuerpo del modelo entre marcos fijos.
+    """El documento versionado: el cuerpo compuesto entre marcos fijos.
 
     La línea provisional y el bloque `LÍMITES` son parte del documento
     aprobado: la sección central —la que `_seccion_cuerpo` extrae para el
