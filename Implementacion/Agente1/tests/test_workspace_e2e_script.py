@@ -75,3 +75,16 @@ def test_constructor_y_request_gacetilla_live_no_envian_format(monkeypatch) -> N
     assert payload["options"]["temperature"] == 0
     assert generator.format_mode is None
     assert generator.format_schema_hash is None
+
+
+def test_gacetilla_offline_de_punta_a_punta_deja_borrador(tmp_path: Path, capsys) -> None:
+    # Es el plan B de la checklist del miércoles: si el fake devuelve algo que no
+    # es la ficha, el pipeline lo rechaza por estructura (#138).
+    script = _cargar_script()
+
+    codigo = script.main(["--tipo", "gacetilla", "--salida", str(tmp_path)])
+
+    salida = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert codigo == 0
+    assert salida["modo"] == "offline_fake"
+    assert salida["estado"] == "PENDIENTE_VALIDACION"
