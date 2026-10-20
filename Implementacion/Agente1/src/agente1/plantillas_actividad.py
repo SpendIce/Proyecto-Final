@@ -128,7 +128,7 @@ TEMPLATE_VERSION = "plantilla_actividad_generada_v2"
 # La estructura del cuerpo sigue siendo la de la base provisional v1; desde
 # #140 la compone `_componer_cuerpo` y el modelo ya no la ve.
 BASE_TEMPLATE_VERSION = "plantilla_actividad_base_provisional_v1"
-PROMPT_VERSION = "plantilla_actividad_generacion_v2"
+PROMPT_VERSION = "plantilla_actividad_generacion_v3"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 CIRCUITO = "plantilla_actividad"
 
@@ -605,12 +605,13 @@ def _construir_prompt(fila: dict[str, str]) -> str:
     hechos que el cuerpo o el render ponen desde la fila, y dárselos
     invitaba a escribirlos — el gate los rechazaría igual, pero la defensa
     es no exponerlos. El bloque de pago lo agrega `_componer_cuerpo`.
+    Desde v3 (#51) tampoco ve el público: el correo va a quien ya se
+    preinscribió, y con el público a la vista los modelos lo copiaban.
     """
 
     datos = {
         "titulo": fila.get("titulo", ""),
         "descripcion": fila.get("descripcion", ""),
-        "publico": fila.get("publico", ""),
     }
     return _TEXTO_PROMPT.replace(
         "{datos_fuente}", json.dumps(datos, ensure_ascii=False, indent=2)

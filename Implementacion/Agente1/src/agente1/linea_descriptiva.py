@@ -96,7 +96,7 @@ from .registro_auditoria import escribir_registro
 
 HU = "HU-014"
 CONTRACT_VERSION = "linea_descriptiva_v1"
-PROMPT_VERSION = "linea_descriptiva_v2"
+PROMPT_VERSION = "linea_descriptiva_v3"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 
 # Extensión de la línea: límites técnicos provisionales, en el espíritu de
@@ -117,7 +117,9 @@ _OBJETO_PREFIX = "linea_descriptiva-"
 # organización, contacto y enlaces quedan afuera a propósito: el modelo no
 # puede copiar un hecho que nunca vio. Son exactamente los campos que
 # describen el contenido de la actividad.
-CAMPOS_PROMPT = ("titulo", "descripcion", "publico")
+# Desde v3 (#51) el público queda afuera: con el público a la vista los
+# modelos lo copiaban en la línea, y el certificado describe el contenido.
+CAMPOS_PROMPT = ("titulo", "descripcion")
 CAMPOS_REQUERIDOS = ("id_actividad", "titulo", "descripcion")
 
 # Fechas escritas en letras: meses y días de semana. Las fechas numéricas
