@@ -137,7 +137,9 @@ def test_v3_conserva_el_gate_de_hechos(tmp_path: Path) -> None:
         ("prosa", "Un seminario remoto para seguir aprendiendo junto a otras personas.", "unauthorized_fact_claim"),
         ("cta", "Inscribite ahora y asegurá tu lugar en esta propuesta.", "unauthorized_call_to_action"),
         ("cta", "Inscríbete y conocé nuevas propuestas para participar.", "non_rioplatense_register"),
-        ("prosa", "Este taller sintético propone un espacio abierto para compartir experiencias.", "source_fact_in_creative_field"),
+        # Desde #139 el fragmento tiene que ser el título completo o un tramo
+        # con tres o más palabras significativas; «taller sintético» ya no basta.
+        ("prosa", "Este taller sintético de vinculación propone un espacio abierto para compartir experiencias.", "source_fact_in_creative_field"),
     ],
 )
 def test_v3_rechaza_riesgos_linguisticos_y_fragmentos_de_hechos(
@@ -152,6 +154,19 @@ def test_v3_rechaza_riesgos_linguisticos_y_fragmentos_de_hechos(
     assert resultado.estado == "FALLIDA"
     registro = json.loads(resultado.log_path.read_text(encoding="utf-8").splitlines()[-1])
     assert error in registro["validation_errors"]
+
+
+def test_v3_acepta_una_palabra_distintiva_del_titulo(tmp_path: Path) -> None:
+    """Hasta #139 «sintético» sola rechazaba el post; ahora nombrar el tema con
+    una palabra del título es redundancia aceptable, no un hecho copiado."""
+    creatividad = dict(CREATIVIDAD_LIBRE)
+    creatividad["prosa"] = (
+        "Este taller sintético propone un espacio abierto para compartir experiencias."
+    )
+
+    resultado = _generar(creatividad, CONTRATO_CREATIVO_V3, tmp_path)
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
 
 
 def test_v3_rechaza_texto_por_debajo_del_minimo(tmp_path: Path) -> None:

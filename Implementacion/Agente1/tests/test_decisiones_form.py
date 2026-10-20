@@ -1127,14 +1127,12 @@ def test_circuito_completo_descarte_de_post_registra_sin_publicar(
     )
 
 
+# Desde `plantilla_actividad_v2` (#140) el modelo devuelve sólo la prosa: el
+# saludo, las variables y el contacto los compone el código.
 _PLANTILLA_ACTIVIDAD_CONFORME = (
-    "Hola {{nombre_destinatario}},\n\n"
-    "Te escribimos por tu preinscripción a {{actividad}}, que comienza el "
-    "{{fecha_inicio}}.\n\n"
     "La propuesta acerca herramientas de la facultad a la comunidad, con "
     "encuentros guiados y espacios de consulta durante todo el recorrido. "
-    "El equipo docente acompaña a quienes se acercan por primera vez.\n\n"
-    "Contacto: {{contacto}}\n"
+    "El equipo docente acompaña a quienes se acercan por primera vez."
 )
 
 
