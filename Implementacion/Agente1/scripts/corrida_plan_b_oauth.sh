@@ -4,8 +4,10 @@
 # El archivo de entorno vive fuera del repo y trae el trío OAuth, la hoja v2
 # sintética, la carpeta y la plantilla D2. El script:
 #   1. carga ese entorno;
-#   2. borra el par de la cuenta de servicio y el access token efímero, para
-#      que `construir_token_provider` no pueda elegir otra credencial;
+#   2. quita del entorno del proceso el par de la cuenta de servicio y el
+#      access token efímero, para que `construir_token_provider` no pueda
+#      elegir otra credencial. No borra ni modifica archivos: el par sigue en
+#      `workspace-d2.env` y en `cuenta-servicio.json` para Plan A;
 #   3. corre el comando pedido. Sin argumentos, corre la corrida única live
 #      con `gemma4:e4b` y la actividad real `FIE-DIF-08` del corpus.
 #

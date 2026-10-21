@@ -57,7 +57,7 @@ AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY
 AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT
 ```
 
-**Plan B de credencial:** no se edita `workspace-d2.env` ni se comentan líneas a mano. El wrapper `scripts/corrida_plan_b_oauth.sh` carga un entorno separado, `~/.config/agente1/workspace-d2-planb.env` (fuera del repo, chmod 600), con el trío OAuth, la hoja v2 sintética, la carpeta y la plantilla. El wrapper borra el par de la cuenta de servicio y el access token antes de correr. Ver «Si falta el acceso a Sheets y Docs».
+**Plan B de credencial:** no se edita `workspace-d2.env` ni se comentan líneas a mano. El wrapper `scripts/corrida_plan_b_oauth.sh` carga un entorno separado, `~/.config/agente1/workspace-d2-planb.env` (fuera del repo, chmod 600), con el trío OAuth, la hoja v2 sintética, la carpeta y la plantilla. El wrapper **quita del proceso** el par de la cuenta de servicio y el access token con `unset`; no borra ni modifica `workspace-d2.env` ni `cuenta-servicio.json`, que quedan en el servidor para Plan A. Ver «Si falta el acceso a Sheets y Docs».
 
 Si el archivo no existe, crealo con `umask 077` y esas nueve variables; los
 IDs son los confirmados por DSI/SEU, no se inventan. Si falta el par de la
