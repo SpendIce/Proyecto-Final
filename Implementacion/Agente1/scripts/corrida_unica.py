@@ -153,6 +153,7 @@ class Opciones:
     evidencia_dir: Path
     root: Path = ROOT
     salida_e2e: Path = SALIDA_E2E
+    timeout_modelo: float = 300.0
 
 
 @dataclass(frozen=True)
@@ -836,6 +837,8 @@ def _paso_gacetilla(
         str(opciones.salida_e2e),
         "--modelo",
         opciones.modelo,
+        "--timeout-modelo",
+        f"{opciones.timeout_modelo:g}",
     ]
     resultado, entrada = _correr(contexto, registro, comando, timeout_s=900.0)
     payload = _ultimo_json(resultado.salida) or {}
@@ -1226,7 +1229,8 @@ def _plan(opciones: Opciones) -> list[str]:
         "[4] E2E de gacetilla (live)",
         "    python scripts/workspace_e2e.py --live --confirm-write-workspace "
         f"--tipo gacetilla --id-solicitud {opciones.id_solicitud} "
-        f"--salida tmp/workspace-e2e --modelo {opciones.modelo}",
+        f"--salida tmp/workspace-e2e --modelo {opciones.modelo} "
+        f"--timeout-modelo {opciones.timeout_modelo:g}",
         "[5] HU-014 certificados (offline)",
         "    python scripts/emitir_certificados.py --actividad SYN-001 "
         "--lista-csv <evidencia>/hu014/lista.csv --linea "
@@ -1594,9 +1598,8 @@ def main(
     parser.add_argument("--modelo", default=MODELO_DEFAULT)
     parser.add_argument("--ollama-version", default=OLLAMA_VERSION_DEFAULT)
     parser.add_argument("--id-solicitud", default=ID_SOLICITUD_DEFAULT)
-    parser.add_argument(
-        "--presupuesto-min", type=float, default=PRESUPUESTO_DEFAULT_MIN
-    )
+    parser.add_argument("--presupuesto-min", type=float, default=PRESUPUESTO_DEFAULT_MIN)
+    parser.add_argument("--timeout-modelo", type=float, default=300.0)
     parser.add_argument("--evidencia-dir", type=Path)
     try:
         args = parser.parse_args(argv)
@@ -1613,6 +1616,7 @@ def main(
         presupuesto_min=args.presupuesto_min,
         evidencia_dir=evidencia,
         root=raiz,
+        timeout_modelo=args.timeout_modelo,
     )
     entorno = dict(os.environ if environ is None else environ)
     contexto = Contexto(

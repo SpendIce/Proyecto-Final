@@ -7,20 +7,37 @@
 #   2. borra el par de la cuenta de servicio y el access token efímero, para
 #      que `construir_token_provider` no pueda elegir otra credencial;
 #   3. corre el comando pedido. Sin argumentos, corre la corrida única live
-#      con `gemma4:e4b` y la solicitud `SYN-002`.
+#      con `gemma4:e4b` y la actividad real `FIE-DIF-08` del corpus.
 #
 # Uso:
 #   bash scripts/corrida_plan_b_oauth.sh --check
 #   bash scripts/corrida_plan_b_oauth.sh
-#   bash scripts/corrida_plan_b_oauth.sh uv run python scripts/workspace_smoke.py --live --id-solicitud SYN-002
+#   bash scripts/corrida_plan_b_oauth.sh .venv/bin/python scripts/workspace_smoke.py --live --id-solicitud FIE-DIF-08
 #
 # El trío OAuth es una contingencia declarada hasta #99. La identidad objetivo
-# sigue siendo la cuenta de servicio (ADR 0011).
+# sigue siendo la cuenta de servicio (ADR 0011). El par de la cuenta de
+# servicio no se borra del servidor: sólo se quita del entorno de este proceso.
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_PLANB="${AGENTE1_PLANB_ENV:-$HOME/.config/agente1/workspace-d2-planb.env}"
+ID_DEMO="${AGENTE1_DEMO_ID:-FIE-DIF-08}"
+
+# Preferir el venv del repo: el PATH no interactivo del servidor no tiene `uv`.
+if [[ -x "$ROOT/.venv/bin/python" ]]; then
+  PYTHON=("$ROOT/.venv/bin/python")
+else
+  UV="${UV:-$(command -v uv || true)}"
+  if [[ -z "$UV" && -x "$HOME/.local/bin/uv" ]]; then
+    UV="$HOME/.local/bin/uv"
+  fi
+  if [[ -z "$UV" ]]; then
+    echo "ERROR: no hay .venv/bin/python ni uv disponible." >&2
+    exit 1
+  fi
+  PYTHON=("$UV" "run" "python")
+fi
 
 if [[ ! -f "$ENV_PLANB" ]]; then
   echo "ERROR: falta el entorno Plan B: $ENV_PLANB" >&2
@@ -58,22 +75,26 @@ if [[ -z "${AGENTE1_WORKSPACE_SPREADSHEET_ID:-}" \
   exit 1
 fi
 
-echo "Plan B OAuth: hoja v2 sintética (${AGENTE1_WORKSPACE_RANGO_A1}), ambiente ${AGENTE1_WORKSPACE_AMBIENTE}." >&2
+echo "Plan B OAuth: hoja v2 sintética (${AGENTE1_WORKSPACE_RANGO_A1}), ambiente ${AGENTE1_WORKSPACE_AMBIENTE}, actividad ${ID_DEMO}." >&2
 
 cd "$ROOT"
 
 case "${1:-}" in
   --check)
     # Dry-run del preflight (sin red) y smoke live de sólo lectura.
-    uv run python scripts/corrida_unica.py --modelo gemma4:e4b --id-solicitud SYN-002
-    uv run python scripts/workspace_smoke.py --live --id-solicitud SYN-002
+    "${PYTHON[@]}" scripts/corrida_unica.py \
+      --modelo gemma4:e4b \
+      --id-solicitud "$ID_DEMO" \
+      --timeout-modelo 300
+    "${PYTHON[@]}" scripts/workspace_smoke.py --live --id-solicitud "$ID_DEMO"
     exit $?
     ;;
   "")
-    exec uv run python scripts/corrida_unica.py \
+    exec "${PYTHON[@]}" scripts/corrida_unica.py \
       --live \
       --modelo gemma4:e4b \
-      --id-solicitud SYN-002
+      --id-solicitud "$ID_DEMO" \
+      --timeout-modelo 300
     ;;
   *)
     exec "$@"

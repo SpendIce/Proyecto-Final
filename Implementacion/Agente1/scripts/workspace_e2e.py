@@ -101,9 +101,12 @@ def _respuesta_offline(tipo: str, canal: str | None) -> str:
     return json.dumps(creatividad, ensure_ascii=False, sort_keys=True)
 
 
-def _crear_generator_live(*, tipo: str, modelo: str) -> OllamaGenerator:
+def _crear_generator_live(
+    *, tipo: str, modelo: str, timeout_s: float = 180.0
+) -> OllamaGenerator:
     return OllamaGenerator(
         modelo=modelo,
+        timeout_s=timeout_s,
         format_schema=CONTRATO_SALIDA_ESTRUCTURADA if tipo == "post" else None,
     )
 
@@ -122,6 +125,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--confirm-write-workspace", action="store_true")
     parser.add_argument("--modelo", default="llama3.2:3b")
+    parser.add_argument("--timeout-modelo", type=float, default=180.0)
     try:
         args = parser.parse_args(argv)
         if args.tipo == "post" and args.canal is None:
@@ -142,7 +146,9 @@ def main(argv: list[str] | None = None) -> int:
                     directorio_auditoria=args.salida,
                 ),
             )
-            generator = _crear_generator_live(tipo=args.tipo, modelo=args.modelo)
+            generator = _crear_generator_live(
+                tipo=args.tipo, modelo=args.modelo, timeout_s=args.timeout_modelo
+            )
             ambiente = config.ambiente
         else:
             if args.id_solicitud != "SYN-001":
