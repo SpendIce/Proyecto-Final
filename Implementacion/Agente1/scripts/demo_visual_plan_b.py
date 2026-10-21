@@ -624,7 +624,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"error": "no_se_pudo_leer_la_planilla"}, 502)
                 return
             visibles = _actividades_visibles(todas)
-            fuentes = sorted({a["fuente"] for a in visibles if a["fuente"]} | {FUENTE_CARGA_MANUAL})
+            # La fuente de cada fila trae la pieza puntual ("…; pieza Fie informa 1-6");
+            # el desplegable ofrece sólo el origen.
+            fuentes = sorted(
+                {a["fuente"].split(";", 1)[0].strip() for a in visibles if a["fuente"]}
+                | {FUENTE_CARGA_MANUAL}
+            )
             self._json(
                 {
                     "actividades": visibles,
