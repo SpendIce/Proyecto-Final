@@ -52,7 +52,11 @@ ssh "$HOST" "if [ -f $PID_REMOTO ]; then kill \$(cat $PID_REMOTO) 2>/dev/null ||
 ssh "$HOST" "cd $REPO_REMOTO/Implementacion/Agente1 && PORT=$PORT nohup bash scripts/demo_visual_plan_b.sh >$LOG_REMOTO 2>&1 & echo \$! >$PID_REMOTO"
 
 echo "== 6. Túnel y navegador =="
-ssh -N -L "$PORT:127.0.0.1:$PORT" "$HOST" &
+ssh -N \
+  -o ControlMaster=no \
+  -o ControlPath=none \
+  -o ExitOnForwardFailure=yes \
+  -L "$PORT:127.0.0.1:$PORT" "$HOST" &
 TUNNEL_PID=$!
 
 limpiar() {

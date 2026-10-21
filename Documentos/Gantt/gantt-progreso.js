@@ -23,19 +23,19 @@
 // "Guardar progreso" del visor, que reescribe este mismo archivo.
 
 window.GANTT_PROGRESS = {
-  // Corte de revision: 2026-10-19 (noche), previo a la presentacion de avance
-  // del 2026-10-21. El plan (.mmd) no se toca: no hay rebaseline ni estados
+  // Corte de revision: 2026-10-19 (noche), ampliado el 2026-10-21 con el E2E
+  // del Plan B. El plan (.mmd) no se toca: no hay rebaseline ni estados
   // nuevos. Contrastado contra: git log desde 2026-09-20; los issues abiertos
-  // y cerrados del repo al 19/10; Implementacion/Agente1/evidencias/ (medicion
-  // del servidor 2026-10-19, contrato Historia Viva rc2, anexos 2026-10-17,
-  // SLO 2026-10-12, cuenta de servicio 2026-10-14); la suite y el CI del
-  // Agente 1 (run 39302694001 del 2026-10-19: 1 failed, 2284 passed, 5
-  // skipped, en rojo); el Registro de Defectos; y la visita a la SEU del
-  // 2026-10-19 (actas y cierre en Documentos/Reuniones/SEU-2026-10-19/,
-  // todavia fuera de Git al corte). El 20/10 se suman s1c, s3b y s5a con la
-  // evidencia de la forma FIE INFORMA, los roles/criterios del 22/09 y el
-  // canal Form con correo verificado. Quedan 21 tareas abiertas, explicadas
-  // abajo y en Revision-Avance-2026-10-19.md.
+  // y cerrados del repo; Implementacion/Agente1/evidencias/ (medicion del
+  // servidor 2026-10-19 y 2026-10-21, contrato Historia Viva rc2, anexos
+  // 2026-10-17, SLO 2026-10-12, cuenta de servicio 2026-10-14); la suite y el
+  // CI del Agente 1 (2411 passed / 8 skipped; CI de main verde); el Registro
+  // de Defectos; y la visita a la SEU del 2026-10-19 (actas y cierre en
+  // Documentos/Reuniones/SEU-2026-10-19/, todavia fuera de Git al corte). El
+  // 20/10 se suman s1c, s3b y s5a con la evidencia de la forma FIE INFORMA,
+  // los roles/criterios del 22/09 y el canal Form con correo verificado. El
+  // 21/10 se suma s7c con el E2E live de gemma4:e4b y OAuth. Quedan 19 tareas
+  // abiertas, explicadas abajo y en Revision-Avance-2026-10-19.md.
 
   "s0a": { done: true, at: "2026-07-06", nota: "Ollama user-local restaurado, llama3.2:3b descargado (.claude/persistence.md)" },
   "s0b": { done: true, at: "2026-09-28", nota: "Cuenta tecnica dedicada del Agente 1 (institucional DSI/FIE) con OAuth2 verificado en vivo: scopes drive/documents/spreadsheets concedidos y lectura de la carpeta autorizada confirmada. Credencial de hoy: token efimero. El mecanismo definitivo (cuenta de servicio con delegacion, #98) esta implementado offline desde el 14/10; su instalacion en el host y la baja de la OAuth siguen en #99. Evidencia live: notas/workspace-live-d2-2026-09-28.md" },
@@ -71,6 +71,7 @@ window.GANTT_PROGRESS = {
   "s6d": { done: true, at: "2026-09-21", nota: "62 pruebas nuevas cubren datos faltantes, rechazo, rol invalido, duplicados, recuperacion durable y emision simulada controlada (matriz_conformidad_hu014_v1, 12 casos)" },
   "s6e": { done: true, at: "2026-09-21", nota: "Log de emision con hashes (pdf_hash) sin datos personales en claro, reconciliacion de EMISION_RESERVADA hacia EMISION_INDETERMINADA y doc de limites en evidencias/limites-hu014-offline.md" },
   "m7":  { done: true, at: "2026-10-20", nota: "Suite local 2377 passed / 8 skipped; cobertura 90% registrada. CI de main verde en el run 39455797467 (f2dfbf6)" },
+  "s7c": { done: true, at: "2026-10-21", nota: "E2E live en labredesfie con gemma4:e4b, OAuth y una actividad real del corpus (FIE-DIF-08): smoke lectura_confirmada y gacetilla PENDIENTE_VALIDACION en 57,9 s, con borrador en Drive. Suite 2411 passed / 8 skipped y CI verde. La cuenta de servicio y la hoja de produccion siguen en #99; no bloquean las pruebas. Evidencia: Implementacion/Agente1/evidencias/plan-b-oauth-workspace-2026-10-20.md" },
 
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
@@ -206,11 +207,6 @@ window.GANTT_PROGRESS = {
   //        completo. Evidencia: Contrato-Candidato-Insumos-A2-A5-Agente-1.md,
   //        contracts/insumos/a3_evento_gacetilla_v1.schema.json, ADR 0008.
   // s7b  - integracion progresiva: depende de s7a y del contrato #17.
-  // s7c  - hay suite amplia y E2E D2 del 28/09, y la suite y el CI de main
-  //        estan verdes. El 20/10 se verifico el camino Workspace live con
-  //        OAuth y hoja v2 sintetica (smoke + E2E con stub de Ollama), pero
-  //        falta la corrida completa con gemma4 en el servidor de la demo
-  //        (#118). No se acredita "unitarias, integracion y E2E" completo.
   // s7d  - auditoria de seguridad D2/D3 y pruebas de prompt injection como
   //        dato, offline; permisos y revocacion reales siguen pendientes.
   // c1   - validacion con usuarios SEU: sin sesion agendada; JOS-D5 registra

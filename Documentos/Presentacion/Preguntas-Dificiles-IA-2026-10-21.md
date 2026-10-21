@@ -6,9 +6,9 @@
 
 ## Actualización 20/10: modelo elegido
 
-El modelo único del sistema de demostración es **`gemma4:e4b`** (Ollama 0.40.6, `think=false`, temperatura 0, `num_predict` 512, timeout 180 s). Validación final en `labredesfie`: **44/48 (91,7 %)** en gacetilla+posts, **48/48 revalidado** tras DEF-A1-026; HU-014 **18/18**; HU-012 **18/18**; canal **16/16**. Las respuestas que comparan 3b/8b son la **línea base del 19/10** y quedan como historia; no son la configuración vigente.
+El modelo único del sistema de demostración es **`gemma4:e4b`** (Ollama 0.40.6, `think=false`, temperatura 0, `num_predict` 512, timeout 180 s en la medición y 300 s de techo en la demo por el arranque en frío). Validación final en `labredesfie`: **44/48 (91,7 %)** en gacetilla+posts, **48/48 revalidado** tras DEF-A1-026; HU-014 **18/18**; HU-012 **18/18**; canal **16/16**. Las respuestas que comparan 3b/8b son la **línea base del 19/10** y quedan como historia; no son la configuración vigente.
 
-El E2E en el servidor con `gemma4:e4b` **todavía no se corrió**. El camino Workspace del Plan B (OAuth + hoja v2 sintética) **sí se verificó live**: smoke `lectura_confirmada` y corrida completa del wrapper 6/6 con un stub de Ollama; el E2E dejó un borrador en Drive. La corrida completa con el modelo real es el paso que queda para la demo, y `s7c` sigue abierto. La identidad objetivo sigue siendo la cuenta de servicio (#99).
+El E2E live en `labredesfie` **se corrió el 21/10** con `gemma4:e4b`, OAuth y una actividad real del corpus (`FIE-DIF-08`): smoke `lectura_confirmada`, gacetilla `PENDIENTE_VALIDACION` en 57,9 s y borrador en Drive. `s7c` quedó cerrado con esa evidencia. La hoja de producción y la cuenta de servicio siguen en #99; el OAuth es una contingencia declarada.
 
 ## Cómo usar este banco
 
@@ -85,7 +85,7 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md`; issue #50; issue #51 (resolución del 20/10).
 
 **P: ¿Qué modelo van a usar?**
-**R:** Uno solo: `gemma4:e4b`, en Ollama 0.40.6 sobre el servidor, sin GPU. Configuración congelada: `think=false`, temperatura 0, `num_predict` 512 y timeout de 180 s. La validación final dio 44/48 en gacetilla+posts (48/48 revalidado) y 18/18 en HU-014 y HU-012. No se cambia de modelo en vivo.
+**R:** Uno solo: `gemma4:e4b`, en Ollama 0.40.6 sobre el servidor, sin GPU. Configuración congelada: `think=false`, temperatura 0, `num_predict` 512 y timeout de 180 s en la medición; 300 s de techo en la demo por el arranque en frío. La validación final dio 44/48 en gacetilla+posts (48/48 revalidado) y 18/18 en HU-014 y HU-012. No se cambia de modelo en vivo.
 **Evidencia:** issue #51 (resolución del 20/10); `Documentos/Presentacion/Checklist-Miercoles-2026-10-21.md`.
 
 **P: ¿Por qué debería creerles la métrica?**
@@ -113,7 +113,7 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Implementacion/Agente1/evidencias/set-evaluacion-gacetillas-fie-informa-2026-10-14.md`.
 
 **P: ¿La latencia cumple el requisito de 30 segundos?**
-**R:** No de forma pareja. Con `gemma4:e4b`, la gacetilla dio p50 45 s y máximo 67 s; la pieza más lenta del set fue 110 s. El objetivo de 30 s no se cumple de forma pareja; el timeout congelado es 180 s.
+**R:** No de forma pareja. Con `gemma4:e4b`, la gacetilla dio p50 45 s y máximo 67 s; la pieza más lenta del set fue 110 s. El objetivo de 30 s no se cumple de forma pareja; el timeout congelado es 180 s y la demo usa 300 s de techo.
 **Evidencia:** `Implementacion/Agente1/evidencias/medicion-modelos-servidor-fie-2026-10-19.md` (latencia por pieza); `Agentes/extension_bot_experto.md` (RNF < 30 s).
 
 **P: ¿Cuánto tiempo ahorra el agente?**
@@ -377,7 +377,7 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** issue #51 (resolución del 20/10); issue #128 (*Not yet specified*).
 
 **P: ¿Qué se muestra el 21/10 con posts?**
-**R:** El guion principal es gacetilla, después HU-014 y después HU-012. Los posts no son parte del guion principal; si hay tiempo y el acceso lo permite, se muestra Instagram con `gemma4:e4b`. LinkedIn no. Si falta Sheets/Docs, el Plan B es HU-014 y HU-012 offline más la evidencia de la gacetilla.
+**R:** El guion principal es gacetilla, después HU-014 y después HU-012. Los posts no son parte del guion principal; si hay tiempo y el acceso lo permite, se muestra Instagram con `gemma4:e4b`. LinkedIn no. Si falta Sheets/Docs, el Plan B es OAuth con la hoja v2 sintética y una actividad real; si tampoco hay red, HU-014 y HU-012 offline más la evidencia de la gacetilla.
 **Evidencia:** issue #128 (Destination y ventanas); `Documentos/Presentacion/Checklist-Miercoles-2026-10-21.md`.
 
 ---
@@ -389,8 +389,12 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Documentos/PlanRiesgos/Plan-Riesgos-Agente-1-PPS-Juan-Ignacio-Gone.md` (R-TEC-03); issue #118.
 
 **P: ¿Qué pasa si la cuenta de servicio no tiene acceso a Sheets y Docs?**
-**R:** Hay un Plan B ya armado. El wrapper `scripts/corrida_plan_b_oauth.sh` carga un entorno fuera del repo con el OAuth anterior y una hoja v2 sintética, borra el par de la cuenta de servicio y corre la demo con `gemma4:e4b`. El camino Workspace ya está verificado: el smoke live dio `lectura_confirmada` y la corrida completa del wrapper dio 6/6 con un stub de Ollama; el E2E generó un borrador en Drive. Si el modelo real no cumple el contrato, el gate rechaza y no se publica. La hoja de producción y la cuenta de servicio siguen en #99; el OAuth es una contingencia declarada.
+**R:** Hay un Plan B ya armado. El wrapper `scripts/corrida_plan_b_oauth.sh` carga un entorno fuera del repo con el OAuth anterior y una hoja v2 sintética, borra el par de la cuenta de servicio y corre la demo con `gemma4:e4b`. El E2E ya se verificó con el modelo real: smoke `lectura_confirmada`, gacetilla `PENDIENTE_VALIDACION` en 57,9 s y borrador en Drive, con una actividad real del corpus. La consola visual repitió el camino. Si el modelo no cumple el contrato, el gate rechaza y no se publica. La hoja de producción y la cuenta de servicio siguen en #99; el OAuth es una contingencia declarada.
 **Evidencia:** `Implementacion/Agente1/evidencias/plan-b-oauth-workspace-2026-10-20.md`; `Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh`.
+
+**P: ¿La demo corre en la laptop?**
+**R:** No. Corre en `labredesfie`; se accede por Tailscale con el alias `fie-server-ts`, no por la red de la facultad ni por localhost. La consola visual se sirve desde el servidor y se abre por un túnel SSH.
+**Evidencia:** `run-demo-planb.sh`; `~/.ssh/config` (`fie-server-ts`); `Implementacion/Agente1/scripts/demo_visual_plan_b.py`.
 
 **P: ¿Qué disponibilidad tienen?**
 **R:** El requisito es 99 %. La última medición de disponibilidad dio 30/30 corridas a tiempo en una ventana del 12/10, con n = 30. Es una muestra de un host único, no una garantía de producción; los demás SLO tienen muestra insuficiente.
@@ -401,7 +405,7 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Contenido/Definicion/arquitectura-multiagente.md`; `docs/adr/0008-los-agentes-entregan-insumos-en-una-pestana-que-el-agente-sondea.md`; issue #130.
 
 **P: ¿Qué falta para producción?**
-**R:** El E2E completo en el servidor (#118), la decisión de modelo y alcance (#51), la definición de tipos del PPS (#106), el contrato de Historia Viva (#17), la validación SEU y el Gate G2, y el traspaso operativo (ADR 0007). Nada de eso se resuelve con una demo.
+**R:** La hoja de producción y la cuenta de servicio (#99), la decisión de modelo y alcance (#51), la definición de tipos del PPS (#106), el contrato de Historia Viva (#17), la validación SEU y el Gate G2, y el traspaso operativo (ADR 0007). El E2E en el servidor ya se corrió; nada de lo que falta se resuelve con una demo.
 **Evidencia:** issues #118, #51, #106, #17; `docs/adr/0007-el-traspaso-reparte-tres-responsables-y-el-autor-no-conserva-acceso.md`; `Documentos/PoC/Plan-Recuperacion-MVP-Agente-1-2026-08-17.md`.
 
 **P: ¿Cómo se despliega y se revierte?**

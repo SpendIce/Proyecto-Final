@@ -1,10 +1,10 @@
 # Revisión del avance del Gantt al 21/10/2026
 
 - **Ticket:** #129, hijo del mapa #128.
-- **Corte:** 2026-10-19, noche, antes de la presentación de avance del miércoles 2026-10-21 a las 09:00.
+- **Corte:** 2026-10-19, noche, ampliado el 2026-10-21 con el E2E del Plan B OAuth y `gemma4:e4b`, antes de la presentación de avance de las 09:00.
 - **Plan:** `Documentos/Gantt/diagrama-gantt-implementacion-semanal.mmd`. No se modificó: no hay rebaseline ni estados nuevos.
 - **Avance:** `Documentos/Gantt/gantt-progreso.js`.
-- **Resultado:** 47 IDs en el `.mmd`; 27 con `done: true` y 20 sin marca. El 20/10 se sumaron s1c, s3b, s5a y m7.
+- **Resultado:** 47 IDs en el `.mmd`; 28 con `done: true` y 19 sin marca. El 20/10 se sumaron s1c, s3b, s5a y m7; el 21/10 se suma s7c con el E2E live del Plan B OAuth y `gemma4:e4b`.
 
 ## 1. Corte y fuentes usadas
 
@@ -14,8 +14,8 @@ El contraste se hizo con estas fuentes, todas consultadas el 2026-10-19:
 |---|---|
 | Git | `git log --oneline --since=2026-09-20`; commits de cierre de los tickets #50, #117, #121, #122, #123, #111 y #98. |
 | Issues | `gh issue list --state closed --limit 100` y `gh issue list --state open --limit 100`. Se usaron #14, #15, #17, #50, #63, #64, #99, #118, #119, #125 y #126. |
-| Evidencias | `Implementacion/Agente1/evidencias/`: medición del servidor del 2026-10-19, contrato Historia Viva rc2, anexos del 2026-10-17, SLO del 2026-10-12, cuenta de servicio del 2026-10-14, auditoría de seguridad D2/D3 y límites de HU-014. |
-| Suite y CI | `uv run pytest -q` en `Implementacion/Agente1` el 2026-10-19: 2282 passed, 8 skipped en 63,42 s. Run de CI `39302694001` del 2026-10-19: 1 failed, 2284 passed, 5 skipped, cobertura 90 %. |
+| Evidencias | `Implementacion/Agente1/evidencias/`: medición del servidor del 2026-10-19 y 2026-10-21, `plan-b-oauth-workspace-2026-10-20.md`, contrato Historia Viva rc2, anexos del 2026-10-17, SLO del 2026-10-12, cuenta de servicio del 2026-10-14, auditoría de seguridad D2/D3 y límites de HU-014. |
+| Suite y CI | `uv run pytest -q` en `Implementacion/Agente1` al 2026-10-20: 2411 passed, 8 skipped. Run de CI `39535263709` sobre `475c0eb`: verde. |
 | Defectos | `Documentos/PoC/Registro-Defectos-Agente-1.md`. Siguen sin cierre definitivo DEF-A1-001, DEF-A1-002, DEF-A1-003, DEF-A1-005, DEF-A1-006, DEF-A1-007, DEF-A1-011, DEF-A1-012 y DEF-A1-015. |
 | Visita SEU | Documentación local de la visita del 2026-10-19 en `Documentos/Reuniones/SEU-2026-10-19/`: actas de Josefina y Leandro, cierre, precisiones de Juani, ficha de la plantilla de certificado y clasificación de respuestas. Al corte esos archivos no están versionados; no se copiaron al repo. Los issues #125 y #126 son el registro durable de los dos trabajos derivados. |
 | Plan y formato | `Documentos/Gantt/README.md` y el propio `.mmd`. Se respetaron los IDs y las fechas del plan. |
@@ -33,9 +33,9 @@ La documentación de la visita se usó como contexto; las afirmaciones de esta r
 | Sprint 4 - HU-012 Confirmaciones | 6 | 4 | 2 |
 | Sprint 5 - HU-013 Lenguaje natural | 5 | 3 | 2 |
 | Sprint 6 - HU-014 Certificados | 6 | 5 | 1 |
-| Sprint 7 - Integración y pruebas | 5 | 1 | 4 |
+| Sprint 7 - Integración y pruebas | 5 | 2 | 3 |
 | Cierre - Validación y Gate TRL 4 | 5 | 0 | 5 |
-| **Total** | **47** | **27** | **20** |
+| **Total** | **47** | **28** | **19** |
 
 ## 3. Lo marcado vigente al corte
 
@@ -90,7 +90,7 @@ Esta es la tabla que revisa Juani. Las frases son borradores para decir en voz a
 | m6 | HU-014 operativa con DoD | **Pendiente y bloqueada por la SEU en la validación.** El slice offline está hecho (s6a a s6e). La plantilla de aprobación llegó el 2026-10-19 (#126), pero no está integrada; faltan la variante de asistencia, el aprobador final del lote y la validación humana. | "HU-014 está completa en lo técnico; la plantilla llegó el 19 de octubre, falta integrarla y validar el lote." |
 | s7a | Definir contratos y mocks con A2-A5 sin orquestar | **Pendiente.** Hay contratos y mocks para A3 a A5 y un puerto A2 con fakes, pero el contrato con Historia Viva (#17) sigue abierto; no cubre A2-A5 completo. | "Los contratos con A3 a A5 y el mock de A2 están; el contrato con Historia Viva sigue abierto." |
 | s7b | Integrar insumos disponibles de A2-A5 progresivo | **Pendiente.** Depende de s7a y del contrato #17. | "La integración con A2 a A5 depende de cerrar ese contrato." |
-| s7c | Pruebas unitarias, integración y E2E | **Pendiente.** Hay suite amplia, un E2E D2 del 2026-09-28 y el CI de main verde. El 2026-10-20 se verificó el camino Workspace live con OAuth y hoja v2 sintética (smoke `lectura_confirmada` y E2E con stub de Ollama), pero falta la corrida completa con `gemma4:e4b` en el servidor de la demo (#118). | "Tenemos suite, el CI verde y el camino de Workspace verificado con OAuth; falta la corrida completa con gemma4 en el servidor." |
+| s7c | Pruebas unitarias, integración y E2E | **Hecho.** Suite local 2411 passed / 8 skipped y CI verde en `475c0eb` (run `39535263709`). El 2026-10-21 se corrió el E2E live en `labredesfie` con `gemma4:e4b`, OAuth y una actividad real del corpus (`FIE-DIF-08`): smoke `lectura_confirmada`, gacetilla `PENDIENTE_VALIDACION` en 57,9 s y borrador en Drive. La consola visual repitió el camino con otro `DEMO-...` y el mismo resultado. La cuenta de servicio y la hoja de producción siguen en #99; no bloquean las pruebas. | "Tenemos suite, CI verde y el E2E live con gemma4 y una actividad real; la cuenta de servicio y la hoja de producción siguen pendientes." |
 | s7d | Probar seguridad, permisos y prompt injection | **Pendiente.** La auditoría de seguridad D2/D3 y las pruebas de prompt injection son offline; permisos y revocación reales siguen pendientes. | "La seguridad está auditada offline; permisos y revocación reales todavía no se probaron." |
 | c1 | Validar con usuarios SEU, checklist 1-4 y trazabilidad | **Bloqueada por la SEU.** No hay sesión de validación agendada; JOS-D5 registra que nadie de la SEU asistirá al 18/11. | "La validación con usuarios de la SEU no tiene fecha, y para el 18 de noviembre la SEU nos dijo que no va a asistir." |
 | c2 | Cerrar defectos críticos y regresión completa | **Pendiente.** No hay defectos `CRITICA` abiertos, pero hay defectos `ALTA` bloqueados. | "No hay defectos críticos abiertos, pero hay defectos altos bloqueados." |
@@ -105,9 +105,9 @@ No queda ninguna tarea reformulada sin marcar. La única reformulación del per�
 | Comprobación | Resultado |
 |---|---|
 | `node --check Documentos/Gantt/gantt-progreso.js` | Sin errores. |
-| `uv run pytest -q` en `Implementacion/Agente1`, 2026-10-19 | 2282 passed, 8 skipped en 63,42 s. |
+| `uv run pytest -q` en `Implementacion/Agente1`, corte 2026-10-20 | 2411 passed, 8 skipped. |
 | Test que falla en CI, corrido localmente el 2026-10-19 | `tests/test_gmail_envio.py::test_envio_real_post_a_gmail_send_con_mime_completo`: 1 passed en 0,44 s. |
-| Run de CI `39302694001`, 2026-10-19 | 1 failed, 2284 passed, 5 skipped; cobertura 90 %. El fallo es el mismo test de Gmail, por un espacio inicial en un header MIME. El CI usó Python 3.12.3; la corrida local usó Python 3.12.14. No se investigó más la diferencia en este ticket. |
+| Run de CI `39535263709`, 2026-10-21 | Verde, sobre `475c0eb`. |
 | `git diff -- Documentos/Gantt/diagrama-gantt-implementacion-semanal.mmd` | Vacío: el plan no se tocó. |
 
 ## 6. Observaciones para Juani
@@ -116,5 +116,5 @@ No queda ninguna tarea reformulada sin marcar. La única reformulación del per�
 2. **El plan queda intacto.** El `.mmd` conserva sus fechas y sus IDs. Lo que cambia es solo la lectura del avance en `gantt-progreso.js` y este informe.
 2. **La visita del 19/10 no cerró validaciones.** Aportó definiciones (aprobación única, lotes de pagos, remitente, calendario, plantilla de certificado), pero no reemplaza la revisión de muestras ni la prueba guiada. Por eso s1e, s2d, s4e, s5d y c1 siguen sin marca.
 3. **La plantilla de certificado llegó, pero no alcanza para m6.** La ficha de la SEU dice expresamente que recibir el archivo no demuestra que el renderer lo use ni habilita la emisión institucional. Falta integrarla (#126), definir la variante de asistencia y designar quién aprueba el lote.
-4. **El CI es el único rojo del corte.** La suite local pasa y el test de Gmail pasa localmente; el run de CI falla por una diferencia de entorno en Python 3.12.3. No se marca m7 para no declarar "suite en verde" con el check requerido en rojo. Si se corrige antes del miércoles, m7 y s7c se pueden revisar, pero eso requiere un commit de código y no entra en este ticket.
+4. **El CI está verde y s7c quedó cerrado.** El run `39535263709` de `475c0eb` pasó; la suite local quedó en 2411 passed / 8 skipped. El E2E live del 21/10 usó OAuth y una hoja v2 sintética con una actividad real; la cuenta de servicio y la hoja de producción siguen en #99, pero no bloquean la prueba de unitarias, integración y E2E.
 5. **El "registro en base" de s4d** se sostiene con la cola durable en archivo. PostgreSQL operativo sigue diferido por decisión (s3c y Plan de Recuperación). Si la cátedra pregunta, conviene decirlo así y no presentar PostgreSQL como si estuviera en operación.

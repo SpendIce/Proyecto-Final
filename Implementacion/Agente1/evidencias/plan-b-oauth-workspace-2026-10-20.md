@@ -1,95 +1,102 @@
-# Plan B OAuth: camino Workspace live verificado
+# Plan B OAuth: E2E live con modelo real y actividad real
 
-**Fecha:** 2026-10-20
-**Alcance:** verificar el camino Sheets → Doc con la credencial OAuth anterior, antes de la demo del 21/10.
-**Resultado:** smoke live `lectura_confirmada`; corrida completa del wrapper 6/6 con un **stub de Ollama**; E2E `PENDIENTE_VALIDACION`.
-**Límite principal:** el modelo real se prueba en el servidor con `gemma4:e4b`; esta evidencia acredita el camino de Workspace, no la calidad del modelo.
+**Fecha:** 2026-10-20, actualizado el 2026-10-21.
+**Alcance:** verificar el camino Sheets → agente → Doc con la credencial OAuth anterior, el modelo `gemma4:e4b` y una actividad real del corpus FIE INFORMA.
+**Resultado:** smoke live `lectura_confirmada`; E2E live `PENDIENTE_VALIDACION` con `gemma4:e4b` y la actividad `FIE-DIF-08`; borrador en Drive; consola visual repetida con otra solicitud.
+**Límite principal:** la hoja es v2 sintética y la identidad es OAuth. La hoja de producción y la cuenta de servicio siguen en #99. No hay validación SEU.
 
 ## Qué se armó
 
-- Una planilla D2 v2 sintética, con el encabezado exacto de `COLUMNAS_ACTIVIDADES_V2` y las filas `SYN-001` y `SYN-002`.
+- Una planilla D2 v2 sintética, con el encabezado exacto de `COLUMNAS_ACTIVIDADES_V2` y las filas `SYN-001`, `SYN-002` y `FIE-DIF-08`.
+- La fila `FIE-DIF-08` sale de `data/corpus-fie-informa-difusiones.csv`: Diplomatura Universitaria en Geomática Aplicada a la Defensa Nacional. Es una actividad real del corpus FIE INFORMA, no un texto inventado para la prueba.
 - El entorno Plan B queda fuera del repo, en `~/.config/agente1/workspace-d2-planb.env` (chmod 600). Trae el trío OAuth, la hoja v2, la carpeta y la plantilla.
-- El wrapper `Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh` carga ese entorno, borra el par de la cuenta de servicio y el access token efímero, y corre el comando pedido.
+- El wrapper `Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh` carga ese entorno, quita del proceso el par de la cuenta de servicio y el access token efímero, y corre el comando pedido. No borra ni modifica `workspace-d2.env` ni `cuenta-servicio.json`: el par sigue en el servidor para Plan A.
 - El preflight de `corrida_unica.py` acepta el trío OAuth como credencial de contingencia y tiene un test propio.
+- La consola visual `scripts/demo_visual_plan_b.py`, con su launcher `scripts/demo_visual_plan_b.sh` y el orquestador `run-demo-planb.sh`, que corre desde la laptop por Tailscale.
+
+## Correcciones que salieron de la prueba
+
+- **`think=false` en el CLI live.** La primera corrida real falló con `error_generacion` después de 169,9 s. El adaptador `OllamaGenerator` no recibía `think=False` en `workspace_e2e.py`, aunque la configuración congelada de `gemma4:e4b` sí lo pide. Se agregó `think=False` y la corrida siguiente terminó bien.
+- **Techo de 300 s.** La corrida en frío del modelo llegó al límite de 180 s. Se agregó `--timeout-modelo` y la demo usa 300 s de techo; el modelo caliente resolvió en 41,9 s y 57,9 s. El `num_predict` sigue en 512 y el modelo no cambió.
+- **Túnel SSH.** El alias `fie-server-ts` usa Tailscale y funciona fuera de la red de la FIE. El túnel de la consola se abre con `ControlMaster=no` para que no lo absorba la conexión maestra y el servidor no quede huérfano.
 
 ## Corridas
 
 ### Smoke live de lectura
 
 ```bash
-bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh --check
-```
-
-Resultado del smoke:
-
-```json
-{"ambiente": "D2", "correlation_id": "f3616407-7c73-4b64-be8d-0d5a7f3a80de", "modo": "live_read_only", "resultado": "lectura_confirmada"}
-```
-
-El dry-run previo del preflight también pasó, con `credencial: trío OAuth anterior completo (Plan B)`.
-
-### E2E live con stub de Ollama
-
-Se corrió el CLI real, con Sheets y Docs reales y un stub HTTP en `127.0.0.1:11434` que devuelve una ficha válida. El stub no es el modelo de la demo; su único fin es ejercitar el mismo camino del CLI sin depender del servidor.
-
-```bash
-uv run python scripts/workspace_e2e.py \
-  --live --confirm-write-workspace \
-  --tipo gacetilla --id-solicitud SYN-002 \
-  --salida /tmp/opencode/e2e-cli-planb2 \
-  --modelo gemma4:e4b
+.venv/bin/python scripts/workspace_smoke.py --live --id-solicitud FIE-DIF-08
 ```
 
 Resultado:
 
 ```json
-{"correlation_id": "67ccebf0-6309-42bc-89ed-6c3a63e49b4d", "duplicada": false, "estado": "PENDIENTE_VALIDACION", "modo": "live_write_opt_in", "reconciliation_required": false}
+{"ambiente": "D2", "correlation_id": "bc14a5e3-1b78-4dc1-8e55-5bf754c3fc2b", "modo": "live_read_only", "resultado": "lectura_confirmada"}
 ```
 
-El manifest registra `destination_type: google_drive_template`, `output_hash: 4d90674d183899d7f325397baafa33c04a444fb069cc372438985e85af2a63bc` y `resultado: borrador_generado`.
-
-### Corrida completa del wrapper
-
-Con el mismo stub se corrió el comando que mañana se usa en el servidor:
+### E2E real con `gemma4:e4b`
 
 ```bash
-bash scripts/corrida_plan_b_oauth.sh
+.venv/bin/python scripts/workspace_e2e.py \
+  --live --confirm-write-workspace \
+  --tipo gacetilla --id-solicitud FIE-DIF-08 \
+  --salida /tmp/demo-e2e-fie-dif-08-thinkfalse \
+  --modelo gemma4:e4b --timeout-modelo 300
 ```
 
-Resultado: **6/6 pasos**.
+Resultado:
 
-- Preflight: `credencial: trío OAuth anterior completo (Plan B)`.
-- Ollama: 0.40.6 y `gemma4:e4b` (el stub imita `/api/version`, `/api/tags` y `/api/generate`).
-- Smoke: `lectura_confirmada` (`1894f377-6f1a-4bf8-99f7-2fac97119cf8`).
-- Gacetilla: `PENDIENTE_VALIDACION` (`9ca76777-bbf1-41e9-a6a1-9ea110821e1d`), con borrador en Drive.
-- HU-014: `EMITIDA`, 2 certificados entregados en modo offline.
-- HU-012: `ENVIO_ENCOLADO`, 3 correos simulados con `BORRADOR — NO ENVIAR`.
+```json
+{"correlation_id": "f27501d9-7d75-42c4-a2b4-d9d4ee0d9fcc", "duplicada": false, "estado": "PENDIENTE_VALIDACION", "modo": "live_write_opt_in", "reconciliation_required": false}
+```
 
-El stub no es el modelo de la demo. La corrida real con `gemma4:e4b` en `labredesfie` es el paso que queda; el resto del wrapper (OAuth, Sheets, Docs, HU-014 y HU-012) quedó ejercitado.
+El registro de la corrida dejó `latencia_s: 57.9`, `output_hash: df8e9be983e098af0fd5f4f12958eaa4373ececc0a02c0d6dd11b865d3953a56`, `destination_type: google_drive_template` y `resultado: borrador_generado`.
+
+### Consola visual con el modelo real
+
+La consola se abrió desde la laptop por `http://127.0.0.1:8080`, con túnel a `labredesfie`. El formulario se envió con la actividad real y una fila nueva `DEMO-20261020-235318-7dd1`. El agente generó el borrador:
+
+```json
+{"correlation_id": "dfd9e049-a905-4b17-8777-5e8a5c8a5e5d", "estado": "PENDIENTE_VALIDACION", "id_solicitud": "DEMO-20261020-235318-7dd1", "latencia_s": 41.9, "modelo": "gemma4:e4b"}
+```
+
+La consola mostró los cuatro pasos: formulario enviado, planilla actualizada, agente generando y borrador listo. El botón «Ver gacetilla» exportó el documento desde el servidor y mostró el texto. No se publicó, compartió ni envió nada.
 
 ### Documento creado
 
-En la carpeta `Agentes` quedó el documento `BORRADOR — Fie informa 20-10 Taller sintético de vinculación (demo)`. La exportación a texto verificó:
+En la carpeta `Agentes` quedó `BORRADOR — Fie informa 20-10 Diplomatura Universitaria en Geomática Aplicada a la Defensa Nacional`. La exportación a texto verificó:
 
 - encabezado `BORRADOR — NO PUBLICAR`;
-- asunto y bajada sintéticos;
-- fecha, organiza, lugar y contacto tomados de la fila;
+- asunto, bajada y cuerpo con la actividad real;
+- fecha, finalización, hora, modalidad, organiza y contacto tomados de la fila;
 - pie institucional y aviso de plantilla provisional D2.
 
 No se compartió, publicó ni envió nada.
 
+### Prueba previa con stub
+
+Antes de usar el modelo real se corrió la misma consola con un stub de Ollama en loopback. Sirvió para verificar el formulario, la planilla, la generación del documento y la vista previa sin depender del tiempo de carga del modelo. Esa corrida no acredita calidad de prosa; la corrida que sí la acredita es la de `gemma4:e4b`.
+
 ## Límites
 
-- **El modelo no es real.** La corrida completa del wrapper usó un stub; el modelo `gemma4:e4b` se prueba en `labredesfie` con el mismo wrapper.
-- **La hoja no es la de producción.** Es una hoja v2 sintética; la hoja de producción y la cuenta de servicio siguen en #99.
-- **La identidad OAuth se retira.** Es una contingencia declarada, no la identidad objetivo (ADR 0011).
+- **La hoja no es la de producción.** Es una hoja v2 sintética con una actividad real del corpus; la hoja de producción y la cuenta de servicio siguen en #99.
+- **La identidad OAuth se retira.** Es una contingencia declarada, no la identidad objetivo (ADR 0011). El par de la cuenta de servicio no se tocó.
 - **No hay validación SEU.** El documento queda en `PENDIENTE_VALIDACION` y con la marca de borrador.
 - **No se probó la revocación** ni el traspaso de credenciales.
+- **El modelo real se probó en caliente.** La primera corrida en frío necesitó el techo de 300 s y `think=false`; la configuración de la demo usa esos valores.
 
 ## Reproducir
 
 1. Copiar `~/.config/agente1/workspace-d2-planb.env` al servidor, fuera del repo, con chmod 600.
-2. En el servidor, desde el repo:
+2. En la laptop, con Tailscale activo:
+
+```bash
+./run-demo-planb.sh
+```
+
+El script verifica `fie-server-ts`, copia el entorno, actualiza el repo, corre el `--check`, levanta la consola y abre el navegador. `Ctrl-C` corta el túnel y la consola.
+
+Sin consola, el camino headless es:
 
 ```bash
 bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh --check

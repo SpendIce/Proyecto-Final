@@ -2,9 +2,7 @@
 
 Objetivo de la mañana: dejar el Agente 1 **corriendo en el servidor** y con la
 evidencia guardada, para que a las 9:00 la presentación sea *correr y mirar*,
-no depurar. El servidor no se alcanza desde casa: todo lo de esta checklist
-pasa en la red de la facultad. Si `ssh fie-server` da timeout, estás fuera de
-la red: no insistas desde la laptop.
+no depurar. El servidor se alcanza por Tailscale con el alias `fie-server-ts`; la demo no corre en localhost. Si `ssh fie-server-ts` da timeout, revisá Tailscale. El alias `fie-server` es para la red de la facultad.
 
 Regla de oro: si un paso falla, **no se depura en clase**. Se anota el código,
 se muestra la evidencia parcial y se sigue con lo que esté sano.
@@ -26,9 +24,9 @@ encuentra con permisos 600, **no la pises**: verificá y seguí. Si no está,
 copiala una sola vez:
 
 ```bash
-ssh fie-server 'hostname; whoami; mkdir -p ~/.config/agente1; chmod 700 ~/.config/agente1'
-scp -p <ruta-local-de-la-clave>.json fie-server:~/.config/agente1/cuenta-servicio.json
-ssh fie-server 'chmod 600 ~/.config/agente1/cuenta-servicio.json; stat -c "%a %n" ~/.config/agente1/cuenta-servicio.json'
+ssh fie-server-ts 'hostname; whoami; mkdir -p ~/.config/agente1; chmod 700 ~/.config/agente1'
+scp -p <ruta-local-de-la-clave>.json fie-server-ts:~/.config/agente1/cuenta-servicio.json
+ssh fie-server-ts 'chmod 600 ~/.config/agente1/cuenta-servicio.json; stat -c "%a %n" ~/.config/agente1/cuenta-servicio.json'
 ```
 
 Tiene que imprimir `600`. Si imprime `644` u otro valor, `chmod 600` y repetir.
@@ -42,7 +40,7 @@ El entorno vive fuera del repo, en `~/.config/agente1/workspace-d2.env`, con
 `chmod 600`. Si ya existe, **no se reescribe**: se verifican los nombres.
 
 ```bash
-ssh fie-server 'test -f ~/.config/agente1/workspace-d2.env && chmod 600 ~/.config/agente1/workspace-d2.env && grep -o "^AGENTE1_WORKSPACE_[A-Z0-9_]*" ~/.config/agente1/workspace-d2.env | sort -u || echo "FALTA workspace-d2.env"'
+ssh fie-server-ts 'test -f ~/.config/agente1/workspace-d2.env && chmod 600 ~/.config/agente1/workspace-d2.env && grep -o "^AGENTE1_WORKSPACE_[A-Z0-9_]*" ~/.config/agente1/workspace-d2.env | sort -u || echo "FALTA workspace-d2.env"'
 ```
 
 Tienen que estar, como mínimo:
@@ -155,7 +153,7 @@ curl -s http://127.0.0.1:11434/api/generate -d '{"model":"gemma4:e4b","keep_aliv
 defecto y no elige por su cuenta: **en los pasos 5 y 6 se pasa
 `--modelo gemma4:e4b`**, que queda anotado en `host.txt`. Configuración
 congelada de la medición: sin razonamiento (`gemma4:e4b` no razona si no se
-le pide), temperatura 0, `num_predict` 512, timeout 180 s. Gacetilla medida:
+le pide), temperatura 0, `num_predict` 512, timeout 180 s en la medición y 300 s de techo en la demo por el arranque en frío. Gacetilla medida:
 mediana 45 s, máximo 67 s.
 
 ## 5. 8:00 a 8:10: dry-run (no toca red ni Workspace)
@@ -221,8 +219,8 @@ de la corrida para no mezclar emisiones de días distintos.
 Para traerla a la laptop:
 
 ```bash
-ssh fie-server 'cd ~/p100/Agente1/Implementacion/Agente1 && ls -d evidencias/corrida-*'
-scp -r fie-server:~/p100/Agente1/Implementacion/Agente1/evidencias/corrida-<sello> .
+ssh fie-server-ts 'cd ~/p100/Agente1/Implementacion/Agente1 && ls -d evidencias/corrida-*'
+scp -r fie-server-ts:~/p100/Agente1/Implementacion/Agente1/evidencias/corrida-<sello> .
 rg -n --glob '!*.pdf' 'BEGIN [A-Z ]*PRIVATE KEY|ya29\.' corrida-<sello> || echo "sin secretos aparentes"
 ```
 
@@ -253,16 +251,28 @@ Es un resultado válido, no una falla. Se muestra la gacetilla y se dice:
 
 No se inventa una corrida ni se muestra una salida vieja como si fuera de hoy.
 
+## Demo visual (camino recomendado)
+
+El script hace todo el camino: verifica Tailscale, copia el entorno Plan B, actualiza el repo, corre el `--check`, levanta la consola y abre el navegador.
+
+```bash
+./run-demo-planb.sh
+```
+
+La consola queda en `http://127.0.0.1:8080`, con un formulario precargado con la actividad real `FIE-DIF-08` del corpus. Al enviar, se ve el paso por la planilla, la generación con `gemma4:e4b` y el borrador en Drive. `Ctrl-C` corta el túnel y la consola.
+
+Si el puerto 8080 está ocupado: `PORT=8081 ./run-demo-planb.sh`.
+
 ### Si falta el acceso a Sheets y Docs
 
-**Plan B1: OAuth anterior + hoja v2 sintética.** Ya está armado y probado en su mitad Workspace: el smoke live leyó la planilla y el E2E generó un borrador en Drive con un stub de Ollama. El wrapper hace el cambio de credencial sin tocar el entorno de la cuenta de servicio.
+**Plan B1: OAuth anterior + hoja v2 sintética + actividad real.** Ya está armado y probado con el modelo real: el smoke live leyó la planilla y el E2E generó un borrador en Drive con `gemma4:e4b` y la actividad `FIE-DIF-08` del corpus. El wrapper hace el cambio de credencial sin tocar el entorno de la cuenta de servicio; la cuenta de servicio y su clave siguen en el servidor.
 
 1. Copiar el entorno Plan B desde la máquina del autor, con la red de la FIE:
 
 ```bash
-ssh fie-server 'mkdir -p ~/.config/agente1 && chmod 700 ~/.config/agente1'
-scp ~/.config/agente1/workspace-d2-planb.env fie-server:~/.config/agente1/workspace-d2-planb.env
-ssh fie-server 'chmod 600 ~/.config/agente1/workspace-d2-planb.env'
+ssh fie-server-ts 'mkdir -p ~/.config/agente1 && chmod 700 ~/.config/agente1'
+scp ~/.config/agente1/workspace-d2-planb.env fie-server-ts:~/.config/agente1/workspace-d2-planb.env
+ssh fie-server-ts 'chmod 600 ~/.config/agente1/workspace-d2-planb.env'
 ```
 
 El archivo trae el trío OAuth, la hoja v2 sintética (`Actividades!A1:O100`), la carpeta y la plantilla. Nunca se versiona.
@@ -270,21 +280,21 @@ El archivo trae el trío OAuth, la hoja v2 sintética (`Actividades!A1:O100`), l
 2. En el servidor, actualizar el repo a `main` para tener el wrapper y el preflight OAuth:
 
 ```bash
-ssh fie-server 'cd ~/p100/Agente1 && git switch main && git pull --ff-only'
+ssh fie-server-ts 'cd ~/p100/Agente1 && git switch main && git pull --ff-only'
 ```
 
 3. En el servidor, desde el repo, verificar sin escribir:
 
 ```bash
-ssh fie-server 'cd ~/p100/Agente1 && bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh --check'
+ssh fie-server-ts 'cd ~/p100/Agente1 && bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh --check'
 ```
 
-Hace el dry-run del preflight y un smoke live de sólo lectura con `SYN-002`. Tiene que terminar con `lectura_confirmada`.
+Hace el dry-run del preflight y un smoke live de sólo lectura con `FIE-DIF-08`. Tiene que terminar con `lectura_confirmada`.
 
 4. Si el check pasa, correr la demo completa:
 
 ```bash
-ssh fie-server 'cd ~/p100/Agente1 && bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh'
+ssh fie-server-ts 'cd ~/p100/Agente1 && bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh'
 ```
 
 Corre Ollama con `gemma4:e4b`, el smoke, la gacetilla live y HU-014/HU-012 offline. El E2E deja un `BORRADOR — NO PUBLICAR` en la carpeta `Agentes`.
