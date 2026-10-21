@@ -11,8 +11,9 @@ se muestra la evidencia parcial y se sigue con lo que esté sano.
 
 - [ ] La rama de #132 está mergeada en `main` y `scripts/corrida_unica.py`
       existe en el remoto. Sin eso, el servidor no tiene el runner.
-- [ ] La clave JSON de la cuenta de servicio está en la laptop, **fuera del
+- [ ] La clave JSON de la cuenta de servicio está en el servidor, **fuera del
       repo**, con `chmod 600`. No se copia por Git, ni por chat, ni por correo.
+- [ ] El `workspace-d2.env` del servidor apunta a la hoja v2 (`Actividades!A1:O100`) y tiene el par de la cuenta de servicio. El backup del 21/10 es `workspace-d2.env.bak-20261021`.
 - [ ] Están a mano los IDs confirmados por DSI/SEU para la planilla D2
       (planilla, rango, carpeta, plantilla) y la cuenta por la que se hace
       pasar el agente. No se inventan.
@@ -37,10 +38,10 @@ muestra, se borra del índice y se avisa.
 ## 2. 7:15 a 7:30: variables de Workspace
 
 El entorno vive fuera del repo, en `~/.config/agente1/workspace-d2.env`, con
-`chmod 600`. Si ya existe, **no se reescribe**: se verifican los nombres.
+`chmod 600`. Si ya existe, se verifica que apunte a la v2 y que el par de la cuenta de servicio esté completo. El backup del 21/10 es `workspace-d2.env.bak-20261021`.
 
 ```bash
-ssh fie-server-ts 'test -f ~/.config/agente1/workspace-d2.env && chmod 600 ~/.config/agente1/workspace-d2.env && grep -o "^AGENTE1_WORKSPACE_[A-Z0-9_]*" ~/.config/agente1/workspace-d2.env | sort -u || echo "FALTA workspace-d2.env"'
+ssh fie-server-ts 'test -f ~/.config/agente1/workspace-d2.env && chmod 600 ~/.config/agente1/workspace-d2.env && grep -E "^AGENTE1_WORKSPACE_(SPREADSHEET_ID|RANGO_A1)=" ~/.config/agente1/workspace-d2.env && grep -o "^AGENTE1_WORKSPACE_[A-Z0-9_]*" ~/.config/agente1/workspace-d2.env | sort -u || echo "FALTA workspace-d2.env"'
 ```
 
 Tienen que estar, como mínimo:
@@ -57,7 +58,9 @@ AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY
 AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT
 ```
 
-**Plan B de credencial:** no se edita `workspace-d2.env` ni se comentan líneas a mano. El wrapper `scripts/corrida_plan_b_oauth.sh` carga un entorno separado, `~/.config/agente1/workspace-d2-planb.env` (fuera del repo, chmod 600), con el trío OAuth, la hoja v2 sintética, la carpeta y la plantilla. El wrapper **quita del proceso** el par de la cuenta de servicio y el access token con `unset`; no borra ni modifica `workspace-d2.env` ni `cuenta-servicio.json`, que quedan en el servidor para Plan A. Ver «Si falta el acceso a Sheets y Docs».
+La hoja configurada es la **v2**: `Actividades!A1:O100`, con la actividad real `FIE-DIF-08`. El 21/10 se actualizó el entorno y quedó un backup `workspace-d2.env.bak-20261021`; la vieja hoja v1 `Solicitudes` no se tocó. La cuenta de servicio ya leyó y escribió la v2: el 21/10 corrió **6/6** con `gemma4:e4b`.
+
+**Plan A (principal):** no se copia la clave. Se usa el `workspace-d2.env` del servidor, que ya tiene el par de la cuenta de servicio y la hoja v2. El script `run-demo-plan-a.sh` hace el chequeo y la consola visual. **Plan B (respaldo):** el wrapper `scripts/corrida_plan_b_oauth.sh` carga un entorno separado, `~/.config/agente1/workspace-d2-planb.env` (fuera del repo, chmod 600), con el trío OAuth, la hoja v2, la carpeta y la plantilla. El wrapper **quita del proceso** el par de la cuenta de servicio con `unset`; no borra ni modifica `workspace-d2.env` ni `cuenta-servicio.json`.
 
 Si el archivo no existe, crealo con `umask 077` y esas nueve variables; los
 IDs son los confirmados por DSI/SEU, no se inventan. Si falta el par de la
@@ -253,19 +256,37 @@ No se inventa una corrida ni se muestra una salida vieja como si fuera de hoy.
 
 ## Demo visual (camino recomendado)
 
-El script hace todo el camino: verifica Tailscale, copia el entorno Plan B, actualiza el repo, corre el `--check`, levanta la consola y abre el navegador.
+El script del Plan A hace todo el camino: verifica Tailscale, actualiza el repo, corre el preflight y el smoke con la cuenta de servicio, levanta la consola y abre el navegador. No copia la clave.
 
 ```bash
-./run-demo-planb.sh
+./run-demo-plan-a.sh
 ```
 
-La consola queda en `http://127.0.0.1:8080`, con un formulario precargado con la actividad real `FIE-DIF-08` del corpus. Al enviar, se ve el paso por la planilla, la generación con `gemma4:e4b` y el borrador en Drive. `Ctrl-C` corta el túnel y la consola.
+La consola queda en `http://127.0.0.1:8080`, con un formulario precargado con la actividad real `FIE-DIF-08` del corpus. Al enviar, se ve el paso por la planilla, la generación con `gemma4:e4b` y el borrador en Drive, todo con la cuenta de servicio. `Ctrl-C` corta el túnel y la consola.
 
-Si el puerto 8080 está ocupado: `PORT=8081 ./run-demo-planb.sh`.
+Si el puerto 8080 está ocupado: `PORT=8081 ./run-demo-plan-a.sh`.
 
-### Si falta el acceso a Sheets y Docs
+Si la cuenta de servicio falla, el respaldo es el Plan B OAuth: `./run-demo-planb.sh` (copia el overlay y usa la consola OAuth).
 
-**Plan B1: OAuth anterior + hoja v2 sintética + actividad real.** Ya está armado y probado con el modelo real: el smoke live leyó la planilla y el E2E generó un borrador en Drive con `gemma4:e4b` y la actividad `FIE-DIF-08` del corpus. El wrapper hace el cambio de credencial sin tocar el entorno de la cuenta de servicio; la cuenta de servicio y su clave siguen en el servidor.
+### Plan A sin consola
+
+Smoke de sólo lectura con la cuenta de servicio y la hoja v2:
+
+```bash
+ssh fie-server-ts 'cd ~/p100/Agente1/Implementacion/Agente1 && set -a; . ~/.config/agente1/workspace-d2.env; set +a; .venv/bin/python scripts/workspace_smoke.py --live --id-solicitud FIE-DIF-08'
+```
+
+Corrida completa, con gacetilla live y HU-014/HU-012 offline:
+
+```bash
+ssh fie-server-ts 'cd ~/p100/Agente1/Implementacion/Agente1 && set -a; . ~/.config/agente1/workspace-d2.env; set +a; .venv/bin/python scripts/corrida_unica.py --live --modelo gemma4:e4b --id-solicitud FIE-DIF-08 --timeout-modelo 300'
+```
+
+El smoke tiene que dar `lectura_confirmada`; la corrida completa deja el borrador en `Agentes` y no publica.
+
+### Plan B: OAuth de respaldo
+
+**Plan B1: OAuth + hoja v2 + actividad real.** Ya está armado y probado con el modelo real. El Plan A con cuenta de servicio es el camino principal; este queda si la credencial de servicio falla. El wrapper hace el cambio de credencial sin tocar el entorno de la cuenta de servicio; la cuenta de servicio y su clave siguen en el servidor.
 
 1. Copiar el entorno Plan B desde la máquina del autor, con la red de la FIE:
 
@@ -299,7 +320,7 @@ ssh fie-server-ts 'cd ~/p100/Agente1 && bash Implementacion/Agente1/scripts/corr
 
 Corre Ollama con `gemma4:e4b`, el smoke, la gacetilla live y HU-014/HU-012 offline. El E2E deja un `BORRADOR — NO PUBLICAR` en la carpeta `Agentes`.
 
-La corrida completa del wrapper se probó localmente con un stub de Ollama: 6/6. En el servidor, el paso 2 usa el `gemma4:e4b` real; el resto es el mismo camino.
+La corrida completa con cuenta de servicio dio 6/6 en el servidor con `gemma4:e4b` y `FIE-DIF-08`; el E2E OAuth también dio `PENDIENTE_VALIDACION`. No hace falta el stub.
 
 5. Si el modelo no cumple el contrato, el gate rechaza y se muestra el rechazo. No se cambia de modelo ni se publica.
 

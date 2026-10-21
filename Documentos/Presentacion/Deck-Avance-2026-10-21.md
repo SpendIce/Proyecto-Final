@@ -225,12 +225,12 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 - 1 · Gacetilla: Sheets → gemma4:e4b → Google Doc marcado `BORRADOR`.
 - 2 · HU-014 · certificados: dos aprobaciones de línea y del lote → PDF de prueba `SIN VALIDEZ`.
 - 3 · HU-012 · confirmaciones: correo simulado con marca `BORRADOR — NO ENVIAR`.
-- **Plan A:** gacetilla live con cuenta de servicio → HU-014 → HU-012. **Plan B:** OAuth anterior + hoja v2 sintética; E2E con gemma4 verificado. Si el modelo no cumple, el gate rechaza. Corte a los 45 min.
+- **Plan A:** gacetilla live con cuenta de servicio → HU-014 → HU-012, verificado 6/6. **Plan B:** OAuth + hoja v2, también verificado. Si el modelo no cumple, el gate rechaza. Corte a los 45 min.
 
 **Notas de orador**
 
 - La demo corre en el servidor de la facultad. No es localhost y no hay respaldo offline: el riesgo R-TEC-03 está aceptado con esa condición.
-- Plan A: gacetilla, certificados y confirmaciones. Plan B: OAuth anterior + hoja v2 sintética, con E2E con gemma4 verificado; si el modelo no cumple, el gate rechaza. La gacetilla es el flujo completo de comunicación.
+- Plan A: gacetilla, certificados y confirmaciones; E2E con cuenta de servicio verificado 6/6. Plan B: OAuth + hoja v2, también verificado; el gate rechaza si el modelo no cumple. La gacetilla es el flujo completo de comunicación.
 - En la gacetilla miren tres cosas: lee la planilla, genera con `gemma4:e4b` y deja el documento marcado como borrador. No se cambia de modelo en vivo.
 - En HU-014 miren el gate: sin las dos aprobaciones de línea y la del lote no hay PDF. El certificado es de prueba y dice `SIN VALIDEZ`.
 - En HU-012 miren el correo simulado: sale marcado `BORRADOR — NO ENVIAR` y no se envía nada real.
@@ -246,7 +246,7 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 
 **Texto visible**
 
-- Límites: validación SEU pendiente (revisión de muestras); un solo host, sin respaldo offline (R-TEC-03); contrato `/v1` en rc2, API real el 27/10; LinkedIn como límite declarado; el Plan B con OAuth usa una hoja v2 sintética y una actividad real del corpus; la hoja de producción y la cuenta de servicio siguen en #99; el sistema no está en producción.
+- Límites: validación SEU pendiente (revisión de muestras); un solo host, sin respaldo offline (R-TEC-03); contrato `/v1` en rc2, API real el 27/10; LinkedIn como límite declarado; el Plan A con cuenta de servicio y el Plan B OAuth usan la hoja v2 y una actividad real del corpus; la hoja de producción real de la SEU sigue en #99; el sistema no está en producción.
 - Hitos: 23/10 anexos al laboratorio; 27/10 prueba con la API real de Historia Viva; 2–6/11 revisión de laboratorio; 18/11 presentación de cursada.
 - Los hitos no dependen sólo del código. La API real es de Historia Viva, la revisión es del laboratorio y la validación es de la SEU.
 
@@ -255,14 +255,14 @@ Este archivo es para Juani. El deck no lleva notas de orador ni barras de navega
 - Los límites no son un descargo: son las condiciones con las que el sistema se puede usar hoy.
 - La validación de la SEU es el límite más importante: sin muestras revisadas no se puede declarar el DoD de las historias.
 - El contrato está en rc2 y la API real se prueba el 27/10. Hasta entonces, la interoperabilidad está probada contra mock.
-- El camino del Plan B con OAuth está verificado con el modelo real: smoke y E2E con `gemma4:e4b`, una actividad real del corpus y un borrador en Drive. La hoja de producción y la cuenta de servicio siguen en #99.
+- El camino del Plan A con cuenta de servicio y el del Plan B con OAuth están verificados con el modelo real: smoke y E2E con `gemma4:e4b`, una actividad real del corpus y un borrador en Drive. La hoja de producción real de la SEU sigue en #99.
 - Los posts: LinkedIn queda como límite declarado; Instagram se muestra con gemma4:e4b. La decisión de alcance sigue con Dirección.
 - Los cuatro hitos ordenan el resto del año. Tres de ellos dependen de una contraparte, no sólo del equipo.
 
 **Preguntas probables**
 
 - **¿En qué TRL están?** No declaro TRL 3 ni TRL 4. El Gate G2 y la validación SEU están pendientes. Ver banco §13.
-- **¿Qué falta para producción?** La hoja de producción y la cuenta de servicio (#99), la decisión de modelo y alcance, los tipos del PPS, el contrato real de Historia Viva, la validación SEU y el traspaso operativo. El E2E en el servidor ya se corrió. Ver banco §12.
+- **¿Qué falta para producción?** La hoja de producción real de la SEU (#99), la decisión de modelo y alcance, los tipos del PPS, el contrato real de Historia Viva, la validación SEU y el traspaso operativo. El E2E con cuenta de servicio y con OAuth ya se corrió. Ver banco §12.
 - **¿Qué pasa con los posts en la presentación de cursada?** Depende de #51. Hoy no son parte del guion principal. Ver banco §11.
 
 ## Lámina 11 · Cierre

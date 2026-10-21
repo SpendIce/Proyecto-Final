@@ -8,7 +8,7 @@
 
 El modelo único del sistema de demostración es **`gemma4:e4b`** (Ollama 0.40.6, `think=false`, temperatura 0, `num_predict` 512, timeout 180 s en la medición y 300 s de techo en la demo por el arranque en frío). Validación final en `labredesfie`: **44/48 (91,7 %)** en gacetilla+posts, **48/48 revalidado** tras DEF-A1-026; HU-014 **18/18**; HU-012 **18/18**; canal **16/16**. Las respuestas que comparan 3b/8b son la **línea base del 19/10** y quedan como historia; no son la configuración vigente.
 
-El E2E live en `labredesfie` **se corrió el 21/10** con `gemma4:e4b`, OAuth y una actividad real del corpus (`FIE-DIF-08`): smoke `lectura_confirmada`, gacetilla `PENDIENTE_VALIDACION` en 57,9 s y borrador en Drive. `s7c` quedó cerrado con esa evidencia. La hoja de producción y la cuenta de servicio siguen en #99; el OAuth es una contingencia declarada.
+El E2E live en `labredesfie` **se corrió el 21/10** con `gemma4:e4b` y una actividad real del corpus (`FIE-DIF-08`) sobre la hoja v2: Plan A con cuenta de servicio **6/6** (smoke `lectura_confirmada`, gacetilla `PENDIENTE_VALIDACION` en 64,2 s, HU-014 y HU-012) y Plan B con OAuth `PENDIENTE_VALIDACION` (57,9 s). `s7c` quedó cerrado. La hoja de producción real de la SEU sigue en #99; el OAuth es el respaldo.
 
 ## Cómo usar este banco
 
@@ -377,7 +377,7 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** issue #51 (resolución del 20/10); issue #128 (*Not yet specified*).
 
 **P: ¿Qué se muestra el 21/10 con posts?**
-**R:** El guion principal es gacetilla, después HU-014 y después HU-012. Los posts no son parte del guion principal; si hay tiempo y el acceso lo permite, se muestra Instagram con `gemma4:e4b`. LinkedIn no. Si falta Sheets/Docs, el Plan B es OAuth con la hoja v2 sintética y una actividad real; si tampoco hay red, HU-014 y HU-012 offline más la evidencia de la gacetilla.
+**R:** El guion principal es gacetilla, después HU-014 y después HU-012. Los posts no son parte del guion principal; si hay tiempo y el acceso lo permite, se muestra Instagram con `gemma4:e4b`. LinkedIn no. El Plan A con cuenta de servicio ya funciona sobre la hoja v2. Si falla la credencial, el Plan B es OAuth con la hoja v2 y una actividad real; si tampoco hay red, HU-014 y HU-012 offline más la evidencia de la gacetilla.
 **Evidencia:** issue #128 (Destination y ventanas); `Documentos/Presentacion/Checklist-Miercoles-2026-10-21.md`.
 
 ---
@@ -389,12 +389,12 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Documentos/PlanRiesgos/Plan-Riesgos-Agente-1-PPS-Juan-Ignacio-Gone.md` (R-TEC-03); issue #118.
 
 **P: ¿Qué pasa si la cuenta de servicio no tiene acceso a Sheets y Docs?**
-**R:** Hay un Plan B ya armado. El wrapper `scripts/corrida_plan_b_oauth.sh` carga un entorno fuera del repo con el OAuth anterior y una hoja v2 sintética, borra el par de la cuenta de servicio y corre la demo con `gemma4:e4b`. El E2E ya se verificó con el modelo real: smoke `lectura_confirmada`, gacetilla `PENDIENTE_VALIDACION` en 57,9 s y borrador en Drive, con una actividad real del corpus. La consola visual repitió el camino. Si el modelo no cumple el contrato, el gate rechaza y no se publica. La hoja de producción y la cuenta de servicio siguen en #99; el OAuth es una contingencia declarada.
+**R:** La cuenta de servicio ya tiene acceso a la hoja v2. El Plan A corrió **6/6** con `gemma4:e4b` y `FIE-DIF-08`: smoke `lectura_confirmada`, gacetilla `PENDIENTE_VALIDACION` en 64,2 s, HU-014 y HU-012. La consola visual con cuenta de servicio generó el borrador. Si el modelo no cumple, el gate rechaza. La hoja de producción real de la SEU sigue en #99; el Plan B con OAuth queda como respaldo y también está verificado.
 **Evidencia:** `Implementacion/Agente1/evidencias/plan-b-oauth-workspace-2026-10-20.md`; `Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh`.
 
 **P: ¿La demo corre en la laptop?**
-**R:** No. Corre en `labredesfie`; se accede por Tailscale con el alias `fie-server-ts`, no por la red de la facultad ni por localhost. La consola visual se sirve desde el servidor y se abre por un túnel SSH.
-**Evidencia:** `run-demo-planb.sh`; `~/.ssh/config` (`fie-server-ts`); `Implementacion/Agente1/scripts/demo_visual_plan_b.py`.
+**R:** No. Corre en `labredesfie`; se accede por Tailscale con el alias `fie-server-ts`, no por la red de la facultad ni por localhost. La consola visual se sirve desde el servidor y se abre por un túnel SSH. El camino principal es el Plan A con cuenta de servicio (`run-demo-plan-a.sh`); el Plan B con OAuth queda como respaldo (`run-demo-planb.sh`).
+**Evidencia:** `run-demo-plan-a.sh`, `run-demo-planb.sh`; `~/.ssh/config` (`fie-server-ts`); `Implementacion/Agente1/scripts/demo_visual_plan_b.py`.
 
 **P: ¿Qué disponibilidad tienen?**
 **R:** El requisito es 99 %. La última medición de disponibilidad dio 30/30 corridas a tiempo en una ventana del 12/10, con n = 30. Es una muestra de un host único, no una garantía de producción; los demás SLO tienen muestra insuficiente.
@@ -405,7 +405,7 @@ Estas diez son las más probables entre Cicerchia y un invitado externo. El rest
 **Evidencia:** `Contenido/Definicion/arquitectura-multiagente.md`; `docs/adr/0008-los-agentes-entregan-insumos-en-una-pestana-que-el-agente-sondea.md`; issue #130.
 
 **P: ¿Qué falta para producción?**
-**R:** La hoja de producción y la cuenta de servicio (#99), la decisión de modelo y alcance (#51), la definición de tipos del PPS (#106), el contrato de Historia Viva (#17), la validación SEU y el Gate G2, y el traspaso operativo (ADR 0007). El E2E en el servidor ya se corrió; nada de lo que falta se resuelve con una demo.
+**R:** La hoja de producción real de la SEU (#99), la decisión de modelo y alcance (#51), la definición de tipos del PPS (#106), el contrato de Historia Viva (#17), la validación SEU y el Gate G2, y el traspaso operativo (ADR 0007). El E2E con cuenta de servicio y con OAuth ya se corrió; nada de lo que falta se resuelve con una demo.
 **Evidencia:** issues #118, #51, #106, #17; `docs/adr/0007-el-traspaso-reparte-tres-responsables-y-el-autor-no-conserva-acceso.md`; `Documentos/PoC/Plan-Recuperacion-MVP-Agente-1-2026-08-17.md`.
 
 **P: ¿Cómo se despliega y se revierte?**

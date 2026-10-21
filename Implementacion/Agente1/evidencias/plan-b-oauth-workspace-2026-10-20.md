@@ -1,16 +1,18 @@
 # Plan B OAuth: E2E live con modelo real y actividad real
 
 **Fecha:** 2026-10-20, actualizado el 2026-10-21.
-**Alcance:** verificar el camino Sheets → agente → Doc con la credencial OAuth anterior, el modelo `gemma4:e4b` y una actividad real del corpus FIE INFORMA.
-**Resultado:** smoke live `lectura_confirmada`; E2E live `PENDIENTE_VALIDACION` con `gemma4:e4b` y la actividad `FIE-DIF-08`; borrador en Drive; consola visual repetida con otra solicitud.
-**Límite principal:** la hoja es v2 sintética y la identidad es OAuth. La hoja de producción y la cuenta de servicio siguen en #99. No hay validación SEU.
+**Alcance:** verificar el camino Sheets → agente → Doc con la cuenta de servicio (Plan A) y con OAuth (Plan B), el modelo `gemma4:e4b` y una actividad real del corpus FIE INFORMA sobre la hoja v2.
+**Resultado:** Plan A con cuenta de servicio **6/6**; Plan B con OAuth `PENDIENTE_VALIDACION`; consola visual con cuenta de servicio; borrador en Drive.
+**Límite principal:** la hoja v2 es sintética y la hoja de producción real de la SEU sigue en #99. No hay validación SEU.
 
 ## Qué se armó
 
 - Una planilla D2 v2 sintética, con el encabezado exacto de `COLUMNAS_ACTIVIDADES_V2` y las filas `SYN-001`, `SYN-002` y `FIE-DIF-08`.
+- El `workspace-d2.env` del servidor se actualizó el 21/10 para apuntar a la hoja v2 (`Actividades!A1:O100`). Quedó un backup `workspace-d2.env.bak-20261021`; la vieja hoja v1 `Solicitudes` no se tocó.
 - La fila `FIE-DIF-08` sale de `data/corpus-fie-informa-difusiones.csv`: Diplomatura Universitaria en Geomática Aplicada a la Defensa Nacional. Es una actividad real del corpus FIE INFORMA, no un texto inventado para la prueba.
 - El entorno Plan B queda fuera del repo, en `~/.config/agente1/workspace-d2-planb.env` (chmod 600). Trae el trío OAuth, la hoja v2, la carpeta y la plantilla.
 - El wrapper `Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh` carga ese entorno, quita del proceso el par de la cuenta de servicio y el access token efímero, y corre el comando pedido. No borra ni modifica `workspace-d2.env` ni `cuenta-servicio.json`: el par sigue en el servidor para Plan A.
+- La consola visual tiene dos launchers: `demo_visual_plan_a.sh` para la cuenta de servicio y `demo_visual_plan_b.sh` para OAuth. El modo se elige con `AGENTE1_DEMO_AUTH`; la UI no muestra la credencial.
 - El preflight de `corrida_unica.py` acepta el trío OAuth como credencial de contingencia y tiene un test propio.
 - La consola visual `scripts/demo_visual_plan_b.py`, con su launcher `scripts/demo_visual_plan_b.sh` y el orquestador `run-demo-planb.sh`, que corre desde la laptop por Tailscale.
 
@@ -22,7 +24,30 @@
 
 ## Corridas
 
-### Smoke live de lectura
+### Plan A: cuenta de servicio sobre la hoja v2
+
+```bash
+.venv/bin/python scripts/workspace_smoke.py --live --id-solicitud FIE-DIF-08
+```
+
+Resultado:
+
+```json
+{"ambiente": "D2", "correlation_id": "585afd71-3e90-4e59-a72e-5d8e559091a3", "modo": "live_read_only", "resultado": "lectura_confirmada"}
+```
+
+Corrida completa con la cuenta de servicio:
+
+```bash
+.venv/bin/python scripts/corrida_unica.py --live --modelo gemma4:e4b \
+  --id-solicitud FIE-DIF-08 --timeout-modelo 300
+```
+
+Resultado: **6/6**. La gacetilla dio `PENDIENTE_VALIDACION` en 64,2 s (`correlation_id 4974bc3b-b3dd-4be4-b52c-99b796db3c31`); HU-014 emitió 2 certificados y HU-012 encoló 3 correos simulados. No se publicó nada.
+
+La consola visual con cuenta de servicio se abrió por `http://127.0.0.1:8080` y se envió el formulario con la actividad real. Generó `BORRADOR — Fie informa 21-10 Diplomatura Universitaria en Geomática Aplicada a la Defensa Nacional` y mostró el texto en la vista previa. El `run_id` fue `73cfea1057`.
+
+### Plan B: OAuth
 
 ```bash
 .venv/bin/python scripts/workspace_smoke.py --live --id-solicitud FIE-DIF-08
@@ -34,7 +59,7 @@ Resultado:
 {"ambiente": "D2", "correlation_id": "bc14a5e3-1b78-4dc1-8e55-5bf754c3fc2b", "modo": "live_read_only", "resultado": "lectura_confirmada"}
 ```
 
-### E2E real con `gemma4:e4b`
+### E2E real con `gemma4:e4b` (Plan B OAuth)
 
 ```bash
 .venv/bin/python scripts/workspace_e2e.py \
@@ -79,28 +104,35 @@ Antes de usar el modelo real se corrió la misma consola con un stub de Ollama e
 
 ## Límites
 
-- **La hoja no es la de producción.** Es una hoja v2 sintética con una actividad real del corpus; la hoja de producción y la cuenta de servicio siguen en #99.
-- **La identidad OAuth se retira.** Es una contingencia declarada, no la identidad objetivo (ADR 0011). El par de la cuenta de servicio no se tocó.
+- **La hoja no es la de producción.** Es una hoja v2 sintética con una actividad real del corpus; la hoja de producción real de la SEU sigue en #99.
+- **Plan A funciona; Plan B es respaldo.** La cuenta de servicio leyó y escribió la hoja v2; el par y la clave no se tocaron. OAuth queda como contingencia declarada (ADR 0011), no como identidad objetivo.
 - **No hay validación SEU.** El documento queda en `PENDIENTE_VALIDACION` y con la marca de borrador.
 - **No se probó la revocación** ni el traspaso de credenciales.
-- **El modelo real se probó en caliente.** La primera corrida en frío necesitó el techo de 300 s y `think=false`; la configuración de la demo usa esos valores.
+- **El modelo real se probó en caliente.** La primera corrida en frío necesitó el techo de 300 s y `think=false`; la configuración de la demo usa esos valores. La corrida con cuenta de servicio dio 64,2 s y la de OAuth 57,9 s.
 
 ## Reproducir
 
-1. Copiar `~/.config/agente1/workspace-d2-planb.env` al servidor, fuera del repo, con chmod 600.
-2. En la laptop, con Tailscale activo:
+1. Plan A: el `workspace-d2.env` del servidor ya apunta a la hoja v2 y tiene el par de la cuenta de servicio. En la laptop, con Tailscale activo:
+
+```bash
+./run-demo-plan-a.sh
+```
+
+El script verifica `fie-server-ts`, actualiza el repo, corre el preflight y el smoke con la cuenta de servicio, levanta la consola y abre el navegador. `Ctrl-C` corta el túnel y la consola.
+
+2. Plan B, si la cuenta de servicio falla:
 
 ```bash
 ./run-demo-planb.sh
 ```
 
-El script verifica `fie-server-ts`, copia el entorno, actualiza el repo, corre el `--check`, levanta la consola y abre el navegador. `Ctrl-C` corta el túnel y la consola.
+El script copia el overlay OAuth, actualiza el repo, corre el `--check` y levanta la consola OAuth. No toca la cuenta de servicio.
 
-Sin consola, el camino headless es:
+Sin consola, el camino headless del Plan A es:
 
 ```bash
-bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh --check
-bash Implementacion/Agente1/scripts/corrida_plan_b_oauth.sh
+.venv/bin/python scripts/workspace_smoke.py --live --id-solicitud FIE-DIF-08
+.venv/bin/python scripts/corrida_unica.py --live --modelo gemma4:e4b --id-solicitud FIE-DIF-08 --timeout-modelo 300
 ```
 
 El primer comando no escribe; el segundo corre la demo completa con `gemma4:e4b`. Si el modelo no cumple el contrato, el gate rechaza y no se publica.
