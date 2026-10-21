@@ -49,6 +49,22 @@ WARMUP = {"estado": "calentando"}
 WARMUP_LOCK = threading.Lock()
 
 
+def _modo_auth() -> str:
+    """Elige el modo de credencial de la demo sin exponerlo en la UI."""
+    pedido = os.environ.get("AGENTE1_DEMO_AUTH", "").strip().lower()
+    if pedido in {"service_account", "oauth"}:
+        return pedido
+    if (
+        os.environ.get("AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY")
+        and os.environ.get("AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT")
+    ):
+        return "service_account"
+    return "oauth"
+
+
+AUTH_MODE = _modo_auth()
+
+
 def _texto(valor: object) -> str:
     return valor if isinstance(valor, str) else ""
 
@@ -187,12 +203,13 @@ def _correr(run_id: str, fila: dict[str, str]) -> None:
         f"{TIMEOUT_MODELO:g}",
     ]
     entorno = dict(os.environ)
-    for clave in (
-        "AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY",
-        "AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT",
-        "AGENTE1_WORKSPACE_ACCESS_TOKEN",
-    ):
-        entorno.pop(clave, None)
+    if AUTH_MODE == "oauth":
+        for clave in (
+            "AGENTE1_WORKSPACE_SERVICE_ACCOUNT_KEY",
+            "AGENTE1_WORKSPACE_IMPERSONATED_ACCOUNT",
+            "AGENTE1_WORKSPACE_ACCESS_TOKEN",
+        ):
+            entorno.pop(clave, None)
     detalle = ""
     estado = "error"
     documento = None
