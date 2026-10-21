@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 from agente1.ollama import OllamaGenerator
-from agente1.posts import CONTRATO_SALIDA_ESTRUCTURADA
+from agente1.posts import CONTRATO_CREATIVO_V3
 from agente1.procesamiento import FakeGenerator
 from agente1.workspace_auth import construir_token_provider
 from agente1.workspace_config import (
@@ -107,7 +107,7 @@ def _crear_generator_live(
     return OllamaGenerator(
         modelo=modelo,
         timeout_s=timeout_s,
-        format_schema=CONTRATO_SALIDA_ESTRUCTURADA if tipo == "post" else None,
+        format_schema=CONTRATO_CREATIVO_V3.schema if tipo == "post" else None,
         think=False,
     )
 

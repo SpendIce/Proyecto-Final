@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from agente1.destinos import DestinoBorradoresError, ReferenciaBorrador
-from agente1.posts import CONTRATO_SALIDA_ESTRUCTURADA
+from agente1.posts import CONTRATO_CREATIVO_V3
 from agente1.procesamiento import FakeGenerator
 from agente1.workspace_config import ConfiguracionWorkspace
 from agente1.workspace_e2e import (
@@ -103,17 +103,17 @@ def test_compone_post_y_exige_canal(tmp_path: Path) -> None:
     resultado = _run(tmp_path, tipo="post", canal="instagram", respuesta=POST)
     assert resultado.estado == "PENDIENTE_VALIDACION"
     manifest = json.loads(resultado.manifest_path.read_text(encoding="utf-8"))
-    assert manifest["pipeline_version"] == "workspace_hu011_structured_v2"
-    assert manifest["contract_version"] == "post_input_v2+post_creative_output_v2"
+    assert manifest["pipeline_version"] == "workspace_hu011_structured_v3"
+    assert manifest["contract_version"] == "post_input_v2+post_creative_output_v3"
     assert manifest["renderer_version"] == "post_deterministic_renderer_v6"
 
     with pytest.raises(RunnerWorkspaceError, match="runner_channel_required"):
         _run(tmp_path / "otro", tipo="post", canal=None, respuesta=POST)
 
 
-def test_post_v2_audita_modo_y_hash_del_schema_ollama(tmp_path: Path) -> None:
+def test_post_v3_audita_modo_y_hash_del_schema_ollama(tmp_path: Path) -> None:
     canonico = json.dumps(
-        CONTRATO_SALIDA_ESTRUCTURADA,
+        CONTRATO_CREATIVO_V3.schema,
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
@@ -380,3 +380,20 @@ def test_carrera_reserva_una_sola_escritura_y_bloquea_in_progress(tmp_path: Path
     assert bloqueada.estado == "BLOQUEADA_RECONCILIACION"
     assert [resultado.estado for resultado in resultados] == ["PENDIENTE_VALIDACION"]
     assert destino.invocaciones == 1
+
+
+def test_post_live_usa_el_contrato_v3_y_acepta_redaccion_libre(tmp_path: Path) -> None:
+    """DEF-A1-027: el E2E de posts usaba el catálogo cerrado v2 (DEF-A1-011)."""
+    libre = json.dumps(
+        {
+            "gancho": "¿Cómo se ordena la información de un territorio?",
+            "prosa": "Una mirada técnica sobre herramientas que ordenan datos del espacio geográfico.",
+            "cta": "Encontrá los detalles en el enlace de nuestro perfil.",
+            "hashtags": ["#FIE"],
+        },
+        ensure_ascii=False,
+    )
+
+    resultado = _run(tmp_path, tipo="post", canal="instagram", respuesta=libre)
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"

@@ -48,7 +48,7 @@ from .google_workspace import (
     TransporteHttp,
 )
 from .posts import (
-    STRUCTURED_OUTPUT_CONTRACT_VERSION,
+    CONTRATO_CREATIVO_V3,
     STRUCTURED_RENDERER_VERSION,
     procesar_post_estructurado,
 )
@@ -74,8 +74,8 @@ _PIPELINE_VERSIONS = {
         "renderer_version": "gacetilla_generator_render_v4",
     },
     "post": {
-        "pipeline_version": "workspace_hu011_structured_v2",
-        "contract_version": f"post_input_v2+{STRUCTURED_OUTPUT_CONTRACT_VERSION}",
+        "pipeline_version": "workspace_hu011_structured_v3",
+        "contract_version": f"post_input_v2+{CONTRATO_CREATIVO_V3.contract_version}",
         "renderer_version": STRUCTURED_RENDERER_VERSION,
     },
 }
@@ -419,6 +419,9 @@ def ejecutar_workspace_e2e(
             directorio_salida=directorio_salida,
             generator=generator,
             destino=destino_idempotente,
+            # DEF-A1-027: el contrato v3 es el que validó #51; el v2 restringe
+            # al modelo a un catálogo cerrado (DEF-A1-011).
+            contrato=CONTRATO_CREATIVO_V3,
         )
         hu = "HU-011"
 

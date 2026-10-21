@@ -7,7 +7,7 @@ import importlib.util
 import json
 from pathlib import Path
 
-from agente1.posts import CONTRATO_SALIDA_ESTRUCTURADA
+from agente1.posts import CONTRATO_CREATIVO_V3
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "workspace_e2e.py"
 
@@ -56,7 +56,7 @@ def test_constructor_y_request_post_live_envian_schema_exacto_temperature_zero(m
     generator.generar("prompt")
 
     payload = _Connection.solicitudes[0]
-    assert payload["format"] == CONTRATO_SALIDA_ESTRUCTURADA
+    assert payload["format"] == CONTRATO_CREATIVO_V3.schema
     assert payload["options"]["temperature"] == 0
     assert generator.format_mode == "json_schema"
     assert len(generator.format_schema_hash) == 64
