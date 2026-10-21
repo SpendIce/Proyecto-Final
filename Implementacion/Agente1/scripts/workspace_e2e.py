@@ -108,6 +108,7 @@ def _crear_generator_live(
         modelo=modelo,
         timeout_s=timeout_s,
         format_schema=CONTRATO_SALIDA_ESTRUCTURADA if tipo == "post" else None,
+        think=False,
     )
 
 
