@@ -33,7 +33,14 @@ x-endurecido: &endurecido
 
 x-agente1: &agente1
   <<: *endurecido
-  image: ghcr.io/spendice/agente1@sha256:f003507c665ffa2a77b6bcdfaa66865705e79fff0b2e16dbd57811c777286c2d
+  # `tmp/` y `salida/` son los directorios por defecto de los scripts cuando
+  # se corren sin `--directorio`: escribibles pero efímeros. Lo durable va a
+  # `/state` (el estado montado del host).
+  tmpfs:
+    - /tmp
+    - /srv/p100/Implementacion/Agente1/tmp:mode=1777
+    - /srv/p100/Implementacion/Agente1/salida:mode=1777
+  image: ghcr.io/spendice/agente1@sha256:32ad78637b24096d98e414b0cb14765ad0cae4bbf587cd3d069cd3bae9cbc474
   user: "${AGENTE1_UID:-1003}:${AGENTE1_GID:-1003}"
   environment:
     AGENTE1_ENV_FILE: ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/workspace-d2.env
