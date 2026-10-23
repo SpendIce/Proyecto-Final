@@ -8,7 +8,7 @@ Cómo se instala, se actualiza, se vuelve atrás y se diagnostica el Agente 1 en
 |---|---|---|---|
 | `ollama` | `ollama/ollama:0.40.6` (por digest) | `modelo` (interna, sin internet) | Sirve el modelo. Los modelos se montan en sólo lectura desde `~/.ollama/models` |
 | `consola` | `ghcr.io/spendice/agente1` (por digest) | `modelo` + `salida` | Consola de la demo. Se publica en `127.0.0.1:8090` del host |
-| `scheduler` | la misma | `modelo` + `salida` | Corridas programadas. **Apagado** salvo el perfil `scheduler`: encenderlo exige configurar la pestaña de insumos (`AGENTE1_INSUMOS_RANGO_A1`) |
+| `scheduler` | la misma | `modelo` + `salida` | Corridas programadas: sondea la pestaña «Insumos de agentes» y corre el respaldo diario. Sólo arranca con el perfil `scheduler` (variable del stack `COMPOSE_PROFILES=scheduler`) |
 
 Los contenedores del agente:
 - corren como el uid del dueño de la clave (`1003`), con el sistema de archivos de sólo lectura y sin capacidades;
@@ -44,7 +44,15 @@ GitHub no llega al servidor, que tiene IP privada: es el servidor el que consult
   - smoke: `python scripts/contenedor_entrypoint.py smoke --live --id-solicitud <fila>`
   - corrida completa de la demo: `python scripts/contenedor_entrypoint.py python scripts/corrida_unica.py --live --modelo gemma4:e4b --id-solicitud <fila> --timeout-modelo 300 --evidencia-dir /state/evidencia/<nueva>`
   - lo durable va siempre bajo `/state` (es `~/p100/estado-contenedor/` del host).
-- **Encender el scheduler:** configurar `AGENTE1_INSUMOS_RANGO_A1` en el env file y agregar el perfil `scheduler` al stack. Antes, un disparo de ensayo con `scheduler --una-corrida --tabla <csv>` dentro del contenedor.
+- **Configuración del env file** (`~/.config/agente1/workspace-d2.env`, desde el 23/10):
+  - `AGENTE1_GMAIL_DESTINATARIOS_PRUEBA`: lista D12 de prueba. Con ella salen los avisos al operador.
+  - `AGENTE1_CONFIG_ENTORNO_AVISO_DESTINATARIO`: recibe un aviso cada vez que cambia la configuración.
+  - `AGENTE1_INSUMOS_RANGO_A1='Insumos de agentes'!A1:D500`: la pestaña de la planilla D2.
+  - `AGENTE1_RESPALDO_CARPETA_ID`, `AGENTE1_RESPALDO_CONFIRMAR_ESCRITURA=SI` y `AGENTE1_RESPALDO_AVISO_DESTINATARIO`: la carpeta privada de la cuenta técnica.
+  - `AGENTE1_SCHEDULER_REPO=/srv/p100`.
+  - Evidencia: `Implementacion/Agente1/evidencias/configuracion-gmail-insumos-respaldo-2026-10-23.md`.
+- **Disparo manual del scheduler** (ensayo o para procesar la pestaña ya): `python scripts/contenedor_entrypoint.py scheduler --una-corrida --live --confirm-write-workspace --ollama-model gemma4:e4b --ollama-timeout 300 --directorio /state/scheduler`. Fuera de la ventana (días hábiles de 8 a 16) se asienta `omitida_ventana`.
+- **Encender o apagar el scheduler:** en Portainer, *Stacks → agente1 → Environment variables*. Agregar `COMPOSE_PROFILES=scheduler` y hacer *Pull and redeploy*; para apagarlo, quitar la variable y redesplegar.
 - **Logs:** la auditoría queda en `~/p100/estado-contenedor/logs/`, incluida `integridad-arranque.jsonl`. La salida estándar va al driver de Docker con rotación (10 MB × 5).
 
 ## Volver atrás
