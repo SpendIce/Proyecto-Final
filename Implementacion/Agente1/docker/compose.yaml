@@ -33,6 +33,13 @@ x-endurecido: &endurecido
 
 x-agente1: &agente1
   <<: *endurecido
+  # `tmp/` y `salida/` son los directorios por defecto de los scripts cuando
+  # se corren sin `--directorio`: escribibles pero efímeros. Lo durable va a
+  # `/state` (el estado montado del host).
+  tmpfs:
+    - /tmp
+    - /srv/p100/Implementacion/Agente1/tmp:mode=1777
+    - /srv/p100/Implementacion/Agente1/salida:mode=1777
   image: ${AGENTE1_IMAGEN:-ghcr.io/spendice/agente1:local}
   user: "${AGENTE1_UID:-1003}:${AGENTE1_GID:-1003}"
   environment:

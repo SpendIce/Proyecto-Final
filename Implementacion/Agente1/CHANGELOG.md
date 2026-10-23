@@ -20,6 +20,18 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.1] - 2026-10-23
+
+- **Parche — la corrida única corre dentro del contenedor (#143).** Sin `.git`
+  en la imagen, `corrida_unica.py` toma el commit de `AGENTE1_REVISION`, que
+  el `Dockerfile` hornea desde el tag. Con `AGENTE1_ESTADO` definido, el
+  registro estable del E2E va a `<estado>/workspace-e2e` porque el código es
+  de sólo lectura.
+- **Parche — directorios por defecto escribibles en el contenedor.** `tmp/` y
+  `salida/` del agente se montan como `tmpfs`, para que un script corrido sin
+  `--directorio` no falle por sistema de archivos de sólo lectura. Lo durable
+  sigue en `/state`.
+
 ## [0.5.0] - 2026-10-23
 
 Versión que corre en contenedores en el servidor de la facultad y junta los

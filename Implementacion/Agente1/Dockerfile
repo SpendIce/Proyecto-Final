@@ -42,6 +42,9 @@ LABEL org.opencontainers.image.source="https://github.com/SpendIce/Proyecto-Fina
       org.opencontainers.image.description="Agente 1 (Extensión Bot) del P100: borradores con validación humana" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
+# Sin `.git` en la imagen: el commit del tag viaja en el entorno para la
+# evidencia de las corridas (`corrida_unica.py`).
+ENV AGENTE1_REVISION=${REVISION}
 RUN useradd --uid 10001 --user-group --no-create-home --shell /usr/sbin/nologin agente1
 COPY pyproject.toml uv.lock manifest-version.json Dockerfile ./
 COPY src ./src

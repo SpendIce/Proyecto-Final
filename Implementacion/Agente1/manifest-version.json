@@ -1,14 +1,14 @@
 {
   "archivos_sha256": {
-    "Dockerfile": "cea2962603b8e2dd0f30becd1b47486e51563257350b30a3cf31a8c7d6fa034f",
-    "docker/compose.yaml": "08138a1aaf5533ef63c2ec27f08455b2d9fa5907578b02d03d5b94145f18a575",
+    "Dockerfile": "62538d5bc730a016ea414385bfd9fb8fce1a50e607609168bd056a00e680e978",
+    "docker/compose.yaml": "8412162ed88e766e51cb2a95e25a9212547f893155a01ea342b5ebdfef97bd19",
     "migrations/0001_persistencia_agente1.down.sql": "a576d7b8ad9eeb18068f50c04956b5bf0a5304a87c8c26df1311479f236fa0a0",
     "migrations/0001_persistencia_agente1.up.sql": "b87d67dc6c0220f73d61b0c44417d397e56d1a715be57d817960feef4a023b14",
     "migrations/0002_integridad_referencial_borradores.down.sql": "24caa7a9a9c2001280f48a17339f1898fc63af2c63a06ad61dbac358d104bb7a",
     "migrations/0002_integridad_referencial_borradores.up.sql": "50b73789fc6065feb11c9fae9193bd6578ef79a46733dfb0a23fe3c48700d7d5",
     "migrations/0003_rechazo_timestamps_futuros.down.sql": "41980a7780ec285ffbfcc728dfbbfd59a009fde62dcb22c4630711c42f1e2867",
     "migrations/0003_rechazo_timestamps_futuros.up.sql": "aed22abf995168bda154b790a4a1a45afbd7dc3fddafe9f5a6c85e128144d72d",
-    "pyproject.toml": "4127edf9b2eff690fcf3946e892403c076aaba86e9cf09db5e99541f6a1a00f1",
+    "pyproject.toml": "9ecedba00ba78a6a0da4c351792d782c65893b20cb0241f0c1d18a97886557ad",
     "scripts/anexo1_presentacion.py": "31800127313dba3e0e8a7406136230ecff3d5b34bdc1c7491e15948125abfc73",
     "scripts/anexo2_calidad.py": "e8ef424d77f0782bef99c4909c907af804157e03987966bdeb80baac72a3fcc7",
     "scripts/anexo3_seguridad.py": "276ccba47e16204fc38ccda661ac90605d699061edf26ed1c0bc6d7fe6607f99",
@@ -18,7 +18,7 @@
     "scripts/auditar_seguridad_d2.py": "456deec0e7c0f52851aadb9a805a618b8c069321edf7615973e8500626412302",
     "scripts/contenedor_entrypoint.py": "3d20949fc30eafc4293c65207ba4a22dfcb5a4a0f17b1f3dc4c71555b6f19022",
     "scripts/corrida_plan_b_oauth.sh": "19dabb5e401935fb4933df6bf8b49648e3a96342f35cd9994cb0f9e1a0b0835b",
-    "scripts/corrida_unica.py": "e96d9ec61a6232c962e25bc36db835f2b2bde833a57e3f02b8f693df4a06db6a",
+    "scripts/corrida_unica.py": "0be8e16c40a1145cc0356204af30f40fbfd92f4e90ba7d5d7562df66368b42e4",
     "scripts/demo_visual_plan_a.sh": "206b6c068546e74db4109eaec80f472140e20a9ea3151546db07ca26c7d0c7f0",
     "scripts/demo_visual_plan_b.py": "b1e42991157cebb18a3c5c768baf6416b26a7b5fe31374bec0da079596e36309",
     "scripts/demo_visual_plan_b.sh": "f8bd7c4b80482c45621f9b90e53df6b47e7137a239e1405aa4429ff269cd80c9",
@@ -203,8 +203,8 @@
     "systemd/agente1-scheduler-loop.service": "b73c70a32920ec44a47d13faba3956ba9c6feeb0c2022689600f6ae34b1854db",
     "systemd/agente1-scheduler.service": "a80a2f5735871a31f6b3a4f6daf9c694267c03b569971f69e495a1fe027fc5cb",
     "systemd/agente1-scheduler.timer": "33268d7df468209d9467ab212df0cf0caa511c7fa6b0cd9bb6beea3ba83b8ab8",
-    "uv.lock": "6b2d671f26d5064e19f3296693802285dfd3e271b62666b2c0fa93ccc2d0d409"
+    "uv.lock": "79b5ecb9fdf542f8e9b8c281ce400e4db0c9fc2b4ba075c37a4e0a18095dd7aa"
   },
   "schema_version": "agente1_manifest_version_v1",
-  "version": "0.5.0"
+  "version": "0.5.1"
 }

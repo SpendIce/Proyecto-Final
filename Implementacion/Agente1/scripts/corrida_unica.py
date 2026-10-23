@@ -1558,7 +1558,13 @@ def _directorio_evidencia(root: Path) -> Path:
     return candidato
 
 
-def _leer_commit(root: Path) -> str:
+def _leer_commit(root: Path, environ: Mapping[str, str] | None = None) -> str:
+    """El commit del checkout; en el contenedor, el que hornea la imagen.
+
+    La imagen no lleva `.git` (#143): el CI escribe el commit del tag en
+    `AGENTE1_REVISION` al construirla, y el preflight lo valida igual.
+    """
+
     try:
         proceso = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "HEAD"],
@@ -1568,8 +1574,21 @@ def _leer_commit(root: Path) -> str:
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
-        return ""
-    return proceso.stdout.strip() if proceso.returncode == 0 else ""
+        proceso = None
+    if proceso is not None and proceso.returncode == 0 and proceso.stdout.strip():
+        return proceso.stdout.strip()
+    return (environ or {}).get("AGENTE1_REVISION", "").strip()
+
+
+def _salida_e2e(environ: Mapping[str, str]) -> Path:
+    """Registro estable del E2E: en el contenedor vive en el estado montado.
+
+    El código del contenedor es de sólo lectura (#143), así que con
+    `AGENTE1_ESTADO` definido el registro va a `<estado>/workspace-e2e`.
+    """
+
+    estado = environ.get("AGENTE1_ESTADO", "").strip()
+    return Path(estado) / "workspace-e2e" if estado else SALIDA_E2E
 
 
 def main(
@@ -1607,6 +1626,7 @@ def main(
         return int(error.code)
 
     raiz = ROOT
+    entorno = dict(os.environ if environ is None else environ)
     evidencia = args.evidencia_dir or _directorio_evidencia(raiz)
     opciones = Opciones(
         live=bool(args.live),
@@ -1616,13 +1636,13 @@ def main(
         presupuesto_min=args.presupuesto_min,
         evidencia_dir=evidencia,
         root=raiz,
+        salida_e2e=_salida_e2e(entorno),
         timeout_modelo=args.timeout_modelo,
     )
-    entorno = dict(os.environ if environ is None else environ)
     contexto = Contexto(
         environ=entorno,
         host=host if host is not None else socket.gethostname(),
-        commit=commit if commit is not None else _leer_commit(raiz),
+        commit=commit if commit is not None else _leer_commit(raiz, entorno),
         python=platform.python_version(),
         plataforma=platform.platform(),
         ahora=ahora or _ahora,

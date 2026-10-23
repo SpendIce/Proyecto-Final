@@ -758,3 +758,17 @@ def test_falla_inesperada_del_paso_corta_con_mensaje(tmp_path: Path) -> None:
     assert codigo == modulo.EXIT_SMOKE
     assert "Falla inesperada del paso (RuntimeError)" in salida.getvalue()
     assert "Traceback" not in salida.getvalue()
+
+
+def test_sin_git_el_commit_sale_de_la_revision_horneada_en_la_imagen(tmp_path: Path) -> None:
+    modulo = _cargar_script()
+    sin_repo = tmp_path / "sin-repo"
+    sin_repo.mkdir()
+    assert modulo._leer_commit(sin_repo, {"AGENTE1_REVISION": "7c0d5a4bfeb4"}) == "7c0d5a4bfeb4"
+    assert modulo._leer_commit(sin_repo, {}) == ""
+
+
+def test_en_el_contenedor_el_registro_del_e2e_vive_en_el_estado(tmp_path: Path) -> None:
+    modulo = _cargar_script()
+    assert modulo._salida_e2e({"AGENTE1_ESTADO": str(tmp_path)}) == tmp_path / "workspace-e2e"
+    assert modulo._salida_e2e({}) == modulo.SALIDA_E2E
