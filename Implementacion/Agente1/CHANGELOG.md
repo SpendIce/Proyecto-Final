@@ -20,6 +20,15 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.4] - 2026-10-23
+
+- **Parche — anexos de laboratorio sobre el sistema en contenedores (#147).**
+  Los scripts generadores de los anexos declaran la foto del 23/10 (versión
+  0.5.4), el sistema en el servidor en contenedores y el modelo `gemma4:e4b`.
+  La selección de Sistema en el Anexo 3 declara «Ejecución en contenedores
+  endurecidos» y la entrega se escribe en `Documentos/Laboratorio/Entrega/`.
+  No cambia el comportamiento del agente.
+
 ## [0.5.3] - 2026-10-23
 
 - **Parche — el camino del scheduler pide el modelo sin razonamiento (#143).**

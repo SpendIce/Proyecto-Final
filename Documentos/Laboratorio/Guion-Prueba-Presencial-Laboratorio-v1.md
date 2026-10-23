@@ -4,7 +4,7 @@ Vista de trabajo del autor para la prueba presencial. **No se entrega al laborat
 
 - **Ticket:** [#114](https://github.com/SpendIce/Proyecto-Final/issues/114), que sale de [#57](https://github.com/SpendIce/Proyecto-Final/issues/57).
 - **Ventana acordada:** semana del **2 al 6 de noviembre de 2026** (lunes, miércoles o viernes por la mañana).
-- **Formato:** demo del sistema funcionando, **~1 hora, sin presentación**, en la notebook del autor.
+- **Formato:** demo del sistema funcionando, **~1 hora, sin presentación**. El sistema corre en el **servidor de la facultad** (`labredesfie`), en contenedores (ADR 0013), y se opera desde la notebook del autor: la consola por túnel SSH y los comandos en la consola del contenedor en Portainer. La cátedra exige que no corra en localhost.
 - **Insumos:** los tres anexos ([Anexo 1](Anexo1-Presentacion-v1.md), [Anexo 2](Anexo2-Calidad-Proyeccion-v1.md), [Anexo 3](Anexo3-Seguridad-Proyeccion-v1.md)) y sus tablas fuente (`Perfil-Calidad-Sistema-Demostracion-v1.md`, `Perfil-Seguridad-Sistema-Demostracion-v1.md`).
 - **Estado:** guion y respuestas preparados en esta sesión. **El ensayo completo de punta a punta queda pendiente y lo corre Juani** (es el criterio de aceptación de #114).
 
@@ -17,13 +17,17 @@ Del correo de A. Maiorano del 14/10 (`Documentos/Reuniones/Laboratorio-2026-10-1
 3. Preguntan por **seguridad** (por ejemplo, cómo se almacenan las contraseñas en la base).
 4. **Pueden pedir mostrar porciones del código fuente.**
 
+**Dónde corre cada cosa.** Los comandos del sistema (`uv run python scripts/X ...` en este guion) se corren **dentro del contenedor** `agente1-consola-1`, desde Portainer (*Containers → Console*), como `AGENTE1_OLLAMA_UPSTREAM= python scripts/contenedor_entrypoint.py python scripts/X ...`. El entrypoint carga el env file y el relay de la consola ya está escuchando. Las salidas van bajo `/state/...`, no `/tmp`. Los tests (`uv run pytest`) se corren en la notebook sobre el repo, porque la imagen de runtime no los lleva; el CI los corre también dentro de la imagen de prueba antes de publicarla. Fuera de la red de la facultad, Portainer se abre por túnel (runbook de contenedores).
+
 Regla de oro del guion: **todo lo que se muestra corre de verdad**. Lo que dependa de un tercero corre contra un destino de prueba o un insumo provisional **declarado**, por el mismo mecanismo productivo, nunca contra un fake.
 
 ## Antes de empezar (10 minutos, fuera del horario de la prueba)
 
-- [ ] Entorno sincronizado: `cd Implementacion/Agente1 && uv sync`.
-- [ ] **Modelo caliente**: arrancar Ollama y hacer una generación de calentamiento. La carga en frío agotaba el deadline anterior; con el modelo caliente una corrida tarda decenas de segundos, no minutos.
-- [ ] **Credencial de la cuenta de servicio** vigente en `~/.config/agente1/` (`chmod 600`), con el env file apuntado desde D2. Si #99 todavía no está hecho, el sistema corre **igual** y se declara la credencial como insumo provisional.
+- [ ] **Stack sano**: en Portainer, `agente1-ollama-1` *healthy* y `agente1-consola-1` *running*, con la versión cortada vigente (la rama `deploy` dice cuál).
+- [ ] **Consola abierta**: `./run-demo-plan-a.sh` desde la notebook (túnel al puerto 8090).
+- [ ] **Modelo caliente**: la consola lo calienta al arrancar; confirmar «cargado» en su encabezado, o hacer una generación de calentamiento. En frío la primera pieza puede tardar varios minutos.
+- [ ] **Smoke en vivo** desde la consola del contenedor: `AGENTE1_OLLAMA_UPSTREAM= python scripts/contenedor_entrypoint.py smoke --live --id-solicitud FIE-DIF-08` → `lectura_confirmada`.
+- [ ] Notebook con el repo sincronizado (`cd Implementacion/Agente1 && uv sync`) para los tests y el recorrido de código.
 - [ ] Carpeta de prueba en D2 y **lista de direcciones de prueba** cargadas.
 - [ ] **Suite ya corrida y verde** antes de la prueba, con el número a mano (no se corre entera en vivo: tarda poco más de un minuto y no aporta verla entera).
 - [ ] Todas las salidas de la demo en un **directorio de trabajo fuera del repo** (`/tmp/...` o `salida/demo-laboratorio/`), que está en `.gitignore`.
@@ -79,7 +83,7 @@ Salida verificada el 16/10/2026: un borrador `PENDIENTE_VALIDACION` en `borrador
 
 Qué decir: el agente **consulta** Historia Viva, recibe fragmentos citables con su precisión de fecha y redacta. Una precisión de mes, año o década **no** se presenta como fecha exacta. Una consulta sin resultados no habilita afirmaciones históricas.
 
-**Declarar acá la brecha abierta**: el contrato creativo de redacción libre todavía no supera el control de contenido (conformidad medida 1/6 con `llama3.2:3b` y 4/6 con `llama3.1:8b`, 23/09). El residual es de obediencia del modelo y lo contienen el gate fail-closed más la validación humana obligatoria. La medición se refresca con el modelo definitivo (#51).
+**Estado de la redacción libre**: con el modelo de la demo (`gemma4:e4b`, #51) los posts superan el control de contenido (gacetilla y posts 48/48 en la medición del servidor; Instagram y LinkedIn generados en vivo desde el contenedor el 23/10). Lo que sigue abierto es la validación editorial de la SEU, que entra por la validación humana obligatoria. Si preguntan por las mediciones viejas (1/6 con `llama3.2:3b`): quedaron superadas al cambiar de modelo.
 
 ### Bloque 4. Doble aprobación y envío por lista de prueba (HU-012), 8 min
 
@@ -100,12 +104,17 @@ uv run python scripts/matriz_hu014.py --salida /tmp/lab/hu014   # circuito compl
 
 Qué decir: la lista de cierre la **carga la SEU**; el agente nunca infiere asistencia ni aprobación. La aprobación del lote la da el Secretario de Extensión y queda **atada al `sha256`** del objeto: editar la lista de cierre o la plantilla cambia el hash y la aprobación previa deja de aplicar. El certificado lleva el bloque de firma del Secretario de Extensión y del Decano; la **firma digital está fuera de alcance** porque el DoD no la exige. El destino es un correo al titular con el PDF adjunto, contra la lista de prueba. Después de emitir solo queda la auditoría con hashes.
 
-### Bloque 6. Gates y auditoría: códigos, conteos y hashes, 6 min
+### Bloque 6. Gates, auditoría y aislamiento del contenedor, 6 min
 
 ```bash
 uv run python scripts/auditar_seguridad_d2.py --manifest data/security_d2_manifest.synthetic.json --reporte /tmp/lab/reporte.json
 uv run python -m agente1 ...   # mostrar la línea del log JSONL con sus hashes
+# En Portainer, consola de agente1-ollama-1: el modelo no tiene salida a internet
+bash -c 'echo > /dev/tcp/1.1.1.1/443'      # → Network is unreachable
+# En Portainer, Inspect de agente1-consola-1: usuario 1003, ReadonlyRootfs, CapDrop ALL, sin socket de Docker
 ```
+
+Qué decir del aislamiento: el modelo corre en su propio contenedor en una red interna sin salida; el agente corre sin root, con el sistema de archivos de sólo lectura y sin capacidades; la imagen la publica el CI sólo al cortar una versión y Portainer la despliega desde la rama `deploy`. La vuelta atrás de versión y la recuperación ante caída están probadas (`Implementacion/Agente1/evidencias/contenedores-servidor-2026-10-23.md`).
 
 Qué decir: el reporte expone **códigos, conteos y hashes**, nunca contenido, destinatarios ni cuerpos; rechaza campos sensibles aunque el valor no esté declarado. Un registro corrupto se trata como ausente y **no habilita entrega**. En modo operación el agente **no arranca** si algún archivo controlado no coincide con el manifest (ADR 0010).
 
@@ -121,7 +130,7 @@ Decir qué **no** se muestra, con el motivo, sin maquillarlo: ver la sección «
 
 ### Tests unitarios
 
-- **Cómo se corren:** `cd Implementacion/Agente1 && uv run pytest -q`. Son **2176 pruebas** en verde y 8 salteadas, en **80 segundos** (medido el 16/10/2026). En vivo conviene correr un subconjunto por componente en lugar de la suite entera.
+- **Cómo se corren:** `cd Implementacion/Agente1 && uv run pytest -q`. Son **2444 pruebas** en verde y 8 salteadas, en menos de dos minutos (medido el 23/10/2026). En vivo conviene correr un subconjunto por componente en lugar de la suite entera.
 - **Cobertura medida:** `uv run pytest -q --cov=src --cov-report=term` da **90 %** (9795 sentencias, 795 sin cubrir, 3086 ramas). El número sale de la corrida del 16/10/2026 y hay que refrescarlo el día de la prueba si cambió el código.
 - **Matrices por historia de usuario**, reproducibles y offline: `scripts/matriz_hu010.py`, `matriz_hu011_v2.py`, `matriz_hu012.py`, `matriz_hu014.py`. Ejercitan el circuito completo (pendiente, aprobación parcial, aprobada en ambos órdenes, rechazada, duplicada, emisión simulada, recuperación durable).
 - **Linter y CI:** `.github/workflows/agente1-ci.yml` corre `uv run ruff check .` (E/F/I/W, sin hallazgos) y la suite con cobertura, publica la cobertura en el resumen del job y además prueba el ciclo `up`/`down` de las migraciones 0001-0003 sobre PostgreSQL efímero.
@@ -138,14 +147,14 @@ uv run pytest -q tests/test_auditoria_seguridad_d2.py
 
 ### Tests de stress: no hay, y este es el motivo
 
-**Declararlo así, sin rodeos.** La suite es determinista y de contrato: cubre reglas, gates y máquinas de estado, no comportamiento bajo carga. No hay prueba de stress ni de concurrencia sobre el sistema completo, y el sistema de demostración corre en la **laptop del autor con modelo local en CPU**: una prueba de carga sobre ese host mediría el host, no el sistema.
+**Declararlo así, sin rodeos.** La suite es determinista y de contrato: cubre reglas, gates y máquinas de estado, no comportamiento bajo carga. No hay prueba de stress ni de concurrencia sobre el sistema completo, y el sistema de demostración corre en un **servidor compartido de 4 núcleos, sin GPU, con modelo local en CPU**: una prueba de carga ahí mediría el hardware y molestaría a los otros usuarios del servidor, no al sistema.
 
 Lo que sí existe y se puede mostrar como sustituto parcial:
 
 - **Idempotencia durable y concurrencia acotada**, que es la parte donde la carga sí importa: `tests/test_confirmaciones_durables.py` cubre dos creaciones en paralelo que producen un solo borrador, una reserva colgada que pasa a `ENVIO_INDETERMINADO` sin reenviar y una re-corrida que termina `DUPLICADA`.
 - **Medición de latencia y presupuesto de decodificación**: `evidencias/medicion-presupuesto-decodificacion-2026-09-08.md` y la latencia por pieza que fija #50/#51.
 
-**Previsto:** una prueba de stress del circuito de generación y de la cola cuando el sistema corra sobre el host institucional (D3). Queda como trabajo a futuro declarado, no como capacidad detenida.
+**Previsto:** una prueba de stress del circuito de generación y de la cola sobre el servidor, donde ya corre el sistema. Queda como trabajo a futuro declarado, no como capacidad detenida.
 
 ## Respuestas de seguridad, listas
 
@@ -161,7 +170,7 @@ El alcance de la delegación sobre todo el dominio es un **riesgo aceptado por D
 
 ### Secretos
 
-El único secreto es la **clave JSON de la cuenta de servicio**: se custodia fuera del repo, en `~/.config/agente1/` del host, con `chmod 600` y disco cifrado. No se versiona ni se escribe en logs, manifests ni mensajes de error. El proyecto tiene **cero dependencias de runtime** (`dependencies = []`), lo que deja el árbol de dependencias enumerable y sin transitivas.
+El único secreto es la **clave JSON de la cuenta de servicio**: se custodia fuera del repo, en `~/.config/agente1/` del servidor, con `chmod 600`, y se monta en sólo lectura en el contenedor (nunca entra a la imagen). **El disco del servidor no está cifrado** (sin root no se puede): se declara como riesgo aceptado, con el control compensatorio de que la clave sólo se hace pasar por la cuenta técnica y DSI la revoca. La OAuth anterior se dio de baja el 23/10. No se versiona ni se escribe en logs, manifests ni mensajes de error. El proyecto tiene **cero dependencias de runtime** (`dependencies = []`), lo que deja el árbol de dependencias enumerable y sin transitivas.
 
 ### Auditoría
 
@@ -175,7 +184,8 @@ El Anexo 3 cita **OWASP Top 10 for LLM** por ítem (es la referencia que sugiri�
 
 - **2SV de la cuenta técnica**: prevista, no implementada.
 - **Context-Aware Access y eventos de llamadas a API**: exigen Workspace Standard o Plus; con Education Fundamentals quedan declarados como previstos con su justificación.
-- **Aislamiento del host**: no hay, corre en la laptop del autor. Es parte del traspaso, no del PPS.
+- **Límite de CPU de los contenedores**: no hay, a propósito, para no penalizar la inferencia en 4 núcleos sin GPU (sí hay techo de memoria y de procesos).
+- **Riesgo aceptado**: el acceso a Docker es por Portainer con rol de administrador (equivale a root sobre el host); es la credencial de desarrollo del autor y el agente nunca la recibe.
 
 ## Rutas de código por componente (columna *Evidencia versionada* del Anexo 3)
 
@@ -198,9 +208,9 @@ El Anexo 3 cita **OWASP Top 10 for LLM** por ítem (es la referencia que sugiri�
 No es falta de trabajo: es alcance detenido por un tercero, declarado en el Anexo 1 y en la columna *Estado declarado* de los perfiles.
 
 - **Validación de calidad por referentes de la SEU** (operabilidad, reconocibilidad, prueba guiada de HU-013): prevista, sin validación registrada (#56).
-- **Ejecución live de los canales y del registro de decisiones como paso de la revisión**: la evidencia versionada es offline y la corrida live se declara como paso.
-- **Operación sobre el host D3**: no hay ejecución live porque el host todavía no llegó.
-- **Niveles verificados de los SLO** (disponibilidad, latencia por pieza, tiempo de atención): sin medición a la fecha (#50, #51, #88); el perfil declara la ausencia en lugar de un número.
+- **Envío real por Gmail y Forms reales de HU-012/HU-014**: el circuito corre completo contra destinos de prueba y la lista de prueba; la emisión real no está configurada.
+- **Unidad compartida de Google de D3**: el cómputo ya corre en el servidor, pero los recursos siguen en D2 (#100).
+- **Niveles verificados de los SLO** de disponibilidad, tiempo de atención y aprobación a envío: sin medición a la fecha (#88). La latencia por pieza sí está medida en el servidor.
 - **Criterio formal del gate**: la Dirección de carrera no fijó un criterio formal; la evidencia se presenta contra el TRL 4 de la documentación del P100 y el go/no-go lo fija el informe del laboratorio.
 - **Plantilla de certificado y firma definitivas de la SEU**: corre la plantilla base provisional declarada.
 - **Firma digital de certificados**: fuera de alcance, el DoD no la exige.

@@ -71,7 +71,7 @@ window.GANTT_PROGRESS = {
   "s6d": { done: true, at: "2026-09-21", nota: "62 pruebas nuevas cubren datos faltantes, rechazo, rol invalido, duplicados, recuperacion durable y emision simulada controlada (matriz_conformidad_hu014_v1, 12 casos)" },
   "s6e": { done: true, at: "2026-09-21", nota: "Log de emision con hashes (pdf_hash) sin datos personales en claro, reconciliacion de EMISION_RESERVADA hacia EMISION_INDETERMINADA y doc de limites en evidencias/limites-hu014-offline.md" },
   "m7":  { done: true, at: "2026-10-20", nota: "Suite local 2377 passed / 8 skipped; cobertura 90% registrada. CI de main verde en el run 39455797467 (f2dfbf6)" },
-  "s7c": { done: true, at: "2026-10-21", nota: "E2E live en labredesfie con gemma4:e4b y una actividad real del corpus (FIE-DIF-08) sobre la hoja v2. Plan A (cuenta de servicio) 6/6: smoke lectura_confirmada, gacetilla PENDIENTE_VALIDACION en 64,2 s, HU-014 y HU-012; Plan B (OAuth) tambien PENDIENTE_VALIDACION. La consola visual con cuenta de servicio genero el borrador 21-10. Suite 2411 passed / 8 skipped y CI verde. La hoja de produccion real de la SEU sigue en #99; no bloquea las pruebas. Evidencia: Implementacion/Agente1/evidencias/plan-b-oauth-workspace-2026-10-20.md" },
+  "s7c": { done: true, at: "2026-10-21", nota: "E2E live en labredesfie con gemma4:e4b y una actividad real del corpus (FIE-DIF-08), con la cuenta de servicio. 21/10: gacetilla PENDIENTE_VALIDACION en 64,2 s, HU-014 y HU-012, y la consola visual en la presentacion de avance. 23/10, ya en contenedores (runtime oficial, ADR 0013, version 0.5.3): corrida unica completa (gacetilla, HU-014 con 2 certificados EMITIDA, HU-012/HU-013 con lote ENVIO_ENCOLADO), posts de Instagram y LinkedIn en vivo, modelo en HU-014 6/6, HU-012 4/4 y canal 8/8, scheduler con el insumo de A3, respaldo y restauracion, vuelta atras de version y recuperacion ante caida. Gmail y Forms reales de HU-012/HU-014 siguen sin configurar (destinos de prueba). Suite 2444 passed / 8 skipped y CI verde, tambien dentro de la imagen. Evidencia: Implementacion/Agente1/evidencias/contenedores-servidor-2026-10-23.md" },
 
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
@@ -98,14 +98,19 @@ window.GANTT_PROGRESS = {
   //        tamano. El 19/10 no hubo revision de muestras (JOS-P5 pendiente);
   //        los criterios por canal del 22/09 siguen vigentes.
   // m2   - Gate TRL 3 PENDIENTE: falta criterio formal (DEF-A1-006, BLOQUEADO_EXTERNO) y validacion SEU.
-  // s3a  - D2 provisionado y verificado live el 28/09: cuenta tecnica
-  //        dedicada, carpeta autorizada, planilla y plantilla sinteticas, y
-  //        E2E completo con borrador real. El servidor de la facultad corre
-  //        como host de computo desde el 19/10 y la carpeta compartida de
-  //        trabajo se usa como plano de archivos: eso se declara D3
-  //        provisional. La unidad institucional de D3 (#100), el aval formal
-  //        y el host institucional siguen abiertos (#63/#64, #119).
+  // s3a  - D2 provisionado y verificado live el 28/09. Desde el 21/10 la
+  //        identidad definitiva (cuenta de servicio de DSI, #99) opera en el
+  //        servidor y la OAuth se dio de baja el 23/10. Desde el 23/10 el host
+  //        es el servidor de la facultad con el agente en contenedores
+  //        (runtime oficial, ADR 0013, #119 cerrado). Falta solamente la
+  //        unidad compartida institucional de D3 con los recursos migrados
+  //        (#100, de DSI); por eso no se marca.
   // m3   - depende de s3a; s3b esta completo desde el 22/09.
+  // s7d  - seguridad, permisos y prompt injection: la suite cubre la
+  //        inyeccion en el canal y el fallback, y el 23/10 se verifico en el
+  //        servidor el aislamiento de los contenedores (Ollama sin egreso,
+  //        agente sin root ni capacidades, arranque fail-closed). Falta la
+  //        revision de laboratorio, que es la que evalua seguridad.
   // m6   - "HU-014 operativa con DoD": el slice offline esta hecho (s6a-s6e),
   //        pero el DoD exige plantilla institucional de la SEU y validacion
   //        humana real. El 19/10 llego la plantilla de aprobacion (ficha de

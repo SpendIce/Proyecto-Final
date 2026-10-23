@@ -29,7 +29,7 @@ Uso:
 
     uv run --with python-docx python scripts/anexo1_presentacion.py \\
         --plantilla "Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/3.1 - Anexo 1 - Presentación 2025.docx" \\
-        --docx Documentos/Laboratorio/Entrega-2026-10-23/Anexo1-Presentacion.docx
+        --docx Documentos/Laboratorio/Entrega/Anexo1-Presentacion.docx
         # escribe la entrega sobre la plantilla oficial. Requiere python-docx.
 """
 
@@ -173,12 +173,12 @@ REFERENCIA_FOTO = (
     "Las tablas de este anexo se derivan de la tabla fuente del perfil de "
     "calidad del sistema de demostración "
     "(`Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`), la "
-    "misma que alimenta el Anexo 2: foto del corte del 17/10/2026, sobre la "
-    "base `3e392c5` (2026-10-17), la de los siete tipos de gacetilla "
-    "declarados (#121), el set de evaluación de dos ejes (#111) y el tipo en "
-    "el canal (#122); el inventario sin cambios desde `293db20` (14/10). El "
-    "perfil de seguridad no se declara "
-    "acá: cada estrato remite al Anexo 3."
+    "misma que alimenta el Anexo 2: foto del corte del 23/10/2026, versión del "
+    "agente 0.5.4 (tag `agente1-v0.5.4`), con el sistema corriendo en "
+    "contenedores en el servidor de la facultad (ADR 0013), los siete tipos de "
+    "gacetilla declarados (#121), el set de evaluación de dos ejes (#111), el "
+    "tipo en el canal (#122) y el modelo `gemma4:e4b` (#51). El perfil de "
+    "seguridad no se declara acá: cada estrato remite al Anexo 3."
 )
 
 CONCEPTO_GENERAL = [
@@ -233,17 +233,22 @@ ENFOQUE = [
         "más la aprobación de lote previa al envío."
     ),
     (
-        "**Ejecución local y fail-closed.** Los modelos corren en "
-        "infraestructura propia y el agente falla cerrado en cada frontera: lo "
-        "que no cumple se rechaza antes de generar, escribir o tocar el "
-        "registro. La auditoría guarda códigos, conteos y hashes, nunca "
-        "contenido ni datos personales en claro."
+        "**Ejecución local, aislada y fail-closed.** Los modelos corren en "
+        "infraestructura propia, en un contenedor sin salida a internet, y el "
+        "agente falla cerrado en cada frontera: lo que no cumple se rechaza "
+        "antes de generar, escribir o tocar el registro, y el contenedor no "
+        "arranca si un archivo controlado no coincide con su versión. La "
+        "auditoría guarda códigos, conteos y hashes, nunca contenido ni datos "
+        "personales en claro."
     ),
     (
         "**Sistema de demostración sin capacidades detenidas.** El sistema corre "
-        "en la laptop del autor con modelo local y sobre Google Workspace D2 con "
-        "la cuenta técnica. Lo que depende de un tercero (plantillas, firmas, "
-        "política de redes, identidad del personal, host D3) corre contra un "
+        "en el servidor de la facultad, en contenedores desplegados desde el "
+        "repositorio al cortar cada versión (ADR 0013): el modelo local "
+        "(`gemma4:e4b` sobre Ollama) en un contenedor sin salida a internet y "
+        "el agente sobre Google Workspace D2 con la cuenta de servicio de DSI. "
+        "Lo que depende de un tercero (plantillas, firmas, política de redes, "
+        "identidad del personal, unidad compartida de D3) corre contra un "
         "destino de prueba o un insumo provisional declarado, por el mismo "
         "mecanismo productivo y nunca contra un fake, con la meta de conseguir "
         "el original."
@@ -261,18 +266,22 @@ ENFOQUE = [
 ESTADO_TRL_INTRO = (
     "Este anexo declara el estado de las capacidades contra el **gate TRL 4**. "
     "Las cifras y los estados de las tablas por estrato son los de la foto "
-    "declarada en el corte del 17/10/2026, sobre la base `3e392c5` "
-    "(2026-10-17). La nota sobre fechas y "
+    "declarada en el corte del 23/10/2026, versión 0.5.4 (tag "
+    "`agente1-v0.5.4`). La nota sobre fechas y "
     "estado verificado del anteproyecto conserva el corte del 21/09/2026; "
     "cuando uno y otro citan un número, corresponde a su propia fecha, y la "
     "revisión de laboratorio evalúa la foto de este anexo."
 )
 
 ESTADO_TRL_DEMOSTRADO = (
-    "**Demostrado sobre el sistema de demostración.** La corrida live del "
-    "28/09/2026 quedó verificada con smoke de lectura, casos negativos y un "
-    "extremo a extremo de gacetilla cuyo borrador real quedó en la carpeta "
-    "autorizada, sin modificar nada existente. HU-010 a HU-014 están "
+    "**Demostrado sobre el sistema de demostración.** El 23/10/2026, desde el "
+    "contenedor del servidor y con la cuenta de servicio: smoke de lectura, "
+    "gacetilla y posts de Instagram y LinkedIn de extremo a extremo con "
+    "borrador real en la carpeta autorizada (sin modificar nada existente), "
+    "el circuito completo de HU-012/HU-013 y de HU-014 contra destinos de "
+    "prueba, el scheduler procesando un insumo de A3, el respaldo con su "
+    "restauración, la vuelta atrás de versión y la recuperación ante una "
+    "caída del proceso. HU-010 a HU-014 están "
     "implementadas dentro del alcance declarado: la gacetilla declara los "
     "siete tipos del corpus, dos que generan prosa con prompt propio "
     "(difusión de actividad y saludo o efeméride) y cinco que extraen y "
@@ -300,19 +309,22 @@ ESTADO_TRL_NO_DEMOSTRADO = [
         "prueba guiada con una persona real de la SEU no se concretó)."
     ),
     (
-        "La ejecución live de los canales y del registro de decisiones como paso "
-        "de la revisión: la evidencia versionada es offline y las corridas live "
-        "se declaran como paso."
+        "El envío real por Gmail y los Forms reales de HU-012, HU-013 y HU-014: "
+        "el circuito completo corre contra destinos de prueba declarados y la "
+        "lista de prueba de Gmail; los Forms y las variables de la emisión real "
+        "no están configurados en el servidor."
     ),
     (
-        "La operación sobre el host D3: no hay ejecución live porque el host "
-        "todavía no llegó (DEF-A1-001 parcial)."
+        "La unidad compartida institucional de D3: el cómputo corre en el "
+        "servidor de la facultad, pero los recursos de Google siguen siendo los "
+        "de D2 (issue #100). El scheduler del contenedor queda apagado hasta "
+        "configurar la pestaña de insumos."
     ),
     (
-        "Los niveles verificados de los SLO (disponibilidad, latencia por pieza, "
-        "utilización de recursos, tiempo de atención y aprobación a envío) no "
-        "tienen medición a la fecha (issues #50, #51 y #88); el perfil declara la "
-        "ausencia en lugar de un número."
+        "Los niveles verificados de los SLO de disponibilidad, tiempo de "
+        "atención, aprobación a envío y RPO/RTO no tienen medición a la fecha "
+        "(issue #88); la latencia por pieza sí está medida en el servidor. El "
+        "perfil declara la ausencia en lugar de un número."
     ),
     (
         "El criterio formal del gate: la Dirección de carrera no fijó un criterio "
@@ -322,15 +334,13 @@ ESTADO_TRL_NO_DEMOSTRADO = [
 ]
 
 ESTADO_TRL_BRECHA = (
-    "**Brecha técnica abierta de HU-011.** El contrato creativo de redacción "
-    "libre para los posts todavía no supera el control de contenido: el gate "
-    "detecta hechos de la fuente filtrados al texto creativo y registro "
-    "lingüístico no rioplatense, de modo que la variedad comunicacional depende "
-    "de criterios editoriales que la SEU aún no definió. El nivel medido de "
-    "conformidad al gate en redacción libre es de 1/6 con `llama3.2:3b` y 4/6 "
-    "con `llama3.1:8b` (23/09/2026); el incumplimiento residual es de obediencia "
-    "del modelo, lo contienen el gate fail-closed y la validación humana "
-    "obligatoria, y la medición se refresca con el modelo definitivo (issue #51)."
+    "**Brecha de HU-011 cerrada en el gate, abierta en la validación.** Con el "
+    "modelo de la demo (`gemma4:e4b`, issue #51) los posts en redacción libre "
+    "superan el control de contenido: gacetilla y posts 48/48 en la medición "
+    "del servidor, y los dos canales generados en vivo desde el contenedor el "
+    "23/10/2026. Las mediciones anteriores con `llama3.2:3b` (1/6) quedaron "
+    "superadas. Lo que sigue abierto es la validación editorial de la SEU, que "
+    "entra por la validación humana obligatoria."
 )
 
 ESTADO_TRL_CIERRE = (

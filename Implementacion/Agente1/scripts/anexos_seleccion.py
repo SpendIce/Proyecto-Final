@@ -138,7 +138,7 @@ SELECCION_SEGURIDAD: dict[str, tuple[str, ...]] = {
     ),
     "Sistema": (
         "Manifest de versión y arranque fail-closed",
-        "Control de cambios: CI, cobertura y linter",
+        "Ejecución en contenedores endurecidos",
         "Secretos fuera del repo y del log",
     ),
 }

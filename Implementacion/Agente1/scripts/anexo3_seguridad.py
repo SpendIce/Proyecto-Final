@@ -23,7 +23,7 @@ Uso:
 
     uv run --with python-docx python scripts/anexo3_seguridad.py \\
         --plantilla "Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/3.3 - Anexo 3 - Seguridad 2025.docx" \\
-        --docx Documentos/Laboratorio/Entrega-2026-10-23/Anexo3-Seguridad.docx
+        --docx Documentos/Laboratorio/Entrega/Anexo3-Seguridad.docx
         # escribe la entrega sobre la plantilla oficial. Requiere python-docx.
 """
 
