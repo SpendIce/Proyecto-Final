@@ -1,7 +1,7 @@
 """Genera el manifest de versión del Agente 1 (#92, ADR 0010).
 
 Recorre lo controlado del repo —`src/`, `migrations/`, `uv.lock`,
-`pyproject.toml`, `scripts/` y `systemd/`— y emite el sha256 de cada archivo
+`pyproject.toml`, `scripts/`, `systemd/`, `docker/` y el `Dockerfile`— y emite el sha256 de cada archivo
 junto con la versión del agente. El manifest viaja con la versión que se
 instala: el agente lo compara con el árbol del host al arrancar en modo
 operación y no arranca si algo no coincide.

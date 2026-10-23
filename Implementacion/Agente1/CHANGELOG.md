@@ -20,6 +20,40 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.0] - 2026-10-23
+
+Versión que corre en contenedores en el servidor de la facultad y junta los
+cambios controlados que se instalaron en `labredesfie` desde la 0.4.0 sin corte
+propio (la presentación de avance del 21/10 corrió sobre `dbcbcde`).
+
+- **Menor — empaquetado en contenedores (#143, ADR 0013).** `Dockerfile`
+  multi-etapa (`test` corre la suite adentro, `runtime` sin tests, no root, base
+  fijada por digest), `docker/compose.yaml` con Ollama 0.40.6 en una red interna
+  sin egreso y modelos montados en sólo lectura, y
+  `scripts/contenedor_entrypoint.py`: carga el env file en tiempo de ejecución,
+  verifica la integridad al arrancar y reenvía loopback a Ollama sin tocar el
+  control del adaptador. `Dockerfile` y `docker/` entran a `RUTAS_CONTROLADAS`.
+  `pyyaml` entra sólo como dependencia de desarrollo.
+- **Menor — modelo de la demo (#51).** Prompts v3/v4 de HU-012 y HU-014, v5 de
+  LinkedIn e Instagram, v6 de posts con versión de prompt por canal,
+  `linea_descriptiva_v2`, `think` opcional en Ollama y medidores con
+  `--guardar-respuestas`. Timeout de Ollama derivado del peor caso del servidor
+  (#50).
+- **Menor — plantilla de HU-012 (#140).** El modelo escribe sólo la prosa y el
+  código compone el cuerpo con las variables.
+- **Menor — modo producción del envío Gmail (#141)** con lista aprobada; el
+  modo prueba sigue siendo el único habilitado.
+- **Menor — corrida única y consola de la demo (#132).** Script de corrida en
+  el servidor, consola visual con la cuenta de servicio y hoja v2, `think=false`
+  en la gacetilla live y E2E de posts con el contrato creativo v3. Los wrappers
+  del plan B por OAuth siguen en `scripts/` sin credencial que los alimente
+  (OAuth dada de baja en #99).
+- **Parche — gates.** La regla del título rechaza la copia, no la mención del
+  tema (#139); el gate de registro no confunde la tercera persona con el tuteo;
+  una región amplia después de «en» es tema, no sede; el techo de extensión del
+  post es el de cada plataforma (#51).
+- **Parche — E2E offline de la gacetilla (#138):** el fake devuelve la ficha.
+
 ## [0.4.0] - 2026-10-17
 
 El aporte a Historia Viva manda el vocabulario exacto de la `1.1.0-rc2` de la

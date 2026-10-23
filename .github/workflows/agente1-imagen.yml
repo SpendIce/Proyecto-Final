@@ -1,0 +1,164 @@
+# Imagen del Agente 1 (#143, ADR 0013): CI y CD del contenedor.
+#
+# CI, en cada PR o push a `main` que toque el Agente 1:
+#   1. construye la etapa `test` del Dockerfile, que corre el linter y la suite
+#      adentro de la imagen, con el mismo Python que el runtime;
+#   2. construye la etapa `runtime` y verifica su contrato: integridad al
+#      arrancar con el sistema de archivos de solo lectura y sin capacidades,
+#      usuario no root, y que un archivo controlado alterado impide arrancar.
+#
+# CD, sólo al cortar una versión (tag `agente1-vX.Y.Z` sobre `main`):
+#   3. comprueba que el tag coincida con la versión de `pyproject.toml`;
+#   4. publica la imagen en ghcr.io (`:X.Y.Z` y el digest);
+#   5. escribe `compose.yaml` en la rama `deploy` con la imagen fijada por
+#      digest. Portainer, en el servidor de la facultad, sigue esa rama por
+#      polling y redespliega solo. GitHub nunca llega al servidor (IP privada)
+#      y no guarda ninguna credencial del servidor.
+#
+# Este workflow no es el check requerido de `main` (ese es `agente1-ci`).
+
+name: agente1-imagen
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - Implementacion/Agente1/**
+      - .github/workflows/agente1-imagen.yml
+  push:
+    branches:
+      - main
+    paths:
+      - Implementacion/Agente1/**
+      - .github/workflows/agente1-imagen.yml
+    tags:
+      - agente1-v*
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agente1-imagen-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CONTEXTO: Implementacion/Agente1
+  IMAGEN: ghcr.io/spendice/agente1
+
+jobs:
+  imagen:
+    name: Imagen del Agente 1 (suite adentro y contrato del runtime)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Suite y linter dentro de la imagen
+        run: docker build --target test -t agente1:test "$CONTEXTO"
+
+      - name: Construir el runtime
+        run: docker build --target runtime -t agente1:ci "$CONTEXTO"
+
+      - name: Contrato del runtime
+        run: |
+          set -euo pipefail
+          echo "== integridad al arrancar (read-only, sin capacidades)"
+          docker run --rm --read-only --tmpfs /tmp --tmpfs /state:uid=10001 \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -e AGENTE1_OLLAMA_UPSTREAM= agente1:ci verificar
+          echo "== usuario no root"
+          test "$(docker run --rm --entrypoint id agente1:ci -u)" != "0"
+          echo "== un archivo controlado alterado impide arrancar"
+          set +e
+          docker run --rm -u 0 --entrypoint sh -e AGENTE1_OLLAMA_UPSTREAM= \
+            -e AGENTE1_ESTADO=/tmp/e agente1:ci \
+            -c 'echo "# alterado" >> src/agente1/__init__.py && python scripts/contenedor_entrypoint.py consola'
+          codigo=$?
+          set -e
+          test "$codigo" -eq 2
+
+  publicar:
+    name: Publicar en ghcr.io y apuntar la rama deploy
+    needs: imagen
+    if: startsWith(github.ref, 'refs/tags/agente1-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout del tag
+        uses: actions/checkout@v4
+
+      - name: El tag coincide con la versión del agente
+        id: version
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#agente1-v}"
+          version="$(python3 -c 'import tomllib;print(tomllib.load(open("Implementacion/Agente1/pyproject.toml","rb"))["project"]["version"])')"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::El tag $GITHUB_REF_NAME no coincide con pyproject.toml ($version)."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Login en ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar el runtime
+        id: publicar
+        run: |
+          set -euo pipefail
+          docker build --target runtime \
+            --build-arg VERSION="${{ steps.version.outputs.version }}" \
+            --build-arg REVISION="$GITHUB_SHA" \
+            -t "$IMAGEN:${{ steps.version.outputs.version }}" "$CONTEXTO"
+          docker push "$IMAGEN:${{ steps.version.outputs.version }}"
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGEN:${{ steps.version.outputs.version }}")"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Imagen publicada: \`$digest\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Escribir compose.yaml en la rama deploy
+        env:
+          DIGEST: ${{ steps.publicar.outputs.digest }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          plantilla="$CONTEXTO/docker/compose.yaml"
+          grep -q 'ghcr.io/spendice/agente1:local' "$plantilla"
+          trabajo="$(mktemp -d)"
+          sed "s#\${AGENTE1_IMAGEN:-ghcr.io/spendice/agente1:local}#${DIGEST}#" "$plantilla" > "$trabajo/compose.yaml"
+          grep -q "image: ${DIGEST}" "$trabajo/compose.yaml"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch origin deploy 2>/dev/null; then
+            git switch -C deploy origin/deploy
+          else
+            git switch --orphan deploy
+            git rm -rf --quiet . || true
+          fi
+          cp "$trabajo/compose.yaml" compose.yaml
+          cat > README.md <<EOF
+          # Rama deploy del Agente 1
+
+          La escribe el workflow \`agente1-imagen\` al cortar una versión. No se edita a mano.
+          Portainer, en el servidor de la facultad, sigue esta rama y redespliega cuando cambia.
+
+          - Versión: \`${VERSION}\`
+          - Imagen: \`${DIGEST}\`
+          - Tag de origen: \`${GITHUB_REF_NAME}\` (\`${GITHUB_SHA}\`)
+
+          Volver atrás es correr de nuevo el workflow sobre el tag anterior.
+          EOF
+          git add compose.yaml README.md
+          if git diff --cached --quiet; then
+            echo "La rama deploy ya apunta a esta imagen."
+            exit 0
+          fi
+          git commit -m "deploy: agente1 ${VERSION} (${DIGEST##*@})"
+          git push origin deploy

@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).parents[1]
 CANALES = {"instagram", "linkedin"}
 VALIDOS = {"SYN-001", "SYN-003", "SYN-005"}
@@ -49,6 +51,7 @@ def test_goldens_versionan_tres_actividades_por_dos_canales():
         assert "\nHASHTAGS:\n" in contenido
 
 
+@pytest.mark.usefixtures("requiere_git")
 def test_runner_ejecuta_matriz_completa_y_declara_limites(tmp_path: Path):
     proceso, resumen = ejecutar(tmp_path)
 
@@ -75,6 +78,7 @@ def test_runner_ejecuta_matriz_completa_y_declara_limites(tmp_path: Path):
     assert set(resumen["artifact_hashes"]["prompt_sha256_by_channel"]) == CANALES
 
 
+@pytest.mark.usefixtures("requiere_git")
 def test_runner_compara_seis_borradores_y_no_genera_para_incompletos(tmp_path: Path):
     _, resumen = ejecutar(tmp_path)
     casos = {(caso["id_solicitud"], caso["canal"]): caso for caso in resumen["cases"]}
@@ -128,6 +132,7 @@ def test_runner_compara_seis_borradores_y_no_genera_para_incompletos(tmp_path: P
             ).exists()
 
 
+@pytest.mark.usefixtures("requiere_git")
 def test_resumen_es_redactado_y_no_confunde_fake_con_validacion_llm(tmp_path: Path):
     _, resumen = ejecutar(tmp_path)
     serializado = json.dumps(resumen, ensure_ascii=False)
@@ -146,6 +151,7 @@ def test_resumen_es_redactado_y_no_confunde_fake_con_validacion_llm(tmp_path: Pa
     assert any("no evalúa calidad" in limite for limite in resumen["limitations"])
 
 
+@pytest.mark.usefixtures("requiere_git")
 def test_smoke_ejecuta_una_actividad_en_ambos_canales(tmp_path: Path):
     salida = tmp_path / "smoke"
     entorno = os.environ.copy()
