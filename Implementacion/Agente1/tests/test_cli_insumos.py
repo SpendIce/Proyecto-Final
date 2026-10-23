@@ -221,3 +221,25 @@ def test_cli_live_sin_configuracion_falla_cerrado(
     assert codigo == 2
     assert salida["estado"] == "INVALIDA"
     assert salida["error"].startswith(("workspace_config_", "insumos_config_"))
+
+
+def test_cli_con_modelo_pide_sin_razonamiento(tmp_path: Path, monkeypatch, capsys) -> None:
+    # Configuración congelada del modelo de la demo (#51): el camino del
+    # scheduler construye el generador con `think=False`, igual que el E2E.
+    import agente1.cli_insumos as cli
+
+    construidos: list[dict[str, object]] = []
+
+    class GeneradorEspia:
+        def __init__(self, **kwargs: object) -> None:
+            construidos.append(kwargs)
+
+        def generate(self, *args: object, **kwargs: object) -> str:
+            return SALIDA_CONFORME
+
+    monkeypatch.setattr(cli, "OllamaGenerator", GeneradorEspia)
+    tabla = tmp_path / "insumos.csv"
+    escribir_tabla(tabla, [json.dumps(envelope_evento(), ensure_ascii=False), "ope-1", "", ""])
+    main_insumos(["--tabla", str(tabla), "--directorio", str(tmp_path / "salida"), "--ollama-model", "gemma4:e4b"])
+    capsys.readouterr()
+    assert construidos and construidos[0]["think"] is False

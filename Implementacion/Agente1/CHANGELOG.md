@@ -20,6 +20,15 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.3] - 2026-10-23
+
+- **Parche — el camino del scheduler pide el modelo sin razonamiento (#143).**
+  `cli_insumos` (insumos de agentes y scheduler) construía el generador sin
+  `think=False`, a diferencia del E2E. Con `gemma4:e4b`, el insumo de A3
+  quedaba `evento_generacion_fallida` a los 183 s. Lo encontró el ensayo del
+  scheduler en el contenedor del servidor. El compose le da al scheduler 300 s
+  de techo, igual que la demo.
+
 ## [0.5.2] - 2026-10-23
 
 - **Parche — la imagen lleva `golden/` (#143).** El canal de pedidos offline

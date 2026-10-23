@@ -101,6 +101,8 @@ services:
       - --confirm-write-workspace
       - --ollama-model
       - gemma4:e4b
+      - --ollama-timeout
+      - "300"
       - --directorio
       - /state/scheduler
 

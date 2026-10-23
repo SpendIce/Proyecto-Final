@@ -1,14 +1,14 @@
 {
   "archivos_sha256": {
     "Dockerfile": "caaa0420a5bc45d82f4a27f5180624615c717a13030b54bf4a2e1e3d5da8d24c",
-    "docker/compose.yaml": "8412162ed88e766e51cb2a95e25a9212547f893155a01ea342b5ebdfef97bd19",
+    "docker/compose.yaml": "557a7a573f4451d8e8ff033772b9fd2c3d78d82e475825899830609d7343223e",
     "migrations/0001_persistencia_agente1.down.sql": "a576d7b8ad9eeb18068f50c04956b5bf0a5304a87c8c26df1311479f236fa0a0",
     "migrations/0001_persistencia_agente1.up.sql": "b87d67dc6c0220f73d61b0c44417d397e56d1a715be57d817960feef4a023b14",
     "migrations/0002_integridad_referencial_borradores.down.sql": "24caa7a9a9c2001280f48a17339f1898fc63af2c63a06ad61dbac358d104bb7a",
     "migrations/0002_integridad_referencial_borradores.up.sql": "50b73789fc6065feb11c9fae9193bd6578ef79a46733dfb0a23fe3c48700d7d5",
     "migrations/0003_rechazo_timestamps_futuros.down.sql": "41980a7780ec285ffbfcc728dfbbfd59a009fde62dcb22c4630711c42f1e2867",
     "migrations/0003_rechazo_timestamps_futuros.up.sql": "aed22abf995168bda154b790a4a1a45afbd7dc3fddafe9f5a6c85e128144d72d",
-    "pyproject.toml": "b4da2fc4e2d68190ac4a44fe586d3414abc05e2f4500a6a938cbbec6447e7679",
+    "pyproject.toml": "bccd781493b5240ac55775157ef0eb75fd28913b8cfce7654c922a40cfc7fa53",
     "scripts/anexo1_presentacion.py": "31800127313dba3e0e8a7406136230ecff3d5b34bdc1c7491e15948125abfc73",
     "scripts/anexo2_calidad.py": "e8ef424d77f0782bef99c4909c907af804157e03987966bdeb80baac72a3fcc7",
     "scripts/anexo3_seguridad.py": "276ccba47e16204fc38ccda661ac90605d699061edf26ed1c0bc6d7fe6607f99",
@@ -69,7 +69,7 @@
     "src/agente1/certificados.py": "24b5bbf6237c0b9f542be878a4862ad0e7b38fb84f1d01a0ff0a212467d7a9c6",
     "src/agente1/certificados_emision.py": "58de525987af7f03daa2f2660f466df9b595497e06f2d6dfd6877071a5734f1d",
     "src/agente1/cli.py": "8c8562b7847cd66942b7f09a27188f506ab3a76383a8bc3a08c77a011b1d7cd7",
-    "src/agente1/cli_insumos.py": "0e2100cc896288e64da841949fe0cf73d22eb4709a34a00ae578bb2e8b90a124",
+    "src/agente1/cli_insumos.py": "656d4c850e210071165beae882685e95ec7c7dcdf9c656776d9c70d90c1b88f9",
     "src/agente1/cli_pagos.py": "e3086a4b2da7454bdb9632efac8adb8df643739c097bc7e25811f1fc8a0050bb",
     "src/agente1/cli_scheduler.py": "587eef7bacb21606cefc5b28f5cc0b2abd8cca6fcd4605a9e40257f2ea501933",
     "src/agente1/config_entorno.py": "ebd333ee7c47f2e82291378bba6bf96042bfa593fa0173d81ec17b2fec4d4934",
@@ -203,8 +203,8 @@
     "systemd/agente1-scheduler-loop.service": "b73c70a32920ec44a47d13faba3956ba9c6feeb0c2022689600f6ae34b1854db",
     "systemd/agente1-scheduler.service": "a80a2f5735871a31f6b3a4f6daf9c694267c03b569971f69e495a1fe027fc5cb",
     "systemd/agente1-scheduler.timer": "33268d7df468209d9467ab212df0cf0caa511c7fa6b0cd9bb6beea3ba83b8ab8",
-    "uv.lock": "c92234d54f6fb3aaaa8b0b807ecb153527a60ee24e763eb23bad203824f007fe"
+    "uv.lock": "182abe7ced567be67de2bd5dd3ee57093406aaf670f9d31ccd4f2a51da20b01a"
   },
   "schema_version": "agente1_manifest_version_v1",
-  "version": "0.5.2"
+  "version": "0.5.3"
 }

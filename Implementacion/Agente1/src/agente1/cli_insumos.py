@@ -197,6 +197,11 @@ def corrida_desde_args(
             base_url=args.ollama_base_url,
             timeout_s=args.ollama_timeout,
             num_predict=args.ollama_num_predict,
+            # Configuración congelada del modelo de la demo (#51): sin
+            # razonamiento, igual que el E2E (`workspace_e2e.py`). Con el
+            # razonamiento encendido `gemma4:e4b` agota el tiempo y el insumo
+            # queda `evento_generacion_fallida` (visto en el servidor el 23/10).
+            think=False,
         )
     )
 
