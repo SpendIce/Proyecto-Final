@@ -1,0 +1,103 @@
+# Stack del Agente 1 en el servidor de la facultad (#143, ADR 0013).
+#
+# En `main` este archivo es la plantilla: la imagen apunta a `:local`. Al cortar
+# una versión, el CI publica la imagen en ghcr.io y escribe este mismo archivo
+# en la rama `deploy` con la imagen fijada por digest. Portainer sigue esa rama.
+#
+# Aislamiento (Q1 y Q4 de #124):
+# - Ollama vive en la red `modelo`, interna: sin salida a internet.
+# - Los contenedores del agente corren como el uid del dueño de la clave, sin
+#   capacidades, con el sistema de archivos de sólo lectura y sin el socket de
+#   Docker. Llegan a Ollama por el relay de loopback del entrypoint.
+# - La consola se publica sólo en 127.0.0.1 del host y se abre por túnel SSH.
+#
+# Las rutas del host tienen defaults para `labredesfie` y se pueden cambiar con
+# variables de entorno del stack.
+
+name: agente1
+
+x-endurecido: &endurecido
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "5"
+
+x-agente1: &agente1
+  <<: *endurecido
+  image: ${AGENTE1_IMAGEN:-ghcr.io/spendice/agente1:local}
+  user: "${AGENTE1_UID:-1003}:${AGENTE1_GID:-1003}"
+  environment:
+    AGENTE1_ENV_FILE: ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/workspace-d2.env
+    AGENTE1_OLLAMA_UPSTREAM: ollama:11434
+    AGENTE1_ESTADO: /state
+    HOME: /tmp
+  volumes:
+    - ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}:${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}:ro
+    - ${AGENTE1_HOST_ESTADO:-/home/jgone/p100/estado-contenedor}:/state
+  networks:
+    - modelo
+    - salida
+  mem_limit: 2g
+  pids_limit: 256
+  depends_on:
+    ollama:
+      condition: service_healthy
+
+services:
+  ollama:
+    <<: *endurecido
+    image: ollama/ollama:0.40.6@sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7
+    user: "${AGENTE1_UID:-1003}:${AGENTE1_GID:-1003}"
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_MODELS: /modelos
+      OLLAMA_KEEP_ALIVE: 2h
+      OLLAMA_NOPRUNE: "1"
+      HOME: /tmp
+    volumes:
+      - ${OLLAMA_HOST_MODELOS:-/home/jgone/.ollama/models}:/modelos:ro
+    networks:
+      - modelo
+    mem_limit: 20g
+    pids_limit: 512
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  consola:
+    <<: *agente1
+    command: ["consola"]
+    ports:
+      - "127.0.0.1:${AGENTE1_PUERTO_CONSOLA:-8090}:8080"
+
+  # Apagado durante la marcha en paralelo con el runtime venv (Q6 de #124):
+  # sólo arranca con el perfil `scheduler`, al hacer el cambio.
+  scheduler:
+    <<: *agente1
+    profiles: ["scheduler"]
+    command:
+      - scheduler
+      - --loop
+      - --live
+      - --confirm-write-workspace
+      - --ollama-model
+      - gemma4:e4b
+      - --directorio
+      - /state/scheduler
+
+networks:
+  modelo:
+    internal: true
+  salida: {}

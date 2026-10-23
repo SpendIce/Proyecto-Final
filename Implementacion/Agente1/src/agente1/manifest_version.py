@@ -12,8 +12,9 @@ Decisiones que no se ven en el código:
 
 - **Qué es «lo controlado» y qué queda afuera.** El manifest cubre el código,
   los prompts, las políticas y los contratos bajo `src/`, las `migrations/`,
-  el `uv.lock`, el `pyproject.toml`, los `scripts/` operativos y las unidades
-  `systemd/` (ADR 0010). La **configuración por entorno** —IDs de planillas y
+  el `uv.lock`, el `pyproject.toml`, los `scripts/` operativos, las unidades
+  `systemd/` (ADR 0010) y el empaquetado en contenedores: el `Dockerfile` y
+  `docker/` (ADR 0013). La **configuración por entorno** —IDs de planillas y
   Forms, scopes— queda fuera a propósito: Informática la rota sin pasar por el
   repo y frenar el arranque por eso sería fricción, no control. El conjunto es
   cerrado y declarado en `RUTAS_CONTROLADAS`.
@@ -63,6 +64,8 @@ RUTAS_CONTROLADAS: tuple[str, ...] = (
     "migrations",
     "scripts",
     "systemd",
+    "docker",
+    "Dockerfile",
     "uv.lock",
     "pyproject.toml",
 )

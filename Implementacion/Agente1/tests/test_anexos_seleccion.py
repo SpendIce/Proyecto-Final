@@ -46,6 +46,7 @@ def filas():
     }
 
 
+@pytest.mark.usefixtures("requiere_repo_documentos")
 def test_la_seleccion_resuelve_contra_los_perfiles_reales(seleccion, filas):
     """Un nombre mal escrito tiene que fallar, no recortar de menos en silencio."""
 
@@ -58,6 +59,7 @@ def test_la_seleccion_resuelve_contra_los_perfiles_reales(seleccion, filas):
     assert len(seguridad) == esperado_seguridad
 
 
+@pytest.mark.usefixtures("requiere_repo_documentos")
 def test_no_se_cae_ningun_componente(seleccion, filas):
     """Cada componente que el perfil declara tiene que aparecer en el anexo."""
 

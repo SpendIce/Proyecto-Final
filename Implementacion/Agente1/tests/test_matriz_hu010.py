@@ -10,6 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).parents[1]
 CASOS_VALIDOS = {"SYN-001", "SYN-003", "SYN-005"}
 CASOS_INCOMPLETOS = {"SYN-002", "SYN-004"}
@@ -56,6 +58,7 @@ def test_fixtures_definen_tres_validos_dos_incompletos_y_golden_por_valido():
     assert "Lugar:" not in (ROOT / "golden" / "SYN-005.md").read_text(encoding="utf-8")
 
 
+@pytest.mark.usefixtures("requiere_git")
 def test_runner_ejecuta_cinco_casos_y_expone_frontera_epistemologica(tmp_path):
     proceso, resumen = ejecutar_matriz(tmp_path)
 
@@ -78,6 +81,7 @@ def test_runner_ejecuta_cinco_casos_y_expone_frontera_epistemologica(tmp_path):
     }
 
 
+@pytest.mark.usefixtures("requiere_git")
 def test_runner_valida_goldens_y_no_genera_borrador_para_incompletos(tmp_path):
     _, resumen = ejecutar_matriz(tmp_path)
     casos = {caso["id_solicitud"]: caso for caso in resumen["cases"]}
@@ -105,6 +109,7 @@ def test_runner_valida_goldens_y_no_genera_borrador_para_incompletos(tmp_path):
         assert not (tmp_path / "matriz" / "casos" / caso_id / "borradores").exists()
 
 
+@pytest.mark.usefixtures("requiere_git")
 def test_resumen_no_copia_datos_contactos_prompts_ni_borradores(tmp_path):
     _, resumen = ejecutar_matriz(tmp_path)
     serializado = json.dumps(resumen, ensure_ascii=False)

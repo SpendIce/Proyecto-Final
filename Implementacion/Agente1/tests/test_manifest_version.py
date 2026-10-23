@@ -119,9 +119,9 @@ def test_barrido_controlado_espeja_gitignore(tmp_path: Path) -> None:
         pytest.skip("git no disponible para el cotejo")
 
     def controlada(linea: str) -> bool:
-        if linea in {"uv.lock", "pyproject.toml"}:
+        if linea in {"uv.lock", "pyproject.toml", "Dockerfile"}:
             return True
-        return linea.split("/", 1)[0] in {"src", "migrations", "scripts", "systemd"}
+        return linea.split("/", 1)[0] in {"src", "migrations", "scripts", "systemd", "docker"}
 
     versionados = tuple(
         sorted(linea for linea in salida.stdout.splitlines() if linea and controlada(linea))

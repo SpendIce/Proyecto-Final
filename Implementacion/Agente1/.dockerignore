@@ -1,0 +1,12 @@
+# Fuera del contexto de build: entornos locales, caches, salidas y evidencia.
+.venv
+.runtime
+.pytest_cache
+.ruff_cache
+.coverage
+coverage.txt
+salida
+tmp
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info

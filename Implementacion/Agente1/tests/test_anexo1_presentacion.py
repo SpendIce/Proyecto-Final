@@ -103,6 +103,7 @@ def test_falla_si_falta_un_estrato():
         _modulo.proyectar_por_estrato(_modulo.parsear_fuente(_fuente(rows)))
 
 
+@pytest.mark.usefixtures("requiere_repo_documentos")
 def test_la_fuente_real_conserva_todas_las_filas_y_estratos():
     fuente = (
         REPO / "Documentos" / "Laboratorio" / "Perfil-Calidad-Sistema-Demostracion-v1.md"

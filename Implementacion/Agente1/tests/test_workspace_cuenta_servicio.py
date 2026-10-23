@@ -17,6 +17,7 @@ from urllib.parse import parse_qs
 import pytest
 
 from agente1.google_workspace import RespuestaHttp
+from agente1.manifest_version import raiz_agente, version_desde_pyproject
 from agente1.workspace_auth import (
     CUENTA_AUDITORIA_NOMBRE,
     CUENTA_AUDITORIA_RECORD,
@@ -364,7 +365,7 @@ def test_auditoria_registra_hash_y_version(clave_rsa: Path, tmp_path: Path):
     entrada = json.loads(lineas[0])
     assert entrada["record"] == CUENTA_AUDITORIA_RECORD
     assert entrada["cuenta_suplantada_sha256"] == sha256_cuenta(CUENTA)
-    assert entrada["version"] == "0.4.0"
+    assert entrada["version"] == version_desde_pyproject(raiz_agente())
     assert entrada["resultado"] == "emitido"
     assert entradas_iso(entrada["ejecutado_en"])
     assert CUENTA not in lineas[0]
