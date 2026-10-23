@@ -55,6 +55,15 @@ seguridad §7).
 
 ## 2. Puesta en marcha en una máquina limpia
 
+> **Despliegue oficial desde el 23/10/2026: contenedores.** En el servidor de
+> la facultad el agente corre como el stack `agente1` de Portainer: Ollama
+> 0.40.6 sin salida a internet y la consola, con la imagen que publica el CI al
+> cortar una versión (ADR 0013). La instalación, la actualización, la vuelta
+> atrás y el diagnóstico están en
+> `Documentos/PlanDespliegue/Runbook-Contenedores-Agente-1.md`. Los pasos con
+> `uv` de esta sección son el camino de desarrollo y el último recurso, no la
+> forma de operar.
+
 "Puesta en marcha" es poner el Agente 1 a operar en un host que no lo tuvo
 nunca, siguiendo sólo este manual. La prueba de que el sistema está "listo para
 operar" es exactamente esa: alguien que no escribió el código lo pone en marcha

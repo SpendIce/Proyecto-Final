@@ -1,6 +1,6 @@
 # Runbook — el Agente 1 en contenedores
 
-Cómo se instala, se actualiza, se vuelve atrás y se diagnostica el Agente 1 en contenedores en el servidor de la facultad (`labredesfie`). La decisión y sus motivos están en el ADR 0013 y en [#124](https://github.com/SpendIce/Proyecto-Final/issues/124). El trabajo se sigue en [#143](https://github.com/SpendIce/Proyecto-Final/issues/143).
+Cómo se instala, se actualiza, se vuelve atrás y se diagnostica el Agente 1 en contenedores en el servidor de la facultad (`labredesfie`). **Desde el 23/10/2026 es el runtime oficial:** el venv y el Ollama de usuario quedaron retirados (ver *Runtime anterior*). La decisión y sus motivos están en el ADR 0013 y en [#124](https://github.com/SpendIce/Proyecto-Final/issues/124). El trabajo se sigue en [#143](https://github.com/SpendIce/Proyecto-Final/issues/143).
 
 ## Qué corre
 
@@ -8,7 +8,7 @@ Cómo se instala, se actualiza, se vuelve atrás y se diagnostica el Agente 1 en
 |---|---|---|---|
 | `ollama` | `ollama/ollama:0.40.6` (por digest) | `modelo` (interna, sin internet) | Sirve el modelo. Los modelos se montan en sólo lectura desde `~/.ollama/models` |
 | `consola` | `ghcr.io/spendice/agente1` (por digest) | `modelo` + `salida` | Consola de la demo. Se publica en `127.0.0.1:8090` del host |
-| `scheduler` | la misma | `modelo` + `salida` | Corridas programadas. **Apagado** salvo el perfil `scheduler` |
+| `scheduler` | la misma | `modelo` + `salida` | Corridas programadas. **Apagado** salvo el perfil `scheduler`: encenderlo exige configurar la pestaña de insumos (`AGENTE1_INSUMOS_RANGO_A1`) |
 
 Los contenedores del agente:
 - corren como el uid del dueño de la clave (`1003`), con el sistema de archivos de sólo lectura y sin capacidades;
@@ -39,14 +39,18 @@ GitHub no llega al servidor, que tiene IP privada: es el servidor el que consult
 ## Operación
 
 - **Abrir la consola:** desde la laptop, `ssh -L 8090:127.0.0.1:8090 fie-server-ts` y abrir `http://127.0.0.1:8090`.
-- **Smoke en vivo desde el contenedor:** en Portainer, *consola → Console*, o por API. El comando es `python scripts/contenedor_entrypoint.py smoke --live --id-solicitud <fila>`.
-- **Encender el scheduler (sólo al hacer el cambio):** agregar el perfil `scheduler` al stack y, en el mismo paso, apagar el scheduler del runtime venv. No pueden correr los dos.
+- **Portainer desde fuera de la facultad:** la IP del servidor es privada. Abrir un túnel con `ssh -N -L 29443:127.0.0.1:9443 fie-server-ts` y entrar a `https://127.0.0.1:29443`.
+- **Comandos dentro del contenedor:** en Portainer, *Containers → agente1-consola-1 → Console* (o `exec` por API). Siempre a través del entrypoint, que carga el env file, y con `AGENTE1_OLLAMA_UPSTREAM=` porque el relay de la consola ya está escuchando:
+  - smoke: `python scripts/contenedor_entrypoint.py smoke --live --id-solicitud <fila>`
+  - corrida completa de la demo: `python scripts/contenedor_entrypoint.py python scripts/corrida_unica.py --live --modelo gemma4:e4b --id-solicitud <fila> --timeout-modelo 300 --evidencia-dir /state/evidencia/<nueva>`
+  - lo durable va siempre bajo `/state` (es `~/p100/estado-contenedor/` del host).
+- **Encender el scheduler:** configurar `AGENTE1_INSUMOS_RANGO_A1` en el env file y agregar el perfil `scheduler` al stack. Antes, un disparo de ensayo con `scheduler --una-corrida --tabla <csv>` dentro del contenedor.
 - **Logs:** la auditoría queda en `~/p100/estado-contenedor/logs/`, incluida `integridad-arranque.jsonl`. La salida estándar va al driver de Docker con rotación (10 MB × 5).
 
 ## Volver atrás
 
 - **A la versión anterior:** volver a correr el workflow `agente1-imagen` sobre el tag anterior (*Actions → agente1-imagen → Run workflow* con ese tag), o mover la rama `deploy` a su commit anterior. Portainer redespliega solo.
-- **Al runtime venv:** detener el stack en Portainer. El checkout `~/p100/Agente1` y el Ollama de usuario siguen intactos mientras dure la marcha en paralelo.
+- **Probado el 23/10:** revertir el commit de `deploy` (0.5.3 → 0.5.2) hizo que Portainer redesplegara solo la imagen anterior; revertir la reversión volvió a la 0.5.3. Ver `Implementacion/Agente1/evidencias/contenedores-servidor-2026-10-23.md`.
 
 ## Diagnóstico
 
@@ -62,3 +66,12 @@ GitHub no llega al servidor, que tiene IP privada: es el servidor el que consult
 
 - **Credencial de Portainer:** es la de desarrollo de Juani y vive sólo en su laptop (`~/.config/agente1/portainer.env`, 600). Ni el agente ni los contenedores la reciben. Después del traspaso, el operador usa su propio usuario de Portainer que le da DSI.
 - **Riesgo aceptado:** un admin de Portainer puede actuar como root sobre el host. El agente no usa ese poder: sus contenedores no son privilegiados y no montan el socket de Docker.
+
+## Runtime anterior (retirado el 23/10/2026)
+
+El checkout con venv en `~/p100/Agente1` y los Ollama de usuario en `~/ollama*` quedan en disco como último recurso, pero ya no corren. El cron `~/p100/arranque-servicios.sh` sólo levanta Tailscale (la versión anterior, que también relanzaba Ollama, quedó en `arranque-servicios.sh.bak-20261023`). Para volver a usarlo en una emergencia:
+
+1. detener el stack `agente1` en Portainer (el puerto 11434 tiene que quedar libre);
+2. `cd ~/ollama && OLLAMA_HOST=127.0.0.1:11434 setsid nohup ./bin/ollama serve &`;
+3. `cd ~/p100/Agente1 && git pull --ff-only` y correr con `.venv/bin/python` como antes.
+
