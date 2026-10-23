@@ -20,6 +20,13 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.2] - 2026-10-23
+
+- **Parche — la imagen lleva `golden/` (#143).** El canal de pedidos offline
+  (HU-012/HU-013) lee la ficha de `golden/`. Sin ese directorio, la corrida
+  única fallaba en el contenedor con `runner_unavailable`. Un test fija qué
+  directorios tiene que llevar el runtime.
+
 ## [0.5.1] - 2026-10-23
 
 - **Parche — la corrida única corre dentro del contenedor (#143).** Sin `.git`

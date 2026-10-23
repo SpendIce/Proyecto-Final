@@ -1,6 +1,6 @@
 {
   "archivos_sha256": {
-    "Dockerfile": "62538d5bc730a016ea414385bfd9fb8fce1a50e607609168bd056a00e680e978",
+    "Dockerfile": "caaa0420a5bc45d82f4a27f5180624615c717a13030b54bf4a2e1e3d5da8d24c",
     "docker/compose.yaml": "8412162ed88e766e51cb2a95e25a9212547f893155a01ea342b5ebdfef97bd19",
     "migrations/0001_persistencia_agente1.down.sql": "a576d7b8ad9eeb18068f50c04956b5bf0a5304a87c8c26df1311479f236fa0a0",
     "migrations/0001_persistencia_agente1.up.sql": "b87d67dc6c0220f73d61b0c44417d397e56d1a715be57d817960feef4a023b14",
@@ -8,7 +8,7 @@
     "migrations/0002_integridad_referencial_borradores.up.sql": "50b73789fc6065feb11c9fae9193bd6578ef79a46733dfb0a23fe3c48700d7d5",
     "migrations/0003_rechazo_timestamps_futuros.down.sql": "41980a7780ec285ffbfcc728dfbbfd59a009fde62dcb22c4630711c42f1e2867",
     "migrations/0003_rechazo_timestamps_futuros.up.sql": "aed22abf995168bda154b790a4a1a45afbd7dc3fddafe9f5a6c85e128144d72d",
-    "pyproject.toml": "9ecedba00ba78a6a0da4c351792d782c65893b20cb0241f0c1d18a97886557ad",
+    "pyproject.toml": "b4da2fc4e2d68190ac4a44fe586d3414abc05e2f4500a6a938cbbec6447e7679",
     "scripts/anexo1_presentacion.py": "31800127313dba3e0e8a7406136230ecff3d5b34bdc1c7491e15948125abfc73",
     "scripts/anexo2_calidad.py": "e8ef424d77f0782bef99c4909c907af804157e03987966bdeb80baac72a3fcc7",
     "scripts/anexo3_seguridad.py": "276ccba47e16204fc38ccda661ac90605d699061edf26ed1c0bc6d7fe6607f99",
@@ -203,8 +203,8 @@
     "systemd/agente1-scheduler-loop.service": "b73c70a32920ec44a47d13faba3956ba9c6feeb0c2022689600f6ae34b1854db",
     "systemd/agente1-scheduler.service": "a80a2f5735871a31f6b3a4f6daf9c694267c03b569971f69e495a1fe027fc5cb",
     "systemd/agente1-scheduler.timer": "33268d7df468209d9467ab212df0cf0caa511c7fa6b0cd9bb6beea3ba83b8ab8",
-    "uv.lock": "79b5ecb9fdf542f8e9b8c281ce400e4db0c9fc2b4ba075c37a4e0a18095dd7aa"
+    "uv.lock": "c92234d54f6fb3aaaa8b0b807ecb153527a60ee24e763eb23bad203824f007fe"
   },
   "schema_version": "agente1_manifest_version_v1",
-  "version": "0.5.1"
+  "version": "0.5.2"
 }

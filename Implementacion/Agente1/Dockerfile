@@ -53,6 +53,7 @@ COPY migrations ./migrations
 COPY systemd ./systemd
 COPY docker ./docker
 COPY data ./data
+COPY golden ./golden
 USER 10001
 ENTRYPOINT ["python", "/srv/p100/Implementacion/Agente1/scripts/contenedor_entrypoint.py"]
 CMD ["consola"]

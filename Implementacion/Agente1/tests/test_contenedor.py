@@ -243,3 +243,12 @@ def test_dockerfile_no_hornea_secretos_ni_modelos() -> None:
     for linea in copias:
         assert ".env" not in linea and ".json" not in linea.replace("manifest-version.json", "")
         assert "models" not in linea and ".runtime" not in linea and "tests" not in linea
+
+
+def test_el_runtime_lleva_los_datos_que_los_scripts_leen() -> None:
+    # `data/` (CSV sintéticos, padrones) y `golden/` (fichas del canal offline)
+    # los leen los scripts en tiempo de ejecución; sin ellos HU-012 falla en el
+    # contenedor con `runner_unavailable` (encontrado el 23/10 en el servidor).
+    runtime = DOCKERFILE.read_text(encoding="utf-8").split("AS runtime", 1)[1]
+    for directorio in ("src", "scripts", "data", "golden", "migrations", "systemd", "docker"):
+        assert f"COPY {directorio} ./{directorio}" in runtime
