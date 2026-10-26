@@ -1,7 +1,7 @@
 # Perfil de seguridad del sistema de demostración: Agente 1 (Extension Bot)
 
 - **Documento:** tabla fuente del perfil de seguridad declarado por el autor para la revisión de laboratorio (decisión #58; espejo de la tabla del perfil de calidad, issue #89). De esta tabla se proyecta el Anexo 3 por componente; el Anexo 2 declara la calidad por atributo.
-- **Foto:** este perfil describe el mismo inventario que declara el Anexo 2 (`Documentos/Inventario/Inventario-Componentes-Sistema-Demostracion-v1.md`). Los tres anexos (1, 2 y 3) declaran **una sola foto**: el corte del 26/10/2026, versión del agente **0.5.7** (tag `agente1-v0.5.7`), con el sistema corriendo en contenedores en el servidor de la facultad (ADR 0013).
+- **Foto:** este perfil describe el mismo inventario que declara el Anexo 2 (`Documentos/Inventario/Inventario-Componentes-Sistema-Demostracion-v1.md`). Los tres anexos (1, 2 y 3) declaran **una sola foto**: el corte del 26/10/2026, versión del agente **0.5.8** (tag `agente1-v0.5.8`), con el sistema corriendo en contenedores en el servidor de la facultad (ADR 0013).
 - **Alcance:** Agente 1 dentro del Proceso 4, con validación humana obligatoria. Toda salida es borrador (`PENDIENTE_VALIDACION`, `BORRADOR — NO PUBLICAR`, `BORRADOR — NO ENVIAR`, `BORRADOR — NO EMITIR`). El sistema de demostración corre en el servidor de la facultad (`labredesfie`) en contenedores: Ollama 0.40.6 con `gemma4:e4b` en una red interna sin salida a internet y el agente con la cuenta de servicio de DSI sobre Workspace D2 (stack de Portainer, ADR 0013). La unidad compartida institucional de D3 sigue pendiente (#100).
 - **Estado del documento:** **foto declarada por el autor; los niveles de competencia los asigna el laboratorio.**
 
@@ -164,6 +164,8 @@ El script `Implementacion/Agente1/scripts/anexo3_seguridad.py` lee la tabla fuen
 
 La proyección no agrega contenido: reordena y consolida la tabla fuente. Las columnas de nivel y el `Comentario` los completa el laboratorio, no el autor.
 
+**El estado y el motivo de cada ítem van en el Anexo 1.** El Word del Anexo 3 sólo lleva `Componente` e `Ítem`, así que `scripts/anexo1_presentacion.py` declara en cada componente del Anexo 1 los mismos ítems seleccionados, con su estado y su motivo (filas «Seguridad (factor)»), y suma `Google Workspace` como componente propio. Así lo hizo el ejemplo aprobado de 2025.
+
 **Este documento es el registro interno completo**; los anexos declaran una selección de hasta 3 ítems por componente (`Implementacion/Agente1/scripts/anexos_seleccion.py`), elegida para mostrar las claves del proyecto sin que cada ítem declarado se convierta en un pedido de demostración en la reunión. Quedan afuera, y se declaran en la reunión si el laboratorio pregunta, lo previsto y no implementado y las ausencias explícitas.
 
 ## 8. Celdas pendientes y supuestos
@@ -175,4 +177,4 @@ Quedan declaradas dentro de la tabla y no bloquean el armado:
 - **#56** (validación SEU): la lista de prueba de Gmail es el destino declarado; restringir la entrega del lado de Google sigue pedido a DSI (DSI-R4).
 - **Inconsistencia de numeración de riesgos** (sección 4): la resolución de #58 cita «R-17» para la inyección de prompts; la matriz vigente usa R-15 y el registro local, R-SEG-01. Se reporta, no se corrige.
 - **Supuesto:** el componente `Google Workspace` se declara como componente propio de la tabla fuente (y no como un estrato del inventario interno) porque la decisión #64 le asigna un modelo de seguridad con estados por eje. No es un módulo de `src/agente1/`.
-- **Foto:** los tres anexos declaran el corte del 26/10/2026, versión 0.5.7 (tag `agente1-v0.5.7`). Si la base cambia antes del envío (fecha límite: fin de la cursada, 25/11), se regeneran los tres juntos.
+- **Foto:** los tres anexos declaran el corte del 26/10/2026, versión 0.5.8 (tag `agente1-v0.5.8`). Si la base cambia antes del envío (fecha límite: fin de la cursada, 25/11), se regeneran los tres juntos.

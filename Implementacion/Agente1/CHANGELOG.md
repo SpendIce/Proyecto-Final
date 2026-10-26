@@ -20,6 +20,15 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.8] - 2026-10-26
+
+- **Parche — la seguridad se declara en el Anexo 1 (#147).** Cada componente
+  del Anexo 1 lleva los mismos ítems de seguridad que lista el Anexo 3, con
+  el estado y el motivo del perfil de seguridad, en lugar de una fila que
+  remitía al Anexo 3. El Word del Anexo 3 sólo lleva componente e ítem, así
+  que el laboratorio no veía lo declarado. `Google Workspace` entra como
+  componente propio. No cambia el comportamiento del agente.
+
 ## [0.5.7] - 2026-10-26
 
 - **Parche — encabezado y textos de las plantillas en la entrega (#147).**

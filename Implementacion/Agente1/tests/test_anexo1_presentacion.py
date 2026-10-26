@@ -135,3 +135,46 @@ def test_el_markdown_lleva_el_encabezado_de_la_plantilla_y_escapa_pipes():
     assert "## Título del Proyecto" in markdown
     assert "## Lista de Control" in markdown
     assert "motivo con \\| pipe" in markdown
+
+
+def _seguridad_seleccionada():
+    return _modulo.ordenar_seguridad(
+        _modulo.seleccionar_seguridad(
+            _modulo.parsear_seguridad(_modulo.FUENTE_SEGURIDAD.read_text(encoding="utf-8"))
+        )
+    )
+
+
+def test_declara_los_mismos_items_de_seguridad_que_el_anexo_3():
+    """El Word del Anexo 3 sólo lleva nombres: el estado y el motivo viven acá."""
+
+    seguridad = _seguridad_seleccionada()
+    calidad = _modulo.seleccionar_calidad(
+        _modulo.parsear_fuente(_modulo.FUENTE.read_text(encoding="utf-8"))
+    )
+    por_estrato = _modulo.proyectar_por_estrato(calidad, seguridad)
+
+    componentes = [estrato for estrato, _ in por_estrato]
+    assert _modulo.COMPONENTE_PLATAFORMA in componentes
+    assert componentes.index(_modulo.COMPONENTE_PLATAFORMA) == (
+        componentes.index("Integraciones") + 1
+    )
+    declarados = {
+        (estrato, atributo): estado
+        for estrato, rows in por_estrato
+        for caracteristica, atributo, estado, _ in rows
+        if caracteristica.startswith("Seguridad")
+    }
+    assert declarados == {(f.estrato, f.item): f.estado for f in seguridad}
+    assert all(
+        estado != "Remite" for _, rows in por_estrato for _, _, estado, _ in rows
+    )
+
+
+def test_falla_si_un_componente_no_tiene_items_de_seguridad():
+    seguridad = [f for f in _seguridad_seleccionada() if f.estrato != "Gates"]
+    calidad = _modulo.seleccionar_calidad(
+        _modulo.parsear_fuente(_modulo.FUENTE.read_text(encoding="utf-8"))
+    )
+    with pytest.raises(ValueError, match="Gates"):
+        _modulo.proyectar_por_estrato(calidad, seguridad)

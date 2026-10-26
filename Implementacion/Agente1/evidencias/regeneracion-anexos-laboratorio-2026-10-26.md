@@ -37,3 +37,11 @@ En la revisión, Juani vio «Ciclo Lectivo 2025» en el encabezado del Anexo 1. 
 - **Anexos 2 y 3:** sale la aclaración de la plantilla «(Se incluyen datos puntuales a modo de ejemplo)». La instrucción «El Equipo de Proyecto completará esta tabla…» se reemplaza por las referencias: ISO/IEC 25010, 25059 y 25012 en el Anexo 2, y NIST CSF 2.0, OWASP Top 10, OWASP Top 10 for LLM y MITRE ATT&CK en el Anexo 3. El ejemplo aprobado de 2025 hizo lo mismo en su Anexo 3.
 - **Columnas de nivel y comentarios: siguen vacías a propósito.** Maiorano lo pidió por escrito el 14/10: «eso es lo que completamos nosotros al evaluar». El alumno de 2025 se había autoevaluado ahí y el laboratorio lo reescribió. Seguimos la instrucción del laboratorio.
 - **Verificación:** dos tests nuevos en `tests/test_anexos_plantilla_oficial.py` (ciclo lectivo vigente en los tres; sin texto de ejemplo y con referencias en el 2 y el 3). Suite con python-docx: 2451 verdes. Ruff limpio.
+
+## Tercera pasada: la seguridad se declara en el Anexo 1 (versión 0.5.8)
+
+Hasta la 0.5.7, cada componente del Anexo 1 tenía una fila «Seguridad · Remite» que mandaba al Anexo 3. Pero el Word del Anexo 3 sólo lleva `Componente` e `Ítem`, así que el laboratorio no veía qué estado ni qué motivo declaraba el autor para la seguridad. El ejemplo aprobado de 2025 declaraba la seguridad dentro del Anexo 1. Juani aprobó hacer lo mismo.
+
+- **Anexo 1:** cada componente lleva los mismos ítems que lista el Anexo 3 (32, con la selección de `anexos_seleccion.py`), cada uno con su estado y su motivo tomados del perfil de seguridad. Las filas se rotulan «Seguridad (factor)». `Google Workspace` entra como componente propio después de Integraciones, sólo con sus ítems de seguridad. Ya no queda ningún «Remite».
+- **El Anexo 3 no cambia:** sigue con componente e ítem. Las columnas de nivel y el comentario los completa el laboratorio.
+- **Verificación:** dos tests nuevos en `tests/test_anexo1_presentacion.py`. Uno comprueba que los ítems y los estados de seguridad del Anexo 1 son exactamente los del Anexo 3; el otro, que el generador falla si un componente queda sin ítems. Suite: 2453 verdes con python-docx y 2446 sin. Ruff limpio. El Anexo 1 queda en 11 tablas y 13 páginas.

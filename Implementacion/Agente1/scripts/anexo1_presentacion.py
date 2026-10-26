@@ -8,8 +8,12 @@ atributo declarado por el autor.
 
 La salida no inventa datos: las tablas por estrato se derivan de la tabla fuente
 y las cifras y los estados son los mismos que usa el Anexo 2, así que no hay dos
-números para lo mismo. La sección de seguridad **remite** al Anexo 3 y no la
-reescribe (issue #58/#108).
+números para lo mismo. La seguridad de cada componente se declara acá con los
+mismos ítems que lista el Anexo 3 (la selección de `anexos_seleccion.py`), con
+el estado y el motivo de la tabla fuente del perfil de seguridad
+(``Perfil-Seguridad-Sistema-Demostracion-v1.md``): el Word del Anexo 3 sólo
+lleva el nombre de cada ítem, así que sin esto el laboratorio no vería lo que
+declara el autor. Así lo hizo el ejemplo aprobado de 2025.
 
 Este anexo es donde vive la declaración del autor: los Anexos 2 y 3 sólo llevan
 los ítems que después completa el laboratorio, así que el estado, el motivo y la
@@ -45,9 +49,13 @@ REPO = ROOT.parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from anexo2_calidad import FilaFuente, parsear_fuente  # noqa: E402
+from anexo3_seguridad import FilaFuente as FilaSeguridad  # noqa: E402
+from anexo3_seguridad import ordenar as ordenar_seguridad  # noqa: E402
+from anexo3_seguridad import parsear_fuente as parsear_seguridad  # noqa: E402
 from anexos_seleccion import (  # noqa: E402
     TOPE_POR_COMPONENTE,
     seleccionar_calidad,
+    seleccionar_seguridad,
 )
 from plantilla_laboratorio import (  # noqa: E402
     TITULO_PROYECTO,
@@ -60,6 +68,14 @@ from plantilla_laboratorio import (  # noqa: E402
 
 FUENTE = REPO / "Documentos" / "Laboratorio" / "Perfil-Calidad-Sistema-Demostracion-v1.md"
 SALIDA_MD = REPO / "Documentos" / "Laboratorio" / "Anexo1-Presentacion-v1.md"
+FUENTE_SEGURIDAD = (
+    REPO / "Documentos" / "Laboratorio" / "Perfil-Seguridad-Sistema-Demostracion-v1.md"
+)
+
+# Componente externo de plataforma: no es un estrato del inventario ni tiene
+# atributos de calidad, pero el perfil de seguridad lo declara aparte porque
+# tiene su propio modelo de seguridad (#64). Va después de Integraciones.
+COMPONENTE_PLATAFORMA = "Google Workspace"
 
 # Orden de los estratos del inventario de componentes del sistema de
 # demostración. `Sistema` agrupa los atributos transversales que ninguna capa
@@ -130,6 +146,13 @@ DESCRIPCION_ESTRATO = {
         "actividades, Docs y Drive, Gmail (envío y buzón propio), Google Forms, "
         "Ollama local y los insumos de los agentes A3 a A5."
     ),
+    COMPONENTE_PLATAFORMA: (
+        "Plataforma institucional de la FIE sobre la que se apoyan la identidad "
+        "del agente (una cuenta de servicio de DSI que actúa como la cuenta "
+        "técnica), los recursos y la auditoría del lado de Google. No es un "
+        "módulo del agente: se declara aparte porque su seguridad tiene un "
+        "modelo propio, con riesgos aceptados por DSI."
+    ),
     "Sistema": (
         "Atributos transversales que ninguna capa ejerce sola: ausencia de "
         "fallos, disponibilidad, operabilidad, mantenibilidad, instalabilidad y "
@@ -148,8 +171,10 @@ INTRO_DETALLE = (
     "implementación declarado por el autor y su motivo. La escala de estados es "
     "la de la revisión de laboratorio: A implementado satisfactoriamente, B "
     "implementado con observaciones, C tenido en cuenta sin implementar y D "
-    "desconocido o ignorado expresamente (D lo asigna el laboratorio). Los "
-    "factores de (ciber)seguridad de cada estrato se declaran en el Anexo 3."
+    "desconocido o ignorado expresamente (D lo asigna el laboratorio). Las "
+    "filas de Seguridad son los ítems de (ciber)seguridad de cada componente, "
+    "los mismos que lista el Anexo 3; RA (riesgo aceptado) califica un A o un "
+    "B, y el motivo dice quién lo aceptó y con qué compensación."
 )
 
 ATRIBUTO_SEGURIDAD = "Factores de (ciber)seguridad del estrato"
@@ -175,11 +200,13 @@ REFERENCIA_FOTO = (
     "calidad del sistema de demostración "
     "(`Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`), la "
     "misma que alimenta el Anexo 2: foto del corte del 26/10/2026, versión del "
-    "agente 0.5.7 (tag `agente1-v0.5.7`), con el sistema corriendo en "
+    "agente 0.5.8 (tag `agente1-v0.5.8`), con el sistema corriendo en "
     "contenedores en el servidor de la facultad (ADR 0013), los siete tipos de "
     "gacetilla declarados (#121), el set de evaluación de dos ejes (#111), el "
-    "tipo en el canal (#122) y el modelo `gemma4:e4b` (#51). El perfil de "
-    "seguridad no se declara acá: cada estrato remite al Anexo 3."
+    "tipo en el canal (#122) y el modelo `gemma4:e4b` (#51). Las filas de "
+    "seguridad salen de la tabla fuente del perfil de seguridad "
+    "(`Documentos/Laboratorio/Perfil-Seguridad-Sistema-Demostracion-v1.md`), "
+    "con la misma selección de ítems que el Anexo 3."
 )
 
 CONCEPTO_GENERAL = [
@@ -210,9 +237,11 @@ CONCEPTO_GENERAL = [
     (
         "Este documento es el Anexo 1 de la revisión de laboratorio: presenta el "
         "sistema de demostración (el Agente 1 en todo su alcance declarado, "
-        "funcionando de punta a punta en vivo) y su perfil de calidad por "
-        "estrato. El detalle por atributo, en el orden del estándar, está en el "
-        "Anexo 2; el perfil de seguridad, en el Anexo 3."
+        "funcionando de punta a punta en vivo) y su perfil de calidad y de "
+        "seguridad por componente, con el estado y el motivo que declara el "
+        "autor. El Anexo 2 (calidad, en el orden del estándar) y el Anexo 3 "
+        "(seguridad) listan los mismos atributos e ítems para que el "
+        "laboratorio los califique."
     ),
 ]
 
@@ -267,8 +296,8 @@ ENFOQUE = [
 ESTADO_TRL_INTRO = (
     "Este anexo declara el estado de las capacidades contra el **gate TRL 4**. "
     "Las cifras y los estados de las tablas por estrato son los de la foto "
-    "declarada en el corte del 26/10/2026, versión 0.5.7 (tag "
-    "`agente1-v0.5.7`). La nota sobre fechas y "
+    "declarada en el corte del 26/10/2026, versión 0.5.8 (tag "
+    "`agente1-v0.5.8`). La nota sobre fechas y "
     "estado verificado del anteproyecto conserva el corte del 21/09/2026; "
     "cuando uno y otro citan un número, corresponde a su propia fecha, y la "
     "revisión de laboratorio evalúa la foto de este anexo."
@@ -429,14 +458,18 @@ LISTA_CONTROL = [
 
 def proyectar_por_estrato(
     filas: list[FilaFuente],
+    seguridad: list[FilaSeguridad] | None = None,
 ) -> list[tuple[str, list[tuple[str, str, str, str]]]]:
     """Agrupa la tabla fuente por estrato, en el orden del inventario.
 
     Devuelve una lista de ``(estrato, filas)`` donde cada fila es
-    ``(característica, atributo, estado, motivo)``. La seguridad se remite al
-    Anexo 3 con una fila propia en cada estrato que no la declare ya en la
-    fuente, así el perfil de (ciber)seguridad queda presente en todos y no se
-    reescribe.
+    ``(característica, atributo, estado, motivo)``.
+
+    Con ``seguridad`` (las filas del perfil de seguridad ya seleccionadas y
+    ordenadas), cada estrato declara sus ítems de seguridad con estado y
+    motivo, y el componente de plataforma va como componente propio después de
+    Integraciones. Sin ``seguridad``, cada estrato lleva una fila que remite al
+    Anexo 3.
     """
 
     por_estrato: dict[str, list[FilaFuente]] = {}
@@ -455,6 +488,9 @@ def proyectar_por_estrato(
             "estratos del inventario sin fila en la fuente: " + ", ".join(faltantes)
         )
 
+    if seguridad is not None:
+        return _con_seguridad(por_estrato, seguridad)
+
     salida: list[tuple[str, list[tuple[str, str, str, str]]]] = []
     for estrato in ORDEN_ESTRATOS:
         rows = [
@@ -466,6 +502,42 @@ def proyectar_por_estrato(
                 ("Seguridad", ATRIBUTO_SEGURIDAD, "Remite", MOTIVO_SEGURIDAD_REMITE)
             )
         salida.append((estrato, rows))
+    return salida
+
+
+def _con_seguridad(
+    por_estrato: dict[str, list[FilaFuente]], seguridad: list[FilaSeguridad]
+) -> list[tuple[str, list[tuple[str, str, str, str]]]]:
+    """Declara los ítems de seguridad en cada componente, en vez de remitir."""
+
+    items: dict[str, list[tuple[str, str, str, str]]] = {}
+    for fila in seguridad:
+        items.setdefault(fila.estrato, []).append(
+            (f"Seguridad ({fila.factor.lower()})", fila.item, fila.estado, fila.motivo)
+        )
+    componentes = [*ORDEN_ESTRATOS]
+    componentes.insert(componentes.index("Integraciones") + 1, COMPONENTE_PLATAFORMA)
+    desconocidos = sorted(set(items) - set(componentes))
+    if desconocidos:
+        raise ValueError(
+            "componentes de seguridad sin lugar en el Anexo 1: " + ", ".join(desconocidos)
+        )
+    faltantes = [c for c in componentes if c not in items]
+    if faltantes:
+        raise ValueError(
+            "componentes sin ítems de seguridad declarados: " + ", ".join(faltantes)
+        )
+
+    salida: list[tuple[str, list[tuple[str, str, str, str]]]] = []
+    for componente in componentes:
+        rows = [
+            (f.caracteristica, f.atributo, f.estado, f.motivo)
+            for f in por_estrato.get(componente, [])
+            # El factor completo de Seguridad de la fuente de calidad remite al
+            # Anexo 3: acá lo reemplazan los ítems.
+            if f.caracteristica != "Seguridad"
+        ]
+        salida.append((componente, rows + items[componente]))
     return salida
 
 
@@ -523,7 +595,7 @@ def emitir_markdown(por_estrato: list[tuple[str, list[tuple[str, str, str, str]]
         "los estratos es el del inventario:",
         "",
     ]
-    for estrato in ORDEN_ESTRATOS:
+    for estrato, _ in por_estrato:
         lineas.append(f"- **{ETIQUETA_ESTRATO.get(estrato, estrato)}:** {DESCRIPCION_ESTRATO[estrato]}")
     lineas.append("")
 
@@ -618,7 +690,7 @@ def emitir_plantilla(
         ancla = _encadenar(doc, ancla, parrafo)
 
     ancla = buscar_parrafo(doc, "Esquema general de los componentes")._p
-    for estrato in ORDEN_ESTRATOS:
+    for estrato, _ in por_estrato:
         etiqueta = ETIQUETA_ESTRATO.get(estrato, estrato)
         ancla = _encadenar(doc, ancla, f"• {etiqueta}: {DESCRIPCION_ESTRATO[estrato]}")
 
@@ -672,6 +744,12 @@ def main() -> int:
         help="Markdown con la tabla fuente marcada TABLA-FUENTE.",
     )
     parser.add_argument(
+        "--fuente-seguridad",
+        type=Path,
+        default=FUENTE_SEGURIDAD,
+        help="Markdown del perfil de seguridad (filas de Seguridad por componente).",
+    )
+    parser.add_argument(
         "--salida-md",
         type=Path,
         default=SALIDA_MD,
@@ -692,7 +770,12 @@ def main() -> int:
     args = parser.parse_args()
 
     filas_fuente = parsear_fuente(args.fuente.read_text(encoding="utf-8"))
-    por_estrato = proyectar_por_estrato(seleccionar_calidad(filas_fuente))
+    seguridad = ordenar_seguridad(
+        seleccionar_seguridad(
+            parsear_seguridad(args.fuente_seguridad.read_text(encoding="utf-8"))
+        )
+    )
+    por_estrato = proyectar_por_estrato(seleccionar_calidad(filas_fuente), seguridad)
 
     args.salida_md.parent.mkdir(parents=True, exist_ok=True)
     args.salida_md.write_text(emitir_markdown(por_estrato), encoding="utf-8")
