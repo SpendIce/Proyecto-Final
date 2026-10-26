@@ -29,7 +29,7 @@ Decidimos ([#124](https://github.com/SpendIce/Proyecto-Final/issues/124)) que **
 ## Consequences
 
 - El reinicio del host ya no deja el sistema caído: el demonio de Docker es un servicio del sistema y los contenedores tienen `restart: unless-stopped`. Eso reemplaza al cron `@reboot` de Ollama y al timer de `systemd --user` sin *linger*.
-- El scheduler del contenedor queda **apagado** (perfil `scheduler`) mientras dure la marcha en paralelo con el venv, para que dos runtimes no procesen la misma planilla. Se enciende con el cambio.
+- El scheduler del contenedor queda **apagado** (perfil `scheduler`) mientras dure la marcha en paralelo con el venv, para que dos runtimes no procesen la misma planilla. Se enciende con el cambio. *Actualización del 26/10: la marcha en paralelo terminó con #143 y el scheduler del contenedor está encendido desde el 26/10 (variable `COMPOSE_PROFILES=scheduler` del stack).*
 - Hay dos Ollama en el host durante la marcha en paralelo. Entran en memoria (31 GB), pero compiten por los 4 núcleos si se usan a la vez.
 - El Anexo 3 gana tres filas con evidencia (aislamiento del modelo, modelo sin egreso y runtime endurecido) y una de riesgo aceptado (credencial de Portainer de desarrollo con permisos de root sobre el host).
 - La imagen publicada en ghcr.io es pública y contiene lo mismo que el repo público: ni secretos ni modelos.

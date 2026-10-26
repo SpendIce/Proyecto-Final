@@ -174,7 +174,7 @@ REFERENCIA_FOTO = (
     "calidad del sistema de demostración "
     "(`Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`), la "
     "misma que alimenta el Anexo 2: foto del corte del 26/10/2026, versión del "
-    "agente 0.5.5 (tag `agente1-v0.5.5`), con el sistema corriendo en "
+    "agente 0.5.6 (tag `agente1-v0.5.6`), con el sistema corriendo en "
     "contenedores en el servidor de la facultad (ADR 0013), los siete tipos de "
     "gacetilla declarados (#121), el set de evaluación de dos ejes (#111), el "
     "tipo en el canal (#122) y el modelo `gemma4:e4b` (#51). El perfil de "
@@ -266,8 +266,8 @@ ENFOQUE = [
 ESTADO_TRL_INTRO = (
     "Este anexo declara el estado de las capacidades contra el **gate TRL 4**. "
     "Las cifras y los estados de las tablas por estrato son los de la foto "
-    "declarada en el corte del 26/10/2026, versión 0.5.5 (tag "
-    "`agente1-v0.5.5`). La nota sobre fechas y "
+    "declarada en el corte del 26/10/2026, versión 0.5.6 (tag "
+    "`agente1-v0.5.6`). La nota sobre fechas y "
     "estado verificado del anteproyecto conserva el corte del 21/09/2026; "
     "cuando uno y otro citan un número, corresponde a su propia fecha, y la "
     "revisión de laboratorio evalúa la foto de este anexo."
@@ -314,7 +314,9 @@ ESTADO_TRL_NO_DEMOSTRADO = [
         "Los Forms reales de HU-012, HU-013 y HU-014: el circuito completo "
         "corre contra destinos de prueba declarados. Gmail está configurado en "
         "el servidor con la lista de prueba (envío verificado el 23/10), pero "
-        "los Forms de pedidos y de decisiones todavía no están definidos."
+        "los Forms de pedidos y de decisiones todavía no están definidos. "
+        "Cuando existan, está previsto que el scheduler atienda el Form de "
+        "pedidos en cada corrida (issue #149)."
     ),
     (
         "La unidad compartida institucional de D3: el cómputo corre en el "
@@ -323,9 +325,11 @@ ESTADO_TRL_NO_DEMOSTRADO = [
     ),
     (
         "Los niveles verificados de los SLO de disponibilidad, tiempo de "
-        "atención, aprobación a envío y RPO/RTO no tienen medición a la fecha "
-        "(issue #88); la latencia por pieza sí está medida en el servidor. El "
-        "perfil declara la ausencia en lugar de un número."
+        "atención, aprobación a envío y RPO/RTO: el instrumento de medición "
+        "existe (issue #88) y el scheduler registra cada corrida desde el "
+        "26/10, pero todavía no hay una ventana de operación que medir. La "
+        "latencia por pieza sí está medida en el servidor. El perfil declara "
+        "la ausencia en lugar de un número."
     ),
     (
         "El criterio formal del gate: la Dirección de carrera no fijó un criterio "

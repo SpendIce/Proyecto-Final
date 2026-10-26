@@ -1,8 +1,11 @@
 # Runbook del scheduler local — Agente 1
 
-- **Estado:** implementado en código con unidades `systemd --user`
-  versionadas como plantillas; instalación y operación pendientes del
-  operador designado
+- **Estado:** el scheduler oficial corre en el contenedor `scheduler` del
+  stack de Portainer, encendido desde el 26/10
+  (`Runbook-Contenedores-Agente-1.md`, ADR 0013). Este runbook queda para la
+  alternativa fuera de Docker: unidades `systemd --user` versionadas como
+  plantillas, sin instalar. La lógica (agenda, ventana, lock, registro de
+  corridas, purga y respaldo) es la misma en los dos casos
 - **Alcance:** corridas programadas de la pestaña «Insumos de agentes» en
   el host de la demo, dentro de la ventana de operación
 - **Relacionados:** ADR 0007 (traspaso), ADR 0008 (insumos por pestaña),

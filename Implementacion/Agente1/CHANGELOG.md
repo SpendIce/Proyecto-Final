@@ -20,6 +20,17 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.6] - 2026-10-26
+
+- **Parche — anexos sin referencias viejas (#147).** La foto de los tres
+  anexos pasa a la versión 0.5.6. Se corrigen datos que habían quedado
+  viejos: los SLO tienen instrumento (#88) pero todavía no ventana de
+  operación que medir; el Form de pedidos queda previsto en el scheduler
+  (#149); capacidad recalculada con las latencias de `gemma4:e4b`; seis
+  versiones desplegadas por la rama `deploy`; la propiedad de los recursos
+  de Google baja a `B` hasta mover D2 a la unidad compartida (#100). No
+  cambia el comportamiento del agente.
+
 ## [0.5.5] - 2026-10-26
 
 - **Parche — anexos con Gmail, insumos y respaldo configurados (#147).**

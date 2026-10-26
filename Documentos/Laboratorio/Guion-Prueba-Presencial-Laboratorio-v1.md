@@ -23,7 +23,7 @@ Regla de oro del guion: **todo lo que se muestra corre de verdad**. Lo que depen
 
 ## Antes de empezar (10 minutos, fuera del horario de la prueba)
 
-- [ ] **Stack sano**: en Portainer, `agente1-ollama-1` *healthy* y `agente1-consola-1` *running*, con la versión cortada vigente (la rama `deploy` dice cuál).
+- [ ] **Stack sano**: en Portainer, `agente1-ollama-1` *healthy* y `agente1-consola-1` y `agente1-scheduler-1` *running*, con la versión cortada vigente (la rama `deploy` dice cuál).
 - [ ] **Consola abierta**: `./run-demo-plan-a.sh` desde la notebook (túnel al puerto 8090).
 - [ ] **Modelo caliente**: la consola lo calienta al arrancar; confirmar «cargado» en su encabezado, o hacer una generación de calentamiento. En frío la primera pieza puede tardar varios minutos.
 - [ ] **Smoke en vivo** desde la consola del contenedor: `AGENTE1_OLLAMA_UPSTREAM= python scripts/contenedor_entrypoint.py smoke --live --id-solicitud FIE-DIF-08` → `lectura_confirmada`.
@@ -221,8 +221,8 @@ Criterio de aceptación de #114. Registrar acá la corrida, sin maquillar lo que
 
 - **Fecha del ensayo:**
 - **Duración real:** (objetivo: menos de 60 minutos)
-- **Modelo y versión:** (el que quede de #50/#51, o el declarado como provisional)
-- **Credencial usada:** (cuenta de servicio si #99 está hecho; si no, la OAuth vigente, declarada como provisional)
+- **Modelo y versión:** (`gemma4:e4b` sobre Ollama 0.40.6, #51; versión del agente según la rama `deploy`)
+- **Credencial usada:** (cuenta de servicio de DSI, #99)
 - **Bloques que se pasaron de tiempo:**
 - **Preguntas de calidad y seguridad que no se pudieron responder en el momento:**
 - **Rutas de código que faltó tener a mano:**
