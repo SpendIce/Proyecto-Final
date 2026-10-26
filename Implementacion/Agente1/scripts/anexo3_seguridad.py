@@ -40,6 +40,7 @@ from anexos_seleccion import seleccionar_seguridad  # noqa: E402
 from plantilla_laboratorio import (  # noqa: E402
     TITULO_PROYECTO,
     abrir_plantilla,
+    actualizar_ciclo_lectivo,
     agregar_fila,
     conservar_filas,
     guardar,
@@ -71,6 +72,12 @@ COLUMNAS_ENCABEZADO = [
     "No previsto",
     "Comentario",
 ]
+
+# Texto bajo «Referencias:»: los estándares que se aplicaron.
+REFERENCIAS = (
+    "NIST Cybersecurity Framework (CSF) 2.0, OWASP Top 10 (2021), OWASP Top "
+    "10 for LLM Applications y MITRE ATT&CK."
+)
 
 # Título de la tabla: la plantilla pide «<Citar estándar aplicado>».
 TITULO_TABLA = (
@@ -244,6 +251,11 @@ def emitir_plantilla(filas: list[FilaFuente], plantilla: Path, destino: Path) ->
 
     doc = abrir_plantilla(plantilla)
     reemplazar_parrafo(doc, "<Título del Proyecto<", TITULO_PROYECTO)
+    actualizar_ciclo_lectivo(doc)
+    # La aclaración «datos puntuales a modo de ejemplo» es de la plantilla, y
+    # la instrucción al equipo de proyecto cede su lugar a las referencias.
+    reemplazar_parrafo(doc, "Para los factores de Seguridad (Se incluyen", "Para los factores de Seguridad:")
+    reemplazar_parrafo(doc, "El Equipo de Proyecto completará", REFERENCIAS)
     reemplazar_en_celdas(doc, "Factores de Seguridad", TITULO_TABLA)
     if len(doc.tables) != 1:
         raise SystemExit(

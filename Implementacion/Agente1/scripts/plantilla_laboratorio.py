@@ -15,6 +15,9 @@ consignando los factores y atributos»):
 - **El laboratorio** completa las últimas columnas (nivel de competencia y
   comentarios), y por eso pide Word.
 
+Las plantillas son las del ciclo 2025: el encabezado de página dice «Ciclo
+Lectivo 2025» y se actualiza al ciclo vigente (`CICLO_LECTIVO`).
+
 Este módulo sólo aporta la plomería de `python-docx`: abrir la plantilla,
 reemplazar marcadores y armar las filas de la tabla. Lo usan los tres scripts
 `anexo*_*.py`.
@@ -22,6 +25,7 @@ reemplazar marcadores y armar las filas de la tabla. Lo usan los tres scripts
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +36,10 @@ TITULO_PROYECTO = (
     "Extensión Universitaria de la FIE (Facultad de Ingeniería del Ejército, "
     "Universidad de la Defensa Nacional)"
 )
+
+
+# Ciclo lectivo de la entrega. Las plantillas oficiales son las de 2025.
+CICLO_LECTIVO = "2026"
 
 
 def abrir_plantilla(ruta: Path) -> Any:
@@ -58,6 +66,34 @@ def _fijar_texto(parrafo: Any, texto: str) -> None:
             run.text = ""
     else:
         parrafo.add_run(texto)
+
+
+def actualizar_ciclo_lectivo(doc: Any) -> None:
+    """Cambia «Ciclo Lectivo 2025» del encabezado de página por el ciclo vigente.
+
+    En la plantilla el año está partido en dos runs («Ciclo Lectivo 202» y
+    «5»), así que se reescribe desde el run donde empieza la frase, con el
+    formato de ese run. Sólo se mira el encabezado principal de cada sección:
+    leer los de primera página o de páginas pares los crearía vacíos.
+    """
+
+    cambiados = 0
+    for seccion in doc.sections:
+        for parrafo in seccion.header.paragraphs:
+            if "Ciclo Lectivo" not in parrafo.text:
+                continue
+            for indice, run in enumerate(parrafo.runs):
+                if "Ciclo" in run.text:
+                    resto = "".join(r.text for r in parrafo.runs[indice:])
+                    run.text = re.sub(
+                        r"Ciclo Lectivo \d{4}", f"Ciclo Lectivo {CICLO_LECTIVO}", resto
+                    )
+                    for siguiente in parrafo.runs[indice + 1 :]:
+                        siguiente.text = ""
+                    cambiados += 1
+                    break
+    if not cambiados:
+        raise SystemExit("la plantilla no tiene «Ciclo Lectivo» en el encabezado")
 
 
 def buscar_parrafo(doc: Any, texto: str) -> Any:

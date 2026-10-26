@@ -128,6 +128,48 @@ def test_anexo1_reemplaza_el_esqueleto_por_una_tabla_por_estrato(docx, plantilla
     assert "**" not in texto and "`" not in texto
 
 
+def _emitir_los_tres(tmp_path: Path) -> list[Path]:
+    a1 = _cargar("anexo1_presentacion")
+    a2 = _cargar("anexo2_calidad")
+    a3 = _cargar("anexo3_seguridad")
+    calidad = a2.parsear_fuente(FUENTE_CALIDAD.read_text(encoding="utf-8"))
+    destinos = [tmp_path / "Anexo1.docx", tmp_path / "Anexo2.docx", tmp_path / "Anexo3.docx"]
+    a1.emitir_plantilla(a1.proyectar_por_estrato(calidad), PLANTILLA_1, destinos[0])
+    a2.emitir_plantilla(a2.proyectar(calidad), PLANTILLA_2, destinos[1])
+    a3.emitir_plantilla(
+        a3.ordenar(a3.parsear_fuente(FUENTE_SEGURIDAD.read_text(encoding="utf-8"))),
+        PLANTILLA_3,
+        destinos[2],
+    )
+    return destinos
+
+
+def test_los_tres_anexos_declaran_el_ciclo_lectivo_vigente(docx, plantillas, tmp_path):
+    """Las plantillas son las de 2025; la entrega no puede decir «Ciclo Lectivo 2025»."""
+
+    ciclo = _cargar("plantilla_laboratorio").CICLO_LECTIVO
+    for destino in _emitir_los_tres(tmp_path):
+        encabezado = "\n".join(
+            p.text for s in docx.Document(str(destino)).sections for p in s.header.paragraphs
+        )
+        assert f"Ciclo Lectivo {ciclo}" in encabezado, destino.name
+        assert "Ciclo Lectivo 2025" not in encabezado, destino.name
+
+
+def test_anexos_2_y_3_sin_texto_de_ejemplo_y_con_referencias(docx, plantillas, tmp_path):
+    _, anexo2, anexo3 = _emitir_los_tres(tmp_path)
+    for destino in (anexo2, anexo3):
+        texto = "\n".join(p.text for p in docx.Document(str(destino)).paragraphs)
+        assert "a modo de ejemplo" not in texto
+        assert "El Equipo de Proyecto completará" not in texto
+    assert "ISO/IEC 25010:2023" in "\n".join(
+        p.text for p in docx.Document(str(anexo2)).paragraphs
+    )
+    assert "NIST Cybersecurity Framework" in "\n".join(
+        p.text for p in docx.Document(str(anexo3)).paragraphs
+    )
+
+
 def test_falla_si_la_plantilla_tiene_otras_columnas(docx, tmp_path):
     """Una plantilla oficial distinta a la del 2025 tiene que fallar ruidosamente."""
 

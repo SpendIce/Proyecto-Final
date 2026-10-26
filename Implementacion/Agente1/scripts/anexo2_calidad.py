@@ -45,6 +45,7 @@ from anexos_seleccion import seleccionar_calidad  # noqa: E402
 from plantilla_laboratorio import (  # noqa: E402
     TITULO_PROYECTO,
     abrir_plantilla,
+    actualizar_ciclo_lectivo,
     agregar_fila,
     conservar_filas,
     guardar,
@@ -67,6 +68,13 @@ COLUMNAS_ENCABEZADO = [
     "Nivel de Competencia Global",
     "Comentarios",
 ]
+
+# Texto bajo «Referencias:»: los estándares que se aplicaron.
+REFERENCIAS = (
+    "ISO/IEC 25010:2023 (calidad del producto), ISO/IEC 25059:2023 (calidad "
+    "de sistemas de IA) e ISO/IEC 25012 (calidad de datos). El estado y el "
+    "motivo que declara el autor por atributo están en el Anexo 1."
+)
 
 # Título de la tabla: la plantilla pide «<Citar estándar aplicado>».
 TITULO_TABLA = (
@@ -275,7 +283,7 @@ def emitir_markdown(filas: list[tuple[str, str, str, str, str, str]]) -> str:
         "",
         "Documento generado por `Implementacion/Agente1/scripts/anexo2_calidad.py`",
         "desde la tabla fuente `Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`",
-        "(foto del corte del 26/10/2026, versión 0.5.6, tag `agente1-v0.5.6`: el "
+        "(foto del corte del 26/10/2026, versión 0.5.7, tag `agente1-v0.5.7`: el "
         "sistema en contenedores en el servidor de la facultad (ADR 0013), los siete "
         "tipos de gacetilla declarados (#121), el set de evaluación de dos ejes (#111), "
         "el tipo en el canal (#122) y el modelo `gemma4:e4b` (#51)).",
@@ -313,6 +321,11 @@ def emitir_plantilla(
 
     doc = abrir_plantilla(plantilla)
     reemplazar_parrafo(doc, "<Título del Proyecto<", TITULO_PROYECTO)
+    actualizar_ciclo_lectivo(doc)
+    # La aclaración «datos puntuales a modo de ejemplo» es de la plantilla, y
+    # la instrucción al equipo de proyecto cede su lugar a las referencias.
+    reemplazar_parrafo(doc, "Factores de calidad considerados (Se incluyen", "Factores de calidad considerados:")
+    reemplazar_parrafo(doc, "El Equipo de Proyecto completará", REFERENCIAS)
     reemplazar_en_celdas(doc, "Factores de Calidad", TITULO_TABLA)
     if len(doc.tables) != 1:
         raise SystemExit(

@@ -28,3 +28,12 @@
 - **Runbook del scheduler:** el estado apunta al contenedor. Las unidades `systemd` quedan como alternativa fuera de Docker.
 - **Inventario:** la fila de las unidades del scheduler decía «perfil apagado». Ahora dice encendido desde el 26/10.
 - **Guion de la prueba presencial:** el chequeo previo incluye `agente1-scheduler-1`. La plantilla del ensayo ya no ofrece la OAuth (#99 está cerrado) y nombra el modelo `gemma4:e4b`.
+
+## Segunda pasada: encabezado y textos de las plantillas (versión 0.5.7)
+
+En la revisión, Juani vio «Ciclo Lectivo 2025» en el encabezado del Anexo 1. El año viene de las plantillas 2025 y estaba en los tres Word.
+
+- **Encabezado:** los tres anexos dicen «Ciclo Lectivo 2026» (`CICLO_LECTIVO` en `scripts/plantilla_laboratorio.py`).
+- **Anexos 2 y 3:** sale la aclaración de la plantilla «(Se incluyen datos puntuales a modo de ejemplo)». La instrucción «El Equipo de Proyecto completará esta tabla…» se reemplaza por las referencias: ISO/IEC 25010, 25059 y 25012 en el Anexo 2, y NIST CSF 2.0, OWASP Top 10, OWASP Top 10 for LLM y MITRE ATT&CK en el Anexo 3. El ejemplo aprobado de 2025 hizo lo mismo en su Anexo 3.
+- **Columnas de nivel y comentarios: siguen vacías a propósito.** Maiorano lo pidió por escrito el 14/10: «eso es lo que completamos nosotros al evaluar». El alumno de 2025 se había autoevaluado ahí y el laboratorio lo reescribió. Seguimos la instrucción del laboratorio.
+- **Verificación:** dos tests nuevos en `tests/test_anexos_plantilla_oficial.py` (ciclo lectivo vigente en los tres; sin texto de ejemplo y con referencias en el 2 y el 3). Suite con python-docx: 2451 verdes. Ruff limpio.

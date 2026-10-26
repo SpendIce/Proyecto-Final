@@ -20,6 +20,16 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.7] - 2026-10-26
+
+- **Parche — encabezado y textos de las plantillas en la entrega (#147).**
+  Los tres Word decían «Ciclo Lectivo 2025» en el encabezado (las plantillas
+  son las de 2025): ahora dicen 2026. En los anexos 2 y 3 sale la aclaración
+  «datos puntuales a modo de ejemplo» de la plantilla y la instrucción al
+  equipo de proyecto cede su lugar a las referencias (los estándares
+  aplicados). Las columnas de nivel y comentarios siguen vacías: las completa
+  el laboratorio (correo del 14/10). No cambia el comportamiento del agente.
+
 ## [0.5.6] - 2026-10-26
 
 - **Parche — anexos sin referencias viejas (#147).** La foto de los tres

@@ -52,6 +52,7 @@ from anexos_seleccion import (  # noqa: E402
 from plantilla_laboratorio import (  # noqa: E402
     TITULO_PROYECTO,
     abrir_plantilla,
+    actualizar_ciclo_lectivo,
     buscar_parrafo,
     guardar,
     reemplazar_parrafo,
@@ -174,7 +175,7 @@ REFERENCIA_FOTO = (
     "calidad del sistema de demostración "
     "(`Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`), la "
     "misma que alimenta el Anexo 2: foto del corte del 26/10/2026, versión del "
-    "agente 0.5.6 (tag `agente1-v0.5.6`), con el sistema corriendo en "
+    "agente 0.5.7 (tag `agente1-v0.5.7`), con el sistema corriendo en "
     "contenedores en el servidor de la facultad (ADR 0013), los siete tipos de "
     "gacetilla declarados (#121), el set de evaluación de dos ejes (#111), el "
     "tipo en el canal (#122) y el modelo `gemma4:e4b` (#51). El perfil de "
@@ -266,8 +267,8 @@ ENFOQUE = [
 ESTADO_TRL_INTRO = (
     "Este anexo declara el estado de las capacidades contra el **gate TRL 4**. "
     "Las cifras y los estados de las tablas por estrato son los de la foto "
-    "declarada en el corte del 26/10/2026, versión 0.5.6 (tag "
-    "`agente1-v0.5.6`). La nota sobre fechas y "
+    "declarada en el corte del 26/10/2026, versión 0.5.7 (tag "
+    "`agente1-v0.5.7`). La nota sobre fechas y "
     "estado verificado del anteproyecto conserva el corte del 21/09/2026; "
     "cuando uno y otro citan un número, corresponde a su propia fecha, y la "
     "revisión de laboratorio evalúa la foto de este anexo."
@@ -589,6 +590,7 @@ def emitir_plantilla(
     from docx.shared import Cm, Pt
 
     doc = abrir_plantilla(plantilla)
+    actualizar_ciclo_lectivo(doc)
 
     # La plantilla trae una única tabla de ejemplo; se reemplaza por una tabla
     # por estrato, así que se retira del documento.
