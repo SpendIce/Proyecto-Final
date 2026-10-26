@@ -173,8 +173,8 @@ REFERENCIA_FOTO = (
     "Las tablas de este anexo se derivan de la tabla fuente del perfil de "
     "calidad del sistema de demostración "
     "(`Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`), la "
-    "misma que alimenta el Anexo 2: foto del corte del 23/10/2026, versión del "
-    "agente 0.5.4 (tag `agente1-v0.5.4`), con el sistema corriendo en "
+    "misma que alimenta el Anexo 2: foto del corte del 26/10/2026, versión del "
+    "agente 0.5.5 (tag `agente1-v0.5.5`), con el sistema corriendo en "
     "contenedores en el servidor de la facultad (ADR 0013), los siete tipos de "
     "gacetilla declarados (#121), el set de evaluación de dos ejes (#111), el "
     "tipo en el canal (#122) y el modelo `gemma4:e4b` (#51). El perfil de "
@@ -266,8 +266,8 @@ ENFOQUE = [
 ESTADO_TRL_INTRO = (
     "Este anexo declara el estado de las capacidades contra el **gate TRL 4**. "
     "Las cifras y los estados de las tablas por estrato son los de la foto "
-    "declarada en el corte del 23/10/2026, versión 0.5.4 (tag "
-    "`agente1-v0.5.4`). La nota sobre fechas y "
+    "declarada en el corte del 26/10/2026, versión 0.5.5 (tag "
+    "`agente1-v0.5.5`). La nota sobre fechas y "
     "estado verificado del anteproyecto conserva el corte del 21/09/2026; "
     "cuando uno y otro citan un número, corresponde a su propia fecha, y la "
     "revisión de laboratorio evalúa la foto de este anexo."
@@ -279,9 +279,11 @@ ESTADO_TRL_DEMOSTRADO = (
     "gacetilla y posts de Instagram y LinkedIn de extremo a extremo con "
     "borrador real en la carpeta autorizada (sin modificar nada existente), "
     "el circuito completo de HU-012/HU-013 y de HU-014 contra destinos de "
-    "prueba, el scheduler procesando un insumo de A3, el respaldo con su "
-    "restauración, la vuelta atrás de versión y la recuperación ante una "
-    "caída del proceso. HU-010 a HU-014 están "
+    "prueba, el envío real por Gmail a la lista de prueba, el scheduler "
+    "tomando un insumo de A3 de la pestaña de la planilla, el respaldo en "
+    "Drive con su restauración, la vuelta atrás de versión y la recuperación ante una "
+    "caída del proceso. Desde el 26/10 el scheduler corre solo en el "
+    "servidor y sube el respaldo diario. HU-010 a HU-014 están "
     "implementadas dentro del alcance declarado: la gacetilla declara los "
     "siete tipos del corpus, dos que generan prosa con prompt propio "
     "(difusión de actividad y saludo o efeméride) y cinco que extraen y "
@@ -309,16 +311,15 @@ ESTADO_TRL_NO_DEMOSTRADO = [
         "prueba guiada con una persona real de la SEU no se concretó)."
     ),
     (
-        "El envío real por Gmail y los Forms reales de HU-012, HU-013 y HU-014: "
-        "el circuito completo corre contra destinos de prueba declarados y la "
-        "lista de prueba de Gmail; los Forms y las variables de la emisión real "
-        "no están configurados en el servidor."
+        "Los Forms reales de HU-012, HU-013 y HU-014: el circuito completo "
+        "corre contra destinos de prueba declarados. Gmail está configurado en "
+        "el servidor con la lista de prueba (envío verificado el 23/10), pero "
+        "los Forms de pedidos y de decisiones todavía no están definidos."
     ),
     (
         "La unidad compartida institucional de D3: el cómputo corre en el "
         "servidor de la facultad, pero los recursos de Google siguen siendo los "
-        "de D2 (issue #100). El scheduler del contenedor queda apagado hasta "
-        "configurar la pestaña de insumos."
+        "de D2 (issue #100)."
     ),
     (
         "Los niveles verificados de los SLO de disponibilidad, tiempo de "

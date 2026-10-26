@@ -8,7 +8,7 @@ Cómo se instala, se actualiza, se vuelve atrás y se diagnostica el Agente 1 en
 |---|---|---|---|
 | `ollama` | `ollama/ollama:0.40.6` (por digest) | `modelo` (interna, sin internet) | Sirve el modelo. Los modelos se montan en sólo lectura desde `~/.ollama/models` |
 | `consola` | `ghcr.io/spendice/agente1` (por digest) | `modelo` + `salida` | Consola de la demo. Se publica en `127.0.0.1:8090` del host |
-| `scheduler` | la misma | `modelo` + `salida` | Corridas programadas: sondea la pestaña «Insumos de agentes» y corre el respaldo diario. Sólo arranca con el perfil `scheduler` (variable del stack `COMPOSE_PROFILES=scheduler`) |
+| `scheduler` | la misma | `modelo` + `salida` | Corridas programadas: sondea la pestaña «Insumos de agentes» y corre el respaldo diario. Sólo arranca con el perfil `scheduler` (variable del stack `COMPOSE_PROFILES=scheduler`). **Encendido desde el 26/10** |
 
 Los contenedores del agente:
 - corren como el uid del dueño de la clave (`1003`), con el sistema de archivos de sólo lectura y sin capacidades;

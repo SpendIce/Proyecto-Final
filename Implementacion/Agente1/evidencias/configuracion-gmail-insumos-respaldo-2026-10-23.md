@@ -80,7 +80,25 @@ Asunto: Ingeniería por un día 2026
 
 El paso diario de respaldo corrió dentro del mismo disparo. Registró `respaldo_omitido_existente`: el respaldo del día ya se había subido en la prueba anterior y no se duplica, que es lo esperado. La purga no se declara: el scheduler no lleva el registro de HU-012.
 
+## Scheduler encendido (26/10)
+
+Con el OK de Juani, el stack se redesplegó por la API de Portainer con la variable `COMPOSE_PROFILES=scheduler`. Quedaron tres contenedores: `agente1-ollama-1`, `agente1-consola-1` y `agente1-scheduler-1`. Integridad al arrancar: `PASS`, versión 0.5.4, 204 archivos.
+
+Primer disparo automático, a las 08:35 del lunes 26/10:
+
+```
+{"corrida": {"estado": "OK", "filas_leidas": 1, "filas_nuevas": 0, "filas_omitidas": 1, "filas_escritas": 0},
+ "en_ventana": true, "inicio_previsto": "2026-10-26T08:35:00-03:00", "mantenimiento": {"respaldo": "completada"},
+ "resultado": "completada", "version_agente": "0.5.4"}
+{"evento": "respaldo_subido", "nombre": "agente1-respaldo-2026-10-26.tar.gz", "archivos": 7, "artefacto_bytes": 2726}
+```
+
+En ese disparo pasaron dos cosas:
+- La fila del 23/10 se omitió porque ya estaba procesada: la idempotencia por `correlation_id` funciona entre corridas.
+- El respaldo del día se subió solo a Drive.
+
+Desde ahora el scheduler corre cada 5 minutos en días hábiles, de 8 a 16.
+
 ## Pendiente
 
-- **Encender el servicio `scheduler`:** redesplegar el stack con `COMPOSE_PROFILES=scheduler`. Hasta entonces, la pestaña sólo se procesa con disparos manuales y el respaldo diario no corre solo.
-- **Forms del canal y de decisiones:** sin definir.
+- **Forms del canal de pedidos y de decisiones:** sin definir. Cuando existan, el scheduler puede atender también la pestaña de respuestas del Form de pedidos. Hoy ese canal se atiende con un comando aparte.
