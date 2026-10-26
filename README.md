@@ -3,8 +3,8 @@
 La escribe el workflow `agente1-imagen` al cortar una versión. No se edita a mano.
 Portainer, en el servidor de la facultad, sigue esta rama y redespliega cuando cambia.
 
-- Versión: `0.5.4`
-- Imagen: `ghcr.io/spendice/agente1@sha256:c4c4c935858de00b57fffc2e4e2d8b1775d3090026f89c0810f70dedf9edbb1a`
-- Tag de origen: `agente1-v0.5.4` (`ab7755344536c1a2ef0d58403bd958a7e2d34a74`)
+- Versión: `0.5.5`
+- Imagen: `ghcr.io/spendice/agente1@sha256:7a0e0278350a1cabd49bc86faa4b17a785a22996fb1f8d6d1c6160624493fc11`
+- Tag de origen: `agente1-v0.5.5` (`380116f4b9ca38d724ac7ef5a03a8af2fae01f5b`)
 
 Volver atrás es correr de nuevo el workflow sobre el tag anterior.
