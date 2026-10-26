@@ -8,9 +8,9 @@
     "migrations/0002_integridad_referencial_borradores.up.sql": "50b73789fc6065feb11c9fae9193bd6578ef79a46733dfb0a23fe3c48700d7d5",
     "migrations/0003_rechazo_timestamps_futuros.down.sql": "41980a7780ec285ffbfcc728dfbbfd59a009fde62dcb22c4630711c42f1e2867",
     "migrations/0003_rechazo_timestamps_futuros.up.sql": "aed22abf995168bda154b790a4a1a45afbd7dc3fddafe9f5a6c85e128144d72d",
-    "pyproject.toml": "959778978b6d682af94f97abfe128f4f833bebdf403243b2749cc0a3db7bae3d",
-    "scripts/anexo1_presentacion.py": "ceddee880ec516bfab19261d40639a6571409095cae6c87a33b1d5483957d80a",
-    "scripts/anexo2_calidad.py": "8a6fc6cea9f39278035a8b8d1b14e0afedf453cc07a9fc37dca21e57b3d163a5",
+    "pyproject.toml": "65940d12f7747b22c036a6b133bb6b546db01d929e9881a29b493683c10b4b6e",
+    "scripts/anexo1_presentacion.py": "a5ab8c433a30c8f2f204a9b06c58e673eafcda3669fb9677e16558b9c39f2e43",
+    "scripts/anexo2_calidad.py": "eeb41e9f8c02b543a1a37da9d2225370592fdeb4c3da515b0f2ab2cff521c728",
     "scripts/anexo3_seguridad.py": "3a872f1051d9e0493582f33e39aa2e734a62679d4f90fc4a13f3f6cdb27d1218",
     "scripts/anexos_seleccion.py": "b93c5fca35c60a215f142b75e6fe2663e023483e120114f3fab10e5201748dad",
     "scripts/atender_canal_form.py": "18b17f0d0b8f317986a5970bc6b4e56f8f30b88fbb4d0db7d051d3ea82eac764",
@@ -203,8 +203,8 @@
     "systemd/agente1-scheduler-loop.service": "b73c70a32920ec44a47d13faba3956ba9c6feeb0c2022689600f6ae34b1854db",
     "systemd/agente1-scheduler.service": "a80a2f5735871a31f6b3a4f6daf9c694267c03b569971f69e495a1fe027fc5cb",
     "systemd/agente1-scheduler.timer": "33268d7df468209d9467ab212df0cf0caa511c7fa6b0cd9bb6beea3ba83b8ab8",
-    "uv.lock": "b23745de9864b99b74097776f868fe079a3a4e7557a43d22641a4ef072ad7f38"
+    "uv.lock": "f120c2f5c781ea3eb60e0d03173271b22e5e34203a97dc5b0da7720de9bba364"
   },
   "schema_version": "agente1_manifest_version_v1",
-  "version": "0.5.8"
+  "version": "0.5.9"
 }

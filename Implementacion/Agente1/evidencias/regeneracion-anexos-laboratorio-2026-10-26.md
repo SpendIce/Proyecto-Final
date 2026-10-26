@@ -38,7 +38,7 @@ En la revisión, Juani vio «Ciclo Lectivo 2025» en el encabezado del Anexo 1. 
 - **Columnas de nivel y comentarios: siguen vacías a propósito.** Maiorano lo pidió por escrito el 14/10: «eso es lo que completamos nosotros al evaluar». El alumno de 2025 se había autoevaluado ahí y el laboratorio lo reescribió. Seguimos la instrucción del laboratorio.
 - **Verificación:** dos tests nuevos en `tests/test_anexos_plantilla_oficial.py` (ciclo lectivo vigente en los tres; sin texto de ejemplo y con referencias en el 2 y el 3). Suite con python-docx: 2451 verdes. Ruff limpio.
 
-## Tercera pasada: la seguridad se declara en el Anexo 1 (versión 0.5.8)
+## Tercera pasada: la seguridad se declara en el Anexo 1 (versión 0.5.8, publicada como 0.5.9)
 
 Hasta la 0.5.7, cada componente del Anexo 1 tenía una fila «Seguridad · Remite» que mandaba al Anexo 3. Pero el Word del Anexo 3 sólo lleva `Componente` e `Ítem`, así que el laboratorio no veía qué estado ni qué motivo declaraba el autor para la seguridad. El ejemplo aprobado de 2025 declaraba la seguridad dentro del Anexo 1. Juani aprobó hacer lo mismo.
 

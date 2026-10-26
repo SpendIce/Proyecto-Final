@@ -20,6 +20,14 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.9] - 2026-10-26
+
+- **Parche — tests del Anexo 1 en la imagen (#147).** Los dos tests nuevos de
+  la 0.5.8 leían los perfiles de `Documentos/`, que no viajan a la imagen de
+  prueba, y el build de la imagen falló. Ahora se saltean sin `Documentos/`,
+  como el resto de los tests que leen los perfiles. **La 0.5.8 nunca se
+  publicó ni se desplegó**; la 0.5.9 trae su mismo contenido.
+
 ## [0.5.8] - 2026-10-26
 
 - **Parche — la seguridad se declara en el Anexo 1 (#147).** Cada componente

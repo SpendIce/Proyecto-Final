@@ -2,7 +2,7 @@
 
 Documento generado por `Implementacion/Agente1/scripts/anexo2_calidad.py`
 desde la tabla fuente `Documentos/Laboratorio/Perfil-Calidad-Sistema-Demostracion-v1.md`
-(foto del corte del 26/10/2026, versión 0.5.8, tag `agente1-v0.5.8`: el sistema en contenedores en el servidor de la facultad (ADR 0013), los siete tipos de gacetilla declarados (#121), el set de evaluación de dos ejes (#111), el tipo en el canal (#122) y el modelo `gemma4:e4b` (#51)).
+(foto del corte del 26/10/2026, versión 0.5.9, tag `agente1-v0.5.9`: el sistema en contenedores en el servidor de la facultad (ADR 0013), los siete tipos de gacetilla declarados (#121), el set de evaluación de dos ejes (#111), el tipo en el canal (#122) y el modelo `gemma4:e4b` (#51)).
 
 Declara una **selección** de hasta 3 atributos por componente (`scripts/anexos_seleccion.py`); el perfil completo queda en la fuente.
 

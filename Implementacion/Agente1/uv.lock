@@ -4,7 +4,7 @@ requires-python = ">=3.11"
 
 [[package]]
 name = "agente1-poc"
-version = "0.5.8"
+version = "0.5.9"
 source = { editable = "." }
 
 [package.dev-dependencies]

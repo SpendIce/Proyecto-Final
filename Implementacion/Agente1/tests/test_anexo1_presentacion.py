@@ -145,6 +145,7 @@ def _seguridad_seleccionada():
     )
 
 
+@pytest.mark.usefixtures("requiere_repo_documentos")
 def test_declara_los_mismos_items_de_seguridad_que_el_anexo_3():
     """El Word del Anexo 3 sólo lleva nombres: el estado y el motivo viven acá."""
 
@@ -171,6 +172,7 @@ def test_declara_los_mismos_items_de_seguridad_que_el_anexo_3():
     )
 
 
+@pytest.mark.usefixtures("requiere_repo_documentos")
 def test_falla_si_un_componente_no_tiene_items_de_seguridad():
     seguridad = [f for f in _seguridad_seleccionada() if f.estrato != "Gates"]
     calidad = _modulo.seleccionar_calidad(
