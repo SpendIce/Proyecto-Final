@@ -10,11 +10,13 @@ la tabla del Anexo 3 por componente. Dos salidas, con dos propósitos distintos:
 - **Entrega sobre la plantilla oficial** (``--plantilla``): el ``.docx`` que sí
   va al laboratorio, volcado sobre ``3.3 - Anexo 3 - Seguridad 2025.docx``.
 
-El reparto de columnas lo fijan el correo del laboratorio del 14/10 y la nota
-al pie de la plantilla: el equipo de proyecto completa ``Componente`` e ``Ítem``,
-y el laboratorio completa ``Implementado (MB|B|M)``, ``Previsto``,
-``No previsto`` y ``Comentario``. Por eso **el script no marca ninguna casilla
-del laboratorio** ni escribe su declaración en la columna ``Comentario``.
+El reparto de columnas lo fija el correo del laboratorio del 27/10 (Maiorano):
+el equipo de proyecto completa ``Componente`` e ``Ítem`` **y marca con una X**
+el estado que declara (``Implementado MB|B``, ``Previsto``), transcripto del
+perfil; el laboratorio completa sólo ``Comentario``, a modo de checklist. El
+correo del 14/10 había dejado las marcas al laboratorio; el del 27/10 lo
+cambió. Las columnas ``M`` y ``No previsto`` no las marca nunca el autor: son
+la categoría D del procedimiento, que asigna el laboratorio.
 
 Uso:
 
@@ -119,6 +121,22 @@ ORDEN_FACTORES = [
     "Robustez ante entradas no confiables",
 ]
 
+# Columna de la tabla (índice) donde va la X según el estado declarado. La
+# equivalencia está en la sección 2 del perfil de seguridad. `No aplica` va a
+# «Previsto / No es necesario»: el ítem se tuvo en cuenta y se descartó con
+# motivo; «No previsto» es la categoría D («ignorado»), que asigna el
+# laboratorio. `C` y `Remite` no tienen columna fija: la calificación de un `C`
+# («requerido» o no) está en el motivo, y una fila que remite no se declara acá.
+COLUMNA_MB = 2
+COLUMNA_B = 3
+COLUMNA_PREVISTO_NO_NECESARIO = 5
+COLUMNA_POR_ESTADO = {
+    "A": COLUMNA_MB,
+    "B": COLUMNA_B,
+    "No aplica": COLUMNA_PREVISTO_NO_NECESARIO,
+}
+MARCA = "X"
+
 # Estados base que el autor puede declarar. `D` no se asigna nunca acá: lo
 # asigna el laboratorio (resolución de #58). `RA` califica a `A` o `B`.
 ESTADOS_BASE = ("A", "B", "C", "No aplica", "Remite")
@@ -217,7 +235,8 @@ def emitir_markdown(filas: list[FilaFuente]) -> str:
         "",
         "Vista de trabajo del autor: no se entrega y no reemplaza a la plantilla oficial",
         "«3.3 - Anexo 3 - Seguridad 2025», sobre la que se escribe la entrega con `--plantilla`.",
-        "Las columnas de nivel y el `Comentario` son del laboratorio y por eso no aparecen acá.",
+        "En la entrega, el estado se marca con una X (A: `MB`, B: `B`, No aplica: «Previsto / No es necesario»);",
+        "el `Comentario` lo completa el laboratorio (correo del 27/10).",
         "",
         "| Componente | Ítem | Estado declarado (autor) | Motivo | Evidencia versionada | Paso en vivo (< 2 min) | Marco |",
         "|---|---|---|---|---|---|---|",
@@ -242,11 +261,28 @@ def emitir_markdown(filas: list[FilaFuente]) -> str:
     return "\n".join(lineas)
 
 
+def marcas(fila: FilaFuente) -> list[str]:
+    """Las siete casillas de estado de la plantilla, con la X del estado declarado.
+
+    Falla con un estado sin columna fija (`C`, `Remite`) en vez de adivinar.
+    """
+
+    columna = COLUMNA_POR_ESTADO.get(fila.estado_base)
+    if columna is None:
+        raise ValueError(
+            f"el estado {fila.estado!r} no tiene casilla fija en el Anexo 3 "
+            f"({fila.estrato} › {fila.item}); definirla antes de declarar la fila"
+        )
+    casillas = [""] * 7
+    casillas[columna - COLUMNA_MB] = MARCA
+    return casillas
+
+
 def emitir_plantilla(filas: list[FilaFuente], plantilla: Path, destino: Path) -> None:
     """Volca los ítems del Anexo 3 sobre la plantilla oficial de la cátedra.
 
-    Sólo completa las columnas del equipo de proyecto (`Componente` e `Ítem`):
-    las del laboratorio quedan vacías para que las marque al evaluar.
+    Completa `Componente` e `Ítem` y marca con una X el estado declarado. La
+    columna `Comentario` queda vacía: es la del laboratorio.
     """
 
     doc = abrir_plantilla(plantilla)
@@ -265,7 +301,7 @@ def emitir_plantilla(filas: list[FilaFuente], plantilla: Path, destino: Path) ->
     verificar_columnas(tabla, COLUMNAS_ENCABEZADO)
     conservar_filas(tabla, FILAS_ENCABEZADO_PLANTILLA)
     for fila in filas:
-        agregar_fila(tabla, [fila.estrato, fila.item])
+        agregar_fila(tabla, [fila.estrato, fila.item, *marcas(fila)], centradas=range(2, 9))
     guardar(doc, destino)
 
 
@@ -310,7 +346,7 @@ def main() -> int:
         if args.plantilla is None:
             raise SystemExit(
                 "--docx requiere --plantilla: la entrega va sobre la plantilla "
-                "oficial de la cátedra, con las columnas del laboratorio vacías."
+                "oficial de la cátedra, con el comentario del laboratorio vacío."
             )
         emitir_plantilla(filas, args.plantilla, args.docx)
         print(f"entrega sobre la plantilla oficial escrita en {args.docx}")

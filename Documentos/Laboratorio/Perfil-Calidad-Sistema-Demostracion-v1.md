@@ -3,7 +3,7 @@
 - **Documento:** tabla fuente del perfil de calidad declarado por el autor para la revisión de laboratorio (issues #59 y #89). De esta tabla se proyecta el Anexo 2 por atributo; la seguridad se declara aparte en el Anexo 3 (#58).
 - **Foto:** este perfil describe el inventario `Documentos/Inventario/Inventario-Componentes-Sistema-Demostracion-v1.md` en el corte del 26/10/2026, versión del agente **0.5.9** (tag `agente1-v0.5.9`), con el sistema corriendo en contenedores en el servidor de la facultad (ADR 0013) y el scheduler encendido desde el 26/10. Incluye los siete tipos de gacetilla declarados (#121), el set de evaluación de dos ejes (#111), el tipo en el canal (#122) y el modelo `gemma4:e4b` (#51). Los tres anexos declaran esta misma foto; si la base cambia antes del envío, se regeneran juntos.
 - **Alcance:** Agente 1 dentro del Proceso 4, con validación humana obligatoria. Toda salida es borrador (`PENDIENTE_VALIDACION`, `BORRADOR — NO PUBLICAR`, `BORRADOR — NO ENVIAR`, `BORRADOR — NO EMITIR`). El sistema de demostración corre en el servidor de la facultad (`labredesfie`) en contenedores, con Ollama 0.40.6 y `gemma4:e4b` sin salida a internet y la cuenta de servicio de DSI sobre Workspace D2; la unidad compartida institucional de D3 sigue pendiente (#100).
-- **Estado del documento:** foto declarada por el autor; los niveles de competencia los asigna el laboratorio.
+- **Estado del documento:** foto declarada por el autor. Desde el correo del laboratorio del 27/10 (Maiorano), el autor transcribe su estado en los niveles de competencia del Anexo 2 y el laboratorio completa sólo los comentarios, como checklist.
 
 ## 1. Regla de estados
 
@@ -152,8 +152,8 @@ El script `Implementacion/Agente1/scripts/anexo2_calidad.py` lee la tabla fuente
         --plantilla "Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/3.2 - Anexo 2 - Calidad 2025.docx" \
         --docx Documentos/Laboratorio/Entrega/Anexo2-Calidad.docx
 
-  Escribe `Factor de calidad` y `Atributo` en la tabla de la plantilla y deja **vacías** las tres columnas del laboratorio (`Nivel de Competencia`, `Nivel de Competencia Global` y `Comentarios`). `--docx` **requiere** `--plantilla`: es la única forma de emitir la entrega.
+  Escribe `Factor de calidad` y `Atributo` en la tabla de la plantilla y transcribe el estado declarado: `Nivel de Competencia` por atributo (`A - Implementado satisfactoriamente`, `B - Implementado con observaciones`; un atributo mixto toma su peor parte implementada y remite al Anexo 1) y `Nivel de Competencia Global` por factor, el peor de sus atributos (`Muy bueno` si son todos `A`, `Bueno` si hay un `B`). Deja **vacía** la columna `Comentarios`, que completa el laboratorio (correo del 27/10). `--docx` **requiere** `--plantilla`: es la única forma de emitir la entrega.
 
-La proyección no agrega contenido: reordena y consolida la tabla fuente. El nivel de competencia lo asigna el laboratorio, no el autor.
+La proyección no agrega contenido: reordena y consolida la tabla fuente. Los niveles transcriben el estado declarado; el laboratorio los revisa y comenta.
 
 **Este documento es el registro interno completo**; los anexos declaran una selección de hasta 3 atributos por componente (`Implementacion/Agente1/scripts/anexos_seleccion.py`), elegida para mostrar las claves del proyecto sin que cada atributo declarado se convierta en un pedido de demostración en la reunión.

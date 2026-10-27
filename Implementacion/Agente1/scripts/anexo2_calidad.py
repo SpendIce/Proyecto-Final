@@ -14,12 +14,14 @@ Dos salidas, con dos propósitos distintos:
 - **Entrega sobre la plantilla oficial** (``--plantilla``): el ``.docx`` que sí
   va al laboratorio, volcado sobre ``3.2 - Anexo 2 - Calidad 2025.docx``.
 
-El reparto de columnas lo fijan el correo del laboratorio del 14/10 y la nota al
-pie de la plantilla: el equipo de proyecto completa ``Factor de calidad`` y
-``Atributo``, y el laboratorio completa ``Nivel de Competencia``, ``Nivel de
-Competencia Global`` y ``Comentarios``. Por eso **el script no escribe la
-declaración del autor en las columnas del laboratorio**: el estado, el motivo y
-la evidencia viven en el Anexo 1.
+El reparto de columnas lo fija el correo del laboratorio del 27/10 (Maiorano):
+el equipo de proyecto completa ``Factor de calidad`` y ``Atributo`` y
+**transcribe el estado que declara** en ``Nivel de Competencia`` (por atributo)
+y ``Nivel de Competencia Global`` (por factor, el peor de sus atributos); el
+laboratorio completa sólo ``Comentarios``, a modo de checklist. El correo del
+14/10 había dejado los niveles al laboratorio; el del 27/10 lo cambió. El
+motivo y la evidencia siguen en el Anexo 1. La redacción de los niveles es la
+del ejemplo aprobado de 2025.
 
 Uso:
 
@@ -48,6 +50,7 @@ from plantilla_laboratorio import (  # noqa: E402
     actualizar_ciclo_lectivo,
     agregar_fila,
     conservar_filas,
+    fijar_anchos,
     guardar,
     reemplazar_en_celdas,
     reemplazar_parrafo,
@@ -82,6 +85,10 @@ TITULO_TABLA = (
     "ISO/IEC 25059:2023 y el conjunto reducido de ISO/IEC 25012:2023. "
     "Seguridad remite al Anexo 3"
 )
+
+# Anchos de columna en twips (el total es el de la plantilla, 9344). La
+# plantilla deja 3 cm para el nivel y «satisfactoriamente» se partía en dos.
+ANCHOS_COLUMNAS = [1700, 1736, 2200, 1500, 2208]
 
 # Filas de la plantilla que se conservan: el título combinado y el encabezado.
 FILAS_ENCABEZADO_PLANTILLA = 2
@@ -159,6 +166,21 @@ ORDEN_CARACTERISTICAS = [
 ]
 
 ORDEN_ESTADOS = ["A", "B", "C", "No aplica", "Remite"]
+
+# Texto de cada estado en las columnas de nivel, con la redacción del ejemplo
+# aprobado de 2025 y la escala del procedimiento (`3.0 - Procedimiento 2025`).
+# Sólo se transcriben estados de atributos declarados: `No aplica` y `Remite`
+# no tienen nivel y hacen fallar el volcado.
+NIVEL_POR_ESTADO = {
+    "A": "A - Implementado satisfactoriamente",
+    "B": "B - Implementado con observaciones",
+    "C": "C - Previsto, no implementado",
+}
+NIVEL_GLOBAL_POR_ESTADO = {
+    "A": "Muy bueno",
+    "B": "Bueno",
+    "C": "Previsto, no implementado",
+}
 
 
 class FilaFuente:
@@ -277,6 +299,53 @@ def proyectar(
     return salida
 
 
+def _partes(estado: str) -> list[str]:
+    """`A/B/C` -> `[A, B, C]`; `A + RA` -> `[A]`. Falla con un estado sin nivel."""
+
+    partes = [parte.split("+", 1)[0].strip() for parte in estado.split("/")]
+    sin_nivel = [parte for parte in partes if parte not in NIVEL_POR_ESTADO]
+    if sin_nivel:
+        raise ValueError(
+            f"el estado {estado!r} no tiene nivel de competencia; "
+            "un atributo No aplica o Remite no se declara en el Anexo 2"
+        )
+    return partes
+
+
+def _peor(estados: list[str]) -> str:
+    return max(estados, key=list(NIVEL_POR_ESTADO).index)
+
+
+def nivel_de_competencia(estado: str) -> str:
+    """Nivel por atributo. Un atributo mixto toma su peor parte implementada."""
+
+    partes = _partes(estado)
+    implementadas = [parte for parte in partes if parte in ("A", "B")]
+    texto = NIVEL_POR_ESTADO[_peor(implementadas or partes)]
+    if len(partes) > 1:
+        texto += (
+            f" (partes en {', '.join(partes[:-1])} y {partes[-1]}; "
+            "el detalle está en el Anexo 1)"
+        )
+    return texto
+
+
+def niveles_globales(
+    filas: list[tuple[str, str, str, str, str, str]],
+) -> dict[str, str]:
+    """Nivel global por factor: el peor nivel de sus atributos declarados."""
+
+    por_factor: dict[str, list[str]] = {}
+    for caracteristica, _atributo, estado, *_ in filas:
+        partes = _partes(estado)
+        implementadas = [parte for parte in partes if parte in ("A", "B")]
+        por_factor.setdefault(caracteristica, []).append(_peor(implementadas or partes))
+    return {
+        factor: NIVEL_GLOBAL_POR_ESTADO[_peor(estados)]
+        for factor, estados in por_factor.items()
+    }
+
+
 def emitir_markdown(filas: list[tuple[str, str, str, str, str, str]]) -> str:
     lineas = [
         "# Anexo 2: Tabla de calidad por atributo (proyección)",
@@ -293,10 +362,11 @@ def emitir_markdown(filas: list[tuple[str, str, str, str, str, str]]) -> str:
         "",
         "Columnas de la plantilla oficial «3.2 - Anexo 2 - Calidad 2025.docx»:",
         "Factor de calidad | Atributo | Nivel de Competencia | Nivel de Competencia",
-        "Global | Comentarios. La entrega la completa el equipo de proyecto con el",
-        "factor y el atributo; las tres últimas columnas las completa el laboratorio",
-        "al evaluar. Las columnas de esta proyección son la vista de trabajo del",
-        "autor y no viajan a la plantilla. Seguridad remite al Anexo 3 (#58).",
+        "Global | Comentarios. El equipo de proyecto completa el factor, el atributo",
+        "y transcribe el estado declarado en los dos niveles (A: «Implementado",
+        "satisfactoriamente» / «Muy bueno»; B: «Implementado con observaciones» /",
+        "«Bueno»; el global es el peor del factor). El laboratorio completa sólo",
+        "`Comentarios` (correo del 27/10). Seguridad remite al Anexo 3 (#58).",
         "",
         "| Factor de calidad | Atributo | Estado declarado (autor) | Motivo | Evidencia versionada | Paso en vivo (< 2 min) |",
         "|---|---|---|---|---|---|",
@@ -314,9 +384,8 @@ def emitir_plantilla(
 ) -> None:
     """Volca los atributos del Anexo 2 sobre la plantilla oficial de la cátedra.
 
-    Sólo completa las columnas del equipo de proyecto (`Factor de calidad` y
-    `Atributo`): las del laboratorio quedan vacías para que las marque al
-    evaluar.
+    Completa factor, atributo y los dos niveles de competencia con el estado
+    declarado. `Comentarios` queda vacía: es la del laboratorio.
     """
 
     doc = abrir_plantilla(plantilla)
@@ -334,8 +403,13 @@ def emitir_plantilla(
     tabla = doc.tables[0]
     verificar_columnas(tabla, COLUMNAS_ENCABEZADO)
     conservar_filas(tabla, FILAS_ENCABEZADO_PLANTILLA)
-    for caracteristica, atributo, _estado, _motivo, _evidencia, _paso in filas:
-        agregar_fila(tabla, [caracteristica, atributo])
+    globales = niveles_globales(filas)
+    for caracteristica, atributo, estado, _motivo, _evidencia, _paso in filas:
+        agregar_fila(
+            tabla,
+            [caracteristica, atributo, nivel_de_competencia(estado), globales[caracteristica]],
+        )
+    fijar_anchos(tabla, ANCHOS_COLUMNAS, desde_fila=1)
     guardar(doc, destino)
 
 
@@ -380,7 +454,7 @@ def main() -> int:
         if args.plantilla is None:
             raise SystemExit(
                 "--docx requiere --plantilla: la entrega va sobre la plantilla "
-                "oficial de la cátedra, con las columnas del laboratorio vacías."
+                "oficial de la cátedra, con los comentarios del laboratorio vacíos."
             )
         emitir_plantilla(filas, args.plantilla, args.docx)
         print(f"entrega sobre la plantilla oficial escrita en {args.docx}")

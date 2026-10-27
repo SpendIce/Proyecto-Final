@@ -3,7 +3,7 @@
 - **Documento:** tabla fuente del perfil de seguridad declarado por el autor para la revisión de laboratorio (decisión #58; espejo de la tabla del perfil de calidad, issue #89). De esta tabla se proyecta el Anexo 3 por componente; el Anexo 2 declara la calidad por atributo.
 - **Foto:** este perfil describe el mismo inventario que declara el Anexo 2 (`Documentos/Inventario/Inventario-Componentes-Sistema-Demostracion-v1.md`). Los tres anexos (1, 2 y 3) declaran **una sola foto**: el corte del 26/10/2026, versión del agente **0.5.9** (tag `agente1-v0.5.9`), con el sistema corriendo en contenedores en el servidor de la facultad (ADR 0013).
 - **Alcance:** Agente 1 dentro del Proceso 4, con validación humana obligatoria. Toda salida es borrador (`PENDIENTE_VALIDACION`, `BORRADOR — NO PUBLICAR`, `BORRADOR — NO ENVIAR`, `BORRADOR — NO EMITIR`). El sistema de demostración corre en el servidor de la facultad (`labredesfie`) en contenedores: Ollama 0.40.6 con `gemma4:e4b` en una red interna sin salida a internet y el agente con la cuenta de servicio de DSI sobre Workspace D2 (stack de Portainer, ADR 0013). La unidad compartida institucional de D3 sigue pendiente (#100).
-- **Estado del documento:** **foto declarada por el autor; los niveles de competencia los asigna el laboratorio.**
+- **Estado del documento:** **foto declarada por el autor.** Desde el correo del laboratorio del 27/10 (Maiorano), el autor marca su estado en el Anexo 3 y el laboratorio completa sólo el comentario, como checklist.
 
 ## 1. Regla de estados
 
@@ -36,11 +36,11 @@ Una sola escala para los tres anexos. La equivalencia con las etiquetas del temp
 | `C` | `Previsto`: «Debe Implem.» si es `requerido`; «No es necesario» si es `no previsto` | `P` (previsto y no implementado) | Tenido en cuenta y no implementado, con motivo. |
 | `D` | `M` (Elemental / Incorrecto) o `No previsto` | — | Lo asigna el laboratorio. |
 | `Remite` | — | — | El factor se declara en otro anexo. |
-| `No aplica` | `No previsto`: «No es necesario» | — | No corresponde a este sistema, con motivo. |
+| `No aplica` | `Previsto`: «No es necesario» | — | No corresponde a este sistema, con motivo: se tuvo en cuenta y se descartó. |
 | `RA` (calificación) | dentro de `A` o `B` | `RA` (riesgo aceptado) | Riesgo aceptado, con quién lo aceptó y su compensación. |
 
 - `A`/`B` equivalen a `I`; `C` equivale a `P`; `RA` califica a un `A` o un `B`.
-- Las columnas «Implementado», «Previsto» y «No previsto» del template y el nivel final (L1/L2) los completa el **laboratorio**; el autor declara el estado y su equivalente.
+- El autor marca con una X la casilla equivalente a su estado (`MB`, `B` o «Previsto»), por pedido del laboratorio del 27/10. `M` y «No previsto» no los marca nunca: son la categoría `D` (desconocido o ignorado), que asigna el laboratorio. Por eso `No aplica` va a «Previsto / No es necesario» y no a «No previsto», como decía esta tabla hasta el 27/10. El `Comentario` y el nivel final (L1/L2) los completa el **laboratorio**.
 
 ## 3. Convenciones de la tabla fuente
 
@@ -160,9 +160,9 @@ El script `Implementacion/Agente1/scripts/anexo3_seguridad.py` lee la tabla fuen
         --plantilla "Contenido/DocumentacionAnteproyecto/Revision-Laboratorio-2025/3.3 - Anexo 3 - Seguridad 2025.docx" \
         --docx Documentos/Laboratorio/Entrega/Anexo3-Seguridad.docx
 
-  Conserva el encabezado del template `3.3 - Anexo 3 - Seguridad 2025` y escribe `Componente` e `Ítem`; deja **vacías** las columnas del laboratorio (`Implementado` `MB`/`B`/`M`, `Previsto` y `No previsto`) y su `Comentario`. `--docx` **requiere** `--plantilla`: es la única forma de emitir la entrega.
+  Conserva el encabezado del template `3.3 - Anexo 3 - Seguridad 2025` y escribe `Componente` e `Ítem` y marca con una X el estado declarado según la tabla de la sección 2; deja **vacío** el `Comentario`, que completa el laboratorio. Un estado sin casilla fija (`C`, `Remite`) hace fallar el volcado. `--docx` **requiere** `--plantilla`: es la única forma de emitir la entrega.
 
-La proyección no agrega contenido: reordena y consolida la tabla fuente. Las columnas de nivel y el `Comentario` los completa el laboratorio, no el autor.
+La proyección no agrega contenido: reordena y consolida la tabla fuente. Las marcas transcriben el estado declarado; el `Comentario` lo completa el laboratorio.
 
 **El estado y el motivo de cada ítem van en el Anexo 1.** El Word del Anexo 3 sólo lleva `Componente` e `Ítem`, así que `scripts/anexo1_presentacion.py` declara en cada componente del Anexo 1 los mismos ítems seleccionados, con su estado y su motivo (filas «Seguridad (factor)»), y suma `Google Workspace` como componente propio. Así lo hizo el ejemplo aprobado de 2025.
 

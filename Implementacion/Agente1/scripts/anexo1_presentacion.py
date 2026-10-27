@@ -15,9 +15,9 @@ el estado y el motivo de la tabla fuente del perfil de seguridad
 lleva el nombre de cada ítem, así que sin esto el laboratorio no vería lo que
 declara el autor. Así lo hizo el ejemplo aprobado de 2025.
 
-Este anexo es donde vive la declaración del autor: los Anexos 2 y 3 sólo llevan
-los ítems que después completa el laboratorio, así que el estado, el motivo y la
-evidencia quedan acá, en las tablas por componente y en la Lista de Control.
+Este anexo es donde vive la declaración del autor: los Anexos 2 y 3 llevan los
+ítems y el estado transcripto (correo del laboratorio del 27/10), pero no el
+motivo, así que el estado, el motivo y la evidencia quedan acá, en las tablas por componente y en la Lista de Control.
 
 Dos salidas, con dos propósitos distintos:
 

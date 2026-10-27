@@ -6,14 +6,14 @@ Calidad 2025.docx` y `3.3 - Anexo 3 - Seguridad 2025.docx` viven en
 formato que pide el laboratorio (issue #57): se entregan en Word **sobre esas
 plantillas**, no sobre una tabla propia.
 
-El reparto de columnas lo fija el correo del laboratorio del 14/10 y las notas
-al pie de cada plantilla («El Equipo de Proyecto completará esta tabla
-consignando los factores y atributos»):
+El reparto de columnas lo fija el correo del laboratorio del 27/10 (Maiorano),
+que cambió el del 14/10:
 
-- **El equipo de proyecto** completa los ítems: `Factor de calidad` + `Atributo`
-  en el Anexo 2, `Componente` + `Ítem` en el Anexo 3.
-- **El laboratorio** completa las últimas columnas (nivel de competencia y
-  comentarios), y por eso pide Word.
+- **El equipo de proyecto** completa los ítems y transcribe el estado que
+  declara: `Factor de calidad`, `Atributo` y los dos niveles de competencia en
+  el Anexo 2; `Componente`, `Ítem` y la X del estado en el Anexo 3.
+- **El laboratorio** completa sólo `Comentarios`, a modo de checklist
+  (satisfactorio, pendiente…), y por eso pide Word.
 
 Las plantillas son las del ciclo 2025: el encabezado de página dice «Ciclo
 Lectivo 2025» y se actualiza al ciclo vigente (`CICLO_LECTIVO`).
@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 # Título con el que se identifica el proyecto en la cabecera de cada plantilla.
 # Es el mismo texto que usa el Anexo 1, para no tener dos títulos del proyecto.
@@ -138,16 +138,46 @@ def conservar_filas(tabla: Any, cantidad: int) -> None:
         tabla._tbl.remove(fila._tr)
 
 
-def agregar_fila(tabla: Any, valores: list[str]) -> None:
-    """Agrega una fila con `valores` y vacía las celdas que no se declaran."""
+def agregar_fila(tabla: Any, valores: list[str], centradas: Iterable[int] = ()) -> None:
+    """Agrega una fila con `valores` y vacía las celdas que no se declaran.
+
+    Las columnas de `centradas` se alinean al centro (las casillas con X).
+    """
+
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     celdas = tabla.add_row().cells
     if len(valores) > len(celdas):
         raise ValueError(
             f"la fila tiene {len(valores)} valores para {len(celdas)} columnas"
         )
+    centradas = set(centradas)
     for i, celda in enumerate(celdas):
         celda.text = valores[i] if i < len(valores) else ""
+        if i in centradas:
+            for parrafo in celda.paragraphs:
+                parrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
+def fijar_anchos(tabla: Any, anchos_twips: list[int], desde_fila: int) -> None:
+    """Fija el ancho de cada columna, en twips, desde `desde_fila` en adelante.
+
+    Las filas anteriores (el título combinado) conservan su formato.
+    """
+
+    from docx.oxml.ns import qn
+    from docx.shared import Twips
+
+    columnas = tabla._tbl.tblGrid.findall(qn("w:gridCol"))
+    if len(columnas) != len(anchos_twips):
+        raise ValueError(
+            f"la tabla tiene {len(columnas)} columnas y se dieron {len(anchos_twips)} anchos"
+        )
+    for columna, ancho in zip(columnas, anchos_twips):
+        columna.set(qn("w:w"), str(ancho))
+    for fila in list(tabla.rows)[desde_fila:]:
+        for celda, ancho in zip(fila.cells, anchos_twips):
+            celda.width = Twips(ancho)
 
 
 def guardar(doc: Any, destino: Path) -> None:

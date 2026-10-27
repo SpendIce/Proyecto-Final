@@ -1,9 +1,10 @@
 """Entrega de los anexos del laboratorio sobre las plantillas oficiales.
 
 La invariante que protege este archivo es la del reparto de columnas que fijó el
-correo del laboratorio del 14/10 (issue #57): el equipo de proyecto completa los
-ítems y **el laboratorio completa las últimas columnas**. Si el volcado escribiera
-en las columnas del laboratorio, le estaría marcando la planilla al evaluador.
+correo del laboratorio del 27/10 (issue #57): el equipo de proyecto completa los
+ítems y **transcribe el estado declarado** (niveles en el Anexo 2, X en el Anexo
+3), y **el laboratorio completa sólo los comentarios**. Si el volcado escribiera
+en esa columna, le estaría llenando el checklist al evaluador.
 
 El archivo se saltea si `python-docx` no está disponible —los scripts lo tienen
 como dependencia opcional— o si no están las plantillas oficiales de la cátedra.
@@ -47,64 +48,132 @@ def plantillas():  # noqa: ANN201
             pytest.skip(f"falta la plantilla oficial: {plantilla.name}")
 
 
-def _celdas_del_laboratorio(tabla, desde: int, primera_del_autor: int) -> list[str]:
-    """Devuelve el texto de las columnas que NO le tocan al equipo de proyecto."""
+def _filas_anexo3(modulo):  # noqa: ANN001, ANN202
+    """Las filas que se entregan: la selección, como en `main()`."""
 
-    return [
-        celda.text.strip()
-        for fila in list(tabla.rows)[desde:]
-        for indice, celda in enumerate(fila.cells)
-        if indice >= primera_del_autor and celda.text.strip()
-    ]
-
-
-def test_anexo3_deja_vacias_las_columnas_del_laboratorio(docx, plantillas, tmp_path):
-    modulo = _cargar("anexo3_seguridad")
-    filas = modulo.ordenar(
-        modulo.parsear_fuente(FUENTE_SEGURIDAD.read_text(encoding="utf-8"))
+    return modulo.ordenar(
+        modulo.seleccionar_seguridad(
+            modulo.parsear_fuente(FUENTE_SEGURIDAD.read_text(encoding="utf-8"))
+        )
     )
+
+
+def _filas_anexo2(modulo):  # noqa: ANN001, ANN202
+    return modulo.proyectar(
+        modulo.seleccionar_calidad(
+            modulo.parsear_fuente(FUENTE_CALIDAD.read_text(encoding="utf-8"))
+        ),
+        permitir_faltantes=True,
+    )
+
+
+def _tabla_anexo3(docx, tmp_path):  # noqa: ANN001, ANN202
+    modulo = _cargar("anexo3_seguridad")
+    filas = _filas_anexo3(modulo)
     destino = tmp_path / "Anexo3.docx"
     modulo.emitir_plantilla(filas, PLANTILLA_3, destino)
-
     tabla = docx.Document(str(destino)).tables[0]
+    return modulo, filas, list(tabla.rows)[modulo.FILAS_ENCABEZADO_PLANTILLA :], tabla
+
+
+def test_anexo3_marca_una_x_por_fila_y_deja_el_comentario_al_laboratorio(
+    docx, plantillas, tmp_path
+):
+    modulo, filas, cuerpo, tabla = _tabla_anexo3(docx, tmp_path)
+
     # Dos encabezados más el título combinado: se conservan.
     assert [c.text.strip() for c in tabla.rows[1].cells][:2] == ["Componente", "Ítem"]
     assert [c.text.strip() for c in tabla.rows[2].cells][2:5] == ["MB", "B", "M"]
-    assert len(tabla.rows) - modulo.FILAS_ENCABEZADO_PLANTILLA == len(filas)
-    assert _celdas_del_laboratorio(tabla, modulo.FILAS_ENCABEZADO_PLANTILLA, 2) == []
+    assert len(cuerpo) == len(filas)
+    for fila in cuerpo:
+        casillas = [c.text.strip() for c in fila.cells[2:9]]
+        assert casillas.count("X") == 1, fila.cells[1].text
+        assert set(casillas) <= {"X", ""}
+        # M y No previsto son del laboratorio (categoría D).
+        assert casillas[2] == "" and casillas[5:] == ["", ""]
+        assert fila.cells[9].text.strip() == ""
     # Las filas de ejemplo de la plantilla no viajan a la entrega.
-    items = [fila.cells[1].text.strip() for fila in list(tabla.rows)[3:]]
-    assert "Conexión por TLS" not in items
+    assert "Conexión por TLS" not in [fila.cells[1].text.strip() for fila in cuerpo]
+
+
+def test_anexo3_transcribe_el_estado_declarado(docx, plantillas, tmp_path):
+    _, filas, cuerpo, _ = _tabla_anexo3(docx, tmp_path)
+
+    por_item = {fila.cells[1].text.strip(): fila for fila in cuerpo}
+    for fuente in filas:
+        celdas = [c.text.strip() for c in por_item[fuente.item].cells]
+        if fuente.estado_base == "A":
+            assert celdas[2] == "X", fuente.item
+        elif fuente.estado_base == "B":
+            assert celdas[3] == "X", fuente.item
+    # No aplica: se tuvo en cuenta y se descartó con motivo.
+    contrasenas = [c.text.strip() for c in por_item["Almacenamiento de credenciales y contraseñas"].cells]
+    assert contrasenas[5] == "X"
 
 
 def test_anexo3_declara_el_almacenamiento_de_contrasenas_y_el_tls(docx, plantillas, tmp_path):
     """Los dos ítems que la plantilla siembra como ejemplo tienen fila propia."""
 
-    modulo = _cargar("anexo3_seguridad")
-    filas = modulo.ordenar(
-        modulo.parsear_fuente(FUENTE_SEGURIDAD.read_text(encoding="utf-8"))
-    )
-    destino = tmp_path / "Anexo3.docx"
-    modulo.emitir_plantilla(filas, PLANTILLA_3, destino)
-
-    tabla = docx.Document(str(destino)).tables[0]
-    items = [fila.cells[1].text.strip() for fila in list(tabla.rows)[3:]]
+    _, _, cuerpo, _ = _tabla_anexo3(docx, tmp_path)
+    items = [fila.cells[1].text.strip() for fila in cuerpo]
     assert "Almacenamiento de credenciales y contraseñas" in items
     assert any("TLS" in item for item in items)
 
 
-def test_anexo2_deja_vacias_las_columnas_del_laboratorio(docx, plantillas, tmp_path):
+def test_anexo3_no_adivina_la_casilla_de_un_previsto():
+    modulo = _cargar("anexo3_seguridad")
+    fila = modulo.FilaFuente(["Canal", "Integridad", "Algo", "C", "m", "—", "—", "—"])
+    with pytest.raises(ValueError, match="casilla fija"):
+        modulo.marcas(fila)
+
+
+def test_anexo2_transcribe_los_niveles_y_deja_los_comentarios_al_laboratorio(
+    docx, plantillas, tmp_path
+):
     modulo = _cargar("anexo2_calidad")
-    filas = modulo.proyectar(
-        modulo.parsear_fuente(FUENTE_CALIDAD.read_text(encoding="utf-8"))
-    )
+    filas = _filas_anexo2(modulo)
     destino = tmp_path / "Anexo2.docx"
     modulo.emitir_plantilla(filas, PLANTILLA_2, destino)
 
     tabla = docx.Document(str(destino)).tables[0]
     assert tabla.rows[1].cells[0].text.strip() == "Factor de calidad"
-    assert len(tabla.rows) - modulo.FILAS_ENCABEZADO_PLANTILLA == len(filas)
-    assert _celdas_del_laboratorio(tabla, modulo.FILAS_ENCABEZADO_PLANTILLA, 2) == []
+    cuerpo = list(tabla.rows)[modulo.FILAS_ENCABEZADO_PLANTILLA :]
+    assert len(cuerpo) == len(filas)
+    for fila in cuerpo:
+        assert fila.cells[2].text.strip(), fila.cells[1].text
+        assert fila.cells[3].text.strip() in {"Muy bueno", "Bueno"}
+        assert fila.cells[4].text.strip() == ""
+
+    por_atributo = {(f.cells[0].text.strip(), f.cells[1].text.strip()): f for f in cuerpo}
+    for caracteristica, atributo, estado, *_ in filas:
+        nivel = por_atributo[(caracteristica, atributo)].cells[2].text.strip()
+        if estado == "A":
+            assert nivel == "A - Implementado satisfactoriamente"
+        elif estado == "B":
+            assert nivel == "B - Implementado con observaciones"
+
+
+def test_anexo2_el_nivel_global_es_el_peor_del_factor():
+    modulo = _cargar("anexo2_calidad")
+    filas = [
+        ("Fiabilidad", "Tolerancia a fallos", "A", "", "", ""),
+        ("Fiabilidad", "Recuperabilidad", "B", "", "", ""),
+        ("Mantenibilidad", "Modularidad", "A", "", "", ""),
+        ("Compatibilidad", "Interoperabilidad", "A/B/C", "", "", ""),
+    ]
+    assert modulo.niveles_globales(filas) == {
+        "Fiabilidad": "Bueno",
+        "Mantenibilidad": "Muy bueno",
+        "Compatibilidad": "Bueno",
+    }
+    assert modulo.nivel_de_competencia("A/B/C").startswith("B - Implementado con observaciones")
+    assert "Anexo 1" in modulo.nivel_de_competencia("A/B/C")
+
+
+def test_anexo2_no_declara_niveles_de_un_no_aplica():
+    modulo = _cargar("anexo2_calidad")
+    with pytest.raises(ValueError, match="no tiene nivel"):
+        modulo.nivel_de_competencia("No aplica")
 
 
 def test_anexo1_reemplaza_el_esqueleto_por_una_tabla_por_estrato(docx, plantillas, tmp_path):
@@ -135,12 +204,8 @@ def _emitir_los_tres(tmp_path: Path) -> list[Path]:
     calidad = a2.parsear_fuente(FUENTE_CALIDAD.read_text(encoding="utf-8"))
     destinos = [tmp_path / "Anexo1.docx", tmp_path / "Anexo2.docx", tmp_path / "Anexo3.docx"]
     a1.emitir_plantilla(a1.proyectar_por_estrato(calidad), PLANTILLA_1, destinos[0])
-    a2.emitir_plantilla(a2.proyectar(calidad), PLANTILLA_2, destinos[1])
-    a3.emitir_plantilla(
-        a3.ordenar(a3.parsear_fuente(FUENTE_SEGURIDAD.read_text(encoding="utf-8"))),
-        PLANTILLA_3,
-        destinos[2],
-    )
+    a2.emitir_plantilla(_filas_anexo2(a2), PLANTILLA_2, destinos[1])
+    a3.emitir_plantilla(_filas_anexo3(a3), PLANTILLA_3, destinos[2])
     return destinos
 
 

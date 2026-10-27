@@ -20,6 +20,19 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [0.5.10] - 2026-10-27
+
+- **Parche — los anexos 2 y 3 llevan el estado declarado (#57).** El
+  laboratorio aceptó el Anexo 1 y pidió (Maiorano, 27/10) que el equipo
+  transcriba y marque su estado en los anexos 2 y 3; ellos completan sólo los
+  comentarios. El Anexo 2 lleva el nivel por atributo (`A - Implementado
+  satisfactoriamente`, `B - Implementado con observaciones`) y el global por
+  factor (`Muy bueno` / `Bueno`, el peor del factor); el Anexo 3 marca una X en
+  `MB`, `B` o «Previsto / No es necesario» (`No aplica`). `M` y «No previsto»
+  quedan para el laboratorio. El volcado falla con un estado sin casilla fija
+  (`C`, `Remite`). No cambia el comportamiento del agente: lo desplegado sigue
+  siendo la 0.5.9, que es la foto que declaran los anexos.
+
 ## [0.5.9] - 2026-10-26
 
 - **Parche — tests del Anexo 1 en la imagen (#147).** Los dos tests nuevos de

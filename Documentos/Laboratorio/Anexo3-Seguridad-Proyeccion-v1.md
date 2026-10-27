@@ -8,7 +8,8 @@ Declara una **selección** de hasta 3 ítems por componente (`scripts/anexos_sel
 
 Vista de trabajo del autor: no se entrega y no reemplaza a la plantilla oficial
 «3.3 - Anexo 3 - Seguridad 2025», sobre la que se escribe la entrega con `--plantilla`.
-Las columnas de nivel y el `Comentario` son del laboratorio y por eso no aparecen acá.
+En la entrega, el estado se marca con una X (A: `MB`, B: `B`, No aplica: «Previsto / No es necesario»);
+el `Comentario` lo completa el laboratorio (correo del 27/10).
 
 | Componente | Ítem | Estado declarado (autor) | Motivo | Evidencia versionada | Paso en vivo (< 2 min) | Marco |
 |---|---|---|---|---|---|---|

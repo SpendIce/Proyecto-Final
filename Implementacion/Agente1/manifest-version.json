@@ -8,10 +8,10 @@
     "migrations/0002_integridad_referencial_borradores.up.sql": "50b73789fc6065feb11c9fae9193bd6578ef79a46733dfb0a23fe3c48700d7d5",
     "migrations/0003_rechazo_timestamps_futuros.down.sql": "41980a7780ec285ffbfcc728dfbbfd59a009fde62dcb22c4630711c42f1e2867",
     "migrations/0003_rechazo_timestamps_futuros.up.sql": "aed22abf995168bda154b790a4a1a45afbd7dc3fddafe9f5a6c85e128144d72d",
-    "pyproject.toml": "65940d12f7747b22c036a6b133bb6b546db01d929e9881a29b493683c10b4b6e",
-    "scripts/anexo1_presentacion.py": "a5ab8c433a30c8f2f204a9b06c58e673eafcda3669fb9677e16558b9c39f2e43",
-    "scripts/anexo2_calidad.py": "eeb41e9f8c02b543a1a37da9d2225370592fdeb4c3da515b0f2ab2cff521c728",
-    "scripts/anexo3_seguridad.py": "3a872f1051d9e0493582f33e39aa2e734a62679d4f90fc4a13f3f6cdb27d1218",
+    "pyproject.toml": "2b304dd68989b063fc1124e6ec0a32bbd4476d8c0efb411645d8b70eae971195",
+    "scripts/anexo1_presentacion.py": "7ab1c5c275e1e17ce01dfb43c2eb9996aff887e37488f9b145658035316e7a75",
+    "scripts/anexo2_calidad.py": "6d5bc627622bf4f4904b3150f862cb0d1990a06c3662d5d13c60ebb48407df4f",
+    "scripts/anexo3_seguridad.py": "f15c23b14fea0919f8da189eba35137270716ab613c3f638f8c1d1c8e92933cc",
     "scripts/anexos_seleccion.py": "b93c5fca35c60a215f142b75e6fe2663e023483e120114f3fab10e5201748dad",
     "scripts/atender_canal_form.py": "18b17f0d0b8f317986a5970bc6b4e56f8f30b88fbb4d0db7d051d3ea82eac764",
     "scripts/atender_canal_planilla.py": "1118c1d5d3ec9fc4346c83751a3c154b0b6a43c18a02d81ada74e1715e259946",
@@ -40,7 +40,7 @@
     "scripts/medir_presupuesto_decodificacion.py": "27c0fe6a83dfbb1c08294f71129b3d7388845aba854ef0edb583d23129b24f22",
     "scripts/operaciones_seguras.py": "853a17d9b2e36a4193d4fd13b608bb847a118877468fa8fad5644cc0d2011776",
     "scripts/plantilla_actividad_lote_demo.py": "25aaee4cef2353f6977a60b5ab350f17a6521849841f287cf0fa26bd3be143ed",
-    "scripts/plantilla_laboratorio.py": "49ff8c1488e38b771c33304063b9edfdc3b76501cb429fc55d3b604d3c5d697e",
+    "scripts/plantilla_laboratorio.py": "d2b5e633b2b155f2cd0cb92048c4074c28dbf7f34d93b76d6ae58c2ad593e8be",
     "scripts/post_efemeride_demo.py": "55b6459f69649d83b366d904cfaf28896590f04928d6b4ef94d454b08fe5e04f",
     "scripts/preparar_validacion_seu.py": "ffe66c0589d375881c5a514f02af898c120d1f21a8efd76e3cbcdb4bebd88a22",
     "scripts/prototipo_hu013.py": "5768b98aed19284f02cb4c9849ceed5699062a87fa383c73d0adc4fe94cdcc7c",
@@ -203,8 +203,8 @@
     "systemd/agente1-scheduler-loop.service": "b73c70a32920ec44a47d13faba3956ba9c6feeb0c2022689600f6ae34b1854db",
     "systemd/agente1-scheduler.service": "a80a2f5735871a31f6b3a4f6daf9c694267c03b569971f69e495a1fe027fc5cb",
     "systemd/agente1-scheduler.timer": "33268d7df468209d9467ab212df0cf0caa511c7fa6b0cd9bb6beea3ba83b8ab8",
-    "uv.lock": "f120c2f5c781ea3eb60e0d03173271b22e5e34203a97dc5b0da7720de9bba364"
+    "uv.lock": "1422ae4a6997abe0dfcc860d7f7ff71afd59cc6d74b23e578529160133151647"
   },
   "schema_version": "agente1_manifest_version_v1",
-  "version": "0.5.9"
+  "version": "0.5.10"
 }
