@@ -1,6 +1,6 @@
 # Interfaz web del Agente 1: alcance y validación con la SEU
 
-**Autor:** Juan Ignacio Goñe. **Fecha:** 03/11/2026. **Estado:** propuesta de diseño para validar con la SEU; sin implementación ni autenticación real habilitada. Responde a la orientación de Juani de reemplazar el recorrido fragmentado por una web propia con acceso mediante cuenta Google.
+**Autor:** Juan Ignacio Goñe. **Fecha:** 03/11/2026. **Estado:** recorrido de diseño confirmado por Juan Ignacio Goñe; implementación y validación con la SEU pendientes. Responde a la orientación de Juani de reemplazar el recorrido fragmentado por una web propia con acceso mediante cuenta Google.
 
 **Acuerdos de la entrevista:** Juani confirmó primera entrega de gacetillas, edición manual además de ajustes por el agente y bandeja compartida con permisos. La revisión y la decisión se ubican en la misma web. La primera prueba guiada de usabilidad/contenido puede realizarse con un prototipo; la verificación funcional de login y controles requiere implementación real. Juani eligió edición manual en Google Docs abierto aparte y cierre del recorrido de difusión al aprobar el borrador, sin pedir registro posterior de publicación. Juani también confirmó señales automáticas con comentarios opcionales y aporte manual a Historia Viva por el personal mientras se difiere el aporte automático de este primer recorrido. Los apartados siguientes se leen con estas precisiones.
 
@@ -8,7 +8,7 @@
 
 `Ingresar → bandeja compartida SEU → pedido guiado → borrador → editar en Docs o pedir ajuste → revisar → aprobar o descartar`.
 
-El pedido precarga datos disponibles y exige actividad sólo cuando el tipo la necesita. Al pedir un ajuste se usa la última revisión, incluidas las correcciones humanas, y se crea otra sin sobrescribirla. La aprobación de difusión cierra el recorrido en A1. No se pide registrar publicación; el personal registra en Historia Viva por ahora. Las señales de revisión se capturan automáticamente y el comentario es opcional. La primera prueba guiada puede usar un prototipo. Este cierre del recorrido está pendiente de confirmación global de Juani al finalizar la entrevista; no acredita implementación o validación SEU.
+El pedido precarga datos disponibles y exige actividad sólo cuando el tipo la necesita. Al pedir un ajuste se usa la última revisión, incluidas las correcciones humanas, y se crea otra sin sobrescribirla. La aprobación de difusión cierra el recorrido en A1. No se pide registrar publicación; el personal registra en Historia Viva por ahora. Las señales de revisión se capturan automáticamente y el comentario es opcional. La primera prueba guiada puede usar un prototipo. Juani confirmó globalmente el entendimiento después de revisar el resumen visual. Se cierra la entrevista de producto; implementación, permisos institucionales y validación SEU siguen pendientes.
 
 ## 1. Decisión de diseño de trabajo
 
@@ -134,7 +134,7 @@ Se registra por tarea: resultado, ayuda requerida, errores, cantidad de cambios 
 
 ## 8. Qué queda cerrado y qué falta
 
-Queda definida la dirección de trabajo: web propia de A1 con login Google y revisión en un lugar; primer recorrido con gacetillas; portal de cinco agentes para continuidad. Es una propuesta para validar, apoyada en el pedido de Juani y el respaldo de César a simplificar, no una aceptación institucional ya obtenida.
+Queda definida la dirección de trabajo: web propia de A1 con login Google y revisión en un lugar; primer recorrido con gacetillas; portal de cinco agentes para continuidad. Juani confirmó el recorrido completo después de la entrevista y su resumen visual. El respaldo de César a simplificar y esta confirmación de diseño no equivalen a aceptación institucional de una implementación por parte de la SEU.
 
 Antes de una prueba funcional faltan cliente de login, URL HTTPS y conectividad, cuentas y padrón autorizados, diseño durable del canal con retención explícita e implementación/verificación de la sesión y las acciones. La SEU debe confirmar el recorrido y los permisos; el alcance ambiguo de «aprueba SEU+Dir Proy» sigue abierto. No hace falta resolver el portal completo para avanzar con esas condiciones de A1.
 

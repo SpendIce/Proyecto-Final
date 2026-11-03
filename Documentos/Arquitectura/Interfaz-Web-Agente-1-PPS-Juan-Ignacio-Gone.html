@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interfaz de A1 · El recorrido acordado</title>
+<style>
+:root{--ink:#193148;--muted:#526579;--line:#d9e2e9;--paper:#fff;--bg:#f1f5f8;--blue:#245d88;--soft:#eaf2f8;--green:#176254;--green-bg:#eaf5ef;--amber:#7c5925;--amber-bg:#fff7e9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:var(--blue);text-underline-offset:3px}a:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:5px}main{max-width:1180px;margin:0 auto;padding:40px 28px 32px}.eyebrow{margin:0 0 9px;color:var(--blue);font-size:12px;letter-spacing:.1em;font-weight:750;text-transform:uppercase}h1{margin:0;font-size:clamp(28px,4vw,42px);letter-spacing:-.04em;line-height:1.15;max-width:850px}.intro{max-width:800px;font-size:18px;color:var(--muted);margin:14px 0 18px}.meta{display:flex;gap:8px;flex-wrap:wrap}.tag{font-size:12px;border:1px solid var(--line);background:white;border-radius:30px;padding:5px 11px}.status{margin:20px 0 0;border-left:3px solid #bc9658;background:var(--amber-bg);padding:12px 16px;font-size:14px;color:var(--amber)}section{margin-top:30px}h2{margin:0 0 12px;font-size:21px;letter-spacing:-.02em}h3{margin:0 0 7px;font-size:17px;line-height:1.3}p{margin:0 0 10px}p:last-child{margin-bottom:0}.muted{color:var(--muted)}.flow{list-style:none;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;padding:0;margin:0}.flow li{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 13px}.flow li:not(:last-child)::after{content:'→';position:absolute;right:-13px;top:37px;z-index:1;color:var(--blue);font-size:20px;line-height:1;background:var(--bg)}.number{display:block;color:var(--blue);font-size:12px;font-weight:750;margin-bottom:10px}.flow p{font-size:14px;color:var(--muted)}.flow .end{background:var(--green-bg);border-color:#bdd7c9}.end .number{color:var(--green)}.return{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;padding:16px;background:var(--soft);border-radius:12px}.return-label{grid-column:1/-1;font-size:14px;font-weight:700;margin:0}.route{padding:14px 16px;background:rgba(255,255,255,.8);border:1px solid #cedfea;border-radius:9px}.route h3{font-size:16px}.route p{font-size:14px;color:var(--muted)}.return-note{grid-column:1/-1;font-size:14px;margin:0;color:var(--blue)}.closure{margin-top:12px;padding:14px 17px;border-radius:10px;background:var(--green-bg);color:var(--green);font-size:15px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{background:white;border:1px solid var(--line);border-radius:12px;padding:20px}.card ul{padding-left:18px;margin:10px 0 0}.card li{margin:7px 0}.card p,.card li{font-size:15px}.small-label{font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);display:block;margin-bottom:9px}.scope{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.scope .card{border-top:3px solid var(--blue)}.scope .later{border-top-color:#9bb0bf}.rule{font-size:14px;color:var(--muted);margin-top:12px}.checks{margin-top:24px;background:white;border:1px solid var(--line);border-radius:12px;padding:16px 20px}summary{cursor:pointer;font-weight:700;line-height:1.45}details[open] summary{margin-bottom:14px}.checks ul{padding-left:20px;margin:0}.checks li{margin:9px 0;font-size:14px}.checks .note{margin-top:13px;color:var(--muted);font-size:14px}.footer{margin-top:26px;border-top:1px solid var(--line);padding-top:17px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:13px}.links{display:flex;gap:18px;flex-wrap:wrap}
+@media(max-width:1000px){.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.flow li:not(:last-child)::after{display:none}}
+@media(max-width:650px){main{padding:26px 16px}.flow{grid-template-columns:1fr 1fr}.flow li{padding:14px}.grid,.scope,.return{grid-template-columns:1fr}.return-label,.return-note{grid-column:auto}.intro{font-size:16px}.card{padding:17px}h2{font-size:20px}}
+@media(max-width:360px){.flow{grid-template-columns:1fr}}
+@media print{body{background:white}main{padding:0;max-width:none}.flow li,.card,.route,.return,.closure{break-inside:avoid}.flow{grid-template-columns:repeat(3,1fr)}.flow li::after{display:none}.footer{font-size:11px}section{margin-top:22px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<p class="eyebrow">Proyecto Centenario · Agente 1 · Secretaría de Extensión Universitaria</p>
+<h1>De un pedido a un borrador aprobado</h1>
+<p class="intro">Una web propia para pedir, revisar y decidir. Google identifica a la persona; Docs permite editar. El trabajo de difusión de A1 termina con la aprobación del borrador.</p>
+<div class="meta"><span class="tag">Primera entrega: gacetillas / FIE INFORMA</span><span class="tag">P4 · HU-010 + HU-013</span><span class="tag">Acuerdos Q1–Q10 · 03/11/2026</span></div>
+<p class="status"><strong>Estado:</strong> recorrido confirmado por Juani después de la entrevista y este resumen visual. La implementación y la validación con la SEU siguen pendientes.</p>
+</header>
+
+<section aria-labelledby="recorrido">
+<h2 id="recorrido">El recorrido, en un solo lugar</h2>
+<ol class="flow">
+<li><span class="number">01 · ACCESO</span><h3>Ingresar</h3><p>Cuenta Google institucional y permisos del padrón.</p></li>
+<li><span class="number">02 · EQUIPO</span><h3>Bandeja SEU</h3><p>Trabajo compartido. Cada persona ve y hace lo que su permiso habilita.</p></li>
+<li><span class="number">03 · PEDIDO</span><h3>Elegir la pieza</h3><p>Tipo, área y actividad cuando corresponde. Datos precargados e indicaciones adicionales.</p></li>
+<li><span class="number">04 · GENERACIÓN</span><h3>Ver el borrador</h3><p>Estado del pedido y texto generado. La espera no exige cargar otro pedido.</p></li>
+<li><span class="number">05 · REVISIÓN</span><h3>Revisar y ajustar</h3><p>Ver la revisión vigente y corregir lo que haga falta.</p></li>
+<li class="end"><span class="number">06 · CIERRE EN A1</span><h3>Aprobar o descartar</h3><p>La decisión queda vinculada al texto que se revisó.</p></li>
+</ol>
+<div class="return" aria-label="Dos formas de corregir que vuelven a la revisión">
+<p class="return-label">Si el borrador necesita cambios, hay dos caminos:</p>
+<div class="route"><h3>Editar en Google Docs ↗</h3><p>Se abre Docs aparte. Al volver, A1 recupera el texto actualizado para revisarlo y decidir.</p></div>
+<div class="route"><h3>Pedir un ajuste al agente ↻</h3><p>Parte de la última revisión, incluidas las correcciones humanas, y crea otra sin sobrescribir la anterior.</p></div>
+<p class="return-note">Ambos caminos vuelven a «Revisar». Los hechos se toman de las fuentes institucionales. Una edición posterior requiere revisar y aprobar esa nueva revisión.</p>
+</div>
+<p class="closure"><strong>Al aprobar, termina el recorrido de difusión en A1.</strong> La publicación queda a cargo del personal, sin pedirle un registro posterior en el agente.</p>
+</section>
+
+<section aria-labelledby="reglas">
+<h2 id="reglas">Qué queda registrado y quién hace qué</h2>
+<div class="grid">
+<article class="card"><h3>Señales automáticas de mejora</h3><ul><li>Aprobación o descarte, pedido, revisión y versión del agente.</li><li>Cambios entre el texto generado y el final; distingue aceptación sin cambios y después de edición humana.</li><li>Comentario opcional, sin un cuestionario obligatorio por pieza.</li></ul><p class="rule">Esto aporta evidencia para evaluar mejoras. La elección del mecanismo de autoaprendizaje sigue pendiente con César.</p></article>
+<article class="card"><h3>Responsabilidades claras</h3><ul><li>La SEU revisa y decide en la web; el correo puede quedar como aviso opcional.</li><li>El personal registra las piezas en Historia Viva por ahora. El aporte automático se difiere; A1 conserva la consulta a A2.</li><li>El login de A1 y el permiso para editar el Doc son accesos distintos.</li></ul><p class="rule">La aprobación corresponde a esa revisión: no afirma que la pieza se haya publicado.</p></article>
+</div>
+</section>
+
+<section aria-labelledby="alcance">
+<h2 id="alcance">El corte de alcance</h2>
+<div class="scope">
+<article class="card"><span class="small-label">Primera entrega</span><h3>Gacetillas de punta a punta</h3><p>Pedido, borrador, edición, ajustes y aprobación o descarte en el mismo recorrido.</p></article>
+<article class="card later"><span class="small-label">Después · dentro de A1</span><h3>Las otras funciones vigentes</h3><p>Se migran por etapas. Conservan su alcance y canal actual hasta verificar el reemplazo; notificaciones y certificados mantienen sus controles propios.</p></article>
+<article class="card later"><span class="small-label">Continuidad P100</span><h3>Un portal para A1–A5</h3><p>Se propone para acordar con Ignacio y los otros responsables. La web de A1 sigue siendo un canal de comunicación institucional.</p></article>
+</div>
+</section>
+
+<section aria-labelledby="validacion">
+<h2 id="validacion">Cómo se valida con la SEU</h2>
+<div class="grid">
+<article class="card"><span class="small-label">Primero · puede ser un prototipo</span><h3>Probar el recorrido y el texto</h3><p>Pedir una gacetilla, revisarla, corregirla y decidir. Registrar por separado <strong>usabilidad</strong> —dónde hubo ayuda o fricción— y <strong>calidad del contenido</strong>, con la rúbrica vigente.</p><p class="rule">Se declara qué funciona realmente y qué está simulado.</p></article>
+<article class="card"><span class="small-label">Con el canal real</span><h3>Verificar sus controles</h3><p>Login y permisos, acceso a Docs, recuperación de pedidos, doble clic y decisiones sobre revisiones desactualizadas.</p><p class="rule">Cada prueba registra persona, fecha, versiones, observaciones y resultado.</p></article>
+</div>
+</section>
+
+<details class="checks">
+<summary>Qué falta definir o verificar antes de usar la web real</summary>
+<ul>
+<li><strong>Acceso institucional:</strong> cliente de login Google, URL HTTPS, conectividad, cuentas y permisos de Docs. La identidad humana y la cuenta técnica de Workspace mantienen funciones distintas.</li>
+<li><strong>Permisos SEU:</strong> quién mantiene el padrón y qué significa «aprueba SEU+Dir Proy». No se asigna automáticamente un rol a partir de esa frase.</li>
+<li><strong>Pedido y revisión:</strong> entrada durable, recuperación, captura del texto aprobado y rechazo de decisiones sobre una revisión anterior. No repetir efectos de resultado indeterminado.</li>
+<li><strong>Datos:</strong> retención y purga de lo necesario para el trabajo. Auditoría con referencias y hashes; sin tokens ni archivo indefinido de prosa para aprendizaje.</li>
+<li><strong>Capa web:</strong> FastAPI es una propuesta técnica por la necesidad HTTP. Se reutilizan núcleo, controles y auditoría; la implementación continúa pendiente.</li>
+</ul>
+<p class="note">El alcance acordado no agrega publicación automática, un chatbot ni orquestación de los cinco agentes. La migración debe comprobarse antes de retirar el canal anterior.</p>
+</details>
+
+<footer class="footer">
+<span>Juan Ignacio Goñe · PPS · Resumen visual de los acuerdos</span>
+<nav class="links" aria-label="Documentos de respaldo"><a href="Interfaz-Web-Agente-1-PPS-Juan-Ignacio-Gone.md">Documento técnico completo</a><a href="../../docs/adr/0014-la-web-de-a1-verifica-identidad-google-y-el-portal-p100-queda-para-continuidad.md">ADR en elaboración</a><a href="https://github.com/SpendIce/Proyecto-Final/issues/150">Decisión en el mapa</a></nav>
+</footer>
+</main>
+</body>
+</html>

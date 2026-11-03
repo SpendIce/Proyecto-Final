@@ -1,5 +1,7 @@
 ---
-status: proposed
+status: accepted
+confirmed_by: Juan Ignacio Goñe
+confirmed_on: 2026-11-03
 ---
 
 # La web de A1 verifica identidad Google y el portal P100 queda para continuidad
@@ -17,7 +19,7 @@ status: proposed
 - El aporte automático de estas piezas a Historia Viva queda diferido del primer recorrido web. Juani indicó que el personal puede registrarlas allí manualmente por ahora. Se conserva la consulta a Historia Viva cuando corresponda y no se transforma aprobación en publicación.
 - Se capturan automáticamente aprobación, descarte y diferencias entre la salida generada y la revisión final, vinculados a pedido, revisiones y versión del agente; el comentario es opcional. No se agregan tareas obligatorias ni se conserva prosa adicional sin definir su retención. Una aprobación después de edición humana no se cuenta como aceptación sin cambios del texto original.
 
-El ADR conserva estado `proposed` hasta la confirmación de entendimiento compartido al cerrar la entrevista. Las preguntas Q1–Q10 sobre el recorrido fueron respondidas. Permisos institucionales, configuración de acceso y detalle técnico de persistencia/retención tienen responsables o trabajo pendiente; los acuerdos de producto no acreditan implementación ni aceptación institucional.
+Juani confirmó expresamente el entendimiento compartido después de revisar el resumen visual: «joya esta todo bien confirmo el entendimiento». El recorrido Q1–Q10 queda aceptado como decisión de diseño del PPS. Permisos institucionales, configuración de acceso y detalle técnico de persistencia/retención se derivan a trabajo pendiente; esta aceptación del diseño no acredita implementación ni validación institucional por la SEU.
 
 El circuito Form → correo → borrador → nuevo Form obliga a cambiar de contexto para corregir una pieza. César respaldó simplificarlo cuidando seguridad y usabilidad; Juani pidió cerrar una propuesta para validarla con la SEU junto con el contenido. Se propone una web propia del Agente 1 con login Google, bandeja restringida y revisión de borradores. El primer recorrido completo será gacetillas/FIE INFORMA; las otras funciones vigentes se migrarán por etapas. El portal común de los cinco agentes queda como propuesta de continuidad a acordar con sus responsables.
 
