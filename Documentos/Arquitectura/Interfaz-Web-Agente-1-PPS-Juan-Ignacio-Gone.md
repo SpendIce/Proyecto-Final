@@ -2,6 +2,14 @@
 
 **Autor:** Juan Ignacio Goñe. **Fecha:** 03/11/2026. **Estado:** propuesta de diseño para validar con la SEU; sin implementación ni autenticación real habilitada. Responde a la orientación de Juani de reemplazar el recorrido fragmentado por una web propia con acceso mediante cuenta Google.
 
+**Acuerdos de la entrevista:** Juani confirmó primera entrega de gacetillas, edición manual además de ajustes por el agente y bandeja compartida con permisos. La revisión y la decisión se ubican en la misma web. La primera prueba guiada de usabilidad/contenido puede realizarse con un prototipo; la verificación funcional de login y controles requiere implementación real. Juani eligió edición manual en Google Docs abierto aparte y cierre del recorrido de difusión al aprobar el borrador, sin pedir registro posterior de publicación. Juani también confirmó señales automáticas con comentarios opcionales y aporte manual a Historia Viva por el personal mientras se difiere el aporte automático de este primer recorrido. Los apartados siguientes se leen con estas precisiones.
+
+## Recorrido acordado con Juani
+
+`Ingresar → bandeja compartida SEU → pedido guiado → borrador → editar en Docs o pedir ajuste → revisar → aprobar o descartar`.
+
+El pedido precarga datos disponibles y exige actividad sólo cuando el tipo la necesita. Al pedir un ajuste se usa la última revisión, incluidas las correcciones humanas, y se crea otra sin sobrescribirla. La aprobación de difusión cierra el recorrido en A1. No se pide registrar publicación; el personal registra en Historia Viva por ahora. Las señales de revisión se capturan automáticamente y el comentario es opcional. La primera prueba guiada puede usar un prototipo. Este cierre del recorrido está pendiente de confirmación global de Juani al finalizar la entrevista; no acredita implementación o validación SEU.
+
 ## 1. Decisión de diseño de trabajo
 
 Se propone una **web interna del Agente 1**, con inicio de sesión de Google, una bandeja de pedidos y una vista de revisión. Los formularios serán propios de la aplicación; Google aporta la autenticación. El correo queda como aviso opcional con enlace al pedido. El usuario podrá continuar un pedido sin volver a cargar los datos comunes ni buscar sus borradores en sucesivos correos.
@@ -15,15 +23,16 @@ La **interfaz común para los cinco agentes** se propone como continuidad del P1
 | Pantalla | Comportamiento de la primera entrega |
 |---|---|
 | Acceso | «Ingresar con Google». Sólo una identidad institucional admitida y autorizada en el padrón accede al trabajo. Si falta permiso, recibe un mensaje claro sin ver pedidos. |
-| Bandeja | Pedidos propios y tareas de revisión asignadas al rol autorizado. Estado, actividad, tipo de pieza y última versión; no una lista pública de documentos. |
-| Nuevo pedido | Tipo de gacetilla, actividad cuando corresponda y área emisora desde los catálogos existentes; descripción acotada si el tipo la requiere. Se conserva la clasificación y validación del núcleo. |
+| Bandeja | Pedidos del equipo SEU visibles según permisos y tareas asignadas al rol autorizado. Se puede continuar trabajo de otra persona autorizada; se muestran estado, actividad, tipo de pieza y última versión. |
+| Nuevo pedido | Formulario propio guiado: tipo, actividad condicional y área emisora desde catálogos existentes, con datos precargados e indicaciones adicionales. No exige redactar un pedido completo desde cero. Se conserva la clasificación y validación del núcleo. |
 | Revisión | Borrador visible en la aplicación, actividad y versión identificadas; acciones disponibles según rol. El enlace al Doc es complementario. |
-| Solicitar ajuste | Conserva pedido, actividad y datos comunes; la persona indica qué corregir. El resultado es una nueva versión vinculada al mismo pedido, que debe revisarse de nuevo. No se presenta como chat abierto. |
-| Decisión | Permite descartar o registrar la decisión correspondiente al tipo de pieza. Para gacetillas, registrar «publicada fuera del agente» no publica por API ni dispara envíos. |
+| Solicitar ajuste | Parte de la última revisión recuperada, incluidas las correcciones humanas, y conserva pedido, actividad y datos comunes. La persona indica el cambio; se produce otra revisión sin sobrescribir la anterior y debe revisarse de nuevo. No se presenta como chat abierto. |
+| Edición manual | «Editar en Google Docs» abre el editor oficial aparte. Al volver, A1 actualiza el contenido y vincula una revisión identificada antes de permitir la decisión. El acceso al Doc requiere sus propios permisos. |
+| Decisión | Para gacetillas permite aprobar el borrador vigente o descartarlo. El recorrido de difusión termina ahí; no se pide registrar después su publicación ni se publica por API. |
 
 Para certificados y notificaciones, una futura vista de decisión deberá respetar aprobación de plantilla/lote y destinatarios del circuito existente. No se reutilizará un botón genérico de «aprobar» como autorización indistinta de todas las salidas.
 
-Una corrección no modifica por sí sola la actividad institucional de origen ni el texto fuente del catálogo. Si el problema está en esos datos, se informa qué responsable debe corregirlos y se vuelve a leer la fuente autorizada. En la primera entrega se solicita una nueva generación; un editor de texto completo en el navegador queda fuera de este primer recorrido.
+Una corrección no modifica por sí sola la actividad institucional de origen ni el texto fuente del catálogo. Si el problema está en esos datos, se informa qué responsable debe corregirlos y se vuelve a leer la fuente autorizada. Juani confirmó edición manual además de nueva generación; se realiza mediante el editor de Google Docs abierto aparte. Se conserva el pedido en A1 y se actualiza la vista al regresar. No se construye un editor propio ni se depende de un editor privado embebido. El login de A1 no concede permisos sobre el documento ni garantiza qué cuenta Google queda activa en Docs.
 
 ## 3. Autenticación, autorización y acceso técnico
 
@@ -75,7 +84,21 @@ Antes de implementar debe concretarse el almacenamiento del nuevo canal: qué da
 
 La consulta del borrador se restringe a la pieza autorizada por el pedido, con tamaño y formato acotados; el servidor no acepta un ID de Drive arbitrario del navegador. El texto generado se representa como texto seguro, no como HTML ejecutable.
 
-Cada decisión identifica la versión revisada. Si ya existe otra revisión, la aplicación rechaza la decisión obsoleta y muestra la vigente. Un nuevo borrador no hereda aprobaciones de una versión anterior. Un doble clic no duplica pedidos ni efectos. Ante una operación de envío o emisión de resultado indeterminado, la interfaz conserva ese estado y no ofrece un reintento que pueda duplicarla.
+Antes de un ajuste generativo se recupera el texto vigente de la revisión elegida. Se usa como base de edición, no como fuente de hechos ni como instrucción privilegiada; los datos institucionales siguen procediendo de sus fuentes autorizadas. Si esa recuperación falla o hay conflicto de revisión, no se regenera silenciosamente desde una copia anterior: se informa y se pide actualizar la vista. La salida se registra como revisión nueva.
+
+Cada decisión identifica la versión revisada. Si ya existe otra revisión, la aplicación rechaza la decisión obsoleta y muestra la vigente. Un nuevo borrador no hereda aprobaciones de una versión anterior. La aprobación se vincula al contenido capturado y revisado, no sólo al enlace mutable de Docs; ediciones posteriores no quedan aprobadas por esa decisión. La importación, captura y detección de cambios están pendientes de implementación. Un doble clic no duplica pedidos ni efectos. Ante una operación de envío o emisión de resultado indeterminado, la interfaz conserva ese estado y no ofrece un reintento que pueda duplicarla.
+
+## Aporte a Historia Viva en el primer recorrido
+
+Juani decidió diferir el aporte automático de estas piezas desde el nuevo canal. Por ahora el personal puede registrarlas manualmente en Historia Viva, por su propio circuito. El agente no exige una confirmación de ese registro ni trata una aprobación como evidencia de publicación. Se conserva la consulta a A2 cuando corresponda. El contrato y el código previos basados en `publique` no se reinterpretan; su adaptación eventual queda fuera de este primer recorrido y requiere coordinación con Historia Viva.
+
+## Señales de revisión sin carga adicional
+
+La web registra aprobación o descarte, pedido/revisión y versión del agente. Si hubo edición en Docs, compara el texto generado conservado para el ciclo de revisión con el texto reimportado al volver o aprobar y deriva señales de cambio; distingue aceptación sin cambios y aceptación después de intervención humana. Es una comparación entre capturas, no un registro completo de cada pulsación o autor de edición en Google Docs.
+
+Los motivos y observaciones son opcionales. No se pide un cuestionario para cerrar cada pieza. La evaluación guiada de usabilidad/contenido es una instancia distinta y sí usa su instrumento de prueba. La aprobación no se utiliza por sí sola como evidencia de que el texto original del modelo fue correcto.
+
+Las métricas derivadas y referencias/hashes pueden alimentar el análisis de mejoras; el texto completo necesario para comparar se usa durante el ciclo y no se agrega a logs ni se archiva indefinidamente para aprendizaje. Deben concretarse retención y purga del dato transitorio antes de implementar. Esto no habilita autoaplicación de cambios ni decide entre las alternativas de autoaprendizaje que revisará César.
 
 ## 6. Corte del trabajo y continuidad
 
@@ -90,6 +113,8 @@ Para A1, la entrada web reemplaza al Form en el flujo migrado; no se embebe ni s
 
 ## 7. Validación conjunta de interfaz y contenido
 
+Se distinguen dos instancias: una **prueba guiada de interfaz**, que Juani permite hacer sobre un prototipo para iterar con la SEU, y la **verificación funcional del canal real**, que demuestra login, permisos, persistencia y recuperación. La primera no debe esperar necesariamente a la segunda; se declara qué mecanismos son reales o simulados. La sesión de acceso de la web es un concepto diferente de ambas instancias.
+
 La SEU realiza las tareas sobre borradores generados por el agente, conservando dos resultados separados: utilidad de la interfaz y calidad de la pieza. Poder completar el recorrido no demuestra que la gacetilla sea aceptable; aceptar un texto tampoco acredita control de acceso.
 
 | Caso | Evidencia y criterio de cierre |
@@ -97,7 +122,7 @@ La SEU realiza las tareas sobre borradores generados por el agente, conservando 
 | Persona autorizada hace un pedido | Acceso real, actividad y área elegidas correctamente; identificador y estado recuperables |
 | Generación en curso | La vista informa avance o espera sin exigir repetir el pedido ni mantener una conexión larga |
 | Revisión de gacetilla | Texto y versión visibles; la persona puntúa contenido con la rúbrica vigente y registra observaciones |
-| Ajuste | Se conservan datos comunes; nueva revisión vinculada; se informa qué cambió y se vuelve a evaluar el texto |
+| Ajuste | Se conservan datos comunes; se parte de la última revisión humana o generada, sin perder cambios previos; nueva revisión vinculada, anterior conservada y nueva evaluación del texto |
 | Decisión vigente | Sólo rol habilitado, sobre la versión actual, con registro de identidad y fecha; sin publicación automática |
 | Acceso indebido | Cuenta externa, persona fuera del padrón o acceso a pedido ajeno rechazados también por petición directa al servidor |
 | Sesión y concurrencia | Sesión vencida no admite acciones; doble clic no duplica; decisión sobre versión obsoleta rechazada |
