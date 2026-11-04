@@ -1,0 +1,1078 @@
+{
+  "activities": [
+    {
+      "id": "FIE-DIF-01",
+      "fields": {
+        "id_actividad": "FIE-DIF-01",
+        "titulo": "Diplomatura Universitaria en Formación Integral para Instructores de Tiro",
+        "descripcion": "Formación integral para instructores de tiro: cursada híbrida con encuentros presenciales y virtuales, requisitos de conocimientos previos sobre armas de fuego y práctica en actividades de tiro, e inscripción previa mediante SIU. Actividad arancelada.",
+        "fecha_inicio": "2026-06-10",
+        "fecha_fin": "2026-10-29",
+        "fecha_limite_inscripcion": "",
+        "hora": "18:30 a 22:00",
+        "modalidad": "híbrida",
+        "duracion_horas": "",
+        "publico": "personal interesado en la formación como instructor de tiro",
+        "organiza": "Facultad de Ingeniería del Ejército",
+        "contacto": "cursos@fie.undef.edu.ar",
+        "fuente": "Corpus FIE INFORMA histórico (MANIFEST-2026-10-13.txt); pieza Fie informa 26-5, con revisiones 4-6 y 30-6",
+        "enlace_inscripcion": "",
+        "lugar": ""
+      },
+      "source": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.csv",
+      "sha256": "9cbf5032a040f940af4be07ffcf5a919acc584b6fa591538513bb6ffe73149a0",
+      "provenance": [
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "id_actividad",
+          "origen": "sintetico",
+          "nota": "identificador estable del set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "titulo",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "descripcion",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "fecha_inicio",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "fecha_fin",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "fecha_limite_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "hora",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "modalidad",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "duracion_horas",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "publico",
+          "origen": "provisional",
+          "nota": "no informado en el flyer; valor declarado para cubrir el campo required"
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "organiza",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "contacto",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "fuente",
+          "origen": "sintetico",
+          "nota": "campo de procedencia armado para el set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "enlace_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-01",
+          "campo": "lugar",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        }
+      ],
+      "additionalSources": [
+        {
+          "path": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.procedencia.csv",
+          "sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc"
+        }
+      ],
+      "text": "Asunto: Diplomatura Universitaria en Formación Integral para Instructores de Tiro\n\nFormación integral para instructores de tiro: cursada híbrida con encuentros presenciales y virtuales, requisitos de conocimientos previos sobre armas de fuego y práctica en actividades de tiro, e inscripción previa mediante SIU. Actividad arancelada.\n\n📅 miércoles 10 de junio de 2026\nFinaliza: jueves 29 de octubre de 2026\n🕒 18:30 a 22:00\nModalidad: híbrida\nOrganiza: Facultad de Ingeniería del Ejército\n\nConsultas: cursos@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    },
+    {
+      "id": "FIE-DIF-02",
+      "fields": {
+        "id_actividad": "FIE-DIF-02",
+        "titulo": "Curso Inteligencia Artificial Aplicada a la Gestión Documental I - 3ª Edición",
+        "descripcion": "Curso sobre el uso de herramientas de inteligencia artificial como NotebookLM y chatbots basados en modelos de lenguaje para organizar, analizar y optimizar información en entornos institucionales, educativos y personales. Modalidad online y autogestionado, gratuito, con reconocimiento INAP.",
+        "fecha_inicio": "2026-06-25",
+        "fecha_fin": "2026-08-06",
+        "fecha_limite_inscripcion": "2026-06-19",
+        "hora": "",
+        "modalidad": "online y autogestionado",
+        "duracion_horas": "",
+        "publico": "personal de la comunidad educativa interesado en la gestión documental",
+        "organiza": "Facultad de Ingeniería del Ejército",
+        "contacto": "cursos@fie.undef.edu.ar",
+        "fuente": "Corpus FIE INFORMA histórico (MANIFEST-2026-10-13.txt); pieza Fie informa 8-6",
+        "enlace_inscripcion": "",
+        "lugar": ""
+      },
+      "source": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.csv",
+      "sha256": "9cbf5032a040f940af4be07ffcf5a919acc584b6fa591538513bb6ffe73149a0",
+      "provenance": [
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "id_actividad",
+          "origen": "sintetico",
+          "nota": "identificador estable del set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "titulo",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "descripcion",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "fecha_inicio",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "fecha_fin",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "fecha_limite_inscripcion",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "hora",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "modalidad",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "duracion_horas",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "publico",
+          "origen": "provisional",
+          "nota": "no informado en el flyer; valor declarado para cubrir el campo required"
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "organiza",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "contacto",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "fuente",
+          "origen": "sintetico",
+          "nota": "campo de procedencia armado para el set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "enlace_inscripcion",
+          "origen": "no_informado",
+          "nota": "el flyer remite a un enlace/web de inscripción; no se transcriben enlaces reales"
+        },
+        {
+          "id_actividad": "FIE-DIF-02",
+          "campo": "lugar",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        }
+      ],
+      "additionalSources": [
+        {
+          "path": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.procedencia.csv",
+          "sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc"
+        }
+      ],
+      "text": "Asunto: Curso Inteligencia Artificial Aplicada a la Gestión Documental I - 3ª Edición\n\nCurso sobre el uso de herramientas de inteligencia artificial como NotebookLM y chatbots basados en modelos de lenguaje para organizar, analizar y optimizar información en entornos institucionales, educativos y personales. Modalidad online y autogestionado, gratuito, con reconocimiento INAP.\n\n📅 jueves 25 de junio de 2026\nFinaliza: jueves 6 de agosto de 2026\nModalidad: online y autogestionado\nOrganiza: Facultad de Ingeniería del Ejército\nInscripción hasta: viernes 19 de junio de 2026\n\nConsultas: cursos@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    },
+    {
+      "id": "FIE-DIF-03",
+      "fields": {
+        "id_actividad": "FIE-DIF-03",
+        "titulo": "Conferencia: Los desafíos de la conquista del espacio",
+        "descripcion": "Exploración, innovación y futuro: los retos tecnológicos, científicos y estratégicos que impulsan la conquista del espacio. Acceso libre y gratuito.",
+        "fecha_inicio": "2026-07-01",
+        "fecha_fin": "",
+        "fecha_limite_inscripcion": "",
+        "hora": "18:00",
+        "modalidad": "presencial",
+        "duracion_horas": "",
+        "publico": "comunidad educativa y público interesado",
+        "organiza": "Facultad Militar Conjunta / Universidad Austral - Escuela de Gobierno",
+        "contacto": "redes.seyc@fmc.undef.edu.ar",
+        "fuente": "Corpus FIE INFORMA histórico (MANIFEST-2026-10-13.txt); pieza Fie informa 29-6",
+        "enlace_inscripcion": "",
+        "lugar": "Centro Educativo de las Fuerzas Armadas, Av. Luis María Campos 480, Aula Magna"
+      },
+      "source": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.csv",
+      "sha256": "9cbf5032a040f940af4be07ffcf5a919acc584b6fa591538513bb6ffe73149a0",
+      "provenance": [
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "id_actividad",
+          "origen": "sintetico",
+          "nota": "identificador estable del set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "titulo",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "descripcion",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "fecha_inicio",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "fecha_fin",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "fecha_limite_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "hora",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "modalidad",
+          "origen": "provisional",
+          "nota": "inferido del lugar informado en el flyer; el flyer no lo declara"
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "duracion_horas",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "publico",
+          "origen": "provisional",
+          "nota": "no informado en el flyer; valor declarado para cubrir el campo required"
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "organiza",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "contacto",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "fuente",
+          "origen": "sintetico",
+          "nota": "campo de procedencia armado para el set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "enlace_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-03",
+          "campo": "lugar",
+          "origen": "flyer",
+          "nota": ""
+        }
+      ],
+      "additionalSources": [
+        {
+          "path": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.procedencia.csv",
+          "sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc"
+        }
+      ],
+      "text": "Asunto: Conferencia: Los desafíos de la conquista del espacio\n\nExploración, innovación y futuro: los retos tecnológicos, científicos y estratégicos que impulsan la conquista del espacio. Acceso libre y gratuito.\n\n📅 miércoles 1 de julio de 2026\n🕒 18:00\nModalidad: presencial\nOrganiza: Facultad Militar Conjunta / Universidad Austral - Escuela de Gobierno\nLugar: Centro Educativo de las Fuerzas Armadas, Av. Luis María Campos 480, Aula Magna\n\nConsultas: redes.seyc@fmc.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    },
+    {
+      "id": "FIE-DIF-04",
+      "fields": {
+        "id_actividad": "FIE-DIF-04",
+        "titulo": "Día de la Escarapela",
+        "descripcion": "Invitación a retirar la escarapela y a compartir este símbolo que nos une, en el Hall de Banderas de la facultad.",
+        "fecha_inicio": "2026-05-18",
+        "fecha_fin": "",
+        "fecha_limite_inscripcion": "",
+        "hora": "",
+        "modalidad": "presencial",
+        "duracion_horas": "",
+        "publico": "comunidad de la Facultad de Ingeniería del Ejército",
+        "organiza": "Facultad de Ingeniería del Ejército",
+        "contacto": "comunicacion@fie.undef.edu.ar",
+        "fuente": "Corpus FIE INFORMA histórico (MANIFEST-2026-10-13.txt); pieza Fie informa 15-5",
+        "enlace_inscripcion": "",
+        "lugar": "Hall de Banderas"
+      },
+      "source": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.csv",
+      "sha256": "9cbf5032a040f940af4be07ffcf5a919acc584b6fa591538513bb6ffe73149a0",
+      "provenance": [
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "id_actividad",
+          "origen": "sintetico",
+          "nota": "identificador estable del set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "titulo",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "descripcion",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "fecha_inicio",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "fecha_fin",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "fecha_limite_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "hora",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "modalidad",
+          "origen": "provisional",
+          "nota": "inferido del lugar informado en el flyer; el flyer no lo declara"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "duracion_horas",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "publico",
+          "origen": "provisional",
+          "nota": "no informado en el flyer; valor declarado para cubrir el campo required"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "organiza",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "contacto",
+          "origen": "provisional",
+          "nota": "contacto de área declarado para el set; el flyer no lo informa"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "fuente",
+          "origen": "sintetico",
+          "nota": "campo de procedencia armado para el set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "enlace_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-04",
+          "campo": "lugar",
+          "origen": "flyer",
+          "nota": ""
+        }
+      ],
+      "additionalSources": [
+        {
+          "path": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.procedencia.csv",
+          "sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc"
+        }
+      ],
+      "text": "Asunto: Día de la Escarapela\n\nInvitación a retirar la escarapela y a compartir este símbolo que nos une, en el Hall de Banderas de la facultad.\n\n📅 lunes 18 de mayo de 2026\nModalidad: presencial\nOrganiza: Facultad de Ingeniería del Ejército\nLugar: Hall de Banderas\n\nConsultas: comunicacion@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    },
+    {
+      "id": "FIE-DIF-05",
+      "fields": {
+        "id_actividad": "FIE-DIF-05",
+        "titulo": "2º Jornada CTID+I 2026",
+        "descripcion": "Segunda jornada de innovación y tecnología para la defensa, dedicada al desarrollo de capacidades espaciales estratégicas, la integración industrial y la autonomía tecnológica. Acceso libre con acreditación previa.",
+        "fecha_inicio": "2026-06-04",
+        "fecha_fin": "",
+        "fecha_limite_inscripcion": "",
+        "hora": "09:00",
+        "modalidad": "presencial",
+        "duracion_horas": "",
+        "publico": "comunidad educativa y personal interesado en la defensa",
+        "organiza": "Secretaría de Investigación, Política Industrial y Producción para la Defensa",
+        "contacto": "comunicacion@fie.undef.edu.ar",
+        "fuente": "Corpus FIE INFORMA histórico (MANIFEST-2026-10-13.txt); pieza Fie informa 2-6",
+        "enlace_inscripcion": "",
+        "lugar": "Universidad de la Defensa Nacional (UNDEF), Maipú 262, CABA"
+      },
+      "source": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.csv",
+      "sha256": "9cbf5032a040f940af4be07ffcf5a919acc584b6fa591538513bb6ffe73149a0",
+      "provenance": [
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "id_actividad",
+          "origen": "sintetico",
+          "nota": "identificador estable del set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "titulo",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "descripcion",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "fecha_inicio",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "fecha_fin",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "fecha_limite_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "hora",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "modalidad",
+          "origen": "provisional",
+          "nota": "inferido del lugar informado en el flyer; el flyer no lo declara"
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "duracion_horas",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "publico",
+          "origen": "provisional",
+          "nota": "no informado en el flyer; valor declarado para cubrir el campo required"
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "organiza",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "contacto",
+          "origen": "provisional",
+          "nota": "contacto de área declarado para el set; el flyer no lo informa"
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "fuente",
+          "origen": "sintetico",
+          "nota": "campo de procedencia armado para el set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "enlace_inscripcion",
+          "origen": "no_informado",
+          "nota": "el flyer remite a un enlace/web de inscripción; no se transcriben enlaces reales"
+        },
+        {
+          "id_actividad": "FIE-DIF-05",
+          "campo": "lugar",
+          "origen": "flyer",
+          "nota": ""
+        }
+      ],
+      "additionalSources": [
+        {
+          "path": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.procedencia.csv",
+          "sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc"
+        }
+      ],
+      "text": "Asunto: 2º Jornada CTID+I 2026\n\nSegunda jornada de innovación y tecnología para la defensa, dedicada al desarrollo de capacidades espaciales estratégicas, la integración industrial y la autonomía tecnológica. Acceso libre con acreditación previa.\n\n📅 jueves 4 de junio de 2026\n🕒 09:00\nModalidad: presencial\nOrganiza: Secretaría de Investigación, Política Industrial y Producción para la Defensa\nLugar: Universidad de la Defensa Nacional (UNDEF), Maipú 262, CABA\n\nConsultas: comunicacion@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    },
+    {
+      "id": "FIE-DIF-06",
+      "fields": {
+        "id_actividad": "FIE-DIF-06",
+        "titulo": "Semana de la Ingeniería - FIUBA",
+        "descripcion": "Ciclo de charlas sobre energía y logística para el desarrollo de la Argentina, con jornadas dedicadas a las energías renovables, la movilidad eléctrica en la Ciudad de Buenos Aires y la logística para la soberanía patagónica y antártica.",
+        "fecha_inicio": "2026-06-01",
+        "fecha_fin": "2026-06-05",
+        "fecha_limite_inscripcion": "",
+        "hora": "18:30 a 20:30",
+        "modalidad": "presencial",
+        "duracion_horas": "",
+        "publico": "comunidad de ingeniería",
+        "organiza": "Facultad de Ingeniería de la Universidad de Buenos Aires (FIUBA)",
+        "contacto": "comunicacion@fie.undef.edu.ar",
+        "fuente": "Corpus FIE INFORMA histórico (MANIFEST-2026-10-13.txt); pieza Fie informa 1-6",
+        "enlace_inscripcion": "",
+        "lugar": "Av. Paseo Colón 850, CABA"
+      },
+      "source": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.csv",
+      "sha256": "9cbf5032a040f940af4be07ffcf5a919acc584b6fa591538513bb6ffe73149a0",
+      "provenance": [
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "id_actividad",
+          "origen": "sintetico",
+          "nota": "identificador estable del set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "titulo",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "descripcion",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "fecha_inicio",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "fecha_fin",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "fecha_limite_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "hora",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "modalidad",
+          "origen": "provisional",
+          "nota": "inferido del lugar informado en el flyer; el flyer no lo declara"
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "duracion_horas",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "publico",
+          "origen": "provisional",
+          "nota": "no informado en el flyer; valor declarado para cubrir el campo required"
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "organiza",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "contacto",
+          "origen": "provisional",
+          "nota": "contacto de área declarado para el set; el flyer no lo informa"
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "fuente",
+          "origen": "sintetico",
+          "nota": "campo de procedencia armado para el set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "enlace_inscripcion",
+          "origen": "no_informado",
+          "nota": "el flyer remite a un enlace/web de inscripción; no se transcriben enlaces reales"
+        },
+        {
+          "id_actividad": "FIE-DIF-06",
+          "campo": "lugar",
+          "origen": "flyer",
+          "nota": ""
+        }
+      ],
+      "additionalSources": [
+        {
+          "path": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.procedencia.csv",
+          "sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc"
+        }
+      ],
+      "text": "Asunto: Semana de la Ingeniería - FIUBA\n\nCiclo de charlas sobre energía y logística para el desarrollo de la Argentina, con jornadas dedicadas a las energías renovables, la movilidad eléctrica en la Ciudad de Buenos Aires y la logística para la soberanía patagónica y antártica.\n\n📅 lunes 1 de junio de 2026\nFinaliza: viernes 5 de junio de 2026\n🕒 18:30 a 20:30\nModalidad: presencial\nOrganiza: Facultad de Ingeniería de la Universidad de Buenos Aires (FIUBA)\nLugar: Av. Paseo Colón 850, CABA\n\nConsultas: comunicacion@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    },
+    {
+      "id": "FIE-DIF-07",
+      "fields": {
+        "id_actividad": "FIE-DIF-07",
+        "titulo": "Diplomatura Universitaria en Infraestructuras Antárticas",
+        "descripcion": "Formación universitaria en infraestructuras antárticas, con cursada virtual, clases optativas de refuerzo y presentación de un trabajo final integrador. Actividad arancelada.",
+        "fecha_inicio": "2026-08-10",
+        "fecha_fin": "2026-12-16",
+        "fecha_limite_inscripcion": "",
+        "hora": "17:00 a 20:00",
+        "modalidad": "virtual",
+        "duracion_horas": "",
+        "publico": "personal del Ministerio de Defensa, afiliados a OSEFA y Veteranos de Guerra",
+        "organiza": "Facultad de Ingeniería del Ejército",
+        "contacto": "cursos@fie.undef.edu.ar",
+        "fuente": "Corpus FIE INFORMA histórico (MANIFEST-2026-10-13.txt); pieza Fie informa 30-6",
+        "enlace_inscripcion": "",
+        "lugar": ""
+      },
+      "source": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.csv",
+      "sha256": "9cbf5032a040f940af4be07ffcf5a919acc584b6fa591538513bb6ffe73149a0",
+      "provenance": [
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "id_actividad",
+          "origen": "sintetico",
+          "nota": "identificador estable del set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "titulo",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "descripcion",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "fecha_inicio",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "fecha_fin",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "fecha_limite_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "hora",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "modalidad",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "duracion_horas",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "publico",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "organiza",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "contacto",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "fuente",
+          "origen": "sintetico",
+          "nota": "campo de procedencia armado para el set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "enlace_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-07",
+          "campo": "lugar",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        }
+      ],
+      "additionalSources": [
+        {
+          "path": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.procedencia.csv",
+          "sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc"
+        }
+      ],
+      "text": "Asunto: Diplomatura Universitaria en Infraestructuras Antárticas\n\nFormación universitaria en infraestructuras antárticas, con cursada virtual, clases optativas de refuerzo y presentación de un trabajo final integrador. Actividad arancelada.\n\n📅 lunes 10 de agosto de 2026\nFinaliza: miércoles 16 de diciembre de 2026\n🕒 17:00 a 20:00\nModalidad: virtual\nOrganiza: Facultad de Ingeniería del Ejército\n\nConsultas: cursos@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    },
+    {
+      "id": "FIE-DIF-08",
+      "fields": {
+        "id_actividad": "FIE-DIF-08",
+        "titulo": "Diplomatura Universitaria en Geomática Aplicada a la Defensa Nacional",
+        "descripcion": "Formación universitaria en geomática aplicada a la defensa nacional, con clases sincrónicas orientadas al ejercicio profesional en el ámbito de la defensa. Actividad arancelada.",
+        "fecha_inicio": "2026-08-19",
+        "fecha_fin": "2026-12-16",
+        "fecha_limite_inscripcion": "",
+        "hora": "18:30 a 20:30",
+        "modalidad": "virtual",
+        "duracion_horas": "",
+        "publico": "estudiantes y profesionales interesados en la geomática",
+        "organiza": "Facultad de Ingeniería del Ejército",
+        "contacto": "cursos@fie.undef.edu.ar",
+        "fuente": "Corpus FIE INFORMA histórico (MANIFEST-2026-10-13.txt); pieza Fie informa 30-6",
+        "enlace_inscripcion": "",
+        "lugar": ""
+      },
+      "source": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.csv",
+      "sha256": "9cbf5032a040f940af4be07ffcf5a919acc584b6fa591538513bb6ffe73149a0",
+      "provenance": [
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "id_actividad",
+          "origen": "sintetico",
+          "nota": "identificador estable del set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "titulo",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "descripcion",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "fecha_inicio",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "fecha_fin",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "fecha_limite_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "hora",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "modalidad",
+          "origen": "provisional",
+          "nota": "inferido del lugar informado en el flyer; el flyer no lo declara"
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "duracion_horas",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "publico",
+          "origen": "provisional",
+          "nota": "no informado en el flyer; valor declarado para cubrir el campo required"
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "organiza",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "contacto",
+          "origen": "flyer",
+          "nota": ""
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "fuente",
+          "origen": "sintetico",
+          "nota": "campo de procedencia armado para el set (no viene del flyer)"
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "enlace_inscripcion",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        },
+        {
+          "id_actividad": "FIE-DIF-08",
+          "campo": "lugar",
+          "origen": "no_informado",
+          "nota": "no informado en el flyer (campo opcional del contrato v2)"
+        }
+      ],
+      "additionalSources": [
+        {
+          "path": "Implementacion/Agente1/data/corpus-fie-informa-difusiones.procedencia.csv",
+          "sha256": "68b4d580ec75ffd798d4fe37c47d263f31bb5b465e4c942794026cd5ceb4e8fc"
+        }
+      ],
+      "text": "Asunto: Diplomatura Universitaria en Geomática Aplicada a la Defensa Nacional\n\nFormación universitaria en geomática aplicada a la defensa nacional, con clases sincrónicas orientadas al ejercicio profesional en el ámbito de la defensa. Actividad arancelada.\n\n📅 miércoles 19 de agosto de 2026\nFinaliza: miércoles 16 de diciembre de 2026\n🕒 18:30 a 20:30\nModalidad: virtual\nOrganiza: Facultad de Ingeniería del Ejército\n\nConsultas: cursos@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    },
+    {
+      "id": "EJEMPLO-NOTEBOOKLM-N2",
+      "fields": {
+        "id_actividad": "EJEMPLO-NOTEBOOKLM-N2",
+        "titulo": "INTELIGENCIA ARTIFICIAL APLICADA A LA EDUCACIÓN Y GESTIÓN: NOTEBOOKLM - NIVEL 2",
+        "descripcion": "Arquitecturas de notebooks por contextos.\nRecursos de comunicación documental y administración.\nRoles y personas avanzadas en el chat.\nIntegración con Gemini y Google Workspace para contenidos multiformato.",
+        "fecha_inicio": "2026-10-05",
+        "fecha_fin": "2026-12-04",
+        "fecha_limite_inscripcion": "2026-09-29",
+        "hora": "",
+        "modalidad": "virtual tutorada asincrónica",
+        "duracion_horas": "24",
+        "publico": "Personal de la Administración Pública que desempeñe tareas de gestión de documentos, así como docentes e instructores de unidades académicas y centros de formación interesados en la innovación tecnológica.",
+        "organiza": "",
+        "contacto": "cursos@fie.undef.edu.ar",
+        "fuente": "Adjuntos/Actividades-Extension/NotebookLM-Nivel-2/registro-actividad-candidato.json",
+        "enlace_inscripcion": "https://www.fie.undef.edu.ar/siu/3w/",
+        "lugar": ""
+      },
+      "source": "Adjuntos/Actividades-Extension/NotebookLM-Nivel-2/registro-actividad-candidato.json",
+      "sha256": "8531b0a6958dd3848992b898fe5d5257de7094fde2e7b1beea848118ff0bb014",
+      "provenance": [
+        {
+          "campo": "id_actividad",
+          "origen": "identificador_local",
+          "nota": "No es un identificador SIU."
+        },
+        {
+          "campo": "titulo",
+          "origen": "documental",
+          "nota": "Registro candidato: informe vigente para difusión; sin validación institucional de la fila."
+        },
+        {
+          "campo": "descripcion",
+          "origen": "documental",
+          "nota": "Objetivos del informe, transcritos sin redacción generada."
+        },
+        {
+          "campo": "fecha_inicio",
+          "origen": "confirmacion_seu_19_10",
+          "nota": "Informe + precisiones SEU del 19/10/2026: año 2026 y modalidad virtual tutorada asincrónica."
+        },
+        {
+          "campo": "fecha_fin",
+          "origen": "confirmacion_seu_19_10",
+          "nota": "Informe + precisiones SEU del 19/10/2026: año 2026 y modalidad virtual tutorada asincrónica."
+        },
+        {
+          "campo": "fecha_limite_inscripcion",
+          "origen": "confirmacion_seu_19_10",
+          "nota": "Informe + precisiones SEU del 19/10/2026: año 2026 y modalidad virtual tutorada asincrónica."
+        },
+        {
+          "campo": "hora",
+          "origen": "no_informado",
+          "nota": "Dato pendiente; no se completa por inferencia."
+        },
+        {
+          "campo": "modalidad",
+          "origen": "confirmacion_seu_19_10",
+          "nota": "Informe + precisiones SEU del 19/10/2026: año 2026 y modalidad virtual tutorada asincrónica."
+        },
+        {
+          "campo": "duracion_horas",
+          "origen": "documental",
+          "nota": "Registro candidato: informe vigente para difusión; sin validación institucional de la fila."
+        },
+        {
+          "campo": "publico",
+          "origen": "documental",
+          "nota": "Registro candidato: informe vigente para difusión; sin validación institucional de la fila."
+        },
+        {
+          "campo": "organiza",
+          "origen": "no_informado",
+          "nota": "Dato pendiente; no se completa por inferencia."
+        },
+        {
+          "campo": "contacto",
+          "origen": "documental",
+          "nota": "Registro candidato: informe vigente para difusión; sin validación institucional de la fila."
+        },
+        {
+          "campo": "fuente",
+          "origen": "documental",
+          "nota": "Registro candidato: informe vigente para difusión; sin validación institucional de la fila."
+        },
+        {
+          "campo": "enlace_inscripcion",
+          "origen": "documental",
+          "nota": "Registro candidato: informe vigente para difusión; sin validación institucional de la fila."
+        },
+        {
+          "campo": "lugar",
+          "origen": "no_informado",
+          "nota": "Dato pendiente; no se completa por inferencia."
+        }
+      ],
+      "additionalSources": [
+        {
+          "path": "Documentos/PoC/Registro-Actividades-Fuentes-Documentales-v1.md",
+          "sha256": "a4ba3fd4de13a4913903689ae1dac4f84fa3bd36e5b73549113420b6009400e9"
+        }
+      ],
+      "text": "Asunto: INTELIGENCIA ARTIFICIAL APLICADA A LA EDUCACIÓN Y GESTIÓN: NOTEBOOKLM - NIVEL 2\n\nArquitecturas de notebooks por contextos.\nRecursos de comunicación documental y administración.\nRoles y personas avanzadas en el chat.\nIntegración con Gemini y Google Workspace para contenidos multiformato.\n\n📅 lunes 5 de octubre de 2026\nFinaliza: viernes 4 de diciembre de 2026\nModalidad: virtual tutorada asincrónica\nDuración: 24 h\nInscripción hasta: martes 29 de septiembre de 2026\nInscripción: https://www.fie.undef.edu.ar/siu/3w/\n\nConsultas: cursos@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    }
+  ]
+}
