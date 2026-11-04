@@ -1,0 +1,26 @@
+{
+  "date_registered": "2026-11-04",
+  "source": "Relato escrito de Juan Ignacio Goñe",
+  "participants": [
+    "Juan Manuel",
+    "Leandro"
+  ],
+  "facilitator": "Juan Ignacio Goñe",
+  "guided_walkthrough_reported": true,
+  "reviewed": [
+    "interfaz",
+    "textos generados"
+  ],
+  "chosen_variant": "A",
+  "variant_name": "Bandeja y pieza",
+  "qualitative_content_acceptance": true,
+  "exact_sample_ids": null,
+  "numeric_scores": null,
+  "josefina_review": "ANUNCIADA_PENDIENTE",
+  "real_authentication_validation": false,
+  "real_docs_permissions_validation": false,
+  "real_persistence_validation": false,
+  "formal_set_conformance": null,
+  "trl_awarded": null,
+  "acta": "Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md"
+}

@@ -1,14 +1,24 @@
 # Interfaz web del Agente 1: alcance y validación con la SEU
 
-**Autor:** Juan Ignacio Goñe. **Fecha:** 03/11/2026. **Estado:** recorrido de diseño confirmado por Juan Ignacio Goñe; implementación y validación con la SEU pendientes. Responde a la orientación de Juani de reemplazar el recorrido fragmentado por una web propia con acceso mediante cuenta Google.
+**Autor:** Juan Ignacio Goñe. **Fecha:** 03/11/2026. **Estado:** recorrido de diseño confirmado por Juan Ignacio Goñe y aceptación cualitativa SEU de interfaz A y gacetillas registrada el 04/11/2026; implementación del canal real pendiente. Responde a la orientación de Juani de reemplazar el recorrido fragmentado por una web propia con acceso mediante cuenta Google.
 
 **Acuerdos de la entrevista:** Juani confirmó primera entrega de gacetillas, edición manual además de ajustes por el agente y bandeja compartida con permisos. La revisión y la decisión se ubican en la misma web. La primera prueba guiada de usabilidad/contenido puede realizarse con un prototipo; la verificación funcional de login y controles requiere implementación real. Juani eligió edición manual en Google Docs abierto aparte y cierre del recorrido de difusión al aprobar el borrador, sin pedir registro posterior de publicación. Juani también confirmó señales automáticas con comentarios opcionales y aporte manual a Historia Viva por el personal mientras se difiere el aporte automático de este primer recorrido. Los apartados siguientes se leen con estas precisiones.
+
+## Validación cualitativa SEU — 04/11/2026
+
+En un recorrido guiado por Juan Ignacio Goñe con Juan Manuel y Leandro, la SEU eligió la **interfaz A, bandeja y pieza**, y aceptó el contenido generado mostrado. Fuente: relato escrito de Juani en la sesión, conservado en `Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md`. La revisión posterior con Josefina queda como seguimiento, no como condición inventada para invalidar la aceptación ya informada. No se atribuyen puntajes, identificación de cada pieza o controles de acceso que no fueron reportados. La medición formal del set y la implementación del canal real conservan sus propios criterios.
 
 ## Recorrido acordado con Juani
 
 `Ingresar → bandeja compartida SEU → pedido guiado → borrador → editar en Docs o pedir ajuste → revisar → aprobar o descartar`.
 
-El pedido precarga datos disponibles y exige actividad sólo cuando el tipo la necesita. Al pedir un ajuste se usa la última revisión, incluidas las correcciones humanas, y se crea otra sin sobrescribirla. La aprobación de difusión cierra el recorrido en A1. No se pide registrar publicación; el personal registra en Historia Viva por ahora. Las señales de revisión se capturan automáticamente y el comentario es opcional. La primera prueba guiada puede usar un prototipo. Juani confirmó globalmente el entendimiento después de revisar el resumen visual. Se cierra la entrevista de producto; implementación, permisos institucionales y validación SEU siguen pendientes.
+El pedido precarga datos disponibles y exige actividad sólo cuando el tipo la necesita. Al pedir un ajuste se usa la última revisión, incluidas las correcciones humanas, y se crea otra sin sobrescribirla. La aprobación de difusión cierra el recorrido en A1. No se pide registrar publicación; el personal registra en Historia Viva por ahora. Las señales de revisión se capturan automáticamente y el comentario es opcional. La primera prueba guiada puede usar un prototipo. Juani confirmó globalmente el entendimiento después de revisar el resumen visual. Se cierra la entrevista de producto; la implementación y los permisos institucionales siguen pendientes; la aceptación cualitativa SEU se registra en el acta del 04/11/2026.
+
+## Ajustes de usabilidad confirmados por Juani — 04/11/2026
+
+La entrada principal de la interfaz pasa a **Nuevo pedido**: crear contenido es la tarea prioritaria; la bandeja, la revisión y los ajustes quedan como continuación o navegación secundaria. El formulario incluye una descripción amplia del contenido y del propósito de comunicación. El asunto comienza vacío, es editable y opcional: no se deriva de un ejemplo precargado ni reemplaza a la descripción. La actividad sigue siendo condicional al tipo, sin mostrar un aviso adicional cuando no corresponde. Los datos institucionales de actividades mantienen sus fuentes y su procedencia.
+
+Para los tipos que se componen con datos confirmados, el pedido incluye los campos propios de su contrato. Describir una crónica aporta su texto; describir un saludo aporta el contexto de generación. Un asunto editorial de difusión no modifica el título oficial ni los datos de la actividad. La revisión institucional de la forma final sigue pendiente.
 
 ## 1. Decisión de diseño de trabajo
 

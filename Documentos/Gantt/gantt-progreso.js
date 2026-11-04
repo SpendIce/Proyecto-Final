@@ -23,6 +23,13 @@
 // "Guardar progreso" del visor, que reescribe este mismo archivo.
 
 window.GANTT_PROGRESS = {
+  // 04/11: aceptación cualitativa SEU del prototipo y gacetillas; sin puntajes inferidos.
+  "s1e": {"done": true, "at": "2026-11-04", "nota": "Validación cualitativa de gacetillas aceptada por SEU en recorrido guiado por Juani con Juan Manuel y Leandro. Acta: Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md. No se infieren puntajes 1-4 ni conformidad del set formal; su medición sigue en #112. No incluye posts."},
+  "s5d": {"done": true, "at": "2026-11-04", "nota": "Regresión técnica existente y recorrido guiado del prototipo con Juan Manuel y Leandro, facilitado por Juani. SEU eligió interfaz A (bandeja y pieza) y aceptó la generación mostrada. Acta: Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md. No acredita login Google, permisos Docs ni persistencia reales."},
+  "m1": {"done": false, "nota": "Validación cualitativa HU-010 satisfecha (s1e, 04/11). No se usa esa aceptación para cerrar por inferencia el DoD integral, la medición formal #112 ni el nuevo canal web #149/#153. Evidencia: Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md."},
+  "m5": {"done": false, "nota": "Usabilidad del prototipo aceptada y s5d completada el 04/11. La operación del nuevo canal sigue pendiente de login/permisos, revisiones y persistencia en #149/#151/#153; la maqueta no acredita el DoD integral del canal."},
+  "c1": {"done": false, "nota": "Evento cualitativo SEU realizado y aceptado el 04/11 con Juan Manuel y Leandro; trazabilidad en Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md. No se informaron puntajes del checklist 1-4; no se fabrica un ≥3/4. Medición formal en #112 y revisión de posts para Final en #14."},
+
   // Corte de revision: 2026-10-19 (noche), ampliado el 2026-10-21 con el E2E
   // del Plan B. El plan (.mmd) no se toca: no hay rebaseline ni estados
   // nuevos. Contrastado contra: git log desde 2026-09-20; los issues abiertos
@@ -72,14 +79,13 @@ window.GANTT_PROGRESS = {
   "s6e": { done: true, at: "2026-09-21", nota: "Log de emision con hashes (pdf_hash) sin datos personales en claro, reconciliacion de EMISION_RESERVADA hacia EMISION_INDETERMINADA y doc de limites en evidencias/limites-hu014-offline.md" },
   "m7":  { done: true, at: "2026-10-20", nota: "Suite local 2377 passed / 8 skipped; cobertura 90% registrada. CI de main verde en el run 39455797467 (f2dfbf6)" },
   "s7c": { done: true, at: "2026-10-21", nota: "E2E live en labredesfie con gemma4:e4b y una actividad real del corpus (FIE-DIF-08), con la cuenta de servicio. 21/10: gacetilla PENDIENTE_VALIDACION en 64,2 s, HU-014 y HU-012, y la consola visual en la presentacion de avance. 23/10, ya en contenedores (runtime oficial, ADR 0013, version 0.5.3): corrida unica completa (gacetilla, HU-014 con 2 certificados EMITIDA, HU-012/HU-013 con lote ENVIO_ENCOLADO), posts de Instagram y LinkedIn en vivo, modelo en HU-014 6/6, HU-012 4/4 y canal 8/8, scheduler con el insumo de A3, respaldo y restauracion, vuelta atras de version y recuperacion ante caida. Gmail y Forms reales de HU-012/HU-014 siguen sin configurar (destinos de prueba). Suite 2444 passed / 8 skipped y CI verde, tambien dentro de la imagen. Evidencia: Implementacion/Agente1/evidencias/contenedores-servidor-2026-10-23.md" },
+  "s7d": { done: true, at: "2026-10-30", nota: "Revision de seguridad del laboratorio aprobada en la prueba presencial del 30/10 (agente1 0.5.9 en contenedores en labredesfie). Base: suite de inyeccion en canal y fallback, auditoria D2, aislamiento de contenedores verificado el 23/10 y Anexo 3. Falta recibir el informe escrito del laboratorio (#57)." },
 
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
   //
-  // s1e  - validacion SEU de gacetillas: BLOQUEADO_EXTERNO (DEF-A1-005). Paquete de nueve muestras listo, acta pendiente. La visita del 19/10 no reviso muestras ni hubo Juan Manuel; JOS-P5 sigue pendiente.
-  // m1   - el DoD de HU-010 incluye Sheets, Docs, plantilla y validacion
-  //        humana: Sheets, Docs y la forma FIE INFORMA estan; falta la
-  //        validacion SEU de las muestras (s1e).
+  // s1e  - completada el 04/11 por aceptación cualitativa de gacetillas; ver acta. La medición puntuada no se presume.
+  // m1   - aceptación cualitativa satisfecha; el DoD integral y el canal real se evalúan por su evidencia técnica, no por inferencia desde el prototipo.
   // s2d  - validacion SEU de posts y criterios definitivos por canal: la mitad
   //        tecnica se hizo el 22/09 — la SEU confirmo los criterios por canal
   //        (acta) y se implementaron el mismo dia (politica v1 con 17 reglas
@@ -109,8 +115,8 @@ window.GANTT_PROGRESS = {
   // s7d  - seguridad, permisos y prompt injection: la suite cubre la
   //        inyeccion en el canal y el fallback, y el 23/10 se verifico en el
   //        servidor el aislamiento de los contenedores (Ollama sin egreso,
-  //        agente sin root ni capacidades, arranque fail-closed). Falta la
-  //        revision de laboratorio, que es la que evalua seguridad.
+  //        agente sin root ni capacidades, arranque fail-closed). El 30/10
+  //        la revision de laboratorio aprobo la seguridad: se marca.
   // m6   - "HU-014 operativa con DoD": el slice offline esta hecho (s6a-s6e),
   //        pero el DoD exige plantilla institucional de la SEU y validacion
   //        humana real. El 19/10 llego la plantilla de aprobacion (ficha de
@@ -189,21 +195,9 @@ window.GANTT_PROGRESS = {
   //                  Con este ticket s5b queda completa y se marca arriba.
   //                  Suite 702 -> 749.
   //
-  // Con #26 cerrado, HU-013 tiene sus ocho tickets integrados. Quedan
-  // marcadas s5a, s5b y s5c; s5c se reformulo el 2026-09-21 porque el plan
-  // original ("persistir transcript") contradecia la spec de HU-013. s5d
-  // sigue sin marca porque la prueba guiada con la SEU no se hizo:
-  //
-  // s5d  - renombrada el 2026-09-21 a "Regresion de solicitudes y prueba
-  //        guiada de usabilidad con SEU". La mitad automatizable ya existe:
-  //        las solicitudes validas y las fuera de alcance tienen cobertura de
-  //        regresion desde los tickets #19-#26. La mitad humana tenia fecha
-  //        para el viernes 25/09 (instrumento de sesion en el issue #32),
-  //        pero la prueba no se hizo: JOS-P4 sigue pendiente y no hay fecha
-  //        nueva. El recorrido quedo documentado en #24
-  //        (evidencias/recorrido-prueba-guiada-canal-planilla.md).
-  // m5   - "HU-013 operativa con DoD": depende de s5d; s5a esta completo
-  //        con el canal Form y la identidad por correo verificado.
+  // Con #26 cerrado existe la regresión técnica de HU-013. El 04/11 se
+  // realizó el recorrido guiado SEU con Juan Manuel y Leandro: s5d completa.
+  // m5 sigue sin completar por los controles del canal web real pendientes.
   //
   // Sprint 7 y cierre: el 20/10 se suma m7 con el CI verde; s7c, s7d y el cierre siguen abiertos.
   //
@@ -214,8 +208,7 @@ window.GANTT_PROGRESS = {
   // s7b  - integracion progresiva: depende de s7a y del contrato #17.
   // s7d  - auditoria de seguridad D2/D3 y pruebas de prompt injection como
   //        dato, offline; permisos y revocacion reales siguen pendientes.
-  // c1   - validacion con usuarios SEU: sin sesion agendada; JOS-D5 registra
-  //        que nadie de la SEU asistira al 18/11.
+  // c1   - aceptación cualitativa realizada el 04/11; el checklist 1-4 no tiene puntajes informados. La ausencia prevista para el 18/11 no cancela este evento.
   // c2   - sin defectos CRITICA abiertos, pero hay ALTA bloqueados.
   // c3   - el tag agente1-v0.1.0 existe, pero al corte no hay release
   //        candidate con paquete de evidencias cerrado.
