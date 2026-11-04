@@ -981,7 +981,7 @@
         "modalidad": "virtual tutorada asincrónica",
         "duracion_horas": "24",
         "publico": "Personal de la Administración Pública que desempeñe tareas de gestión de documentos, así como docentes e instructores de unidades académicas y centros de formación interesados en la innovación tecnológica.",
-        "organiza": "",
+        "organiza": "Departamento de Cursos Complementarios",
         "contacto": "cursos@fie.undef.edu.ar",
         "fuente": "Adjuntos/Actividades-Extension/NotebookLM-Nivel-2/registro-actividad-candidato.json",
         "enlace_inscripcion": "https://www.fie.undef.edu.ar/siu/3w/",
@@ -1042,8 +1042,8 @@
         },
         {
           "campo": "organiza",
-          "origen": "no_informado",
-          "nota": "Dato pendiente; no se completa por inferencia."
+          "origen": "confirmacion_juani",
+          "nota": "Confirmación expresa de Juan Ignacio Goñe en la sesión del prototipo (04/11/2026)."
         },
         {
           "campo": "contacto",
@@ -1070,9 +1070,76 @@
         {
           "path": "Documentos/PoC/Registro-Actividades-Fuentes-Documentales-v1.md",
           "sha256": "a4ba3fd4de13a4913903689ae1dac4f84fa3bd36e5b73549113420b6009400e9"
+        },
+        {
+          "path": "Implementacion/Agente1/prototipos/interfaz-gacetillas/Confirmacion-Organizador-NotebookLM-2026-11-04.json",
+          "sha256": "6d018f57f807089c48dee442829dd8a414b39cfde0b12864f1297cdf49ee63bb"
         }
       ],
-      "text": "Asunto: INTELIGENCIA ARTIFICIAL APLICADA A LA EDUCACIÓN Y GESTIÓN: NOTEBOOKLM - NIVEL 2\n\nArquitecturas de notebooks por contextos.\nRecursos de comunicación documental y administración.\nRoles y personas avanzadas en el chat.\nIntegración con Gemini y Google Workspace para contenidos multiformato.\n\n📅 lunes 5 de octubre de 2026\nFinaliza: viernes 4 de diciembre de 2026\nModalidad: virtual tutorada asincrónica\nDuración: 24 h\nInscripción hasta: martes 29 de septiembre de 2026\nInscripción: https://www.fie.undef.edu.ar/siu/3w/\n\nConsultas: cursos@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+      "text": "Asunto: INTELIGENCIA ARTIFICIAL APLICADA A LA EDUCACIÓN Y GESTIÓN: NOTEBOOKLM - NIVEL 2\n\nArquitecturas de notebooks por contextos.\nRecursos de comunicación documental y administración.\nRoles y personas avanzadas en el chat.\nIntegración con Gemini y Google Workspace para contenidos multiformato.\n\n📅 lunes 5 de octubre de 2026\nFinaliza: viernes 4 de diciembre de 2026\nModalidad: virtual tutorada asincrónica\nDuración: 24 h\nOrganiza: Departamento de Cursos Complementarios\nInscripción hasta: martes 29 de septiembre de 2026\nInscripción: https://www.fie.undef.edu.ar/siu/3w/\n\nConsultas: cursos@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar"
+    }
+  ],
+  "areas": [
+    {
+      "id": "cursos_complementarios",
+      "nombre": "Departamento de Cursos Complementarios"
+    },
+    {
+      "id": "secretaria_de_extension",
+      "nombre": "Secretaría de Extensión Universitaria"
+    },
+    {
+      "id": "secretaria_academica",
+      "nombre": "Secretaría Académica"
+    },
+    {
+      "id": "doe",
+      "nombre": "DOE"
+    }
+  ],
+  "types": [
+    {
+      "id": "difusion_de_actividad",
+      "nombre": "Difusion de actividad de extension",
+      "modo": "genera",
+      "requiere_actividad": true
+    },
+    {
+      "id": "cronica_de_evento",
+      "nombre": "Cronica de evento",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false,
+      "destino_declarado": "genera desde Historia Viva cuando el Acervo tenga el material del evento (ver el adendo del 17/10 en #120)"
+    },
+    {
+      "id": "aviso_de_otra_area",
+      "nombre": "Aviso de otra area",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false
+    },
+    {
+      "id": "convocatoria_interna",
+      "nombre": "Convocatoria interna",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false
+    },
+    {
+      "id": "saludo_o_efemeride",
+      "nombre": "Saludo o efemeride",
+      "modo": "genera",
+      "requiere_actividad": false
+    },
+    {
+      "id": "fallecimiento",
+      "nombre": "Comunicado de fallecimiento",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false
+    },
+    {
+      "id": "newsletter",
+      "nombre": "Newsletter",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false
     }
   ]
 }

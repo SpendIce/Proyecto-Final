@@ -1,0 +1,139 @@
+{
+  "date": "2026-11-04",
+  "scope": "Creación principal, asunto vacío, descripción y organizador NotebookLM confirmado por Juani",
+  "human_quality": "PENDIENTE",
+  "institutional_validation": false,
+  "sources": {
+    "prototipo.html": "4e876a07bb5cb9d662713ec264bf9ff3e4933ad3bf5c36cb359aba3b5eda009b",
+    "servidor.py": "dc36dedd9c89cc312de4eb7b9e2ef62260d8611450e4439c8f57a59f6179de2d",
+    "datos-prototipo.json": "1dd35a3e1fdf2bf7f875a404724c16cbba30d97e89583bc192dd1cb677d0a641",
+    "Confirmacion-Organizador-NotebookLM-2026-11-04.json": "6d018f57f807089c48dee442829dd8a414b39cfde0b12864f1297cdf49ee63bb"
+  },
+  "results": [
+    {
+      "id": "43d8d3bec0fa4301a0e2397fd4add99c",
+      "state": "completado",
+      "activity": null,
+      "type": "cronica_de_evento",
+      "base_revision": 1,
+      "created": 1793797613.5177581,
+      "started": 1793797613.5178487,
+      "text": "Asunto: Recorrida de prueba por laboratorios\n\nNOTICIAS FIE\n\nEl equipo de prueba recorrió los laboratorios y conoció las tareas de extensión.\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+      "candidate": "",
+      "errors": [],
+      "model": null,
+      "production_mode": "extrae_y_confirma",
+      "prompt_version": null,
+      "request_prompt_version": null,
+      "source": "Pedido manual de la persona usuaria",
+      "input_hash": "ea34b8c2fba8137a2115dca8e18f69a7d06eddc7772338d5bc616150b9226648",
+      "output_hash": "b101bf3a65123477eb6e982b7de4d1ab2c426360296c5476c6949876ee088dde",
+      "mechanical_checks": "CONFORME",
+      "human_quality": "PENDIENTE",
+      "latency_s": 0,
+      "finished": 1793797613.5181942
+    },
+    {
+      "id": "00a7c3a88d584a42a4d0fcb2405b3a49",
+      "state": "completado",
+      "activity": null,
+      "type": "aviso_de_otra_area",
+      "base_revision": 1,
+      "created": 1793797613.6662233,
+      "started": 1793797613.6662974,
+      "text": "Asunto: Acceso de prueba al aula\n\nSe informa a la comunidad educativa que el aula de prueba no está habilitada, hasta nuevo aviso.\n\nMuchas gracias\n\nSecretaría Académica\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+      "candidate": "",
+      "errors": [],
+      "model": null,
+      "production_mode": "extrae_y_confirma",
+      "prompt_version": null,
+      "request_prompt_version": null,
+      "source": "Pedido manual de la persona usuaria",
+      "input_hash": "7563ae1829176cecfe342220c5023896d54d149b5b96ec634ec0b525b02a6707",
+      "output_hash": "46f9dcad28cd5b932ea3bc92c021b6928b4f436ca39442692ac36914dcec80eb",
+      "mechanical_checks": "CONFORME",
+      "human_quality": "PENDIENTE",
+      "latency_s": 0,
+      "finished": 1793797613.6666412
+    },
+    {
+      "id": "2f6fc2e2ee674a4eb17afc8201cfbd4e",
+      "state": "completado",
+      "activity": null,
+      "type": "saludo_o_efemeride",
+      "base_revision": 1,
+      "created": 1793797613.7825313,
+      "started": 1793797613.7826073,
+      "text": "Asunto: Saludo a la comunidad educativa\n\nQueremos agradecer a toda la comunidad educativa por el compromiso constante con la educación pública. Su dedicación es fundamental para seguir construyendo juntos un futuro mejor.\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+      "candidate": "",
+      "errors": [],
+      "model": "gemma4:e4b",
+      "production_mode": "genera",
+      "prompt_version": "saludo_o_efemeride_v1",
+      "request_prompt_version": "prototipo_solicitud_saludo_v1",
+      "source": "Pedido manual de la persona usuaria",
+      "input_hash": "cccae06efcf9b6dd305125577b4dedb9ca8f87a1e74f187372b1e407254ec595",
+      "output_hash": "ec93b82534a16247d4b04ada2bb174045a2e272e35a30ce1d025d039ce614787",
+      "mechanical_checks": "CONFORME",
+      "human_quality": "PENDIENTE",
+      "latency_s": 114.46,
+      "finished": 1793797728.2430813
+    },
+    {
+      "id": "a1e9f4f4419a4566b7e55a58fa543848",
+      "state": "fallido",
+      "activity": "EJEMPLO-NOTEBOOKLM-N2",
+      "type": "difusion_de_actividad",
+      "base_revision": 1,
+      "created": 1793797728.67932,
+      "started": 1793797728.6812901,
+      "errors": [
+        "RuntimeError"
+      ],
+      "text": "",
+      "message": "El generador no completó el pedido. No se creó una revisión.",
+      "latency_s": 300.1,
+      "finished": 1793798028.7811625
+    }
+  ],
+  "initial_integration_issue": {
+    "result": {
+      "id": "6a386c64c9cb46b292f39a537f2f7a92",
+      "state": "rechazado",
+      "activity": null,
+      "type": "saludo_o_efemeride",
+      "base_revision": 1,
+      "created": 1793797472.955813,
+      "started": 1793797472.9558709,
+      "text": "",
+      "candidate": "Queremos agradecer el compromiso de docentes y estudiantes con la educación pública, pilares fundamentales de nuestro sistema.",
+      "errors": [
+        "hecho_perdido"
+      ],
+      "model": "gemma4:e4b",
+      "production_mode": "genera",
+      "prompt_version": "saludo_o_efemeride_v1",
+      "source": "Pedido manual de la persona usuaria",
+      "input_hash": "4efe5949fc1ac0e03a49337973a6a5f6f58f9c3079c1cd616786e0a243720992",
+      "output_hash": "e9e461a23144715d6fe9ecd4b6465c209378328cf13e2dafeac998329f15afd9",
+      "mechanical_checks": "NO_CONFORME",
+      "human_quality": "PENDIENTE",
+      "latency_s": 67,
+      "finished": 1793797539.9565077
+    },
+    "cause": "La descripción del pedido se había pasado como cuerpo confirmado del saludo. Se separó el contexto de generación del cuerpo ya generado, conservando los controles existentes."
+  },
+  "final_interface_check": "Chromium: inicio en nuevo pedido, asunto vacío editable y opcional, descripción utilizada con asunto vacío, tipo sin aviso de actividad, organizador visible, tres variantes a 390 px y sin errores JavaScript. Crónica de prueba sin LLM adicional.",
+  "deslop": {
+    "scope": "Sólo carpeta del prototipo; diff contra merge-base de su rama descartable con origin/main",
+    "changes": [
+      "Orden de imports y formato del servidor",
+      "Captura JSONDecodeError eliminada por estar cubierta por ValueError"
+    ],
+    "format_ast_unchanged": true,
+    "ruff": "PASS",
+    "behavior_changes_in_cleanup": false,
+    "left_for_review": "El redibujado global de pollJob/render puede quitar el foco si se escribe otro pedido durante una generación; identificado por lectura del código, sin corregir en deslop.",
+    "autoreview": "Skill no instalada; no se declara ejecutada."
+  }
+}
