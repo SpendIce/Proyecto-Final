@@ -2,6 +2,9 @@
 
 Construido el 03/11/2026. Actualizado el 04/11 por pedido de Juani: actividades reales, ajuste en texto libre y generación real en el servidor. Responsable técnico: Juan Ignacio Goñe.
 
+
+**Estado de validación (04/11/2026):** SEU eligió la **interfaz A, bandeja y pieza**, y aceptó cualitativamente el contenido durante un recorrido guiado por Juani con Juan Manuel y Leandro. La revisión adicional con Josefina fue anunciada y sigue pendiente. Acta: [validación cualitativa SEU del 04/11](https://github.com/SpendIce/Proyecto-Final/blob/a2e7bc7c428a17d76b5540def9f8d061dc8b7417/Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md). No se asignaron puntajes ni se acredita implementación del canal real por esa aceptación.
+
 Pregunta: ¿qué disposición facilita pedir, revisar, corregir y decidir sobre una gacetilla, y qué calidad tiene el contenido producido por el LLM?
 
 ## Dos formas de abrirlo
@@ -82,13 +85,13 @@ La operación oficial de consola/scheduler y su mecanismo de corte y despliegue 
 
 ## Reacción humana y continuidad
 
-El 04/11 Juani pidió actividades reales, corrigió la limitación artificial del ajuste a opciones predefinidas y solicitó probar la generación/calidad con el LLM del servidor y una URL interna. Esos pedidos se incorporan a este ensayo. **Elección o combinación de variantes: pendiente. Evaluación humana de los textos nuevos: pendiente. Prueba SEU: pendiente.**
+El 04/11 Juani pidió actividades reales, corrigió la limitación artificial del ajuste a opciones predefinidas y solicitó probar la generación/calidad con el LLM del servidor y una URL interna. Esos pedidos se incorporan a este ensayo. **Interfaz A elegida y recorrido guiado cualitativamente aceptado por SEU el 04/11, con Juan Manuel y Leandro. Puntajes formales y verificación del canal real: pendientes.**
 
 La prueba guiada debe observar: continuar un pedido ajeno, elegir actividad, reconocer datos provisionales/faltantes, generar, editar aparte, pedir un ajuste libre, reconocer la revisión nueva, consultar historial y aprobar/descartar. Por tarea se registran resultado, ayuda, errores, cambios de contexto, tiempo observado y comentario, sin metas nuevas. La calidad se registra con su instrumento separado.
 
 Diseño: `Documentos/Arquitectura/Interfaz-Web-Agente-1-PPS-Juan-Ignacio-Gone.md`, ADR 0014 y `CONTEXT.md`. Trazabilidad: P4, HU-013 como canal, HU-010 como primer recorrido. Responsable técnico: Juani; validación institucional: SEU. El experimento no acredita DoD del canal real, login, permisos, recuperación, publicación ni avance TRL.
 
-Seguimiento: [Prototipar el recorrido de gacetillas de A1 para revisar interfaz y contenido con SEU](https://github.com/SpendIce/Proyecto-Final/issues/152); implementación posterior en los tickets existentes de base web y revisión/Docs/aprobación. El resultado y las piezas de las comprobaciones live se documentan en esta carpeta al completar la corrida; no se asignan puntajes humanos automáticamente.
+Seguimiento: [Prototipar el recorrido de gacetillas de A1 para revisar interfaz y contenido con SEU](https://github.com/SpendIce/Proyecto-Final/issues/152); implementación posterior en los tickets existentes de base web y revisión/Docs/aprobación. El prototipado y el evento cualitativo SEU se cerraron con el acta del 04/11. Los resultados y piezas de las comprobaciones live se documentan en esta carpeta; no se asignan puntajes humanos automáticamente.
 
 ## Segunda reacción de interfaz — 04/11/2026
 
@@ -100,4 +103,12 @@ Si el asunto se deja vacío, difusión conserva el título de la actividad como 
 
 Se aplicó `deslop` al diff de la rama descartable contra su merge-base con `origin/main`, limitado a esta carpeta. Se normalizaron imports y formato del servidor, se eliminó la captura redundante de `JSONDecodeError` (subclase de `ValueError`) y se mantuvieron las excepciones E402 puntuales por el bootstrap del script, siguiendo la convención existente. La limpieza no alteró la conducta de los pedidos; el formato conservó el AST. Ruff pasó.
 
-Por lectura de `pollJob` y `render`, queda señalado para revisión el redibujado global durante el sondeo: podría quitar el foco si se está escribiendo otro pedido mientras termina una generación. No se modificó ese comportamiento dentro de la limpieza. La skill `autoreview` no está instalada en este entorno; no se presenta esta pasada como sustituto de ese gate ni como autorización para promover el código a producción.
+El redibujado global señalado en la limpieza se corrigió después, como parte del pedido de progreso: el sondeo actualiza el panel del trabajo y su estado sin recrear el formulario de otro pedido. La regresión de navegador verifica que conserva el foco. La skill `autoreview` no está instalada en este entorno; no se presenta esta pasada como sustituto de ese gate ni como autorización para promover el código a producción.
+
+## Progreso e inferencia bajo carga compartida
+
+La generación ahora usa streaming NDJSON de Ollama y muestra cola, espera del modelo, recepción de texto y validación. La barra es indeterminada: no presenta un porcentaje de inferencia inventado. Tiempo, fragmentos y caracteres recibidos corresponden al trabajo real. Una nueva generación no muestra el fallo de la anterior como si fuera su resultado y los errores mantienen la identidad del modelo.
+
+En el diagnóstico se detectó otra instancia de Ollama fuera del stack, confirmada por Juani como usada por otra sesión. No se la detuvo ni se modificó. Las solicitudes del prototipo usan `num_thread=1` y `num_thread_batch=1` para reducir la competencia; el modelo, temperatura, presupuesto y límite de 300 s se conservaron. NotebookLM completó una prueba real conforme en 185,51 s con streaming observado; una prueba mínima del primer fragmento pasó en 2,03 s frente al timeout previo de 12 s. Son observaciones de diagnóstico bajo carga compartida, no un SLO ni una garantía de latencia.
+
+Comprobaciones: `python Implementacion/Agente1/prototipos/interfaz-gacetillas/verificar_stream.py` ejecuta cinco pruebas HTTP/NDJSON sin modelo real (stream completo, presupuesto agotado, corte, timeout y fragmento inválido). Para la regresión de interfaz, instalar `playwright-core` como herramienta de desarrollo y ejecutar `A1_TEST_URL=<URL-del-prototipo> node verificar_interfaz.cjs` con Chromium disponible; el script usa Chromium en `/usr/bin/chromium`. No agrega Node ni Playwright al servicio del servidor.

@@ -23,6 +23,8 @@ HERE = Path(__file__).resolve().parent
 CORE = Path("/srv/p100/Implementacion/Agente1/src")
 sys.path.insert(0, str(CORE if CORE.exists() else HERE.parents[1] / "src"))
 
+from generador_stream import GeneradorConProgreso, TiempoDeGeneracionAgotado  # noqa: E402
+
 from agente1.gacetillas import (  # noqa: E402
     _validar_prosa_directa,
     campos_obligatorios,
@@ -34,7 +36,6 @@ from agente1.gacetillas import (  # noqa: E402
     renderizar,
     validar_pieza,
 )
-from agente1.ollama import OllamaGenerator  # noqa: E402
 from agente1.procesamiento import (  # noqa: E402
     PATRON_BORRADOR,
     PROMPT_VERSION,
@@ -70,7 +71,7 @@ def apply_subject(text, subject, activity_title=None):
 
 def produce_manual(job_id, payload):
     job = JOBS[job_id]
-    job.update(state="generando", started=time.time())
+    job.update(state="preparando", started=time.time())
     started = time.monotonic()
     kind = payload["type"]
     row = dict(payload.get("fields", {}))
@@ -85,6 +86,7 @@ def produce_manual(job_id, payload):
     raw = ""
     try:
         if mode == "extrae_y_confirma":
+            job["state"] = "validando"
             text, errors = confirmar_pieza(kind, row)
         else:
             prompt = construir_prompt(kind, row)
@@ -106,10 +108,11 @@ def produce_manual(job_id, payload):
                     },
                     ensure_ascii=False,
                 )
-            generator = OllamaGenerator(
-                modelo=MODEL, timeout_s=300, num_predict=512, think=False
+            generator = GeneradorConProgreso(
+                job=job, modelo=MODEL, timeout_s=300, num_predict=512, think=False
             )
             raw = generator.generar(prompt)
+            job["state"] = "validando"
             errors = _validar_prosa_directa(cargar_forma(kind), raw)
             text = renderizar(kind, row, {"cuerpo": raw}) if not errors else ""
             if not errors:
@@ -155,7 +158,7 @@ def produce(job_id, payload):
         return
     job = JOBS[job_id]
     row = ACTIVITIES[payload["activity"]]["fields"]
-    job.update(state="generando", started=time.time())
+    job.update(state="preparando", started=time.time())
     started = time.monotonic()
     instruction = payload.get("request", "") or payload.get("notes", "")
     base = payload.get("base_text", "")
@@ -204,10 +207,11 @@ def produce(job_id, payload):
                 prompt += f"La BAJADA anterior tiene {len(previous_bajada.split())} palabras. La nueva BAJADA debe tener como máximo {shorten_target} palabras, y el CUERPO conserva las correcciones humanas.\n"
 
     try:
-        generator = OllamaGenerator(
-            modelo=MODEL, timeout_s=300, num_predict=512, think=False
+        generator = GeneradorConProgreso(
+            job=job, modelo=MODEL, timeout_s=300, num_predict=512, think=False
         )
         raw = generator.generar(prompt)
+        job["state"] = "validando"
         errors = _validar_salida(raw, row)
         if (
             not errors
@@ -252,7 +256,11 @@ def produce(job_id, payload):
             state="fallido",
             errors=[type(exc).__name__],
             text="",
-            message="El generador no completó el pedido. No se creó una revisión.",
+            message=(
+                "El modelo no terminó dentro de 300 segundos."
+                if isinstance(exc, TiempoDeGeneracionAgotado)
+                else "El generador no completó el pedido. No se creó una revisión."
+            ),
             latency_s=round(time.monotonic() - started, 2),
         )
     job["finished"] = time.time()
@@ -421,7 +429,17 @@ class Handler(BaseHTTPRequestHandler):
             if payload["request_id"] in REQUESTS:
                 job_id = REQUESTS[payload["request_id"]]
             elif (
-                sum(job["state"] in ("encolado", "generando") for job in JOBS.values())
+                sum(
+                    job["state"]
+                    in (
+                        "encolado",
+                        "preparando",
+                        "esperando_modelo",
+                        "generando",
+                        "validando",
+                    )
+                    for job in JOBS.values()
+                )
                 >= 8
             ):
                 self.send_json(
@@ -436,6 +454,8 @@ class Handler(BaseHTTPRequestHandler):
                 JOBS[job_id] = {
                     "id": job_id,
                     "state": "encolado",
+                    "model": MODEL if modo_de(kind) == "genera" else None,
+                    "production_mode": modo_de(kind),
                     "activity": payload.get("activity"),
                     "type": kind,
                     "base_revision": payload.get("base_revision"),

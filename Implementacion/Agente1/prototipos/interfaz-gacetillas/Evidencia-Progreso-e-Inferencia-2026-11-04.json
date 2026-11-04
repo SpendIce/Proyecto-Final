@@ -1,0 +1,100 @@
+{
+  "date": "2026-11-04",
+  "reported_symptom": "No se obtiene una gacetilla; se alcanza la ventana de 300 s. Sin barra y con fallo anterior visible durante otro intento.",
+  "reproduction": {
+    "llm_probe_before": "Sin primer fragmento en 12,01 s",
+    "ui_before": {
+      "barra_visible": false,
+      "fallo_anterior_oculto": false,
+      "foco_conservado": false
+    }
+  },
+  "context": {
+    "cpus": 4,
+    "another_ollama_active": true,
+    "another_session_using_it": true,
+    "external_instance_stopped_or_changed": false,
+    "observation": "Otra inferencia consumía aproximadamente tres núcleos; logs del LLM de A1 mostraron caída de unos 5–6 tokens/s a menos de uno."
+  },
+  "mitigation": {
+    "streaming": true,
+    "prototype_request_threads": 1,
+    "num_thread_batch": 1,
+    "model": "gemma4:e4b",
+    "timeout_seconds": 300,
+    "temperature": 0,
+    "num_predict": 512,
+    "official_services_restarted": false
+  },
+  "verification": {
+    "stream_transport_tests": 5,
+    "stream_transport_tests_result": "PASS",
+    "ui_after": {
+      "barra_visible": true,
+      "fallo_anterior_oculto": true,
+      "foco_conservado": true
+    },
+    "llm_minimal_probe_after_seconds": 2.03,
+    "live_notebooklm": {
+      "id": "d6956f51656e4660964d19ea26d7bd74",
+      "state": "completado",
+      "model": "gemma4:e4b",
+      "production_mode": "genera",
+      "activity": "EJEMPLO-NOTEBOOKLM-N2",
+      "type": "difusion_de_actividad",
+      "base_revision": 1,
+      "created": 1793800420.8571653,
+      "started": 1793800420.857541,
+      "fragments": 187,
+      "characters_received": 830,
+      "inference_options": {
+        "temperature": 0,
+        "num_predict": 512,
+        "num_thread": 1,
+        "num_thread_batch": 1
+      },
+      "last_fragment_at": 1793800605.6059742,
+      "first_fragment_at": 1793800567.385527,
+      "model_metrics": {
+        "eval_count": 188,
+        "eval_duration": 38952030000,
+        "prompt_eval_count": 1233,
+        "prompt_eval_duration": 104897512000,
+        "total_duration": 185459302494,
+        "load_duration": 41457419762
+      },
+      "text": "Asunto: INTELIGENCIA ARTIFICIAL APLICADA A LA EDUCACIÓN Y GESTIÓN: NOTEBOOKLM - NIVEL 2\n\nEsta actividad aborda arquitecturas de notebooks por contextos, recursos de comunicación documental y roles avanzados en el chat.\n\nEl Departamento de Cursos Complementarios ofrece esta formación para el Personal de la Administración Pública que desempeñe tareas de gestión de documentos, así como para docentes e instructores de unidades académicas y centros de formación interesados en la innovación tecnológica. Podés aprender sobre arquitecturas de notebooks por contextos, recursos de comunicación documental y la integración con Gemini y Google Workspace para contenidos multiformato.\n\n📅 lunes 5 de octubre de 2026\nFinaliza: viernes 4 de diciembre de 2026\nModalidad: virtual tutorada asincrónica\nDuración: 24 h\nOrganiza: Departamento de Cursos Complementarios\nInscripción hasta: martes 29 de septiembre de 2026\nInscripción: https://www.fie.undef.edu.ar/siu/3w/\n\nConsultas: cursos@fie.undef.edu.ar\n\nDepartamento de Cursos Complementarios\nSecretaría de Extensión Universitaria\n\n--\nFacultad de Ingeniería del Ejército\n\"Grl Div Manuel N Savio\"\nUNDEF\nTel: (011) 4779-3300\nAv. Cabildo 15 – CABA\nwww.fie.undef.edu.ar",
+      "candidate": "",
+      "errors": [],
+      "prompt_version": "gacetilla_v8",
+      "adjustment_prompt_version": null,
+      "requested_bajada_max_words": null,
+      "latency_s": 185.51,
+      "source": "Adjuntos/Actividades-Extension/NotebookLM-Nivel-2/registro-actividad-candidato.json",
+      "source_hash": "8531b0a6958dd3848992b898fe5d5257de7094fde2e7b1beea848118ff0bb014",
+      "input_hash": "93e939deb064aa032e7bbce8eb8f3511291acbf778c629dda173299e197b058d",
+      "base_hash": null,
+      "output_hash": "593de21ba531a7d5124ab5a906b974015e98cfb1057a8727360d1a4d9fa79b65",
+      "mechanical_checks": "CONFORME",
+      "human_quality": "PENDIENTE",
+      "temperature": 0,
+      "num_predict": 512,
+      "think": false,
+      "finished": 1793800606.3713365,
+      "observed_streaming": true,
+      "js_errors": []
+    }
+  },
+  "limits": [
+    "Una prueba real conforme no es medición formal n=3 ni SLO.",
+    "La instancia externa continúa en uso; los recursos siguen compartidos.",
+    "La aceptación SEU está en su acta separada y no se atribuye a esta corrida técnica."
+  ],
+  "sources": {
+    "generador_stream.py": "b53bc4bfa97408369145670d15ad19bbb262759dc9e524989266bbaf11de985b",
+    "servidor.py": "be4d320c50beec9b35fa0d0fac89120b3080f222b4681de70ab23b62719bc373",
+    "prototipo.html": "2b1d981ec45e5191abe5626b912a5f5ab3bf8f0e5a120d86c269eb2f2ec92825",
+    "verificar_stream.py": "a072783a261ad894049881b81cab1a03875dc4748090dc1ed8b3615f959c6753",
+    "verificar_interfaz.cjs": "c254142a2b23308cc4d7d6ec7f581ee4cdb702ee4c77ef98f7cefdb6226f290f"
+  }
+}
