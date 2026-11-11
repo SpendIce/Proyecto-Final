@@ -931,15 +931,17 @@ El circuito, en orden y todo fail-closed:
    (`nombre,apellido,dni,mail,tratamiento,condicion`), `condicion` cerrada en
    `asistencia`/`aprobacion` sin inferencias, sin duplicados de DNI ni mail.
    Una fila mala bloquea el lote (`INVALIDA`), no salta.
-3. **La línea descriptiva tiene que estar aprobada** por los dos roles sobre
-   el objeto `linea_descriptiva-<id>-<hash>` (#74), por el mismo Form de
-   decisiones de #72.
-4. **El lote lo aprueba el rol utilitario** con `apruebo_lote` sobre
-   `sha256("lote_cierre_certificados|<id>|<hash_lista>")`: cualquier edición
-   de la lista cambia el objeto y la aprobación anterior no aplica. Quien
-   cargó la lista no puede aprobarla. Mientras falta, el lote queda
-   `PENDIENTE_APROBACION` y sale el correo al aprobador con el enlace al
-   Form y un **PDF de muestra marcado `BORRADOR — NO EMITIR`** adjunto.
+3. **La línea descriptiva tiene que estar aprobada** por la persona
+   autorizada de contenido (`apruebo_contenido`, rol `APROBADOR_CONTENIDO`)
+   sobre el objeto `linea_descriptiva-<id>-<hash>` (#74, #125), por el
+   mismo Form de decisiones de #72.
+4. **El lote lo aprueba quien lo genera** (#125) con `apruebo_lote` sobre
+   `sha256("lote_cierre_certificados|<id>|<hash_lista>")`: la decisión exige
+   el rol `APROBADOR_CONTENIDO` y el correo del solicitante. Cualquier
+   edición de la lista cambia el objeto y la aprobación anterior no aplica.
+   Mientras falta, el lote queda `PENDIENTE_APROBACION` y sale el correo al
+   solicitante con el enlace al Form y un **PDF de muestra marcado
+   `BORRADOR — NO EMITIR`** adjunto.
 5. **La plantilla depende de la condición** (#126): `aprobacion` compone
    el diseño SEU recibido (A4 horizontal, doble borde, símbolo FIE y los
    bloques del Secretario de Extensión y del Decano, sin tercer
@@ -969,7 +971,7 @@ y el wiring de `scripts/atender_canal_form.py` (pedido del Form):
 ```bash
 PYTHONPATH=src python scripts/emitir_certificados.py \
   --actividad SYN-001 --lista-csv lista.csv --linea linea.txt \
-  --aprobador coord@example.invalid --solicitante aux@example.invalid \
+  --solicitante aprobador@example.invalid \
   --directorio /tmp/demo-certificados
 ```
 
@@ -977,7 +979,7 @@ En offline la lista es un CSV, la línea un archivo externo y las entregas
 quedan en `entregas-certificados-offline.jsonl` (del adjunto, sólo sha256).
 En live hacen falta `--live --confirm-write-workspace` y el entorno:
 `AGENTE1_CERTIFICADOS_LISTA_SHEET_ID`, `…_LISTA_RANGO_A1`, `…_LINEA_PATH`,
-`…_APROBADOR`, `…_SOLICITANTE` y `…_RECURSOS_DIR` (la carpeta restringida
+`…_SOLICITANTE` y `…_RECURSOS_DIR` (la carpeta restringida
 con el símbolo FIE y las firmas, fuera del repo y de Git), además de las
 variables Workspace, Form de decisiones, padrón y lista de prueba de
 siempre. La receta completa —offline y live— está en

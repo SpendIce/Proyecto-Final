@@ -43,6 +43,27 @@ Dirección. Detalle en el procedimiento.
   evidencias HU-012/HU-014. Los estados parciales de aprobación dejan de
   existir: una pieza pasa de `PENDIENTE_VALIDACION` a `APROBADA` o
   `RECHAZADA` con una sola decisión. Ver ADR 0018.
+  - Pedir o generar el lote de certificados exige el rol
+    `APROBADOR_CONTENIDO` (`solicitante_rol_no_autorizado`), así que
+    `intenciones_v5` lo habilita para pedir piezas —la excepción
+    deliberada al invariante de que un rol operativo que pide no puede
+    decidir— y excluye a `APROBADOR_PAGOS`.
+  - Compatibilidad con lo heredado: registros durables en
+    `APROBADA_SEMANTICA`/`APROBADA_UTILITARIA` se leen como
+    `PENDIENTE_VALIDACION` con diagnóstico `estado_heredado` en el log;
+    decisiones `apruebo_semantica`/`apruebo_utilitaria` y roles
+    reemplazados se rechazan con `rol_reemplazado`; un padrón con roles
+    inexistentes frena el arranque con `padron_rol_desconocido`;
+    `medicion_slo` cuenta los objetos con ancla heredada aparte
+    (`items_sin_ancla_heredada`) y la restauración los trata como
+    pendientes, nunca como aprobaciones.
+  - Contratos y prompts publicados intactos: las versiones nuevas son
+    `intenciones_v5.schema.json`, `tipos_notificacion_v3.json`,
+    `certificado_provisional_v3.txt`,
+    `instrucciones_pago_provisional_v2.txt`,
+    `plantilla_actividad_base_provisional_v2.txt` y
+    `recordatorio_pago_provisional_v2.txt`; las v4/v2/v1 quedan
+    versionadas y legibles.
 - **Menor — plantilla SEU del certificado de aprobación (#126).** La
   emisión de `aprobacion` compone el diseño recibido de la SEU como PDF
   reproducible; `asistencia` sigue con la provisional pendiente de la

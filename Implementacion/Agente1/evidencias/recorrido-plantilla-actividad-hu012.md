@@ -54,8 +54,9 @@
   - `plan_pagos_notebooklm_n2.csv` — el plan de pago provisional del hilo.
   - `padron_pagos_sintetico.csv` — los tres preinscriptos sintéticos.
   - `padron_roles_sintetico.csv` — los roles del circuito con correos
-    inventados (`rgc@` firma lo semántico, `coord@` lo utilitario y el
-    lote).
+    inventados (`aprobador@` con rol `APROBADOR_CONTENIDO` firma la línea y
+    el lote; `pagos@` con rol `APROBADOR_PAGOS` firma los lotes de pagos;
+    `solicitante@` pide piezas).
 
 ## Paso a paso (offline)
 
