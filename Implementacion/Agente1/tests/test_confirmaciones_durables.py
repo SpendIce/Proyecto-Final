@@ -144,6 +144,47 @@ def test_la_aprobacion_sobrevive_al_reinicio(tmp_path):
     assert len(destino.entregas) == 1
 
 
+def test_una_aprobacion_parcial_heredada_se_lee_como_pendiente(tmp_path):
+    """#125: `APROBADA_SEMANTICA`/`APROBADA_UTILITARIA` en disco eran
+    aprobaciones parciales del circuito reemplazado, no la aprobación
+    única. Se leen como `PENDIENTE_VALIDACION`: aceptan la decisión
+    vigente, no devuelven `DUPLICADA` y el log deja el diagnóstico.
+    """
+
+    import json as _json
+
+    registro = registro_en(tmp_path)
+    procesar(tmp_path, registro)
+    (archivo,) = list((tmp_path / "registro").glob("*.json"))
+    datos = _json.loads(archivo.read_text(encoding="utf-8"))
+    datos["estado"] = "APROBADA_SEMANTICA"
+    archivo.write_text(
+        _json.dumps(datos, ensure_ascii=False), encoding="utf-8"
+    )
+
+    leido = registro_en(tmp_path).obtener(archivo.stem)
+    assert leido is not None
+    assert leido.estado == "PENDIENTE_VALIDACION"
+    assert leido.estado_heredado == "APROBADA_SEMANTICA"
+
+    resultado = procesar(
+        tmp_path, registro_en(tmp_path), aprobacion=contenido()
+    )
+    assert resultado.estado == "APROBADA"
+
+    ultima = (
+        _json.loads(linea)
+        for linea in (tmp_path / "salida" / "logs" / "confirmaciones-hu012.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        if linea.strip()
+    )
+    assert any(
+        linea.get("estado_heredado") == "APROBADA_SEMANTICA"
+        for linea in ultima
+    )
+
+
 def test_un_rechazo_sobrevive_al_reinicio_y_no_se_puede_aprobar_despues(
     tmp_path,
 ):

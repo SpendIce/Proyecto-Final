@@ -3,8 +3,7 @@ destino que no sea exactamente el fake se rechaza, los reintentos no
 duplican y cada transición de estado queda registrada.
 
 La designación vigente (#125) exige una sola decisión de la persona
-autorizada de contenido —Juan Manuel o Josefina por delegación de la
-Secretaría, en el padrón sintético un correo con rol `APROBADOR_CONTENIDO`—
+autorizada de contenido por delegación de la Secretaría, en el padrón sintético un correo con rol `APROBADOR_CONTENIDO`—
 antes de habilitar el envío. Un rol ajeno (el de lotes de pagos, por
 ejemplo) no habilita nada.
 """

@@ -640,7 +640,7 @@ def test_recursos_hu014_son_versionados_provisionales_y_offline():
     )
     plantilla = (
         files("agente1")
-        .joinpath("prompts", "certificado_provisional_v2.txt")
+        .joinpath("prompts", "certificado_provisional_v3.txt")
         .read_text(encoding="utf-8")
     )
     assert contrato["x-contract-version"] == "certificado_emision_v2"
@@ -658,7 +658,7 @@ def test_recursos_hu014_son_versionados_provisionales_y_offline():
     ):
         assert campo in contrato["properties"]
         assert campo not in contrato["required"]
-    assert "TEMPLATE_VERSION: certificado_provisional_v2" in plantilla
+    assert "TEMPLATE_VERSION: certificado_provisional_v3" in plantilla
     assert "PENDIENTE_SEU" in plantilla
     assert MARCADOR_BORRADOR in plantilla
     # La v1 queda como artefacto histórico del camino provisional.

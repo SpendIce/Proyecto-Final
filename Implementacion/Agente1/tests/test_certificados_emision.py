@@ -51,8 +51,7 @@ from agente1.manifest_version import identidad_version_agente
 ROOT = Path(__file__).parents[1]
 
 CORREO_SOLICITANTE = "solicitante@example.test"
-CORREO_APROBADOR = "coordinador@example.test"
-CORREO_RGC = "rgc@example.test"
+CORREO_APROBADOR = "aprobador-contenido@example.test"
 CORREO_OTRO = "otro.coordinador@example.test"
 
 LINEA = (
@@ -244,6 +243,7 @@ def _ejecutar(
     respuestas: list[RespuestaHttp | Exception] | None = None,
     registro: RegistroDecisiones | None = None,
     solicitante_correo: str = CORREO_SOLICITANTE,
+    solicitante_rol: str | None = None,
     lector=None,
     destino=None,
     recursos_firma=None,
@@ -266,6 +266,7 @@ def _ejecutar(
         enlaces=_enlazador(registro),
         destino=destino,
         solicitante_correo=solicitante_correo,
+        solicitante_rol=solicitante_rol,
         directorio_salida=tmp_path / "salida",
         recursos_firma=recursos_firma,
     )
@@ -879,3 +880,24 @@ def test_emitir_certificados_sin_emisor_falla_controlado(tmp_path: Path):
         resultado.log_path.read_text(encoding="utf-8").splitlines()[-1]
     )
     assert registro_log["resultado"] == "emisor_no_configurado"
+
+
+def test_pedir_lote_con_rol_operativo_se_rechaza(tmp_path: Path) -> None:
+    """#125: pedir/generar el lote exige el rol de contenido — un rol
+    operativo recibe un rechazo explícito, no un lote imposible de
+    aprobar."""
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path, solicitante_rol="coordinador_seu"
+    )
+    assert resultado.estado == "RECHAZADA"
+    assert resultado.error == "solicitante_rol_no_autorizado"
+
+
+def test_pedir_lote_con_rol_de_contenido_sigue_el_circuito(
+    tmp_path: Path,
+) -> None:
+    resultado, _, _, _ = _ejecutar(
+        tmp_path, solicitante_rol=ROL_APROBADOR_CONTENIDO
+    )
+    assert resultado.estado in {"PENDIENTE_APROBACION", "EMITIDA"}

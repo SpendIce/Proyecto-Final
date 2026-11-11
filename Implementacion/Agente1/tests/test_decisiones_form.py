@@ -42,6 +42,7 @@ from agente1.decisiones_form import (
     DECISION_PUBLIQUE,
     PENDIENTES_NOMBRE,
     PROCESADAS_NOMBRE,
+    RECHAZO_ROL_REEMPLAZADO,
     TIPO_LINEA_DESCRIPTIVA,
     TIPO_LOTE,
     TIPO_PLANTILLA,
@@ -51,8 +52,11 @@ from agente1.decisiones_form import (
     DecisionesFormError,
     EnlacesDecisiones,
     RegistroDecisiones,
+    ResultadoDecision,
     cargar_configuracion_form_decisiones,
+    cargar_padron_roles_csv,
     crear_lector_decisiones,
+    decisiones_heredadas_del_objeto,
 )
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
 from agente1.gmail_envio import GmailDestinoConfirmaciones
@@ -1462,3 +1466,103 @@ def test_lector_csv_del_canal_de_pedidos_sirve_a_la_hoja_de_decisiones(
     (resultado,) = canal.atender()
     assert resultado.resultado == "registrada"
     assert resultado.objeto_id == "obj-9"
+
+
+# --- Circuito reemplazado (#125): rechazos explícitos -------------------------
+
+
+def test_decision_heredada_se_rechaza_con_rol_reemplazado(
+    tmp_path: Path,
+) -> None:
+    """`apruebo_semantica`/`apruebo_utilitaria` no habilitan: código propio."""
+
+    _declarar_publicacion(tmp_path)
+    canal, _ = _canal(
+        tmp_path,
+        values=[
+            fila_decision(decision="apruebo_semantica"),
+            fila_decision(
+                decision="apruebo_utilitaria",
+                marca="2026-10-11 09:05:00",
+            ),
+        ],
+    )
+    resultados = canal.atender()
+    assert [r.resultado for r in resultados] == ["rechazada", "rechazada"]
+    assert all(
+        r.rechazo_codigo == RECHAZO_ROL_REEMPLAZADO for r in resultados
+    )
+
+
+def test_rol_heredado_del_padron_se_rechaza(tmp_path: Path) -> None:
+    """Un correo con un rol del circuito reemplazado no decide nada."""
+
+    _declarar_publicacion(tmp_path)
+    padron_viejo = PadronRoles(
+        {CORREO_APROBADOR: "RESPONSABLE_GESTION_CONOCIMIENTO"}
+    )
+    canal, _ = _canal(
+        tmp_path,
+        padron=padron_viejo,
+        values=[fila_decision()],
+    )
+    (resultado,) = canal.atender()
+    assert resultado.resultado == "rechazada"
+    assert resultado.rechazo_codigo == RECHAZO_ROL_REEMPLAZADO
+
+
+def test_decisiones_heredadas_del_objeto_lista_el_registro_viejo(
+    tmp_path: Path,
+) -> None:
+    """El registro append-only conserva las líneas viejas y el helper las
+    expone para el diagnóstico; nunca habilitan."""
+
+    registro = _registro(tmp_path)
+    registro.registrar(
+        ResultadoDecision(
+            id_respuesta=_hash("vieja-1"),
+            correo_hash=_hash("correo-viejo"),
+            rol="COORDINADOR_EXTENSION",
+            rol_origen="padron",
+            tipo=TIPO_PUBLICACION,
+            objeto_id="obj-1",
+            decision="apruebo_utilitaria",
+            resultado="registrada",
+            rechazo_codigo=None,
+            marca_temporal_form="2026-09-30 10:00:00",
+            timestamp="2026-09-30T13:00:00+00:00",
+        )
+    )
+    heredadas = decisiones_heredadas_del_objeto(registro, objeto_id="obj-1")
+    assert len(heredadas) == 1
+    assert heredadas[0]["decision"] == "apruebo_utilitaria"
+    assert decisiones_heredadas_del_objeto(
+        registro, objeto_id="otro"
+    ) == ()
+
+
+def test_padron_con_rol_reemplazado_frena_el_arranque(tmp_path: Path) -> None:
+    """El padrón valida roles contra el catálogo vigente (#125)."""
+
+    csv_path = tmp_path / "padron.csv"
+    csv_path.write_text(
+        "correo,rol\n"
+        f"{CORREO_APROBADOR},COORDINADOR_EXTENSION\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        ConfiguracionWorkspaceError, match="padron_rol_desconocido"
+    ):
+        cargar_padron_roles_csv(csv_path)
+
+
+def test_padron_con_roles_vigentes_carga(tmp_path: Path) -> None:
+    csv_path = tmp_path / "padron.csv"
+    csv_path.write_text(
+        "correo,rol\n"
+        f"{CORREO_APROBADOR},{ROL_APROBADOR_CONTENIDO}\n"
+        f"{CORREO_PAGOS},{ROL_APROBADOR_PAGOS}\n",
+        encoding="utf-8",
+    )
+    padron = cargar_padron_roles_csv(csv_path)
+    assert padron.rol_para(CORREO_APROBADOR) == ROL_APROBADOR_CONTENIDO

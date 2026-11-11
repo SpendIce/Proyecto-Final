@@ -209,7 +209,7 @@ def test_las_formulas_solo_referencian_campos_declarados_o_auxiliares():
 
 def test_las_intenciones_declaran_el_mismo_enum_de_tipos_que_el_contrato_congelado():
     catalogo = json.loads(
-        (ROOT / "src" / "agente1" / "contracts" / "intenciones_v4.schema.json").read_text(
+        (ROOT / "src" / "agente1" / "contracts" / "intenciones_v5.schema.json").read_text(
             encoding="utf-8"
         )
     )

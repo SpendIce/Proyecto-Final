@@ -102,11 +102,11 @@ def aprobar(tmp_path: Path, registro, solicitud_: SolicitudConfirmacion) -> None
 
 
 def test_el_catalogo_es_cerrado_y_tiene_los_tipos_de_la_bible_y_pagos() -> None:
-    assert CONTRACT_VERSION == "tipos_notificacion_v2"
+    assert CONTRACT_VERSION == "tipos_notificacion_v3"
     assert STATUS == "CANDIDATO_PENDIENTE_CONFIRMACION_SEU"
     assert CATALOGO["x-hu"] == "HU-012"
     assert CATALOGO["x-habilita-envio"] is False
-    assert CATALOGO["x-reemplaza"] == "tipos_notificacion_v1"
+    assert CATALOGO["x-reemplaza"] == "tipos_notificacion_v2"
     assert TIPOS_NOTIFICACION == frozenset(
         {
             "inscripcion",

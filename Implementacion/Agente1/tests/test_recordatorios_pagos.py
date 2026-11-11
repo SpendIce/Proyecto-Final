@@ -967,4 +967,4 @@ def test_los_registros_durables_comparten_la_infraestructura(tmp_path):
 
 def test_el_tipo_es_el_del_catalogo(tmp_path):
     assert TIPO_RECORDATORIO_PAGO == "recordatorio_pago"
-    assert TEMPLATE_VERSION == "recordatorio_pago_provisional_v1"
+    assert TEMPLATE_VERSION == "recordatorio_pago_provisional_v2"
