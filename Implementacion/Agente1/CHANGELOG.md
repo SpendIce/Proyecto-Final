@@ -64,6 +64,55 @@ Dirección. Detalle en el procedimiento.
     `plantilla_actividad_base_provisional_v2.txt` y
     `recordatorio_pago_provisional_v2.txt`; las v4/v2/v1 quedan
     versionadas y legibles.
+- **Mayor — canal web del Agente 1 (#149).** Base del canal web según el
+  diseño «Bandeja y pieza» y los ADR 0014 y 0016: ingreso con Google
+  Identity (ID token verificado en el servidor con `google-auth`, `hd` del
+  dominio configurable), sesión sólo en memoria (30 min de inactividad,
+  8 h de máximo, cookie `HttpOnly`/`Secure`/`SameSite`), autorización por
+  padrón en cada request, CSRF en toda escritura, bandeja compartida de
+  la SEU, pedido guiado por listas cerradas (tipo, actividad, área
+  emisora, firma de área, públicos del #154) y estado recuperable de la
+  solicitud. La revisión y decisión de piezas queda para #153.
+  - `src/agente1/web/`: app FastAPI+Jinja2 (`app.py`), sesiones en
+    memoria (`sesiones.py`), verificador de identidad inyectable
+    (`identidad.py`, con `VerificadorGoogle` real y `VerificadorFake`
+    para pruebas y evidencia), adapter PostgreSQL (`persistencia.py`,
+    entrada idempotente por `idempotency_key`, bandeja, reserva con
+    `FOR UPDATE SKIP LOCKED` y plazo, cierre con revisión de pieza y
+    purga de prosa transitoria) y worker (`worker.py`) que reutiliza el
+    pipeline `interpretar_solicitud` → `generar_pieza` → destino por
+    marca, sin duplicar colas ni gates.
+  - `src/agente1/web/plantillas/` y `src/agente1/web/estaticos/`:
+    plantillas del lado del servidor con la identidad FIE (azul
+    `#081E4B`, neutros, Encode Sans + Roboto servidas localmente con
+    licencia OFL, imagotipo blanco autorizado en el encabezado).
+  - `migrations/0004_canal_web_agente1.up/down.sql`: esquema del canal
+    (campos web en `solicitudes`, `ejecuciones` y `borradores`,
+    `prosa_transitoria` para la prosa transitoria con purga diaria).
+  - `migrations/0005_roles_canal_web.up/down.sql`: roles `agente1_app`
+    (opera sin tocar la auditoría) y `agente1_mantenimiento` (dueño de
+    la prosa para el VACUUM diario).
+  - `src/agente1/respaldo.py`, `scripts/respaldar_estado.py`,
+    `scripts/restaurar_respaldo.py`: el respaldo diario incluye
+    `postgres/agente1.pgdump` cuando hay DSN declarada y la
+    restauración lo vuelca con `psql`; el respaldo falla cerrado si
+    `pg_dump` falta (ADR 0009).
+  - `scripts/servidor_web.py`, `scripts/worker_canal_web.py`,
+    `scripts/purgar_canal_web.py` y paso diario `purga_canal_web` en
+    `cli_scheduler.py`: los procesos del canal web y su retención
+    encadenados a la purga + respaldo del día.
+  - `docker/compose.yaml`: servicios `postgres` (red interna, sin
+    puertos fuera del stack), `web` y `worker` bajo el perfil
+    `canal-web`; `scripts/contenedor_entrypoint.py` mapea los comandos
+    `web` y `worker`.
+  - `tests/test_canal_web.py` y `tests/test_canal_web_persistencia.py`:
+    ingreso/sesión/CSRF/pedido con servicios inyectados, y las pruebas
+    del ADR 0016 (1, 3, 5, 6, 7, 8, 9) sobre PostgreSQL real.
+  - `evidencias/canal-web-*.png`: capturas de las pantallas con datos
+    sintéticos y servicios fake.
+  - `pyproject.toml`/`uv.lock`: `fastapi`, `uvicorn`, `jinja2`,
+    `psycopg`, `google-auth`, `pyjwt`, `python-multipart`, `httpx`.
+
 - **Menor — plantilla SEU del certificado de aprobación (#126).** La
   emisión de `aprobacion` compone el diseño recibido de la SEU como PDF
   reproducible; `asistencia` sigue con la provisional pendiente de la
