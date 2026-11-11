@@ -93,6 +93,16 @@ Dirección. Detalle en el procedimiento.
   - La aprobación del lote no cambia: `revisar_aprobacion_lote` queda
     intacta y la definición del 11/11 (la aprueba quien la genera) es
     alcance de #125. Ver ADR 0017.
+
+- **Preparación de la extracción del repositorio (#80).** Script reproducible
+  `scripts/extraer_repositorio.sh` + reglas de redacción en dos capas:
+  `scripts/extraccion-redacciones.txt` (genéricas, versionadas) y las
+  privadas con datos reales, que viven fuera del repo y se pasan con
+  `--reglas-privadas` — sin ellas la extracción no corre. Autoría por
+  mailmap también externa; plantillas versionadas `*.ejemplo.txt`.
+  Inventario y evidencia en `docs/traspaso/`. No corta
+  versión: herramienta de traspaso, no cambia el comportamiento del agente.
+
 - **Mayor — área FIE, firma de área opcional y públicos destinatarios del
   pedido (#154).** Cambian contratos versionados; todavía no corta versión.
   Con la versión en `0.x`, la próxima es `0.6.0`.
