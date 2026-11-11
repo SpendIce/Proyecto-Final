@@ -24,6 +24,14 @@ _Evitar_: publicacion, cuando todavia no fue validada ni difundida
 Pieza comunicacional generada que no tiene autorizacion para publicarse, enviarse ni emitirse.
 _Evitar_: contenido aprobado, publicacion
 
+**Revision de pieza**:
+Cada estado identificado del borrador de una solicitud, generado por el agente o corregido a mano. Una revision nueva no reemplaza a la anterior ni hereda sus decisiones: cada decision vale solo para la revision que la persona reviso.
+_Evitar_: version a secas, iteracion, mensaje
+
+**Solicitud vencida**:
+Solicitud abierta que paso 30 dias sin actividad y se cierra sin decision. No es un descarte: nadie decidio sobre la pieza.
+_Evitar_: solicitud abandonada, cancelada, descartada
+
 **FIE Informa**:
 Canal de correo institucional por el que la FIE difunde a su comunidad piezas de la SEU y de otras areas. Cada pieza se redacta como un documento con nombre «Fie informa D-M <titulo>». Las piezas que viajan por este canal son gacetillas.
 _Evitar_: gacetilla y newsletter cuando se habla del canal y no de la pieza; newsletter como si fuera el canal
@@ -207,8 +215,12 @@ Valor de un objetivo de servicio efectivamente medido sobre el sistema de demost
 _Evitar_: objetivo, meta, SLO (cuando se habla de lo medido)
 
 **Retencion acotada**:
-Interpretacion vigente de que «el sistema no retiene datos»: los datos personales se conservan solo durante el ciclo de envio y su ventana de reconciliacion, y los respaldos no los conservan mas tiempo. La auditoria guarda solo hashes.
+Interpretacion vigente de que «el sistema no retiene datos»: los datos personales se conservan solo durante el ciclo de envio y su ventana de reconciliacion, la prosa transitoria solo mientras su solicitud esta abierta, y los respaldos no los conservan mas tiempo. La auditoria guarda solo hashes.
 _Evitar_: sin retencion, borrado, minimizacion (como sinonimos)
+
+**Prosa transitoria**:
+Texto que el Agente 1 necesita conservar mientras atiende una solicitud abierta: lo que la persona describio, lo que pidio ajustar y lo que el agente genero para comparar. Deja de existir cuando la solicitud se decide o vence; de ella quedan solo hashes y metricas.
+_Evitar_: historial, conversacion, contexto
 
 **Cambio controlado**:
 Modificacion de algo que define como se comporta el Agente 1 (codigo, prompts y parametros de inferencia, criterios de contenido de la SEU, contratos de interfaz, configuracion de Workspace y credenciales) y que solo entra en operacion aprobada por el dueño de su clase. Los criterios de contenido de la SEU siguen su propio circuito de aprobacion; el control de cambios lo reconoce, no lo duplica.
