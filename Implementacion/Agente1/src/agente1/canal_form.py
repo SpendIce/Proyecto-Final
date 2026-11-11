@@ -24,13 +24,14 @@ sigue siendo el default; la v2 suma la primera pregunta de **tipo de
 gacetilla** (lista cerrada tomada del contrato de tipos), la **actividad
 condicional** —sólo los tipos que la llevan; el ítem «No es una actividad /
 no figura» no registra nada— y el **área emisora** por un padrón cerrado
-(`contracts/areas_emisoras_v1.json`), porque de ese padrón sale la firma del
-área que imprime la pieza. Una fila estructurada que no cumple las listas
-cerradas no va al núcleo —nada puede rechazarla por dónde y «la clase más
-parecida» está prohibida—: el chequeo es del canal, no contiene prosa libre,
-y su desenlace es acotado (mensaje fijo + registro del atendido, sin
-generación). El núcleo no cambia; el texto que el armador deriva de la fila
-usa el mismo vocabulario determinístico de la repregunta
+(`contracts/areas_emisoras_v2.json`, la v1 queda para trazabilidad), porque
+de ese padrón sale la firma del área que imprime la pieza. Una fila
+estructurada que no cumple las listas cerradas no va al núcleo —nada puede
+rechazarla por dónde y «la clase más parecida» está prohibida—: el chequeo
+es del canal, no contiene prosa libre, y su desenlace es acotado
+(mensaje fijo + registro del atendido, sin generación). El núcleo no
+cambia; el texto que el armador deriva de la fila usa el mismo vocabulario
+determinístico de la repregunta
 (`gacetilla actividad <id>`), así que el pedido estructurado entra por el
 mismo clasificador de siempre.
 
@@ -349,7 +350,7 @@ def _padron_areas() -> dict[str, dict[str, str]]:
     try:
         texto = (
             files("agente1")
-            .joinpath("contracts", "areas_emisoras_v1.json")
+            .joinpath("contracts", "areas_emisoras_v2.json")
             .read_text(encoding="utf-8")
         )
         contrato = json.loads(texto)

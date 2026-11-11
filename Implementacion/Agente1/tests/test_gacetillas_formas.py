@@ -66,7 +66,9 @@ CASOS: dict[str, dict[str, str]] = {
         "hecho": "el estacionamiento para motos no estará habilitado",
         "fecha": "2026-11-02",
         "condicion": "hasta nuevo aviso",
-        "area_emisora": "Secretaría Académica",
+        # #154: el estacionamiento es una comunicacion general de la FIE, no
+        # de un area en particular. El pie imprime el nombre institucional.
+        "area_emisora": "Facultad de Ingeniería del Ejército",
     },
     "convocatoria_interna": {
         "titulo": "Convocatoria interna de tutores",
@@ -217,6 +219,17 @@ def test_cada_tipo_renderiza_su_pieza_del_corpus_y_pasa_el_gate(tipo):
 
     assert pieza == esperada
     assert validar_pieza(tipo, pieza, _campos(tipo)) == []
+
+
+def test_el_estacionamiento_es_un_caso_de_area_fie() -> None:
+    """#154: el aviso de estacionamiento es una comunicación general de la
+    FIE, no de un área en particular. El pie imprime el nombre
+    institucional exacto, encima del firmante que va siempre."""
+
+    pieza = _pieza("aviso_de_otra_area")
+
+    assert "\nFacultad de Ingeniería del Ejército\n\n--\n" in pieza
+    assert "Secretaría Académica" not in pieza
 
 
 def test_la_difusion_no_repite_la_frase_fija_de_invitacion_y_sigue_siendo_fie_informa():
