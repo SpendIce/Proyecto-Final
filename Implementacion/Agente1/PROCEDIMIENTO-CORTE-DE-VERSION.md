@@ -26,6 +26,18 @@ Para el número de versión (`X.Y.Z`, tag `agente1-vX.Y.Z` sobre `main`):
 | **Menor** | capacidad nueva, prompt o política | sube `Y`, `Z=0` |
 | **Parche** | corrección | sube `Z` |
 
+**Mientras la versión sea `0.Y.Z`, un cambio Mayor sube `Y`, no `X`.** La serie
+`0.x` es de desarrollo: los contratos todavía cambian (el de Historia Viva sigue
+en borrador y los del canal se amplían con cada definición de la SEU), y una
+`1.0.0` declararía una estabilidad que no existe. En `0.x`, Mayor y Menor suben
+`Y` (con `Z=0`) y la clase se sigue declarando en el `CHANGELOG.md`, porque es
+la que dice qué hay que revisar al instalar. Es lo que ya se hizo en la `0.2.0`
+y la `0.4.0`, que antes se anotaban como desviación.
+
+**La `1.0.0` se corta cuando la Dirección del proyecto da el OK del nivel TRL
+3–4** (issue #69), con los contratos de interfaz fuera de borrador. Desde ahí
+rige la tabla tal cual: un cambio Mayor sube `X`.
+
 La versión **sale de un solo lugar**: `pyproject.toml`, `[project].version`. No
 se repite a mano en ningún otro archivo. El manifest de versión, la auditoría de
 cada pieza y el `CHANGELOG.md` la citan; el procedimiento la escribe una sola
