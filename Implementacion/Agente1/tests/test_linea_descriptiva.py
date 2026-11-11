@@ -1,17 +1,17 @@
 """HU-014/#74 — Línea descriptiva por actividad en el certificado.
 
 La línea la redacta el modelo una sola vez por actividad, pasa gates
-deterministas y se aprueba por el Form de decisiones con las dos decisiones
-por rol —`apruebo_semantica` del RGC y `apruebo_utilitaria` del Coordinador—
-sobre el objeto `linea_descriptiva-<id_actividad>-<sha256 de la línea>`.
+deterministas y se aprueba por el Form de decisiones con una sola
+`apruebo_contenido` de la persona autorizada de contenido (#125) sobre el
+objeto `linea_descriptiva-<id_actividad>-<sha256 de la línea>`.
 Título, carga horaria y modalidad son variables del registro que renderiza
 la plantilla, nunca texto del modelo.
 
 El circuito de emisión (#74) exige, cuando la solicitud trae línea: el
-`RegistroDecisiones`, el objeto del lote de cierre, las dos aprobaciones de
-la línea exacta y la `apruebo_lote` del lote. Los casos negativos del ticket
-están todos: carga horaria escrita por el modelo, línea múltiple o excesiva,
-aprobación parcial y lote sin aprobar.
+`RegistroDecisiones`, el objeto del lote de cierre, la aprobación de la
+línea exacta y la `apruebo_lote` del lote. Los casos negativos del ticket
+están todos: carga horaria escrita por el modelo, línea múltiple o
+excesiva, aprobación con rol equivocado y lote sin aprobar.
 """
 
 from __future__ import annotations
@@ -30,14 +30,13 @@ from agente1.certificados import (
 )
 from agente1.confirmaciones import (
     ID_RE,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
+    ROL_APROBADOR_PAGOS,
     AprobacionHumana,
 )
 from agente1.decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
     DECISION_APRUEBO_LOTE,
-    DECISION_APRUEBO_SEMANTICA,
-    DECISION_APRUEBO_UTILITARIA,
     RESULTADO_REGISTRADA,
     TIPO_LINEA_DESCRIPTIVA,
     TIPO_LOTE,
@@ -116,41 +115,27 @@ def _aprobar_linea(
     *,
     id_actividad: str = ACTIVIDAD_ID,
     linea: str = LINEA,
-    semantica: bool = True,
-    utilitaria: bool = True,
-    rol_semantica: str = ROL_APROBACION_SEMANTICA,
-    rol_utilitaria: str = ROL_APROBACION_UTILITARIA,
+    rol: str = ROL_APROBADOR_CONTENIDO,
 ) -> None:
-    """Registra las aprobaciones de la línea como si vinieran del Form."""
+    """Registra la aprobación de contenido de la línea como si viniera del Form."""
 
     objeto = objeto_id_linea_descriptiva(id_actividad, linea)
-    if semantica:
-        registro.registrar(
-            _decision(
-                tipo=TIPO_LINEA_DESCRIPTIVA,
-                objeto_id=objeto,
-                decision=DECISION_APRUEBO_SEMANTICA,
-                rol=rol_semantica,
-                semilla=f"sem-{objeto}",
-            )
+    registro.registrar(
+        _decision(
+            tipo=TIPO_LINEA_DESCRIPTIVA,
+            objeto_id=objeto,
+            decision=DECISION_APRUEBO_CONTENIDO,
+            rol=rol,
+            semilla=f"cont-{objeto}-{rol}",
         )
-    if utilitaria:
-        registro.registrar(
-            _decision(
-                tipo=TIPO_LINEA_DESCRIPTIVA,
-                objeto_id=objeto,
-                decision=DECISION_APRUEBO_UTILITARIA,
-                rol=rol_utilitaria,
-                semilla=f"uti-{objeto}",
-            )
-        )
+    )
 
 
 def _aprobar_lote(
     registro: RegistroDecisiones,
     *,
     objeto_lote: str = LOTE,
-    rol: str = ROL_APROBACION_UTILITARIA,
+    rol: str = ROL_APROBADOR_CONTENIDO,
 ) -> None:
     registro.registrar(
         _decision(
@@ -486,10 +471,7 @@ def test_declarar_linea_abre_el_objeto_y_devuelve_los_dos_enlaces(
         enlaces, id_actividad=ACTIVIDAD_ID, linea=LINEA
     )
     assert resultado["objeto_id"] == OBJETO_LINEA
-    assert set(resultado["enlaces"]) == {
-        DECISION_APRUEBO_SEMANTICA,
-        DECISION_APRUEBO_UTILITARIA,
-    }
+    assert set(resultado["enlaces"]) == {DECISION_APRUEBO_CONTENIDO}
     assert _registro(tmp_path).es_pendiente(
         tipo=TIPO_LINEA_DESCRIPTIVA, objeto_id=OBJETO_LINEA
     )
@@ -501,23 +483,23 @@ def test_linea_sin_decisiones_no_esta_aprobada(tmp_path: Path) -> None:
     )
 
 
-@pytest.mark.parametrize(
-    ("semantica", "utilitaria"),
-    [(True, False), (False, True)],
-)
-def test_aprobacion_parcial_no_habilita(
-    tmp_path: Path, semantica: bool, utilitaria: bool
-) -> None:
+def test_una_decision_que_no_es_de_contenido_no_habilita(tmp_path: Path) -> None:
     registro = _registro(tmp_path)
-    _aprobar_linea(
-        registro, semantica=semantica, utilitaria=utilitaria
+    registro.registrar(
+        _decision(
+            tipo=TIPO_LINEA_DESCRIPTIVA,
+            objeto_id=objeto_id_linea_descriptiva(ACTIVIDAD_ID, LINEA),
+            decision=DECISION_APRUEBO_LOTE,
+            rol=ROL_APROBADOR_CONTENIDO,
+            semilla="lote-sobre-linea",
+        )
     )
     assert not linea_descriptiva_aprobada(
         registro, id_actividad=ACTIVIDAD_ID, linea=LINEA
     )
 
 
-def test_las_dos_aprobaciones_habilitan_la_linea(tmp_path: Path) -> None:
+def test_la_aprobacion_unica_habilita_la_linea(tmp_path: Path) -> None:
     registro = _registro(tmp_path)
     _aprobar_linea(registro)
     assert linea_descriptiva_aprobada(
@@ -550,25 +532,15 @@ def test_decision_sobre_otra_actividad_no_aprueba_esta_linea(
     )
 
 
-@pytest.mark.parametrize(
-    ("rol_semantica", "rol_utilitaria"),
-    [
-        (ROL_APROBACION_UTILITARIA, ROL_APROBACION_UTILITARIA),
-        (ROL_APROBACION_SEMANTICA, ROL_APROBACION_SEMANTICA),
-    ],
-)
+@pytest.mark.parametrize("rol", [ROL_APROBADOR_PAGOS, "coordinador_seu"])
 def test_decision_con_rol_que_no_corresponde_no_aprueba(
-    tmp_path: Path, rol_semantica: str, rol_utilitaria: str
+    tmp_path: Path, rol: str
 ) -> None:
     """Una línea registrada con el rol equivocado no cuenta: el padrón es
     quien dice qué rol aprobó qué decisión."""
 
     registro = _registro(tmp_path)
-    _aprobar_linea(
-        registro,
-        rol_semantica=rol_semantica,
-        rol_utilitaria=rol_utilitaria,
-    )
+    _aprobar_linea(registro, rol=rol)
     assert not linea_descriptiva_aprobada(
         registro, id_actividad=ACTIVIDAD_ID, linea=LINEA
     )
@@ -588,7 +560,7 @@ def test_lote_cierre_aprobado_por_el_rol_utilitario(tmp_path: Path) -> None:
 
 def test_lote_aprobado_por_otro_rol_no_habilita(tmp_path: Path) -> None:
     registro = _registro(tmp_path)
-    _aprobar_lote(registro, rol=ROL_APROBACION_SEMANTICA)
+    _aprobar_lote(registro, rol=ROL_APROBADOR_PAGOS)
     assert not lote_cierre_aprobado(registro, objeto_lote=LOTE)
 
 
@@ -675,7 +647,7 @@ def test_emitir_con_linea_sin_registro_de_decisiones(tmp_path: Path) -> None:
         solicitud=_solicitud(),
         directorio_salida=tmp_path,
         registro=RegistroCertificadosMemoria(),
-        aprobacion=_aprobacion(ROL_APROBACION_UTILITARIA),
+        aprobacion=_aprobacion(ROL_APROBADOR_CONTENIDO),
         emitir=True,
         destino=DestinoCertificadosFake(),
     )
@@ -688,7 +660,7 @@ def test_emitir_con_linea_sin_lote_declarado(tmp_path: Path) -> None:
         solicitud=_solicitud(),
         directorio_salida=tmp_path,
         registro=RegistroCertificadosMemoria(),
-        aprobacion=_aprobacion(ROL_APROBACION_UTILITARIA),
+        aprobacion=_aprobacion(ROL_APROBADOR_CONTENIDO),
         emitir=True,
         destino=DestinoCertificadosFake(),
         decisiones=_todo_aprobado(tmp_path),
@@ -705,7 +677,7 @@ def test_emitir_con_linea_sin_aprobaciones_de_linea(tmp_path: Path) -> None:
         solicitud=_solicitud(),
         directorio_salida=tmp_path,
         registro=RegistroCertificadosMemoria(),
-        aprobacion=_aprobacion(ROL_APROBACION_UTILITARIA),
+        aprobacion=_aprobacion(ROL_APROBADOR_CONTENIDO),
         emitir=True,
         destino=DestinoCertificadosFake(),
         decisiones=decisiones,
@@ -715,25 +687,20 @@ def test_emitir_con_linea_sin_aprobaciones_de_linea(tmp_path: Path) -> None:
     assert resultado.error == "descriptive_line_unapproved"
 
 
-@pytest.mark.parametrize(
-    ("semantica", "utilitaria"),
-    [(True, False), (False, True)],
-)
-def test_emitir_con_aprobacion_parcial_de_linea_no_emite(
-    tmp_path: Path, semantica: bool, utilitaria: bool
+def test_emitir_con_aprobacion_de_linea_de_otro_rol_no_emite(
+    tmp_path: Path,
 ) -> None:
-    """Caso negativo del ticket: aprobación parcial de la línea."""
+    """Caso negativo del ticket: la línea aprobada por un rol ajeno al de
+    contenido no habilita la emisión (#125)."""
 
     decisiones = _registro(tmp_path)
-    _aprobar_linea(
-        decisiones, semantica=semantica, utilitaria=utilitaria
-    )
+    _aprobar_linea(decisiones, rol=ROL_APROBADOR_PAGOS)
     _aprobar_lote(decisiones)
     resultado = procesar_certificado(
         solicitud=_solicitud(),
         directorio_salida=tmp_path,
         registro=RegistroCertificadosMemoria(),
-        aprobacion=_aprobacion(ROL_APROBACION_UTILITARIA),
+        aprobacion=_aprobacion(ROL_APROBADOR_CONTENIDO),
         emitir=True,
         destino=DestinoCertificadosFake(),
         decisiones=decisiones,
@@ -750,7 +717,7 @@ def test_emitir_con_linea_aprobada_pero_lote_no(tmp_path: Path) -> None:
         solicitud=_solicitud(),
         directorio_salida=tmp_path,
         registro=RegistroCertificadosMemoria(),
-        aprobacion=_aprobacion(ROL_APROBACION_UTILITARIA),
+        aprobacion=_aprobacion(ROL_APROBADOR_CONTENIDO),
         emitir=True,
         destino=DestinoCertificadosFake(),
         decisiones=decisiones,
@@ -774,7 +741,7 @@ def test_emitir_con_linea_modificada_tras_aprobar_no_emite(
         ),
         directorio_salida=tmp_path,
         registro=RegistroCertificadosMemoria(),
-        aprobacion=_aprobacion(ROL_APROBACION_UTILITARIA),
+        aprobacion=_aprobacion(ROL_APROBADOR_CONTENIDO),
         emitir=True,
         destino=DestinoCertificadosFake(),
         decisiones=decisiones,
@@ -791,15 +758,15 @@ def _aprobar_certificado(
         solicitud=solicitud,
         directorio_salida=tmp_path,
         registro=registro,
-        aprobacion=_aprobacion(ROL_APROBACION_SEMANTICA),
+        aprobacion=_aprobacion(ROL_APROBADOR_CONTENIDO),
     )
 
 
 def test_emision_simulada_con_todo_el_circuito_aprobado(
     tmp_path: Path,
 ) -> None:
-    """Caso positivo del ticket: doble aprobación del certificado más la
-    línea y el lote aprobados por el Form, todo en el mismo registro."""
+    """Caso positivo del ticket: la aprobación única del certificado más
+    la línea y el lote aprobados por el Form, todo en el mismo registro."""
 
     registro_cert = RegistroCertificadosMemoria()
     solicitud = _solicitud()
@@ -809,7 +776,6 @@ def test_emision_simulada_con_todo_el_circuito_aprobado(
         solicitud=solicitud,
         directorio_salida=tmp_path,
         registro=registro_cert,
-        aprobacion=_aprobacion(ROL_APROBACION_UTILITARIA),
         emitir=True,
         destino=destino,
         decisiones=_todo_aprobado(tmp_path),
@@ -844,7 +810,6 @@ def test_la_linea_se_aprueba_una_vez_por_actividad(tmp_path: Path) -> None:
             solicitud=solicitud,
             directorio_salida=tmp_path,
             registro=registro_cert,
-            aprobacion=_aprobacion(ROL_APROBACION_UTILITARIA),
             emitir=True,
             destino=destino,
             decisiones=decisiones,
@@ -870,7 +835,6 @@ def test_certificado_sin_linea_sigue_el_camino_v1(tmp_path: Path) -> None:
         solicitud=solicitud,
         directorio_salida=tmp_path,
         registro=registro_cert,
-        aprobacion=_aprobacion(ROL_APROBACION_UTILITARIA),
         emitir=True,
         destino=DestinoCertificadosFake(),
     )

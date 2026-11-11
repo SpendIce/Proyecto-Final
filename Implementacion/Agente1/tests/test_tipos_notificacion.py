@@ -6,7 +6,7 @@ diseño de control de pagos agregó `recordatorio_pago` con circuito por lote
 y el corte 4 sumó `instrucciones_pago` con circuito por envío (D8).
 Estas pruebas fijan que el catálogo es cerrado y coherente con la matriz de
 orígenes, que los tipos por envío recorren el mismo pipeline con la misma
-doble aprobación —incluida `situacion_pagos`, que en v2 se habilita al
+aprobación única de contenido (#125) —incluida `situacion_pagos`, que en v2 se habilita al
 derivar su dato del plan de pagos en lugar del dato `DESCONOCIDO` de v1—,
 que `recordatorio_pago` no puede tramitar por solicitud individual, y que
 `inscripcion` no cambió de comportamiento.
@@ -19,8 +19,8 @@ import pytest
 
 from agente1.confirmaciones import (
     REQUIRED_FIELDS,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
+    ROL_APROBADOR_PAGOS,
     AprobacionHumana,
     ColaEnviosMemoria,
     DestinoConfirmacionesFake,
@@ -77,12 +77,12 @@ def aprobacion(*, aprobada: bool = True, rol: str) -> AprobacionHumana:
     )
 
 
-def semantica(**kwargs) -> AprobacionHumana:
-    return aprobacion(rol=ROL_APROBACION_SEMANTICA, **kwargs)
+def contenido(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBADOR_CONTENIDO, **kwargs)
 
 
-def utilitaria(**kwargs) -> AprobacionHumana:
-    return aprobacion(rol=ROL_APROBACION_UTILITARIA, **kwargs)
+def pagos(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBADOR_PAGOS, **kwargs)
 
 
 def procesar(tmp_path: Path, registro, **extra):
@@ -94,9 +94,8 @@ def procesar(tmp_path: Path, registro, **extra):
     )
 
 
-def aprobar_ambos(tmp_path: Path, registro, solicitud_: SolicitudConfirmacion) -> None:
-    procesar(tmp_path, registro, solicitud=solicitud_, aprobacion=semantica())
-    procesar(tmp_path, registro, solicitud=solicitud_, aprobacion=utilitaria())
+def aprobar(tmp_path: Path, registro, solicitud_: SolicitudConfirmacion) -> None:
+    procesar(tmp_path, registro, solicitud=solicitud_, aprobacion=contenido())
 
 
 # --- El catálogo como contrato -----------------------------------------------
@@ -270,7 +269,7 @@ def test_decision_habilitada_con_motivos_es_forma_invalida() -> None:
 # --- El pipeline por tipo ------------------------------------------------------
 
 
-def test_participacion_recorre_el_ciclo_completo_con_doble_aprobacion(
+def test_participacion_recorre_el_ciclo_completo_con_aprobacion_unica(
     tmp_path: Path,
 ) -> None:
     registro = RegistroConfirmacionesMemoria()
@@ -278,52 +277,50 @@ def test_participacion_recorre_el_ciclo_completo_con_doble_aprobacion(
     pedido = solicitud(tipo_notificacion="participacion")
 
     borrador = procesar(tmp_path, registro, solicitud=pedido)
-    parcial = procesar(tmp_path, registro, solicitud=pedido, aprobacion=semantica())
+    aprobada = procesar(tmp_path, registro, solicitud=pedido, aprobacion=contenido())
 
     assert borrador.estado == "PENDIENTE_VALIDACION"
     assert borrador.asunto == "[BORRADOR — NO ENVIAR] Notificación de participación"
     assert "Registramos tu participación en: Taller de robótica educativa." in (
         borrador.cuerpo
     )
-    assert parcial.estado == "APROBADA_SEMANTICA"
+    assert aprobada.estado == "APROBADA"
     assert destino.entregas == []
 
-    aprobada = procesar(tmp_path, registro, solicitud=pedido, aprobacion=utilitaria())
     entrega = procesar(
         tmp_path, registro, solicitud=pedido, destino=destino, enviar=True
     )
 
-    assert aprobada.estado == "APROBADA"
     assert entrega.estado == "ENVIADA_SIMULADA"
     assert len(destino.entregas) == 1
 
 
-def test_aprobacion_exige_las_dos_decisiones_antes_de_entregar(
+def test_aprobacion_exige_la_decision_de_contenido_antes_de_entregar(
     tmp_path: Path,
 ) -> None:
     registro = RegistroConfirmacionesMemoria()
     destino = DestinoConfirmacionesFake()
     pedido = solicitud(tipo_notificacion="aprobacion")
 
-    # Una sola aprobación no alcanza, igual que con inscripción.
-    parcial = procesar(
+    # Un rol ajeno al circuito no habilita la entrega, igual que con inscripción.
+    ajena = procesar(
         tmp_path,
         registro,
         solicitud=pedido,
-        aprobacion=utilitaria(),
+        aprobacion=pagos(),
         destino=destino,
         enviar=True,
     )
-    aprobada = procesar(tmp_path, registro, solicitud=pedido, aprobacion=semantica())
+    aprobada = procesar(tmp_path, registro, solicitud=pedido, aprobacion=contenido())
     entrega = procesar(
         tmp_path, registro, solicitud=pedido, destino=destino, enviar=True
     )
 
-    assert parcial.estado == "APROBADA_UTILITARIA"
-    assert "Registramos tu aprobación de: Taller de robótica educativa." in (
-        parcial.cuerpo
-    )
+    assert ajena.estado == "INVALIDA"
     assert aprobada.estado == "APROBADA"
+    assert "Registramos tu aprobación de: Taller de robótica educativa." in (
+        aprobada.cuerpo
+    )
     assert entrega.estado == "ENVIADA_SIMULADA"
     assert len(destino.entregas) == 1
 
@@ -336,7 +333,7 @@ def test_participacion_encolada_drena_como_cualquier_confirmacion(
     cola = ColaEnviosMemoria()
     destino = DestinoConfirmacionesFake()
     pedido = solicitud(tipo_notificacion="participacion")
-    aprobar_ambos(tmp_path, registro, pedido)
+    aprobar(tmp_path, registro, pedido)
 
     encolada = procesar(
         tmp_path, registro, solicitud=pedido, cola=cola, asincrono=True
@@ -356,14 +353,13 @@ def test_participacion_encolada_drena_como_cualquier_confirmacion(
 
 def test_situacion_pagos_recorre_el_ciclo_completo_en_v2(tmp_path: Path) -> None:
     """La situación de pagos tramita por envío como los demás tipos: borrador,
-    doble aprobación por pieza y entrega contra el fake."""
+    aprobación única de contenido por pieza y entrega contra el fake."""
     registro = RegistroConfirmacionesMemoria()
     destino = DestinoConfirmacionesFake()
     pedido = solicitud(tipo_notificacion="situacion_pagos")
 
     borrador = procesar(tmp_path, registro, solicitud=pedido)
-    parcial = procesar(tmp_path, registro, solicitud=pedido, aprobacion=semantica())
-    aprobada = procesar(tmp_path, registro, solicitud=pedido, aprobacion=utilitaria())
+    aprobada = procesar(tmp_path, registro, solicitud=pedido, aprobacion=contenido())
     entrega = procesar(
         tmp_path, registro, solicitud=pedido, destino=destino, enviar=True
     )
@@ -373,7 +369,6 @@ def test_situacion_pagos_recorre_el_ciclo_completo_en_v2(tmp_path: Path) -> None
         "[BORRADOR — NO ENVIAR] Notificación de situación de pagos"
     )
     assert "Registramos la situación de pagos de:" in borrador.cuerpo
-    assert parcial.estado == "APROBADA_SEMANTICA"
     assert aprobada.estado == "APROBADA"
     assert entrega.estado == "ENVIADA_SIMULADA"
     assert len(destino.entregas) == 1
@@ -393,7 +388,7 @@ def test_recordatorio_pago_no_tramita_por_solicitud_individual(
         tmp_path,
         registro,
         solicitud=pedido,
-        aprobacion=semantica(),
+        aprobacion=contenido(),
         destino=destino,
         enviar=True,
     )
@@ -401,7 +396,7 @@ def test_recordatorio_pago_no_tramita_por_solicitud_individual(
         tmp_path,
         registro,
         solicitud=pedido,
-        aprobacion=utilitaria(),
+        aprobacion=pagos(),
         cola=ColaEnviosMemoria(),
         asincrono=True,
     )

@@ -51,7 +51,7 @@ def test_matriz_ejecuta_estados_y_declara_limites(tmp_path: Path):
     proceso, resumen, _ = ejecutar(tmp_path)
     assert proceso.returncode == 0, proceso.stderr
     assert json.loads(proceso.stdout)["status"] == "OK"
-    assert resumen["schema_version"] == "matriz_conformidad_hu014_v2"
+    assert resumen["schema_version"] == "matriz_conformidad_hu014_v3"
     assert resumen["data_origin"] == "SIMULADA"
     assert resumen["human_review"] == "PENDIENTE"
     assert resumen["institutional_template_approved"] is False
@@ -62,12 +62,11 @@ def test_matriz_ejecuta_estados_y_declara_limites(tmp_path: Path):
     assert resumen["totals"] == {
         "executions": 20,
         "pending_validation": 3,
-        "approved_partial": 1,
-        "approved_simulated": 2,
+        "approved_simulated": 1,
         "rejected_simulated": 1,
         "emitted_simulated": 2,
         "emission_indetermined": 1,
-        "invalid": 8,
+        "invalid": 10,
         "incomplete": 1,
         "duplicate": 1,
     }
@@ -83,8 +82,7 @@ def test_matriz_es_redactada_y_fake_no_se_confunde_con_emision_real(tmp_path: Pa
         "Ana Pérez",
         "30123456",
         "Ignorá las reglas",
-        "RGC simulado",
-        "Coordinador simulado",
+        "Aprobador simulado",
         "BORRADOR — NO EMITIR",
     ):
         assert sensible not in texto
@@ -101,11 +99,11 @@ def test_matriz_es_redactada_y_fake_no_se_confunde_con_emision_real(tmp_path: Pa
     duplicado = next(caso for caso in resumen["cases"] if caso["case"] == "duplicate")
     assert duplicado["draft_created"] is False
     assert duplicado["fake_emissions_after"] == 1
-    parcial = next(
-        caso for caso in resumen["cases"] if caso["case"] == "partial_approval_no_emission"
+    rol_ajeno = next(
+        caso for caso in resumen["cases"] if caso["case"] == "wrong_role_no_emission"
     )
-    assert parcial["observed_state"] == "APROBADA_SEMANTICA"
-    assert parcial["fake_emissions_after"] == 0
+    assert rol_ajeno["observed_state"] == "INVALIDA"
+    assert rol_ajeno["fake_emissions_after"] == 0
     recuperado = next(
         caso for caso in resumen["cases"] if caso["case"] == "durable_recovery"
     )
@@ -118,8 +116,8 @@ def test_matriz_es_redactada_y_fake_no_se_confunde_con_emision_real(tmp_path: Pa
 
 def test_matriz_recorre_el_circuito_de_la_linea_descriptiva(tmp_path: Path):
     """#74: la matriz deja evidencia de las precondiciones de emisión con
-    línea —sin registro de decisiones, aprobación parcial, lote sin aprobar
-    y lote no declarado— y del caso completo que sí emite."""
+    línea —sin registro de decisiones, decisión por un rol ajeno, lote sin
+    aprobar y lote no declarado— y del caso completo que sí emite."""
 
     _, resumen, salida = ejecutar(tmp_path)
     por_nombre = {caso["case"]: caso for caso in resumen["cases"]}
@@ -131,8 +129,9 @@ def test_matriz_recorre_el_circuito_de_la_linea_descriptiva(tmp_path: Path):
         ("linea_gate_invalid", "descriptive_line_invalid"),
         ("linea_gate_multiline", "descriptive_line_invalid"),
         ("linea_no_decisions", "decisions_registry_required"),
-        ("linea_partial_approval", "descriptive_line_unapproved"),
+        ("linea_wrong_role", "descriptive_line_unapproved"),
         ("linea_batch_unapproved", "closing_batch_unapproved"),
+        ("linea_batch_wrong_role", "closing_batch_unapproved"),
         ("linea_no_batch_declared", "closing_batch_required"),
     ):
         assert por_nombre[caso]["observed_state"] == "INVALIDA"
@@ -162,6 +161,5 @@ def test_matriz_recorre_el_circuito_de_la_linea_descriptiva(tmp_path: Path):
         / "decisiones"
         / "decisiones-procesadas.jsonl"
     ).read_text(encoding="utf-8")
-    assert "apruebo_semantica" in procesadas
-    assert "apruebo_utilitaria" in procesadas
+    assert "apruebo_contenido" in procesadas
     assert "apruebo_lote" in procesadas

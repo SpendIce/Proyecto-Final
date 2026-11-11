@@ -6,11 +6,11 @@ la zona horaria de la corrida, la fecha de referencia y el nunca-después,
 los estados que evitan el recordatorio (comprobante, pago confirmado,
 bonificación), la marca `bonificacion_no_verificable` y la clave de
 idempotencia por actividad, inscripción, cuota y anticipación. El circuito
-por lote en `recordatorios.py`: la plantilla aprobada una sola vez con
-doble decisión, la aprobación utilitaria del lote con su lista exacta de
-ítems, el encolado sobre el registro y la cola de HU-012, la entrega sólo
-contra el fake y la auditoría sin links, datos bancarios ni datos
-personales en claro.
+por lote en `recordatorios.py`: la plantilla aprobada una sola vez por el
+rol de contenido (#125), la aprobación del lote por el rol de pagos con su
+lista exacta de ítems, el encolado sobre el registro y la cola de HU-012,
+la entrega sólo contra el fake y la auditoría sin links, datos bancarios
+ni datos personales en claro.
 """
 
 import csv
@@ -26,8 +26,8 @@ from agente1.buzon import BuzonPropioEml
 from agente1.cli_pagos import informe_a_dict
 from agente1.confirmaciones import (
     CLAVE_REGISTRO_RE,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
+    ROL_APROBADOR_PAGOS,
     AprobacionHumana,
     ColaEnviosMemoria,
     DestinoConfirmacionesFake,
@@ -178,17 +178,17 @@ def aprobacion(*, aprobada: bool = True, rol: str) -> AprobacionHumana:
     )
 
 
-def semantica(**kwargs) -> AprobacionHumana:
-    return aprobacion(rol=ROL_APROBACION_SEMANTICA, **kwargs)
+def contenido(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBADOR_CONTENIDO, **kwargs)
 
 
-def utilitaria(**kwargs) -> AprobacionHumana:
-    return aprobacion(rol=ROL_APROBACION_UTILITARIA, **kwargs)
+def pagos(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBADOR_PAGOS, **kwargs)
 
 
 def aprobacion_lote(lote, **kwargs) -> AprobacionLote:
     return AprobacionLote(
-        aprobacion=utilitaria(**kwargs),
+        aprobacion=pagos(**kwargs),
         items=tuple(item.idempotency_key for item in lote.items),
     )
 
@@ -200,12 +200,7 @@ def aprobar_plantilla(registro, directorio) -> None:
     aprobar_plantilla_recordatorio(
         registro=registro,
         directorio_salida=directorio,
-        aprobacion=semantica(),
-    )
-    aprobar_plantilla_recordatorio(
-        registro=registro,
-        directorio_salida=directorio,
-        aprobacion=utilitaria(),
+        aprobacion=contenido(),
     )
 
 
@@ -455,20 +450,21 @@ def test_la_plantilla_se_aprueba_una_sola_vez_con_doble_decision(tmp_path):
     registrada = registrar_plantilla_recordatorio(
         registro=registro, directorio_salida=salida
     )
-    parcial = aprobar_plantilla_recordatorio(
-        registro=registro, directorio_salida=salida, aprobacion=semantica()
-    )
-    completa = aprobar_plantilla_recordatorio(
-        registro=registro, directorio_salida=salida, aprobacion=utilitaria()
+    aprobada = aprobar_plantilla_recordatorio(
+        registro=registro, directorio_salida=salida, aprobacion=contenido()
     )
 
     assert registrada.estado == "PENDIENTE_VALIDACION"
-    assert parcial.estado == "APROBADA_SEMANTICA"
-    assert completa.estado == "APROBADA"
+    assert aprobada.estado == "APROBADA"
     assert registro.obtener(CLAVE_PLANTILLA_RECORDATORIO).estado == "APROBADA"
+    # El rol de pagos no puede aprobar la plantilla de contenido (#125).
+    ajena = aprobar_plantilla_recordatorio(
+        registro=registro, directorio_salida=salida, aprobacion=pagos()
+    )
+    assert ajena.estado == "INVALIDA"
     # Ya aprobada, otra decisión no la mueve: la plantilla se aprobó una vez.
     repetida = aprobar_plantilla_recordatorio(
-        registro=registro, directorio_salida=salida, aprobacion=semantica()
+        registro=registro, directorio_salida=salida, aprobacion=contenido()
     )
     assert repetida.estado == "DUPLICADA"
 
@@ -479,7 +475,7 @@ def test_la_plantilla_rechazada_es_terminal(tmp_path):
     rechazada = aprobar_plantilla_recordatorio(
         registro=registro,
         directorio_salida=salida,
-        aprobacion=semantica(aprobada=False),
+        aprobacion=contenido(aprobada=False),
     )
     assert rechazada.estado == "RECHAZADA"
 
@@ -501,12 +497,10 @@ def test_aprobar_plantilla_sin_registrarla_la_materializa(tmp_path):
     resultado = aprobar_plantilla_recordatorio(
         registro=registro,
         directorio_salida=tmp_path / "salida",
-        aprobacion=utilitaria(),
+        aprobacion=contenido(),
     )
-    assert resultado.estado == "APROBADA_UTILITARIA"
-    assert registro.obtener(CLAVE_PLANTILLA_RECORDATORIO).estado == (
-        "APROBADA_UTILITARIA"
-    )
+    assert resultado.estado == "APROBADA"
+    assert registro.obtener(CLAVE_PLANTILLA_RECORDATORIO).estado == "APROBADA"
 
 
 def test_decision_invalida_sobre_la_plantilla_es_invalida(tmp_path):
@@ -516,7 +510,7 @@ def test_decision_invalida_sobre_la_plantilla_es_invalida(tmp_path):
         aprobacion=AprobacionHumana(
             aprobada=True,
             validador="",
-            rol=ROL_APROBACION_SEMANTICA,
+            rol=ROL_APROBADOR_CONTENIDO,
             fecha_iso="2026-09-22T10:00:00-03:00",
         ),
     )
@@ -592,7 +586,7 @@ def test_el_lote_aprobado_se_encola_completo(tmp_path):
         assert registro_item.estado == "ENVIO_ENCOLADO"
 
 
-def test_la_aprobacion_del_lote_es_utilitaria(tmp_path):
+def test_la_aprobacion_del_lote_es_del_rol_de_pagos(tmp_path):
     plan, lote = armar_lote(tmp_path)
     registro = RegistroConfirmacionesMemoria()
     aprobar_plantilla(registro, tmp_path / "salida")
@@ -601,7 +595,7 @@ def test_la_aprobacion_del_lote_es_utilitaria(tmp_path):
         plan=plan,
         lote=lote,
         aprobacion_lote=AprobacionLote(
-            aprobacion=semantica(),
+            aprobacion=contenido(),
             items=tuple(item.idempotency_key for item in lote.items),
         ),
         registro=registro,
@@ -623,7 +617,7 @@ def test_una_lista_parcial_no_encola_nada(tmp_path):
         plan=plan,
         lote=lote,
         aprobacion_lote=AprobacionLote(
-            aprobacion=utilitaria(), items=(lote.items[0].idempotency_key,)
+            aprobacion=pagos(), items=(lote.items[0].idempotency_key,)
         ),
         registro=registro,
         cola=cola,
@@ -651,7 +645,7 @@ def test_una_clave_ajena_en_la_lista_invalida_el_lote(tmp_path):
         plan=plan,
         lote=lote,
         aprobacion_lote=AprobacionLote(
-            aprobacion=utilitaria(),
+            aprobacion=pagos(),
             items=tuple(item.idempotency_key for item in lote.items) + (ajena,),
         ),
         registro=registro,
@@ -677,7 +671,7 @@ def test_items_mal_formados_o_repetidos_en_la_lista_son_invalidos(tmp_path):
             plan=plan,
             lote=lote,
             aprobacion_lote=AprobacionLote(
-                aprobacion=utilitaria(), items=items
+                aprobacion=pagos(), items=items
             ),
             registro=registro,
             cola=ColaEnviosMemoria(),
@@ -697,7 +691,7 @@ def test_un_lote_rechazado_no_encola(tmp_path):
         plan=plan,
         lote=lote,
         aprobacion_lote=AprobacionLote(
-            aprobacion=utilitaria(aprobada=False),
+            aprobacion=pagos(aprobada=False),
             items=tuple(item.idempotency_key for item in lote.items),
         ),
         registro=registro,
@@ -719,7 +713,7 @@ def test_el_lote_vacio_no_encola_nada(tmp_path):
     resultado = encolar_lote_recordatorios(
         plan=plan,
         lote=lote,
-        aprobacion_lote=AprobacionLote(aprobacion=utilitaria(), items=()),
+        aprobacion_lote=AprobacionLote(aprobacion=pagos(), items=()),
         registro=registro,
         cola=ColaEnviosMemoria(),
         directorio_salida=tmp_path / "salida",
@@ -936,7 +930,7 @@ def test_la_marca_de_bonificacion_no_verificable_queda_en_auditoria(tmp_path):
     assert sorted(autorizacion["items_aprobados"]) == sorted(
         item.idempotency_key for item in lote.items
     )
-    assert autorizacion["approval_role"] == ROL_APROBACION_UTILITARIA
+    assert autorizacion["approval_role"] == ROL_APROBADOR_PAGOS
     assert autorizacion["tipo_notificacion"] == "recordatorio_pago"
 
 

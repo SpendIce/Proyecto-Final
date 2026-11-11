@@ -19,8 +19,7 @@ from pathlib import Path
 import pytest
 
 from agente1.confirmaciones import (
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
     AprobacionHumana,
     ColaEnviosMemoria,
     DestinoConfirmacionesFake,
@@ -418,24 +417,18 @@ def aprobacion(rol: str) -> AprobacionHumana:
     )
 
 
-def aprobar_ambos(tmp_path: Path, registro, solicitud_) -> None:
+def aprobar(tmp_path: Path, registro, solicitud_) -> None:
     procesar_confirmacion(
         solicitud=solicitud_,
         directorio_salida=tmp_path,
         registro=registro,
-        aprobacion=aprobacion(ROL_APROBACION_SEMANTICA),
-    )
-    procesar_confirmacion(
-        solicitud=solicitud_,
-        directorio_salida=tmp_path,
-        registro=registro,
-        aprobacion=aprobacion(ROL_APROBACION_UTILITARIA),
+        aprobacion=aprobacion(ROL_APROBADOR_CONTENIDO),
     )
 
 
 def test_gmail_con_lista_es_destino_habilitado_y_entrega(tmp_path: Path):
     registro = RegistroConfirmacionesMemoria()
-    aprobar_ambos(tmp_path, registro, solicitud())
+    aprobar(tmp_path, registro, solicitud())
     destino, transporte, _ = crear_destino([RespuestaHttp(200, b'{"id":"m1"}')])
 
     resultado = procesar_confirmacion(
@@ -458,7 +451,7 @@ def test_gmail_con_lista_es_destino_habilitado_y_entrega(tmp_path: Path):
 def test_destinatario_fuera_de_lista_queda_fallida_no_reintentable(tmp_path: Path):
     pedido = solicitud(email_destinatario="intruso@example.test")
     registro = RegistroConfirmacionesMemoria()
-    aprobar_ambos(tmp_path, registro, pedido)
+    aprobar(tmp_path, registro, pedido)
     destino, transporte, _ = crear_destino([])
 
     resultado = procesar_confirmacion(
@@ -521,7 +514,7 @@ def test_subclase_envoltorio_u_otro_destino_siguen_rechazados(tmp_path: Path):
     ]
     for destino in destinos_rechazados:
         registro = RegistroConfirmacionesMemoria()
-        aprobar_ambos(tmp_path, registro, solicitud())
+        aprobar(tmp_path, registro, solicitud())
         resultado = procesar_confirmacion(
             solicitud=solicitud(),
             directorio_salida=tmp_path,
@@ -537,7 +530,7 @@ def test_subclase_envoltorio_u_otro_destino_siguen_rechazados(tmp_path: Path):
 def test_worker_tambien_rechaza_subclase_envoltorio_u_otro_destino(tmp_path: Path):
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro, solicitud())
+    aprobar(tmp_path, registro, solicitud())
     encolada = procesar_confirmacion(
         solicitud=solicitud(),
         directorio_salida=tmp_path,
@@ -589,7 +582,7 @@ def test_worker_gmail_entrega_y_el_rechazo_no_reintenta(tmp_path: Path):
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
     pedido = solicitud()
-    aprobar_ambos(tmp_path, registro, pedido)
+    aprobar(tmp_path, registro, pedido)
     procesar_confirmacion(
         solicitud=pedido,
         directorio_salida=tmp_path,
@@ -618,7 +611,7 @@ def test_worker_gmail_entrega_y_el_rechazo_no_reintenta(tmp_path: Path):
     pedido_fuera = solicitud(
         id_inscripcion="INS-002", email_destinatario="intruso@example.test"
     )
-    aprobar_ambos(tmp_path, registro, pedido_fuera)
+    aprobar(tmp_path, registro, pedido_fuera)
     encolada = procesar_confirmacion(
         solicitud=pedido_fuera,
         directorio_salida=tmp_path,
@@ -658,7 +651,7 @@ def test_worker_gmail_entrega_y_el_rechazo_no_reintenta(tmp_path: Path):
 
 def test_auditoria_gmail_no_expone_destinatario_ni_token(tmp_path: Path):
     registro = RegistroConfirmacionesMemoria()
-    aprobar_ambos(tmp_path, registro, solicitud())
+    aprobar(tmp_path, registro, solicitud())
     destino, transporte, _ = crear_destino([RespuestaHttp(200, b'{"id":"m1"}')])
     resultado = procesar_confirmacion(
         solicitud=solicitud(),
@@ -1111,7 +1104,7 @@ def test_el_circuito_sigue_armando_el_borrador_y_produccion_lo_rechaza(tmp_path:
     """
 
     registro = RegistroConfirmacionesMemoria()
-    aprobar_ambos(tmp_path, registro, solicitud())
+    aprobar(tmp_path, registro, solicitud())
     destino, transporte, tokens = destino_produccion(
         [], destinatarios_permitidos=LISTA_APROBADA | {"ana.perez@example.test"}
     )

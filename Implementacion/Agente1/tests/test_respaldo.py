@@ -80,33 +80,27 @@ def clave(numero: int) -> str:
 # secuencia respeta el orden real.
 _CAMINOS_ESTADO: dict[str, list[str]] = {
     "PENDIENTE_VALIDACION": [],
-    "APROBADA_UTILITARIA": ["APROBADA_UTILITARIA"],
-    "APROBADA_SEMANTICA": ["APROBADA_SEMANTICA"],
-    "APROBADA": ["APROBADA_UTILITARIA", "APROBADA"],
-    "ENVIO_ENCOLADO": ["APROBADA_UTILITARIA", "APROBADA", "ENVIO_ENCOLADO"],
+    "APROBADA": ["APROBADA"],
+    "ENVIO_ENCOLADO": ["APROBADA", "ENVIO_ENCOLADO"],
     "ENVIO_RESERVADO": [
-        "APROBADA_UTILITARIA",
         "APROBADA",
         "ENVIO_ENCOLADO",
         "ENVIO_RESERVADO",
     ],
-    "EMISION_RESERVADA": ["APROBADA_UTILITARIA", "APROBADA", "EMISION_RESERVADA"],
+    "EMISION_RESERVADA": ["APROBADA", "EMISION_RESERVADA"],
     "ENVIO_INDETERMINADO": [
-        "APROBADA_UTILITARIA",
         "APROBADA",
         "ENVIO_ENCOLADO",
         "ENVIO_RESERVADO",
         "ENVIO_INDETERMINADO",
     ],
     "ENVIADA_SIMULADA": [
-        "APROBADA_UTILITARIA",
         "APROBADA",
         "ENVIO_ENCOLADO",
         "ENVIO_RESERVADO",
         "ENVIADA_SIMULADA",
     ],
     "FALLIDA": [
-        "APROBADA_UTILITARIA",
         "APROBADA",
         "ENVIO_ENCOLADO",
         "ENVIO_RESERVADO",
@@ -918,7 +912,7 @@ def test_restaurar_marca_indeterminadas_las_aprobaciones_posteriores(
         destino_registro, clock=lambda: despues
     )
     crear_en_estado(posterior, clave(5), "APROBADA")
-    crear_en_estado(posterior, clave(6), "APROBADA_SEMANTICA")
+    crear_en_estado(posterior, clave(6), "APROBADA")
     crear_en_estado(posterior, clave(7), "ENVIO_ENCOLADO")
     crear_en_estado(posterior, clave(8), "ENVIO_RESERVADO")
     crear_en_estado(posterior, clave(9), "EMISION_RESERVADA")

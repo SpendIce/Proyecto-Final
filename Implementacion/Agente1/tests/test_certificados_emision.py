@@ -3,8 +3,9 @@
 Cubre el circuito entero de `certificados_emision.py` sin red y sin datos
 personales reales: parseo estricto de la lista de cierre, la compuerta de
 la línea descriptiva (#74), la aprobación del lote atada al hash por el
-Form de decisiones (#72), la entrega por `gmail.send` con lista de prueba
-(#40), la marca de prueba de cada PDF y la retención mínima posterior.
+Form de decisiones (#72) —aprobada por quien lo genera, #125—, la entrega
+por `gmail.send` con lista de prueba (#40), la marca de prueba de cada
+PDF y la retención mínima posterior.
 """
 
 import base64
@@ -26,8 +27,8 @@ from agente1.certificados_emision import (
 )
 from agente1.certificados_plantilla_seu import RecursosFirmaDirectorio
 from agente1.confirmaciones import (
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
+    ROL_APROBADOR_PAGOS,
     _hash,
 )
 from agente1.decisiones_form import (
@@ -49,7 +50,7 @@ from agente1.manifest_version import identidad_version_agente
 
 ROOT = Path(__file__).parents[1]
 
-CORREO_CARGADOR = "aux.cursos@example.test"
+CORREO_SOLICITANTE = "solicitante@example.test"
 CORREO_APROBADOR = "coordinador@example.test"
 CORREO_RGC = "rgc@example.test"
 CORREO_OTRO = "otro.coordinador@example.test"
@@ -69,7 +70,7 @@ PERSONAS = [
 ]
 
 MAILS_PERMITIDOS = frozenset(
-    {CORREO_APROBADOR, CORREO_CARGADOR}
+    {CORREO_APROBADOR, CORREO_SOLICITANTE}
     | {fila[3] for fila in PERSONAS}
 )
 
@@ -202,27 +203,17 @@ def _decision(
 def _aprobar_linea(
     registro: RegistroDecisiones, *, id_actividad: str, texto_linea: str
 ) -> None:
-    """Las dos decisiones de la línea descriptiva, tal como las deja #74."""
+    """La decisión única de contenido sobre la línea descriptiva (#74, #125)."""
 
     objeto = objeto_id_linea_descriptiva(id_actividad, texto_linea)
     registro.registrar(
         _decision(
-            correo=CORREO_RGC,
-            rol=ROL_APROBACION_SEMANTICA,
-            tipo="linea_descriptiva",
-            objeto=objeto,
-            decision="apruebo_semantica",
-            marca="2026-10-11 08:00:00",
-        )
-    )
-    registro.registrar(
-        _decision(
             correo=CORREO_APROBADOR,
-            rol=ROL_APROBACION_UTILITARIA,
+            rol=ROL_APROBADOR_CONTENIDO,
             tipo="linea_descriptiva",
             objeto=objeto,
-            decision="apruebo_utilitaria",
-            marca="2026-10-11 08:05:00",
+            decision="apruebo_contenido",
+            marca="2026-10-11 08:00:00",
         )
     )
 
@@ -231,8 +222,8 @@ def _aprobar_lote(
     registro: RegistroDecisiones,
     *,
     objeto_lote: str,
-    correo: str = CORREO_APROBADOR,
-    rol: str = ROL_APROBACION_UTILITARIA,
+    correo: str = CORREO_SOLICITANTE,
+    rol: str = ROL_APROBADOR_CONTENIDO,
 ) -> None:
     registro.registrar(
         _decision(
@@ -252,7 +243,7 @@ def _ejecutar(
     linea: str | None = LINEA,
     respuestas: list[RespuestaHttp | Exception] | None = None,
     registro: RegistroDecisiones | None = None,
-    solicitante_correo: str = CORREO_CARGADOR,
+    solicitante_correo: str = CORREO_SOLICITANTE,
     lector=None,
     destino=None,
     recursos_firma=None,
@@ -274,7 +265,6 @@ def _ejecutar(
         registro_decisiones=registro,
         enlaces=_enlazador(registro),
         destino=destino,
-        correo_aprobador=CORREO_APROBADOR,
         solicitante_correo=solicitante_correo,
         directorio_salida=tmp_path / "salida",
         recursos_firma=recursos_firma,
@@ -432,29 +422,19 @@ def test_linea_con_otro_hash_no_habilita(tmp_path: Path):
 def test_decisiones_bajo_tipo_plantilla_no_aprueban_la_linea(
     tmp_path: Path,
 ):
-    """`apruebo_semantica`/`apruebo_utilitaria` registradas como `plantilla`
-    sobre el objeto de línea no habilitan: el tipo de decisión aísla los
-    circuitos. La aprobación válida es `linea_descriptiva` (#74)."""
+    """`apruebo_contenido` registrada como `plantilla` sobre el objeto de
+    línea no habilita: el tipo de decisión aísla los circuitos. La
+    aprobación válida es `linea_descriptiva` (#74)."""
 
     registro = _registro(tmp_path)
     objeto = objeto_id_linea_descriptiva(ACTIVIDAD_ID, LINEA)
     registro.registrar(
         _decision(
-            correo=CORREO_RGC,
-            rol=ROL_APROBACION_SEMANTICA,
-            tipo="plantilla",
-            objeto=objeto,
-            decision="apruebo_semantica",
-        )
-    )
-    registro.registrar(
-        _decision(
             correo=CORREO_APROBADOR,
-            rol=ROL_APROBACION_UTILITARIA,
+            rol=ROL_APROBADOR_CONTENIDO,
             tipo="plantilla",
             objeto=objeto,
-            decision="apruebo_utilitaria",
-            marca="2026-10-11 08:05:00",
+            decision="apruebo_contenido",
         )
     )
     assert not linea_descriptiva_aprobada(
@@ -481,10 +461,11 @@ def test_lote_sin_aprobar_pide_aprobacion_con_muestra(tmp_path: Path):
         p["tipo"] == "lote" and p["objeto_id"] == objeto_lote
         for p in registro.pendientes()
     )
-    # Un solo correo: el de aprobación, al correo del rol utilitario.
+    # Un solo correo: el aviso de aprobación pendiente va al solicitante,
+    # que es quien genera y aprueba el lote (#125).
     assert len(transporte.solicitudes) == 1
     mensaje = _mime_de(transporte.solicitudes[0])
-    assert mensaje["To"] == CORREO_APROBADOR
+    assert mensaje["To"] == CORREO_SOLICITANTE
     pdf = _adjunto_pdf_de(mensaje)
     assert pdf.startswith(b"%PDF")
     # La muestra lleva las dos marcas: borrador y documento de prueba.
@@ -527,13 +508,15 @@ def test_aprobacion_con_rol_equivocado_no_habilita(tmp_path: Path):
     _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
     hash_lista = hash_lista_cierre(parsear_lista_cierre(PERSONAS))
     objeto = objeto_lote_cierre(ACTIVIDAD_ID, hash_lista)
-    _aprobar_lote(registro, objeto_lote=objeto, rol=ROL_APROBACION_SEMANTICA)
+    _aprobar_lote(registro, objeto_lote=objeto, rol=ROL_APROBADOR_PAGOS)
 
     revision = revisar_aprobacion_lote(
-        registro, objeto_lote=objeto, cargada_por_correo_hash=_hash(CORREO_CARGADOR)
+        registro,
+        objeto_lote=objeto,
+        generada_por_correo_hash=_hash(CORREO_SOLICITANTE),
     )
     assert not revision.aprobada
-    assert "aprobador_rol_no_utilitario" in revision.descalificaciones
+    assert "aprobador_rol_no_autorizado" in revision.descalificaciones
 
     resultado, _, transporte, _ = _ejecutar(
         tmp_path, registro=registro, respuestas=_ok_envio(1)
@@ -542,29 +525,10 @@ def test_aprobacion_con_rol_equivocado_no_habilita(tmp_path: Path):
     assert resultado.error == "lote_no_aprobado"
 
 
-def test_aprobacion_del_cargador_no_habilita(tmp_path: Path):
-    """El que cargó la lista no puede aprobarla: su decisión no cuenta."""
+def test_aprobacion_de_otro_correo_no_habilita(tmp_path: Path):
+    """El lote lo aprueba quien lo genera: la decisión de otro correo,
+    aunque tenga el rol, no cuenta (#125)."""
 
-    registro = _registro(tmp_path)
-    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
-    hash_lista = hash_lista_cierre(parsear_lista_cierre(PERSONAS))
-    objeto = objeto_lote_cierre(ACTIVIDAD_ID, hash_lista)
-    _aprobar_lote(registro, objeto_lote=objeto, correo=CORREO_CARGADOR)
-
-    revision = revisar_aprobacion_lote(
-        registro, objeto_lote=objeto, cargada_por_correo_hash=_hash(CORREO_CARGADOR)
-    )
-    assert not revision.aprobada
-    assert "aprobador_es_cargador" in revision.descalificaciones
-
-    resultado, _, transporte, _ = _ejecutar(
-        tmp_path, registro=registro, respuestas=_ok_envio(1)
-    )
-    assert resultado.estado == "PENDIENTE_APROBACION"
-    assert resultado.error == "lote_no_aprobado"
-
-
-def test_aprobador_distinto_del_cargador_si_habilita(tmp_path: Path):
     registro = _registro(tmp_path)
     _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
     hash_lista = hash_lista_cierre(parsear_lista_cierre(PERSONAS))
@@ -572,10 +536,36 @@ def test_aprobador_distinto_del_cargador_si_habilita(tmp_path: Path):
     _aprobar_lote(registro, objeto_lote=objeto, correo=CORREO_OTRO)
 
     revision = revisar_aprobacion_lote(
-        registro, objeto_lote=objeto, cargada_por_correo_hash=_hash(CORREO_CARGADOR)
+        registro,
+        objeto_lote=objeto,
+        generada_por_correo_hash=_hash(CORREO_SOLICITANTE),
+    )
+    assert not revision.aprobada
+    assert "aprobador_no_es_generador" in revision.descalificaciones
+
+    resultado, _, transporte, _ = _ejecutar(
+        tmp_path, registro=registro, respuestas=_ok_envio(1)
+    )
+    assert resultado.estado == "PENDIENTE_APROBACION"
+    assert resultado.error == "lote_no_aprobado"
+
+
+def test_aprobacion_del_generador_si_habilita(tmp_path: Path):
+    """Quien genera el lote lo aprueba, con el rol de contenido (#125)."""
+
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    hash_lista = hash_lista_cierre(parsear_lista_cierre(PERSONAS))
+    objeto = objeto_lote_cierre(ACTIVIDAD_ID, hash_lista)
+    _aprobar_lote(registro, objeto_lote=objeto)
+
+    revision = revisar_aprobacion_lote(
+        registro,
+        objeto_lote=objeto,
+        generada_por_correo_hash=_hash(CORREO_SOLICITANTE),
     )
     assert revision.aprobada
-    assert revision.correo_hash_aprobador == _hash(CORREO_OTRO)
+    assert revision.correo_hash_aprobador == _hash(CORREO_SOLICITANTE)
 
 
 # --- Emisión completa ---------------------------------------------------------
@@ -803,8 +793,7 @@ def test_actividad_inexistente_es_invalida(tmp_path: Path):
         registro_decisiones=_registro(tmp_path),
         enlaces=_enlazador(_registro(tmp_path)),
         destino=destino,
-        correo_aprobador=CORREO_APROBADOR,
-        solicitante_correo=CORREO_CARGADOR,
+        solicitante_correo=CORREO_SOLICITANTE,
         directorio_salida=tmp_path / "salida",
     )
     assert resultado.estado == "INVALIDA"
@@ -838,7 +827,6 @@ def test_despacho_emitir_certificados_por_el_seam(tmp_path: Path):
             registro_decisiones=registro,
             enlaces=_enlazador(registro),
             destino=destino,
-            correo_aprobador=CORREO_APROBADOR,
             solicitante_correo=solicitante.identificador,
             directorio_salida=tmp_path / "salida",
         )
@@ -846,7 +834,7 @@ def test_despacho_emitir_certificados_por_el_seam(tmp_path: Path):
     resultado = interpretar_solicitud(
         texto=f"emití los certificados de {ACTIVIDAD_ID}",
         solicitante=IdentidadSolicitante(
-            identificador=CORREO_CARGADOR, rol="auxiliar_seu"
+            identificador=CORREO_SOLICITANTE, rol="APROBADOR_CONTENIDO"
         ),
         fuente=_fuente(tmp_path),
         directorio_salida=tmp_path / "seam",
@@ -879,7 +867,7 @@ def test_emitir_certificados_sin_emisor_falla_controlado(tmp_path: Path):
     resultado = interpretar_solicitud(
         texto=f"emití los certificados de {ACTIVIDAD_ID}",
         solicitante=IdentidadSolicitante(
-            identificador=CORREO_CARGADOR, rol="auxiliar_seu"
+            identificador=CORREO_SOLICITANTE, rol="APROBADOR_CONTENIDO"
         ),
         fuente=_fuente(tmp_path),
         directorio_salida=tmp_path / "seam",
