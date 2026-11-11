@@ -209,6 +209,10 @@ def comando_para(argv: Sequence[str]) -> list[str] | None:
         return [python, str(ROOT / "scripts" / "demo_visual_plan_b.py"), "--host", "0.0.0.0", "--port", "8080", *resto]
     if nombre == "scheduler":
         return [python, "-m", "agente1", "scheduler", *resto]
+    if nombre == "web":
+        return [python, str(ROOT / "scripts" / "servidor_web.py"), "--host", "0.0.0.0", *resto]
+    if nombre == "worker":
+        return [python, str(ROOT / "scripts" / "worker_canal_web.py"), *resto]
     if nombre == "smoke":
         return [python, str(ROOT / "scripts" / "workspace_smoke.py"), *resto]
     if nombre == "e2e":

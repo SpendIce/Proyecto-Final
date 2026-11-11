@@ -91,6 +91,10 @@ services:
 
   # Apagado durante la marcha en paralelo con el runtime venv (Q6 de #124):
   # sólo arranca con el perfil `scheduler`, al hacer el cambio.
+  # Ve la red `canal` y recibe los DSN del canal web cuando el perfil
+  # `canal-web` está activo: así la purga diaria corre sobre la base del
+  # canal. Con el perfil apagado las variables quedan vacías y el paso se
+  # asienta `pendiente`, como los otros opt-in del scheduler.
   scheduler:
     <<: *agente1
     profiles: ["scheduler"]
@@ -105,8 +109,110 @@ services:
       - "300"
       - --directorio
       - /state/scheduler
+    environment:
+      AGENTE1_ENV_FILE: ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/workspace-d2.env
+      AGENTE1_OLLAMA_UPSTREAM: ollama:11434
+      AGENTE1_ESTADO: /state
+      AGENTE1_POSTGRES_DSN: ${AGENTE1_POSTGRES_DSN:-}
+      AGENTE1_POSTGRES_DSN_MANTENIMIENTO: ${AGENTE1_POSTGRES_DSN_MANTENIMIENTO:-}
+      HOME: /tmp
+    networks:
+      - modelo
+      - salida
+      - canal
+
+  # Canal web (#149, ADR 0016): la base vive en la red interna `canal`,
+  # sin puertos publicados fuera del stack, y sólo se levanta con el
+  # perfil `canal-web`, igual que `web` y `worker`. La clave llega por
+  # variable del stack, nunca versionada; sin clave la imagen de postgres
+  # falla al inicializar, no el `config` del compose — ninguna variable
+  # del perfil usa `:?`, para que el stack actual resuelva igual que
+  # antes con el canal apagado. `web` y `worker` comparten la red `canal`
+  # con la base; `web` además sale por `salida` para servir la consola, y
+  # el `scheduler` la ve cuando el perfil está activo para la purga.
+  postgres:
+    <<: *endurecido
+    profiles: ["canal-web"]
+    tmpfs:
+      - /tmp
+      - /run
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_USER: ${AGENTE1_POSTGRES_USUARIO:-agente1}
+      POSTGRES_DB: ${AGENTE1_POSTGRES_BASE:-agente1}
+      POSTGRES_PASSWORD: ${AGENTE1_POSTGRES_PASSWORD:-}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      HOME: /tmp
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - canal
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  web:
+    <<: *agente1
+    profiles: ["canal-web"]
+    command: ["web"]
+    ports:
+      - "127.0.0.1:${AGENTE1_PUERTO_WEB:-8443}:8080"
+    environment:
+      AGENTE1_ENV_FILE: ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/workspace-d2.env
+      AGENTE1_OLLAMA_UPSTREAM: ollama:11434
+      AGENTE1_ESTADO: /state
+      AGENTE1_CONTENEDOR: "si"
+      AGENTE1_POSTGRES_DSN: ${AGENTE1_POSTGRES_DSN:-}
+      AGENTE1_PADRON_ROLES_CSV: ${AGENTE1_PADRON_ROLES_CSV:-/state/padron_roles.csv}
+      AGENTE1_TABLA: ${AGENTE1_TABLA:-/state/actividades.csv}
+      AGENTE1_WEB_GOOGLE_CLIENT_ID: ${AGENTE1_WEB_GOOGLE_CLIENT_ID:-}
+      AGENTE1_WEB_DOMINIO: ${AGENTE1_WEB_DOMINIO:-}
+      AGENTE1_WEB_PORT: "8080"
+      HOME: /tmp
+    networks:
+      - canal
+      - salida
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    <<: *agente1
+    profiles: ["canal-web"]
+    command:
+      - worker
+      - --tabla
+      - /state/actividades.csv
+      - --salida
+      - /state/worker
+      - --destino-fake
+      - --ollama-model
+      - gemma4:e4b
+    environment:
+      AGENTE1_ENV_FILE: ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/workspace-d2.env
+      AGENTE1_OLLAMA_UPSTREAM: ollama:11434
+      AGENTE1_ESTADO: /state
+      AGENTE1_CONTENEDOR: "si"
+      AGENTE1_POSTGRES_DSN: ${AGENTE1_POSTGRES_DSN:-}
+      AGENTE1_WORKER_ID: worker-1
+      HOME: /tmp
+    networks:
+      - canal
+      - modelo
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
 
 networks:
   modelo:
     internal: true
   salida: {}
+  canal:
+    internal: true

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block titulo %}Nuevo pedido · Agente 1{% endblock %}
+{% block contenido %}
+<section aria-labelledby="t-nuevo">
+  <h1 id="t-nuevo">Nuevo pedido</h1>
+  <p class="ayuda">
+    El pedido queda registrado de manera durable: el agente genera el
+    borrador en segundo plano y el estado se recupera en esta misma bandeja.
+  </p>
+  {% if errores %}<p class="mensaje-error" role="alert">Revisá los campos marcados.</p>{% endif %}
+  <form class="formulario" method="post" action="/nuevo-pedido">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="llave" value="{{ llave }}">
+
+    <label for="tipo">Tipo de pieza</label>
+    <select id="tipo" name="tipo" required>
+      <option value="">Elegí un tipo</option>
+      {% for t in tipos %}
+      <option value="{{ t.id }}"
+        data-actividad="{{ '1' if t.actividad else '' }}"
+        data-publicos="{{ '1' if t.publicos else '' }}"
+        data-area="{{ '1' if t.usa_area else '' }}"
+        data-firma="{{ '1' if t.usa_firma else '' }}"
+        {% if not t.disponible %}disabled{% endif %}
+        {% if valores.get('tipo') == t.id %}selected{% endif %}>
+        {{ t.nombre }}{% if not t.disponible %} — todavía no disponible{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+    {% if errores.get('tipo') == 'tipo_no_disponible' %}
+      <p class="campo-error">Ese tipo todavía no está disponible en la web.</p>
+    {% elif errores.get('tipo') %}
+      <p class="campo-error">El tipo no pertenece a la lista cerrada.</p>
+    {% endif %}
+
+    <div id="bloque-actividad" class="bloque" hidden>
+      <label for="actividad">Actividad</label>
+      <select id="actividad" name="actividad">
+        <option value="">Elegí la actividad</option>
+        {% for a in actividades %}
+        <option value="{{ a.id_actividad }}"
+          data-titulo="{{ a.titulo }}"
+          data-fechas="{{ a.fecha_inicio }}{% if a.fecha_fin %} al {{ a.fecha_fin }}{% endif %}"
+          data-organiza="{{ a.organiza }}"
+          {% if valores.get('actividad') == a.id_actividad %}selected{% endif %}>
+          {{ a.titulo or a.id_actividad }}
+        </option>
+        {% endfor %}
+      </select>
+      <dl id="datos-actividad" class="ficha ficha-actividad" hidden>
+        <dt>Título</dt><dd data-campo="titulo"></dd>
+        <dt>Fechas</dt><dd data-campo="fechas"></dd>
+        <dt>Organiza</dt><dd data-campo="organiza"></dd>
+      </dl>
+      {% if errores.get('actividad') %}<p class="campo-error">Elegí una actividad de la lista.</p>{% endif %}
+    </div>
+
+    {% for tipo_id, campos in campos_por_tipo.items() %}
+    {% if campos %}
+    <fieldset class="bloque campos-tipo" data-tipo="{{ tipo_id }}" hidden>
+      <legend>Datos de la pieza</legend>
+      {% for campo in campos %}
+      <label for="campo_{{ campo.nombre }}_{{ tipo_id }}">
+        {{ campo.nombre|replace('_', ' ')|capitalize }}
+        {% if campo.requerido %}<span aria-hidden="true">*</span>{% endif %}
+      </label>
+      {% if campo.area %}
+      <textarea id="campo_{{ campo.nombre }}_{{ tipo_id }}"
+                name="campo_{{ campo.nombre }}" rows="4"
+                {{ 'required' if campo.requerido else '' }}>{{ valores.get('campo_' ~ campo.nombre, '') }}</textarea>
+      {% else %}
+      <input id="campo_{{ campo.nombre }}_{{ tipo_id }}" type="text"
+             name="campo_{{ campo.nombre }}"
+             value="{{ valores.get('campo_' ~ campo.nombre, '') }}"
+             {{ 'required' if campo.requerido else '' }}>
+      {% endif %}
+      {% if errores.get(campo.nombre) %}<p class="campo-error">Este campo es obligatorio.</p>{% endif %}
+      {% endfor %}
+    </fieldset>
+    {% endif %}
+    {% endfor %}
+
+    <div id="bloque-area" class="bloque" hidden>
+      <label for="area">Área emisora</label>
+      <select id="area" name="area">
+        <option value="">Elegí el área</option>
+        {% for id_area, nombre in areas.items() %}
+        <option value="{{ id_area }}"
+          {% if valores.get('area') == id_area %}selected{% endif %}>
+          {{ nombre }}
+        </option>
+        {% endfor %}
+      </select>
+      {% if errores.get('area') %}<p class="campo-error">Elegí un área de la lista.</p>{% endif %}
+    </div>
+
+    <fieldset id="bloque-firma" class="bloque" hidden>
+      <legend>Firma de área en el pie</legend>
+      <label class="opcion"><input type="radio" name="firma" value="si"
+        {% if valores.get('firma', 'si') == 'si' %}checked{% endif %}> Con firma de área</label>
+      <label class="opcion"><input type="radio" name="firma" value="no"
+        {% if valores.get('firma') == 'no' %}checked{% endif %}> Sin firma de área</label>
+      <p class="ayuda">El bloque institucional de la FIE va siempre.</p>
+    </fieldset>
+
+    <div id="bloque-publicos" class="bloque" hidden>
+      <fieldset>
+        <legend>Públicos destinatarios</legend>
+        {% for id_pub, nombre in publicos.items() %}
+        <label class="opcion">
+          <input type="checkbox" name="publicos" value="{{ id_pub }}"
+            {% if id_pub in valores.get('publicos', []) %}checked{% endif %}>
+          {{ nombre }}
+        </label>
+        {% endfor %}
+        <p class="ayuda">Define a quién se envía; no cambia el texto de la pieza.</p>
+        {% if errores.get('publicos') %}<p class="campo-error">Elegí al menos un público válido.</p>{% endif %}
+      </fieldset>
+    </div>
+
+    <label for="descripcion">Descripción e indicaciones</label>
+    <textarea id="descripcion" name="descripcion" rows="5"
+      placeholder="Qué comunica la pieza y con qué propósito">{{ valores.get('descripcion', '') }}</textarea>
+
+    <label for="asunto">Asunto <span class="opcional">(opcional)</span></label>
+    <input id="asunto" name="asunto" type="text"
+           value="{{ valores.get('asunto', '') }}"
+           placeholder="Queda vacío si no hace falta un asunto editorial">
+
+    <button class="boton-primario" type="submit">Enviar pedido</button>
+  </form>
+</section>
+<script>
+(function () {
+  var tipo = document.getElementById('tipo');
+  var actividad = document.getElementById('bloque-actividad');
+  var selectAct = document.getElementById('actividad');
+  var datosAct = document.getElementById('datos-actividad');
+  var area = document.getElementById('bloque-area');
+  var selectArea = document.getElementById('area');
+  var firma = document.getElementById('bloque-firma');
+  var publicos = document.getElementById('bloque-publicos');
+  var bloques = document.querySelectorAll('.campos-tipo');
+  function datosActividad() {
+    var op = selectAct.options[selectAct.selectedIndex];
+    var con = op && op.dataset.titulo;
+    datosAct.hidden = !con;
+    if (con) {
+      datosAct.querySelector('[data-campo="titulo"]').textContent = op.dataset.titulo;
+      datosAct.querySelector('[data-campo="fechas"]').textContent = op.dataset.fechas;
+      datosAct.querySelector('[data-campo="organiza"]').textContent = op.dataset.organiza;
+    }
+  }
+  function actualizar() {
+    var op = tipo.options[tipo.selectedIndex];
+    var conAct = op && op.dataset.actividad === '1';
+    var conPub = op && op.dataset.publicos === '1';
+    var conArea = op && op.dataset.area === '1';
+    var conFirma = op && op.dataset.firma === '1';
+    actividad.hidden = !conAct;
+    selectAct.required = !!conAct;
+    publicos.hidden = !conPub;
+    area.hidden = !conArea;
+    selectArea.required = !!conArea;
+    firma.hidden = !conFirma;
+    bloques.forEach(function (b) {
+      var activo = b.dataset.tipo === tipo.value;
+      b.hidden = !activo;
+      b.querySelectorAll('input,textarea').forEach(function (el) {
+        el.disabled = !activo;
+      });
+    });
+    datosActividad();
+  }
+  tipo.addEventListener('change', actualizar);
+  selectAct.addEventListener('change', datosActividad);
+  actualizar();
+})();
+</script>
+{% endblock %}

@@ -774,14 +774,27 @@ def test_reemision_es_un_pedido_nuevo(tmp_path: Path):
 
 
 def test_sin_firmas_en_el_repositorio():
-    """Ninguna imagen de firma entra a Git: la carpeta de firmas vive en D2."""
+    """Ninguna imagen de firma entra a Git: la carpeta de firmas vive en D2.
 
+    La única excepción es el imagotipo institucional del canal web (#149),
+    autorizado por el manual de identidad FIE para el encabezado del sitio.
+    """
+
+    logo_web = (
+        ROOT
+        / "src"
+        / "agente1"
+        / "web"
+        / "estaticos"
+        / "img"
+        / "imagotipo-fie-blanco.png"
+    )
     imagenes = [
         p
         for p in (ROOT / "src" / "agente1").rglob("*")
         if p.is_file() and p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
     ]
-    assert imagenes == []
+    assert imagenes == [logo_web]
 
 
 def test_actividad_inexistente_es_invalida(tmp_path: Path):

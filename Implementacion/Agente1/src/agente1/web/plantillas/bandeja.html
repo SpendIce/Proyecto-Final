@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titulo %}Bandeja · Agente 1{% endblock %}
+{% block contenido %}
+<section aria-labelledby="t-bandeja">
+  <div class="seccion-cabecera">
+    <h1 id="t-bandeja">Bandeja de la SEU</h1>
+    <a class="boton-primario" href="/nuevo-pedido">Nuevo pedido</a>
+  </div>
+  {% if items %}
+  <ul class="bandeja">
+    {% for item in items %}
+    <li class="bandeja-item">
+      <a href="/solicitudes/{{ item.id }}" class="bandeja-enlace">
+        <span class="bandeja-titulo">{{ item.titulo }}</span>
+        <span class="bandeja-meta">
+          {{ item.tipo }}{% if item.actividad %} · {{ item.actividad }}{% endif %}
+          · {{ item.creada }}
+        </span>
+      </a>
+      <span class="estado estado-{{ item.estado|lower }}">{{ item.estado_visible }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="vacio">
+    La bandeja está vacía. El primer pedido se hace desde
+    <a href="/nuevo-pedido">Nuevo pedido</a>.
+  </p>
+  {% endif %}
+</section>
+{% endblock %}

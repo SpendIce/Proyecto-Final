@@ -40,6 +40,7 @@ import json
 import re
 import time
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from importlib.resources import files
@@ -66,7 +67,12 @@ from .gacetillas import (
     TipoGacetillaError,
     cargar_entrada,
     cargar_forma,
+    confirmar_pieza,
     fecha_larga,
+    generar_pieza,
+    modo_de,
+    requiere_actividad,
+    tipos,
     validar_pieza,
 )
 from .gacetillas import (
@@ -604,6 +610,202 @@ def procesar_solicitud(
         correlation_id=correlation_id,
         referencia_borrador=referencia_borrador,
     )
+
+
+def procesar_gacetilla_estructurada(
+    *,
+    tipo: str,
+    campos: Mapping[str, str],
+    id_solicitud: str,
+    directorio_salida: Path,
+    generator: Generator,
+    destino: DestinoBorradores | None = None,
+) -> ResultadoProceso:
+    """El pipeline de una gacetilla sin actividad, ya con campos confirmados.
+
+    Es la contraparte estructurada de `procesar_solicitud` para los seis
+    tipos que no producen una ficha de actividad (issue #149, ADR 0016):
+    el canal —hoy el canal web— entrega el tipo y los campos ya validados
+    contra el contrato de entrada del tipo, y acá corre el mismo circuito
+    que cualquier ejecución: control de obligatorios previo al modelo, la
+    seam declarativa del modo del tipo (`generar_pieza` o `confirmar_pieza`,
+    que ya incluyen el gate `validar_pieza`), la marca de borrador, el
+    destino del Doc y la línea de auditoría en `logs/ejecuciones.jsonl`
+    con la misma forma que una ejecución de difusión.
+
+    Los tipos con `requiere_actividad` no entran acá: su camino es el de
+    `procesar_solicitud` con la ficha de la fuente. Un tipo desconocido
+    devuelve `INVALIDA`, como el tipo inválido del pipeline de ficha.
+
+    Nunca propaga excepciones del generador ni del destino: cada falla se
+    traduce a un estado y a su línea de auditoría, igual que arriba.
+    """
+
+    correlation_id = str(uuid.uuid4())
+    log_path = directorio_salida / "logs" / "ejecuciones.jsonl"
+    inicio = time.perf_counter()
+    campos_limpios = {
+        str(clave): str(valor) for clave, valor in dict(campos).items()
+    }
+
+    def registrar(registro: dict[str, object]) -> None:
+        _registrar(
+            log_path,
+            {
+                "correlation_id": correlation_id,
+                "id_solicitud": id_solicitud,
+                "HU": HU,
+                "contract_version": (
+                    str(cargar_entrada(tipo)["x-contract-version"])
+                    if tipo in tipos()
+                    else None
+                ),
+                "tipo_gacetilla": tipo,
+                "forma_version": (
+                    str(cargar_forma(tipo)["schema_version"])
+                    if tipo in tipos()
+                    else None
+                ),
+                "modo_entrada": "estructurada",
+                "modelo": generator.modelo,
+                "num_predict": _num_predict(generator),
+                "latencia_s": round(time.perf_counter() - inicio, 6),
+                "input_hash": _hash_json(campos_limpios),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                **registro,
+            },
+        )
+
+    def terminar(
+        estado: str,
+        resultado: str,
+        error: str | None,
+        *,
+        output_hash: str | None = None,
+        destination_type: str | None = None,
+        borrador_ref_hash: str | None = None,
+        referencia_borrador: ReferenciaBorrador | None = None,
+        validation_errors: list[str] | None = None,
+    ) -> ResultadoProceso:
+        registro: dict[str, object] = {
+            "prompt_version": _prompt_version_tipado(tipo),
+            "estado": estado,
+            "resultado": resultado,
+            "error": error,
+            "output_hash": output_hash,
+        }
+        if destination_type is not None:
+            registro["destination_type"] = destination_type
+        if borrador_ref_hash is not None:
+            registro["borrador_ref_hash"] = borrador_ref_hash
+        if validation_errors is not None:
+            registro["validation_errors"] = validation_errors
+        registrar(registro)
+        return ResultadoProceso(
+            estado=estado,
+            borrador_path=(
+                referencia_borrador.path
+                if referencia_borrador is not None
+                else None
+            ),
+            log_path=log_path,
+            correlation_id=correlation_id,
+            error=error,
+            referencia_borrador=referencia_borrador,
+        )
+
+    if tipo not in tipos() or requiere_actividad(tipo):
+        return terminar(
+            "INVALIDA",
+            "source_invalid",
+            "El tipo de pieza no se produce por el despacho estructurado",
+        )
+    faltantes = [
+        campo
+        for campo in _campos_obligatorios(tipo)
+        if not campos_limpios.get(campo, "").strip()
+    ]
+    if faltantes:
+        # Los nombres de los campos faltantes son vocabulario del contrato,
+        # no datos del pedido: pueden ir al log igual que en el pipeline de
+        # ficha.
+        return terminar(
+            "INCOMPLETA",
+            "datos_incompletos",
+            f"Campos obligatorios faltantes: {', '.join(faltantes)}",
+        )
+    try:
+        if modo_de(tipo) == "genera":
+            pieza, errores = generar_pieza(tipo, campos_limpios, generator)
+        else:
+            pieza, errores = confirmar_pieza(tipo, campos_limpios)
+    except PresupuestoAgotadoError:
+        return terminar(
+            "FALLIDA",
+            RESULTADO_PRESUPUESTO_AGOTADO,
+            MENSAJE_PRESUPUESTO_AGOTADO,
+        )
+    except Exception:
+        return terminar(
+            "FALLIDA", "error_generacion", "Falló la generación del borrador"
+        )
+    if errores or not pieza:
+        return terminar(
+            "FALLIDA",
+            "salida_no_conforme",
+            "La salida generada no cumple el contrato mínimo",
+            validation_errors=errores or None,
+        )
+
+    borrador = f"{BORRADOR_MARKER}{pieza}"
+    destino_efectivo = destino or MarkdownDestinoBorradores(directorio_salida)
+    nombre = _nombre_doc_gacetilla(tipo, campos_limpios, _fecha_generacion())
+    try:
+        referencia_borrador = destino_efectivo.guardar(
+            id_solicitud, borrador, nombre=nombre
+        )
+        if not isinstance(referencia_borrador, ReferenciaBorrador):
+            raise DestinoBorradoresError("destination_contract_invalid")
+    except DestinoBorradoresError as error_destino:
+        return terminar(
+            "FALLIDA",
+            "destination_failure",
+            "Falló el destino del borrador",
+            validation_errors=[error_destino.code],
+        )
+    except Exception:
+        return terminar(
+            "FALLIDA",
+            "destination_failure",
+            "Falló el destino del borrador",
+            validation_errors=["destination_unavailable"],
+        )
+    return terminar(
+        "PENDIENTE_VALIDACION",
+        "borrador_generado",
+        None,
+        output_hash=_hash_texto(borrador),
+        destination_type=referencia_borrador.tipo,
+        borrador_ref_hash=_hash_texto(referencia_borrador.referencia),
+        referencia_borrador=referencia_borrador,
+    )
+
+
+def _prompt_version_tipado(tipo: str) -> str | None:
+    """La versión del prompt declarada por la forma, si el tipo genera.
+
+    Los tipos de `extrae_y_confirma` no llaman al modelo: su línea de
+    auditoría declara `prompt_version` en `None`, igual que el código dice
+    la verdad sobre qué intervenió.
+    """
+
+    try:
+        forma = cargar_forma(tipo)
+    except TipoGacetillaError:
+        return None
+    salida = forma.get("salida_modelo") or {}
+    version = salida.get("prompt_version")
+    return str(version) if version else None
 
 
 def _validar_id_solicitud(id_solicitud: str) -> None:
