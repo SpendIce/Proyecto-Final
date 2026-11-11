@@ -926,7 +926,7 @@ El circuito, en orden y todo fail-closed:
    `asistencia`/`aprobacion` sin inferencias, sin duplicados de DNI ni mail.
    Una fila mala bloquea el lote (`INVALIDA`), no salta.
 3. **La línea descriptiva tiene que estar aprobada** por los dos roles sobre
-   el objeto `linea_descriptiva:<id>:<hash>` (#74), por el mismo Form de
+   el objeto `linea_descriptiva-<id>-<hash>` (#74), por el mismo Form de
    decisiones de #72.
 4. **El lote lo aprueba el rol utilitario** con `apruebo_lote` sobre
    `sha256("lote_cierre_certificados|<id>|<hash_lista>")`: cualquier edición
