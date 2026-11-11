@@ -1199,7 +1199,8 @@ repite:
 
 - **Tag `agente1-vX.Y.Z`** sobre `main` en cada versión que se instala. Mayor:
   cambia un contrato de interfaz. Menor: capacidad nueva, prompt o política.
-  Parche: corrección.
+  Parche: corrección. Mientras la versión sea `0.Y.Z`, Mayor también sube `Y`;
+  la `1.0.0` llega con el OK de TRL 3–4 de la Dirección.
 - **`CHANGELOG.md`**, con una entrada por versión (cambios controlados, su clase
   y la referencia del issue o rama) y una sección **Configuración** aparte, para
   los cambios que se le piden a DSI y que no generan versión.

@@ -16,6 +16,10 @@ repiten. El procedimiento para cortar una versión está en
 - **Menor** — capacidad nueva, prompt o política.
 - **Parche** — corrección.
 
+Mientras la versión sea `0.Y.Z`, un cambio Mayor sube `Y` (igual que uno
+Menor); la clase se declara igual. La `1.0.0` llega con el OK de TRL 3–4 de la
+Dirección. Detalle en el procedimiento.
+
 > La referencia identifica el cambio controlado. Este repositorio integra por
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
@@ -24,6 +28,7 @@ repiten. El procedimiento para cortar una versión está en
 
 - **Mayor — área FIE, firma de área opcional y públicos destinatarios del
   pedido (#154).** Cambian contratos versionados; todavía no corta versión.
+  Con la versión en `0.x`, la próxima es `0.6.0`.
   - `areas_emisoras_v2.json`: padrón nuevo con el área `fie` («Facultad de
     Ingeniería del Ejército») para las comunicaciones generales; la v1 queda
     para trazabilidad y el código usa la v2.
