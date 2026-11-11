@@ -26,10 +26,13 @@ reconcilia hacia `EMISION_INDETERMINADA`, sin reemitir.
 
 El PDF se genera sólo con stdlib: un documento mínimo de una página,
 determinista byte a byte (sin timestamps ni identificadores aleatorios, que
-son los que suelen hacer irreproducible un PDF). La plantilla es provisional
-y lleva la marca `BORRADOR — NO EMITIR` en toda salida previa a la aprobación
-completa; la plantilla institucional queda `PENDIENTE_SEU`, igual que la
-firma digital que menciona el enunciado de la HU.
+son los que suelen hacer irreproducible un PDF). La plantilla de este
+renderer por documento es provisional y lleva la marca
+`BORRADOR — NO EMITIR` en toda salida previa a la aprobación completa; en
+el lote de cierre, `aprobacion` compone la plantilla SEU recibida en
+`certificados_plantilla_seu.py` (#126) y `asistencia` sigue con esta
+provisional. La firma digital que menciona el enunciado de la HU queda
+`PENDIENTE_SEU`.
 
 El circuito de decisión es el de HU-012 sin modificaciones: se reusan
 `AprobacionHumana`, `ROLES_APROBACION`, los estados parciales y el registro
@@ -84,6 +87,10 @@ CONTRACT_VERSION = "certificado_emision_v2"
 TEMPLATE_VERSION = "certificado_provisional_v2"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 MARCADOR_BORRADOR = "BORRADOR — NO EMITIR"
+# La marca permanente de prueba la define acá porque la comparten los dos
+# renderers: la plantilla provisional y la plantilla SEU de aprobación
+# (#126). `certificados_emision` la reexporta por compatibilidad.
+MARCA_PRUEBA = "DOCUMENTO DE PRUEBA — SIN VALIDEZ"
 TIPOS_CERTIFICADO = frozenset({"ASISTENCIA", "APROBACION"})
 REQUIRED_FIELDS = (
     "id_certificado",

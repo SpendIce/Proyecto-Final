@@ -9,6 +9,7 @@ Form de decisiones (#72), la entrega por `gmail.send` con lista de prueba
 
 import base64
 import json
+import zlib
 from email import policy as email_policy
 from email.parser import BytesParser
 from pathlib import Path
@@ -23,6 +24,7 @@ from agente1.certificados_emision import (
     procesar_emision_certificados,
     revisar_aprobacion_lote,
 )
+from agente1.certificados_plantilla_seu import RecursosFirmaDirectorio
 from agente1.confirmaciones import (
     ROL_APROBACION_SEMANTICA,
     ROL_APROBACION_UTILITARIA,
@@ -253,6 +255,7 @@ def _ejecutar(
     solicitante_correo: str = CORREO_CARGADOR,
     lector=None,
     destino=None,
+    recursos_firma=None,
 ):
     """Corre `procesar_emision_certificados` con todo fake e inyectable."""
 
@@ -274,6 +277,7 @@ def _ejecutar(
         correo_aprobador=CORREO_APROBADOR,
         solicitante_correo=solicitante_correo,
         directorio_salida=tmp_path / "salida",
+        recursos_firma=recursos_firma,
     )
     return resultado, registro, transporte, tokens
 
@@ -289,6 +293,31 @@ def _adjunto_pdf_de(mensaje) -> bytes:
         if parte.get_content_type() == "application/pdf":
             return parte.get_payload(decode=True)
     raise AssertionError("el correo no lleva adjunto PDF")
+
+
+def _texto_pdf(pdf: bytes) -> bytes:
+    """El texto del documento: crudo más todo stream FlateDecode.
+
+    La plantilla provisional viaja sin comprimir y la SEU (#126) lleva el
+    contenido comprimido: así las dos quedan legibles para las búsquedas.
+    """
+
+    partes = [pdf]
+    pos = 0
+    while True:
+        ini = pdf.find(b"stream\n", pos)
+        if ini < 0:
+            break
+        ini += len(b"stream\n")
+        fin = pdf.find(b"\nendstream", ini)
+        if fin < 0:
+            break
+        try:
+            partes.append(zlib.decompress(pdf[ini:fin]))
+        except zlib.error:
+            pass
+        pos = fin + 1
+    return b"\n".join(partes)
 
 
 def _leer_log(resultado) -> list[dict[str, object]]:
@@ -577,12 +606,15 @@ def test_emision_completa_entrega_un_pdf_por_titular(tmp_path: Path):
         destinatarios.append(mensaje["To"])
         pdf = _adjunto_pdf_de(mensaje)
         assert pdf.startswith(b"%PDF")
+        texto = _texto_pdf(pdf)
         # Marca de prueba permanente, sin marca de borrador en el emitido.
-        assert b"DOCUMENTO DE PRUEBA" in pdf
-        assert b"BORRADOR" not in pdf
-        # El titular y la actividad están en el PDF, con las dos firmas.
-        assert b"CERTIFICADO DE" in pdf
-        assert b"Moreira" in pdf or b"Sebasti" in pdf
+        assert b"DOCUMENTO DE PRUEBA" in texto
+        assert b"BORRADOR" not in texto
+        # El titular y la actividad están en el PDF, con las dos firmas:
+        # la aprobación sale con la plantilla SEU y la asistencia con la
+        # provisional, que también lleva a los dos declarantes (#126).
+        assert b"CERTIFICADO" in texto
+        assert b"Moreira" in texto or b"MOREIRA" in texto
     assert sorted(destinatarios) == sorted(fila[3] for fila in PERSONAS)
     # El token se pidió una vez por correo, siempre después de validar.
     assert tokens.invocaciones == 3
@@ -597,9 +629,43 @@ def test_condiciones_se_renderizan_distinto(tmp_path: Path):
     textos = []
     for solicitud in transporte.solicitudes:
         pdf = _adjunto_pdf_de(_mime_de(solicitud))
-        textos.append(pdf)
-    assert any(b"CERTIFICADO DE APROBACI" in pdf for pdf in textos)
-    assert any(b"CERTIFICADO DE ASISTENCIA" in pdf for pdf in textos)
+        textos.append(_texto_pdf(pdf))
+    # Aprobación con la plantilla SEU recibida (#126), asistencia con la
+    # provisional pendiente de la variante institucional.
+    assert any(b"APROBAR" in texto for texto in textos)
+    assert any(b"CERTIFICADO DE ASISTENCIA" in texto for texto in textos)
+
+
+def test_plantillas_y_recursos_en_la_auditoria(tmp_path: Path):
+    """Cada entrega deja la plantilla usada; la ruta y los nombres de los
+    recursos restringidos (#126) no entran al log ni al correo."""
+
+    recursos_dir = Path(__file__).parent / "fixtures" / "recursos-firma"
+    registro = _registro_listo(tmp_path)
+    resultado, _, transporte, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        respuestas=_ok_envio(3),
+        recursos_firma=RecursosFirmaDirectorio(recursos_dir),
+    )
+    assert resultado.estado == "EMITIDA"
+    plantillas = {
+        entrada["plantilla"]
+        for entrada in _leer_log(resultado)
+        if entrada.get("evento") == "entrega"
+    }
+    assert plantillas == {
+        "certificado_seu_aprobacion_v1",
+        "certificado_base_provisional_v1",
+    }
+    for artefacto in [
+        Path(resultado.log_path).read_text(encoding="utf-8"),
+        *(solicitud["body"].decode("utf-8") for solicitud in transporte.solicitudes),
+    ]:
+        assert "recursos-firma" not in artefacto
+        assert "firma-decano" not in artefacto
+        assert "firma-secretario" not in artefacto
+        assert "simbolo-fie" not in artefacto
 
 
 def test_emision_desde_lista_leida_por_sheet(tmp_path: Path):
