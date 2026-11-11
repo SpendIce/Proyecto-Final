@@ -906,7 +906,7 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
 ```
 
 La plantilla institucional de **aprobación** recibida de la SEU quedó
-integrada como composición reproducible (#126, ADR 0016): la firma
+integrada como composición reproducible (#126, ADR 0017): la firma
 digital, la variante de asistencia y el destino de emisión real quedan
 `PENDIENTE_SEU`. Consultar `evidencias/limites-hu014-offline.md`; no
 hay emisión institucional, validación SEU ni evidencia de TRL 3.

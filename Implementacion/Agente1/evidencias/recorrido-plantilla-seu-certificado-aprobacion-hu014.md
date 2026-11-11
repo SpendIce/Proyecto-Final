@@ -31,7 +31,7 @@
   `pdf_hash`: la traza de cuál composición salió queda en la auditoría.
 - Que `asistencia` sigue saliendo con `certificado_base_provisional_v1`:
   la SEU no entregó ni avaló la variante de asistencia y queda
-  explícitamente pendiente (ADR 0016).
+  explícitamente pendiente (ADR 0017).
 
 ## Qué NO demuestra
 

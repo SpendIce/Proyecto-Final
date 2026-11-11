@@ -54,7 +54,7 @@ Dirección. Detalle en el procedimiento.
     del ejemplo recibido.
   - La aprobación del lote no cambia: `revisar_aprobacion_lote` queda
     intacta y la definición del 11/11 (la aprueba quien la genera) es
-    alcance de #125. Ver ADR 0016.
+    alcance de #125. Ver ADR 0017.
 
 - **Mayor — área FIE, firma de área opcional y públicos destinatarios del
   pedido (#154).** Cambian contratos versionados; todavía no corta versión.
