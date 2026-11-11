@@ -21,6 +21,6 @@ LÍMITES:
 - El render es determinista; no se entrega este contenido a un LLM.
 - El asunto del borrador es el asunto_preinscripcion del plan, sin la marca de borrador: la respuesta del preinscripto con el comprobante se asocia a la actividad por ese asunto normalizado (§4.2 del diseño de control de pagos). La marca viaja sólo en el cuerpo, que es donde el destino la exige.
 - Los medios de pago del plan, incluidos links o datos bancarios cuando el plan los declare, aparecen sólo en el cuerpo: la auditoría conserva hashes, nunca esos datos.
-- El tipo tramita por solicitud individual con la aprobación única de contenido por pieza (#125): no hay aprobación de plantilla previa ni de lote porque cada correo es una comunicación distinta por destinatario y plan.
+- El tipo tramita por solicitud individual con la doble aprobación por pieza de siempre (CU10): no hay aprobación de plantilla previa ni de lote porque cada correo es una comunicación distinta por destinatario y plan.
 - Sólo el destino habilitado por el circuito — el fake explícito o el Gmail con lista de direcciones de prueba — puede entregarla.
 - La plantilla institucional definitiva queda PENDIENTE_SEU.
