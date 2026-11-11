@@ -905,8 +905,10 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
     tests/test_matriz_hu014.py
 ```
 
-La plantilla institucional, la firma digital y el destino de emisión real
-quedan `PENDIENTE_SEU`. Consultar `evidencias/limites-hu014-offline.md`; no
+La plantilla institucional de **aprobación** recibida de la SEU quedó
+integrada como composición reproducible (#126, ADR 0017): la firma
+digital, la variante de asistencia y el destino de emisión real quedan
+`PENDIENTE_SEU`. Consultar `evidencias/limites-hu014-offline.md`; no
 hay emisión institucional, validación SEU ni evidencia de TRL 3.
 
 ## HU-014 — emisión del lote con lista de cierre (#75)
@@ -936,12 +938,21 @@ El circuito, en orden y todo fail-closed:
    cargó la lista no puede aprobarla. Mientras falta, el lote queda
    `PENDIENTE_APROBACION` y sale el correo al aprobador con el enlace al
    Form y un **PDF de muestra marcado `BORRADOR — NO EMITIR`** adjunto.
-5. **La entrega es un correo por titular con el PDF adjunto** por
+5. **La plantilla depende de la condición** (#126): `aprobacion` compone
+   el diseño SEU recibido (A4 horizontal, doble borde, símbolo FIE y los
+   bloques del Secretario de Extensión y del Decano, sin tercer
+   firmante) con `certificados_plantilla_seu.py`; `asistencia` sigue con
+   la composición provisional hasta la variante institucional o su
+   adaptación avalada. El símbolo y las firmas se leen de una carpeta
+   restringida fuera del repo (`AGENTE1_CERTIFICADOS_RECURSOS_DIR` en
+   live, `--recursos` en offline); si faltan, el espacio queda marcado
+   como insumo no provisto, nunca con imagen sustituta.
+6. **La entrega es un correo por titular con el PDF adjunto** por
    `gmail.send` cercado por la lista de prueba (un destinatario fuera de
    ella rechaza antes del token y de la red, sin reintento). Resultados:
    `EMITIDA`, `EMITIDA_PARCIAL`, `FALLIDA`, `INVALIDA` o
    `PENDIENTE_APROBACION`.
-6. **Marcas permanentes y retención mínima.** Todo PDF lleva
+7. **Marcas permanentes y retención mínima.** Todo PDF lleva
    `DOCUMENTO DE PRUEBA — SIN VALIDEZ` como primera línea mientras rija la
    lista sintética. La auditoría `emisiones-certificados-hu014.jsonl` guarda
    sólo hashes (solicitante, lista, titular, destinatario, PDF): ni la lista
@@ -964,14 +975,19 @@ En offline la lista es un CSV, la línea un archivo externo y las entregas
 quedan en `entregas-certificados-offline.jsonl` (del adjunto, sólo sha256).
 En live hacen falta `--live --confirm-write-workspace` y el entorno:
 `AGENTE1_CERTIFICADOS_LISTA_SHEET_ID`, `…_LISTA_RANGO_A1`, `…_LINEA_PATH`,
-`…_APROBADOR`, `…_SOLICITANTE`, además de las variables Workspace, Form de
-decisiones, padrón y lista de prueba de siempre. La receta completa —offline
-y live— está en `evidencias/recorrido-emision-certificados-hu014.md`.
+`…_APROBADOR`, `…_SOLICITANTE` y `…_RECURSOS_DIR` (la carpeta restringida
+con el símbolo FIE y las firmas, fuera del repo y de Git), además de las
+variables Workspace, Form de decisiones, padrón y lista de prueba de
+siempre. La receta completa —offline y live— está en
+`evidencias/recorrido-emision-certificados-hu014.md`.
 
 El ambiente D2 previsto para la corrida live es el del hilo de demostración
-NotebookLM Nivel 2. No hay firma digital ni imágenes de firma en el repo
-(`PENDIENTE_SEU`, carpeta D2 restringida cuando la SEU las entregue), ni
-emisión sin las aprobaciones, ni destinatarios fuera de la lista de prueba.
+NotebookLM Nivel 2 (24 horas: la composición toma la carga de los datos
+de la actividad, nada queda heredado del ejemplo recibido). Las imágenes
+de firma nunca se versionan: viven en la carpeta restringida de la
+custodia y los tests usan recursos sintéticos propios
+(`tests/fixtures/recursos-firma/`). No hay firma digital, no hay emisión
+sin las aprobaciones ni destinatarios fuera de la lista de prueba.
 
 ## Operaciones seguras D2/D3
 

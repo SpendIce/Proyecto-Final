@@ -29,6 +29,10 @@ Dos modos, como en `atender_canal_form.py`:
     `AGENTE1_CERTIFICADOS_LINEA_PATH`       archivo con la línea aprobada
     `AGENTE1_CERTIFICADOS_APROBADOR`        correo del rol utilitario
     `AGENTE1_CERTIFICADOS_SOLICITANTE`      correo de quien cargó la lista
+    `AGENTE1_CERTIFICADOS_RECURSOS_DIR`     carpeta restringida con símbolo
+                                          y firmas de la plantilla SEU
+                                          (#126); optativa: sin ella los
+                                          espacios salen no provistos
   Todo eso sale del entorno y nunca de argv, igual que el resto de la
   configuración institucional.
 
@@ -51,6 +55,7 @@ from agente1.canal_form import LectorValoresCsv
 from agente1.certificados_emision import (
     DestinoCorreoArchivo,
     procesar_emision_certificados,
+    recursos_firma_opcional,
 )
 from agente1.decisiones_form import (
     EnlacesDecisiones,
@@ -139,6 +144,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Correo de quien pidió la emisión y cargó la lista (offline).",
     )
     parser.add_argument(
+        "--recursos",
+        type=Path,
+        help="Carpeta con símbolo y firmas de la plantilla SEU (offline, #126).",
+    )
+    parser.add_argument(
         "--csv",
         type=Path,
         default=DATASET_DEFAULT,
@@ -192,6 +202,9 @@ def main(argv: list[str] | None = None) -> int:
             )
             correo_aprobador = _env_requerido(CERT_PREFIX + "APROBADOR")
             solicitante = _env_requerido(CERT_PREFIX + "SOLICITANTE")
+            recursos_firma = recursos_firma_opcional(
+                os.environ.get(CERT_PREFIX + "RECURSOS_DIR")
+            )
             destino = GmailDestinoConfirmaciones.desde_entorno(
                 token_provider=token_provider,
                 timeout_s=config_ws.timeout_s,
@@ -221,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
             linea = _linea_desde_path(args.linea)
             correo_aprobador = args.aprobador
             solicitante = args.solicitante
+            recursos_firma = recursos_firma_opcional(args.recursos)
             destino = DestinoCorreoArchivo(
                 args.directorio / "estado-canal-form" / ENTREGAS_OFFLINE_NOMBRE
             )
@@ -239,6 +253,7 @@ def main(argv: list[str] | None = None) -> int:
             correo_aprobador=correo_aprobador,
             solicitante_correo=solicitante,
             directorio_salida=args.directorio,
+            recursos_firma=recursos_firma,
         )
     except ConfiguracionWorkspaceError as exc:
         _emitir({"estado": "RECHAZADA", "resultado": exc.code})

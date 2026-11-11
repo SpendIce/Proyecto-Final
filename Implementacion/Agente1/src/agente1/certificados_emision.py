@@ -59,13 +59,20 @@ El circuito, en orden:
    restringida fuera del repo; ninguna imagen de firma entra a Git, y la
    marca de prueba se mantiene igual.
 
-La plantilla es la base provisional acordada con campos confirmados por la
-SEU el 22/09: encabezado, organización, titular con tratamiento y
-documento, actividad con carga horaria, modalidad y fecha, línea
-descriptiva aprobada, bloque de firmas del Secretario de Extensión y del
-Decano con el espacio de imagen marcado como insumo provisional, y la
-declaración de documento provisional sin firma digital. La plantilla
-institucional final queda `PENDIENTE_SEU`.
+La plantilla depende de la condición declarada en la lista (#126): la de
+**aprobación** compone el diseño institucional recibido de la SEU el
+19/10/2026 —A4 horizontal, doble borde, símbolo FIE, bloques de Secretario
+y Decano— en `certificados_plantilla_seu.py`, con símbolo y firmas leídos
+de la carpeta restringida por `recursos_firma` (fuera de Git; el recurso
+ausente deja su espacio marcado, nunca una firma inventada). La de
+**asistencia** sigue siendo la base provisional acordada con campos
+confirmados por la SEU el 22/09 —encabezado, organización, titular con
+tratamiento y documento, actividad con carga horaria, modalidad y fecha,
+línea descriptiva aprobada, bloque de firmas del Secretario de Extensión
+y del Decano con el espacio de imagen marcado como insumo provisional, y
+la declaración de documento provisional sin firma digital— porque la
+variante institucional de asistencia no fue recibida y queda pendiente
+de definición SEU. La auditoría de cada entrega deja la plantilla usada.
 """
 
 from __future__ import annotations
@@ -77,7 +84,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from .certificados import generar_pdf_certificado
+from .certificados import MARCA_PRUEBA, generar_pdf_certificado
+from .certificados_plantilla_seu import (
+    TEMPLATE_VERSION_SEU,
+    DatosCertificadoSeu,
+    RecursosFirma,
+    RecursosFirmaDirectorio,
+    fecha_lugar_texto,
+    generar_pdf_certificado_seu,
+    horas_reloj_texto,
+)
 from .confirmaciones import (
     MARCADOR_BORRADOR as MARCADOR_BORRADOR_CORREO,
 )
@@ -101,8 +117,6 @@ CONTRACT_VERSION = "certificado_emision_lote_v1"
 TEMPLATE_VERSION = "certificado_base_provisional_v1"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 LOG_NAME = "emisiones-certificados-hu014.jsonl"
-
-MARCA_PRUEBA = "DOCUMENTO DE PRUEBA — SIN VALIDEZ"
 
 CONDICIONES_CIERRE = frozenset({"asistencia", "aprobacion"})
 COLUMNAS_LISTA_CIERRE = (
@@ -338,6 +352,59 @@ _TEXTO_POR_CONDICION = {
     "aprobacion": ("CERTIFICADO DE APROBACIÓN", "aprobó"),
 }
 
+# La SEU entregó plantilla sólo para `aprobacion` (#126): esa condición se
+# compone con el diseño recibido; `asistencia` sigue con la provisional y
+# queda declarada pendiente de la variante institucional o su adaptación
+# avalada. El evento de cada entrega deja la plantilla usada.
+_PLANTILLA_POR_CONDICION = {
+    "aprobacion": TEMPLATE_VERSION_SEU,
+    "asistencia": TEMPLATE_VERSION,
+}
+
+
+def _pdf_para_persona(
+    *,
+    persona: PersonaCierre,
+    actividad: dict[str, str],
+    linea_descriptiva: str,
+    id_certificado: str,
+    firmantes: tuple[Firmante, ...],
+    recursos_firma: RecursosFirma | None,
+    borrador: bool,
+) -> tuple[bytes, str]:
+    """El PDF de una persona con la plantilla que dicta su condición.
+
+    `aprobacion` compone el diseño SEU recibido (#126) con los recursos
+    de firma de la custodia; `asistencia` queda en la plantilla
+    provisional hasta que la SEU entregue o avale su variante — el
+    `plantilla` devuelto es la traza de cuál salió.
+    """
+
+    if persona.condicion == "aprobacion":
+        datos = DatosCertificadoSeu(
+            nombre=persona.nombre,
+            apellido=persona.apellido,
+            dni=persona.dni,
+            actividad=actividad["titulo"],
+            horas=horas_reloj_texto(actividad["duracion_horas"]),
+            fecha=fecha_lugar_texto(
+                actividad.get("fecha_fin") or actividad["fecha_inicio"]
+            ),
+            linea_descriptiva=linea_descriptiva,
+        )
+        pdf = generar_pdf_certificado_seu(
+            datos, recursos=recursos_firma, borrador=borrador
+        )
+        return pdf, _PLANTILLA_POR_CONDICION[persona.condicion]
+    _titulo, cuerpo = renderizar_certificado_lote(
+        persona=persona,
+        actividad=actividad,
+        linea_descriptiva=linea_descriptiva,
+        id_certificado=id_certificado,
+        firmantes=firmantes,
+    )
+    return generar_pdf_certificado(cuerpo, borrador=borrador), _PLANTILLA_POR_CONDICION[persona.condicion]
+
 
 def renderizar_certificado_lote(
     *,
@@ -398,6 +465,7 @@ def procesar_emision_certificados(
     solicitante_correo: str,
     directorio_salida: Path | str,
     firmantes: tuple[Firmante, ...] = FIRMANTES_DECLARADOS,
+    recursos_firma: RecursosFirma | None = None,
     correlation_id: str | None = None,
 ) -> ResultadoEmisionCertificados:
     """Corre el circuito de emisión del lote de cierre de una actividad.
@@ -412,6 +480,10 @@ def procesar_emision_certificados(
     hash queda en la auditoría como `solicitante_hash`, y una aprobación del
     lote que venga de ese mismo correo no habilita (quien carga la lista no
     puede aprobarla).
+    `recursos_firma` es el puerto de custodia del símbolo y las firmas de
+    la plantilla SEU de aprobación (#126): resuelve imágenes desde la
+    carpeta restringida configurada fuera del repo; sin él, los espacios
+    de firma salen marcados como insumo no provisto.
     """
 
     cid = correlation_id or _hash(f"emision|{id_actividad}")[:16]
@@ -606,14 +678,15 @@ def procesar_emision_certificados(
                 "personas": str(len(personas)),
             },
         )
-        _titulo, cuerpo_muestra = renderizar_certificado_lote(
+        pdf_muestra, plantilla_muestra = _pdf_para_persona(
             persona=personas[0],
             actividad=actividad,
             linea_descriptiva=texto_linea,
             id_certificado=f"cert-{id_actividad.strip()}-{personas[0].dni}",
             firmantes=firmantes,
+            recursos_firma=recursos_firma,
+            borrador=True,
         )
-        pdf_muestra = generar_pdf_certificado(cuerpo_muestra, borrador=True)
         enlace = enlaces.enlace(
             tipo="lote", objeto_id=objeto_lote, decision="apruebo_lote"
         )
@@ -649,7 +722,11 @@ def procesar_emision_certificados(
                 "no se pudo enviar el correo de aprobación del lote",
                 str(code),
             )
-        evento("aviso_aprobacion", resultado="enviado")
+        evento(
+            "aviso_aprobacion",
+            resultado="enviado",
+            plantilla_muestra=plantilla_muestra,
+        )
         resumen = (
             "el lote quedó pendiente y se envió el correo de aprobación "
             "con el certificado de muestra"
@@ -668,14 +745,15 @@ def procesar_emision_certificados(
     fallidas = 0
     for persona in personas:
         id_certificado = f"cert-{id_actividad.strip()}-{persona.dni}"
-        titulo, cuerpo = renderizar_certificado_lote(
+        pdf, plantilla = _pdf_para_persona(
             persona=persona,
             actividad=actividad,
             linea_descriptiva=texto_linea,
             id_certificado=id_certificado,
             firmantes=firmantes,
+            recursos_firma=recursos_firma,
+            borrador=False,
         )
-        pdf = generar_pdf_certificado(cuerpo, borrador=False)
         destinatario_hash = _hash(persona.mail.lower())
         certificado_ref_hash = _hash(id_certificado)
         holder_hash = _hash(
@@ -709,6 +787,7 @@ def procesar_emision_certificados(
                 destinatario_hash=destinatario_hash,
                 holder_hash=holder_hash,
                 certificado_ref_hash=certificado_ref_hash,
+                plantilla=plantilla,
             )
             continue  # rechazo de política o falla del medio: no reintenta
         emitidas += 1
@@ -719,6 +798,7 @@ def procesar_emision_certificados(
             holder_hash=holder_hash,
             certificado_ref_hash=certificado_ref_hash,
             pdf_hash=_hash_bytes(pdf),
+            plantilla=plantilla,
         )
     estado = (
         "EMITIDA"
@@ -739,6 +819,20 @@ def procesar_emision_certificados(
         emitidas=emitidas,
         entregas_fallidas=fallidas,
     )
+
+
+def recursos_firma_opcional(directorio: Path | str | None) -> RecursosFirma | None:
+    """El puerto de custodia de #126, declarado por configuración.
+
+    En vivo el directorio sale de `AGENTE1_CERTIFICADOS_RECURSOS_DIR` y en
+    los runners offline del flag `--recursos`; sin valor declarado el
+    circuito corre igual y las firmas salen como insumo no provisto.
+    """
+
+    if directorio is None:
+        return None
+    texto = str(directorio).strip()
+    return RecursosFirmaDirectorio(texto) if texto else None
 
 
 def construir_emisor_certificados(**config):
@@ -845,6 +939,7 @@ __all__ = [
     "objeto_lote_cierre",
     "parsear_lista_cierre",
     "procesar_emision_certificados",
+    "recursos_firma_opcional",
     "renderizar_certificado_lote",
     "revisar_aprobacion_lote",
 ]

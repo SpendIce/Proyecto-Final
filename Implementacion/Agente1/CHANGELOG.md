@@ -26,6 +26,36 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+- **Menor — plantilla SEU del certificado de aprobación (#126).** La
+  emisión de `aprobacion` compone el diseño recibido de la SEU como PDF
+  reproducible; `asistencia` sigue con la provisional pendiente de la
+  variante institucional. Sin corte de versión.
+  - `src/agente1/certificados_plantilla_seu.py`: renderer nuevo
+    (`certificado_seu_aprobacion_v1`) —A4 horizontal, doble borde,
+    símbolo FIE, encabezado institucional, destinatario en negrita, dos
+    bloques visibles de firma (Secretario de Extensión y Decano; el
+    tercer firmante heredado del XML no se compone)— con parámetros
+    nombre/apellido/DNI/actividad/horas/fecha, decodificadores PNG/JPEG
+    de stdlib y salida determinista byte a byte.
+  - `src/agente1/certificados_emision.py`: la condición elige la
+    plantilla (`aprobacion` → SEU, `asistencia` → provisional), el
+    evento `entrega` deja la `plantilla` usada y se agrega el puerto
+    `recursos_firma` para los recursos restringidos.
+  - `scripts/emitir_certificados.py` y `scripts/atender_canal_form.py`:
+    flag offline `--recursos` y variable live
+    `AGENTE1_CERTIFICADOS_RECURSOS_DIR`; la carpeta vive fuera de Git y
+    un recurso faltante deja el espacio marcado, nunca una firma
+    sustituta.
+  - `tests/fixtures/recursos-firma/`: símbolo y firmas sintéticas
+    versionadas para tests (generadas por código, sin material del
+    original).
+  - `data/actividades_notebooklm_n2_sinteticas.csv`: el caso NotebookLM
+    Nivel 2 declara sus 24 horas y su organizador sin heredar los datos
+    del ejemplo recibido.
+  - La aprobación del lote no cambia: `revisar_aprobacion_lote` queda
+    intacta y la definición del 11/11 (la aprueba quien la genera) es
+    alcance de #125. Ver ADR 0017.
+
 - **Mayor — área FIE, firma de área opcional y públicos destinatarios del
   pedido (#154).** Cambian contratos versionados; todavía no corta versión.
   Con la versión en `0.x`, la próxima es `0.6.0`.

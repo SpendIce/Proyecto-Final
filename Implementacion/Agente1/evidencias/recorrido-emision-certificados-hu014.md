@@ -315,6 +315,7 @@ AGENTE1_CERTIFICADOS_LISTA_RANGO_A1  # rango A1 de esa lista
 AGENTE1_CERTIFICADOS_LINEA_PATH      # archivo con la línea aprobada (#74)
 AGENTE1_CERTIFICADOS_APROBADOR       # correo del rol utilitario
 AGENTE1_CERTIFICADOS_SOLICITANTE     # correo de quien cargó la lista
+AGENTE1_CERTIFICADOS_RECURSOS_DIR    # carpeta restringida con símbolo y firmas (#126)
 AGENTE1_WORKSPACE_ACCESS_TOKEN       # token efímero, nunca por argv
 ```
 
@@ -329,11 +330,14 @@ está declarado.
 
 ## Restricciones que quedan en pie
 
-- El certificado es provisional y de prueba: `DOCUMENTO DE PRUEBA —
-  SIN VALIDEZ` en todo PDF y `BORRADOR — NO EMITIR` en la muestra.
-- No hay firma digital ni imágenes de firma versionadas: la plantilla
-  institucional y las firmas quedan `PENDIENTE_SEU` y vivirán en una
-  carpeta D2 restringida de la cuenta técnica.
+- El certificado es de prueba: `DOCUMENTO DE PRUEBA — SIN VALIDEZ` en
+  todo PDF y `BORRADOR — NO EMITIR` en la muestra.
+- La aprobación compone la plantilla SEU recibida (#126,
+  `certificado_seu_aprobacion_v1`); la asistencia sigue con la
+  provisional hasta la variante institucional o su adaptación avalada.
+- No hay firma digital ni imágenes de firma versionadas: el símbolo y
+  las firmas viven en la carpeta restringida de la cuenta técnica
+  (`AGENTE1_CERTIFICADOS_RECURSOS_DIR`) y fuera de Git.
 - El trigger automático al cerrar la actividad es HU-015: fuera de
   alcance. El disparo es siempre un pedido humano.
 - Una reemisión es un pedido nuevo sobre la lista vigente: si la lista

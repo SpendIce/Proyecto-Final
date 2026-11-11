@@ -80,6 +80,7 @@ from agente1.canal_form import (
 from agente1.certificados_emision import (
     DestinoCorreoArchivo,
     construir_emisor_certificados,
+    recursos_firma_opcional,
 )
 from agente1.decisiones_form import (
     FORM_DECISIONES_PREFIX,
@@ -334,6 +335,7 @@ def _emisor_offline(
         ),
         correo_aprobador=args.aprobador,
         directorio_salida=directorio_salida,
+        recursos_firma=recursos_firma_opcional(args.recursos),
     )
 
 
@@ -385,6 +387,11 @@ def _emisor_live(
         ),
         correo_aprobador=os.environ[CERT_PREFIX + "APROBADOR"].strip(),
         directorio_salida=directorio_salida,
+        # Los recursos de firma de la plantilla SEU (#126) son optativos:
+        # sin `AGENTE1_CERTIFICADOS_RECURSOS_DIR` salen no provistos.
+        recursos_firma=recursos_firma_opcional(
+            os.environ.get(CERT_PREFIX + "RECURSOS_DIR")
+        ),
     )
 
 
@@ -430,6 +437,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--aprobador",
         help="Correo del rol utilitario que aprueba el lote de cierre (offline, #75).",
+    )
+    parser.add_argument(
+        "--recursos",
+        type=Path,
+        help="Carpeta con símbolo y firmas de la plantilla SEU (offline, #126).",
     )
     parser.add_argument(
         "--plan-csv",
