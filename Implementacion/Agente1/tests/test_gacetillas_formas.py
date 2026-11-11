@@ -1,10 +1,11 @@
-"""Conformidad de forma de los siete tipos de gacetilla (#121).
+"""Conformidad de forma de los siete tipos de gacetilla (#121, #154).
 
-Cada tipo declara su forma (`contracts/formas/<tipo>_v1.json`) y su contrato de
-entrada (`contracts/entradas/<tipo>_v1.json`). Este modulo verifica que los
-siete renderizan su pieza desde un caso del corpus con el renderer unico, que
-el gate tiene nucleo comun mas reglas por tipo, que solo los tipos que generan
-tienen prompt y que los que extraen y confirman no llaman al modelo.
+Cada tipo declara su forma (`contracts/formas/<tipo>_v<N>.json`) y su contrato
+de entrada (`contracts/entradas/<tipo>_v<N>.json`), en la version que fija
+`tipos_gacetilla_v2`. Este modulo verifica que los siete renderizan su pieza
+desde un caso del corpus con el renderer unico, que el gate tiene nucleo comun
+mas reglas por tipo, que solo los tipos que generan tienen prompt y que los
+que extraen y confirman no llaman al modelo.
 
 Los goldens de `golden/formas/` son la pieza esperada de cada tipo: se comparan
 byte a byte contra el renderer. El caso es sintetico y con forma del corpus;
@@ -66,7 +67,9 @@ CASOS: dict[str, dict[str, str]] = {
         "hecho": "el estacionamiento para motos no estará habilitado",
         "fecha": "2026-11-02",
         "condicion": "hasta nuevo aviso",
-        "area_emisora": "Secretaría Académica",
+        # #154: el estacionamiento es una comunicacion general de la FIE, no
+        # de un area en particular. El pie imprime el nombre institucional.
+        "area_emisora": "Facultad de Ingeniería del Ejército",
     },
     "convocatoria_interna": {
         "titulo": "Convocatoria interna de tutores",
@@ -127,6 +130,15 @@ def _pieza(tipo: str) -> str:
     return pieza
 
 
+# Los tipos cuyo pedido declara area emisora (#154): su forma v2 deja la
+# firma del area como opcion separada (`pie_condicion: firma_de_area`).
+TIPOS_CON_FIRMA_DE_AREA = (
+    "aviso_de_otra_area",
+    "convocatoria_interna",
+    "newsletter",
+)
+
+
 class GeneratorQueNoDebeInvocarse:
     modelo = "fake-no-invocar"
 
@@ -151,7 +163,10 @@ def test_los_siete_tipos_declaran_forma_versionada_y_contrato_de_entrada():
         forma = cargar_forma(tipo)
         entrada = cargar_entrada(tipo)
 
-        assert forma["schema_version"] == f"forma_gacetilla_{tipo}_v1"
+        # #154: los tipos cuyo pedido declara area emisora estan en forma y
+        # entrada v2 por la firma de area opcional; el resto sigue en v1.
+        version = 2 if tipo in TIPOS_CON_FIRMA_DE_AREA else 1
+        assert forma["schema_version"] == f"forma_gacetilla_{tipo}_v{version}"
         assert forma["tipo"] == tipo
         # La fuente del modo es el contrato de tipos: la forma ni la entrada
         # lo repiten, que es como se evita decidirlo en dos lugares.
@@ -217,6 +232,96 @@ def test_cada_tipo_renderiza_su_pieza_del_corpus_y_pasa_el_gate(tipo):
 
     assert pieza == esperada
     assert validar_pieza(tipo, pieza, _campos(tipo)) == []
+
+
+def test_el_estacionamiento_es_un_caso_de_area_fie() -> None:
+    """#154: el aviso de estacionamiento es una comunicación general de la
+    FIE, no de un área en particular. El pie imprime el nombre
+    institucional exacto, encima del firmante que va siempre."""
+
+    pieza = _pieza("aviso_de_otra_area")
+
+    assert "\nFacultad de Ingeniería del Ejército\n\n--\n" in pieza
+    assert "Secretaría Académica" not in pieza
+
+
+def test_salida_academica_de_secretaria_academica_sin_firma_de_area() -> None:
+    """#154: la salida académica es de la Secretaría Académica y va sin
+    firma de área. El pie no imprime el área y el bloque institucional fijo
+    de la FIE (`firmante`) va siempre."""
+
+    campos = {
+        "titulo": "Salida académica al Museo de Ciencias Naturales",
+        "publico": "educativa",
+        "hecho": "la salida académica al Museo de Ciencias Naturales queda confirmada",
+        "fecha": "2026-11-20",
+        "condicion": "con salida desde la facultad",
+        "area_emisora": "Secretaría Académica",
+        "firma_de_area": "no",
+    }
+
+    pieza, errores = confirmar_pieza("aviso_de_otra_area", campos)
+
+    assert errores == []
+    assert "Secretaría Académica" not in pieza
+    # El membrete institucional queda: el firmante va con o sin firma de área.
+    assert "--\nFacultad de Ingeniería del Ejército" in pieza
+
+
+@pytest.mark.parametrize("tipo", TIPOS_CON_FIRMA_DE_AREA)
+def test_con_la_firma_desactivada_el_pie_no_imprime_el_area_y_el_firmante_va(
+    tipo: str,
+) -> None:
+    """#154: área y firma de área son dos decisiones del pedido.
+
+    Con `firma_de_area: no` la pieza no imprime el área — el gate no la
+    exige como hecho ni como emisor — y el `firmante` institucional queda.
+    """
+
+    campos = dict(CASOS[tipo])
+    # Un área distinta de la FIE, para que su nombre no aparezca también
+    # en la primera línea del firmante.
+    campos["area_emisora"] = "Secretaría Académica"
+    campos["firma_de_area"] = "no"
+
+    pieza, errores = confirmar_pieza(tipo, campos)
+
+    assert errores == []
+    assert "Secretaría Académica" not in pieza
+    assert cargar_forma(tipo)["firmante"] in pieza
+
+
+@pytest.mark.parametrize("tipo", TIPOS_CON_FIRMA_DE_AREA)
+def test_la_firma_de_area_declarada_si_imprime_el_area_como_siempre(
+    tipo: str,
+) -> None:
+    """El default documentado conserva el comportamiento: con firma activa
+    — explícita o ausente — el pie imprime el área del padrón."""
+
+    campos = dict(CASOS[tipo])
+    campos["firma_de_area"] = "si"
+    pieza, errores = confirmar_pieza(tipo, campos)
+    assert errores == []
+    assert campos["area_emisora"] in pieza
+
+    # Sin el campo vale «si»: el pedido que no elige nada firma con el área.
+    campos.pop("firma_de_area")
+    pieza_default, errores_default = confirmar_pieza(tipo, campos)
+    assert errores_default == []
+    assert pieza_default == pieza
+
+
+def test_el_gate_no_exige_el_area_cuando_la_firma_esta_desactivada() -> None:
+    """La regla del emisor exige el área confirmada en el pedido, no su
+    impresión: con la firma apagada una pieza sin el área es conforme."""
+
+    campos = dict(CASOS["convocatoria_interna"])
+    campos["firma_de_area"] = "no"
+
+    pieza, errores = confirmar_pieza("convocatoria_interna", campos)
+
+    assert errores == []
+    assert validar_pieza("convocatoria_interna", pieza, campos) == []
 
 
 def test_la_difusion_no_repite_la_frase_fija_de_invitacion_y_sigue_siendo_fie_informa():

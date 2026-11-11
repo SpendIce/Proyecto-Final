@@ -1,15 +1,17 @@
-"""Regresion del contrato de tipos de gacetilla (issue #120).
+"""Regresion del contrato de tipos de gacetilla (issues #120 y #154).
 
 El contrato es la interfaz congelada entre la decision #120 y su trabajo: la
 forma declarada y el modo de produccion de cada tipo, y si el tipo necesita una
-actividad de la fuente institucional. Si alguien agrega, saca o cambia un tipo,
+actividad de la fuente institucional. La v2 (#154) suma, por tipo, la version
+de su forma y de su contrato de entrada, y si el pedido lleva publicos
+destinatarios del catalogo cerrado. Si alguien agrega, saca o cambia un tipo,
 esta regresion falla y obliga a decidirlo en el contrato, no en el codigo.
 """
 
 import json
 from pathlib import Path
 
-CONTRATO = Path(__file__).resolve().parents[1] / "src" / "agente1" / "contracts" / "tipos_gacetilla_v1.json"
+CONTRATO = Path(__file__).resolve().parents[1] / "src" / "agente1" / "contracts" / "tipos_gacetilla_v2.json"
 
 # Los siete tipos del corpus y su modo, tal como los decidio la decision #120 y
 # su adendo del 17/10. Es la expectativa congelada: cambiarla es cambiar la
@@ -23,6 +25,14 @@ ESPERADO = [
     ("fallecimiento", "extrae_y_confirma", False),
     ("newsletter", "extrae_y_confirma", False),
 ]
+
+# Los tipos cuyo pedido declara area emisora pasaron a forma y entrada v2 por
+# la firma de area opcional (#154). Los demas conservan sus archivos v1.
+VERSIONES_ESPERADAS = {
+    "aviso_de_otra_area": 2,
+    "convocatoria_interna": 2,
+    "newsletter": 2,
+}
 
 
 def _contrato() -> dict:
@@ -66,8 +76,26 @@ def test_la_cronica_declara_generar_desde_historia_viva_como_destino():
     assert "destino_declarado" in tipos["cronica_de_evento"]
 
 
+def test_cada_tipo_declara_que_version_de_su_forma_y_entrada_usa_el_codigo():
+    tipos = {t["id"]: t for t in _contrato()["tipos"]}
+    for id_tipo, esperado in VERSIONES_ESPERADAS.items():
+        assert tipos[id_tipo]["forma_version"] == esperado, id_tipo
+        assert tipos[id_tipo]["entrada_version"] == esperado, id_tipo
+    for id_tipo in set(tipos) - set(VERSIONES_ESPERADAS):
+        assert tipos[id_tipo]["forma_version"] == 1, id_tipo
+        assert tipos[id_tipo]["entrada_version"] == 1, id_tipo
+
+
+def test_todo_tipo_fie_informa_declara_publicos_del_pedido():
+    """#154: todo FIE Informa elige publicos del catalogo; son del pedido,
+    nunca de la pieza."""
+
+    tipos = _contrato()["tipos"]
+    assert all(t["requiere_publicos"] is True for t in tipos)
+
+
 def test_el_contrato_cita_su_decision_y_su_adr():
     contrato = _contrato()
-    assert contrato["x-contract-version"] == "tipos_gacetilla_v1"
-    assert contrato["x-decision"] == "#120"
+    assert contrato["x-contract-version"] == "tipos_gacetilla_v2"
+    assert contrato["x-decision"] == "#154"
     assert contrato["x-adr"].endswith("0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md")

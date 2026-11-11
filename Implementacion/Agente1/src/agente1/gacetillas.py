@@ -5,13 +5,15 @@ siete clases de pieza (ADR 0012): difusion de actividad, cronica de evento,
 aviso de otra area, convocatoria interna, saludo o efemeride, fallecimiento y
 newsletter. Cada tipo declara:
 
-- su **forma declarada** (`contracts/formas/<tipo>_v1.json`): las partes
+- su **forma declarada** (`contracts/formas/<tipo>_v<N>.json`): las partes
   institucionales fijas (encabezado, pie, firmante, formulas y etiquetas) y el
   plan de armado de la pieza. El agente la copia; el modelo nunca la escribe.
-- su **modo de produccion**, declarado en `tipos_gacetilla_v1.json`: *genera*
+- su **modo de produccion**, declarado en `tipos_gacetilla_v2.json`: *genera*
   (el modelo escribe la prosa) o *extrae y confirma* (los datos los carga quien
-  pide y el agente solo los formatea).
-- su **contrato de entrada** (`contracts/entradas/<tipo>_v1.json`): los campos
+  pide y el agente solo los formatea). El contrato de tipos tambien declara
+  que version de la forma y de la entrada usa cada tipo, y si el pedido lleva
+  publicos destinatarios del catalogo cerrado (#154).
+- su **contrato de entrada** (`contracts/entradas/<tipo>_v<N>.json`): los campos
   obligatorios y los que no aplican a esa clase.
 
 El **renderer es uno solo** (`renderizar`) y lo comparten los siete tipos: no
@@ -111,7 +113,7 @@ def _leer_json(*ruta: str) -> dict:
 
 @lru_cache(maxsize=1)
 def _contrato_tipos() -> dict:
-    return _leer_json("contracts", "tipos_gacetilla_v1.json")
+    return _leer_json("contracts", "tipos_gacetilla_v2.json")
 
 
 def tipos() -> tuple[str, ...]:
@@ -137,20 +139,33 @@ def requiere_actividad(tipo: str) -> bool:
     return bool(_entrada_tipo(tipo)["requiere_actividad"])
 
 
+def requiere_publicos(tipo: str) -> bool:
+    """Si el tipo viaja por FIE Informa con publicos destinatarios (#154).
+
+    Los publicos son del pedido —a quien se envia la pieza— no de la pieza:
+    salen del catalogo cerrado de grupos, quedan declarados en la solicitud
+    y nunca entran a una forma ni a un prompt.
+    """
+
+    return bool(_entrada_tipo(tipo).get("requiere_publicos", False))
+
+
 @lru_cache(maxsize=16)
 def cargar_forma(tipo: str) -> dict:
-    """La forma declarada del tipo, desde su archivo versionado."""
+    """La forma declarada del tipo, en la version que su contrato declara."""
 
-    _entrada_tipo(tipo)  # valida que el tipo exista
-    return _leer_json("contracts", "formas", f"{tipo}_v1.json")
+    entrada = _entrada_tipo(tipo)  # valida que el tipo exista
+    version = int(entrada.get("forma_version", 1))
+    return _leer_json("contracts", "formas", f"{tipo}_v{version}.json")
 
 
 @lru_cache(maxsize=16)
 def cargar_entrada(tipo: str) -> dict:
     """El contrato de entrada del tipo: `required` y campos que no aplican."""
 
-    _entrada_tipo(tipo)
-    return _leer_json("contracts", "entradas", f"{tipo}_v1.json")
+    entrada = _entrada_tipo(tipo)
+    version = int(entrada.get("entrada_version", 1))
+    return _leer_json("contracts", "entradas", f"{tipo}_v{version}.json")
 
 
 def campos_obligatorios(tipo: str) -> tuple[str, ...]:
@@ -274,10 +289,36 @@ def _aplicar_bloque(
         raise TipoGacetillaError(f"bloque de forma desconocido: {clase!r}")
 
 
+def _es_negativo(valor: str) -> bool:
+    """La opcion del pedido esta apagada: «no», en cualquier escritura."""
+
+    return normalizar_texto(valor) in {"no", "false", "0"}
+
+
+def _pie_suprimido(forma: Mapping[str, object], valores: Mapping[str, str]) -> bool:
+    """Si la forma declara `pie_condicion`, el pie de area es una opcion.
+
+    `firma_de_area` separa «que area emite» de «si la pieza lleva firma de
+    area» (#154): el area se confirma siempre y el bloque `firmante`
+    institucional va siempre. El unico valor que apaga el pie es «no»; sin
+    el campo, o con «si», el pie imprime — el default declarado conserva el
+    comportamiento de la forma de siempre. Una forma sin `pie_condicion`
+    (las v1) imprime su pie como siempre.
+    """
+
+    condicion = forma.get("pie_condicion")
+    if not isinstance(condicion, str) or not condicion:
+        return False
+    return _es_negativo(_texto(valores, condicion))
+
+
 def _aplicar_pie(forma: Mapping[str, object], valores: Mapping[str, str], lineas: list[str]) -> None:
-    pie = str(forma.get("pie", "")).format(**valores).strip()
-    if pie:
-        lineas += [pie, ""]
+    # El pie de area es una opcion del pedido (#154): con la firma de area
+    # desactivada no se imprime. El `firmante` institucional va siempre.
+    if not _pie_suprimido(forma, valores):
+        pie = str(forma.get("pie", "")).format(**valores).strip()
+        if pie:
+            lineas += [pie, ""]
     firmante = str(forma.get("firmante", "")).format(**valores).strip()
     if firmante:
         lineas += ["--", firmante]
@@ -330,11 +371,16 @@ def nombre_doc(tipo: str, campos: Mapping[str, str], generado_en: date) -> str:
 # --- Gate: nucleo comun mas reglas por tipo ---------------------------------
 
 
-def _campos_referenciados(forma: Mapping[str, object]) -> set[str]:
+def _campos_referenciados(
+    forma: Mapping[str, object], *, incluir_pie: bool = True
+) -> set[str]:
     """Campos que la forma imprime, directa o indirectamente.
 
     Recorre el plan de armado y junta los placeholders de las formulas, del
-    encabezado y del pie. Descarta los auxiliares del renderer.
+    encabezado y del pie. Descarta los auxiliares del renderer. Con el pie
+    suprimido por `pie_condicion` (#154), sus placeholders no son hechos
+    que tengan que aparecer: el area queda confirmada en el pedido sin
+    imprimirse.
     """
 
     referencias: set[str] = set()
@@ -356,7 +402,8 @@ def _campos_referenciados(forma: Mapping[str, object]) -> set[str]:
         for plantilla in formulas.values():
             if isinstance(plantilla, str):
                 _sumar(plantilla)
-    _sumar(str(forma.get("pie", "")))
+    if incluir_pie:
+        _sumar(str(forma.get("pie", "")))
     for bloque in forma.get("cuerpo", ()):
         clase = bloque.get("clase")
         if clase in {"prosa", "campos"}:
@@ -391,7 +438,13 @@ def _regla_fallecimiento_nombre(forma: Mapping[str, object], pieza: str, campos:
 
 def _regla_emisor_confirmado(forma: Mapping[str, object], pieza: str, campos: Mapping[str, str]) -> list[str]:
     area = _texto(campos, "area_emisora")
-    if not area or not _hecho_presente(area, normalizar_texto(pieza)):
+    if not area:
+        return ["emisor_area_no_confirmada"]
+    # Con la firma de area desactivada el pie no imprime el area (#154): la
+    # regla exige el area confirmada en el pedido, no su impresion.
+    if _pie_suprimido(forma, campos):
+        return []
+    if not _hecho_presente(area, normalizar_texto(pieza)):
         return ["emisor_area_no_confirmada"]
     return []
 
@@ -430,7 +483,9 @@ def validar_pieza(tipo: str, pieza: str, campos: Mapping[str, str]) -> list[str]
     normalizado = normalizar_texto(pieza)
     if any(termino in normalizado for termino in TERMINOS_PROCESO_INTERNO):
         errores.append("proceso_interno")
-    for campo in _campos_referenciados(forma):
+    for campo in _campos_referenciados(
+        forma, incluir_pie=not _pie_suprimido(forma, campos)
+    ):
         valor = _texto(campos, campo)
         if valor and not _hecho_presente(valor, normalizado):
             errores.append("hecho_perdido")
@@ -441,6 +496,14 @@ def validar_pieza(tipo: str, pieza: str, campos: Mapping[str, str]) -> list[str]
 
 
 # --- Produccion por modo ----------------------------------------------------
+
+
+# Campos del pedido que no son hechos de la pieza. `publicos` decide a quien
+# se envia (#154): lo valida el canal contra el catalogo cerrado de grupos,
+# queda declarado en la solicitud y nunca puede entrar a un prompt ni
+# cambiar el texto generado. Por eso el filtro vive aca y no depende de
+# «quien llama filtra antes».
+CAMPOS_DEL_PEDIDO_NO_DE_LA_PIEZA = frozenset({"publicos"})
 
 
 def construir_prompt(tipo: str, campos: Mapping[str, str]) -> str:
@@ -454,7 +517,11 @@ def construir_prompt(tipo: str, campos: Mapping[str, str]) -> str:
         .joinpath("prompts", f"{prompt_version}.txt")
         .read_text(encoding="utf-8")
     )
-    datos_fuente = "\n".join(f"{campo}: {valor}" for campo, valor in campos.items())
+    datos_fuente = "\n".join(
+        f"{campo}: {valor}"
+        for campo, valor in campos.items()
+        if campo not in CAMPOS_DEL_PEDIDO_NO_DE_LA_PIEZA
+    )
     return plantilla.replace("{datos_fuente}", datos_fuente)
 
 
