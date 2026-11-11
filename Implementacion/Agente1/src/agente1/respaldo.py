@@ -143,9 +143,13 @@ _ARCHIVOS_SALIDA = ("insumos-procesados.jsonl",)
 
 # Estados desde los que una entrega puede seguir sin otra decisión humana:
 # la aprobación registrada y la espera en cola (#125: sin estados
-# parciales). Si la última transición es posterior a la marca del respaldo,
-# la restauración los declara `ENVIO_INDETERMINADO` (ver docstring del
-# módulo).
+# parciales). Los estados del circuito reemplazado
+# (`confirmaciones.ESTADOS_HEREDADOS`) se leen como `PENDIENTE_VALIDACION`
+# al cargar el registro — una aprobación parcial vieja no cuenta como
+# aprobación — así que nunca entran a esta lista ni habilitan una entrega
+# al restaurar. Si la última transición es posterior a la marca del
+# respaldo, la restauración los declara `ENVIO_INDETERMINADO` (ver
+# docstring del módulo).
 _ESTADOS_APROBACION_POSTERIORES = (
     "APROBADA",
     "ENVIO_ENCOLADO",

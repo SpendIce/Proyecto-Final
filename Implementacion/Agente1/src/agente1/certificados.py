@@ -34,7 +34,7 @@ provisional. La firma digital que menciona el enunciado de la HU queda
 `PENDIENTE_SEU`.
 
 El circuito de decisión es el de HU-012 sin modificaciones: se reusan
-`AprobacionHumana`, `ROLES_APROBACION` y el registro
+`AprobacionHumana` y el registro
 durable archivo-por-clave (`os.link` + `flock`). Los helpers privados que se
 importan mantienen un único contrato de decisión y de hash entre las dos HU;
 los alias de registro sólo ponen el nombre del dominio en las firmas.
@@ -75,16 +75,16 @@ from agente1.decisiones_form import RegistroDecisiones
 from agente1.linea_descriptiva import (
     ID_ACTIVIDAD_RE,
     linea_descriptiva_aprobada,
-    lote_cierre_aprobado,
     normalizar_linea,
     objeto_id_linea_descriptiva,
+    revisar_aprobacion_lote,
     validar_linea_descriptiva,
 )
 from agente1.registro_auditoria import escribir_registro
 
 HU = "HU-014"
 CONTRACT_VERSION = "certificado_emision_v2"
-TEMPLATE_VERSION = "certificado_provisional_v2"
+TEMPLATE_VERSION = "certificado_provisional_v3"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 MARCADOR_BORRADOR = "BORRADOR — NO EMITIR"
 # La marca permanente de prueba la define acá porque la comparten los dos
@@ -229,6 +229,7 @@ def procesar_certificado(
     emitir: bool = False,
     decisiones: RegistroDecisiones | None = None,
     lote_cierre: str | None = None,
+    lote_generada_por_correo_hash: str | None = None,
 ) -> ResultadoCertificado:
     """Genera y opcionalmente emite sólo a un fake, bajo aprobación única.
 
@@ -312,9 +313,8 @@ def procesar_certificado(
                 estado="INVALIDA",
                 error="descriptive_line_invalid",
             )
-    if aprobacion is not None and (
-        not _aprobacion_valida(aprobacion)
-        or aprobacion.rol != ROL_APROBADOR_CONTENIDO
+    if aprobacion is not None and not _aprobacion_valida(
+        aprobacion, rol=ROL_APROBADOR_CONTENIDO
     ):
         return _resultado(
             log_path=log_path,
@@ -353,7 +353,10 @@ def procesar_certificado(
         # ni sin el lote de cierre aprobado. El código devuelto distingue
         # cada falta para que el operador sepa qué decisión falta.
         codigo = _precondicion_emision_con_linea(
-            solicitud, decisiones=decisiones, lote_cierre=lote_cierre
+            solicitud,
+            decisiones=decisiones,
+            lote_cierre=lote_cierre,
+            generada_por_correo_hash=lote_generada_por_correo_hash,
         )
         if codigo is not None:
             return _resultado(
@@ -449,6 +452,7 @@ def procesar_certificado(
             titulo=titulo,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
+            estado_heredado=existente.estado_heredado,
         )
 
     # Una sola aprobación del rol autorizado habilita el documento: no hay
@@ -470,6 +474,7 @@ def procesar_certificado(
             titulo=titulo,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
+            estado_heredado=existente.estado_heredado,
         )
 
     return _emitir(
@@ -560,12 +565,16 @@ def _precondicion_emision_con_linea(
     *,
     decisiones: RegistroDecisiones | None,
     lote_cierre: str | None,
+    generada_por_correo_hash: str | None,
 ) -> str | None:
     """Código de la primera precondición incumplida, o `None` si habilita.
 
     Sólo corre cuando la solicitud trae `linea_descriptiva` (el camino
     provisional sin línea lo cierra #75). El orden es estructural primero:
     sin registro de decisiones ni objeto de lote no hay nada que verificar.
+    El lote exige la `apruebo_lote` del rol de contenido **y** del correo
+    de quien lo generó — quien lo genera lo aprueba (#125, ADR 0018), la
+    misma verificación que la vía por lote (`certificados_emision`).
     """
 
     if not isinstance(decisiones, RegistroDecisiones):
@@ -575,6 +584,10 @@ def _precondicion_emision_con_linea(
         or ID_RE.fullmatch(lote_cierre) is None
     ):
         return "closing_batch_required"
+    if not isinstance(generada_por_correo_hash, str) or not (
+        generada_por_correo_hash.strip()
+    ):
+        return "closing_batch_generator_required"
     assert isinstance(solicitud.id_actividad, str)
     assert isinstance(solicitud.linea_descriptiva, str)
     if not linea_descriptiva_aprobada(
@@ -583,7 +596,11 @@ def _precondicion_emision_con_linea(
         linea=solicitud.linea_descriptiva,
     ):
         return "descriptive_line_unapproved"
-    if not lote_cierre_aprobado(decisiones, objeto_lote=lote_cierre):
+    if not revisar_aprobacion_lote(
+        decisiones,
+        objeto_lote=lote_cierre,
+        generada_por_correo_hash=generada_por_correo_hash,
+    ).aprobada:
         return "closing_batch_unapproved"
     return None
 
@@ -616,6 +633,7 @@ def _finalizar(
     aprobacion: AprobacionHumana | None = None,
     pdf: bytes | None = None,
     lote_cierre: str | None = None,
+    estado_heredado: str | None = None,
 ) -> ResultadoCertificado:
     # Todo estado que conserva el borrador devuelve su PDF con marca: la marca
     # es lo que lo inhabilita como documento hasta la aprobación completa.
@@ -631,6 +649,7 @@ def _finalizar(
         pdf=pdf if pdf is not None else generar_pdf_certificado(cuerpo, borrador=True),
         aprobacion=aprobacion,
         lote_cierre=lote_cierre,
+        estado_heredado=estado_heredado,
     )
 
 
@@ -793,6 +812,7 @@ def _resultado(
     pdf: bytes | None = None,
     aprobacion: AprobacionHumana | None = None,
     lote_cierre: str | None = None,
+    estado_heredado: str | None = None,
 ) -> ResultadoCertificado:
     entrada = json.dumps(
         asdict(solicitud),
@@ -851,6 +871,9 @@ def _resultado(
         else None,
         "closing_batch_id": lote_cierre,
         "emission_mode": "fake" if estado == "EMITIDA_SIMULADA" else "none",
+        # Diagnóstico del circuito reemplazado (#125): el registro venía de
+        # una aprobación parcial vieja, leída como pendiente.
+        "estado_heredado": estado_heredado,
     }
     escribir_registro(log_path, auditoria)
     return ResultadoCertificado(

@@ -6,7 +6,7 @@ día y este módulo lo encola hacia la entrega simulada, con un modelo de
 autorización distinto del circuito por envío:
 
 1. **La plantilla se aprueba una sola vez.** El texto provisional
-   (`prompts/recordatorio_pago_provisional_v1.txt`) se registra bajo una
+   (`prompts/recordatorio_pago_provisional_v2.txt`) se registra bajo una
    clave derivada de su contenido y atraviesa la misma aprobación única del
    circuito — una decisión del `APROBADOR_CONTENIDO` — como una pieza
    más del registro. Mientras no esté `APROBADA`, ningún lote puede
@@ -79,7 +79,7 @@ from .tipos_notificacion import descripcion_tipo
 
 HU = "HU-012"
 CONTRACT_VERSION = PLAN_CONTRACT_VERSION
-TEMPLATE_VERSION = "recordatorio_pago_provisional_v1"
+TEMPLATE_VERSION = "recordatorio_pago_provisional_v2"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 
 # El documento de plantilla: es la pieza que la SEU aprueba una sola vez.
@@ -87,7 +87,7 @@ POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 # versión, estado, límites — es lo que queda cubierto por la aprobación.
 TEXTO_PLANTILLA = (
     files("agente1")
-    .joinpath("prompts", "recordatorio_pago_provisional_v1.txt")
+    .joinpath("prompts", "recordatorio_pago_provisional_v2.txt")
     .read_text(encoding="utf-8")
 )
 
@@ -227,10 +227,7 @@ def aprobar_plantilla_recordatorio(
 
     correlation_id = str(uuid.uuid4())
     log_path = _log_path(directorio_salida)
-    if (
-        not _aprobacion_valida(aprobacion)
-        or aprobacion.rol != ROL_APROBADOR_CONTENIDO
-    ):
+    if not _aprobacion_valida(aprobacion, rol=ROL_APROBADOR_CONTENIDO):
         _auditar(
             log_path,
             correlation_id=correlation_id,
@@ -368,8 +365,7 @@ def encolar_lote_recordatorios(
         )
 
     if (
-        not _aprobacion_valida(aprobacion)
-        or aprobacion.rol != ROL_APROBADOR_PAGOS
+        not _aprobacion_valida(aprobacion, rol=ROL_APROBADOR_PAGOS)
         or any(
             not isinstance(clave, str)
             or CLAVE_REGISTRO_RE.fullmatch(clave) is None

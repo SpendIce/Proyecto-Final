@@ -47,7 +47,7 @@ enumera exactamente qué falta por cada origen y bloquea el envío en todos.
 Tipos de notificación (bible 22/09 y diseño de control de pagos): HU-012
 cubre seis tipos —`inscripcion`, `participacion`, `situacion_pagos`,
 `aprobacion`, `recordatorio_pago` e `instrucciones_pago`— declarados en el
-catálogo cerrado `contracts/tipos_notificacion_v2.json` que expone
+catálogo cerrado `contracts/tipos_notificacion_v3.json` que expone
 `tipos_notificacion.py`. El tipo viaja en la solicitud (con default
 `inscripcion`, el único que existía), entra a la clave de idempotencia —una
 notificación de participación sobre la misma inscripción es otra
@@ -115,16 +115,16 @@ POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 MARCADOR_BORRADOR = "BORRADOR — NO ENVIAR"
 
 # El tipo del correo de preinscripción con las instrucciones de pago (D8):
-# se declara en el catálogo v2 y tramita por este circuito con `datos_pago`.
+# se declara en el catálogo v3 y tramita por este circuito con `datos_pago`.
 TIPO_INSTRUCCIONES_PAGO = "instrucciones_pago"
-TEMPLATE_VERSION_INSTRUCCIONES = "instrucciones_pago_provisional_v1"
+TEMPLATE_VERSION_INSTRUCCIONES = "instrucciones_pago_provisional_v2"
 
 # El documento de plantilla del correo de instrucciones: la sección central
 # (entre el encabezado de versión y `LÍMITES:`) es el cuerpo que se
 # renderiza; los límites documentan restricciones y no viajan.
 TEXTO_PLANTILLA_INSTRUCCIONES = (
     files("agente1")
-    .joinpath("prompts", "instrucciones_pago_provisional_v1.txt")
+    .joinpath("prompts", "instrucciones_pago_provisional_v2.txt")
     .read_text(encoding="utf-8")
 )
 EMAIL_LOCAL_RE = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}\Z")
@@ -147,11 +147,11 @@ REQUIRED_FIELDS = (
     "contacto",
 )
 
-# La designación vigente (actas SEU del 19/10/2026 y precisión del
-# 11/11/2026, issue #125) reemplaza al par semántica/utilitaria del acta del
-# 22/09: una sola persona autorizada por delegación de la Secretaría aprueba
-# una pieza de contenido y su uso —en la SEU, Juan Manuel o Josefina—, y un
-# responsable propio aprueba los lotes de pagos —Leandro—. El conjunto de
+# La designación vigente (precisión del 11/11/2026, issue #125, ADR 0018)
+# reemplaza al par semántica/utilitaria del acta del 22/09: una sola
+# persona autorizada por delegación de la Secretaría aprueba una pieza de
+# contenido y su uso, y el responsable de pagos aprueba los lotes de pagos.
+# El conjunto de
 # roles es cerrado: una decisión con otro rol no es una aprobación. El rol
 # que cada superficie exige lo declara su circuito (el contenido,
 # `ROL_APROBADOR_CONTENIDO`; el lote de pagos, `ROL_APROBADOR_PAGOS`): un rol
@@ -161,7 +161,13 @@ REQUIRED_FIELDS = (
 # autorizada ya aplica.
 ROL_APROBADOR_CONTENIDO = "APROBADOR_CONTENIDO"
 ROL_APROBADOR_PAGOS = "APROBADOR_PAGOS"
-ROLES_APROBACION = frozenset({ROL_APROBADOR_CONTENIDO, ROL_APROBADOR_PAGOS})
+
+# Estados del circuito reemplazado (#125): una pieza que la versión
+# anterior dejó en `APROBADA_SEMANTICA` o `APROBADA_UTILITARIA` tenía una
+# aprobación parcial, no completa. Se leen como `PENDIENTE_VALIDACION`
+# —pendientes de la aprobación única— y el estado original viaja en
+# `estado_heredado` para que la transición deje el diagnóstico en el log.
+ESTADOS_HEREDADOS = frozenset({"APROBADA_SEMANTICA", "APROBADA_UTILITARIA"})
 
 # Camino asíncrono (s4d): la confirmación ya aprobada espera en cola hasta
 # que `drenar_envios` la tome. `ENVIO_ENCOLADO` es un
@@ -267,8 +273,8 @@ class AprobacionHumana:
 
     Exige quién decidió (`validador`), con qué rol y cuándo, con zona horaria
     obligatoria: una aprobación sin responsable identificable no sirve como
-    evidencia. `rol` pertenece a `ROLES_APROBACION` y además tiene que ser
-    el que la superficie exige — contenido al `ROL_APROBADOR_CONTENIDO`,
+    evidencia. `rol` tiene que ser el que la superficie exige — contenido
+    al `ROL_APROBADOR_CONTENIDO`,
     lotes de pagos al `ROL_APROBADOR_PAGOS` —: la autorización es por
     delegación registrada, no por cargo. Sólo se guarda su hash en el log,
     no los datos de la persona.
@@ -410,6 +416,10 @@ class BorradorRegistrado:
     actualizado_en: str | None = None
     output_hash: str | None = None
     purgado_en: str | None = None
+    # Estado del circuito reemplazado del que se normalizó (`None` si no
+    # aplica): un registro en `APROBADA_SEMANTICA`/`APROBADA_UTILITARIA` se
+    # lee como `PENDIENTE_VALIDACION` y conserva acá de dónde vino (#125).
+    estado_heredado: str | None = None
 
 
 class RegistroConfirmaciones(Protocol):
@@ -992,6 +1002,12 @@ def _leer_registro(contenido: str) -> BorradorRegistrado | None:
     )
     if not all(isinstance(valor, str) for valor in (estado, asunto, cuerpo)):
         return None
+    # Estados del circuito reemplazado: la aprobación parcial que traían no
+    # cuenta como la aprobación única — el registro vuelve a pendiente y
+    # conserva el estado original como diagnóstico (#125).
+    estado_heredado = estado if estado in ESTADOS_HEREDADOS else None
+    if estado_heredado is not None:
+        estado = "PENDIENTE_VALIDACION"
     creado_en, actualizado_en, purgado_en = (
         datos.get("creado_en"),
         datos.get("actualizado_en"),
@@ -1011,6 +1027,7 @@ def _leer_registro(contenido: str) -> BorradorRegistrado | None:
         actualizado_en=actualizado_en,
         output_hash=output_hash,
         purgado_en=purgado_en,
+        estado_heredado=estado_heredado,
     )
 
 
@@ -1639,9 +1656,8 @@ def procesar_confirmacion(
             error="notification_mode_mismatch",
             auditoria_extra={"modo_circuito": modo},
         )
-    if aprobacion is not None and (
-        not _aprobacion_valida(aprobacion)
-        or aprobacion.rol != ROL_APROBADOR_CONTENIDO
+    if aprobacion is not None and not _aprobacion_valida(
+        aprobacion, rol=ROL_APROBADOR_CONTENIDO
     ):
         return _resultado(
             log_path=log_path,
@@ -1755,6 +1771,14 @@ def procesar_confirmacion(
     if existente is None:
         raise RuntimeError("registro de idempotencia inconsistente")
     asunto, cuerpo = existente.asunto, existente.cuerpo
+    # Diagnóstico del circuito reemplazado (#125): un registro que la
+    # versión anterior dejó en aprobación parcial se leyó como pendiente;
+    # la decisión que ahora lo resuelve queda anotada con su origen.
+    auditoria_heredado = (
+        {"estado_heredado": existente.estado_heredado}
+        if existente.estado_heredado is not None
+        else None
+    )
 
     if not aprobacion.aprobada:
         if not registro.transicionar(
@@ -1774,6 +1798,7 @@ def procesar_confirmacion(
             asunto=asunto,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
+            auditoria_extra=auditoria_heredado,
         )
 
     # Una sola aprobación del rol autorizado habilita la pieza: el circuito
@@ -1795,6 +1820,7 @@ def procesar_confirmacion(
             asunto=asunto,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
+            auditoria_extra=auditoria_heredado,
         )
 
     if asincrono:
@@ -2009,12 +2035,12 @@ def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     un riesgo concreto si un modelo altera un dato. Por eso HU-012 es
     puramente determinista. La SEU confirmó una única plantilla preaprobada
     para todos los tipos; lo único que varía por tipo es el asunto base y la
-    frase del evento, declaradas en el catálogo `tipos_notificacion_v2`. Para
+    frase del evento, declaradas en el catálogo `tipos_notificacion_v3`. Para
     `inscripcion` el resultado es idéntico al de siempre: su `asunto_base`
     reproduce el asunto que el módulo tenía fijado antes del catálogo.
 
     `instrucciones_pago` es la excepción: su cuerpo sale de
-    `prompts/instrucciones_pago_provisional_v1.txt` con los datos del plan y
+    `prompts/instrucciones_pago_provisional_v2.txt` con los datos del plan y
     su asunto es el `asunto_preinscripcion` del plan — sin la marca de
     borrador — porque la respuesta del preinscripto se asocia por ese
     asunto normalizado.
@@ -2250,14 +2276,24 @@ def email_valido(email: object) -> bool:
     )
 
 
-def _aprobacion_valida(aprobacion: AprobacionHumana) -> bool:
+def _aprobacion_valida(
+    aprobacion: AprobacionHumana, *, rol: str
+) -> bool:
+    """Estructura válida **y** rol exigido por la superficie concreta.
+
+    `rol` es el rol que habilita en ese circuito — contenido al
+    `ROL_APROBADOR_CONTENIDO`, lotes de pagos al `ROL_APROBADOR_PAGOS` —:
+    un rol válido del padrón que no corresponde a la superficie no
+    habilita nada.
+    """
+
     if not isinstance(aprobacion.aprobada, bool):
         return False
     if (
         not isinstance(aprobacion.validador, str)
         or not isinstance(aprobacion.rol, str)
         or not aprobacion.validador.strip()
-        or aprobacion.rol not in ROLES_APROBACION
+        or aprobacion.rol != rol
     ):
         return False
     try:

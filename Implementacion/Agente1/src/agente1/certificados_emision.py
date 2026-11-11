@@ -110,8 +110,10 @@ from .decisiones_form import (
 )
 from .fuentes import FuenteSolicitudes, FuenteSolicitudesError
 from .linea_descriptiva import (
-    linea_descriptiva_aprobada,
+    RevisionLote,
     objeto_id_linea_descriptiva,
+    revisar_aprobacion_lote,
+    revisar_linea_descriptiva,
 )
 from .registro_auditoria import escribir_registro
 
@@ -193,15 +195,6 @@ class LectorListaCierre(Protocol):
     """
 
     def leer_valores(self) -> list[object]: ...
-
-
-@dataclass(frozen=True)
-class RevisionLote:
-    """Resultado de revisar el registro de decisiones contra el lote."""
-
-    aprobada: bool
-    correo_hash_aprobador: str | None
-    descalificaciones: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -306,48 +299,6 @@ def objeto_lote_cierre(id_actividad: str, hash_lista: str) -> str:
 
     return _hash(
         f"lote_cierre_certificados|{id_actividad.strip()}|{hash_lista}"
-    )
-
-
-def revisar_aprobacion_lote(
-    registro_decisiones: RegistroDecisiones,
-    *,
-    objeto_lote: str,
-    generada_por_correo_hash: str,
-) -> RevisionLote:
-    """Busca el `apruebo_lote` válido sobre el objeto del lote de cierre.
-
-    Vale sólo una decisión `registrada`, de `tipo` `lote`, con
-    `decision` `apruebo_lote`, hecha por el rol `APROBADOR_CONTENIDO` y por
-    el correo de quien generó el lote: quien lo genera lo aprueba (#125).
-    Las aprobaciones que fallan
-    esas condiciones se cuentan en `descalificaciones` para la auditoría:
-    existen, pero no habilitan.
-    """
-
-    aprobada = False
-    correo_hash_aprobador = None
-    descalificaciones: list[str] = []
-    for entrada in registro_decisiones.procesadas():
-        if (
-            entrada.get("tipo") != "lote"
-            or entrada.get("objeto_id") != objeto_lote
-            or entrada.get("decision") != "apruebo_lote"
-            or entrada.get("resultado") != "registrada"
-        ):
-            continue
-        if entrada.get("rol") != ROL_APROBADOR_CONTENIDO:
-            descalificaciones.append("aprobador_rol_no_autorizado")
-            continue
-        if entrada.get("correo_hash") != generada_por_correo_hash:
-            descalificaciones.append("aprobador_no_es_generador")
-            continue
-        aprobada = True
-        correo_hash_aprobador = entrada.get("correo_hash")
-    return RevisionLote(
-        aprobada=aprobada,
-        correo_hash_aprobador=correo_hash_aprobador,
-        descalificaciones=tuple(descalificaciones),
     )
 
 
@@ -466,6 +417,7 @@ def procesar_emision_certificados(
     enlaces: EnlacesDecisiones,
     destino,
     solicitante_correo: str,
+    solicitante_rol: str | None = None,
     directorio_salida: Path | str,
     firmantes: tuple[Firmante, ...] = FIRMANTES_DECLARADOS,
     recursos_firma: RecursosFirma | None = None,
@@ -483,6 +435,12 @@ def procesar_emision_certificados(
     `solicitante_hash`, es el correo que tiene que registrar la
     `apruebo_lote` — quien genera el lote lo aprueba (#125) — y es el
     destinatario del aviso de aprobación pendiente.
+    `solicitante_rol` es el rol del padrón de quien dispara: la designación
+    vigente exige `APROBADOR_CONTENIDO` para pedir o generar el lote, así
+    «lo aprueba quien lo genera» siempre tiene a alguien habilitado; un
+    rol operativo recibe `solicitante_rol_no_autorizado` en vez de un lote
+    que nadie puede aprobar. Sin el dato la barrera no corre (los runners
+    viejos la documentan pendiente); el despacho por canal siempre la trae.
     `recursos_firma` es el puerto de custodia del símbolo y las firmas de
     la plantilla SEU de aprobación (#126): resuelve imágenes desde la
     carpeta restringida configurada fuera del repo; sin él, los espacios
@@ -534,6 +492,20 @@ def procesar_emision_certificados(
         id_actividad=id_actividad,
         solicitante_hash=solicitante_hash,
     )
+
+    # 0. Pedir o generar el lote exige el rol de contenido (#125, ADR 0018):
+    # quien lo aprueba es quien lo genera, así que un rol operativo nunca
+    # puede habilitar su propio lote.
+    if (
+        solicitante_rol is not None
+        and solicitante_rol != ROL_APROBADOR_CONTENIDO
+    ):
+        evento("solicitante_rol_no_autorizado", rol=solicitante_rol)
+        return resultado(
+            "RECHAZADA",
+            "pedir el lote de certificados exige el rol de contenido",
+            "solicitante_rol_no_autorizado",
+        )
 
     # 1. La actividad aporta los datos institucionales.
     if not isinstance(id_actividad, str) or not id_actividad.strip():
@@ -635,16 +607,18 @@ def procesar_emision_certificados(
             "falta la línea descriptiva de la actividad (#74)",
             "linea_descriptiva_ausente",
         )
-    if not linea_descriptiva_aprobada(
+    revision_linea = revisar_linea_descriptiva(
         registro_decisiones,
         id_actividad=id_actividad.strip(),
         linea=texto_linea,
-    ):
+    )
+    if not revision_linea.aprobada:
         evento(
             "linea_descriptiva_no_aprobada",
             objeto_linea=objeto_id_linea_descriptiva(
                 id_actividad.strip(), texto_linea
             ),
+            descalificaciones=revision_linea.descalificaciones,
         )
         return resultado(
             "PENDIENTE_APROBACION",
@@ -856,6 +830,7 @@ def construir_emisor_certificados(**config):
         return procesar_emision_certificados(
             id_actividad=id_actividad,
             solicitante_correo=getattr(solicitante, "identificador", ""),
+            solicitante_rol=getattr(solicitante, "rol", None),
             **config,
         )
 

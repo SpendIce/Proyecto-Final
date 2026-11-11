@@ -127,7 +127,7 @@ CONTRACT_VERSION = "plantilla_actividad_v2"
 TEMPLATE_VERSION = "plantilla_actividad_generada_v2"
 # La estructura del cuerpo sigue siendo la de la base provisional v1; desde
 # #140 la compone `_componer_cuerpo` y el modelo ya no la ve.
-BASE_TEMPLATE_VERSION = "plantilla_actividad_base_provisional_v1"
+BASE_TEMPLATE_VERSION = "plantilla_actividad_base_provisional_v2"
 PROMPT_VERSION = "plantilla_actividad_generacion_v4"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 CIRCUITO = "plantilla_actividad"

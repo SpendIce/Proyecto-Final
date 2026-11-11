@@ -39,14 +39,17 @@ la persona no los escribe ni los elige. El catálogo vigente:
   README para que #75 la consuma igual).
 
 El rol que cada decisión exige es parte del catálogo (`ROLES_POR_DECISION`)
-y sigue la designación vigente (actas SEU del 19/10/2026 y precisión del
-11/11/2026, #125): una sola persona autorizada por delegación —Juan Manuel
-o Josefina en la SEU— aprueba contenido y su uso, en reemplazo del par
+y sigue la designación vigente (precisión del 11/11/2026, #125, ADR 0018):
+una sola persona autorizada por delegación —`APROBADOR_CONTENIDO` en el
+padrón— aprueba contenido y su uso, en reemplazo del par
 semántica/utilitaria del acta del 22/09. La
 decisión de publicación es la validación humana de la difusión (#52) y la
 registra la misma persona autorizada: un rol operativo del
 padrón (`coordinador_seu`, `auxiliar_seu`) que pida piezas no puede decidir
-sobre ellas.
+sobre ellas. La única excepción de ese invariante es deliberada (ADR 0018):
+`APROBADOR_CONTENIDO` también puede pedir piezas, porque pedir o generar el
+lote de certificados es el acto que después habilita su propia aprobación —
+quien genera el lote es quien lo aprueba.
 
 Un link alterado produce rechazo registrado, nunca una decisión aceptada:
 
@@ -59,6 +62,11 @@ Un link alterado produce rechazo registrado, nunca una decisión aceptada:
   en `decisiones-pendientes.jsonl` y se rechaza.
 - `fuera_de_padron`: el correo verificado no figura en el padrón de roles.
 - `rol_no_corresponde`: el rol del padrón no es el que la decisión exige.
+- `rol_reemplazado`: la decisión o el rol pertenecen al circuito reemplazado
+  por la designación del 11/11/2026 (ver `DECISIONES_HEREDADAS` y
+  `ROLES_HEREDADOS`). Las líneas viejas de `decisiones-procesadas.jsonl`
+  se conservan como registro pero no habilitan nada: los consumidores las
+  reportan con este código en lugar de ignorarlas en silencio.
 
 Estado local del adapter, dos JSONL append-only dentro de un directorio de
 estado compartido con quien emite los correos:
@@ -185,6 +193,19 @@ RECHAZO_OBJETO_INVALIDO = "objeto_invalido"
 RECHAZO_OBJETO_INEXISTENTE = "objeto_inexistente"
 RECHAZO_FUERA_DE_PADRON = "fuera_de_padron"
 RECHAZO_ROL_NO_CORRESPONDE = "rol_no_corresponde"
+RECHAZO_ROL_REEMPLAZADO = "rol_reemplazado"
+
+# Circuito reemplazado por la designación del 11/11/2026 (#125, ADR 0018):
+# las decisiones del par semántica/utilitaria y los roles del acta del
+# 22/09 quedan fuera del catálogo vigente. Una línea de
+# `decisiones-procesadas.jsonl` escrita por la versión anterior se conserva
+# como registro — el archivo es append-only y no se reescribe — pero no
+# habilita nada: quien la consume la descalifica con `rol_reemplazado`, no
+# la ignora en silencio.
+DECISIONES_HEREDADAS = frozenset({"apruebo_semantica", "apruebo_utilitaria"})
+ROLES_HEREDADOS = frozenset(
+    {"RESPONSABLE_GESTION_CONOCIMIENTO", "COORDINADOR_EXTENSION"}
+)
 
 ROL_ORIGEN_PADRON = "padron"
 ROL_ORIGEN_FUERA_DE_PADRON = "fuera_de_padron"
@@ -510,6 +531,34 @@ class RegistroDecisiones:
         return lineas
 
 
+def decisiones_heredadas_del_objeto(
+    registro: RegistroDecisiones, *, objeto_id: str
+) -> tuple[dict[str, object], ...]:
+    """Líneas del circuito reemplazado registradas sobre el objeto.
+
+    Una `apruebo_semantica`/`apruebo_utilitaria` o un rol del acta del 22/09
+    escritas por la versión anterior quedan en `decisiones-procesadas.jsonl`
+    como registro — el archivo es append-only — pero no habilitan nada:
+    cada consumidor las reporta con `rol_reemplazado` en lugar de
+    ignorarlas en silencio (#125).
+    """
+
+    if not isinstance(registro, RegistroDecisiones) or not isinstance(
+        objeto_id, str
+    ):
+        return ()
+    return tuple(
+        linea
+        for linea in registro.procesadas()
+        if linea.get("objeto_id") == objeto_id
+        and linea.get("resultado") == RESULTADO_REGISTRADA
+        and (
+            linea.get("decision") in DECISIONES_HEREDADAS
+            or linea.get("rol") in ROLES_HEREDADOS
+        )
+    )
+
+
 def _leer_jsonl(path: Path) -> tuple[dict[str, object], ...]:
     if not path.exists():
         return ()
@@ -774,6 +823,11 @@ class CanalFormDecisiones:
         if respuesta.tipo not in DECISIONES_POR_TIPO:
             return RECHAZO_TIPO_DESCONOCIDO
         if respuesta.decision not in DECISIONES_POR_TIPO[respuesta.tipo]:
+            if respuesta.decision in DECISIONES_HEREDADAS:
+                # Nombre del circuito reemplazado: código propio para que
+                # la auditoría diga que el rol ya no existe, no que el
+                # link vino alterado.
+                return RECHAZO_ROL_REEMPLAZADO
             return RECHAZO_DECISION_FUERA_DE_CATALOGO
         if ID_RE.fullmatch(respuesta.objeto) is None:
             return RECHAZO_OBJETO_INVALIDO
@@ -783,6 +837,8 @@ class CanalFormDecisiones:
             return RECHAZO_OBJETO_INEXISTENTE
         if rol_padron is None:
             return RECHAZO_FUERA_DE_PADRON
+        if rol_padron in ROLES_HEREDADOS:
+            return RECHAZO_ROL_REEMPLAZADO
         if (
             rol_padron
             not in ROLES_POR_DECISION[(respuesta.tipo, respuesta.decision)]
@@ -845,6 +901,7 @@ __all__ = [
     "COL_TIPO",
     "CanalFormDecisiones",
     "ConfiguracionFormDecisiones",
+    "DECISIONES_HEREDADAS",
     "DECISIONES_POR_TIPO",
     "DECISION_APRUEBO_CONTENIDO",
     "DECISION_APRUEBO_LOTE",
@@ -861,9 +918,11 @@ __all__ = [
     "RECHAZO_OBJETO_INEXISTENTE",
     "RECHAZO_OBJETO_INVALIDO",
     "RECHAZO_ROL_NO_CORRESPONDE",
+    "RECHAZO_ROL_REEMPLAZADO",
     "RECHAZO_TIPO_DESCONOCIDO",
     "RESULTADO_REGISTRADA",
     "RESULTADO_RECHAZADA",
+    "ROLES_HEREDADOS",
     "ROLES_POR_DECISION",
     "RegistroDecisiones",
     "ResultadoDecision",
@@ -875,4 +934,5 @@ __all__ = [
     "cargar_configuracion_form_decisiones",
     "cargar_padron_roles_csv",
     "crear_lector_decisiones",
+    "decisiones_heredadas_del_objeto",
 ]

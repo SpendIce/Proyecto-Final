@@ -152,7 +152,7 @@ ANTICIPACIONES_DEFAULT = tuple(
 # fija en la zona horaria de la SEU, no en la del host ni en UTC (§5.1).
 ZONA_HORARIA_CORRIDA = "America/Argentina/Buenos_Aires"
 
-# Nombre del tipo en el catálogo `tipos_notificacion_v2`: el recordatorio que
+# Nombre del tipo en el catálogo `tipos_notificacion_v3`: el recordatorio que
 # la corrida planifica por lote. Es el primer componente del vector que se
 # hashea para la clave de idempotencia, así que comparte el espacio de claves
 # del registro sin poder colisionar con las claves de solicitud del circuito

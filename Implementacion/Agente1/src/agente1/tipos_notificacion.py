@@ -4,7 +4,7 @@ La bible sincronizada el 22/09 amplió HU-012: de «confirmaciones de
 inscripción» a «notificaciones automáticas de inscripción, participación,
 situación de pagos y aprobación», absorbiendo la HU previa de mensajes a
 deudores. Este módulo expone el catálogo declarado en
-`contracts/tipos_notificacion_v2.json` y una decisión **fail-closed** por tipo:
+`contracts/tipos_notificacion_v3.json` y una decisión **fail-closed** por tipo:
 `evaluar_tipo` enumera qué falta para que ese tipo pueda producir algo.
 
 La decisión de tipo no es la decisión de envío. Un tipo `habilitado` sólo
@@ -43,7 +43,7 @@ from importlib.resources import files
 
 CATALOGO = json.loads(
     files("agente1")
-    .joinpath("contracts", "tipos_notificacion_v2.json")
+    .joinpath("contracts", "tipos_notificacion_v3.json")
     .read_text(encoding="utf-8")
 )
 

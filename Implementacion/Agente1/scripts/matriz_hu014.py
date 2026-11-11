@@ -130,6 +130,11 @@ def _hash(valor: str) -> str:
     return hashlib.sha256(valor.encode("utf-8")).hexdigest()
 
 
+# El `correo_hash` que `_registro_decisiones` asienta en la `apruebo_lote`:
+# el del generador del lote (#125).
+GENERADOR_LOTE_HASH = _hash(f"correo-lote-{LOTE_CIERRE}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Ejecuta la matriz offline HU-014.")
     parser.add_argument("--salida", required=True, type=Path)
@@ -328,6 +333,7 @@ def main() -> int:
             aprobacion=contenido,
             destino=DestinoCertificadosFake(), emitir=True,
             decisiones=con_decisiones, lote_cierre=lote,
+            lote_generada_por_correo_hash=GENERADOR_LOTE_HASH,
         )
 
     # Emisión simulada con el circuito completo: la aprobación única del
@@ -352,6 +358,7 @@ def main() -> int:
             con_lote=True,
         ),
         lote_cierre=LOTE_CIERRE,
+        lote_generada_por_correo_hash=GENERADOR_LOTE_HASH,
     )
 
     # Recuperación durable: reserva colgada tras un reinicio, reconciliada sin
@@ -409,7 +416,7 @@ def main() -> int:
         "trl3_claimed": False,
         "artifact_hashes": {
             "contract_sha256": _sha256(ROOT / "src" / "agente1" / "contracts" / "certificado_emision_v2.schema.json"),
-            "template_sha256": _sha256(ROOT / "src" / "agente1" / "prompts" / "certificado_provisional_v2.txt"),
+            "template_sha256": _sha256(ROOT / "src" / "agente1" / "prompts" / "certificado_provisional_v3.txt"),
             "linea_prompt_sha256": _sha256(ROOT / "src" / "agente1" / "prompts" / "linea_descriptiva_v1.txt"),
             "runner_sha256": _sha256(Path(__file__)),
         },
@@ -458,6 +465,7 @@ def _ejecutar(
     golden: str | None = None,
     decisiones: RegistroDecisiones | None = None,
     lote_cierre: str | None = None,
+    lote_generada_por_correo_hash: str | None = None,
 ) -> None:
     resultado = procesar_certificado(
         solicitud=solicitud,
@@ -468,6 +476,7 @@ def _ejecutar(
         emitir=emitir,
         decisiones=decisiones,
         lote_cierre=lote_cierre,
+        lote_generada_por_correo_hash=lote_generada_por_correo_hash,
     )
     if golden is not None:
         esperado = (ROOT / "golden" / "certificados" / golden).read_text(encoding="utf-8")

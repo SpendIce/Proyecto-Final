@@ -693,7 +693,7 @@ def _ejecutar_pagos(salida: Path) -> tuple[list[dict[str, object]], dict[str, ob
         "anticipaciones_default": [7, 2],
         "zona_horaria_corrida": "America/Argentina/Buenos_Aires",
         "estado_pagos": "derivado_en_cada_corrida",
-        "template_version": "recordatorio_pago_provisional_v1",
+        "template_version": "recordatorio_pago_provisional_v2",
         "template_approval_role": ROL_APROBADOR_CONTENIDO,
         "batch_approval_role": ROL_APROBADOR_PAGOS,
         "entrega": "fake",
@@ -701,7 +701,7 @@ def _ejecutar_pagos(salida: Path) -> tuple[list[dict[str, object]], dict[str, ob
         "instrucciones_pago": {
             "tipo_notificacion": "instrucciones_pago",
             "circuito": "por_envio",
-            "template_version": "instrucciones_pago_provisional_v1",
+            "template_version": "instrucciones_pago_provisional_v2",
             "asunto_borrador": "asunto_preinscripcion_del_plan",
             "entrega": "fake",
         },

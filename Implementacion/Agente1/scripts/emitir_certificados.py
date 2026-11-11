@@ -52,7 +52,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from agente1.canal_form import LectorValoresCsv
+from agente1.canal_form import LectorValoresCsv, PadronRoles
 from agente1.certificados_emision import (
     DestinoCorreoArchivo,
     procesar_emision_certificados,
@@ -238,6 +238,18 @@ def main(argv: list[str] | None = None) -> int:
             resumen_config = {"modo_offline": True}
             modo = "offline_fake"
 
+        # El rol del solicitante sale del padrón (#125): pedir el lote
+        # exige el rol de contenido. Sin padrón configurado la barrera
+        # queda pendiente declarada y el runner sigue como antes.
+        solicitante_rol = None
+        try:
+            solicitante_rol = PadronRoles.desde_entorno().rol_para(
+                solicitante
+            )
+        except ConfiguracionWorkspaceError as exc:
+            if exc.code != "padron_roles_missing":
+                raise
+
         resultado = procesar_emision_certificados(
             id_actividad=args.actividad,
             fuente=fuente,
@@ -247,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
             enlaces=enlaces,
             destino=destino,
             solicitante_correo=solicitante,
+            solicitante_rol=solicitante_rol,
             directorio_salida=args.directorio,
             recursos_firma=recursos_firma,
         )

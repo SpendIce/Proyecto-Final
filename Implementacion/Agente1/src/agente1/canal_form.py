@@ -599,6 +599,32 @@ def cargar_padron_roles_csv(path: Path) -> PadronRoles:
                 filas[correo] = rol
             if len(filas) > MAX_FILAS_PADRON:
                 raise ConfiguracionWorkspaceError("padron_roles_invalid")
+            # El padrón sólo puede declarar roles del catálogo vigente: los
+            # de pedidos (`interpretacion.ROLES_HABILITADOS`) más los de
+            # decisión (catálogo del Form y el de lotes de pagos). Un rol
+            # que ya no existe —los del circuito reemplazado incluidos—
+            # frena el arranque en vez de dejar gente nombrada que nunca
+            # habilita nada (#125).
+            from .confirmaciones import (
+                ROL_APROBADOR_CONTENIDO,
+                ROL_APROBADOR_PAGOS,
+            )
+            from .decisiones_form import ROLES_POR_DECISION
+            from .interpretacion import ROLES_HABILITADOS
+
+            roles_vigentes = (
+                ROLES_HABILITADOS
+                | {
+                    rol
+                    for roles in ROLES_POR_DECISION.values()
+                    for rol in roles
+                }
+                | {ROL_APROBADOR_CONTENIDO, ROL_APROBADOR_PAGOS}
+            )
+            if any(not rol for rol in filas.values()):
+                raise ConfiguracionWorkspaceError("padron_roles_invalid")
+            if any(rol not in roles_vigentes for rol in filas.values()):
+                raise ConfiguracionWorkspaceError("padron_rol_desconocido")
     except ConfiguracionWorkspaceError:
         raise
     except OSError:

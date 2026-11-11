@@ -85,7 +85,11 @@ from typing import Any, Mapping
 
 from .canal_form import ATENDIDOS_NOMBRE
 from .confirmaciones import CLAVE_REGISTRO_RE, email_valido
-from .decisiones_form import PROCESADAS_NOMBRE
+from .decisiones_form import (
+    DECISIONES_HEREDADAS,
+    PROCESADAS_NOMBRE,
+    ROLES_HEREDADOS,
+)
 from .scheduler import LOG_NOMBRE as SCHEDULER_LOG
 from .scheduler import ConfiguracionScheduler
 
@@ -936,12 +940,23 @@ def indicador_aprobacion_envio(
                 items.append(linea)
 
     primeras = _primeras_decisiones(procesadas)
+    # Objetos con líneas del circuito reemplazado registradas (#125): el
+    # ítem que los referencia sigue sin ancla vigente, pero la métrica lo
+    # cuenta aparte para que el legado quede visible y no mude en
+    # `sin_ancla` sin aviso.
+    objetos_heredados = {
+        (str(linea.get("tipo")), str(linea.get("objeto_id")))
+        for linea in procesadas
+        if linea.get("decision") in DECISIONES_HEREDADAS
+        or linea.get("rol") in ROLES_HEREDADOS
+    }
     deltas: list[float] = []
     deltas_total: list[float] = []
     incidentes_indeterminado = 0
     incidentes_fallida = 0
     pendientes = 0
     sin_ancla = 0
+    sin_ancla_heredada = 0
     registro_ausente = 0
     entregados = 0
     for item in items:
@@ -958,7 +973,13 @@ def indicador_aprobacion_envio(
         )
         instantes = [primeras.get(clave_dec) for clave_dec in requeridas]
         if any(instante is None for instante in instantes):
-            sin_ancla += 1
+            if any(
+                (tipo, objeto) in objetos_heredados
+                for tipo, objeto, _decision in requeridas
+            ):
+                sin_ancla_heredada += 1
+            else:
+                sin_ancla += 1
             continue
         aprobacion = max(instante for instante in instantes if instante is not None)
         registro = registros.get(str(clave))
@@ -1042,6 +1063,7 @@ def indicador_aprobacion_envio(
             "incidentes_fallida": incidentes_fallida,
             "items_pendientes": pendientes,
             "items_sin_ancla": sin_ancla,
+            "items_sin_ancla_heredada": sin_ancla_heredada,
             "items_sin_registro": registro_ausente,
             "registros_fuera_del_circuito_entregados": otros_entregados,
             "registros_fuera_del_circuito_incidentes": otros_incidentes,
