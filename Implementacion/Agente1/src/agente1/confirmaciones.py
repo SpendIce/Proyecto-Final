@@ -95,8 +95,18 @@ from datetime import date, datetime, timedelta, timezone
 from importlib.resources import files
 from pathlib import Path
 from threading import Lock
-from typing import Callable, Protocol
+from typing import Callable, Mapping, Protocol
 
+from .plantillas_aprobadas import (
+    PLANTILLA_TIPO_MISSING,
+    PLANTILLA_VERSION_NO_APROBADA,
+    PlantillaAprobadaError,
+    PlantillaCorreo,
+    modo_envio_efectivo,
+    plantilla_version_registrada,
+    renderizar_plantilla,
+    validar_forma_plantilla,
+)
 from .registro_auditoria import escribir_registro
 from .tipos_notificacion import (
     MODO_CIRCUITO_POR_ENVIO,
@@ -118,6 +128,34 @@ MARCADOR_BORRADOR = "BORRADOR — NO ENVIAR"
 # se declara en el catálogo v3 y tramita por este circuito con `datos_pago`.
 TIPO_INSTRUCCIONES_PAGO = "instrucciones_pago"
 TEMPLATE_VERSION_INSTRUCCIONES = "instrucciones_pago_provisional_v2"
+
+# Variables que la plantilla aprobada de cada familia de tipos puede
+# nombrar (#142): el conjunto es el mismo que el render provisional
+# completa, así una plantilla que declare un dato inexistente se rechaza
+# al cargar la solicitud y no a mitad del render.
+VARIABLES_PLANTILLA_POR_ENVIO = frozenset(
+    {
+        "nombre_destinatario",
+        "actividad",
+        "fecha",
+        "lugar",
+        "organiza",
+        "contacto",
+        "frase_evento",
+    }
+)
+VARIABLES_PLANTILLA_INSTRUCCIONES = frozenset(
+    {
+        "nombre_destinatario",
+        "actividad",
+        "linea_fecha_limite",
+        "fecha_inicio",
+        "detalle_cuotas",
+        "medios_pago",
+        "linea_bonificaciones",
+        "contacto",
+    }
+)
 
 # El documento de plantilla del correo de instrucciones: la sección central
 # (entre el encabezado de versión y `LÍMITES:`) es el cuerpo que se
@@ -301,7 +339,15 @@ class DestinoConfirmaciones(Protocol):
     `DestinoConfirmacionesFake` (doble de pruebas, sin red) y
     `GmailDestinoConfirmaciones` de `gmail_envio.py` (`gmail.send` cercado
     por la lista de direcciones de prueba de D12).
+
+    `modo` es la única fuente del modo de envío (#142): `prueba` o
+    `produccion`, las constantes de `gmail_envio`. El destino lo declara
+    porque es quien sabe contra qué lista y qué contrato de marcas va a
+    entregar; un parámetro aparte podría contradecirlo.
     """
+
+    @property
+    def modo(self) -> str: ...
 
     def entregar(
         self,
@@ -319,6 +365,13 @@ class DestinoConfirmacionesFake:
     def __init__(self, *, error: str | None = None) -> None:
         self.entregas: list[EntregaSimulada] = []
         self._error = error
+
+    @property
+    def modo(self) -> str:
+        # El fake es un destino del modo prueba: no hay Gmail fake.
+        from .gmail_envio import MODO_ENVIO_PRUEBA
+
+        return MODO_ENVIO_PRUEBA
 
     def entregar(
         self,
@@ -372,13 +425,14 @@ def _destino_habilitado_para_entrega(destino: object) -> bool:
     return type(destino) is GmailDestinoConfirmaciones
 
 
-def _modo_entrega(destino: object) -> str:
+def modo_entrega(destino: object) -> str:
     """Identificador del destino que entregó, para la línea de auditoría.
 
     `ENVIADA_SIMULADA` es el nombre histórico del estado terminal; el modo
     es lo que distingue si la entrega fue en memoria (`fake`), un envío real
     cercado por la lista de prueba (`gmail_test_list`) o un envío real del
-    modo producción con lista aprobada (`gmail_production`).
+    modo producción con lista aprobada (`gmail_production`). Es pública:
+    `certificados_emision.py` registra el mismo campo en HU-014.
     """
 
     if type(destino) is DestinoConfirmacionesFake:
@@ -1241,7 +1295,7 @@ def drenar_envios(
     # simplemente no trabaja.
     if not _destino_habilitado_para_entrega(destino):
         return ()
-    modo_entrega = _modo_entrega(destino)
+    modo_entrega_destino = modo_entrega(destino)
     log_path = Path(directorio_salida) / "logs" / "confirmaciones-hu012.jsonl"
 
     resultados = []
@@ -1261,7 +1315,7 @@ def drenar_envios(
                 log_path,
                 correlation_id=correlation_id,
                 item=item,
-                delivery_mode=modo_entrega,
+                delivery_mode=modo_entrega_destino,
                 intento=0,
                 estado="ITEM_INVALIDO",
                 resultado="queue_item_invalid",
@@ -1286,7 +1340,7 @@ def drenar_envios(
                 log_path,
                 correlation_id=correlation_id,
                 item=item,
-                delivery_mode=modo_entrega,
+                delivery_mode=modo_entrega_destino,
                 intento=0,
                 estado=encontrado,
                 resultado="queue_item_discarded",
@@ -1314,7 +1368,7 @@ def drenar_envios(
                 log_path,
                 correlation_id=correlation_id,
                 item=item,
-                delivery_mode=modo_entrega,
+                delivery_mode=modo_entrega_destino,
                 intento=item.intentos,
                 estado="FALLIDA",
                 resultado="delivery_budget_exhausted",
@@ -1342,7 +1396,7 @@ def drenar_envios(
                 log_path,
                 correlation_id=correlation_id,
                 item=item,
-                delivery_mode=modo_entrega,
+                delivery_mode=modo_entrega_destino,
                 intento=0,
                 estado=ESTADO_ENVIO_ENCOLADO,
                 resultado="reservation_lost",
@@ -1381,7 +1435,7 @@ def drenar_envios(
                 log_path,
                 correlation_id=correlation_id,
                 item=item,
-                delivery_mode=modo_entrega,
+                delivery_mode=modo_entrega_destino,
                 intento=intento,
                 estado="FALLIDA",
                 resultado=exc.code,
@@ -1407,7 +1461,7 @@ def drenar_envios(
                     log_path,
                     correlation_id=correlation_id,
                     item=item,
-                    delivery_mode=modo_entrega,
+                    delivery_mode=modo_entrega_destino,
                     intento=intento,
                     estado="FALLIDA",
                     resultado="delivery_failed_budget_exhausted",
@@ -1443,7 +1497,7 @@ def drenar_envios(
                     log_path,
                     correlation_id=correlation_id,
                     item=item,
-                    delivery_mode=modo_entrega,
+                    delivery_mode=modo_entrega_destino,
                     intento=intento,
                     estado=ESTADO_ENVIO_ENCOLADO,
                     resultado="delivery_failed_retry_pending",
@@ -1468,7 +1522,7 @@ def drenar_envios(
             log_path,
             correlation_id=correlation_id,
             item=item,
-            delivery_mode=modo_entrega,
+            delivery_mode=modo_entrega_destino,
             intento=intento,
             estado="ENVIADA_SIMULADA",
             resultado="ok",
@@ -1549,6 +1603,9 @@ def procesar_confirmacion(
     enviar: bool = False,
     asincrono: bool = False,
     cola: ColaEnvios | None = None,
+    modo_envio: str | None = None,
+    plantillas_aprobadas: Mapping[str, PlantillaCorreo] | None = None,
+    decisiones=None,
 ) -> ResultadoConfirmacion:
     """Genera y opcionalmente entrega a un destino habilitado, bajo aprobación.
 
@@ -1562,6 +1619,19 @@ def procesar_confirmacion(
     autorización (aprobación válida, aprobación presente si se pide enviar,
     destino obligatoriamente fake). Recién ahí se toca el registro. Así una
     solicitud mal formada no crea ni reserva nada.
+
+    El modo (#142) tiene una sola fuente: `destino.modo`. `modo_envio`
+    sobrevive sólo para las corridas sin destino —componer el borrador
+    sin entregar— y, cuando hay destino, tiene que coincidir con él o la
+    solicitud es `send_mode_mismatch`: un modo por dos vías que no cierra
+    es ambiguo y falla cerrado. `prueba` conserva las marcas de borrador
+    de siempre; `produccion` compone el cuerpo desde la plantilla
+    aprobada del tipo —la SEU la redacta fuera del repo y `decisiones`
+    tiene que tener la `apruebo_contenido` registrada de
+    `APROBADOR_CONTENIDO` sobre su versión— sin marcas. Un modo
+    desconocido es `send_mode_invalid`; sin la plantilla del tipo es
+    `approved_template_missing`; sin la decisión registrada sobre esa
+    versión exacta, `template_version_unapproved`.
 
     Sin `aprobacion` el resultado máximo es `PENDIENTE_VALIDACION`: generar el
     texto no es aprobarlo. Con `aprobacion.aprobada = False` la confirmación
@@ -1579,6 +1649,33 @@ def procesar_confirmacion(
     correlation_id = str(uuid.uuid4())
     log_path = directorio_salida / "logs" / "confirmaciones-hu012.jsonl"
     idempotency_key = _idempotency_key(solicitud)
+
+    # El modo de envío es configuración de la corrida, no dato de la
+    # solicitud: un valor desconocido es un error del llamador y se
+    # rechaza antes de evaluar nada más. El parámetro `modo_envio` sólo
+    # puede declarar el mismo modo que el destino; si difieren no hay una
+    # fuente única y el pedido es ambiguo.
+    from .gmail_envio import MODO_ENVIO_PRODUCCION, MODOS_ENVIO
+
+    modo_efectivo = modo_envio_efectivo(destino, modo_envio)
+    if modo_efectivo is None:
+        return _resultado(
+            log_path=log_path,
+            solicitud=solicitud,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            estado="INVALIDA",
+            error="send_mode_mismatch",
+        )
+    if modo_efectivo not in MODOS_ENVIO:
+        return _resultado(
+            log_path=log_path,
+            solicitud=solicitud,
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            estado="INVALIDA",
+            error="send_mode_invalid",
+        )
 
     if not _tipos_solicitud_validos(solicitud):
         return _resultado(
@@ -1656,6 +1753,61 @@ def procesar_confirmacion(
             error="notification_mode_mismatch",
             auditoria_extra={"modo_circuito": modo},
         )
+    # En producción el borrador se compone desde la plantilla aprobada del
+    # tipo —la SEU la redacta fuera del repo y se inyecta por
+    # configuración—; sin ella no hay texto entregable y la solicitud no
+    # crea ni reserva nada. Que el archivo la declare no alcanza: la
+    # versión exacta del texto tiene que tener la `apruebo_contenido`
+    # registrada en `decisiones` (definición del 11/11, #125). Los tipos
+    # que componen su asunto desde el dato (`instrucciones_pago` usa el
+    # `asunto_preinscripcion` del plan) no exigen `asunto` en la
+    # plantilla; el resto sí.
+    plantilla_tipo: PlantillaCorreo | None = None
+    if modo_efectivo == MODO_ENVIO_PRODUCCION:
+        plantilla_tipo = (plantillas_aprobadas or {}).get(
+            solicitud.tipo_notificacion
+        )
+        if plantilla_tipo is None:
+            return _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="INVALIDA",
+                error=PLANTILLA_TIPO_MISSING,
+            )
+        invalida = validar_forma_plantilla(
+            plantilla_tipo,
+            asunto_requerido=solicitud.tipo_notificacion
+            != TIPO_INSTRUCCIONES_PAGO,
+            variables_permitidas=(
+                VARIABLES_PLANTILLA_INSTRUCCIONES
+                if solicitud.tipo_notificacion == TIPO_INSTRUCCIONES_PAGO
+                else VARIABLES_PLANTILLA_POR_ENVIO
+            ),
+        )
+        if invalida is not None:
+            return _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="INVALIDA",
+                error=invalida,
+            )
+        if not plantilla_version_registrada(
+            decisiones,
+            tipo=solicitud.tipo_notificacion,
+            plantilla=plantilla_tipo,
+        ):
+            return _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="INVALIDA",
+                error=PLANTILLA_VERSION_NO_APROBADA,
+            )
     if aprobacion is not None and not _aprobacion_valida(
         aprobacion, rol=ROL_APROBADOR_CONTENIDO
     ):
@@ -1698,6 +1850,58 @@ def procesar_confirmacion(
             )
 
     existente = registro.obtener(idempotency_key)
+
+    def _renderizar_o_fallo() -> (
+        tuple[tuple[str, str] | None, ResultadoConfirmacion | None]
+    ):
+        """Compone el borrador o devuelve el FALLIDA que corresponde.
+
+        Las tres vías que componen texto comparten el mismo manejo: un
+        `PlantillaAprobadaError` —una `{{variable}}` sin dato— es una
+        falla del render, no de la solicitud, y queda `FALLIDA` con el
+        código de la plantilla.
+        """
+
+        try:
+            return _renderizar(
+                solicitud, plantilla_aprobada=plantilla_tipo
+            ), None
+        except PlantillaAprobadaError as exc:
+            return None, _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="FALLIDA",
+                error=exc.code,
+            )
+
+    if (
+        existente is not None
+        and pide_envio
+        and modo_efectivo == MODO_ENVIO_PRODUCCION
+    ):
+        # Un borrador compuesto en modo prueba no sirve para una entrega de
+        # producción: el registro conserva el texto que se aprobó y cambiarlo
+        # en silencio entregaría algo distinto de lo aprobado. Se vuelve a
+        # componer desde la plantilla aprobada —`plantilla_tipo` ya está
+        # validada— y sólo si coincide con lo registrado se sigue.
+        render, fallo = _renderizar_o_fallo()
+        if fallo is not None:
+            return fallo
+        asunto_produccion, cuerpo_produccion = render
+        if (existente.asunto, existente.cuerpo) != (
+            asunto_produccion,
+            cuerpo_produccion,
+        ):
+            return _resultado(
+                log_path=log_path,
+                solicitud=solicitud,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+                estado="INVALIDA",
+                error="template_body_mismatch",
+            )
 
     if aprobacion is None:
         if pide_envio:
@@ -1745,7 +1949,10 @@ def procesar_confirmacion(
             return _duplicada(
                 log_path, solicitud, correlation_id, idempotency_key
             )
-        asunto_nuevo, cuerpo_nuevo = _renderizar(solicitud)
+        render, fallo = _renderizar_o_fallo()
+        if fallo is not None:
+            return fallo
+        asunto_nuevo, cuerpo_nuevo = render
         if not registro.crear(idempotency_key, asunto_nuevo, cuerpo_nuevo):
             return _duplicada(
                 log_path, solicitud, correlation_id, idempotency_key
@@ -1765,7 +1972,10 @@ def procesar_confirmacion(
     # repite para conservar el registro tal como quedó en disco, con sus
     # fechas y su hash, y no una copia a mano que ya diverge.
     if existente is None:
-        asunto_nuevo, cuerpo_nuevo = _renderizar(solicitud)
+        render, fallo = _renderizar_o_fallo()
+        if fallo is not None:
+            return fallo
+        asunto_nuevo, cuerpo_nuevo = render
         registro.crear(idempotency_key, asunto_nuevo, cuerpo_nuevo)
         existente = registro.obtener(idempotency_key)
     if existente is None:
@@ -1982,7 +2192,7 @@ def _entregar(
         asunto=asunto,
         cuerpo=cuerpo,
         aprobacion=aprobacion,
-        auditoria_extra={"delivery_mode": _modo_entrega(destino)},
+        auditoria_extra={"delivery_mode": modo_entrega(destino)},
     )
 
 
@@ -2028,7 +2238,11 @@ def _finalizar(
     )
 
 
-def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
+def _renderizar(
+    solicitud: SolicitudConfirmacion,
+    *,
+    plantilla_aprobada: PlantillaCorreo | None = None,
+) -> tuple[str, str]:
     """Arma asunto y cuerpo desde una plantilla fija. No interviene el modelo.
 
     La notificación es un texto administrativo: no hay nada que redactar y sí
@@ -2044,10 +2258,19 @@ def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     su asunto es el `asunto_preinscripcion` del plan — sin la marca de
     borrador — porque la respuesta del preinscripto se asocia por ese
     asunto normalizado.
+
+    `plantilla_aprobada` (#142) sólo llega en modo producción: el cuerpo y
+    el asunto salen de la redacción aprobada del tipo, sin las marcas de
+    borrador. En prueba no hay argumento — el texto provisional de siempre
+    con sus marcas.
     """
 
     if solicitud.tipo_notificacion == TIPO_INSTRUCCIONES_PAGO:
-        return _renderizar_instrucciones_pago(solicitud)
+        return _renderizar_instrucciones_pago(
+            solicitud, plantilla_aprobada=plantilla_aprobada
+        )
+    if plantilla_aprobada is not None:
+        return _renderizar_aprobada(solicitud, plantilla_aprobada)
 
     plantilla = descripcion_tipo(solicitud.tipo_notificacion)["plantilla"]
     # Un lugar vacío se completa con una frase explícita en vez de dejarse en
@@ -2067,11 +2290,46 @@ def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     return f"[{MARCADOR_BORRADOR}] {plantilla['asunto_base']}", cuerpo
 
 
+def _renderizar_aprobada(
+    solicitud: SolicitudConfirmacion, plantilla: PlantillaCorreo
+) -> tuple[str, str]:
+    """Asunto y cuerpo de producción desde la plantilla aprobada del tipo.
+
+    Las variables disponibles son los campos de la solicitud más
+    `frase_evento`, la frase de evento que el catálogo declara para el tipo:
+    el conjunto es el mismo que la plantilla provisional completa en prueba.
+    Una variable que el texto nombra y el circuito no completa es
+    `template_variable_without_value` y frena la composición, igual que un
+    placeholder suelto en el render provisional.
+    """
+
+    plantilla_catalogo = descripcion_tipo(solicitud.tipo_notificacion)[
+        "plantilla"
+    ]
+    valores = {
+        "nombre_destinatario": solicitud.nombre_destinatario.strip(),
+        "actividad": solicitud.actividad.strip(),
+        "fecha": solicitud.fecha.strip(),
+        "lugar": (
+            solicitud.lugar.strip() or "A confirmar por la Secretaría de Extensión"
+        ),
+        "organiza": solicitud.organiza.strip(),
+        "contacto": solicitud.contacto.strip(),
+        "frase_evento": str(plantilla_catalogo["frase_evento"]),
+    }
+    return (
+        renderizar_plantilla(plantilla.asunto or "", valores),
+        renderizar_plantilla(plantilla.cuerpo, valores),
+    )
+
+
 _PLACEHOLDER_RE = re.compile(r"\{\{[^}]+\}\}")
 
 
 def _renderizar_instrucciones_pago(
     solicitud: SolicitudConfirmacion,
+    *,
+    plantilla_aprobada: PlantillaCorreo | None = None,
 ) -> tuple[str, str]:
     """El correo de preinscripción con las instrucciones de pago (D8).
 
@@ -2081,6 +2339,10 @@ def _renderizar_instrucciones_pago(
     «BORRADOR» en el asunto haría que ningún comprobante se asocie. La
     marca no falta: va en la primera línea del cuerpo, que es el lugar que
     el destino habilitado exige (`draft_marker_missing` en Gmail).
+
+    En producción (#142) el asunto sigue siendo el del plan — la asociación
+    de respuestas no cambia — y el cuerpo sale de la plantilla aprobada del
+    tipo con las mismas variables, sin la marca ni la línea provisional.
 
     El cuerpo es la sección central del documento de plantilla, con cada
     `{{...}}` reemplazado por el dato del plan. Un placeholder sin valor es
@@ -2129,11 +2391,14 @@ def _renderizar_instrucciones_pago(
         ),
         "contacto": solicitud.contacto.strip(),
     }
-    cuerpo = _seccion_cuerpo(TEXTO_PLANTILLA_INSTRUCCIONES)
-    for clave, valor in valores.items():
-        cuerpo = cuerpo.replace("{{" + clave + "}}", valor)
-    if _PLACEHOLDER_RE.search(cuerpo):
-        raise ValueError("plantilla con placeholders sin renderizar")
+    if plantilla_aprobada is not None:
+        cuerpo = renderizar_plantilla(plantilla_aprobada.cuerpo, valores)
+    else:
+        cuerpo = _seccion_cuerpo(TEXTO_PLANTILLA_INSTRUCCIONES)
+        for clave, valor in valores.items():
+            cuerpo = cuerpo.replace("{{" + clave + "}}", valor)
+        if _PLACEHOLDER_RE.search(cuerpo):
+            raise ValueError("plantilla con placeholders sin renderizar")
     return datos.asunto_preinscripcion.strip(), cuerpo
 
 

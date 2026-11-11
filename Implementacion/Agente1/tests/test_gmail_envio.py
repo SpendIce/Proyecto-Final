@@ -30,6 +30,13 @@ from agente1.confirmaciones import (
     drenar_envios,
     procesar_confirmacion,
 )
+from agente1.decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
+    RESULTADO_REGISTRADA,
+    TIPO_PLANTILLA,
+    RegistroDecisiones,
+    ResultadoDecision,
+)
 from agente1.gmail_envio import (
     DESTINATARIOS_APROBADOS_ENV,
     DESTINATARIOS_PRUEBA_ENV,
@@ -49,6 +56,10 @@ from agente1.google_workspace import (
     MAX_WORKSPACE_RESPONSE_BYTES,
     RespuestaHttp,
     _RespuestaDemasiadoGrande,
+)
+from agente1.plantillas_aprobadas import (
+    PlantillaCorreo,
+    id_version_plantilla,
 )
 from agente1.workspace_config import ConfiguracionWorkspaceError
 
@@ -1093,19 +1104,214 @@ def test_el_worker_audita_el_modo_produccion(tmp_path: Path):
     assert ultima["estado"] == "ENVIADA_SIMULADA"
 
 
-def test_el_circuito_sigue_armando_el_borrador_y_produccion_lo_rechaza(tmp_path: Path):
-    """El paso que falta: la plantilla aprobada por tipo (SEU).
+def test_produccion_sigue_rechazando_cualquier_cuerpo_marcado():
+    """El adapter no afloja: un cuerpo marcado no llega ni al token.
 
-    `procesar_confirmacion` compone su cuerpo con `BORRADOR — NO ENVIAR`. Un
-    destino de producción lo rechaza antes de la red y el registro queda
-    `FALLIDA`: el modo producción no manda un borrador marcado a un
-    destinatario institucional. Cuando la SEU apruebe la plantilla por tipo,
-    el renderer tendrá que dejar de marcarla en producción.
+    Con el modo producción del renderer (#142) el cuerpo que viaja ya no
+    lleva marcas, pero la guarda del adapter queda como última línea:
+    si algo marcado se le escapa a cualquier camino, se rechaza antes de
+    la red.
+    """
+
+    destino, transporte, tokens = destino_produccion([])
+
+    with pytest.raises(EntregaRechazadaError) as error:
+        destino.entregar(
+            idempotency_key="a" * 64,
+            destinatario="direccion.extension@example.test",
+            asunto="Asunto institucional",
+            cuerpo=CUERPO_BORRADOR,
+        )
+
+    assert error.value.code == "draft_marker_in_production"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
+# Plantilla sintética declarada para las pruebas del circuito en
+# producción (#142): no es una redacción institucional — las de la SEU
+# siguen pendientes y llegan por `AGENTE1_PLANTILLAS_APROBADAS_PATH` —.
+PLANTILLA_INSCRIPCION_SINTETICA = {
+    "inscripcion": PlantillaCorreo(
+        asunto="Confirmación de {{actividad}}",
+        cuerpo=(
+            "Hola {{nombre_destinatario}},\n\n"
+            "{{frase_evento}}: {{actividad}}.\n"
+            "Fecha: {{fecha}}\n"
+            "Lugar: {{lugar}}\n"
+            "Organiza: {{organiza}}\n\n"
+            "Contacto: {{contacto}}\n"
+        ),
+    )
+}
+
+
+def _registrar_plantilla(
+    registro: RegistroDecisiones,
+    *,
+    tipo: str,
+    plantilla: PlantillaCorreo,
+    rol: str = ROL_APROBADOR_CONTENIDO,
+) -> None:
+    """La `apruebo_contenido` registrada sobre la versión de la plantilla.
+
+    Es el hecho que habilita el modo producción (#142, definición del
+    11/11): no basta que el archivo declare el texto, la versión exacta
+    tiene que figurar en el registro de decisiones.
+    """
+
+    registro.registrar(
+        ResultadoDecision(
+            id_respuesta=f"{1:064x}",
+            correo_hash="a" * 64,
+            rol=rol,
+            rol_origen="padron",
+            tipo=TIPO_PLANTILLA,
+            objeto_id=id_version_plantilla(tipo, plantilla),
+            decision=DECISION_APRUEBO_CONTENIDO,
+            resultado=RESULTADO_REGISTRADA,
+            rechazo_codigo=None,
+            marca_temporal_form="2026-10-11 09:00:00",
+            timestamp="2026-10-11T09:00:00+00:00",
+        )
+    )
+
+
+def _decisiones_con_inscripcion(tmp_path: Path) -> RegistroDecisiones:
+    """Registro con la aprobación de la plantilla sintética `inscripcion`."""
+
+    registro = RegistroDecisiones(tmp_path / "estado-decisiones")
+    _registrar_plantilla(
+        registro,
+        tipo="inscripcion",
+        plantilla=PLANTILLA_INSCRIPCION_SINTETICA["inscripcion"],
+    )
+    return registro
+
+
+def aprobar_en_produccion(
+    tmp_path: Path, registro, solicitud_, decisiones=None
+) -> None:
+    """La aprobación única con el borrador ya compuesto en producción."""
+
+    procesar_confirmacion(
+        solicitud=solicitud_,
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=aprobacion(ROL_APROBADOR_CONTENIDO),
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=PLANTILLA_INSCRIPCION_SINTETICA,
+        decisiones=(
+            decisiones
+            if decisiones is not None
+            else _decisiones_con_inscripcion(tmp_path)
+        ),
+    )
+
+
+def test_en_produccion_el_circuito_entrega_el_cuerpo_aprobado(tmp_path: Path):
+    """El cierre de #142: la plantilla aprobada por tipo compone el cuerpo.
+
+    Con `modo_envio="produccion"` y la plantilla sintética declarada, el
+    borrador que se registra no lleva marcas y el destino de producción lo
+    entrega: el `raw` del `gmail.send` viaja limpio y sin el prefijo MIME
+    de borrador.
     """
 
     registro = RegistroConfirmacionesMemoria()
-    aprobar(tmp_path, registro, solicitud())
-    destino, transporte, tokens = destino_produccion(
+    decisiones = _decisiones_con_inscripcion(tmp_path)
+    aprobar_en_produccion(tmp_path, registro, solicitud(), decisiones)
+    destino, transporte, _ = destino_produccion(
+        [RespuestaHttp(200, b'{"id":"m1"}')],
+        destinatarios_permitidos=LISTA_APROBADA | {"ana.perez@example.test"},
+    )
+
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        destino=destino,
+        enviar=True,
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=PLANTILLA_INSCRIPCION_SINTETICA,
+        decisiones=decisiones,
+    )
+
+    assert resultado.estado == "ENVIADA_SIMULADA"
+    assert len(transporte.solicitudes) == 1
+    mensaje = mensaje_de(transporte.solicitudes[0])
+    cuerpo = mensaje.get_content()
+    assert "BORRADOR" not in cuerpo
+    assert "Ana Pérez" in cuerpo
+    assert "Taller de robótica educativa" in cuerpo
+    assert not mensaje.get_content().startswith("# BORRADOR")
+    ultima = json.loads(
+        resultado.log_path.read_text(encoding="utf-8").splitlines()[-1]
+    )
+    assert ultima["delivery_mode"] == "gmail_production"
+
+
+def test_en_produccion_sin_la_plantilla_del_tipo_es_invalida(tmp_path: Path):
+    """Pedir producción sin plantilla aprobada del tipo no compone nada."""
+
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=RegistroConfirmacionesMemoria(),
+        modo_envio=MODO_ENVIO_PRODUCCION,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_missing"
+
+
+def test_en_produccion_una_plantilla_mal_formada_es_invalida(tmp_path: Path):
+    """Variable desconocida en la plantilla del tipo: la forma no cierra."""
+
+    plantilla_rara = {
+        "inscripcion": PlantillaCorreo(
+            asunto="Confirmación",
+            cuerpo="Texto con {{dato_que_no_existe}}.",
+        )
+    }
+
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=RegistroConfirmacionesMemoria(),
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=plantilla_rara,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_invalid"
+
+
+def test_un_modo_de_envio_desconocido_es_invalida(tmp_path: Path):
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=RegistroConfirmacionesMemoria(),
+        modo_envio="espacial",
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "send_mode_invalid"
+
+
+def test_un_borrador_de_prueba_no_sirve_para_envio_de_produccion(
+    tmp_path: Path,
+):
+    """El registro conserva lo aprobado: un borrador marcado no se entrega.
+
+    Si la pieza se aprobó compuesta en prueba, un envío de producción no
+    la reescribe en silencio — entregaría algo distinto de lo aprobado —:
+    sale `INVALIDA` y la pieza se vuelve a tramitar en producción.
+    """
+
+    registro = RegistroConfirmacionesMemoria()
+    aprobar(tmp_path, registro, solicitud())  # aprobada en prueba
+    destino, transporte, _ = destino_produccion(
         [], destinatarios_permitidos=LISTA_APROBADA | {"ana.perez@example.test"}
     )
 
@@ -1115,12 +1321,31 @@ def test_el_circuito_sigue_armando_el_borrador_y_produccion_lo_rechaza(tmp_path:
         registro=registro,
         destino=destino,
         enviar=True,
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=PLANTILLA_INSCRIPCION_SINTETICA,
+        decisiones=_decisiones_con_inscripcion(tmp_path),
     )
 
-    assert resultado.estado == "FALLIDA"
-    assert resultado.error == "draft_marker_in_production"
-    assert tokens.invocaciones == 0
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "template_body_mismatch"
     assert transporte.solicitudes == []
+
+
+def test_en_prueba_el_circuito_conserva_las_marcas_de_siempre(tmp_path: Path):
+    """El default no se movió: `prueba` arma el mismo borrador marcado."""
+
+    registro = RegistroConfirmacionesMemoria()
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=aprobacion(ROL_APROBADOR_CONTENIDO),
+    )
+
+    assert resultado.estado != "INVALIDA"
+    guardada = registro.obtener(resultado.idempotency_key)
+    assert guardada.cuerpo.startswith(CUERPO_BORRADOR.splitlines()[0])
+    assert guardada.asunto.startswith("[BORRADOR — NO ENVIAR]")
 
 
 def test_repr_en_produccion_tampoco_expone_las_direcciones():
@@ -1128,3 +1353,122 @@ def test_repr_en_produccion_tampoco_expone_las_direcciones():
     representacion = repr(destino)
     assert "direccion.extension@example.test" not in representacion
     assert "produccion" in representacion
+
+
+def test_en_produccion_sin_la_aprobacion_de_version_es_invalida(
+    tmp_path: Path,
+):
+    """La plantilla en el archivo sin `apruebo_contenido` no autoriza.
+
+    La definición del 11/11 (#125): «aprobada» es un hecho del registro,
+    no del archivo — una versión sin la decisión registrada se rechaza
+    con código propio y nada se compone.
+    """
+
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=RegistroConfirmacionesMemoria(),
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=PLANTILLA_INSCRIPCION_SINTETICA,
+        decisiones=RegistroDecisiones(tmp_path / "estado-decisiones"),
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "template_version_unapproved"
+
+
+def test_en_produccion_una_version_editada_despues_pierde_la_aprobacion(
+    tmp_path: Path,
+):
+    """El id ata la decisión al hash: un texto distinto es otra versión."""
+
+    decisiones = _decisiones_con_inscripcion(tmp_path)
+    plantilla_editada = {
+        "inscripcion": PlantillaCorreo(
+            asunto="Confirmación de {{actividad}}",
+            cuerpo="Texto cambiado después de la aprobación. {{contacto}}",
+        )
+    }
+
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=RegistroConfirmacionesMemoria(),
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=plantilla_editada,
+        decisiones=decisiones,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "template_version_unapproved"
+
+
+def test_el_cuerpo_de_produccion_en_modo_prueba_se_rechaza(tmp_path: Path):
+    """El cierre de #142 al revés: el mismo cuerpo sin marca no entra en prueba.
+
+    No es un texto genérico: es el cuerpo que el renderer compone desde la
+    plantilla aprobada. Si esa pieza llega al destino de prueba —que exige
+    la marca de borrador— el adapter la rechaza antes de la red.
+    """
+
+    registro = RegistroConfirmacionesMemoria()
+    decisiones = _decisiones_con_inscripcion(tmp_path)
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        aprobacion=aprobacion(ROL_APROBADOR_CONTENIDO),
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=PLANTILLA_INSCRIPCION_SINTETICA,
+        decisiones=decisiones,
+    )
+    assert resultado.estado == "APROBADA"
+    cuerpo_produccion = registro.obtener(
+        resultado.idempotency_key
+    ).cuerpo
+    assert "BORRADOR" not in cuerpo_produccion
+
+    destino_prueba, transporte, tokens = crear_destino([])
+    with pytest.raises(EntregaRechazadaError) as error:
+        destino_prueba.entregar(
+            idempotency_key=resultado.idempotency_key,
+            destinatario="ana.perez@example.test",
+            asunto="Confirmación",
+            cuerpo=cuerpo_produccion,
+        )
+    assert error.value.code == "draft_marker_missing"
+    assert tokens.invocaciones == 0
+    assert transporte.solicitudes == []
+
+
+def test_en_produccion_un_destinatario_fuera_de_la_lista_falla_sin_reintento(
+    tmp_path: Path,
+):
+    """Cierre #142 + lista aprobada: el cuerpo renderizado no llega a la red.
+
+    El destinatario de la solicitud no está en `destinatarios_permitidos`
+    del adapter de producción: la entrega se rechaza por política con
+    `recipient_off_approved_list`, queda `FALLIDA` y no se reintenta.
+    """
+
+    registro = RegistroConfirmacionesMemoria()
+    decisiones = _decisiones_con_inscripcion(tmp_path)
+    aprobar_en_produccion(tmp_path, registro, solicitud(), decisiones)
+    # LISTA_APROBADA no incluye el destinatario de `solicitud()`.
+    destino, transporte, _ = destino_produccion([])
+
+    resultado = procesar_confirmacion(
+        solicitud=solicitud(),
+        directorio_salida=tmp_path,
+        registro=registro,
+        destino=destino,
+        enviar=True,
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=PLANTILLA_INSCRIPCION_SINTETICA,
+        decisiones=decisiones,
+    )
+
+    assert resultado.estado == "FALLIDA"
+    assert resultado.error == "recipient_off_approved_list"
+    assert transporte.solicitudes == []

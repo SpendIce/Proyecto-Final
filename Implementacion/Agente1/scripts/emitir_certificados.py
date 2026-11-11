@@ -64,11 +64,16 @@ from agente1.decisiones_form import (
     cargar_configuracion_form_decisiones,
 )
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
-from agente1.gmail_envio import GmailDestinoConfirmaciones, GmailEnvioError
+from agente1.gmail_envio import (
+    MODO_ENVIO_PRODUCCION,
+    GmailDestinoConfirmaciones,
+    GmailEnvioError,
+)
 from agente1.google_workspace import (
     GoogleSheetsFuenteSolicitudes,
     GoogleSheetsLectorValores,
 )
+from agente1.plantillas_aprobadas import cargar_plantillas_aprobadas
 from agente1.workspace_auth import construir_token_provider
 from agente1.workspace_config import (
     ConfiguracionWorkspaceError,
@@ -214,6 +219,15 @@ def main(argv: list[str] | None = None) -> int:
                 token_provider=token_provider,
                 timeout_s=config_ws.timeout_s,
             )
+            # En modo producción el certificado y el correo del titular se
+            # componen desde las plantillas aprobadas declaradas en el
+            # archivo que apunta AGENTE1_PLANTILLAS_APROBADAS_PATH (#142);
+            # en prueba no se cargan y el texto queda como siempre.
+            plantillas_aprobadas = (
+                cargar_plantillas_aprobadas(os.environ)
+                if destino.modo == MODO_ENVIO_PRODUCCION
+                else None
+            )
             resumen_config: dict[str, object] = {
                 "workspace": config_ws.resumen_seguro(),
                 "form_decisiones": config_decisiones.resumen_seguro(),
@@ -237,6 +251,7 @@ def main(argv: list[str] | None = None) -> int:
             fuente = CsvFuenteSolicitudes(args.csv)
             resumen_config = {"modo_offline": True}
             modo = "offline_fake"
+            plantillas_aprobadas = None
 
         # El rol del solicitante sale del padrón (#125): pedir el lote
         # exige el rol de contenido. Sin padrón configurado la barrera
@@ -262,6 +277,7 @@ def main(argv: list[str] | None = None) -> int:
             solicitante_rol=solicitante_rol,
             directorio_salida=args.directorio,
             recursos_firma=recursos_firma,
+            plantillas_aprobadas=plantillas_aprobadas,
         )
     except ConfiguracionWorkspaceError as exc:
         _emitir({"estado": "RECHAZADA", "resultado": exc.code})

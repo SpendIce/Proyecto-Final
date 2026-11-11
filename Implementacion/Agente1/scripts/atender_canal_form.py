@@ -91,7 +91,12 @@ from agente1.decisiones_form import (
     cargar_configuracion_form_decisiones,
 )
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
-from agente1.gmail_envio import GmailDestinoConfirmaciones, GmailEnvioError
+from agente1.gmail_envio import (
+    MODO_ENVIO_PRODUCCION,
+    MODO_ENVIO_PRUEBA,
+    GmailDestinoConfirmaciones,
+    GmailEnvioError,
+)
 from agente1.google_workspace import (
     GoogleDrivePlantillaDestinoBorradores,
     GoogleSheetsFuenteSolicitudes,
@@ -103,6 +108,7 @@ from agente1.pagos import (
     PlanPago,
     cargar_plan_pagos_csv,
 )
+from agente1.plantillas_aprobadas import cargar_plantillas_aprobadas
 from agente1.registro_auditoria import escribir_registro
 from agente1.workspace_auth import construir_token_provider
 from agente1.workspace_config import (
@@ -136,6 +142,12 @@ class _DestinoAvisosArchivo:
 
     def __init__(self, path: Path) -> None:
         self._path = path
+
+    @property
+    def modo(self) -> str:
+        # El archivo de avisos es un destino del modo prueba: el ensayo del
+        # canal no sale a la red ni a una lista aprobada (#142).
+        return MODO_ENVIO_PRUEBA
 
     def entregar(
         self,
@@ -363,6 +375,10 @@ def _emisor_live(
         if not os.environ.get(CERT_PREFIX + clave, "").strip():
             raise RunnerWorkspaceError("certificados_config_missing")
     registro = RegistroDecisiones(directorio_decisiones)
+    destino = GmailDestinoConfirmaciones.desde_entorno(
+        token_provider=token_provider,
+        timeout_s=timeout_s,
+    )
     return construir_emisor_certificados(
         fuente=fuente,
         lector_lista=GoogleSheetsLectorValores(
@@ -379,15 +395,21 @@ def _emisor_live(
             directorio_decisiones,
             config=cargar_configuracion_form_decisiones(),
         ),
-        destino=GmailDestinoConfirmaciones.desde_entorno(
-            token_provider=token_provider,
-            timeout_s=timeout_s,
-        ),
+        destino=destino,
         directorio_salida=directorio_salida,
         # Los recursos de firma de la plantilla SEU (#126) son optativos:
         # sin `AGENTE1_CERTIFICADOS_RECURSOS_DIR` salen no provistos.
         recursos_firma=recursos_firma_opcional(
             os.environ.get(CERT_PREFIX + "RECURSOS_DIR")
+        ),
+        # En producción las plantillas del tipo salen del archivo que
+        # declara AGENTE1_PLANTILLAS_APROBADAS_PATH (#142): el destino
+        # declara el modo y cada versión exige su `apruebo_contenido`
+        # registrada, así que acá sólo se carga el texto.
+        plantillas_aprobadas=(
+            cargar_plantillas_aprobadas(os.environ)
+            if destino.modo == MODO_ENVIO_PRODUCCION
+            else None
         ),
     )
 

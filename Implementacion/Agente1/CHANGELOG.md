@@ -26,6 +26,32 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+- **Menor — renderers en modo producción sin marcas de borrador (#142).**
+  Capacidad nueva: los renderers componen el cuerpo desde la plantilla
+  aprobada por tipo en modo `produccion` y conservan las marcas en `prueba`
+  (default intacto). `plantillas_aprobadas.py` nuevo: carga el JSON de
+  plantillas que declara `AGENTE1_PLANTILLAS_APROBADAS_PATH` (fuera del
+  repo, como la lista aprobada), id de versión atado al hash del texto,
+  validación de forma compartida y sustitución `{{variable}}` sin llaves
+  sueltas. La aprobación no se infiere del archivo: por la definición del
+  11/11 (#125, ADR 0019) cada versión exige una `apruebo_contenido`
+  `registrada` de `APROBADOR_CONTENIDO` en el registro de decisiones sobre
+  `tpl-<tipo>-<hash>` — sin ella es `template_version_unapproved`; fallas
+  de carga `approved_templates_file_*`, de tipo `approved_template_*`.
+  El modo tiene una sola fuente (`destino.modo` en el Protocol): un
+  parámetro que no coincide es `send_mode_mismatch`. Los tipos `por_envio`
+  de HU-012, `recordatorio_pago` y `correo_actividad` exigen su plantilla
+  registrada — el texto provisional nunca viaja podado —; en HU-014 el
+  certificado de `aprobacion` sale del diseño SEU (#126) con
+  `marcar_prueba` apagado, `asistencia` exige `certificado_asistencia`,
+  el correo `correo_certificado`, y los recursos de firma completos
+  (`signature_resources_missing` si falta alguno antes de entregar). El
+  aviso del canal sale sin marca en producción; el de respaldo quedó
+  fuera de alcance. Un borrador compuesto en prueba no sirve para una
+  entrega de producción (`template_body_mismatch`). Las redacciones
+  institucionales siguen pendientes de la SEU; las de los tests son
+  sintéticas declaradas.
+
 - **Mayor — aprobación única de contenido y lotes (#125).** La designación
   del 11/11/2026 reemplaza el par semántica + utilitaria: una sola persona
   autorizada (`APROBADOR_CONTENIDO`, decisión `apruebo_contenido`) aprueba

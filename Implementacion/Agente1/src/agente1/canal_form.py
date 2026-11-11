@@ -1583,7 +1583,16 @@ class CanalFormPedidos:
                 lineas.append(_una_linea(resultado.error))
             if resultado.resumen:
                 lineas.append(_una_linea(resultado.resumen))
-        return f"{MARCADOR_BORRADOR}\n\n" + "\n".join(lineas) + "\n"
+        cuerpo = "\n".join(lineas) + "\n"
+        # El aviso es un mensaje operativo para la persona que pidió, no una
+        # pieza institucional: en producción el destino lo rechaza marcado,
+        # así que viaja el mismo texto sin la marca (mismo criterio que
+        # `AvisoConfiguracionGmail`). El modo lo declara el destino (#142).
+        from .gmail_envio import MODO_ENVIO_PRODUCCION
+
+        if self._avisos.modo == MODO_ENVIO_PRODUCCION:
+            return cuerpo
+        return f"{MARCADOR_BORRADOR}\n\n" + cuerpo
 
     def _publicos_del_pedido(self, pedido: PedidoCanal) -> str:
         """Nombres de los públicos elegidos, para que la revisión los vea.

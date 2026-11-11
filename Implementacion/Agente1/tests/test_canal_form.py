@@ -33,7 +33,12 @@ from agente1.canal_form import (
 )
 from agente1.confirmaciones import MARCADOR_BORRADOR
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
-from agente1.gmail_envio import GMAIL_SEND_TARGET, GmailDestinoConfirmaciones
+from agente1.gmail_envio import (
+    GMAIL_SEND_TARGET,
+    MODO_ENVIO_PRODUCCION,
+    MODO_ENVIO_PRUEBA,
+    GmailDestinoConfirmaciones,
+)
 from agente1.google_workspace import (
     GoogleDrivePlantillaDestinoBorradores,
     GoogleSheetsLectorValores,
@@ -191,6 +196,7 @@ def crear_canal(
     destinatarios: set[str] | None = None,
     gmail_error: Exception | None = None,
     doc_id: str = "doc_copiado-777",
+    modo_avisos: str = MODO_ENVIO_PRUEBA,
 ) -> tuple[CanalFormPedidos, TransporteRouter]:
     router = TransporteRouter(
         values=values if values is not None else [ENCABEZADOS_HOJA, fila_respuesta()],
@@ -211,6 +217,7 @@ def crear_canal(
             token_provider=TokenFijo(),
             transport=router,
             timeout_s=5,
+            modo=modo_avisos,
         ),
         directorio_estado=tmp_path / "estado",
         form_id=FORM_ID,
@@ -1419,3 +1426,36 @@ def test_la_propuesta_no_persiste_ni_la_prosa_ni_el_correo(
     # Los términos que aportó el modelo tampoco viajan al aviso: la actividad
     # se nombra con el título institucional.
     assert CORREO_SOLICITANTE not in cuerpo
+
+
+# --- Modo producción (#142) -----------------------------------------------------
+
+
+def test_en_produccion_el_aviso_al_solicitante_viaja_sin_marcas(
+    tmp_path: Path,
+) -> None:
+    """El aviso operativo no es pieza institucional: sale el mismo texto
+    sin la marca, porque el destino de producción la rechaza."""
+
+    canal, router = crear_canal(tmp_path, modo_avisos=MODO_ENVIO_PRODUCCION)
+
+    resultados = _atender(canal, router, tmp_path)
+
+    assert resultados[0].estado == "PENDIENTE_VALIDACION"
+    (mensaje,) = _correos_gmail(router)
+    cuerpo = _cuerpo(mensaje)
+    assert "BORRADOR" not in cuerpo
+    assert "docs.google.com/document/d/doc_copiado-777" in cuerpo
+    (registro,) = _atendidos(tmp_path)
+    assert registro["aviso"] == "enviada"
+
+
+def test_en_prueba_el_aviso_conserva_la_marca_de_siempre(
+    tmp_path: Path,
+) -> None:
+    canal, router = crear_canal(tmp_path)
+
+    _atender(canal, router, tmp_path)
+
+    (mensaje,) = _correos_gmail(router)
+    assert MARCADOR_BORRADOR in _cuerpo(mensaje)
