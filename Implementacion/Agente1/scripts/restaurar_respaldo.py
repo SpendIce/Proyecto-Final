@@ -80,6 +80,14 @@ def main(argv: list[str] | None = None) -> int:
             "(obligatorio si el artefacto lo incluye)"
         ),
     )
+    parser.add_argument(
+        "--postgres-dsn",
+        default=None,
+        help=(
+            "DSN de la base del canal web (ADR 0016); obligatorio si el "
+            "artefacto trae el volcado postgres/agente1.pgdump"
+        ),
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -87,6 +95,7 @@ def main(argv: list[str] | None = None) -> int:
             artefacto_path=args.artefacto,
             directorio_salida=args.salida,
             registro_confirmaciones=args.registro,
+            postgres_dsn=args.postgres_dsn,
         )
     except RespaldoDiarioError as exc:
         print(

@@ -47,6 +47,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
+import subprocess
 import sys
 from collections.abc import Mapping
 from datetime import datetime
@@ -167,6 +170,24 @@ def main(
     except OSError:
         return _invalida("respaldo_entrada_inaccesible")
 
+    # El volcado de la base del canal web (ADR 0016) viaja dentro del
+    # artefacto cuando el entorno declara el DSN. `pg_dump` corre en texto
+    # plano; la restauración lo devuelve con `psql -f`.
+    postgres_dump = None
+    entorno = environ if environ is not None else os.environ
+    dsn = entorno.get("AGENTE1_POSTGRES_DSN")
+    if dsn:
+        pg_dump = shutil.which("pg_dump")
+        if pg_dump is None:
+            return _invalida("respaldo_postgres_cliente_ausente")
+        proceso = subprocess.run(
+            [pg_dump, dsn, "--no-owner", "--no-privileges"],
+            capture_output=True,
+        )
+        if proceso.returncode != 0:
+            return _invalida("respaldo_postgres_fallido")
+        postgres_dump = proceso.stdout
+
     try:
         resultado = correr_respaldo_diario(
             directorio_salida=args.salida,
@@ -174,6 +195,7 @@ def main(
             registro_confirmaciones=args.registro,
             aviso=aviso,
             ahora=ahora,
+            postgres_dump=postgres_dump,
         )
     except RespaldoDiarioError as exc:
         return _invalida(exc.code)

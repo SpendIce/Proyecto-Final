@@ -60,7 +60,10 @@ import json
 import math
 import os
 import re
+import shutil
+import subprocess
 import tarfile
+import tempfile
 import time
 import uuid
 from collections.abc import Mapping
@@ -124,7 +127,7 @@ NOMBRE_RE = re.compile(
 )
 # Un miembro del artefacto: segmentos de nombre seguros, sin `..` ni raíz.
 _RUTA_MIEMBRO_RE = re.compile(
-    r"(?:salida|registro-confirmaciones)"
+    r"(?:salida|registro-confirmaciones|postgres)"
     r"(?:/[A-Za-z0-9._-]{1,128}){1,6}\Z"
 )
 
@@ -331,6 +334,7 @@ def construir_artefacto(
     directorio_salida: Path,
     registro_confirmaciones: Path | None,
     marca: datetime,
+    postgres_dump: bytes | None = None,
 ) -> ArtefactoRespaldo:
     """Empaqueta el estado declarado en un `.tar.gz` con manifiesto de hashes.
 
@@ -392,6 +396,19 @@ def construir_artefacto(
             # que viva ahí es estado (los `.lock` viajan igual, vacíos).
             if ruta.is_file() and ruta.suffix != ".tmp":
                 recolectar(ruta, f"registro-confirmaciones/{ruta.name}")
+
+    # El volcado de PostgreSQL del canal web (ADR 0016): viaja como miembro
+    # del mismo artefacto, con su hash en el manifiesto como todo lo demás.
+    # Nunca lleva prosa que la purga ya haya vaciado: el respaldo corre
+    # después de la purga diaria, en ese orden por contrato.
+    if postgres_dump is not None:
+        entradas.append(
+            EntradaArtefacto(
+                ruta="postgres/agente1.pgdump",
+                contenido=postgres_dump,
+                sha256=hashlib.sha256(postgres_dump).hexdigest(),
+            )
+        )
 
     entradas.sort(key=lambda entrada: entrada.ruta)
     manifiesto = {
@@ -911,6 +928,7 @@ def correr_respaldo_diario(
     ahora: datetime | None = None,
     fecha_operativa: date | None = None,
     retencion_dias: int = RETENCION_RESPALDOS_DIAS,
+    postgres_dump: bytes | None = None,
 ) -> ResultadoRespaldo:
     """El paso diario completo: empaquetar, subir nuevo, borrar los vencidos.
 
@@ -943,6 +961,7 @@ def correr_respaldo_diario(
             directorio_salida=directorio_salida,
             registro_confirmaciones=registro_confirmaciones,
             marca=momento,
+            postgres_dump=postgres_dump,
         )
         remotos = {r.nombre: r for r in destino.listar()}
         if nombre in remotos:
@@ -1083,11 +1102,55 @@ class ResultadoRestauracion:
     audit_path: Path
 
 
+def _restaurar_postgres_si_hay(
+    dump: bytes | None, postgres_dsn: str | None
+) -> bool:
+    """Restaura el volcado del canal web con `psql`, fail-closed.
+
+    Un artefacto con miembro `postgres/` y sin DSN declarado aborta la
+    restauración entera antes de tocar la base: el operador decide dónde
+    vuelca. El `psql` corre con `ON_ERROR_STOP` y el dump en un temporal
+    `0600` que se borra siempre.
+    """
+    if dump is None:
+        return False
+    if postgres_dsn is None:
+        raise RespaldoDiarioError(
+            "respaldo_postgres_sin_dsn", etapa="restauracion"
+        )
+    psql = shutil.which("psql")
+    if psql is None:
+        raise RespaldoDiarioError(
+            "respaldo_postgres_cliente_ausente", etapa="restauracion"
+        )
+    with tempfile.NamedTemporaryFile(
+        mode="wb", suffix=".pgdump", delete=False
+    ) as temporal:
+        temporal.write(dump)
+        nombre_tmp = temporal.name
+    try:
+        os.chmod(nombre_tmp, 0o600)
+        proceso = subprocess.run(
+            [psql, postgres_dsn, "-X", "-q",
+             "-v", "ON_ERROR_STOP=1", "-f", nombre_tmp],
+            capture_output=True,
+            text=True,
+        )
+        if proceso.returncode != 0:
+            raise RespaldoDiarioError(
+                "respaldo_postgres_fallido", etapa="restauracion"
+            )
+    finally:
+        Path(nombre_tmp).unlink(missing_ok=True)
+    return True
+
+
 def restaurar_estado_respaldo(
     *,
     artefacto_path: Path,
     directorio_salida: Path,
     registro_confirmaciones: Path | None,
+    postgres_dsn: str | None = None,
 ) -> ResultadoRestauracion:
     """El procedimiento de restauración: verificar, reponer, marcar.
 
@@ -1125,7 +1188,14 @@ def restaurar_estado_respaldo(
     restaurados = 0
     omitidos = 0
     conflictos: list[str] = []
+    miembro_postgres: bytes | None = None
     for ruta_miembro, datos in sorted(miembros.items()):
+        if ruta_miembro.startswith("postgres/"):
+            # El volcado de la base del canal web (ADR 0016) no es un
+            # archivo de estado: se restaura aparte, con `psql`, cuando el
+            # operador declara el DSN. Sin DSN no se descarta en silencio.
+            miembro_postgres = datos
+            continue
         if ruta_miembro.startswith("salida/"):
             destino = salida_base / ruta_miembro[len("salida/"):]
         else:
@@ -1164,6 +1234,10 @@ def restaurar_estado_respaldo(
             ) from None
         restaurados += 1
 
+    restaurado_postgres = _restaurar_postgres_si_hay(
+        miembro_postgres, postgres_dsn
+    )
+
     indeterminados = (
         _marcar_posteriores_indeterminados(registro_base, marca_dt)
         if registro_base is not None and registro_base.is_dir()
@@ -1179,6 +1253,7 @@ def restaurar_estado_respaldo(
             "archivos_omitidos": omitidos,
             "conflictos": len(conflictos),
             "conflictos_hash": _hash("\n".join(conflictos)),
+            "postgres_restaurado": restaurado_postgres,
             "indeterminados": len(indeterminados),
             "claves_hash": _hash("\n".join(indeterminados)),
         },

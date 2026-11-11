@@ -261,6 +261,36 @@ def _pasos_diarios(
 
             pasos.append(PasoDiario("purga", correr_purga))
 
+    # Purga del canal web (ADR 0016): existe cuando el entorno declara el
+    # DSN de la base y el script está en el checkout. Comparte el flag con
+    # la purga de confirmaciones: si alguna falla, el respaldo del día no
+    # corre, porque el artefacto no puede llevar prosa vencida.
+    script_purga_web = (
+        config.repo
+        / "Implementacion"
+        / "Agente1"
+        / "scripts"
+        / "purgar_canal_web.py"
+    )
+    if env.get("AGENTE1_POSTGRES_DSN") and script_purga_web.is_file():
+
+        def correr_purga_web() -> None:
+            resultado = subprocess.run(
+                [sys.executable, str(script_purga_web)],
+                cwd=config.repo,
+                env=dict(env),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+            purga_completa["ok"] = (
+                purga_completa["ok"] and resultado.returncode == 0
+            )
+            if not purga_completa["ok"]:
+                raise RuntimeError("purga_canal_web_error")
+
+        pasos.append(PasoDiario("purga_canal_web", correr_purga_web))
+
     script_respaldo = (
         config.repo
         / "Implementacion"
