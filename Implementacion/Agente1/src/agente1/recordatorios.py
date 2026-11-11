@@ -6,13 +6,14 @@ día y este módulo lo encola hacia la entrega simulada, con un modelo de
 autorización distinto del circuito por envío:
 
 1. **La plantilla se aprueba una sola vez.** El texto provisional
-   (`prompts/recordatorio_pago_provisional_v1.txt`) se registra bajo una
-   clave derivada de su contenido y atraviesa la misma doble decisión del
-   circuito — aprobación semántica y aprobación utilitaria — como una pieza
+   (`prompts/recordatorio_pago_provisional_v2.txt`) se registra bajo una
+   clave derivada de su contenido y atraviesa la misma aprobación única del
+   circuito — una decisión del `APROBADOR_CONTENIDO` — como una pieza
    más del registro. Mientras no esté `APROBADA`, ningún lote puede
    encolarse (`template_not_approved`).
-2. **El lote lleva una aprobación utilitaria con su lista.** El Coordinador
-   de Extensión aprueba el lote del día declarando exactamente qué ítems
+2. **El lote lleva la aprobación del responsable de pagos con su lista.**
+   El aprobador de pagos designado (`APROBADOR_PAGOS`, #125) aprueba el
+   lote del día declarando exactamente qué ítems
    revisó: la decisión queda ligada al conjunto aprobado. Una lista que no
    cubre el lote es aprobación parcial y no autoriza nada
    (`batch_approval_partial`); una clave ajena al lote invalida la lista
@@ -48,12 +49,11 @@ from importlib.resources import files
 from pathlib import Path
 
 from .confirmaciones import (
-    _PARCIAL_POR_ROL,
     CLAVE_REGISTRO_RE,
     ESTADO_ENVIO_ENCOLADO,
-    ESTADOS_PARCIALES_APROBACION,
     MARCADOR_BORRADOR,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
+    ROL_APROBADOR_PAGOS,
     AprobacionHumana,
     ColaEnvios,
     DestinoConfirmaciones,
@@ -79,7 +79,7 @@ from .tipos_notificacion import descripcion_tipo
 
 HU = "HU-012"
 CONTRACT_VERSION = PLAN_CONTRACT_VERSION
-TEMPLATE_VERSION = "recordatorio_pago_provisional_v1"
+TEMPLATE_VERSION = "recordatorio_pago_provisional_v2"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 
 # El documento de plantilla: es la pieza que la SEU aprueba una sola vez.
@@ -87,7 +87,7 @@ POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 # versión, estado, límites — es lo que queda cubierto por la aprobación.
 TEXTO_PLANTILLA = (
     files("agente1")
-    .joinpath("prompts", "recordatorio_pago_provisional_v1.txt")
+    .joinpath("prompts", "recordatorio_pago_provisional_v2.txt")
     .read_text(encoding="utf-8")
 )
 
@@ -113,7 +113,7 @@ _PLACEHOLDER_RE = re.compile(r"\{\{[^}]+\}\}")
 
 @dataclass(frozen=True)
 class AprobacionLote:
-    """La aprobación utilitaria del lote del día, ligada a su lista.
+    """La aprobación del lote de pagos del día, ligada a su lista.
 
     `items` son las claves `sha256` de los ítems que la persona aprobó:
     tienen que ser exactamente las del lote planeado — ni una menos
@@ -171,8 +171,8 @@ def registrar_plantilla_recordatorio(
 
     Idempotente por clave: registrar dos veces la misma redacción es
     `DUPLICADA`, porque la clave se deriva del texto. El ciclo de vida es
-    el de cualquier pieza del circuito: doble aprobación humana antes de
-    que sirva para algo.
+    el de cualquier pieza del circuito: la aprobación única de la persona
+    autorizada antes de que sirva para algo.
     """
 
     correlation_id = str(uuid.uuid4())
@@ -215,12 +215,11 @@ def aprobar_plantilla_recordatorio(
     directorio_salida: Path,
     aprobacion: AprobacionHumana,
 ) -> ResultadoPlantilla:
-    """Registra una decisión sobre la plantilla: misma doble aprobación.
+    """Registra la decisión sobre la plantilla: aprobación única de contenido.
 
-    Cada rol deja su estado parcial y la decisión del otro rol completa el
-    circuito — los mismos `ESTADOS_PARCIALES_APROBACION` y `_PARCIAL_POR_ROL`
-    del circuito por envío, así que la evidencia de doble decisión es la
-    misma que la de una notificación por envío. Si la plantilla no fue
+    La plantilla es una pieza de contenido y la aprueba una sola persona
+    autorizada (`ROL_APROBADOR_CONTENIDO`, #125): no hay estados parciales.
+    Si la plantilla no fue
     registrada antes, la decisión la materializa, como en los otros
     circuitos. Una plantilla `RECHAZADA` es terminal: el lote que la exige
     queda `template_not_approved`.
@@ -228,7 +227,7 @@ def aprobar_plantilla_recordatorio(
 
     correlation_id = str(uuid.uuid4())
     log_path = _log_path(directorio_salida)
-    if not _aprobacion_valida(aprobacion):
+    if not _aprobacion_valida(aprobacion, rol=ROL_APROBADOR_CONTENIDO):
         _auditar(
             log_path,
             correlation_id=correlation_id,
@@ -253,7 +252,7 @@ def aprobar_plantilla_recordatorio(
     if not aprobacion.aprobada:
         if not registro.transicionar(
             CLAVE_PLANTILLA_RECORDATORIO,
-            frozenset({"PENDIENTE_VALIDACION"} | ESTADOS_PARCIALES_APROBACION),
+            frozenset({"PENDIENTE_VALIDACION"}),
             "RECHAZADA",
         ):
             return _resultado_plantilla(
@@ -267,20 +266,11 @@ def aprobar_plantilla_recordatorio(
             log_path, correlation_id, "RECHAZADA", None, aprobacion
         )
 
-    parcial_propia, parcial_ajena = _PARCIAL_POR_ROL[aprobacion.rol]
-    if registro.transicionar(
+    if not registro.transicionar(
         CLAVE_PLANTILLA_RECORDATORIO,
         frozenset({"PENDIENTE_VALIDACION"}),
-        parcial_propia,
-    ):
-        estado_actual = parcial_propia
-    elif registro.transicionar(
-        CLAVE_PLANTILLA_RECORDATORIO,
-        frozenset({parcial_ajena}),
         "APROBADA",
     ):
-        estado_actual = "APROBADA"
-    else:
         return _resultado_plantilla(
             log_path,
             correlation_id,
@@ -289,7 +279,7 @@ def aprobar_plantilla_recordatorio(
             aprobacion,
         )
     return _resultado_plantilla(
-        log_path, correlation_id, estado_actual, None, aprobacion
+        log_path, correlation_id, "APROBADA", None, aprobacion
     )
 
 
@@ -331,11 +321,12 @@ def encolar_lote_recordatorios(
     Orden de los controles — primero lo que descalifica la autorización,
     después lo que toca el registro:
 
-    1. La decisión del lote es una `AprobacionHumana` válida del rol
-       utilitario y su lista tiene claves con formato `sha256`; si la
+    1. La decisión del lote es una `AprobacionHumana` válida del rol de
+       pagos (`APROBADOR_PAGOS`, #125) y su lista tiene claves con formato
+       `sha256`; si la
        decisión es de rechazo, el lote queda `RECHAZADA` y nada se encola.
-    2. La plantilla está `APROBADA` — las dos decisiones registradas — en
-       el mismo registro: un lote sin plantilla aprobada es
+    2. La plantilla está `APROBADA` — la decisión de contenido registrada —
+       en el mismo registro: un lote sin plantilla aprobada es
        `template_not_approved`.
     3. La lista aprobada cubre exactamente el lote planeado: una clave de
        más es `batch_item_unknown`, una de menos es
@@ -374,8 +365,7 @@ def encolar_lote_recordatorios(
         )
 
     if (
-        not _aprobacion_valida(aprobacion)
-        or aprobacion.rol != ROL_APROBACION_UTILITARIA
+        not _aprobacion_valida(aprobacion, rol=ROL_APROBADOR_PAGOS)
         or any(
             not isinstance(clave, str)
             or CLAVE_REGISTRO_RE.fullmatch(clave) is None

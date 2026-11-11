@@ -269,9 +269,8 @@ _KEYWORD_POR_INTENCION = {
 # plantilla. El link lo mintea `EnlacesDecisiones`; acá sólo se nombra qué
 # aprobación registra cada uno.
 _ETIQUETA_DECISION = {
-    "apruebo_semantica": "Apruebo la revisión semántica de la plantilla",
-    "apruebo_utilitaria": "Apruebo la plantilla (decisión utilitaria)",
-    "apruebo_lote": "Habilito el lote de envíos de la actividad",
+    "apruebo_contenido": "Apruebo el contenido",
+    "apruebo_lote": "Habilito el lote",
 }
 
 _FRASES_ASUNTO = {
@@ -600,6 +599,32 @@ def cargar_padron_roles_csv(path: Path) -> PadronRoles:
                 filas[correo] = rol
             if len(filas) > MAX_FILAS_PADRON:
                 raise ConfiguracionWorkspaceError("padron_roles_invalid")
+            # El padrón sólo puede declarar roles del catálogo vigente: los
+            # de pedidos (`interpretacion.ROLES_HABILITADOS`) más los de
+            # decisión (catálogo del Form y el de lotes de pagos). Un rol
+            # que ya no existe —los del circuito reemplazado incluidos—
+            # frena el arranque en vez de dejar gente nombrada que nunca
+            # habilita nada (#125).
+            from .confirmaciones import (
+                ROL_APROBADOR_CONTENIDO,
+                ROL_APROBADOR_PAGOS,
+            )
+            from .decisiones_form import ROLES_POR_DECISION
+            from .interpretacion import ROLES_HABILITADOS
+
+            roles_vigentes = (
+                ROLES_HABILITADOS
+                | {
+                    rol
+                    for roles in ROLES_POR_DECISION.values()
+                    for rol in roles
+                }
+                | {ROL_APROBADOR_CONTENIDO, ROL_APROBADOR_PAGOS}
+            )
+            if any(not rol for rol in filas.values()):
+                raise ConfiguracionWorkspaceError("padron_roles_invalid")
+            if any(rol not in roles_vigentes for rol in filas.values()):
+                raise ConfiguracionWorkspaceError("padron_rol_desconocido")
     except ConfiguracionWorkspaceError:
         raise
     except OSError:
@@ -1458,9 +1483,10 @@ class CanalFormPedidos:
                     )
                 )
             if enlaces_objetos:
-                # #73: la plantilla exige la doble aprobación y el lote la
-                # suya; el aviso enumera cada objeto con sus links del Form
-                # de decisiones. Nada se envía sin las tres registradas.
+                # #73 y #125: la plantilla exige una aprobación única y el
+                # lote la suya; el aviso enumera cada objeto con sus links
+                # del Form de decisiones. Nada se envía sin las dos
+                # registradas.
                 lineas.extend(
                     (
                         "",

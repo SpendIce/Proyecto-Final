@@ -1,5 +1,8 @@
 # Regeneración de los anexos de laboratorio (#123)
 
+> **Nota (11/11/2026):** las menciones a la «doble aprobación» o «aprobación parcial» describen el circuito histórico al instante de la fecha del documento. Desde #125 el circuito vigente es la aprobación única de contenido (ADR 0018).
+
+
 - **Estado:** anexos 1, 2 y 3 regenerados sobre el estado real del sistema en
   el corte del 17/10/2026; la forma y los tipos siguen sin aprobación
   institucional de la SEU

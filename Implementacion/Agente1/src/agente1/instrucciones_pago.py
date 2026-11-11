@@ -2,7 +2,8 @@
 
 Este módulo no agrega circuito: arma las `SolicitudConfirmacion` que el
 circuito por envío de `confirmaciones.py` ya sabe tramitar — borrador,
-doble aprobación por pieza, entrega al destino habilitado — a partir de
+aprobación única por pieza (#125), entrega al destino habilitado — a
+partir de
 las estructuras de dominio de `pagos.py`:
 
 - `solicitud_instrucciones_pago`: el correo de preinscripción con las

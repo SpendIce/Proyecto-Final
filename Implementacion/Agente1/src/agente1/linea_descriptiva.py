@@ -8,8 +8,9 @@ que describen el contenido (título, descripción, público) y los gates
 rechazan cualquier hecho que la línea intente afirmar.
 
 La línea se aprueba **una vez por actividad** por el Form de decisiones,
-con el mismo circuito que la plantilla: `apruebo_semantica` del RGC y
-`apruebo_utilitaria` del Coordinador de Extensión. La decisión queda atada
+con el mismo circuito que la plantilla: una sola decisión
+`apruebo_contenido` de la persona autorizada (`APROBADOR_CONTENIDO`, #125).
+La decisión queda atada
 al hash del texto de la línea y al `id_actividad`, así que reaprobar no es
 una decisión sobre el certificado sino sobre el texto exacto.
 
@@ -28,11 +29,11 @@ objeto con `objeto_id_linea_descriptiva`, nunca a mano.
 Las precondiciones que este módulo deja verificables para el circuito de
 emisión (`certificados.py` las exige cuando la solicitud trae línea):
 
-- `linea_descriptiva_aprobada`: las dos decisiones registradas sobre el
-  objeto, cada una con el rol del padrón que le corresponde.
-- `lote_cierre_aprobado`: la `apruebo_lote` utilitaria registrada sobre el
-  objeto del lote de cierre. La lista de participantes y su emisión son
-  alcance de #75; acá sólo se verifica la decisión.
+- `linea_descriptiva_aprobada`: la `apruebo_contenido` registrada sobre el
+  objeto con el rol de contenido del padrón.
+- `revisar_aprobacion_lote`: la única verificación del lote de cierre
+  (#125): `apruebo_lote` registrada por el rol de contenido **y** por el
+  correo de quien generó el lote — quien lo genera lo aprueba.
 
 Gates deterministas (`validar_linea_descriptiva`): una sola línea,
 extensión acotada, sin cifras ni fechas escritas por el modelo (dígitos,
@@ -59,14 +60,15 @@ from pathlib import Path
 from typing import Mapping, Protocol
 
 from .confirmaciones import (
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
 )
 from .decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
     DECISION_APRUEBO_LOTE,
-    DECISION_APRUEBO_SEMANTICA,
-    DECISION_APRUEBO_UTILITARIA,
+    DECISIONES_HEREDADAS,
+    RECHAZO_ROL_REEMPLAZADO,
     RESULTADO_REGISTRADA,
+    ROLES_HEREDADOS,
     TIPO_LINEA_DESCRIPTIVA,
     TIPO_LOTE,
     EnlacesDecisiones,
@@ -272,7 +274,7 @@ class ResultadoLinea:
     """Salida del pipeline de la línea descriptiva.
 
     `PENDIENTE_VALIDACION` es el único estado con línea: generada y con
-    gates superados, a la espera de las dos decisiones del Form.
+    gates superados, a la espera de la decisión del Form.
     """
 
     estado: str
@@ -446,7 +448,7 @@ def generar_linea_descriptiva(
 def declarar_linea_pendiente(
     enlaces: EnlacesDecisiones, *, id_actividad: str, linea: str
 ) -> dict[str, object]:
-    """Abre la línea a decisión y devuelve objeto y links del par de roles.
+    """Abre la línea a decisión y devuelve objeto y link de aprobación.
 
     Es el punto único de los emisores, igual que `declarar_y_enlaces` para
     plantillas y lotes: sin esta declaración la respuesta del Form se
@@ -462,63 +464,148 @@ def declarar_linea_pendiente(
     return {"objeto_id": objeto_id, "enlaces": enlaces_decision}
 
 
-def linea_descriptiva_aprobada(
-    registro: RegistroDecisiones, *, id_actividad: str, linea: str
-) -> bool:
-    """¿La línea exacta de esta actividad tiene las dos aprobaciones?
+@dataclass(frozen=True)
+class RevisionLote:
+    """Resultado de `revisar_aprobacion_lote` para la auditoría.
 
-    Verdadero sólo si en la auditoría figuran `apruebo_semantica` con rol
-    del RGC **y** `apruebo_utilitaria` con rol del Coordinador sobre el
-    objeto de esta línea. La aprobación parcial no habilita nada, y una
-    decisión sobre otro texto —otro hash— no vale para esta línea: es el
+    `aprobada` es la única señal que habilita. `descalificaciones` enumera
+    los códigos de las aprobaciones que existen pero no habilitan:
+    `aprobador_rol_no_autorizado`, `aprobador_no_es_generador` y
+    `rol_reemplazado` para las líneas del circuito reemplazado (#125).
+    """
+
+    aprobada: bool
+    correo_hash_aprobador: str | None
+    descalificaciones: tuple[str, ...]
+
+
+def revisar_aprobacion_lote(
+    registro: RegistroDecisiones,
+    *,
+    objeto_lote: str,
+    generada_por_correo_hash: str,
+) -> RevisionLote:
+    """Busca el `apruebo_lote` válido sobre el objeto del lote de cierre.
+
+    La única verificación del lote (ADR 0018): vale sólo una decisión
+    `registrada`, de `tipo` `lote`, con `decision` `apruebo_lote`, hecha por
+    el rol `APROBADOR_CONTENIDO` **y** por el correo de quien generó el
+    lote — quien lo genera lo aprueba. Las aprobaciones que fallan esas
+    condiciones se cuentan en `descalificaciones` para la auditoría:
+    existen, pero no habilitan. Las líneas del circuito reemplazado
+    (`apruebo_semantica`/`apruebo_utilitaria` o roles del acta del 22/09)
+    se reportan con `rol_reemplazado`, no se ignoran en silencio.
+    """
+
+    aprobada = False
+    correo_hash_aprobador = None
+    descalificaciones: list[str] = []
+    if not isinstance(registro, RegistroDecisiones):
+        return RevisionLote(
+            aprobada=False,
+            correo_hash_aprobador=None,
+            descalificaciones=(),
+        )
+    for entrada in registro.procesadas():
+        if (
+            entrada.get("tipo") != TIPO_LOTE
+            or entrada.get("objeto_id") != objeto_lote
+            or entrada.get("resultado") != RESULTADO_REGISTRADA
+        ):
+            continue
+        if (
+            entrada.get("decision") in DECISIONES_HEREDADAS
+            or entrada.get("rol") in ROLES_HEREDADOS
+        ):
+            descalificaciones.append(RECHAZO_ROL_REEMPLAZADO)
+            continue
+        if entrada.get("decision") != DECISION_APRUEBO_LOTE:
+            continue
+        if entrada.get("rol") != ROL_APROBADOR_CONTENIDO:
+            descalificaciones.append("aprobador_rol_no_autorizado")
+            continue
+        if entrada.get("correo_hash") != generada_por_correo_hash:
+            descalificaciones.append("aprobador_no_es_generador")
+            continue
+        aprobada = True
+        correo_hash_aprobador = entrada.get("correo_hash")
+    return RevisionLote(
+        aprobada=aprobada,
+        correo_hash_aprobador=correo_hash_aprobador,
+        descalificaciones=tuple(descalificaciones),
+    )
+
+
+def revisar_linea_descriptiva(
+    registro: RegistroDecisiones, *, id_actividad: str, linea: str
+) -> RevisionLote:
+    """Revisa la `apruebo_contenido` sobre el objeto de la línea exacta.
+
+    Misma forma que `revisar_aprobacion_lote`: las líneas del circuito
+    reemplazado y las de rol ajeno quedan en `descalificaciones`. Una
+    decisión sobre otro texto —otro hash— no entra en la revisión: es el
     vínculo entre el contenido aprobado y el contenido emitido.
     """
 
     if not isinstance(registro, RegistroDecisiones):
-        return False
+        return RevisionLote(
+            aprobada=False,
+            correo_hash_aprobador=None,
+            descalificaciones=(),
+        )
     try:
         objeto_id = objeto_id_linea_descriptiva(id_actividad, linea)
     except LineaDescriptivaError:
-        return False
-    roles_por_decision = {
-        str(linea_registro.get("decision")): str(
-            linea_registro.get("rol")
+        return RevisionLote(
+            aprobada=False,
+            correo_hash_aprobador=None,
+            descalificaciones=(),
         )
-        for linea_registro in registro.procesadas()
-        if linea_registro.get("tipo") == TIPO_LINEA_DESCRIPTIVA
-        and linea_registro.get("objeto_id") == objeto_id
-        and linea_registro.get("resultado") == RESULTADO_REGISTRADA
-    }
-    return (
-        roles_por_decision.get(DECISION_APRUEBO_SEMANTICA)
-        == ROL_APROBACION_SEMANTICA
-        and roles_por_decision.get(DECISION_APRUEBO_UTILITARIA)
-        == ROL_APROBACION_UTILITARIA
+    aprobada = False
+    correo_hash_aprobador = None
+    descalificaciones: list[str] = []
+    for entrada in registro.procesadas():
+        if (
+            entrada.get("tipo") != TIPO_LINEA_DESCRIPTIVA
+            or entrada.get("objeto_id") != objeto_id
+            or entrada.get("resultado") != RESULTADO_REGISTRADA
+        ):
+            continue
+        if (
+            entrada.get("decision") in DECISIONES_HEREDADAS
+            or entrada.get("rol") in ROLES_HEREDADOS
+        ):
+            descalificaciones.append(RECHAZO_ROL_REEMPLAZADO)
+            continue
+        if entrada.get("decision") != DECISION_APRUEBO_CONTENIDO:
+            continue
+        if entrada.get("rol") != ROL_APROBADOR_CONTENIDO:
+            descalificaciones.append("aprobador_rol_no_autorizado")
+            continue
+        aprobada = True
+        correo_hash_aprobador = entrada.get("correo_hash")
+    return RevisionLote(
+        aprobada=aprobada,
+        correo_hash_aprobador=correo_hash_aprobador,
+        descalificaciones=tuple(descalificaciones),
     )
 
 
-def lote_cierre_aprobado(
-    registro: RegistroDecisiones, *, objeto_lote: str
+def linea_descriptiva_aprobada(
+    registro: RegistroDecisiones, *, id_actividad: str, linea: str
 ) -> bool:
-    """¿El lote de cierre tiene la `apruebo_lote` utilitaria registrada?
+    """¿La línea exacta de esta actividad tiene la aprobación registrada?
 
-    El objeto del lote lo define quien emite la lista de cierre (#75); la
-    precondición verificable es la misma para cualquiera de sus formas:
-    decisión registrada por el rol utilitario del padrón.
+    Verdadero sólo si en la auditoría figura `apruebo_contenido` con el rol
+    `APROBADOR_CONTENIDO` sobre el
+    objeto de esta línea. Una
+    decisión sobre otro texto —otro hash— no vale para esta línea: es el
+    vínculo entre el contenido aprobado y el contenido emitido.
     """
 
-    if not isinstance(registro, RegistroDecisiones) or not isinstance(
-        objeto_lote, str
-    ):
-        return False
-    return any(
-        linea_registro.get("tipo") == TIPO_LOTE
-        and linea_registro.get("objeto_id") == objeto_lote
-        and linea_registro.get("decision") == DECISION_APRUEBO_LOTE
-        and linea_registro.get("resultado") == RESULTADO_REGISTRADA
-        and linea_registro.get("rol") == ROL_APROBACION_UTILITARIA
-        for linea_registro in registro.procesadas()
-    )
+    return revisar_linea_descriptiva(
+        registro, id_actividad=id_actividad, linea=linea
+    ).aprobada
 
 
 def _hash(valor: str) -> str:
@@ -535,12 +622,14 @@ __all__ = [
     "MIN_LINEA_CHARS",
     "PROMPT_VERSION",
     "ResultadoLinea",
+    "RevisionLote",
     "construir_prompt_linea",
     "declarar_linea_pendiente",
     "generar_linea_descriptiva",
     "hash_linea_descriptiva",
     "linea_descriptiva_aprobada",
-    "lote_cierre_aprobado",
+    "revisar_aprobacion_lote",
+    "revisar_linea_descriptiva",
     "normalizar_linea",
     "objeto_id_linea_descriptiva",
     "validar_linea_descriptiva",

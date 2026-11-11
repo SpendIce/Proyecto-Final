@@ -21,8 +21,8 @@ from agente1.certificados import (
     reconciliar_emisiones_reservadas,
 )
 from agente1.confirmaciones import (
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
+    ROL_APROBADOR_PAGOS,
     AprobacionHumana,
 )
 
@@ -51,12 +51,12 @@ def aprobacion(*, aprobada: bool = True, rol: str) -> AprobacionHumana:
     )
 
 
-def semantica(**kwargs) -> AprobacionHumana:
-    return aprobacion(rol=ROL_APROBACION_SEMANTICA, **kwargs)
+def contenido(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBADOR_CONTENIDO, **kwargs)
 
 
-def utilitaria(**kwargs) -> AprobacionHumana:
-    return aprobacion(rol=ROL_APROBACION_UTILITARIA, **kwargs)
+def pagos(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBADOR_PAGOS, **kwargs)
 
 
 def registro_en(tmp_path: Path) -> RegistroCertificadosArchivo:
@@ -72,27 +72,24 @@ def procesar(tmp_path: Path, registro, **extra):
     )
 
 
-def aprobar_ambos(tmp_path: Path, registro) -> None:
-    procesar(tmp_path, registro, aprobacion=semantica())
-    procesar(tmp_path, registro, aprobacion=utilitaria())
+def aprobar(tmp_path: Path, registro) -> None:
+    procesar(tmp_path, registro, aprobacion=contenido())
 
 
 # --- Estados observables -----------------------------------------------------
 
 
-def test_generacion_aprobaciones_reserva_y_emision_son_estados_distintos(
+def test_generacion_aprobacion_reserva_y_emision_son_estados_distintos(
     tmp_path,
 ):
     registro = registro_en(tmp_path)
     destino = DestinoCertificadosFake()
 
     generada = procesar(tmp_path, registro)
-    semantica_parcial = procesar(tmp_path, registro, aprobacion=semantica())
-    aprobada = procesar(tmp_path, registro, aprobacion=utilitaria())
+    aprobada = procesar(tmp_path, registro, aprobacion=contenido())
     emitida = procesar(tmp_path, registro, destino=destino, emitir=True)
 
     assert generada.estado == "PENDIENTE_VALIDACION"
-    assert semantica_parcial.estado == "APROBADA_SEMANTICA"
     assert aprobada.estado == "APROBADA"
     assert emitida.estado == "EMITIDA_SIMULADA"
     # La reserva no es un estado que el llamador pida: es el paso intermedio que
@@ -112,7 +109,7 @@ def test_la_idempotencia_sobrevive_a_reiniciar_el_proceso(tmp_path):
     """
 
     primero = registro_en(tmp_path)
-    aprobar_ambos(tmp_path, primero)
+    aprobar(tmp_path, primero)
 
     segundo = registro_en(tmp_path)
     destino = DestinoCertificadosFake()
@@ -131,19 +128,19 @@ def test_la_idempotencia_sobrevive_a_reiniciar_el_proceso(tmp_path):
     assert otro_destino.emisiones == []
 
 
-def test_una_aprobacion_parcial_sobrevive_al_reinicio(tmp_path):
-    """La primera de las dos aprobaciones también es durable.
+def test_la_aprobacion_sobrevive_al_reinicio(tmp_path):
+    """La aprobación única de contenido es durable (#125).
 
-    Si el proceso muere entre la aprobación semántica y la utilitaria, el
-    reinicio encuentra el estado parcial y la segunda aprobación completa el
-    circuito sin repetir la primera.
+    Si el proceso muere después de registrar la aprobación, el reinicio la
+    encuentra y la emisión procede sin repetir la decisión. Un rol ajeno al
+    circuito no la altera.
     """
 
-    procesar(tmp_path, registro_en(tmp_path), aprobacion=semantica())
+    procesar(tmp_path, registro_en(tmp_path), aprobacion=contenido())
 
     reanudado = registro_en(tmp_path)
-    segunda = procesar(tmp_path, reanudado, aprobacion=utilitaria())
-    assert segunda.estado == "APROBADA"
+    ajena = procesar(tmp_path, reanudado, aprobacion=pagos())
+    assert ajena.estado == "INVALIDA"
 
     destino = DestinoCertificadosFake()
     emision = procesar(tmp_path, registro_en(tmp_path), destino=destino, emitir=True)
@@ -157,14 +154,14 @@ def test_un_rechazo_sobrevive_al_reinicio_y_no_se_puede_aprobar_despues(
     procesar(
         tmp_path,
         registro_en(tmp_path),
-        aprobacion=semantica(aprobada=False),
+        aprobacion=contenido(aprobada=False),
     )
 
     destino = DestinoCertificadosFake()
     reintento = procesar(
         tmp_path,
         registro_en(tmp_path),
-        aprobacion=utilitaria(),
+        aprobacion=contenido(),
         destino=destino,
         emitir=True,
     )
@@ -200,7 +197,7 @@ def test_un_registro_corrupto_se_trata_como_ausente_y_no_habilita_emision(
     tmp_path,
 ):
     registro = registro_en(tmp_path)
-    procesar(tmp_path, registro, aprobacion=semantica())
+    procesar(tmp_path, registro, aprobacion=contenido())
     (archivo,) = list((tmp_path / "registro").glob("*.json"))
     archivo.write_text("{ esto no es json", encoding="utf-8")
     clave = archivo.stem
@@ -217,7 +214,7 @@ def test_un_registro_corrupto_se_trata_como_ausente_y_no_habilita_emision(
 def _llevar_a_reserva(tmp_path):
     """Aprueba con los dos roles y reserva la emisión, sin emitir."""
     registro = registro_en(tmp_path)
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     (archivo,) = list((tmp_path / "registro").glob("*.json"))
     clave = archivo.stem
     assert registro.transicionar(clave, frozenset({"APROBADA"}), "EMISION_RESERVADA")
@@ -247,7 +244,7 @@ def test_desde_indeterminado_el_pipeline_no_vuelve_a_emitir(tmp_path):
 
     destino = DestinoCertificadosFake()
     reintento = procesar(
-        tmp_path, registro, aprobacion=semantica(), destino=destino, emitir=True
+        tmp_path, registro, aprobacion=contenido(), destino=destino, emitir=True
     )
 
     assert reintento.estado == "DUPLICADA"
@@ -257,7 +254,7 @@ def test_desde_indeterminado_el_pipeline_no_vuelve_a_emitir(tmp_path):
 def test_reconciliar_no_toca_los_estados_terminales(tmp_path):
     registro = registro_en(tmp_path)
     destino = DestinoCertificadosFake()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     procesar(tmp_path, registro, destino=destino, emitir=True)
 
     assert reconciliar_emisiones_reservadas(registro) == ()
@@ -269,7 +266,7 @@ def test_una_emision_fallida_queda_fallida_y_no_es_una_reserva_colgada(
     tmp_path,
 ):
     registro = registro_en(tmp_path)
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     destino = DestinoCertificadosFake(error="fallo sintético del fake")
 
     resultado = procesar(tmp_path, registro, destino=destino, emitir=True)
@@ -283,7 +280,7 @@ def test_una_emision_fallida_queda_fallida_y_no_es_una_reserva_colgada(
 
 def test_varias_emisiones_en_paralelo_producen_una_sola(tmp_path):
     registro = registro_en(tmp_path)
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     destino = DestinoCertificadosFake()
 
     def emitir(indice: int):
@@ -362,7 +359,7 @@ def test_una_emision_sin_registro_previo_no_crea_nada(tmp_path):
 def test_la_auditoria_no_copia_titular_documento_ni_texto(tmp_path):
     registro = registro_en(tmp_path)
     destino = DestinoCertificadosFake()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
 
     resultado = procesar(tmp_path, registro, destino=destino, emitir=True)
 
@@ -382,7 +379,7 @@ def test_ningun_adapter_productivo_de_emision_queda_habilitado(tmp_path):
     resultado = procesar(
         tmp_path,
         registro_en(tmp_path),
-        aprobacion=semantica(),
+        aprobacion=contenido(),
         destino=DestinoQueParecePeroNoEs(),
         emitir=True,
     )

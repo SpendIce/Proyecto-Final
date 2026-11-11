@@ -1,5 +1,8 @@
 # Recorrido — registro de decisiones por el segundo Form (#72)
 
+> **Nota (11/11/2026):** los roles `RESPONSABLE_GESTION_CONOCIMIENTO` y `COORDINADOR_EXTENSION` y las decisiones `apruebo_semantica`/`apruebo_utilitaria` de este registro corresponden al circuito histórico. Desde #125 esos roles y decisiones se rechazan con `rol_reemplazado` (ADR 0018) y la aprobación es única (`APROBADOR_CONTENIDO`).
+
+
 ## Qué demuestra
 
 - Que el correo de «borrador listo» del canal de pedidos declara el pedido

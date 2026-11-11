@@ -22,8 +22,9 @@
   su espacio marcado «insumo restringido no provisto».
 - Que el PDF es determinista byte a byte para los mismos datos y
   recursos, así que `pdf_hash` en la auditoría es estable.
-- Que el circuito no cambia: mismo parseo estricto de la lista, mismas
-  dos aprobaciones de la línea descriptiva (#74), mismo `apruebo_lote`
+- Que el circuito no cambia: mismo parseo estricto de la lista, misma
+  aprobación única de contenido de la línea descriptiva (#74, #125), mismo
+  `apruebo_lote`
   atado al hash de la lista (#72), mismo correo de muestra con
   `BORRADOR — NO EMITIR` y misma marca `DOCUMENTO DE PRUEBA — SIN VALIDEZ`
   en el emitido.
@@ -64,10 +65,10 @@ Se corrió `scripts/emitir_certificados.py` sobre
 `data/actividades_notebooklm_n2_sinteticas.csv` (`EJEMPLO-NOTEBOOKLM-N2`,
 24 horas declaradas en la planilla sintética), con una lista de dos
 personas sintéticas —una `asistencia`, una `aprobacion`— y
-`--recursos tests/fixtures/recursos-firma`. El circuito exigió las dos
-aprobaciones de la línea y el `apruebo_lote` del rol utilitario sobre el
-objeto `c4a9e194…72df` (definición del 11/11 de quién aprueba el lote la
-implementa #125; este ticket no toca `revisar_aprobacion_lote`):
+`--recursos tests/fixtures/recursos-firma`. El circuito exigió la
+aprobación única de contenido de la línea y el `apruebo_lote` del rol de
+contenido por el correo de quien generó el lote sobre el objeto
+`c4a9e194…72df` (#125):
 
 ```bash
 uv run --no-sync env PYTHONPATH=src python scripts/emitir_certificados.py \
@@ -75,8 +76,7 @@ uv run --no-sync env PYTHONPATH=src python scripts/emitir_certificados.py \
   --csv data/actividades_notebooklm_n2_sinteticas.csv \
   --lista-csv /tmp/demo-seu/lista.csv \
   --linea /tmp/demo-seu/linea.txt \
-  --aprobador coord@example.invalid \
-  --solicitante aux@example.invalid \
+  --solicitante aprobador@example.invalid \
   --recursos tests/fixtures/recursos-firma \
   --directorio /tmp/demo-seu/run
 ```

@@ -8,8 +8,8 @@ pago se genera como borrador con el `asunto_preinscripcion` exacto del plan
 (§4.2)—, que el cuerpo sale de la plantilla provisional con los datos del
 plan, que la corrida enumera los candidatos a confirmación sin producirla
 —un comprobante meramente presentado no alcanza (D1)— y que el circuito es
-el de siempre: doble aprobación por pieza, sólo el destino habilitado
-entrega y la idempotencia cubre las corridas repetidas.
+el de siempre: aprobación única de contenido por pieza (#125), sólo el
+destino habilitado entrega y la idempotencia cubre las corridas repetidas.
 """
 
 import json
@@ -31,8 +31,7 @@ from test_pagos import (
 from agente1.buzon import BuzonPropioEml
 from agente1.cli_pagos import informe_a_dict
 from agente1.confirmaciones import (
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
     TIPO_INSTRUCCIONES_PAGO,
     AprobacionHumana,
     ColaEnviosMemoria,
@@ -112,20 +111,14 @@ def procesar(tmp_path: Path, registro, **extra):
     )
 
 
-def aprobar_ambos(
+def aprobar(
     tmp_path: Path, registro, solicitud: SolicitudConfirmacion
 ) -> None:
     procesar(
         tmp_path,
         registro,
         solicitud=solicitud,
-        aprobacion=aprobacion(rol=ROL_APROBACION_SEMANTICA),
-    )
-    procesar(
-        tmp_path,
-        registro,
-        solicitud=solicitud,
-        aprobacion=aprobacion(rol=ROL_APROBACION_UTILITARIA),
+        aprobacion=aprobacion(rol=ROL_APROBADOR_CONTENIDO),
     )
 
 
@@ -239,31 +232,23 @@ def test_un_asunto_distinto_al_del_plan_no_asocia(tmp_path):
 # --- El circuito es el de siempre ------------------------------------------------
 
 
-def test_ciclo_completo_con_doble_aprobacion_y_destino_fake(tmp_path):
+def test_ciclo_completo_con_aprobacion_unica_y_destino_fake(tmp_path):
     registro = RegistroConfirmacionesMemoria()
     destino = DestinoConfirmacionesFake()
     pedido = pedido_instrucciones()
 
-    parcial = procesar(
-        tmp_path,
-        registro,
-        solicitud=pedido,
-        aprobacion=aprobacion(rol=ROL_APROBACION_SEMANTICA),
-        destino=destino,
-        enviar=True,
-    )
     aprobada = procesar(
         tmp_path,
         registro,
         solicitud=pedido,
-        aprobacion=aprobacion(rol=ROL_APROBACION_UTILITARIA),
+        aprobacion=aprobacion(rol=ROL_APROBADOR_CONTENIDO),
+        destino=destino,
     )
     entrega = procesar(
         tmp_path, registro, solicitud=pedido, destino=destino, enviar=True
     )
 
-    # Una sola aprobación no entrega, igual que con los otros tipos.
-    assert parcial.estado == "APROBADA_SEMANTICA"
+    # Una sola aprobación de contenido habilita la entrega (#125).
     assert aprobada.estado == "APROBADA"
     assert entrega.estado == "ENVIADA_SIMULADA"
     assert len(destino.entregas) == 1
@@ -275,7 +260,7 @@ def test_encolada_drena_con_el_mismo_asunto(tmp_path):
     cola = ColaEnviosMemoria()
     destino = DestinoConfirmacionesFake()
     pedido = pedido_instrucciones()
-    aprobar_ambos(tmp_path, registro, pedido)
+    aprobar(tmp_path, registro, pedido)
 
     encolada = procesar(
         tmp_path, registro, solicitud=pedido, cola=cola, asincrono=True
@@ -379,7 +364,7 @@ def test_la_auditoria_no_lleva_el_plan_ni_datos_personales(tmp_path):
     registro = RegistroConfirmacionesMemoria()
     pedido = pedido_instrucciones()
     procesar(tmp_path, registro, solicitud=pedido)
-    aprobar_ambos(tmp_path, registro, pedido)
+    aprobar(tmp_path, registro, pedido)
     resultado = procesar(
         tmp_path,
         registro,
@@ -505,7 +490,8 @@ def test_el_informe_serializado_expone_los_candidatos(tmp_path):
 
 def test_el_candidato_arma_la_confirmacion_de_inscripcion(tmp_path):
     """D9: el candidato produce la solicitud del tipo `inscripcion` —no un
-    tipo nuevo— y tramita por el circuito por envío con la doble aprobación."""
+    tipo nuevo— y tramita por el circuito por envío con la aprobación única
+    de contenido (#125)."""
     escribir_plan(tmp_path)
     escribir_padron(tmp_path)
     (tmp_path / "buzon").mkdir()
@@ -526,7 +512,7 @@ def test_el_candidato_arma_la_confirmacion_de_inscripcion(tmp_path):
     assert solicitud.tipo_notificacion == "inscripcion"
     assert "Registramos tu inscripción a:" in borrador.cuerpo
 
-    aprobar_ambos(tmp_path, registro, solicitud)
+    aprobar(tmp_path, registro, solicitud)
     entrega = procesar(
         tmp_path, registro, solicitud=solicitud, destino=destino, enviar=True
     )

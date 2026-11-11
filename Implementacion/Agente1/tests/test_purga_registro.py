@@ -26,8 +26,7 @@ import pytest
 
 from agente1.confirmaciones import (
     ESTADOS_PURGABLES,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
     VENTANA_RECONCILIACION_DIAS,
     AprobacionHumana,
     DestinoConfirmacionesFake,
@@ -149,8 +148,6 @@ def test_estados_no_terminales_indeterminados_y_desconocidos_no_se_purgan(
     registro = registro_viejo(tmp_path)
     estados_intocables = (
         "PENDIENTE_VALIDACION",
-        "APROBADA_SEMANTICA",
-        "APROBADA_UTILITARIA",
         "APROBADA",
         "ENVIO_ENCOLADO",
         "ENVIO_RESERVADO",
@@ -301,7 +298,7 @@ def test_clave_purgada_sigue_bloqueando_la_creacion(tmp_path: Path):
 
 
 def test_confirmacion_enviada_y_purgada_no_se_reenvia(tmp_path: Path):
-    """Fin a fin: la doble aprobación envía una vez, la purga borra el texto
+    """Fin a fin: la aprobación única envía una vez, la purga borra el texto
     y ningún pedido posterior —con o sin aprobación— vuelve a entregar."""
     salida = tmp_path / "salida"
     registro = RegistroConfirmacionesArchivo(
@@ -314,13 +311,12 @@ def test_confirmacion_enviada_y_purgada_no_se_reenvia(tmp_path: Path):
         solicitud=solicitud_,
         directorio_salida=salida,
         registro=registro,
-        aprobacion=aprobacion(rol=ROL_APROBACION_SEMANTICA),
+        aprobacion=aprobacion(rol=ROL_APROBADOR_CONTENIDO),
     )
     enviada = procesar_confirmacion(
         solicitud=solicitud_,
         directorio_salida=salida,
         registro=registro,
-        aprobacion=aprobacion(rol=ROL_APROBACION_UTILITARIA),
         destino=destino,
         enviar=True,
     )
@@ -347,7 +343,7 @@ def test_confirmacion_enviada_y_purgada_no_se_reenvia(tmp_path: Path):
         solicitud=solicitud_,
         directorio_salida=salida,
         registro=registro,
-        aprobacion=aprobacion(rol=ROL_APROBACION_UTILITARIA),
+        aprobacion=aprobacion(rol=ROL_APROBADOR_CONTENIDO),
         destino=destino,
         enviar=True,
     )

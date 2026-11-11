@@ -4,12 +4,13 @@ La bible sincronizada el 22/09 amplió HU-012: de «confirmaciones de
 inscripción» a «notificaciones automáticas de inscripción, participación,
 situación de pagos y aprobación», absorbiendo la HU previa de mensajes a
 deudores. Este módulo expone el catálogo declarado en
-`contracts/tipos_notificacion_v2.json` y una decisión **fail-closed** por tipo:
+`contracts/tipos_notificacion_v3.json` y una decisión **fail-closed** por tipo:
 `evaluar_tipo` enumera qué falta para que ese tipo pueda producir algo.
 
 La decisión de tipo no es la decisión de envío. Un tipo `habilitado` sólo
-puede entrar al pipeline offline de `confirmaciones.py` —borrador, doble
-aprobación, entrega contra el fake—; no levanta los bloqueos de la matriz de
+puede entrar al pipeline offline de `confirmaciones.py` —borrador,
+aprobación única (#125), entrega contra el fake—; no levanta los bloqueos
+de la matriz de
 orígenes (`origenes_inscripcion.py`, todo `PROHIBIDO` mientras no haya
 adapter) ni autoriza correo real.
 
@@ -20,10 +21,12 @@ el padrón, el buzón propio y las novedades (§3.2, §6.1), así que el tipo
 queda habilitado con sus supuestos declarados. Y entra `recordatorio_pago`,
 el quinto tipo, con una diferencia de circuito que el catálogo declara como
 `modo_circuito`: los tipos `por_envio` tramitan por `procesar_confirmacion`
-con doble aprobación por pieza; el tipo `lote` nunca tramita por solicitud
+con aprobación única por pieza (#125); el tipo `lote` nunca tramita por
+solicitud
 individual — la corrida planifica sus ítems y el circuito de
 `recordatorios.py` los encola sólo con la plantilla aprobada una vez por
-doble decisión más la aprobación utilitaria del lote (D3). Pedirlo por la
+la decisión de contenido más la aprobación del lote de pagos (D3, #125).
+Pedirlo por la
 vía individual es `notification_mode_mismatch`.
 
 Por qué `SUPUESTO_TECNICO` no bloquea: es una hipótesis declarada para que la
@@ -40,7 +43,7 @@ from importlib.resources import files
 
 CATALOGO = json.loads(
     files("agente1")
-    .joinpath("contracts", "tipos_notificacion_v2.json")
+    .joinpath("contracts", "tipos_notificacion_v3.json")
     .read_text(encoding="utf-8")
 )
 
@@ -72,8 +75,9 @@ class DecisionTipoNotificacion:
 
     `habilitado` no significa «puede enviarse»: significa que el tipo tiene
     definición suficiente para que una solicitud suya produzca un borrador y
-    siga el circuito. La autorización de envío sigue siendo la doble
-    aprobación humana más el destino fake, y el acceso a los datos sigue
+    siga el circuito. La autorización de envío sigue siendo la aprobación
+    única de la persona autorizada más el destino habilitado, y el acceso a
+    los datos sigue
     bloqueado por la matriz de orígenes.
     """
 
@@ -120,8 +124,8 @@ def datos_sin_origen_confirmado(tipo: str) -> tuple[str, ...]:
 def modo_circuito(tipo: str) -> str:
     """El circuito por el que tramita el tipo según el catálogo.
 
-    `por_envio` es el modo histórico: solicitud individual, borrador y doble
-    aprobación por pieza en `procesar_confirmacion`. `lote` —hoy sólo
+    `por_envio` es el modo histórico: solicitud individual, borrador y
+    aprobación única por pieza en `procesar_confirmacion`. `lote` —hoy sólo
     `recordatorio_pago`— no tiene solicitud individual que tramitar: sus
     ítems nacen de la planificación de la corrida y el circuito por lote los
     encola con sus propias autorizaciones (D3). Un tipo sin campo declarado

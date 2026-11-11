@@ -1,4 +1,4 @@
 correo,rol
 solicitante@example.invalid,coordinador_seu
-rgc@example.invalid,RESPONSABLE_GESTION_CONOCIMIENTO
-coord@example.invalid,COORDINADOR_EXTENSION
+aprobador@example.invalid,APROBADOR_CONTENIDO
+pagos@example.invalid,APROBADOR_PAGOS

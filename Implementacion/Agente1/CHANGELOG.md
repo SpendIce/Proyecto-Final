@@ -26,6 +26,44 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+- **Mayor — aprobación única de contenido y lotes (#125).** La designación
+  del 11/11/2026 reemplaza el par semántica + utilitaria: una sola persona
+  autorizada (`APROBADOR_CONTENIDO`, decisión `apruebo_contenido`) aprueba
+  cada pieza; el lote de certificados lo aprueba quien lo genera
+  (`apruebo_lote` atada al correo del solicitante); los lotes de pagos los
+  aprueba `APROBADOR_PAGOS` por el circuito de recordatorios. Cambian
+  `decisiones_form.py`, `confirmaciones.py`, `certificados.py`,
+  `certificados_emision.py`, `linea_descriptiva.py`,
+  `plantillas_actividad.py`, `recordatorios.py`, `canal_form.py`,
+  `respaldo.py`, `medicion_slo.py`, `tipos_notificacion.py`,
+  `instrucciones_pago.py`, `gmail_envio.py`, `pagos.py`, `__init__.py`,
+  los prompts vigentes de plantilla/recordatorio/instrucción/certificado,
+  `tipos_notificacion_v2.json`, `intenciones_v4.schema.json`, el padrón
+  sintético, scripts de corrida/matrices/emisión/SLO/anexos y las
+  evidencias HU-012/HU-014. Los estados parciales de aprobación dejan de
+  existir: una pieza pasa de `PENDIENTE_VALIDACION` a `APROBADA` o
+  `RECHAZADA` con una sola decisión. Ver ADR 0018.
+  - Pedir o generar el lote de certificados exige el rol
+    `APROBADOR_CONTENIDO` (`solicitante_rol_no_autorizado`), así que
+    `intenciones_v5` lo habilita para pedir piezas —la excepción
+    deliberada al invariante de que un rol operativo que pide no puede
+    decidir— y excluye a `APROBADOR_PAGOS`.
+  - Compatibilidad con lo heredado: registros durables en
+    `APROBADA_SEMANTICA`/`APROBADA_UTILITARIA` se leen como
+    `PENDIENTE_VALIDACION` con diagnóstico `estado_heredado` en el log;
+    decisiones `apruebo_semantica`/`apruebo_utilitaria` y roles
+    reemplazados se rechazan con `rol_reemplazado`; un padrón con roles
+    inexistentes frena el arranque con `padron_rol_desconocido`;
+    `medicion_slo` cuenta los objetos con ancla heredada aparte
+    (`items_sin_ancla_heredada`) y la restauración los trata como
+    pendientes, nunca como aprobaciones.
+  - Contratos y prompts publicados intactos: las versiones nuevas son
+    `intenciones_v5.schema.json`, `tipos_notificacion_v3.json`,
+    `certificado_provisional_v3.txt`,
+    `instrucciones_pago_provisional_v2.txt`,
+    `plantilla_actividad_base_provisional_v2.txt` y
+    `recordatorio_pago_provisional_v2.txt`; las v4/v2/v1 quedan
+    versionadas y legibles.
 - **Menor — plantilla SEU del certificado de aprobación (#126).** La
   emisión de `aprobacion` compone el diseño recibido de la SEU como PDF
   reproducible; `asistencia` sigue con la provisional pendiente de la
@@ -55,7 +93,6 @@ Dirección. Detalle en el procedimiento.
   - La aprobación del lote no cambia: `revisar_aprobacion_lote` queda
     intacta y la definición del 11/11 (la aprueba quien la genera) es
     alcance de #125. Ver ADR 0017.
-
 - **Mayor — área FIE, firma de área opcional y públicos destinatarios del
   pedido (#154).** Cambian contratos versionados; todavía no corta versión.
   Con la versión en `0.x`, la próxima es `0.6.0`.

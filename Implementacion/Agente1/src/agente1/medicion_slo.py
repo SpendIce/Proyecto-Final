@@ -31,9 +31,9 @@ que la operación ya deja, sin tocar la red ni escribir en las fuentes:
   `latencia_s` y el certificado se renderiza determinista: ambos quedan
   como huecos explícitos.
 - **Aprobación → envío** — el circuito de lote por actividad (#73) es el
-  único que deja las dos anclas: las tres decisiones exigidas
-  (`apruebo_semantica` + `apruebo_utilitaria` sobre `tpl-…` y
-  `apruebo_lote` sobre `lote-…`) con su `timestamp` en
+  único que deja las dos anclas: las dos decisiones exigidas
+  (`apruebo_contenido` sobre `tpl-…` y
+  `apruebo_lote` sobre `lote-…`, #125) con su `timestamp` en
   `decisiones-procesadas.jsonl`, y el envío en el `actualizado_en` del
   registro durable cuando el ítem queda `ENVIADA_SIMULADA`. El ancla de
   aprobación es el `timestamp` de la última decisión requerida registrada
@@ -85,7 +85,11 @@ from typing import Any, Mapping
 
 from .canal_form import ATENDIDOS_NOMBRE
 from .confirmaciones import CLAVE_REGISTRO_RE, email_valido
-from .decisiones_form import PROCESADAS_NOMBRE
+from .decisiones_form import (
+    DECISIONES_HEREDADAS,
+    PROCESADAS_NOMBRE,
+    ROLES_HEREDADOS,
+)
 from .scheduler import LOG_NOMBRE as SCHEDULER_LOG
 from .scheduler import ConfiguracionScheduler
 
@@ -891,18 +895,18 @@ def indicador_aprobacion_envio(
     muestra_minima: int,
     corte: datetime | None = None,
 ) -> dict[str, Any]:
-    """Doble aprobación + lote → envío, p95 en segundos de ventana.
+    """Aprobación de contenido + lote → envío, p95 en segundos de ventana.
 
-    Ancla: el `timestamp` de la última de las tres decisiones requeridas
-    registrada (`apruebo_semantica` y `apruebo_utilitaria` sobre la
-    plantilla, `apruebo_lote` sobre el lote). El envío es el
+    Ancla: el `timestamp` de la última de las dos decisiones requeridas
+    registrada (`apruebo_contenido` sobre la
+    plantilla, `apruebo_lote` sobre el lote, #125). El envío es el
     `actualizado_en` del registro durable en `ENVIADA_SIMULADA`. El SLO
     corre dentro de la ventana, así que la muestra descuenta los tramos
     fuera de ella; el delta total viaja como auxiliar.
     """
 
     definicion = (
-        "desde la doble aprobación (plantilla y lote) hasta el envío; "
+        "desde la aprobación registrada (plantilla y lote) hasta el envío; "
         "ENVIO_INDETERMINADO cuenta como incidente fuera de la muestra"
     )
     objetivo_s = 2 * config.intervalo_s
@@ -936,12 +940,23 @@ def indicador_aprobacion_envio(
                 items.append(linea)
 
     primeras = _primeras_decisiones(procesadas)
+    # Objetos con líneas del circuito reemplazado registradas (#125): el
+    # ítem que los referencia sigue sin ancla vigente, pero la métrica lo
+    # cuenta aparte para que el legado quede visible y no mude en
+    # `sin_ancla` sin aviso.
+    objetos_heredados = {
+        (str(linea.get("tipo")), str(linea.get("objeto_id")))
+        for linea in procesadas
+        if linea.get("decision") in DECISIONES_HEREDADAS
+        or linea.get("rol") in ROLES_HEREDADOS
+    }
     deltas: list[float] = []
     deltas_total: list[float] = []
     incidentes_indeterminado = 0
     incidentes_fallida = 0
     pendientes = 0
     sin_ancla = 0
+    sin_ancla_heredada = 0
     registro_ausente = 0
     entregados = 0
     for item in items:
@@ -953,13 +968,18 @@ def indicador_aprobacion_envio(
             continue
         plantilla_id = autorizado.get("plantilla_id")
         requeridas = (
-            ("plantilla", str(plantilla_id), "apruebo_semantica"),
-            ("plantilla", str(plantilla_id), "apruebo_utilitaria"),
+            ("plantilla", str(plantilla_id), "apruebo_contenido"),
             ("lote", str(lote_id), "apruebo_lote"),
         )
         instantes = [primeras.get(clave_dec) for clave_dec in requeridas]
         if any(instante is None for instante in instantes):
-            sin_ancla += 1
+            if any(
+                (tipo, objeto) in objetos_heredados
+                for tipo, objeto, _decision in requeridas
+            ):
+                sin_ancla_heredada += 1
+            else:
+                sin_ancla += 1
             continue
         aprobacion = max(instante for instante in instantes if instante is not None)
         registro = registros.get(str(clave))
@@ -1043,6 +1063,7 @@ def indicador_aprobacion_envio(
             "incidentes_fallida": incidentes_fallida,
             "items_pendientes": pendientes,
             "items_sin_ancla": sin_ancla,
+            "items_sin_ancla_heredada": sin_ancla_heredada,
             "items_sin_registro": registro_ausente,
             "registros_fuera_del_circuito_entregados": otros_entregados,
             "registros_fuera_del_circuito_incidentes": otros_incidentes,

@@ -22,10 +22,9 @@ terminal de entrega —el sufijo es histórico— y lo que distingue al destino
 que entregó es el `delivery_mode` de la línea de auditoría: `fake`,
 `gmail_test_list` o `gmail_production`.
 
-Estados: `PENDIENTE_VALIDACION` → `APROBADA_SEMANTICA` | `APROBADA_UTILITARIA`
-según cuál de las dos aprobaciones llega primero, y de ahí → `APROBADA` cuando
-llega la complementaria; cualquier decisión negativa lleva a `RECHAZADA`.
-Sólo desde `APROBADA` —las dos aprobaciones registradas— se puede pasar a
+Estados: `PENDIENTE_VALIDACION` → `APROBADA` con la aprobación registrada
+de la persona autorizada, o → `RECHAZADA` con su decisión negativa.
+Sólo desde `APROBADA` —la aprobación registrada— se puede pasar a
 `ENVIO_RESERVADO` → `ENVIADA_SIMULADA` | `FALLIDA`. El paso intermedio
 `ENVIO_RESERVADO` existe para que una caída durante la entrega no deje el
 registro en un estado que habilite reintentar y mandar dos veces.
@@ -48,13 +47,13 @@ enumera exactamente qué falta por cada origen y bloquea el envío en todos.
 Tipos de notificación (bible 22/09 y diseño de control de pagos): HU-012
 cubre seis tipos —`inscripcion`, `participacion`, `situacion_pagos`,
 `aprobacion`, `recordatorio_pago` e `instrucciones_pago`— declarados en el
-catálogo cerrado `contracts/tipos_notificacion_v2.json` que expone
+catálogo cerrado `contracts/tipos_notificacion_v3.json` que expone
 `tipos_notificacion.py`. El tipo viaja en la solicitud (con default
 `inscripcion`, el único que existía), entra a la clave de idempotencia —una
 notificación de participación sobre la misma inscripción es otra
 comunicación, no un duplicado— y elige la frase del evento en el cuerpo.
 Todo lo demás del pipeline es idéntico para todos los tipos por envío:
-misma doble aprobación, misma cola, mismo destino habilitado. El control
+misma aprobación única, misma cola, mismo destino habilitado. El control
 por tipo es fail-closed y se evalúa antes de tocar el registro: un tipo
 fuera del catálogo es `INVALIDA`, un tipo con datos `DESCONOCIDO` es
 `notification_type_blocked`, y un tipo habilitado cuyo `modo_circuito`
@@ -116,16 +115,16 @@ POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 MARCADOR_BORRADOR = "BORRADOR — NO ENVIAR"
 
 # El tipo del correo de preinscripción con las instrucciones de pago (D8):
-# se declara en el catálogo v2 y tramita por este circuito con `datos_pago`.
+# se declara en el catálogo v3 y tramita por este circuito con `datos_pago`.
 TIPO_INSTRUCCIONES_PAGO = "instrucciones_pago"
-TEMPLATE_VERSION_INSTRUCCIONES = "instrucciones_pago_provisional_v1"
+TEMPLATE_VERSION_INSTRUCCIONES = "instrucciones_pago_provisional_v2"
 
 # El documento de plantilla del correo de instrucciones: la sección central
 # (entre el encabezado de versión y `LÍMITES:`) es el cuerpo que se
 # renderiza; los límites documentan restricciones y no viajan.
 TEXTO_PLANTILLA_INSTRUCCIONES = (
     files("agente1")
-    .joinpath("prompts", "instrucciones_pago_provisional_v1.txt")
+    .joinpath("prompts", "instrucciones_pago_provisional_v2.txt")
     .read_text(encoding="utf-8")
 )
 EMAIL_LOCAL_RE = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}\Z")
@@ -148,30 +147,30 @@ REQUIRED_FIELDS = (
     "contacto",
 )
 
-# La bible exige dos aprobaciones independientes antes de habilitar un envío:
-# la semántica, a cargo del Responsable de Gestión del Conocimiento, y la
-# utilitaria, del Coordinador de Extensión (CU10 "Aprobar Borrador", bloque
-# "Human in the Loop"; CP18/CP19 del Plan de Pruebas Unitarias). El conjunto
-# de roles es cerrado: una decisión con otro rol no es una aprobación. Es un
-# catálogo provisional —la identidad real de quien decide sigue pendiente de
-# la identidad institucional (DEF-A1-001, issue #15)— pero la exigencia de
-# dos decisiones distintas ya aplica.
-ROL_APROBACION_SEMANTICA = "RESPONSABLE_GESTION_CONOCIMIENTO"
-ROL_APROBACION_UTILITARIA = "COORDINADOR_EXTENSION"
-ROLES_APROBACION = frozenset(
-    {ROL_APROBACION_SEMANTICA, ROL_APROBACION_UTILITARIA}
-)
+# La designación vigente (precisión del 11/11/2026, issue #125, ADR 0018)
+# reemplaza al par semántica/utilitaria del acta del 22/09: una sola
+# persona autorizada por delegación de la Secretaría aprueba una pieza de
+# contenido y su uso, y el responsable de pagos aprueba los lotes de pagos.
+# El conjunto de
+# roles es cerrado: una decisión con otro rol no es una aprobación. El rol
+# que cada superficie exige lo declara su circuito (el contenido,
+# `ROL_APROBADOR_CONTENIDO`; el lote de pagos, `ROL_APROBADOR_PAGOS`): un rol
+# válido en otra superficie no habilita ésta. Es un catálogo provisional
+# —los correos reales de las personas designadas quedan para el padrón
+# institucional (ADR 0005)— pero la exigencia de una sola decisión
+# autorizada ya aplica.
+ROL_APROBADOR_CONTENIDO = "APROBADOR_CONTENIDO"
+ROL_APROBADOR_PAGOS = "APROBADOR_PAGOS"
 
-# Estados parciales de aprobación: el nombre declara la aprobación que ya
-# quedó registrada, así que la que falta para habilitar el envío es la otra.
-ESTADO_APROBADA_SEMANTICA = "APROBADA_SEMANTICA"
-ESTADO_APROBADA_UTILITARIA = "APROBADA_UTILITARIA"
-ESTADOS_PARCIALES_APROBACION = frozenset(
-    {ESTADO_APROBADA_SEMANTICA, ESTADO_APROBADA_UTILITARIA}
-)
+# Estados del circuito reemplazado (#125): una pieza que la versión
+# anterior dejó en `APROBADA_SEMANTICA` o `APROBADA_UTILITARIA` tenía una
+# aprobación parcial, no completa. Se leen como `PENDIENTE_VALIDACION`
+# —pendientes de la aprobación única— y el estado original viaja en
+# `estado_heredado` para que la transición deje el diagnóstico en el log.
+ESTADOS_HEREDADOS = frozenset({"APROBADA_SEMANTICA", "APROBADA_UTILITARIA"})
 
-# Camino asíncrono (s4d): la confirmación ya aprobada por las dos decisiones
-# espera en cola hasta que `drenar_envios` la tome. `ENVIO_ENCOLADO` es un
+# Camino asíncrono (s4d): la confirmación ya aprobada espera en cola hasta
+# que `drenar_envios` la tome. `ENVIO_ENCOLADO` es un
 # estado propio, no se reusa `APROBADA`, para que el registro refleje que el
 # envío ya tiene una intención registrada: un segundo pedido, síncrono o
 # encolado, es duplicado y no puede producir otra entrega.
@@ -199,20 +198,6 @@ VENTANA_RECONCILIACION_DIAS = 30
 ESTADOS_PURGABLES = frozenset(
     {"ENVIADA_SIMULADA", "EMITIDA_SIMULADA", "FALLIDA", "RECHAZADA"}
 )
-
-# Por rol: el estado en que queda un borrador pendiente cuando ese rol
-# aprueba, y el estado parcial del que parte para completar el par.
-_PARCIAL_POR_ROL = {
-    ROL_APROBACION_SEMANTICA: (
-        ESTADO_APROBADA_SEMANTICA,
-        ESTADO_APROBADA_UTILITARIA,
-    ),
-    ROL_APROBACION_UTILITARIA: (
-        ESTADO_APROBADA_UTILITARIA,
-        ESTADO_APROBADA_SEMANTICA,
-    ),
-}
-
 
 @dataclass(frozen=True)
 class CuotaInstrucciones:
@@ -284,13 +269,15 @@ class SolicitudConfirmacion:
 
 @dataclass(frozen=True)
 class AprobacionHumana:
-    """Decisión humana registrada. Sin las dos del circuito no hay envío.
+    """Decisión humana registrada. Sin ella no hay envío ni emisión.
 
     Exige quién decidió (`validador`), con qué rol y cuándo, con zona horaria
     obligatoria: una aprobación sin responsable identificable no sirve como
-    evidencia. `rol` pertenece a `ROLES_APROBACION`: la semántica y la
-    utilitaria son decisiones de roles distintos y hacen falta las dos.
-    Sólo se guarda su hash en el log, no los datos de la persona.
+    evidencia. `rol` tiene que ser el que la superficie exige — contenido
+    al `ROL_APROBADOR_CONTENIDO`,
+    lotes de pagos al `ROL_APROBADOR_PAGOS` —: la autorización es por
+    delegación registrada, no por cargo. Sólo se guarda su hash en el log,
+    no los datos de la persona.
     """
 
     aprobada: bool
@@ -429,6 +416,10 @@ class BorradorRegistrado:
     actualizado_en: str | None = None
     output_hash: str | None = None
     purgado_en: str | None = None
+    # Estado del circuito reemplazado del que se normalizó (`None` si no
+    # aplica): un registro en `APROBADA_SEMANTICA`/`APROBADA_UTILITARIA` se
+    # lee como `PENDIENTE_VALIDACION` y conserva acá de dónde vino (#125).
+    estado_heredado: str | None = None
 
 
 class RegistroConfirmaciones(Protocol):
@@ -1011,6 +1002,12 @@ def _leer_registro(contenido: str) -> BorradorRegistrado | None:
     )
     if not all(isinstance(valor, str) for valor in (estado, asunto, cuerpo)):
         return None
+    # Estados del circuito reemplazado: la aprobación parcial que traían no
+    # cuenta como la aprobación única — el registro vuelve a pendiente y
+    # conserva el estado original como diagnóstico (#125).
+    estado_heredado = estado if estado in ESTADOS_HEREDADOS else None
+    if estado_heredado is not None:
+        estado = "PENDIENTE_VALIDACION"
     creado_en, actualizado_en, purgado_en = (
         datos.get("creado_en"),
         datos.get("actualizado_en"),
@@ -1030,6 +1027,7 @@ def _leer_registro(contenido: str) -> BorradorRegistrado | None:
         actualizado_en=actualizado_en,
         output_hash=output_hash,
         purgado_en=purgado_en,
+        estado_heredado=estado_heredado,
     )
 
 
@@ -1572,10 +1570,9 @@ def procesar_confirmacion(
     `asincrono=True` (s4d) es en sí mismo un pedido de envío: en lugar de
     entregar, la confirmación `APROBADA` pasa a `ENVIO_ENCOLADO` y queda un
     ítem en `cola`, que es obligatoria en esta vía. `destino` no se usa
-    porque la entrega la hace `drenar_envios` con el suyo. Sin las dos
-    aprobaciones nada entra a la cola: una aprobación parcial deja el estado
-    parcial como siempre y un pedido sobre un registro no aprobado es
-    `INVALIDA`.
+    porque la entrega la hace `drenar_envios` con el suyo. Sin la aprobación
+    registrada nada entra a la cola: un pedido sobre un registro no aprobado
+    es `INVALIDA`.
     """
 
 
@@ -1659,7 +1656,9 @@ def procesar_confirmacion(
             error="notification_mode_mismatch",
             auditoria_extra={"modo_circuito": modo},
         )
-    if aprobacion is not None and not _aprobacion_valida(aprobacion):
+    if aprobacion is not None and not _aprobacion_valida(
+        aprobacion, rol=ROL_APROBADOR_CONTENIDO
+    ):
         return _resultado(
             log_path=log_path,
             solicitud=solicitud,
@@ -1703,14 +1702,12 @@ def procesar_confirmacion(
     if aprobacion is None:
         if pide_envio:
             # Entrega sin decisión nueva: la autoriza el estado APROBADA, que
-            # sólo se alcanza con las dos aprobaciones registradas. Un pedido
+            # sólo se alcanza con la aprobación registrada. Un pedido
             # de envío sin registro o sobre uno todavía en validación es
             # inválido y no crea ni mueve nada; sobre un registro que ya pasó
             # de ese punto —entregada, fallida, rechazada, indeterminada— es
             # un reintento y se responde como duplicado.
-            if existente is None or existente.estado in (
-                {"PENDIENTE_VALIDACION"} | ESTADOS_PARCIALES_APROBACION
-            ):
+            if existente is None or existente.estado == "PENDIENTE_VALIDACION":
                 return _resultado(
                     log_path=log_path,
                     solicitud=solicitud,
@@ -1774,11 +1771,19 @@ def procesar_confirmacion(
     if existente is None:
         raise RuntimeError("registro de idempotencia inconsistente")
     asunto, cuerpo = existente.asunto, existente.cuerpo
+    # Diagnóstico del circuito reemplazado (#125): un registro que la
+    # versión anterior dejó en aprobación parcial se leyó como pendiente;
+    # la decisión que ahora lo resuelve queda anotada con su origen.
+    auditoria_heredado = (
+        {"estado_heredado": existente.estado_heredado}
+        if existente.estado_heredado is not None
+        else None
+    )
 
     if not aprobacion.aprobada:
         if not registro.transicionar(
             idempotency_key,
-            frozenset({"PENDIENTE_VALIDACION"} | ESTADOS_PARCIALES_APROBACION),
+            frozenset({"PENDIENTE_VALIDACION"}),
             "RECHAZADA",
         ):
             return _duplicada(
@@ -1793,26 +1798,19 @@ def procesar_confirmacion(
             asunto=asunto,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
+            auditoria_extra=auditoria_heredado,
         )
 
-    # Cada rol deja su propio estado parcial; la aprobación del otro rol es la
-    # única que completa el circuito. Dos compare-and-set en cadena cierran la
-    # carrera entre aprobaciones simultáneas de roles distintos.
-    parcial_propia, parcial_ajena = _PARCIAL_POR_ROL[aprobacion.rol]
-    if registro.transicionar(
-        idempotency_key, frozenset({"PENDIENTE_VALIDACION"}), parcial_propia
+    # Una sola aprobación del rol autorizado habilita la pieza: el circuito
+    # de delegación vigente no tiene estado parcial (#125).
+    if not registro.transicionar(
+        idempotency_key, frozenset({"PENDIENTE_VALIDACION"}), "APROBADA"
     ):
-        estado_actual = parcial_propia
-    elif registro.transicionar(
-        idempotency_key, frozenset({parcial_ajena}), "APROBADA"
-    ):
-        estado_actual = "APROBADA"
-    else:
         return _duplicada(log_path, solicitud, correlation_id, idempotency_key)
+    estado_actual = "APROBADA"
 
-    if not pide_envio or estado_actual != "APROBADA":
-        # Si se pidió enviar pero falta la otra aprobación, el estado devuelto
-        # lo dice explícitamente: la decisión quedó registrada y no se entregó.
+    if not pide_envio:
+        # La decisión quedó registrada; sin pedido de envío no se entrega.
         return _finalizar(
             log_path=log_path,
             solicitud=solicitud,
@@ -1822,6 +1820,7 @@ def procesar_confirmacion(
             asunto=asunto,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
+            auditoria_extra=auditoria_heredado,
         )
 
     if asincrono:
@@ -2036,12 +2035,12 @@ def _renderizar(solicitud: SolicitudConfirmacion) -> tuple[str, str]:
     un riesgo concreto si un modelo altera un dato. Por eso HU-012 es
     puramente determinista. La SEU confirmó una única plantilla preaprobada
     para todos los tipos; lo único que varía por tipo es el asunto base y la
-    frase del evento, declaradas en el catálogo `tipos_notificacion_v2`. Para
+    frase del evento, declaradas en el catálogo `tipos_notificacion_v3`. Para
     `inscripcion` el resultado es idéntico al de siempre: su `asunto_base`
     reproduce el asunto que el módulo tenía fijado antes del catálogo.
 
     `instrucciones_pago` es la excepción: su cuerpo sale de
-    `prompts/instrucciones_pago_provisional_v1.txt` con los datos del plan y
+    `prompts/instrucciones_pago_provisional_v2.txt` con los datos del plan y
     su asunto es el `asunto_preinscripcion` del plan — sin la marca de
     borrador — porque la respuesta del preinscripto se asocia por ese
     asunto normalizado.
@@ -2277,14 +2276,24 @@ def email_valido(email: object) -> bool:
     )
 
 
-def _aprobacion_valida(aprobacion: AprobacionHumana) -> bool:
+def _aprobacion_valida(
+    aprobacion: AprobacionHumana, *, rol: str
+) -> bool:
+    """Estructura válida **y** rol exigido por la superficie concreta.
+
+    `rol` es el rol que habilita en ese circuito — contenido al
+    `ROL_APROBADOR_CONTENIDO`, lotes de pagos al `ROL_APROBADOR_PAGOS` —:
+    un rol válido del padrón que no corresponde a la superficie no
+    habilita nada.
+    """
+
     if not isinstance(aprobacion.aprobada, bool):
         return False
     if (
         not isinstance(aprobacion.validador, str)
         or not isinstance(aprobacion.rol, str)
         or not aprobacion.validador.strip()
-        or aprobacion.rol not in ROLES_APROBACION
+        or aprobacion.rol != rol
     ):
         return False
     try:
@@ -2365,8 +2374,8 @@ def _resultado(
         )
         if aprobacion is not None
         else None,
-        # El rol queda en claro para poder evidenciar que las dos aprobaciones
-        # vinieron de roles distintos; no es un dato personal.
+        # El rol queda en claro para evidenciar qué delegación aprobó; no
+        # es un dato personal.
         "approval_role": aprobacion.rol if aprobacion is not None else None,
         "delivery_mode": "fake" if estado == "ENVIADA_SIMULADA" else "none",
     }

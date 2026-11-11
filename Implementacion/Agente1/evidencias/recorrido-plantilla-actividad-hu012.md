@@ -12,11 +12,11 @@
   dígito, fecha, importe, correo o enlace en el texto; hecho copiado de la
   fuente. El éxito es `PENDIENTE_VALIDACION`, nunca una pieza lista.
 - Que la generación deja dos objetos abiertos a decisión en el Form de #72
-  —la plantilla (`tpl-…`) con la doble aprobación semántica + utilitaria y
+  —la plantilla (`tpl-…`) con la aprobación única de contenido (`apruebo_contenido`, #125) y
   el lote (`lote-…`) con `apruebo_lote`—, ids derivados del `sha256` del
   documento: otra redacción produce otros objetos y reinicia el circuito.
-- Que sin las tres decisiones `registrada` no se encola nada
-  (`template_not_approved` / `batch_not_approved`), y que con las tres el
+- Que sin las dos decisiones `registrada` no se encola nada
+  (`template_not_approved` / `batch_not_approved`), y que con las dos el
   correo de cada preinscripto se renderiza **determinista y sin modelo** —
   la plantilla aprobada más actividad, plan de pago y padrón—, se encola
   con clave idempotente de actividad+inscripción+hash y se drena por el
@@ -54,8 +54,9 @@
   - `plan_pagos_notebooklm_n2.csv` — el plan de pago provisional del hilo.
   - `padron_pagos_sintetico.csv` — los tres preinscriptos sintéticos.
   - `padron_roles_sintetico.csv` — los roles del circuito con correos
-    inventados (`rgc@` firma lo semántico, `coord@` lo utilitario y el
-    lote).
+    inventados (`aprobador@` con rol `APROBADOR_CONTENIDO` firma la línea y
+    el lote; `pagos@` con rol `APROBADOR_PAGOS` firma los lotes de pagos;
+    `solicitante@` pide piezas).
 
 ## Paso a paso (offline)
 
@@ -121,7 +122,7 @@ PYTHONPATH=src python scripts/atender_canal_form.py \
 La palabra «plantilla» clasifica el pedido a `generar_plantilla_actividad`,
 el plan `--plan-csv` alimenta las variables de pago y el aviso que queda
 en `estado-canal-form/avisos-offline.jsonl` enumera los links de
-aprobación de los dos objetos (semántica, utilitaria y lote) — los mismos
+aprobación de los dos objetos (contenido y lote) — los mismos
 ids que el paso 1, porque derivan del hash del documento. El registro de
 decisiones es compartido: aprobar esos objetos por
 `registrar_form_decisiones.py` habilita el lote igual que en la fase 2
@@ -150,5 +151,5 @@ los objetos `plantilla`/`lote` viajan por el mismo Form de decisiones de
   live con `GmailDestino` en vez del fake.
 
 Nada de esto es necesario para lo que el recorrido acredita: generación
-acotada por contrato, doble aprobación + lote por el Form real de
+acotada por contrato, aprobación única de contenido + lote por el Form real de
 decisiones, render determinista, encolado idempotente y entrega simulada.

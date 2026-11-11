@@ -12,9 +12,9 @@ Ejercita los dos tramos del pipeline nuevo:
    copiado; dato personal; eco de prompting; marcas del documento; hecho
    que el contrato no autoriza; registro no rioplatense.
 2. **Lote** (`encolar_lote_actividad` / `correr_lote_actividad`): exige el
-   `RegistroDecisiones` y las tres decisiones `registrada` —aprobación
-   semántica y utilitaria sobre el `plantilla_id` del documento exacto, y
-   `apruebo_lote` utilitaria sobre el `lote_id`—; renderiza por
+   `RegistroDecisiones` y las dos decisiones `registrada` —`apruebo_contenido`
+   del rol autorizado sobre el `plantilla_id` del documento exacto, y
+   `apruebo_lote` sobre el `lote_id`—; renderiza por
    destinatario sin modelo; encola con clave idempotente; la entrega la
    hace `drenar_envios` sólo contra el destino habilitado (el fake).
 
@@ -40,9 +40,8 @@ from agente1.confirmaciones import (
     RegistroConfirmacionesMemoria,
 )
 from agente1.decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
     DECISION_APRUEBO_LOTE,
-    DECISION_APRUEBO_SEMANTICA,
-    DECISION_APRUEBO_UTILITARIA,
     RESULTADO_REGISTRADA,
     TIPO_LOTE,
     TIPO_PLANTILLA,
@@ -72,10 +71,10 @@ from agente1.plantillas_actividad import (
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
 
-CORREO_RGC = "rgc@example.invalid"
-CORREO_COORD = "coord@example.invalid"
-ROL_SEMANTICA = "RESPONSABLE_GESTION_CONOCIMIENTO"
-ROL_UTILITARIA = "COORDINADOR_EXTENSION"
+CORREO_APROBADOR = "aprobador@example.invalid"
+CORREO_PAGOS = "pagos@example.invalid"
+ROL_CONTENIDO = "APROBADOR_CONTENIDO"
+ROL_PAGOS = "APROBADOR_PAGOS"
 
 # Prosa conforme para SYN-001: un párrafo sin un solo dato — ni cifra, ni
 # fecha, ni correo, ni enlace, ni hecho de la fila (el título y la
@@ -213,8 +212,7 @@ def _aprobar_circuito(
     *,
     documento: str,
     actividad_id: str = "SYN-001",
-    semantica: bool = True,
-    utilitaria: bool = True,
+    contenido: bool = True,
     lote: bool = True,
 ) -> None:
     """Declara los objetos y registra las decisiones pedidas del circuito."""
@@ -224,23 +222,13 @@ def _aprobar_circuito(
     registro.declarar_pendiente(tipo=TIPO_PLANTILLA, objeto_id=plantilla_id)
     registro.declarar_pendiente(tipo=TIPO_LOTE, objeto_id=lote_id)
     correlativo = 1
-    if semantica:
+    if contenido:
         _decision_registrada(
             registro,
             tipo=TIPO_PLANTILLA,
             objeto_id=plantilla_id,
-            decision=DECISION_APRUEBO_SEMANTICA,
-            rol=ROL_SEMANTICA,
-            correlativo=correlativo,
-        )
-        correlativo += 1
-    if utilitaria:
-        _decision_registrada(
-            registro,
-            tipo=TIPO_PLANTILLA,
-            objeto_id=plantilla_id,
-            decision=DECISION_APRUEBO_UTILITARIA,
-            rol=ROL_UTILITARIA,
+            decision=DECISION_APRUEBO_CONTENIDO,
+            rol=ROL_CONTENIDO,
             correlativo=correlativo,
         )
         correlativo += 1
@@ -250,7 +238,7 @@ def _aprobar_circuito(
             tipo=TIPO_LOTE,
             objeto_id=lote_id,
             decision=DECISION_APRUEBO_LOTE,
-            rol=ROL_UTILITARIA,
+            rol=ROL_CONTENIDO,
             correlativo=correlativo,
         )
 
@@ -721,21 +709,19 @@ def test_lote_sin_ninguna_aprobacion_se_rechaza(tmp_path: Path) -> None:
     assert resultado.error == "template_not_approved"
 
 
-def test_lote_solo_semantica_se_rechaza(tmp_path: Path) -> None:
+def test_lote_aprobado_sin_contenido_se_rechaza(tmp_path: Path) -> None:
     documento = _documento(tmp_path)
     registro = RegistroDecisiones(tmp_path / "estado-decisiones")
-    _aprobar_circuito(
-        registro, documento=documento, utilitaria=False, lote=False
-    )
+    _aprobar_circuito(registro, documento=documento, contenido=False)
     resultado = _encolar(tmp_path, documento=documento)
     assert resultado.error == "template_not_approved"
 
 
-def test_lote_solo_utilitaria_se_rechaza(tmp_path: Path) -> None:
+def test_pendientes_sin_decisiones_se_rechaza(tmp_path: Path) -> None:
     documento = _documento(tmp_path)
     registro = RegistroDecisiones(tmp_path / "estado-decisiones")
     _aprobar_circuito(
-        registro, documento=documento, semantica=False, lote=False
+        registro, documento=documento, contenido=False, lote=False
     )
     resultado = _encolar(tmp_path, documento=documento)
     assert resultado.error == "template_not_approved"
@@ -763,38 +749,30 @@ def test_decision_sobre_otro_documento_no_habilita(tmp_path: Path) -> None:
 
 
 def test_decision_con_rol_incorrecto_no_habilita(tmp_path: Path) -> None:
-    """La semántica registrada por el Coordinador no es aprobación
-    semántica, aunque la línea diga `registrada`: el rol también se relee."""
+    """Un `apruebo_contenido` registrado por el rol de pagos no habilita,
+    aunque la línea diga `registrada`: el rol también se relee."""
     documento = _documento(tmp_path)
     registro = RegistroDecisiones(tmp_path / "estado-decisiones")
     plantilla_id = id_plantilla(documento, "SYN-001")
     lote_id = id_lote(documento, "SYN-001")
     registro.declarar_pendiente(tipo=TIPO_PLANTILLA, objeto_id=plantilla_id)
     registro.declarar_pendiente(tipo=TIPO_LOTE, objeto_id=lote_id)
-    # La semántica la firma quien no es: rol utilitario en la línea.
+    # El contenido lo firma quien no es: rol de pagos en la línea.
     _decision_registrada(
         registro,
         tipo=TIPO_PLANTILLA,
         objeto_id=plantilla_id,
-        decision=DECISION_APRUEBO_SEMANTICA,
-        rol=ROL_UTILITARIA,
+        decision=DECISION_APRUEBO_CONTENIDO,
+        rol=ROL_PAGOS,
         correlativo=1,
-    )
-    _decision_registrada(
-        registro,
-        tipo=TIPO_PLANTILLA,
-        objeto_id=plantilla_id,
-        decision=DECISION_APRUEBO_UTILITARIA,
-        rol=ROL_UTILITARIA,
-        correlativo=2,
     )
     _decision_registrada(
         registro,
         tipo=TIPO_LOTE,
         objeto_id=lote_id,
         decision=DECISION_APRUEBO_LOTE,
-        rol=ROL_UTILITARIA,
-        correlativo=3,
+        rol=ROL_CONTENIDO,
+        correlativo=2,
     )
     resultado = _encolar(tmp_path, documento=documento)
     assert resultado.error == "template_not_approved"
@@ -810,11 +788,11 @@ def test_decision_rechazada_en_el_registro_no_habilita(tmp_path: Path) -> None:
         ResultadoDecision(
             id_respuesta="b" * 64,
             correo_hash="a" * 64,
-            rol=ROL_SEMANTICA,
+            rol=ROL_CONTENIDO,
             rol_origen="fuera_de_padron",
             tipo=TIPO_PLANTILLA,
             objeto_id=plantilla_id,
-            decision=DECISION_APRUEBO_SEMANTICA,
+            decision=DECISION_APRUEBO_CONTENIDO,
             resultado="rechazada",
             rechazo_codigo="fuera_de_padron",
             marca_temporal_form="2026-10-11 09:00:00",
@@ -1032,14 +1010,11 @@ def test_lote_por_el_canal_real_de_decisiones(tmp_path: Path) -> None:
     respuestas = tmp_path / "respuestas.csv"
     respuestas.write_text(
         "Marca temporal,Correo,Tipo,Objeto,Decisión\n"
-        f"2026-10-11 09:00:00,{CORREO_RGC},{TIPO_PLANTILLA},{plantilla_id},{DECISION_APRUEBO_SEMANTICA}\n"
-        f"2026-10-11 09:05:00,{CORREO_COORD},{TIPO_PLANTILLA},{plantilla_id},{DECISION_APRUEBO_UTILITARIA}\n"
-        f"2026-10-11 09:10:00,{CORREO_COORD},{TIPO_LOTE},{lote_id},{DECISION_APRUEBO_LOTE}\n",
+        f"2026-10-11 09:00:00,{CORREO_APROBADOR},{TIPO_PLANTILLA},{plantilla_id},{DECISION_APRUEBO_CONTENIDO}\n"
+        f"2026-10-11 09:10:00,{CORREO_APROBADOR},{TIPO_LOTE},{lote_id},{DECISION_APRUEBO_LOTE}\n",
         encoding="utf-8",
     )
-    padron = PadronRoles(
-        {CORREO_RGC: ROL_SEMANTICA, CORREO_COORD: ROL_UTILITARIA}
-    )
+    padron = PadronRoles({CORREO_APROBADOR: ROL_CONTENIDO})
     canal = CanalFormDecisiones(
         lector=LectorValoresCsv(respuestas),
         padron=padron,
@@ -1067,7 +1042,7 @@ def test_lote_por_el_canal_real_de_decisiones(tmp_path: Path) -> None:
 def test_decision_de_rol_incorrecto_por_el_canal_no_habilita(
     tmp_path: Path,
 ) -> None:
-    """El coordinador no puede firmar la semántica: el canal la rechaza y
+    """El rol de pagos no puede firmar el contenido: el canal la rechaza y
     el lote queda sin habilitar — defensa en los dos bordes."""
     documento = _documento(tmp_path)
     registro_decisiones = RegistroDecisiones(tmp_path / "estado-decisiones")
@@ -1078,13 +1053,12 @@ def test_decision_de_rol_incorrecto_por_el_canal_no_habilita(
     respuestas = tmp_path / "respuestas.csv"
     respuestas.write_text(
         "Marca temporal,Correo,Tipo,Objeto,Decisión\n"
-        f"2026-10-11 09:00:00,{CORREO_COORD},{TIPO_PLANTILLA},{plantilla_id},{DECISION_APRUEBO_SEMANTICA}\n"
-        f"2026-10-11 09:05:00,{CORREO_COORD},{TIPO_PLANTILLA},{plantilla_id},{DECISION_APRUEBO_UTILITARIA}\n",
+        f"2026-10-11 09:00:00,{CORREO_PAGOS},{TIPO_PLANTILLA},{plantilla_id},{DECISION_APRUEBO_CONTENIDO}\n",
         encoding="utf-8",
     )
     canal = CanalFormDecisiones(
         lector=LectorValoresCsv(respuestas),
-        padron=PadronRoles({CORREO_COORD: ROL_UTILITARIA}),
+        padron=PadronRoles({CORREO_PAGOS: ROL_PAGOS}),
         registro=registro_decisiones,
     )
     resultados = canal.atender()

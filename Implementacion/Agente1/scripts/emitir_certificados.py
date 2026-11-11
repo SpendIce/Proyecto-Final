@@ -27,14 +27,15 @@ Dos modos, como en `atender_canal_form.py`:
     `AGENTE1_CERTIFICADOS_LISTA_SHEET_ID`   Sheet D2 de la lista de cierre
     `AGENTE1_CERTIFICADOS_LISTA_RANGO_A1`   rango A1 de esa lista
     `AGENTE1_CERTIFICADOS_LINEA_PATH`       archivo con la línea aprobada
-    `AGENTE1_CERTIFICADOS_APROBADOR`        correo del rol utilitario
     `AGENTE1_CERTIFICADOS_SOLICITANTE`      correo de quien cargó la lista
     `AGENTE1_CERTIFICADOS_RECURSOS_DIR`     carpeta restringida con símbolo
                                           y firmas de la plantilla SEU
                                           (#126); optativa: sin ella los
                                           espacios salen no provistos
   Todo eso sale del entorno y nunca de argv, igual que el resto de la
-  configuración institucional.
+  configuración institucional. El lote lo aprueba quien lo genera (#125):
+  el correo del solicitante es también el que registra la `apruebo_lote` y
+  el que recibe el aviso de pendiente, así que ya no hay aprobador aparte.
 
 La salida es un JSON por corrida: estado, conteos y códigos, nunca datos
 de las personas de la lista.
@@ -51,7 +52,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from agente1.canal_form import LectorValoresCsv
+from agente1.canal_form import LectorValoresCsv, PadronRoles
 from agente1.certificados_emision import (
     DestinoCorreoArchivo,
     procesar_emision_certificados,
@@ -136,12 +137,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Archivo de texto con la línea descriptiva aprobada (offline).",
     )
     parser.add_argument(
-        "--aprobador",
-        help="Correo del rol utilitario que aprueba el lote (offline).",
-    )
-    parser.add_argument(
         "--solicitante",
-        help="Correo de quien pidió la emisión y cargó la lista (offline).",
+        help=(
+            "Correo de quien pidió la emisión, cargó la lista y aprueba el "
+            "lote que genera (offline)."
+        ),
     )
     parser.add_argument(
         "--recursos",
@@ -161,9 +161,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args.live and args.confirm_write_workspace:
             raise RunnerWorkspaceError("runner_live_not_enabled")
         if not args.live and (
-            args.lista_csv is None
-            or not args.aprobador
-            or not args.solicitante
+            args.lista_csv is None or not args.solicitante
         ):
             raise RunnerWorkspaceError("runner_offline_args_required")
 
@@ -200,7 +198,6 @@ def main(argv: list[str] | None = None) -> int:
             linea = _linea_desde_path(
                 Path(_env_requerido(CERT_PREFIX + "LINEA_PATH"))
             )
-            correo_aprobador = _env_requerido(CERT_PREFIX + "APROBADOR")
             solicitante = _env_requerido(CERT_PREFIX + "SOLICITANTE")
             recursos_firma = recursos_firma_opcional(
                 os.environ.get(CERT_PREFIX + "RECURSOS_DIR")
@@ -232,7 +229,6 @@ def main(argv: list[str] | None = None) -> int:
             )
             lector_lista = LectorValoresCsv(args.lista_csv)
             linea = _linea_desde_path(args.linea)
-            correo_aprobador = args.aprobador
             solicitante = args.solicitante
             recursos_firma = recursos_firma_opcional(args.recursos)
             destino = DestinoCorreoArchivo(
@@ -242,6 +238,18 @@ def main(argv: list[str] | None = None) -> int:
             resumen_config = {"modo_offline": True}
             modo = "offline_fake"
 
+        # El rol del solicitante sale del padrón (#125): pedir el lote
+        # exige el rol de contenido. Sin padrón configurado la barrera
+        # queda pendiente declarada y el runner sigue como antes.
+        solicitante_rol = None
+        try:
+            solicitante_rol = PadronRoles.desde_entorno().rol_para(
+                solicitante
+            )
+        except ConfiguracionWorkspaceError as exc:
+            if exc.code != "padron_roles_missing":
+                raise
+
         resultado = procesar_emision_certificados(
             id_actividad=args.actividad,
             fuente=fuente,
@@ -250,8 +258,8 @@ def main(argv: list[str] | None = None) -> int:
             registro_decisiones=registro,
             enlaces=enlaces,
             destino=destino,
-            correo_aprobador=correo_aprobador,
             solicitante_correo=solicitante,
+            solicitante_rol=solicitante_rol,
             directorio_salida=args.directorio,
             recursos_firma=recursos_firma,
         )

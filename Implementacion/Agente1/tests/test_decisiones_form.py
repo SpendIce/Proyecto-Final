@@ -32,17 +32,17 @@ from agente1.canal_form import (
 )
 from agente1.confirmaciones import (
     MARCADOR_BORRADOR,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
+    ROL_APROBADOR_PAGOS,
 )
 from agente1.decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
     DECISION_APRUEBO_LOTE,
-    DECISION_APRUEBO_SEMANTICA,
-    DECISION_APRUEBO_UTILITARIA,
     DECISION_DESCARTE,
     DECISION_PUBLIQUE,
     PENDIENTES_NOMBRE,
     PROCESADAS_NOMBRE,
+    RECHAZO_ROL_REEMPLAZADO,
     TIPO_LINEA_DESCRIPTIVA,
     TIPO_LOTE,
     TIPO_PLANTILLA,
@@ -52,8 +52,11 @@ from agente1.decisiones_form import (
     DecisionesFormError,
     EnlacesDecisiones,
     RegistroDecisiones,
+    ResultadoDecision,
     cargar_configuracion_form_decisiones,
+    cargar_padron_roles_csv,
     crear_lector_decisiones,
+    decisiones_heredadas_del_objeto,
 )
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
 from agente1.gmail_envio import GmailDestinoConfirmaciones
@@ -71,8 +74,8 @@ SCRIPT_RUNNER = ROOT / "scripts" / "registrar_form_decisiones.py"
 # Correos sintéticos: el dominio del Form es institucional pero en las
 # pruebas todo correo es de `example.invalid` y el padrón es de prueba.
 CORREO_SOLICITANTE = "solicitante@example.invalid"
-CORREO_RGC = "rgc-seu@example.invalid"
-CORREO_COORD = "coord-seu@example.invalid"
+CORREO_APROBADOR = "aprobador@example.invalid"
+CORREO_PAGOS = "pagos@example.invalid"
 CORREO_AUX = "auxiliar-seu@example.invalid"
 CORREO_DESCONOCIDO = "desconocido@example.invalid"
 
@@ -121,7 +124,7 @@ def _padron() -> PadronRoles:
     """Padrón sintético: roles operativos para pedir, roles de decisión.
 
     `coordinador_seu`/`auxiliar_seu` habilitan pedidos en el núcleo pero no
-    autorizan decisiones; los dos roles del acta autorizan decisiones pero
+    autorizan decisiones; el rol de contenido autoriza decisiones pero
     no pasan el filtro de pedidos. Así el circuito entero se ensaya con la
     separación de roles que el padrón real va a tener.
     """
@@ -130,8 +133,8 @@ def _padron() -> PadronRoles:
         {
             CORREO_SOLICITANTE: "coordinador_seu",
             CORREO_AUX: "auxiliar_seu",
-            CORREO_RGC: ROL_APROBACION_SEMANTICA,
-            CORREO_COORD: ROL_APROBACION_UTILITARIA,
+            CORREO_APROBADOR: ROL_APROBADOR_CONTENIDO,
+            CORREO_PAGOS: ROL_APROBADOR_PAGOS,
         }
     )
 
@@ -151,7 +154,7 @@ def _enlazador(tmp_path: Path) -> EnlacesDecisiones:
 
 
 def fila_decision(
-    correo: str = CORREO_RGC,
+    correo: str = CORREO_APROBADOR,
     tipo: str = TIPO_PUBLICACION,
     objeto: str = "obj-1",
     decision: str = DECISION_PUBLIQUE,
@@ -357,8 +360,8 @@ def test_enlaces_para_plantilla_mintean_uno_por_rol(tmp_path: Path) -> None:
         tipo=TIPO_PLANTILLA, objeto_id="confirmacion_inscripcion_v1"
     )
     assert set(enlaces) == {
-        DECISION_APRUEBO_SEMANTICA,
-        DECISION_APRUEBO_UTILITARIA,
+        DECISION_APRUEBO_CONTENIDO,
+        DECISION_APRUEBO_CONTENIDO,
     }
     for decision, url in enlaces.items():
         assert (
@@ -506,10 +509,10 @@ def test_publicacion_publique_del_rgc_se_registra_con_identidad_y_fecha(
     assert resultado.tipo == TIPO_PUBLICACION
     assert resultado.objeto_id == "obj-1"
     assert resultado.decision == DECISION_PUBLIQUE
-    assert resultado.rol == ROL_APROBACION_SEMANTICA
+    assert resultado.rol == ROL_APROBADOR_CONTENIDO
     assert resultado.rol_origen == "padron"
     # Identidad verificada y fecha con zona horaria, tal como pide el AC.
-    assert resultado.correo_hash == _hash(CORREO_RGC)
+    assert resultado.correo_hash == _hash(CORREO_APROBADOR)
     assert resultado.timestamp.endswith("+00:00")
     assert resultado.marca_temporal_form == marca
     # Y en la auditoría la línea completa, sin el correo en claro.
@@ -517,23 +520,25 @@ def test_publicacion_publique_del_rgc_se_registra_con_identidad_y_fecha(
     assert len(lineas) == 1
     linea = lineas[0]
     assert linea["identidad_canal"] == "correo_verificado_form"
-    assert linea["correo_hash"] == _hash(CORREO_RGC)
-    assert CORREO_RGC not in json.dumps(linea)
+    assert linea["correo_hash"] == _hash(CORREO_APROBADOR)
+    assert CORREO_APROBADOR not in json.dumps(linea)
 
 
-def test_publicacion_descarte_del_coordinador_tambien_registra(
+def test_publicacion_descarte_de_rol_ajeno_se_rechaza(
     tmp_path: Path,
 ) -> None:
+    """#125: el rol del lote de pagos no decide sobre piezas de contenido."""
     _declarar_publicacion(tmp_path)
     canal, _ = _canal(
         tmp_path,
         values=[
-            fila_decision(correo=CORREO_COORD, decision=DECISION_DESCARTE)
+            fila_decision(correo=CORREO_PAGOS, decision=DECISION_DESCARTE)
         ],
     )
     (resultado,) = canal.atender()
-    assert resultado.resultado == "registrada"
-    assert resultado.rol == ROL_APROBACION_UTILITARIA
+    assert resultado.resultado == "rechazada"
+    assert resultado.rechazo_codigo == "rol_no_corresponde"
+    assert resultado.rol == ROL_APROBADOR_PAGOS
 
 
 # --- Rechazos registrados ------------------------------------------------------
@@ -560,11 +565,11 @@ def test_decision_de_correo_fuera_del_padron_se_rechaza_y_registra(
     [
         # Un rol operativo del padrón puede pedir piezas pero no decide.
         (CORREO_AUX, TIPO_PUBLICACION, DECISION_PUBLIQUE, "auxiliar_seu"),
-        # La aprobación utilitaria no es del RGC ni la semántica del Coord.
-        (CORREO_RGC, TIPO_PLANTILLA, DECISION_APRUEBO_UTILITARIA, ROL_APROBACION_SEMANTICA),
-        (CORREO_COORD, TIPO_PLANTILLA, DECISION_APRUEBO_SEMANTICA, ROL_APROBACION_UTILITARIA),
-        # El lote es decisión utilitaria: el RGC no lo habilita.
-        (CORREO_RGC, TIPO_LOTE, DECISION_APRUEBO_LOTE, ROL_APROBACION_SEMANTICA),
+        # El rol del lote de pagos no decide contenido ni lotes del Form:
+        # estos últimos los aprueba el rol de contenido (#125).
+        (CORREO_PAGOS, TIPO_PUBLICACION, DECISION_PUBLIQUE, ROL_APROBADOR_PAGOS),
+        (CORREO_PAGOS, TIPO_PLANTILLA, DECISION_APRUEBO_CONTENIDO, ROL_APROBADOR_PAGOS),
+        (CORREO_PAGOS, TIPO_LOTE, DECISION_APRUEBO_LOTE, ROL_APROBADOR_PAGOS),
     ],
 )
 def test_decision_con_rol_que_no_corresponde_se_rechaza_y_registra(
@@ -643,7 +648,7 @@ def test_objeto_sin_forma_de_identificador_se_rechaza(tmp_path: Path) -> None:
     [
         ENCABEZADOS_DECISIONES,
         ["2026-10-11 09:00:00", "no-es-correo", "publicacion", "obj-1", "publique"],
-        ["", CORREO_RGC, TIPO_PUBLICACION, "obj-1", DECISION_PUBLIQUE],
+        ["", CORREO_APROBADOR, TIPO_PUBLICACION, "obj-1", DECISION_PUBLIQUE],
         [],
     ],
 )
@@ -717,11 +722,12 @@ def test_registrar_no_toca_ningun_host_que_no_sea_sheets(
 # --- Aprobaciones de plantilla y de lote ----------------------------------------
 
 
-def test_plantilla_registra_las_dos_aprobaciones_por_rol(
+def test_plantilla_registra_la_aprobacion_unica_de_contenido(
     tmp_path: Path,
 ) -> None:
-    """La versión de plantilla queda aprobada cuando las dos decisiones
-    existen: la semántica del RGC y la utilitaria del Coordinador."""
+    """La versión de plantilla queda aprobada con una sola decisión de la
+    persona autorizada de contenido (#125); el rol del lote de pagos no la
+    habilita."""
 
     version = "confirmacion_inscripcion_provisional_v1"
     _registro(tmp_path).declarar_pendiente(
@@ -731,37 +737,41 @@ def test_plantilla_registra_las_dos_aprobaciones_por_rol(
         tmp_path,
         values=[
             fila_decision(
-                correo=CORREO_RGC,
+                correo=CORREO_APROBADOR,
                 tipo=TIPO_PLANTILLA,
                 objeto=version,
-                decision=DECISION_APRUEBO_SEMANTICA,
+                decision=DECISION_APRUEBO_CONTENIDO,
                 marca="2026-10-11 09:00:00",
             ),
             fila_decision(
-                correo=CORREO_COORD,
+                correo=CORREO_PAGOS,
                 tipo=TIPO_PLANTILLA,
                 objeto=version,
-                decision=DECISION_APRUEBO_UTILITARIA,
+                decision=DECISION_APRUEBO_CONTENIDO,
                 marca="2026-10-11 09:05:00",
             ),
         ],
     )
     resultados = canal.atender()
-    assert [r.resultado for r in resultados] == ["registrada", "registrada"]
+    assert [r.resultado for r in resultados] == ["registrada", "rechazada"]
+    assert resultados[1].rechazo_codigo == "rol_no_corresponde"
     procesadas = _procesadas(tmp_path)
     assert {
-        (linea["rol"], linea["decision"]) for linea in procesadas
+        (linea["rol"], linea["decision"], linea["resultado"])
+        for linea in procesadas
     } == {
-        (ROL_APROBACION_SEMANTICA, DECISION_APRUEBO_SEMANTICA),
-        (ROL_APROBACION_UTILITARIA, DECISION_APRUEBO_UTILITARIA),
+        (ROL_APROBADOR_CONTENIDO, DECISION_APRUEBO_CONTENIDO, "registrada"),
+        (ROL_APROBADOR_PAGOS, DECISION_APRUEBO_CONTENIDO, "rechazada"),
     }
 
 
 def test_lote_registra_la_aprobacion_que_habilita_envios(
     tmp_path: Path,
 ) -> None:
-    """«Apruebo el lote» del Coordinador: el detalle del pendiente lleva el
-    contexto (la actividad cuyos envíos se habilitan) sin prosa libre."""
+    """«Apruebo el lote» de la persona autorizada de contenido: el lote del
+    Form es el de cierre de actividad/certificados —los lotes de pagos no
+    pasan por este catálogo (#125)— y el detalle del pendiente lleva el
+    contexto sin prosa libre."""
 
     _registro(tmp_path).declarar_pendiente(
         tipo=TIPO_LOTE,
@@ -772,7 +782,7 @@ def test_lote_registra_la_aprobacion_que_habilita_envios(
         tmp_path,
         values=[
             fila_decision(
-                correo=CORREO_COORD,
+                correo=CORREO_APROBADOR,
                 tipo=TIPO_LOTE,
                 objeto="lote-syn-001-2026-10",
                 decision=DECISION_APRUEBO_LOTE,
@@ -781,18 +791,17 @@ def test_lote_registra_la_aprobacion_que_habilita_envios(
     )
     (resultado,) = canal.atender()
     assert resultado.resultado == "registrada"
-    assert resultado.rol == ROL_APROBACION_UTILITARIA
+    assert resultado.rol == ROL_APROBADOR_CONTENIDO
     pendiente = _pendientes(tmp_path)[0]
     assert pendiente["detalle"]["actividad"] == "SYN-001"
 
 
-def test_linea_descriptiva_registra_las_dos_aprobaciones_por_rol(
+def test_linea_descriptiva_registra_la_aprobacion_unica_de_contenido(
     tmp_path: Path,
 ) -> None:
-    """#74: la línea del certificado se aprueba una vez por actividad con el
-    mismo par de decisiones que una plantilla —la semántica del RGC y la
-    utilitaria del Coordinador— sobre el objeto
-    `linea_descriptiva-<id_actividad>-<hash>`."""
+    """#74 y #125: la línea del certificado se aprueba una vez por actividad
+    con una sola `apruebo_contenido` de la persona autorizada sobre el
+    objeto `linea_descriptiva-<id_actividad>-<hash>`."""
 
     objeto = "linea_descriptiva-SYN-001-" + "a" * 64
     _registro(tmp_path).declarar_pendiente(
@@ -804,28 +813,29 @@ def test_linea_descriptiva_registra_las_dos_aprobaciones_por_rol(
         tmp_path,
         values=[
             fila_decision(
-                correo=CORREO_RGC,
+                correo=CORREO_APROBADOR,
                 tipo=TIPO_LINEA_DESCRIPTIVA,
                 objeto=objeto,
-                decision=DECISION_APRUEBO_SEMANTICA,
+                decision=DECISION_APRUEBO_CONTENIDO,
                 marca="2026-10-11 09:00:00",
             ),
             fila_decision(
-                correo=CORREO_COORD,
+                correo=CORREO_PAGOS,
                 tipo=TIPO_LINEA_DESCRIPTIVA,
                 objeto=objeto,
-                decision=DECISION_APRUEBO_UTILITARIA,
+                decision=DECISION_APRUEBO_CONTENIDO,
                 marca="2026-10-11 09:05:00",
             ),
         ],
     )
     resultados = canal.atender()
-    assert [r.resultado for r in resultados] == ["registrada", "registrada"]
+    assert [r.resultado for r in resultados] == ["registrada", "rechazada"]
     assert {
-        (linea["rol"], linea["decision"]) for linea in _procesadas(tmp_path)
+        (linea["rol"], linea["decision"], linea["resultado"])
+        for linea in _procesadas(tmp_path)
     } == {
-        (ROL_APROBACION_SEMANTICA, DECISION_APRUEBO_SEMANTICA),
-        (ROL_APROBACION_UTILITARIA, DECISION_APRUEBO_UTILITARIA),
+        (ROL_APROBADOR_CONTENIDO, DECISION_APRUEBO_CONTENIDO, "registrada"),
+        (ROL_APROBADOR_PAGOS, DECISION_APRUEBO_CONTENIDO, "rechazada"),
     }
 
 
@@ -833,11 +843,10 @@ def test_linea_descriptiva_registra_las_dos_aprobaciones_por_rol(
     ("correo", "decision", "rol_esperado", "codigo"),
     [
         # El catálogo de la línea no admite «publique» ni «apruebo_lote».
-        (CORREO_RGC, DECISION_PUBLIQUE, ROL_APROBACION_SEMANTICA, "decision_fuera_de_catalogo"),
-        (CORREO_COORD, DECISION_APRUEBO_LOTE, ROL_APROBACION_UTILITARIA, "decision_fuera_de_catalogo"),
-        # La semántica no la da el Coordinador ni la utilitaria el RGC.
-        (CORREO_COORD, DECISION_APRUEBO_SEMANTICA, ROL_APROBACION_UTILITARIA, "rol_no_corresponde"),
-        (CORREO_RGC, DECISION_APRUEBO_UTILITARIA, ROL_APROBACION_SEMANTICA, "rol_no_corresponde"),
+        (CORREO_APROBADOR, DECISION_PUBLIQUE, ROL_APROBADOR_CONTENIDO, "decision_fuera_de_catalogo"),
+        (CORREO_APROBADOR, DECISION_APRUEBO_LOTE, ROL_APROBADOR_CONTENIDO, "decision_fuera_de_catalogo"),
+        # La aprobación de contenido no la da el rol del lote de pagos.
+        (CORREO_PAGOS, DECISION_APRUEBO_CONTENIDO, ROL_APROBADOR_PAGOS, "rol_no_corresponde"),
     ],
 )
 def test_linea_descriptiva_rechaza_decision_o_rol_que_no_corresponde(
@@ -1069,7 +1078,7 @@ def test_circuito_completo_publica_gacetilla_y_registra_la_decision(
     # La persona publica a mano y manda el Form: llega la fila.
     router.values_decisiones = [
         ENCABEZADOS_DECISIONES,
-        fila_decision(correo=CORREO_RGC, objeto=objeto_id),
+        fila_decision(correo=CORREO_APROBADOR, objeto=objeto_id),
     ]
     (resultado,) = _canal_decisiones(tmp_path, router).atender()
 
@@ -1077,7 +1086,7 @@ def test_circuito_completo_publica_gacetilla_y_registra_la_decision(
     assert resultado.decision == DECISION_PUBLIQUE
     linea = _procesadas(tmp_path)[0]
     assert linea["identidad_canal"] == "correo_verificado_form"
-    assert linea["rol"] == ROL_APROBACION_SEMANTICA
+    assert linea["rol"] == ROL_APROBADOR_CONTENIDO
     assert linea["timestamp"].endswith("+00:00")
     # Nada más se tocó: un solo gmail.send (el aviso) y ninguna otra escritura.
     assert (
@@ -1096,7 +1105,8 @@ def test_circuito_completo_descarte_de_post_registra_sin_publicar(
     tmp_path: Path,
 ) -> None:
     """HU-011: el borrador de post trae los mismos links y «lo descarté»
-    del Coordinador queda registrado con su rol — sin acción del agente."""
+    de la persona autorizada de contenido queda registrado con su rol —
+    sin acción del agente."""
 
     router, objeto_id = _circuito_pedido_borrador(
         tmp_path,
@@ -1107,14 +1117,14 @@ def test_circuito_completo_descarte_de_post_registra_sin_publicar(
 
     router.values_decisiones = [
         fila_decision(
-            correo=CORREO_COORD, objeto=objeto_id, decision=DECISION_DESCARTE
+            correo=CORREO_APROBADOR, objeto=objeto_id, decision=DECISION_DESCARTE
         )
     ]
     (resultado,) = _canal_decisiones(tmp_path, router).atender()
 
     assert resultado.resultado == "registrada"
     assert resultado.decision == DECISION_DESCARTE
-    assert resultado.rol == ROL_APROBACION_UTILITARIA
+    assert resultado.rol == ROL_APROBADOR_CONTENIDO
     assert (
         len(
             [
@@ -1153,7 +1163,7 @@ def test_circuito_plantilla_actividad_declara_plantilla_y_lote(
     tmp_path: Path,
 ) -> None:
     """#73: el pedido de plantilla deja dos objetos a decisión —la plantilla
-    `tpl-…` con las dos aprobaciones y el `lote-…` con `apruebo_lote`— y el
+    `tpl-…` con `apruebo_contenido` y el `lote-…` con `apruebo_lote`— y el
     correo enumera los links de cada uno. Las decisiones luego registran
     sobre esos mismos objetos."""
 
@@ -1211,26 +1221,23 @@ def test_circuito_plantilla_actividad_declara_plantilla_y_lote(
     (cuerpo,) = router.cuerpos_gmail()
     assert MARCADOR_BORRADOR in cuerpo
     enlaces = _enlaces_del_aviso(cuerpo)
-    assert len(enlaces) == 3
+    assert len(enlaces) == 2
     pares = {
         (params[ENTRY_TIPO][0], params[ENTRY_DECISION][0]): params[
             ENTRY_OBJETO
         ][0]
         for params in enlaces
     }
-    # Dos objetos: la plantilla con semántica+utilitaria y el lote.
+    # Dos objetos: la plantilla con `apruebo_contenido` y el lote con
+    # `apruebo_lote` (#125).
     assert set(pares) == {
-        (TIPO_PLANTILLA, DECISION_APRUEBO_SEMANTICA),
-        (TIPO_PLANTILLA, DECISION_APRUEBO_UTILITARIA),
+        (TIPO_PLANTILLA, DECISION_APRUEBO_CONTENIDO),
         (TIPO_LOTE, DECISION_APRUEBO_LOTE),
     }
-    plantilla_id = pares[(TIPO_PLANTILLA, DECISION_APRUEBO_SEMANTICA)]
+    plantilla_id = pares[(TIPO_PLANTILLA, DECISION_APRUEBO_CONTENIDO)]
     lote_id = pares[(TIPO_LOTE, DECISION_APRUEBO_LOTE)]
     assert plantilla_id.startswith("tpl-SYN-001-")
     assert lote_id.startswith("lote-SYN-001-")
-    assert (
-        pares[(TIPO_PLANTILLA, DECISION_APRUEBO_UTILITARIA)] == plantilla_id
-    )
 
     # Los dos objetos quedaron declarados pendientes y el atendido los
     # correlaciona — nada de prosa ni correo en claro.
@@ -1252,25 +1259,25 @@ def test_circuito_plantilla_actividad_declara_plantilla_y_lote(
     # objeto `publicacion`, la plantilla y el lote son los dos objetos.
     assert atendido["decisiones_objeto"] is None
 
-    # Las tres decisiones llegan por el Form y se registran sobre esos
-    # objetos: el circuito que habilita el lote es el mismo que declara
-    # el correo.
+    # Las decisiones llegan por el Form y se registran sobre esos objetos:
+    # la plantilla y el lote los aprueba el rol de contenido; el rol del
+    # lote de pagos no habilita pieza alguna de este circuito (#125).
     router.values_decisiones = [
         ENCABEZADOS_DECISIONES,
         fila_decision(
-            correo=CORREO_RGC,
+            correo=CORREO_APROBADOR,
             tipo=TIPO_PLANTILLA,
             objeto=plantilla_id,
-            decision=DECISION_APRUEBO_SEMANTICA,
+            decision=DECISION_APRUEBO_CONTENIDO,
         ),
         fila_decision(
-            correo=CORREO_COORD,
+            correo=CORREO_PAGOS,
             tipo=TIPO_PLANTILLA,
             objeto=plantilla_id,
-            decision=DECISION_APRUEBO_UTILITARIA,
+            decision=DECISION_APRUEBO_CONTENIDO,
         ),
         fila_decision(
-            correo=CORREO_COORD,
+            correo=CORREO_APROBADOR,
             tipo=TIPO_LOTE,
             objeto=lote_id,
             decision=DECISION_APRUEBO_LOTE,
@@ -1280,13 +1287,13 @@ def test_circuito_plantilla_actividad_declara_plantilla_y_lote(
 
     assert [r.resultado for r in resultados_decision] == [
         "registrada",
-        "registrada",
+        "rechazada",
         "registrada",
     ]
     assert [r.rol for r in resultados_decision] == [
-        ROL_APROBACION_SEMANTICA,
-        ROL_APROBACION_UTILITARIA,
-        ROL_APROBACION_UTILITARIA,
+        ROL_APROBADOR_CONTENIDO,
+        ROL_APROBADOR_PAGOS,
+        ROL_APROBADOR_CONTENIDO,
     ]
 
 
@@ -1360,19 +1367,20 @@ def test_runner_offline_declara_registra_y_rechaza(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """El runner ensaya el circuito sin red: declara un lote, registra la
-    aprobación del Coordinador y rechaza la de un correo fuera del padrón."""
+    aprobación del rol de contenido y rechaza la de un correo fuera del
+    padrón."""
 
     modulo = _cargar_runner()
     respuestas = tmp_path / "respuestas.csv"
     respuestas.write_text(
         "Marca temporal,Correo,Tipo,Objeto,Decisión\n"
-        f"2026-10-11 09:00:00,{CORREO_COORD},{TIPO_LOTE},lote-2026-10,{DECISION_APRUEBO_LOTE}\n"
+        f"2026-10-11 09:00:00,{CORREO_APROBADOR},{TIPO_LOTE},lote-2026-10,{DECISION_APRUEBO_LOTE}\n"
         f"2026-10-11 09:10:00,{CORREO_DESCONOCIDO},{TIPO_LOTE},lote-2026-10,{DECISION_APRUEBO_LOTE}\n",
         encoding="utf-8",
     )
     padron = tmp_path / "padron.csv"
     padron.write_text(
-        f"correo,rol\n{CORREO_COORD},{ROL_APROBACION_UTILITARIA}\n",
+        f"correo,rol\n{CORREO_APROBADOR},{ROL_APROBADOR_CONTENIDO}\n",
         encoding="utf-8",
     )
 
@@ -1410,7 +1418,7 @@ def test_runner_offline_declara_registra_y_rechaza(
         / PROCESADAS_NOMBRE
     ).read_text(encoding="utf-8")
     assert '"resultado": "registrada"' in procesadas or '"resultado":"registrada"' in procesadas
-    assert CORREO_COORD not in procesadas
+    assert CORREO_APROBADOR not in procesadas
 
 
 def test_runner_offline_rechaza_declaracion_invalida(
@@ -1444,7 +1452,7 @@ def test_lector_csv_del_canal_de_pedidos_sirve_a_la_hoja_de_decisiones(
     csv_path = tmp_path / "respuestas.csv"
     csv_path.write_text(
         "Marca temporal,Correo,Tipo,Objeto,Decisión\n"
-        f"2026-10-11 09:00:00,{CORREO_RGC},{TIPO_PUBLICACION},obj-9,{DECISION_PUBLIQUE}\n",
+        f"2026-10-11 09:00:00,{CORREO_APROBADOR},{TIPO_PUBLICACION},obj-9,{DECISION_PUBLIQUE}\n",
         encoding="utf-8",
     )
     _registro(tmp_path).declarar_pendiente(
@@ -1458,3 +1466,103 @@ def test_lector_csv_del_canal_de_pedidos_sirve_a_la_hoja_de_decisiones(
     (resultado,) = canal.atender()
     assert resultado.resultado == "registrada"
     assert resultado.objeto_id == "obj-9"
+
+
+# --- Circuito reemplazado (#125): rechazos explícitos -------------------------
+
+
+def test_decision_heredada_se_rechaza_con_rol_reemplazado(
+    tmp_path: Path,
+) -> None:
+    """`apruebo_semantica`/`apruebo_utilitaria` no habilitan: código propio."""
+
+    _declarar_publicacion(tmp_path)
+    canal, _ = _canal(
+        tmp_path,
+        values=[
+            fila_decision(decision="apruebo_semantica"),
+            fila_decision(
+                decision="apruebo_utilitaria",
+                marca="2026-10-11 09:05:00",
+            ),
+        ],
+    )
+    resultados = canal.atender()
+    assert [r.resultado for r in resultados] == ["rechazada", "rechazada"]
+    assert all(
+        r.rechazo_codigo == RECHAZO_ROL_REEMPLAZADO for r in resultados
+    )
+
+
+def test_rol_heredado_del_padron_se_rechaza(tmp_path: Path) -> None:
+    """Un correo con un rol del circuito reemplazado no decide nada."""
+
+    _declarar_publicacion(tmp_path)
+    padron_viejo = PadronRoles(
+        {CORREO_APROBADOR: "RESPONSABLE_GESTION_CONOCIMIENTO"}
+    )
+    canal, _ = _canal(
+        tmp_path,
+        padron=padron_viejo,
+        values=[fila_decision()],
+    )
+    (resultado,) = canal.atender()
+    assert resultado.resultado == "rechazada"
+    assert resultado.rechazo_codigo == RECHAZO_ROL_REEMPLAZADO
+
+
+def test_decisiones_heredadas_del_objeto_lista_el_registro_viejo(
+    tmp_path: Path,
+) -> None:
+    """El registro append-only conserva las líneas viejas y el helper las
+    expone para el diagnóstico; nunca habilitan."""
+
+    registro = _registro(tmp_path)
+    registro.registrar(
+        ResultadoDecision(
+            id_respuesta=_hash("vieja-1"),
+            correo_hash=_hash("correo-viejo"),
+            rol="COORDINADOR_EXTENSION",
+            rol_origen="padron",
+            tipo=TIPO_PUBLICACION,
+            objeto_id="obj-1",
+            decision="apruebo_utilitaria",
+            resultado="registrada",
+            rechazo_codigo=None,
+            marca_temporal_form="2026-09-30 10:00:00",
+            timestamp="2026-09-30T13:00:00+00:00",
+        )
+    )
+    heredadas = decisiones_heredadas_del_objeto(registro, objeto_id="obj-1")
+    assert len(heredadas) == 1
+    assert heredadas[0]["decision"] == "apruebo_utilitaria"
+    assert decisiones_heredadas_del_objeto(
+        registro, objeto_id="otro"
+    ) == ()
+
+
+def test_padron_con_rol_reemplazado_frena_el_arranque(tmp_path: Path) -> None:
+    """El padrón valida roles contra el catálogo vigente (#125)."""
+
+    csv_path = tmp_path / "padron.csv"
+    csv_path.write_text(
+        "correo,rol\n"
+        f"{CORREO_APROBADOR},COORDINADOR_EXTENSION\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        ConfiguracionWorkspaceError, match="padron_rol_desconocido"
+    ):
+        cargar_padron_roles_csv(csv_path)
+
+
+def test_padron_con_roles_vigentes_carga(tmp_path: Path) -> None:
+    csv_path = tmp_path / "padron.csv"
+    csv_path.write_text(
+        "correo,rol\n"
+        f"{CORREO_APROBADOR},{ROL_APROBADOR_CONTENIDO}\n"
+        f"{CORREO_PAGOS},{ROL_APROBADOR_PAGOS}\n",
+        encoding="utf-8",
+    )
+    padron = cargar_padron_roles_csv(csv_path)
+    assert padron.rol_para(CORREO_APROBADOR) == ROL_APROBADOR_CONTENIDO

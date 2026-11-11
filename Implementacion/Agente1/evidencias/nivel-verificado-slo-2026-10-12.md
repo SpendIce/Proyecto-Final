@@ -1,5 +1,8 @@
 # Nivel verificado de los SLO desde la auditoría (#88)
 
+> **Nota (11/11/2026):** las menciones a la «doble aprobación» o «aprobación parcial» describen el circuito histórico al instante de la fecha del documento. Desde #125 el circuito vigente es la aprobación única de contenido (ADR 0018).
+
+
 - **Instante de corte:** 2026-10-13T00:09:49.440169+00:00 — los ticks y eventos posteriores a él no entran a las muestras.
 - **Rango medido:** 2026-10-12 a 2026-10-12 (fechas locales de la ventana).
 - **Configuración declarada:** intervalo de sondeo 10 s; ventana días [1, 2, 3, 4, 5, 6, 7] de 21:04 a 21:09 (America/Argentina/Buenos_Aires). Sale de `AGENTE1_SCHEDULER_*`, igual que el scheduler.

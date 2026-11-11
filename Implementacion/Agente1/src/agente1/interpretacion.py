@@ -143,11 +143,11 @@ from .procesamiento import Generator, procesar_solicitud
 from .registro_auditoria import escribir_registro
 
 HU = "HU-013"
-CONTRACT_VERSION = "intenciones_v4"
+CONTRACT_VERSION = "intenciones_v5"
 
 CATALOGO_INTENCIONES = json.loads(
     files("agente1")
-    .joinpath("contracts", "intenciones_v4.schema.json")
+    .joinpath("contracts", "intenciones_v5.schema.json")
     .read_text(encoding="utf-8")
 )
 INTENCIONES = tuple(CATALOGO_INTENCIONES["intenciones"])
@@ -192,7 +192,7 @@ INTENCIONES_PROPONIBLES = frozenset({"generar_gacetilla", "generar_post"})
 # El modelo interviene sólo cuando el camino determinístico no resolvió, y su
 # única salida admitida es una intención del catálogo más términos de búsqueda
 # estructurados. `interpretacion_fallback_v4` es el contrato de esa salida; su
-# enum tiene que ser el mismo catálogo que `intenciones_v4`, y hay una prueba
+# enum tiene que ser el mismo catálogo que `intenciones_v5`, y hay una prueba
 # que falla si dejan de coincidir. Ver ADR 0001.
 CONTRATO_FALLBACK = json.loads(
     files("agente1")

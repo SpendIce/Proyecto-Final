@@ -45,9 +45,11 @@ convierte en pedido.
 
 Un pedido «emití los certificados de <actividad>» (#75) despacha al
 circuito de lote de cierre de `certificados_emision`, cableado sólo cuando
-hay lista declarada: en offline con `--lista-csv` (más `--aprobador` y, si
-hay, `--linea`), en live con las variables `AGENTE1_CERTIFICADOS_*` sobre
-la Sheet D2 de la lista. Las entregas de título van al mismo medio que el
+hay lista declarada: en offline con `--lista-csv` (y, si hay, `--linea`),
+en live con las variables `AGENTE1_CERTIFICADOS_*` sobre
+la Sheet D2 de la lista. El lote lo aprueba quien lo genera —el correo
+verificado del pedido— así que no hay aprobador separado que configurar
+(#125). Las entregas de título van al mismo medio que el
 aviso: Gmail con lista de prueba en live, `entregas-certificados-offline.jsonl`
 en offline.
 
@@ -321,8 +323,6 @@ def _emisor_offline(
 
     if args.lista_csv is None:
         return None
-    if not args.aprobador:
-        raise RunnerWorkspaceError("runner_offline_aprobador_required")
     registro = RegistroDecisiones(directorio_decisiones)
     return construir_emisor_certificados(
         fuente=fuente,
@@ -333,7 +333,6 @@ def _emisor_offline(
         destino=DestinoCorreoArchivo(
             directorio_estado / ENTREGAS_CERTIFICADOS_NOMBRE
         ),
-        correo_aprobador=args.aprobador,
         directorio_salida=directorio_salida,
         recursos_firma=recursos_firma_opcional(args.recursos),
     )
@@ -359,7 +358,6 @@ def _emisor_live(
     requeridas = (
         "LISTA_RANGO_A1",
         "LINEA_PATH",
-        "APROBADOR",
     )
     for clave in requeridas:
         if not os.environ.get(CERT_PREFIX + clave, "").strip():
@@ -385,7 +383,6 @@ def _emisor_live(
             token_provider=token_provider,
             timeout_s=timeout_s,
         ),
-        correo_aprobador=os.environ[CERT_PREFIX + "APROBADOR"].strip(),
         directorio_salida=directorio_salida,
         # Los recursos de firma de la plantilla SEU (#126) son optativos:
         # sin `AGENTE1_CERTIFICADOS_RECURSOS_DIR` salen no provistos.
@@ -433,10 +430,6 @@ def main(argv: list[str] | None = None) -> int:
         "--linea",
         type=Path,
         help="Archivo de texto con la línea descriptiva aprobada (offline, #75).",
-    )
-    parser.add_argument(
-        "--aprobador",
-        help="Correo del rol utilitario que aprueba el lote de cierre (offline, #75).",
     )
     parser.add_argument(
         "--recursos",

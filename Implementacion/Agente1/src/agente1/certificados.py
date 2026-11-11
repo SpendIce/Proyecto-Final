@@ -1,7 +1,7 @@
 """Slice offline de HU-014: certificados en PDF, nunca emisión real.
 
 Genera el texto y el PDF de un certificado de asistencia o de aprobación y
-modela su ciclo de vida completo, incluida la doble aprobación humana y la
+modela su ciclo de vida completo, incluida la aprobación humana y la
 "emisión", pero **no existe ningún adapter que emita de verdad**. La única
 emisión posible es contra `DestinoCertificadosFake`, y se verifica en tiempo
 de ejecución comparando el tipo exacto (`type(destino) is not
@@ -15,10 +15,9 @@ antes de que exista la capacidad técnica de emitir. Cuando la SEU defina la
 plantilla institucional, el destino de entrega y la firma digital, lo que se
 agrega es un adapter, no la lógica de control.
 
-Estados: `PENDIENTE_VALIDACION` → `APROBADA_SEMANTICA` | `APROBADA_UTILITARIA`
-según cuál de las dos aprobaciones llega primero, y de ahí → `APROBADA`
-cuando llega la complementaria; cualquier decisión negativa lleva a
-`RECHAZADA`. Sólo desde `APROBADA` —las dos aprobaciones registradas— se
+Estados: `PENDIENTE_VALIDACION` → `APROBADA` con la aprobación registrada
+de la persona autorizada, o → `RECHAZADA` con su decisión negativa.
+Sólo desde `APROBADA` —la aprobación registrada— se
 puede pasar a `EMISION_RESERVADA` → `EMITIDA_SIMULADA` | `FALLIDA`. El paso
 intermedio existe para que una caída durante la emisión no deje el registro
 en un estado que habilite reintentar y emitir dos veces; al reinicio se
@@ -35,7 +34,7 @@ provisional. La firma digital que menciona el enunciado de la HU queda
 `PENDIENTE_SEU`.
 
 El circuito de decisión es el de HU-012 sin modificaciones: se reusan
-`AprobacionHumana`, `ROLES_APROBACION`, los estados parciales y el registro
+`AprobacionHumana` y el registro
 durable archivo-por-clave (`os.link` + `flock`). Los helpers privados que se
 importan mantienen un único contrato de decisión y de hash entre las dos HU;
 los alias de registro sólo ponen el nombre del dominio en las firmas.
@@ -45,9 +44,11 @@ descriptiva de la actividad redactada por el modelo y las variables del
 registro (`id_actividad`, `modalidad`, `carga_horaria`). Con línea, la
 emisión exige dos precondiciones más, verificables contra el
 `RegistroDecisiones` del Form de decisiones (#72): la línea aprobada una
-vez por actividad con las dos decisiones por rol (`linea_descriptiva`,
+vez por actividad con una sola decisión del rol de contenido
+(`linea_descriptiva`, `apruebo_contenido`,
 objeto `linea_descriptiva-<id_actividad>-<hash>`), y el lote de cierre
-aprobado por el rol utilitario (`lote`, `apruebo_lote`). Sin línea queda el
+aprobado por la persona autorizada (`lote`, `apruebo_lote`, #125). Sin
+línea queda el
 camino provisional anterior, que #75 cierra para la emisión en vivo.
 """
 
@@ -61,9 +62,8 @@ from pathlib import Path
 from typing import Protocol
 
 from agente1.confirmaciones import (
-    _PARCIAL_POR_ROL,
-    ESTADOS_PARCIALES_APROBACION,
     ID_RE,
+    ROL_APROBADOR_CONTENIDO,
     AprobacionHumana,
     RegistroConfirmaciones,
     RegistroConfirmacionesArchivo,
@@ -75,16 +75,16 @@ from agente1.decisiones_form import RegistroDecisiones
 from agente1.linea_descriptiva import (
     ID_ACTIVIDAD_RE,
     linea_descriptiva_aprobada,
-    lote_cierre_aprobado,
     normalizar_linea,
     objeto_id_linea_descriptiva,
+    revisar_aprobacion_lote,
     validar_linea_descriptiva,
 )
 from agente1.registro_auditoria import escribir_registro
 
 HU = "HU-014"
 CONTRACT_VERSION = "certificado_emision_v2"
-TEMPLATE_VERSION = "certificado_provisional_v2"
+TEMPLATE_VERSION = "certificado_provisional_v3"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 MARCADOR_BORRADOR = "BORRADOR — NO EMITIR"
 # La marca permanente de prueba la define acá porque la comparten los dos
@@ -229,8 +229,9 @@ def procesar_certificado(
     emitir: bool = False,
     decisiones: RegistroDecisiones | None = None,
     lote_cierre: str | None = None,
+    lote_generada_por_correo_hash: str | None = None,
 ) -> ResultadoCertificado:
-    """Genera y opcionalmente emite sólo a un fake, bajo doble aprobación.
+    """Genera y opcionalmente emite sólo a un fake, bajo aprobación única.
 
     El orden de los controles no es casual: primero los que descalifican la
     solicitud en sí (tipos, tipo de certificado del catálogo, campos
@@ -312,7 +313,9 @@ def procesar_certificado(
                 estado="INVALIDA",
                 error="descriptive_line_invalid",
             )
-    if aprobacion is not None and not _aprobacion_valida(aprobacion):
+    if aprobacion is not None and not _aprobacion_valida(
+        aprobacion, rol=ROL_APROBADOR_CONTENIDO
+    ):
         return _resultado(
             log_path=log_path,
             solicitud=solicitud,
@@ -346,11 +349,14 @@ def procesar_certificado(
         and solicitud.linea_descriptiva is not None
     ):
         # Precondición del ticket #74: ningún PDF sale con una línea que no
-        # tenga las dos aprobaciones de la actividad registradas en el Form,
+        # tenga la aprobación registrada en el Form,
         # ni sin el lote de cierre aprobado. El código devuelto distingue
         # cada falta para que el operador sepa qué decisión falta.
         codigo = _precondicion_emision_con_linea(
-            solicitud, decisiones=decisiones, lote_cierre=lote_cierre
+            solicitud,
+            decisiones=decisiones,
+            lote_cierre=lote_cierre,
+            generada_por_correo_hash=lote_generada_por_correo_hash,
         )
         if codigo is not None:
             return _resultado(
@@ -368,14 +374,12 @@ def procesar_certificado(
     if aprobacion is None:
         if emitir:
             # Emisión sin decisión nueva: la autoriza el estado APROBADA, que
-            # sólo se alcanza con las dos aprobaciones registradas. Un pedido
+            # sólo se alcanza con la aprobación registrada. Un pedido
             # de emisión sin registro o sobre uno todavía en validación es
             # inválido y no crea ni mueve nada; sobre un registro que ya pasó
             # de ese punto —emitido, fallido, rechazado, indeterminado— es un
             # reintento y se responde como duplicado.
-            if existente is None or existente.estado in (
-                {"PENDIENTE_VALIDACION"} | ESTADOS_PARCIALES_APROBACION
-            ):
+            if existente is None or existente.estado == "PENDIENTE_VALIDACION":
                 return _resultado(
                     log_path=log_path,
                     solicitud=solicitud,
@@ -433,7 +437,7 @@ def procesar_certificado(
     if not aprobacion.aprobada:
         if not registro.transicionar(
             idempotency_key,
-            frozenset({"PENDIENTE_VALIDACION"} | ESTADOS_PARCIALES_APROBACION),
+            frozenset({"PENDIENTE_VALIDACION"}),
             "RECHAZADA",
         ):
             return _duplicada(
@@ -448,26 +452,19 @@ def procesar_certificado(
             titulo=titulo,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
+            estado_heredado=existente.estado_heredado,
         )
 
-    # Cada rol deja su propio estado parcial; la aprobación del otro rol es la
-    # única que completa el circuito. Dos compare-and-set en cadena cierran la
-    # carrera entre aprobaciones simultáneas de roles distintos.
-    parcial_propia, parcial_ajena = _PARCIAL_POR_ROL[aprobacion.rol]
-    if registro.transicionar(
-        idempotency_key, frozenset({"PENDIENTE_VALIDACION"}), parcial_propia
+    # Una sola aprobación del rol autorizado habilita el documento: no hay
+    # estados parciales (#125).
+    if not registro.transicionar(
+        idempotency_key, frozenset({"PENDIENTE_VALIDACION"}), "APROBADA"
     ):
-        estado_actual = parcial_propia
-    elif registro.transicionar(
-        idempotency_key, frozenset({parcial_ajena}), "APROBADA"
-    ):
-        estado_actual = "APROBADA"
-    else:
         return _duplicada(log_path, solicitud, correlation_id, idempotency_key)
+    estado_actual = "APROBADA"
 
-    if not emitir or estado_actual != "APROBADA":
-        # Si se pidió emitir pero falta la otra aprobación, el estado devuelto
-        # lo dice explícitamente: la decisión quedó registrada y no se emitió.
+    if not emitir:
+        # La decisión quedó registrada; sin pedido de emisión no se emite.
         return _finalizar(
             log_path=log_path,
             solicitud=solicitud,
@@ -477,6 +474,7 @@ def procesar_certificado(
             titulo=titulo,
             cuerpo=cuerpo,
             aprobacion=aprobacion,
+            estado_heredado=existente.estado_heredado,
         )
 
     return _emitir(
@@ -512,7 +510,7 @@ def _emitir(
     EMISION_RESERVADA y un reintento no vuelve a emitir, porque ya no está en
     APROBADA. Se prefiere un certificado no emitido a uno emitido dos veces.
     El PDF que sale del pipeline ya no lleva la marca de borrador: la marca
-    existe hasta la aprobación completa, y emitir exige las dos.
+    existe hasta la aprobación registrada.
     """
 
     if not registro.transicionar(
@@ -567,12 +565,16 @@ def _precondicion_emision_con_linea(
     *,
     decisiones: RegistroDecisiones | None,
     lote_cierre: str | None,
+    generada_por_correo_hash: str | None,
 ) -> str | None:
     """Código de la primera precondición incumplida, o `None` si habilita.
 
     Sólo corre cuando la solicitud trae `linea_descriptiva` (el camino
     provisional sin línea lo cierra #75). El orden es estructural primero:
     sin registro de decisiones ni objeto de lote no hay nada que verificar.
+    El lote exige la `apruebo_lote` del rol de contenido **y** del correo
+    de quien lo generó — quien lo genera lo aprueba (#125, ADR 0018), la
+    misma verificación que la vía por lote (`certificados_emision`).
     """
 
     if not isinstance(decisiones, RegistroDecisiones):
@@ -582,6 +584,10 @@ def _precondicion_emision_con_linea(
         or ID_RE.fullmatch(lote_cierre) is None
     ):
         return "closing_batch_required"
+    if not isinstance(generada_por_correo_hash, str) or not (
+        generada_por_correo_hash.strip()
+    ):
+        return "closing_batch_generator_required"
     assert isinstance(solicitud.id_actividad, str)
     assert isinstance(solicitud.linea_descriptiva, str)
     if not linea_descriptiva_aprobada(
@@ -590,7 +596,11 @@ def _precondicion_emision_con_linea(
         linea=solicitud.linea_descriptiva,
     ):
         return "descriptive_line_unapproved"
-    if not lote_cierre_aprobado(decisiones, objeto_lote=lote_cierre):
+    if not revisar_aprobacion_lote(
+        decisiones,
+        objeto_lote=lote_cierre,
+        generada_por_correo_hash=generada_por_correo_hash,
+    ).aprobada:
         return "closing_batch_unapproved"
     return None
 
@@ -623,6 +633,7 @@ def _finalizar(
     aprobacion: AprobacionHumana | None = None,
     pdf: bytes | None = None,
     lote_cierre: str | None = None,
+    estado_heredado: str | None = None,
 ) -> ResultadoCertificado:
     # Todo estado que conserva el borrador devuelve su PDF con marca: la marca
     # es lo que lo inhabilita como documento hasta la aprobación completa.
@@ -638,6 +649,7 @@ def _finalizar(
         pdf=pdf if pdf is not None else generar_pdf_certificado(cuerpo, borrador=True),
         aprobacion=aprobacion,
         lote_cierre=lote_cierre,
+        estado_heredado=estado_heredado,
     )
 
 
@@ -800,6 +812,7 @@ def _resultado(
     pdf: bytes | None = None,
     aprobacion: AprobacionHumana | None = None,
     lote_cierre: str | None = None,
+    estado_heredado: str | None = None,
 ) -> ResultadoCertificado:
     entrada = json.dumps(
         asdict(solicitud),
@@ -835,8 +848,8 @@ def _resultado(
         )
         if aprobacion is not None
         else None,
-        # El rol queda en claro para poder evidenciar que las dos aprobaciones
-        # vinieron de roles distintos; no es un dato personal.
+        # El rol queda en claro para evidenciar qué delegación aprobó; no
+        # es un dato personal.
         "approval_role": aprobacion.rol if aprobacion is not None else None,
         # Trazas del circuito de #74: el hash del texto de la línea (nunca el
         # texto), el objeto de decisión al que está atada y el objeto del
@@ -858,6 +871,9 @@ def _resultado(
         else None,
         "closing_batch_id": lote_cierre,
         "emission_mode": "fake" if estado == "EMITIDA_SIMULADA" else "none",
+        # Diagnóstico del circuito reemplazado (#125): el registro venía de
+        # una aprobación parcial vieja, leída como pendiente.
+        "estado_heredado": estado_heredado,
     }
     escribir_registro(log_path, auditoria)
     return ResultadoCertificado(

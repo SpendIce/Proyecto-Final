@@ -18,6 +18,6 @@ El ADR 0002 habia descartado el padron porque mapeaba una identidad no verificad
 
 El padron es un recurso nuevo que alguien de la SEU tiene que mantener, y Direccion de Carrera todavia no lo confirmo: se consulta a Cicerchia porque le suma una carga a la SEU despues del PPS. Si se rechaza, el canal vuelve al rol afirmado del ADR 0002 sin tocar el nucleo.
 
-Los roles del padron son los que la SEU designo por escrito (acta del 22/09). El sistema no asigna roles a partir de una lectura del organigrama.
+Los roles del padron son los que la SEU designo por escrito: el acta del 22/09 fijo el primer conjunto, que la designacion del 11/11/2026 (ADR 0018) reemplazo para los circuitos de aprobacion — una sola persona autorizada de contenido en lugar del par semantica + utilitaria, el lote de certificados aprobado por quien lo genera y los lotes de pagos aprobados por su responsable. El sistema no asigna roles a partir de una lectura del organigrama.
 
 Las evidencias producidas por este canal acreditan identidad verificada y autorizacion por padron declarado. Los otros canales (planilla offline, prototipo web) siguen bajo el ADR 0002.

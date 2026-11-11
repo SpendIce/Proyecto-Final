@@ -24,16 +24,17 @@ tiene dos tramos, separados a propósito por la aprobación humana:
    inyección o registro fuera del rioplatense. El cuerpo compuesto vuelve
    a pasar el gate de variables del catálogo. El éxito es un
    borrador `PENDIENTE_VALIDACION`, con dos objetos abiertos a decisión
-   en el Form (#72): la plantilla (aprobación semántica y utilitaria) y
-   el lote de envíos de la actividad (aprobación utilitaria).
+   en el Form (#72): la plantilla (una sola `apruebo_contenido` de la
+   persona autorizada, #125) y
+   el lote de envíos de la actividad (su `apruebo_lote`).
 2. **Envío por lote** (`encolar_lote_actividad` / `correr_lote_actividad`).
-   Sólo cuando el registro de decisiones tiene las tres respuestas
-   `registrada` — las dos de la plantilla y la del lote — el render
+   Sólo cuando el registro de decisiones tiene las dos respuestas
+   `registrada` — la de la plantilla y la del lote — el render
    determinista arma el correo de cada destinatario reemplazando las
    variables por los valores de la fila y del plan de pago. El modelo no
    interviene en el render. Los ítems nacen en `ENVIO_ENCOLADO`, como los
    recordatorios de pago: la autorización es la aprobación del lote, no
-   una doble aprobación por pieza. La entrega la hace `drenar_envios`
+   una aprobación por pieza. La entrega la hace `drenar_envios`
    contra el destino habilitado — el fake explícito en la demostración.
 
 La identidad de la plantilla y del lote se deriva del documento aprobado:
@@ -72,8 +73,7 @@ if TYPE_CHECKING:
 from .confirmaciones import (
     ESTADO_ENVIO_ENCOLADO,
     MARCADOR_BORRADOR,
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
     ColaEnvios,
     DestinoConfirmaciones,
     ItemEnvio,
@@ -127,7 +127,7 @@ CONTRACT_VERSION = "plantilla_actividad_v2"
 TEMPLATE_VERSION = "plantilla_actividad_generada_v2"
 # La estructura del cuerpo sigue siendo la de la base provisional v1; desde
 # #140 la compone `_componer_cuerpo` y el modelo ya no la ve.
-BASE_TEMPLATE_VERSION = "plantilla_actividad_base_provisional_v1"
+BASE_TEMPLATE_VERSION = "plantilla_actividad_base_provisional_v2"
 PROMPT_VERSION = "plantilla_actividad_generacion_v4"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 CIRCUITO = "plantilla_actividad"
@@ -809,10 +809,10 @@ def _armar_documento(contenido: str, actividad_id: str) -> str:
         "horarios, enlaces y datos personales — viajan como variables "
         "{{...}} y los completa el sistema desde la actividad, el plan "
         "de pago y el padrón, nunca desde el texto del modelo.\n"
-        "- La plantilla se habilita sólo con la aprobación semántica y la "
-        "utilitaria de esta actividad registradas en el Form de "
+        "- La plantilla se habilita sólo con la aprobación de contenido "
+        "registrada en el Form de "
         "decisiones (#72); los envíos exigen además la aprobación del "
-        "lote. Ninguna de ellas habilita nada por sí sola.\n"
+        "lote.\n"
         "- Sólo el destino habilitado — el fake explícito o el Gmail con "
         "lista de direcciones de prueba — puede entregarla.\n"
         "- La plantilla institucional definitiva queda PENDIENTE_SEU.\n"
@@ -946,11 +946,11 @@ def encolar_lote_actividad(
     """Encola el correo de cada destinatario hacia la entrega simulada.
 
     Orden de los controles — primero la autorización, después el
-    registro: la plantilla exige las dos decisiones `registrada` (la
-    semántica del Responsable de Gestión del Conocimiento y la utilitaria
-    del Coordinador de Extensión) sobre el `plantilla_id` de este
-    documento, y el lote la `apruebo_lote` utilitaria sobre su `lote_id`.
-    Sin las tres, nada se encola — ni siquiera para mirar.
+    registro: la plantilla exige la `apruebo_contenido` `registrada` de la
+    persona autorizada (`APROBADOR_CONTENIDO`, #125) sobre el
+    `plantilla_id` de este
+    documento, y el lote su `apruebo_lote` sobre el `lote_id`.
+    Sin las dos, nada se encola — ni siquiera para mirar.
 
     Recién ahí, por cada destinatario: render determinista, `crear` por
     clave (una segunda corrida choca como `DUPLICADA`), transición
@@ -962,9 +962,8 @@ def encolar_lote_actividad(
     # Constantes del catálogo de decisiones (#72): import perezoso por el
     # ciclo `decisiones_form → canal_form → interpretacion → este módulo`.
     from .decisiones_form import (
+        DECISION_APRUEBO_CONTENIDO,
         DECISION_APRUEBO_LOTE,
-        DECISION_APRUEBO_SEMANTICA,
-        DECISION_APRUEBO_UTILITARIA,
         TIPO_LOTE,
         TIPO_PLANTILLA,
     )
@@ -1004,28 +1003,20 @@ def encolar_lote_actividad(
         return rechazo_lote("INVALIDA", "decisiones_registry_missing")
     if not actividad_id:
         return rechazo_lote("INVALIDA", "activity_id_missing")
-    semantica = _decision_registrada(
+    if not _decision_registrada(
         decisiones,
         tipo=TIPO_PLANTILLA,
         objeto_id=plantilla_id,
-        decision=DECISION_APRUEBO_SEMANTICA,
-        rol=ROL_APROBACION_SEMANTICA,
-    )
-    utilitaria = _decision_registrada(
-        decisiones,
-        tipo=TIPO_PLANTILLA,
-        objeto_id=plantilla_id,
-        decision=DECISION_APRUEBO_UTILITARIA,
-        rol=ROL_APROBACION_UTILITARIA,
-    )
-    if not (semantica and utilitaria):
+        decision=DECISION_APRUEBO_CONTENIDO,
+        rol=ROL_APROBADOR_CONTENIDO,
+    ):
         return rechazo_lote("INVALIDA", "template_not_approved")
     if not _decision_registrada(
         decisiones,
         tipo=TIPO_LOTE,
         objeto_id=lote_id,
         decision=DECISION_APRUEBO_LOTE,
-        rol=ROL_APROBACION_UTILITARIA,
+        rol=ROL_APROBADOR_CONTENIDO,
     ):
         return rechazo_lote("INVALIDA", "batch_not_approved")
 

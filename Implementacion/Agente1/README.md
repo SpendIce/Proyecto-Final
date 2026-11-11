@@ -43,7 +43,7 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/medir_cobertura_sin_inferencia.py`: mide qué porcentaje de un corpus resuelve sin invocar ningún modelo.
 - `scripts/atender_canal_planilla.py`: corrida guiada del canal de planilla offline, sin credenciales. Ver `evidencias/recorrido-prueba-guiada-canal-planilla.md`.
 - `src/agente1/canal_form.py`: adapter del canal de pedidos sobre el Google Form restringido al dominio (correo verificado + `PadronRoles` externo por `AGENTE1_PADRON_ROLES_PATH`, ADR 0005), con aviso por `gmail.send` bajo lista de prueba; el correo de «borrador listo» adjunta los links «lo publiqué / lo descarté» del Form de decisiones (#72) y el de propuesta de intención (#27) devuelve un enlace al mismo Form, prellenado por código, que sólo genera al reenviarse (Form → correo → Form). Runner: `scripts/atender_canal_form.py` (offline con CSV, live con doble opt-in).
-- `src/agente1/decisiones_form.py`: registro de decisiones humanas por el segundo Google Form (#72, ADR 0008): catálogo cerrado de pares tipo/decisión (`publicacion`: `publique`/`descarte`; `plantilla`: `apruebo_semantica`/`apruebo_utilitaria`; `lote`: `apruebo_lote`; `linea_descriptiva`: `apruebo_semantica`/`apruebo_utilitaria`, #74), validación por rol del padrón, anti-tamper por registro de objetos pendientes y auditoría append-only sin correo en claro. Registrar no dispara ninguna acción. Runner: `scripts/registrar_form_decisiones.py`.
+- `src/agente1/decisiones_form.py`: registro de decisiones humanas por el segundo Google Form (#72, ADR 0008): catálogo cerrado de pares tipo/decisión (`publicacion`: `publique`/`descarte`; `plantilla`: `apruebo_contenido`; `lote`: `apruebo_lote`; `linea_descriptiva`: `apruebo_contenido`, #74), todos registrados por la persona autorizada de contenido por delegación de la Secretaría (#125) —los lotes de pagos llevan aprobador propio y viajan como `AprobacionHumana` de `recordatorios.py`—, validación por rol del padrón, anti-tamper por registro de objetos pendientes y auditoría append-only sin correo en claro. Registrar no dispara ninguna acción. Runner: `scripts/registrar_form_decisiones.py`.
 - `src/agente1/fuentes.py`: puerto `FuenteSolicitudes` (lectura por id y enumeración del catálogo completo) y adapter CSV compatible con el flujo local.
 - `src/agente1/destinos.py`: puerto `DestinoBorradores` y adapter Markdown que preserva la salida local.
 - `src/agente1/google_workspace.py`: contratos HTTP de lectura Google Sheets y creación de borradores Google Docs; sólo están verificados offline con token y transporte fake.
@@ -57,8 +57,8 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `scripts/workspace_e2e.py`: runner Sheets→procesamiento→Drive, offline por defecto y live con doble opt-in.
 - `src/agente1/persistencia.py` y `migrations/`: puerto en memoria y SQL del spike PostgreSQL, ya ejecutado contra un contenedor efímero.
 - `src/agente1/confirmaciones.py`: lifecycle por envío de HU-012 con entrega al fake o al adapter Gmail con lista de prueba (D12); rechaza con `notification_mode_mismatch` los tipos cuyo modo de circuito no es `por_envio`.
-- `src/agente1/certificados.py`: lifecycle offline de HU-014 con generación de PDF determinista (stdlib, sin dependencias nuevas) y emisión únicamente fake; reusa el circuito de doble aprobación y el registro durable de HU-012. Desde `certificado_emision_v2` (#74) la solicitud puede traer la línea descriptiva de la actividad y las variables del registro (`id_actividad`, `modalidad`, `carga_horaria`), y la emisión con línea exige las precondiciones del Form de decisiones.
-- `src/agente1/linea_descriptiva.py` y `src/agente1/prompts/linea_descriptiva_v1.txt`: pipeline de la línea descriptiva del certificado (#74): generación con campos acotados de la fila, gates deterministas, derivación del objeto de decisión `linea_descriptiva-<id_actividad>-<hash>` y verificación de las dos aprobaciones por actividad más la `apruebo_lote` del lote de cierre. Es la fuente única del objeto y de las aprobaciones: `certificados_emision` consume sus funciones.
+- `src/agente1/certificados.py`: lifecycle offline de HU-014 con generación de PDF determinista (stdlib, sin dependencias nuevas) y emisión únicamente fake; reusa el circuito de aprobación única y el registro durable de HU-012 (#125). Desde `certificado_emision_v2` (#74) la solicitud puede traer la línea descriptiva de la actividad y las variables del registro (`id_actividad`, `modalidad`, `carga_horaria`), y la emisión con línea exige las precondiciones del Form de decisiones.
+- `src/agente1/linea_descriptiva.py` y `src/agente1/prompts/linea_descriptiva_v1.txt`: pipeline de la línea descriptiva del certificado (#74): generación con campos acotados de la fila, gates deterministas, derivación del objeto de decisión `linea_descriptiva-<id_actividad>-<hash>` y verificación de la aprobación única por actividad más la `apruebo_lote` del lote de cierre, registrada por quien lo genera (#125). Es la fuente única del objeto y de las aprobaciones: `certificados_emision` consume sus funciones.
 - `src/agente1/certificados_emision.py`: circuito de emisión del lote de certificados sobre la lista de cierre (#75): validación entera de la lista, aprobaciones por el Form de decisiones (línea descriptiva #74 y lote atado al hash de la lista), PDF por titular con marca `DOCUMENTO DE PRUEBA — SIN VALIDEZ` y entrega por Gmail con lista de prueba. Sin red en offline (`DestinoCorreoArchivo` guarda sólo metadatos del adjunto).
 - `scripts/emitir_certificados.py`: runner de la emisión, offline por defecto y live con doble opt-in; ver `evidencias/recorrido-emision-certificados-hu014.md`.
 - `scripts/matriz_hu014.py`: matriz reproducible de HU-014, con emisión simulada, reconciliación de reservas colgadas y el circuito completo de la línea descriptiva (`matriz_conformidad_hu014_v2`).
@@ -66,11 +66,11 @@ Esto valida el flujo y sus controles, pero **no completa el DoD institucional de
 - `src/agente1/contracts/matriz_origenes_inscripcion_v1.json` y `src/agente1/origenes_inscripcion.py`: matriz operativa de HU-012 por origen de inscripción y decisión de envío fail-closed; ningún origen habilita envío.
 - `src/agente1/contracts/plan_pagos_actividad_v1.json`, `src/agente1/contracts/novedades_pago_v1.json`, `src/agente1/pagos.py` y `src/agente1/buzon.py`: corrida de control de pagos de HU-012 — contrato del plan de pago con procedencia por dato, puerto de buzón propio con adapter de carpeta `.eml`, catálogo cerrado de novedades del Departamento (confirmación de la Fundación, comprobante rechazado, comprobante que cubre N cuotas, dirección alternativa, bonificado) con precedencia sobre lo derivado del buzón, y función pura que informa el «k de N» desglosado por preinscripto, las respuestas no asociadas y las novedades aplicadas o con error. La misma corrida planifica el lote diario de `recordatorio_pago`: anticipaciones por actividad (`7|2` por omisión, `SUPUESTO_TECNICO`), regla `hoy = fecha_referencia − anticipación` en `America/Argentina/Buenos_Aires`, nunca después de la referencia, e idempotencia por actividad, inscripción, cuota y anticipación. Además enumera los candidatos a confirmación de inscripción: los preinscriptos cuya cuota 1 quedó `PAGO_CONFIRMADO` o `BONIFICADA` (D9). Subcomando `python -m agente1 control-pagos` con `--novedades` y `--fecha` opcionales.
 - `src/agente1/contracts/tipos_notificacion_v2.json` y `src/agente1/tipos_notificacion.py`: catálogo cerrado de los seis tipos de notificación con el modo de circuito por tipo —`por_envio` para los cuatro de HU-012 original e `instrucciones_pago`, `lote` para `recordatorio_pago`— y decisión fail-closed por procedencia de datos.
-- `src/agente1/recordatorios.py` y `src/agente1/prompts/recordatorio_pago_provisional_v1.txt`: circuito por lote de los recordatorios de pago —la plantilla se aprueba una sola vez con doble decisión y cada lote diario lleva una aprobación utilitaria con la lista exacta de ítems— sobre el registro, la cola y el destino fake de HU-012.
+- `src/agente1/recordatorios.py` y `src/agente1/prompts/recordatorio_pago_provisional_v1.txt`: circuito por lote de los recordatorios de pago —la plantilla se aprueba una sola vez por la persona autorizada de contenido y cada lote diario lleva la aprobación del responsable de pagos con la lista exacta de ítems (#125)— sobre el registro, la cola y el destino fake de HU-012.
 - `src/agente1/instrucciones_pago.py` y `src/agente1/prompts/instrucciones_pago_provisional_v1.txt`: builders del corte 4 del diseño de pagos —el correo de preinscripción con las instrucciones de pago (D8) y la solicitud de confirmación de inscripción desde el candidato que la cuota 1 `PAGO_CONFIRMADO` o `BONIFICADA` habilita (D9)— más la plantilla provisional del primero, cuyo asunto es el `asunto_preinscripcion` del plan sin la marca de borrador para que la respuesta se asocie.
 - `src/agente1/pagos_sheets.py`: adapter que lee las mismas tres fuentes desde las pestañas de la planilla D2 (plan de pago, padrón y novedades), para la demo en vivo — mismas estructuras de dominio y mismas validaciones que los CSV, compone el lector crudo compartido `GoogleSheetsLectorValores` (un `values.get` por pestaña), y falla explícito si falta una pestaña o cambia el encabezado. Configuración por entorno: `AGENTE1_WORKSPACE_SPREADSHEET_ID` (la misma planilla D2), `AGENTE1_WORKSPACE_ACCESS_TOKEN` y `AGENTE1_PAGOS_RANGO_{PLAN,PADRON,NOVEDADES}`. Modo `--planilla` del subcomando `control-pagos`.
 - `src/agente1/buzon_gmail.py`: adapter del puerto `BuzonPropio` sobre Gmail API con `gmail.readonly` sobre la cuenta técnica (ADR 0004, D11) — sólo lectura de mensajes del usuario `me`, adjuntos hasheados en memoria, paginación con tope explícito; probado offline con transporte fake y equivalente al buzón `.eml`.
-- `src/agente1/contracts/plantilla_actividad_v2.json`, `src/agente1/prompts/plantilla_actividad_generacion_v2.txt` y `src/agente1/plantillas_actividad.py`: plantilla de correo por actividad de HU-012 (#73) — la intención `generar_plantilla_actividad` produce una plantilla por actividad. Desde v2 (#140) el modelo devuelve sólo un párrafo de prosa y el código compone el cuerpo con la estructura de la base provisional v1 y todos los datos dinámicos como variables `{{...}}` (montos, cuotas, fechas, enlaces y destinatario nunca salen del texto generado); el gate descarta la salida entera ante cualquier incumplimiento y el lote de correos por actividad exige las tres decisiones del Form (semántica, utilitaria y `apruebo_lote`) antes de renderizar por destinatario —determinista y sin modelo— y encolar con idempotencia de actividad+inscripción+hash. Los objetos de decisión `tpl-…`/`lote-…` derivan del hash del documento. `scripts/plantilla_actividad_lote_demo.py` corre el circuito completo offline: generación, decisiones por CSV y lote drenado contra el fake con entregas simuladas en disco. Los recordatorios de pago no pasan por este circuito (#38) y el disparo automático es HU-015.
+- `src/agente1/contracts/plantilla_actividad_v2.json`, `src/agente1/prompts/plantilla_actividad_generacion_v2.txt` y `src/agente1/plantillas_actividad.py`: plantilla de correo por actividad de HU-012 (#73) — la intención `generar_plantilla_actividad` produce una plantilla por actividad. Desde v2 (#140) el modelo devuelve sólo un párrafo de prosa y el código compone el cuerpo con la estructura de la base provisional v1 y todos los datos dinámicos como variables `{{...}}` (montos, cuotas, fechas, enlaces y destinatario nunca salen del texto generado); el gate descarta la salida entera ante cualquier incumplimiento y el lote de correos por actividad exige la `apruebo_contenido` de la plantilla y el `apruebo_lote` del lote —ambos del rol autorizado de contenido, #125— antes de renderizar por destinatario —determinista y sin modelo— y encolar con idempotencia de actividad+inscripción+hash. Los objetos de decisión `tpl-…`/`lote-…` derivan del hash del documento. `scripts/plantilla_actividad_lote_demo.py` corre el circuito completo offline: generación, decisiones por CSV y lote drenado contra el fake con entregas simuladas en disco. Los recordatorios de pago no pasan por este circuito (#38) y el disparo automático es HU-015.
 - `data/plan_pagos_notebooklm_n2.csv`, `data/padron_pagos_sintetico.csv` y `data/novedades_pago_sinteticas.csv`: fixture del caso documentado NotebookLM Nivel 2 (cuota única de $20.000, categorías bonificadas, procedencia por dato), padrón sintético y novedades sintéticas para correr la demo local.
 - `scripts/medir_capacidad_hu011.py`: prueba de capacidad local contra el volumen de referencia informado por la SEU; mide latencia fría y caliente y tasa de conformidad, y proyecta el mes.
 - `scripts/operaciones_seguras.py`: health, reconciliación, consolidación y retención en dry-run.
@@ -502,16 +502,16 @@ PostgreSQL real, que todavía no existe.
 ## HU-012 — confirmaciones
 
 HU-012 renderiza determinísticamente un asunto y cuerpo provisional con
-`BORRADOR — NO ENVIAR`. Valida destinatario y exige las dos aprobaciones del
-circuito —la semántica del Responsable de Gestión del Conocimiento y la
-utilitaria del Coordinador de Extensión (CU10 del bible)— antes de habilitar
-cualquier entrega. Conserva el mismo borrador durante el lifecycle
-`PENDIENTE_VALIDACION → APROBADA_SEMANTICA/APROBADA_UTILITARIA → APROBADA →
-ENVIO_RESERVADO → ENVIADA_SIMULADA/FALLIDA` (o `RECHAZADA` ante una decisión
+`BORRADOR — NO ENVIAR`. Valida destinatario y exige una única aprobación de
+contenido registrada por la persona autorizada por delegación de la
+Secretaría (#125; el circuito histórico de dos decisiones quedó reemplazado)
+antes de habilitar cualquier entrega. Conserva el mismo borrador durante el
+lifecycle `PENDIENTE_VALIDACION → APROBADA → ENVIO_RESERVADO →
+ENVIADA_SIMULADA/FALLIDA` (o `RECHAZADA` ante una decisión
 negativa), con `ENVIO_INDETERMINADO` para una reserva que quedó colgada, y usa
 transiciones atómicas para impedir retrocesos, carreras y entregas
-duplicadas. Una sola aprobación —de cualquiera de los dos roles— deja el
-registro en el estado parcial correspondiente y no habilita el envío.
+duplicadas. Una decisión de un rol no autorizado queda `INVALIDA` y no
+habilita el envío.
 `ENVIADA_SIMULADA` registra la entrega contra el destino habilitado: el fake
 en memoria (`DestinoConfirmacionesFake`) o el adapter Gmail con lista de
 prueba (`GmailDestinoConfirmaciones`, ver más abajo). El estado terminal del
@@ -718,7 +718,7 @@ default no cambia.
   Un destinatario fuera de la lista levanta `EntregaRechazadaError`
   (`recipient_off_test_list` en prueba, `recipient_off_approved_list` en
   producción): el registro queda `FALLIDA` (terminal, sin reintentos)
-  aunque el envío tenga las dos aprobaciones.
+  aunque el envío tenga la aprobación registrada.
 - **Las marcas de borrador son del modo prueba.** Ahí el adapter exige que
   el cuerpo empiece con `BORRADOR — NO ENVIAR` (la marca de HU-012) y le
   antepone `# BORRADOR — NO PUBLICAR` antes de armar el MIME. En producción
@@ -776,10 +776,11 @@ actividad, zona `America/Argentina/Buenos_Aires`). Un inscripto que el plan
 declara bonificable pero el padrón no puede verificar entra igual al lote con
 la marca `bonificacion_no_verificable`, para que la revisión humana la vea.
 
-El circuito tiene dos aprobaciones en dos niveles distintos
+El circuito tiene aprobaciones en dos niveles distintos
 (`recordatorios.py`): la **plantilla** provisional se registra y aprueba una
-sola vez con la doble decisión de HU-012 (semántica y utilitaria), y cada
-**lote** diario pide una aprobación utilitaria que nombra la lista exacta de
+sola vez por la persona autorizada de contenido (#125), y cada
+**lote** diario pide la aprobación del responsable de pagos (#125), que
+nombra la lista exacta de
 ítems —una lista parcial (`batch_approval_partial`), con claves ajenas
 (`batch_item_unknown`) o con el rol equivocado no encola nada. Con el lote
 autorizado, cada ítem se renderiza desde la plantilla, se registra con su
@@ -816,11 +817,11 @@ una novedad `CONFIRMADO_FUNDACION`— o `BONIFICADA`. Un
 `COMPROBANTE_PRESENTADO` no genera candidato: la Fundación es la que
 verifica el ingreso (D1). `solicitud_confirmacion_inscripcion` traduce el
 candidato a una solicitud del tipo `inscripcion` ya declarado —no es un
-tipo nuevo— y tramita con la doble aprobación por pieza y la entrega sólo
+tipo nuevo— y tramita con la aprobación única por pieza y la entrega sólo
 contra el destino habilitado. La corrida no persiste estado de pagos (ADR
 0003): una segunda corrida enumera el mismo candidato y el registro de
 HU-012 devuelve `DUPLICADA`. Ambas piezas comparten las reglas del
-circuito: sin las dos aprobaciones no hay entrega, la auditoría conserva
+circuito: sin la aprobación registrada no hay entrega, la auditoría conserva
 hashes y nunca medios de pago ni datos personales, y la plantilla queda
 `PENDIENTE_SEU`.
 
@@ -837,9 +838,9 @@ offsets de xref calculados y sin timestamps ni IDs, de modo que mismas líneas
 producen los mismos bytes. Todo PDF previo a la aprobación completa lleva la
 marca `BORRADOR — NO EMITIR`; el documento emitido (simulado) ya no la lleva.
 
-El circuito de decisión es el de HU-012 reutilizado por importación: las dos
-aprobaciones (semántica del RGC y utilitaria del Coordinador de Extensión) son
-obligatorias en cualquier orden, el rechazo alcanza desde pendiente o parcial
+El circuito de decisión es el de HU-012 reutilizado por importación: la
+aprobación única de contenido de la persona autorizada (#125) es
+obligatoria y el rechazo alcanza desde pendiente
 y `EMITIDA_SIMULADA` sólo registra una emisión en memoria mediante
 `DestinoCertificadosFake`. El registro durable es el mismo archivo-por-clave;
 `reconciliar_emisiones_reservadas` cierra reservas colgadas en
@@ -872,10 +873,11 @@ vez por actividad** por el Form de decisiones, igual que una plantilla:
   `:` no entra en `ID_RE`; la forma con guiones codifica los mismos tres
   elementos. `id_actividad` admite hasta 45 caracteres para que el objeto
   complete entre en el identificador de 128.
-- Decisiones: `apruebo_semantica` (rol `RESPONSABLE_GESTION_CONOCIMIENTO`) y
-  `apruebo_utilitaria` (rol `COORDINADOR_EXTENSION`).
+- Decisión: `apruebo_contenido` (rol `APROBADOR_CONTENIDO`, la persona
+  autorizada por delegación de la Secretaría, #125).
 - `declarar_linea_pendiente(enlaces, id_actividad=..., linea=...)` abre el
-  objeto y devuelve los dos links prellenados para el correo al par de roles.
+  objeto y devuelve el link prellenado para el correo a la persona
+  autorizada.
 
 Para emitir con línea, `procesar_certificado` exige además del circuito
 normal dos argumentos que no son datos del documento sino contexto de
@@ -929,15 +931,17 @@ El circuito, en orden y todo fail-closed:
    (`nombre,apellido,dni,mail,tratamiento,condicion`), `condicion` cerrada en
    `asistencia`/`aprobacion` sin inferencias, sin duplicados de DNI ni mail.
    Una fila mala bloquea el lote (`INVALIDA`), no salta.
-3. **La línea descriptiva tiene que estar aprobada** por los dos roles sobre
-   el objeto `linea_descriptiva-<id>-<hash>` (#74), por el mismo Form de
-   decisiones de #72.
-4. **El lote lo aprueba el rol utilitario** con `apruebo_lote` sobre
-   `sha256("lote_cierre_certificados|<id>|<hash_lista>")`: cualquier edición
-   de la lista cambia el objeto y la aprobación anterior no aplica. Quien
-   cargó la lista no puede aprobarla. Mientras falta, el lote queda
-   `PENDIENTE_APROBACION` y sale el correo al aprobador con el enlace al
-   Form y un **PDF de muestra marcado `BORRADOR — NO EMITIR`** adjunto.
+3. **La línea descriptiva tiene que estar aprobada** por la persona
+   autorizada de contenido (`apruebo_contenido`, rol `APROBADOR_CONTENIDO`)
+   sobre el objeto `linea_descriptiva-<id>-<hash>` (#74, #125), por el
+   mismo Form de decisiones de #72.
+4. **El lote lo aprueba quien lo genera** (#125) con `apruebo_lote` sobre
+   `sha256("lote_cierre_certificados|<id>|<hash_lista>")`: la decisión exige
+   el rol `APROBADOR_CONTENIDO` y el correo del solicitante. Cualquier
+   edición de la lista cambia el objeto y la aprobación anterior no aplica.
+   Mientras falta, el lote queda `PENDIENTE_APROBACION` y sale el correo al
+   solicitante con el enlace al Form y un **PDF de muestra marcado
+   `BORRADOR — NO EMITIR`** adjunto.
 5. **La plantilla depende de la condición** (#126): `aprobacion` compone
    el diseño SEU recibido (A4 horizontal, doble borde, símbolo FIE y los
    bloques del Secretario de Extensión y del Decano, sin tercer
@@ -967,7 +971,7 @@ y el wiring de `scripts/atender_canal_form.py` (pedido del Form):
 ```bash
 PYTHONPATH=src python scripts/emitir_certificados.py \
   --actividad SYN-001 --lista-csv lista.csv --linea linea.txt \
-  --aprobador coord@example.invalid --solicitante aux@example.invalid \
+  --solicitante aprobador@example.invalid \
   --directorio /tmp/demo-certificados
 ```
 
@@ -975,7 +979,7 @@ En offline la lista es un CSV, la línea un archivo externo y las entregas
 quedan en `entregas-certificados-offline.jsonl` (del adjunto, sólo sha256).
 En live hacen falta `--live --confirm-write-workspace` y el entorno:
 `AGENTE1_CERTIFICADOS_LISTA_SHEET_ID`, `…_LISTA_RANGO_A1`, `…_LINEA_PATH`,
-`…_APROBADOR`, `…_SOLICITANTE` y `…_RECURSOS_DIR` (la carpeta restringida
+`…_SOLICITANTE` y `…_RECURSOS_DIR` (la carpeta restringida
 con el símbolo FIE y las firmas, fuera del repo y de Git), además de las
 variables Workspace, Form de decisiones, padrón y lista de prueba de
 siempre. La receta completa —offline y live— está en
@@ -1248,7 +1252,7 @@ directorio de salida, sin tocar la red ni escribir en las fuentes, y
 publica el reporte `nivel_verificado_slo_v1`: disponibilidad (agenda vs.
 corridas del scheduler), tiempo de atención (Form de pedido → aviso),
 latencia por pieza (p95 de `latencia_s` por tipo), aprobación → envío
-(doble aprobación → entrega, dentro de la ventana) e integridad del gate
+(aprobación registrada → entrega, dentro de la ventana) e integridad del gate
 (toda pieza en validación humana con gate aprobado).
 
 La agenda y la ventana se leen de `AGENTE1_SCHEDULER_*` con

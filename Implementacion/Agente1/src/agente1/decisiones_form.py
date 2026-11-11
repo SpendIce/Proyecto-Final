@@ -23,27 +23,33 @@ la persona no los escribe ni los elige. El catálogo vigente:
 - `publicacion` — decisión sobre el borrador de una pieza de difusión
   (HU-010 gacetilla, HU-011 post): `publique` o `descarte`. Es el registro
   de «lo publiqué / lo descarté». No habilita ni ejecuta nada en el agente.
-- `plantilla` — aprobación de una versión de plantilla, una decisión por
-  rol: `apruebo_semantica` (Responsable de Gestión del Conocimiento) o
-  `apruebo_utilitaria` (Coordinador de Extensión). El objeto es el id de la
+- `plantilla` — aprobación de una versión de plantilla: `apruebo_contenido`,
+  una sola decisión de la persona autorizada. El objeto es el id de la
   versión.
 - `lote` — aprobación de un lote (incluye la habilitación de envíos de una
-  actividad): `apruebo_lote`, decisión utilitaria del Coordinador. El objeto
-  es el id del lote.
+  actividad y el lote de cierre de certificados): `apruebo_lote`, una sola
+  decisión de la persona autorizada — en el lote de certificados, quien lo
+  genera. El objeto es el id del lote.
 - `linea_descriptiva` — aprobación de la línea descriptiva de una actividad
-  para el certificado de HU-014 (#74), una decisión por rol igual que la
-  plantilla: `apruebo_semantica` o `apruebo_utilitaria`. El objeto es
+  para el certificado de HU-014 (#74): `apruebo_contenido`, una sola
+  decisión de la persona autorizada. El objeto es
   `linea_descriptiva-<id_actividad>-<hash>` (los `:` de la notación del
   ticket no entran en `ID_RE`; la forma elegida la deriva
   `linea_descriptiva.objeto_id_linea_descriptiva` y está documentada en el
   README para que #75 la consuma igual).
 
 El rol que cada decisión exige es parte del catálogo (`ROLES_POR_DECISION`)
-y sigue el acta del 22/09: semántica al RGC, utilitaria al Coordinador. La
+y sigue la designación vigente (precisión del 11/11/2026, #125, ADR 0018):
+una sola persona autorizada por delegación —`APROBADOR_CONTENIDO` en el
+padrón— aprueba contenido y su uso, en reemplazo del par
+semántica/utilitaria del acta del 22/09. La
 decisión de publicación es la validación humana de la difusión (#52) y la
-puede registrar cualquiera de los dos roles designados: un rol operativo del
+registra la misma persona autorizada: un rol operativo del
 padrón (`coordinador_seu`, `auxiliar_seu`) que pida piezas no puede decidir
-sobre ellas.
+sobre ellas. La única excepción de ese invariante es deliberada (ADR 0018):
+`APROBADOR_CONTENIDO` también puede pedir piezas, porque pedir o generar el
+lote de certificados es el acto que después habilita su propia aprobación —
+quien genera el lote es quien lo aprueba.
 
 Un link alterado produce rechazo registrado, nunca una decisión aceptada:
 
@@ -56,6 +62,11 @@ Un link alterado produce rechazo registrado, nunca una decisión aceptada:
   en `decisiones-pendientes.jsonl` y se rechaza.
 - `fuera_de_padron`: el correo verificado no figura en el padrón de roles.
 - `rol_no_corresponde`: el rol del padrón no es el que la decisión exige.
+- `rol_reemplazado`: la decisión o el rol pertenecen al circuito reemplazado
+  por la designación del 11/11/2026 (ver `DECISIONES_HEREDADAS` y
+  `ROLES_HEREDADOS`). Las líneas viejas de `decisiones-procesadas.jsonl`
+  se conservan como registro pero no habilitan nada: los consumidores las
+  reportan con este código en lugar de ignorarlas en silencio.
 
 Estado local del adapter, dos JSONL append-only dentro de un directorio de
 estado compartido con quien emite los correos:
@@ -77,8 +88,7 @@ La respuesta ya procesada no se relee: el id de respuesta es el hash de la
 fila completa (`marca|correo|tipo|objeto|decisión`), así que el mismo envío
 releído se deduplica. Dos decisiones distintas sobre el mismo objeto —
 «publiqué» y después «descarté»— son eventos distintos y quedan los dos:
-el registro es append-only de eventos y la interpretación del conjunto (una
-plantilla está aprobada cuando existen las dos decisiones, por ejemplo) la
+el registro es append-only de eventos y la interpretación del conjunto la
 hace el consumidor del registro, no este adapter.
 """
 
@@ -104,9 +114,7 @@ from .canal_form import (
     cargar_padron_roles_csv,
 )
 from .confirmaciones import (
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
-    ROLES_APROBACION,
+    ROL_APROBADOR_CONTENIDO,
     email_valido,
 )
 from .google_workspace import (
@@ -140,43 +148,38 @@ TIPO_LINEA_DESCRIPTIVA = "linea_descriptiva"
 
 DECISION_PUBLIQUE = "publique"
 DECISION_DESCARTE = "descarte"
-DECISION_APRUEBO_SEMANTICA = "apruebo_semantica"
-DECISION_APRUEBO_UTILITARIA = "apruebo_utilitaria"
+DECISION_APRUEBO_CONTENIDO = "apruebo_contenido"
 DECISION_APRUEBO_LOTE = "apruebo_lote"
 
 DECISIONES_POR_TIPO: dict[str, frozenset[str]] = {
     TIPO_PUBLICACION: frozenset({DECISION_PUBLIQUE, DECISION_DESCARTE}),
-    TIPO_PLANTILLA: frozenset(
-        {DECISION_APRUEBO_SEMANTICA, DECISION_APRUEBO_UTILITARIA}
-    ),
+    TIPO_PLANTILLA: frozenset({DECISION_APRUEBO_CONTENIDO}),
     TIPO_LOTE: frozenset({DECISION_APRUEBO_LOTE}),
-    TIPO_LINEA_DESCRIPTIVA: frozenset(
-        {DECISION_APRUEBO_SEMANTICA, DECISION_APRUEBO_UTILITARIA}
-    ),
+    TIPO_LINEA_DESCRIPTIVA: frozenset({DECISION_APRUEBO_CONTENIDO}),
 }
 TIPOS_DECISION = frozenset(DECISIONES_POR_TIPO)
 
-# Rol del padrón que cada (tipo, decisión) exige. La publicación es la
-# validación de la difusión y la puede dejar cualquiera de los dos roles
-# designados; las aprobaciones de plantilla son una por rol; el lote es
-# decisión utilitaria del Coordinador (habilita envíos de la actividad); la
-# línea descriptiva del certificado sigue el mismo circuito que la plantilla
-# (una aprobación por rol, #74).
+# Rol del padrón que cada (tipo, decisión) exige. Todas las decisiones de
+# contenido y de uso las registra la misma persona autorizada por delegación
+# (#125): la publicación es la validación de la difusión, la plantilla y la
+# línea descriptiva se aprueban con una sola decisión, y el lote —de envíos
+# de actividad o de certificados— lo aprueba quien lo genera. Los lotes de
+# pagos tienen aprobador propio (`ROL_APROBADOR_PAGOS`) y no pasan por este
+# catálogo: su autorización viaja como `AprobacionHumana` en
+# `recordatorios.py`.
 ROLES_POR_DECISION: dict[tuple[str, str], frozenset[str]] = {
-    (TIPO_PUBLICACION, DECISION_PUBLIQUE): ROLES_APROBACION,
-    (TIPO_PUBLICACION, DECISION_DESCARTE): ROLES_APROBACION,
-    (TIPO_PLANTILLA, DECISION_APRUEBO_SEMANTICA): frozenset(
-        {ROL_APROBACION_SEMANTICA}
+    (TIPO_PUBLICACION, DECISION_PUBLIQUE): frozenset(
+        {ROL_APROBADOR_CONTENIDO}
     ),
-    (TIPO_PLANTILLA, DECISION_APRUEBO_UTILITARIA): frozenset(
-        {ROL_APROBACION_UTILITARIA}
+    (TIPO_PUBLICACION, DECISION_DESCARTE): frozenset(
+        {ROL_APROBADOR_CONTENIDO}
     ),
-    (TIPO_LOTE, DECISION_APRUEBO_LOTE): frozenset({ROL_APROBACION_UTILITARIA}),
-    (TIPO_LINEA_DESCRIPTIVA, DECISION_APRUEBO_SEMANTICA): frozenset(
-        {ROL_APROBACION_SEMANTICA}
+    (TIPO_PLANTILLA, DECISION_APRUEBO_CONTENIDO): frozenset(
+        {ROL_APROBADOR_CONTENIDO}
     ),
-    (TIPO_LINEA_DESCRIPTIVA, DECISION_APRUEBO_UTILITARIA): frozenset(
-        {ROL_APROBACION_UTILITARIA}
+    (TIPO_LOTE, DECISION_APRUEBO_LOTE): frozenset({ROL_APROBADOR_CONTENIDO}),
+    (TIPO_LINEA_DESCRIPTIVA, DECISION_APRUEBO_CONTENIDO): frozenset(
+        {ROL_APROBADOR_CONTENIDO}
     ),
 }
 
@@ -190,6 +193,19 @@ RECHAZO_OBJETO_INVALIDO = "objeto_invalido"
 RECHAZO_OBJETO_INEXISTENTE = "objeto_inexistente"
 RECHAZO_FUERA_DE_PADRON = "fuera_de_padron"
 RECHAZO_ROL_NO_CORRESPONDE = "rol_no_corresponde"
+RECHAZO_ROL_REEMPLAZADO = "rol_reemplazado"
+
+# Circuito reemplazado por la designación del 11/11/2026 (#125, ADR 0018):
+# las decisiones del par semántica/utilitaria y los roles del acta del
+# 22/09 quedan fuera del catálogo vigente. Una línea de
+# `decisiones-procesadas.jsonl` escrita por la versión anterior se conserva
+# como registro — el archivo es append-only y no se reescribe — pero no
+# habilita nada: quien la consume la descalifica con `rol_reemplazado`, no
+# la ignora en silencio.
+DECISIONES_HEREDADAS = frozenset({"apruebo_semantica", "apruebo_utilitaria"})
+ROLES_HEREDADOS = frozenset(
+    {"RESPONSABLE_GESTION_CONOCIMIENTO", "COORDINADOR_EXTENSION"}
+)
 
 ROL_ORIGEN_PADRON = "padron"
 ROL_ORIGEN_FUERA_DE_PADRON = "fuera_de_padron"
@@ -515,6 +531,34 @@ class RegistroDecisiones:
         return lineas
 
 
+def decisiones_heredadas_del_objeto(
+    registro: RegistroDecisiones, *, objeto_id: str
+) -> tuple[dict[str, object], ...]:
+    """Líneas del circuito reemplazado registradas sobre el objeto.
+
+    Una `apruebo_semantica`/`apruebo_utilitaria` o un rol del acta del 22/09
+    escritas por la versión anterior quedan en `decisiones-procesadas.jsonl`
+    como registro — el archivo es append-only — pero no habilitan nada:
+    cada consumidor las reporta con `rol_reemplazado` en lugar de
+    ignorarlas en silencio (#125).
+    """
+
+    if not isinstance(registro, RegistroDecisiones) or not isinstance(
+        objeto_id, str
+    ):
+        return ()
+    return tuple(
+        linea
+        for linea in registro.procesadas()
+        if linea.get("objeto_id") == objeto_id
+        and linea.get("resultado") == RESULTADO_REGISTRADA
+        and (
+            linea.get("decision") in DECISIONES_HEREDADAS
+            or linea.get("rol") in ROLES_HEREDADOS
+        )
+    )
+
+
 def _leer_jsonl(path: Path) -> tuple[dict[str, object], ...]:
     if not path.exists():
         return ()
@@ -612,9 +656,8 @@ class EnlacesDecisiones:
     def enlaces_para(self, *, tipo: str, objeto_id: str) -> dict[str, str]:
         """Un link por decisión del catálogo del tipo.
 
-        Para `plantilla` y `linea_descriptiva` devuelve el link semántico y
-        el utilitario del mismo objeto; para `lote`, el único link de
-        aprobación.
+        Para `plantilla` y `linea_descriptiva` devuelve el único link de
+        `apruebo_contenido`; para `lote`, el de `apruebo_lote`.
         """
 
         if tipo not in DECISIONES_POR_TIPO:
@@ -780,6 +823,11 @@ class CanalFormDecisiones:
         if respuesta.tipo not in DECISIONES_POR_TIPO:
             return RECHAZO_TIPO_DESCONOCIDO
         if respuesta.decision not in DECISIONES_POR_TIPO[respuesta.tipo]:
+            if respuesta.decision in DECISIONES_HEREDADAS:
+                # Nombre del circuito reemplazado: código propio para que
+                # la auditoría diga que el rol ya no existe, no que el
+                # link vino alterado.
+                return RECHAZO_ROL_REEMPLAZADO
             return RECHAZO_DECISION_FUERA_DE_CATALOGO
         if ID_RE.fullmatch(respuesta.objeto) is None:
             return RECHAZO_OBJETO_INVALIDO
@@ -789,6 +837,8 @@ class CanalFormDecisiones:
             return RECHAZO_OBJETO_INEXISTENTE
         if rol_padron is None:
             return RECHAZO_FUERA_DE_PADRON
+        if rol_padron in ROLES_HEREDADOS:
+            return RECHAZO_ROL_REEMPLAZADO
         if (
             rol_padron
             not in ROLES_POR_DECISION[(respuesta.tipo, respuesta.decision)]
@@ -851,10 +901,10 @@ __all__ = [
     "COL_TIPO",
     "CanalFormDecisiones",
     "ConfiguracionFormDecisiones",
+    "DECISIONES_HEREDADAS",
     "DECISIONES_POR_TIPO",
+    "DECISION_APRUEBO_CONTENIDO",
     "DECISION_APRUEBO_LOTE",
-    "DECISION_APRUEBO_SEMANTICA",
-    "DECISION_APRUEBO_UTILITARIA",
     "DECISION_DESCARTE",
     "DECISION_PUBLIQUE",
     "DecisionesFormError",
@@ -868,9 +918,11 @@ __all__ = [
     "RECHAZO_OBJETO_INEXISTENTE",
     "RECHAZO_OBJETO_INVALIDO",
     "RECHAZO_ROL_NO_CORRESPONDE",
+    "RECHAZO_ROL_REEMPLAZADO",
     "RECHAZO_TIPO_DESCONOCIDO",
     "RESULTADO_REGISTRADA",
     "RESULTADO_RECHAZADA",
+    "ROLES_HEREDADOS",
     "ROLES_POR_DECISION",
     "RegistroDecisiones",
     "ResultadoDecision",
@@ -882,4 +934,5 @@ __all__ = [
     "cargar_configuracion_form_decisiones",
     "cargar_padron_roles_csv",
     "crear_lector_decisiones",
+    "decisiones_heredadas_del_objeto",
 ]

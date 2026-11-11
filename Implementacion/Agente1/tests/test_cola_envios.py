@@ -1,12 +1,13 @@
-"""Envío asíncrono de HU-012 (s4d): la confirmación con las dos aprobaciones
-se encola (`ENVIO_ENCOLADO`) y un worker separado, `drenar_envios`, la entrega
-después con reintentos acotados.
+"""Envío asíncrono de HU-012 (s4d): la confirmación con la aprobación
+registrada se encola (`ENVIO_ENCOLADO`) y un worker separado,
+`drenar_envios`, la entrega después con reintentos acotados.
 
-Cubre: encolado idempotente por clave, orden FIFO, drenaje tras la doble
-aprobación, presupuesto de reintentos agotado en `FALLIDA`, reinicio a mitad
-de cola, descarte de ítems cuyo registro ya no está pendiente y la garantía
-de que nada entra a la cola ni se entrega sin las dos aprobaciones. La
-entrega sigue siendo exclusivamente contra `DestinoConfirmacionesFake`.
+Cubre: encolado idempotente por clave, orden FIFO, drenaje tras la
+aprobación única de contenido (#125), presupuesto de reintentos agotado en
+`FALLIDA`, reinicio a mitad de cola, descarte de ítems cuyo registro ya no
+está pendiente y la garantía de que nada entra a la cola ni se entrega sin
+la aprobación registrada. La entrega sigue siendo exclusivamente contra
+`DestinoConfirmacionesFake`.
 """
 
 import json
@@ -16,8 +17,8 @@ from pathlib import Path
 import pytest
 
 from agente1.confirmaciones import (
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
+    ROL_APROBADOR_PAGOS,
     AprobacionHumana,
     ColaEnviosArchivo,
     ColaEnviosMemoria,
@@ -56,12 +57,12 @@ def aprobacion(*, aprobada: bool = True, rol: str) -> AprobacionHumana:
     )
 
 
-def semantica(**kwargs) -> AprobacionHumana:
-    return aprobacion(rol=ROL_APROBACION_SEMANTICA, **kwargs)
+def contenido(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBADOR_CONTENIDO, **kwargs)
 
 
-def utilitaria(**kwargs) -> AprobacionHumana:
-    return aprobacion(rol=ROL_APROBACION_UTILITARIA, **kwargs)
+def pagos(**kwargs) -> AprobacionHumana:
+    return aprobacion(rol=ROL_APROBADOR_PAGOS, **kwargs)
 
 
 def procesar(tmp_path: Path, registro, **extra):
@@ -73,9 +74,8 @@ def procesar(tmp_path: Path, registro, **extra):
     )
 
 
-def aprobar_ambos(tmp_path: Path, registro, solicitud_=None) -> None:
-    procesar(tmp_path, registro, solicitud=solicitud_ or solicitud(), aprobacion=semantica())
-    procesar(tmp_path, registro, solicitud=solicitud_ or solicitud(), aprobacion=utilitaria())
+def aprobar(tmp_path: Path, registro, solicitud_=None) -> None:
+    procesar(tmp_path, registro, solicitud=solicitud_ or solicitud(), aprobacion=contenido())
 
 
 def encolar(tmp_path: Path, registro, cola, solicitud_=None):
@@ -91,10 +91,10 @@ def encolar(tmp_path: Path, registro, cola, solicitud_=None):
 # --- Encolado ----------------------------------------------------------------
 
 
-def test_encolar_tras_doble_aprobacion_no_entrega_todavia(tmp_path):
+def test_encolar_tras_aprobacion_no_entrega_todavia(tmp_path):
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
 
     resultado = encolar(tmp_path, registro, cola)
 
@@ -110,10 +110,10 @@ def test_encolar_tras_doble_aprobacion_no_entrega_todavia(tmp_path):
 def test_la_segunda_aprobacion_puede_dejar_el_envio_encolado(tmp_path):
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    procesar(tmp_path, registro, aprobacion=utilitaria())
+    procesar(tmp_path, registro, aprobacion=pagos())
 
     resultado = procesar(
-        tmp_path, registro, aprobacion=semantica(), asincrono=True, cola=cola
+        tmp_path, registro, aprobacion=contenido(), asincrono=True, cola=cola
     )
 
     assert resultado.estado == "ENVIO_ENCOLADO"
@@ -124,7 +124,7 @@ def test_encolar_es_idempotente_por_clave(tmp_path):
     """Un mismo pedido encolado dos veces produce un solo ítem y nada más."""
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
 
     primero = encolar(tmp_path, registro, cola)
     segundo = encolar(tmp_path, registro, cola)
@@ -142,7 +142,7 @@ def test_encolar_es_idempotente_por_clave(tmp_path):
 def test_encolados_concurrentes_producen_un_solo_item(tmp_path):
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
 
     def ejecutar(_: int):
         return encolar(tmp_path, registro, cola)
@@ -157,7 +157,7 @@ def test_encolados_concurrentes_producen_un_solo_item(tmp_path):
 
 def test_encolar_exige_cola_explicita(tmp_path):
     registro = RegistroConfirmacionesMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
 
     resultado = procesar(tmp_path, registro, asincrono=True)
 
@@ -168,25 +168,25 @@ def test_encolar_exige_cola_explicita(tmp_path):
 
 
 def test_nada_entra_a_la_cola_sin_las_dos_aprobaciones(tmp_path):
-    """Ni una aprobación sola ni un pedido sobre pendiente encolan algo."""
+    """Ni un pedido sobre pendiente ni un rol ajeno encolan algo."""
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-
-    parcial = procesar(
-        tmp_path, registro, aprobacion=semantica(), asincrono=True, cola=cola
-    )
-    assert parcial.estado == "APROBADA_SEMANTICA"
-    assert cola.pendientes() == ()
 
     sin_aprobar = encolar(tmp_path, registro, cola)
     assert sin_aprobar.estado == "INVALIDA"
     assert sin_aprobar.error == "approval_required"
     assert cola.pendientes() == ()
 
-    # Recién cuando el circuito se completa el encolado es posible.
-    encolada = procesar(
-        tmp_path, registro, aprobacion=utilitaria(), asincrono=True, cola=cola
+    ajena = procesar(
+        tmp_path, registro, aprobacion=pagos(), asincrono=True, cola=cola
     )
+    assert ajena.estado == "INVALIDA"
+    assert cola.pendientes() == ()
+
+    # Recién cuando la aprobación de contenido se registra el encolado es
+    # posible.
+    procesar(tmp_path, registro, aprobacion=contenido())
+    encolada = encolar(tmp_path, registro, cola)
     assert encolada.estado == "ENVIO_ENCOLADO"
     assert len(cola.pendientes()) == 1
 
@@ -196,7 +196,7 @@ def test_un_rechazo_no_encola_aunque_se_pida_asincrono(tmp_path):
     resultado = procesar(
         tmp_path,
         RegistroConfirmacionesMemoria(),
-        aprobacion=semantica(aprobada=False),
+        aprobacion=contenido(aprobada=False),
         asincrono=True,
         cola=cola,
     )
@@ -217,7 +217,7 @@ def test_drenar_entrega_en_orden_de_encolado(tmp_path):
     ]
     claves = []
     for s in solicitudes:
-        aprobar_ambos(tmp_path, registro, s)
+        aprobar(tmp_path, registro, s)
         claves.append(encolar(tmp_path, registro, cola, s).idempotency_key)
 
     resultados = drenar_envios(
@@ -255,7 +255,7 @@ def test_drenar_sin_fake_explicito_no_procesa_nada(tmp_path):
 
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     resultado = encolar(tmp_path, registro, cola)
 
     assert (
@@ -284,7 +284,7 @@ def test_drenar_sin_fake_explicito_no_procesa_nada(tmp_path):
 def test_reintento_tras_falla_transitoria_termina_entregado(tmp_path):
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     resultado = encolar(tmp_path, registro, cola)
     clave = resultado.idempotency_key
 
@@ -316,7 +316,7 @@ def test_reintento_tras_falla_transitoria_termina_entregado(tmp_path):
 def test_presupuesto_agotado_deja_la_confirmacion_fallida(tmp_path):
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     clave = encolar(tmp_path, registro, cola).idempotency_key
     destino = DestinoConfirmacionesFake(error="fallo persistente")
 
@@ -354,7 +354,7 @@ def test_item_sin_presupuesto_restante_falla_sin_intentar(tmp_path):
     """Un ítem que ya consumió su presupuesto en otra corrida no reintenta."""
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     clave = encolar(tmp_path, registro, cola).idempotency_key
     item = cola.pendientes()[0]
     cola.reemplazar(
@@ -399,7 +399,7 @@ def test_item_cuyo_registro_fue_rechazado_no_se_entrega(tmp_path):
     """El ítem quedó encolado pero el registro fue reasignado fuera del pipeline."""
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     clave = encolar(tmp_path, registro, cola).idempotency_key
     assert registro.transicionar(
         clave, frozenset({"ENVIO_ENCOLADO"}), "RECHAZADA"
@@ -445,7 +445,7 @@ def test_item_de_registro_inexistente_se_descarta(tmp_path):
 
 def test_item_mal_formado_se_descarta_sin_tocar_el_registro(tmp_path):
     registro = RegistroConfirmacionesMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     clave = encolar(tmp_path, registro, ColaEnviosMemoria()).idempotency_key
     cola = ColaEnviosMemoria()
     cola.encolar(
@@ -476,7 +476,7 @@ def test_cola_durable_sobrevive_al_reinicio_y_drena(tmp_path):
     """Un ítem encolado antes de la caída se entrega después del reinicio."""
     registro = RegistroConfirmacionesArchivo(tmp_path / "registro")
     cola = ColaEnviosArchivo(tmp_path / "cola")
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     encolar(tmp_path, registro, cola)
 
     registro_reiniciado = RegistroConfirmacionesArchivo(tmp_path / "registro")
@@ -507,7 +507,7 @@ def test_reinicio_a_mitad_de_cola_drena_lo_que_queda(tmp_path):
     ]
     claves = []
     for s in solicitudes:
-        aprobar_ambos(tmp_path, registro, s)
+        aprobar(tmp_path, registro, s)
         claves.append(encolar(tmp_path, registro, cola, s).idempotency_key)
 
     # "Reinicio": instancias nuevas sobre los mismos directorios.
@@ -542,7 +542,7 @@ def test_reserva_colgada_se_reconcilia_y_el_item_no_reentrega(tmp_path):
     descarta el ítem sin volver a entregar."""
     registro = RegistroConfirmacionesArchivo(tmp_path / "registro")
     cola = ColaEnviosArchivo(tmp_path / "cola")
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     clave = encolar(tmp_path, registro, cola).idempotency_key
     # Simula un worker que reservó y murió antes de saber el resultado.
     assert registro.transicionar(
@@ -571,7 +571,7 @@ def test_reserva_colgada_se_reconcilia_y_el_item_no_reentrega(tmp_path):
 def test_la_cola_durable_guarda_el_item_con_permisos_restrictivos(tmp_path):
     cola = ColaEnviosArchivo(tmp_path / "cola")
     registro = RegistroConfirmacionesArchivo(tmp_path / "registro")
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     encolar(tmp_path, registro, cola)
 
     directorio = tmp_path / "cola"
@@ -602,7 +602,7 @@ def test_una_clave_que_no_es_un_hash_no_elige_donde_escribe_la_cola(tmp_path):
 def test_cada_intento_del_worker_deja_constancia_auditable(tmp_path):
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     resultado = encolar(tmp_path, registro, cola)
     destino = DestinoConfirmacionesFake(error="fallo persistente")
 
@@ -647,7 +647,7 @@ def test_cada_intento_del_worker_deja_constancia_auditable(tmp_path):
 def test_la_auditoria_del_worker_no_expone_datos_personales(tmp_path):
     registro = RegistroConfirmacionesMemoria()
     cola = ColaEnviosMemoria()
-    aprobar_ambos(tmp_path, registro)
+    aprobar(tmp_path, registro)
     encolar(tmp_path, registro, cola)
 
     drenar_envios(

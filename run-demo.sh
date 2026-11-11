@@ -2,8 +2,8 @@
 # Demo guiada para el tutor — Agente 1, Extension Bot (P100).
 # Corre la muestra de avance en el orden sugerido:
 #   1) Visor Gantt (plan vs avance real) + visor del plan de riesgos
-#   2) HU-014 certificados (matriz offline, doble aprobación, PDF borrador)
-#   3) HU-012 notificaciones (matriz offline, doble aprobación, fail-closed)
+#   2) HU-014 certificados (matriz offline, aprobación única, PDF borrador)
+#   3) HU-012 notificaciones (matriz offline, aprobación única, fail-closed)
 #   4) HU-013 canal de planilla (pedido en prosa → borrador / repregunta / rechazo)
 #   5) Comparación de modelos HU-011 (evidencia, no en vivo)
 #
@@ -54,9 +54,9 @@ echo "  · Riesgos: matriz P×I, R-ALC-03 materializado 22/09 (⚑), respuesta a
 pausa
 
 # ---------- 2. HU-014 ----------
-paso "2. HU-014 — Certificados con doble aprobación (offline)"
-echo "Matriz contractual completa: pendiente → aprobación parcial → aprobada"
-echo "en ambos órdenes → rechazada → duplicada → emisión simulada → recuperación durable."
+paso "2. HU-014 — Certificados con aprobación única (offline)"
+echo "Matriz contractual completa: pendiente → aprobada → rechazada"
+echo "→ duplicada → emisión simulada → recuperación durable."
 "$PY" "$AG/scripts/matriz_hu014.py" --salida "$DEMO_DIR/hu014"
 echo
 echo "Estados observados:"
@@ -75,8 +75,8 @@ xdg-open "$DEMO_DIR/hu014/casos/fake_emission/certificado-emitido-simulado.pdf" 
 pausa
 
 # ---------- 3. HU-012 ----------
-paso "3. HU-012 — Notificaciones con doble aprobación (offline)"
-echo "Mismo circuito: semántica (contenido correcto) + utilitaria (conviene enviar),"
+paso "3. HU-012 — Notificaciones con aprobación única (offline)"
+echo "Mismo circuito: una aprobación de contenido por persona autorizada,"
 echo "destino fake, cola durable, fail-closed en datos desconocidos."
 "$PY" "$AG/scripts/matriz_hu012.py" --salida "$DEMO_DIR/hu012"
 echo
