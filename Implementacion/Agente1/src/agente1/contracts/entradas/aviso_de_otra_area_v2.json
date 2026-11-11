@@ -6,7 +6,7 @@
   "x-contract-version": "gacetilla_entrada_aviso_de_otra_area_v2",
   "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
   "x-decision": "#154",
-  "x-adr-014": "docs/adr/0014-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
+  "x-adr-015": "docs/adr/0015-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
   "x-contrato-previo": "gacetilla_entrada_aviso_de_otra_area_v1 (queda versionado para trazabilidad)",
   "x-tipo": "aviso_de_otra_area",
   "x-requiere_actividad": false,

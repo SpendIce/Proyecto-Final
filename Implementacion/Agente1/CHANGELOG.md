@@ -42,7 +42,7 @@ repiten. El procedimiento para cortar una versión está en
     y `publicos`; las lecturas v1/v2 quedan iguales.
   - El público sólo decide a quién se envía: declarado en el pedido, el
     registro y el aviso, y excluido de todo prompt
-    (`CAMPOS_DEL_PEDIDO_NO_DE_LA_PIEZA`). Ver ADR 0014.
+    (`CAMPOS_DEL_PEDIDO_NO_DE_LA_PIEZA`). Ver ADR 0015.
 
 ## [0.5.10] - 2026-10-27
 

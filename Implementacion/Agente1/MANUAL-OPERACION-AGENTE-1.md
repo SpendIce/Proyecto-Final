@@ -389,7 +389,7 @@ partes institucionales fijas de cada tipo, en
 de tipos por tipo). Desde #154 las formas de aviso de otra área, convocatoria
 interna y newsletter llevan `pie_condicion` en su versión `v2`: con la firma
 de área desactivada el pie no imprime el área, y el bloque `firmante`
-institucional va siempre (ADR 0014).
+institucional va siempre (ADR 0015).
 
 - **Difusión de actividad** y **saludo o efeméride** *generan*: el modelo
   escribe la prosa con el prompt del tipo y el renderer le pone la forma.

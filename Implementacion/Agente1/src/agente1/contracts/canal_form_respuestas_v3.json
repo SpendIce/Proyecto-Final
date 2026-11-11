@@ -7,7 +7,7 @@
   "x-status": "PROVISIONAL_NO_INSTITUCIONAL: la interfaz pendiente de revision con la SEU.",
   "x-decision": "#154",
   "x-adr-012-conexion": "Los otros seis tipos declaran su tipo en el campo de tipo y confirman sus datos ahi; el tipo no se infiere de la prosa (ADR 0012). El circuito de prosa libre #115 queda como camino de respaldo: lo que desemboca sin tipo declarado sigue siendo gacetilla de actividad.",
-  "x-adr-014": "docs/adr/0014-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
+  "x-adr-015": "docs/adr/0015-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
   "x-contrato-hoja-previa": "canal_form_respuestas_v2",
   "x-contrato-tipos": "urn:proyecto-centenario:agente1:tipos-gacetilla:v2",
   "x-contrato-areas": "urn:proyecto-centenario:agente1:areas-emisoras:v2",

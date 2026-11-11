@@ -7,7 +7,7 @@
   "tipo": "newsletter",
   "x-decision": "#154",
   "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
-  "x-adr-014": "docs/adr/0014-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
+  "x-adr-015": "docs/adr/0015-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
   "x-forma-previa": "newsletter_v1 (queda versionada para trazabilidad)",
   "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
   "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
