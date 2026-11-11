@@ -381,10 +381,15 @@ murió con el lock.
 
 Una gacetilla declara su **tipo** y el tipo declara su **modo** y su **forma**
 (ADR 0012). Sin tipo declarado no hay pieza: el agente no aproxima la clase más
-parecida. Los siete tipos del corpus y su modo están en
-`src/agente1/contracts/tipos_gacetilla_v1.json`; las partes institucionales
-fijas de cada tipo, en `src/agente1/contracts/formas/<tipo>_v1.json`; sus
-campos, en `src/agente1/contracts/entradas/<tipo>_v1.json`.
+parecida. Los siete tipos del corpus, su modo y la versión vigente de su forma
+y de su entrada están en `src/agente1/contracts/tipos_gacetilla_v2.json`; las
+partes institucionales fijas de cada tipo, en
+`src/agente1/contracts/formas/<tipo>_vN.json`; sus campos, en
+`src/agente1/contracts/entradas/<tipo>_vN.json` (la `N` la declara el contrato
+de tipos por tipo). Desde #154 las formas de aviso de otra área, convocatoria
+interna y newsletter llevan `pie_condicion` en su versión `v2`: con la firma
+de área desactivada el pie no imprime el área, y el bloque `firmante`
+institucional va siempre (ADR 0014).
 
 - **Difusión de actividad** y **saludo o efeméride** *generan*: el modelo
   escribe la prosa con el prompt del tipo y el renderer le pone la forma.
@@ -461,22 +466,31 @@ scheduler §6.2.
 ### 5.9 Canal de pedidos, decisiones y padrón
 
 El canal de pedidos lee la hoja de respuestas con un contrato versionado:
-`canal_form_respuestas_v1` (una sola pregunta abierta, default) y
-`canal_form_respuestas_v2`, opt-in con
-`AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO=canal_form_respuestas_v2`. Esa misma
+`canal_form_respuestas_v1` (una sola pregunta abierta, default),
+`canal_form_respuestas_v2` y `canal_form_respuestas_v3`, opt-in con
+`AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO=<versión>`. Esa misma
 variable elige la forma de hoja en los dos modos: el runner offline la lee
 también, y un valor desconocido falla cerrado con
 `canal_form_config_invalid` antes de leer nada. La v2 pide el
 **tipo de gacetilla** como primera pregunta (lista cerrada del catálogo de
 tipos), la **actividad** sólo para los tipos que la llevan y el **área
-emisora** por el padrón cerrado de `contracts/areas_emisoras_v1.json`. El
+emisora** por el padrón cerrado de `contracts/areas_emisoras_v2.json` (la v1
+queda versionada para trazabilidad). La v3 (#154) suma la **firma de área**
+—opción Sí/No separada del área, sólo en los tipos que la exigen; sin elegir
+vale «Sí»— y los **públicos destinatarios** por el catálogo cerrado de
+`contracts/publicos_destinatarios_v1.json`: grupos de correo de Workspace,
+elección múltiple con al menos uno y sin repetidos, que sólo deciden a quién
+se envía la pieza —quedan declarados en el registro y visibles en el aviso
+(`Públicos: <nombre del catálogo>`), nunca en el prompt ni en el texto. El
 desplegable de actividades se carga a mano como insumo provisional con
 identificadores de la planilla de actividades; su sincronización automática
 (Apps Script) queda declarada como destino del canal y no existe hoy.
 
 En la forma v2, una fila que declara un tipo fuera de la lista cerrada, una
 actividad que no corresponde («No es una actividad / no figura», campo
-vacío, texto libre) o un área fuera del padrón **no llega al núcleo**:
+vacío, texto libre) o un área fuera del padrón **no llega al núcleo**; en la
+v3 suman una firma de área que no es una de las opciones y un público vacío,
+fuera del catálogo o repetido. Cualquiera de esos casos
 termina en un desenlace acotado con aviso al correo del pedido y línea en el
 registro de atendidos (`estado: INVALIDA`, `resultado: <código del
 bloqueo>`, `origen_hechos: solicitud`), sin generar nada. Cargar una
@@ -489,7 +503,8 @@ generación.
 |---|---|---|
 | `canal_form_config_incomplete` / `canal_form_config_invalid` / `canal_form_config_unknown_key` | Configuración del canal de pedidos por Form, incluida la versión de contrato de hoja (`AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO`). | Revisar el env file. |
 | `canal_form_hoja_contrato_desconocido` / `canal_form_hoja_contrato_invalido` | El contrato de la hoja de respuestas no está declarado o su contenido no es legible. | Confirmar la versión declarada y que el archivo del repo exista y tenga sus columnas. |
-| `canal_form_areas_padron_invalido` | El padrón cerrado de áreas emisoras no se puede leer o está mal armado. | Revisar `contracts/areas_emisoras_v1.json`; el arranque sin padrón de áreas no habilita a medias. |
+| `canal_form_areas_padron_invalido` | El padrón cerrado de áreas emisoras no se puede leer o está mal armado. | Revisar `contracts/areas_emisoras_v2.json`; el arranque sin padrón de áreas no habilita a medias. |
+| `canal_form_publicos_padron_invalido` | El catálogo cerrado de públicos destinatarios no se puede leer o está mal armado. | Revisar `contracts/publicos_destinatarios_v1.json`. |
 | `canal_form_registry_invalid` / `canal_form_registry_unavailable` | El registro de atendidos está dañado o no está. | Revisar `atendidos-canal-form.jsonl`. |
 | `canal_form_decisiones_config_incomplete` / `canal_form_decisiones_config_invalid` / `canal_form_decisiones_config_unknown_key` | Configuración del Form de decisiones. | Revisar el env file. |
 | `decisiones_registry_invalid` | El registro de decisiones está dañado. | Revisar `decisiones-procesadas.jsonl`. |

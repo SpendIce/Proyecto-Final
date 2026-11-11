@@ -20,6 +20,30 @@ repiten. El procedimiento para cortar una versión está en
 > ramas `ticket/NN` con merge local; todavía no hay números de PR de GitHub, así
 > que se cita el issue o la rama.
 
+## [Sin publicar]
+
+- **Mayor — área FIE, firma de área opcional y públicos destinatarios del
+  pedido (#154).** Cambian contratos versionados; todavía no corta versión.
+  - `areas_emisoras_v2.json`: padrón nuevo con el área `fie` («Facultad de
+    Ingeniería del Ejército») para las comunicaciones generales; la v1 queda
+    para trazabilidad y el código usa la v2.
+  - `tipos_gacetilla_v2.json`: declara por tipo la versión vigente de su
+    forma y de su entrada, y `requiere_publicos`.
+  - `formas/{aviso_de_otra_area,convocatoria_interna,newsletter}_v2.json`:
+    `pie_condicion` sobre la firma de área —con la firma desactivada el pie
+    no imprime el área y el `firmante` institucional va siempre—; las v1 no
+    se tocan. El renderer sube a `gacetilla_forma_declarada_v5`.
+  - `entradas/{aviso_de_otra_area,convocatoria_interna,newsletter}_v2.json`:
+    `firma_de_area` como opción del pedido separada del área, default «sí».
+  - `publicos_destinatarios_v1.json`: catálogo cerrado nuevo de públicos
+    (grupos de correo de Workspace), sólo `id` y `nombre` —las direcciones
+    de los grupos no se versionan—, arranca con `alumnos_ingenieria`.
+  - `canal_form_respuestas_v3.json`: hoja con las columnas `firma_de_area`
+    y `publicos`; las lecturas v1/v2 quedan iguales.
+  - El público sólo decide a quién se envía: declarado en el pedido, el
+    registro y el aviso, y excluido de todo prompt
+    (`CAMPOS_DEL_PEDIDO_NO_DE_LA_PIEZA`). Ver ADR 0014.
+
 ## [0.5.10] - 2026-10-27
 
 - **Parche — los anexos 2 y 3 llevan el estado declarado (#57).** El
