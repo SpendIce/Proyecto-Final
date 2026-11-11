@@ -13,7 +13,8 @@ Este módulo declara **hasta tres por componente**, elegidos por este orden:
    almacenamiento de contraseñas, cifrado en tránsito, identidad y roles,
    validación de entradas.
 2. **Los controles que muestran el diseño del proyecto**: gate de salida
-   fail-closed, doble aprobación, idempotencia durable, auditoría sólo-hashes.
+   fail-closed, aprobación humana por rol, idempotencia durable, auditoría
+   sólo-hashes.
 3. **Lo demostrable en menos de dos minutos**, que es el paso en vivo del perfil.
 
 Queda afuera, y se declara en la reunión si el laboratorio pregunta: lo previsto

@@ -20,7 +20,8 @@ Pasos:
 4. **Gacetilla E2E** (live): `workspace_e2e.py --live` con el doble opt-in
    de escritura; deja un borrador pendiente de validación humana.
 5. **HU-014** (offline): emisión de certificados con la lista sintética,
-   las dos aprobaciones de línea y la aprobación del lote.
+   la aprobación de línea y la aprobación del lote por quien lo genera
+   (#125).
 6. **HU-012** (offline): el pedido de plantilla por el canal del Form y el
    circuito completo de la plantilla con los CSV sintéticos.
 
@@ -126,9 +127,7 @@ _SECRETO_NOMBRE_RE = re.compile(
 )
 
 _PADRON = """correo,rol
-aux@example.invalid,auxiliar_seu
-rgc@example.invalid,RESPONSABLE_GESTION_CONOCIMIENTO
-coord@example.invalid,COORDINADOR_EXTENSION
+aprobador@example.invalid,APROBADOR_CONTENIDO
 """
 _LISTA = """nombre,apellido,dni,mail,tratamiento,condicion
 Ana,Prueba Uno,30111222,ana.prueba@example.invalid,Dra.,asistencia
@@ -941,10 +940,8 @@ def _paso_hu014(
             str(base / "lista.csv"),
             "--linea",
             str(base / "linea.txt"),
-            "--aprobador",
-            "coord@example.invalid",
             "--solicitante",
-            "aux@example.invalid",
+            "aprobador@example.invalid",
             "--directorio",
             str(run),
         ]
@@ -1026,10 +1023,8 @@ def _paso_hu014(
 
     (base / "decisiones-linea.csv").write_text(
         "Marca temporal,Correo,Tipo,Objeto,Decisión\n"
-        "2026-10-01 10:00:00,rgc@example.invalid,linea_descriptiva,"
-        f"{objeto_linea},apruebo_semantica\n"
-        "2026-10-01 10:05:00,coord@example.invalid,linea_descriptiva,"
-        f"{objeto_linea},apruebo_utilitaria\n",
+        "2026-10-01 10:00:00,aprobador@example.invalid,linea_descriptiva,"
+        f"{objeto_linea},apruebo_contenido\n",
         encoding="utf-8",
     )
     fallo = registrar(
@@ -1045,8 +1040,8 @@ def _paso_hu014(
             "La segunda corrida de HU-014 no quedó pendiente por el lote "
             f"(exit {segundo.codigo}, estado "
             f"{payload2.get('estado', 'sin JSON')}, error "
-            f"{payload2.get('error', 'ninguno')}). Revisá que las dos "
-            "aprobaciones de línea hayan quedado registradas.",
+            f"{payload2.get('error', 'ninguno')}). Revisá que la aprobación "
+            "de la línea haya quedado registrada.",
             exit_code=segundo.codigo,
             comandos=list(comandos_hu014),
         )
@@ -1064,7 +1059,7 @@ def _paso_hu014(
     objeto_lote = str(pendientes[-1].get("objeto_id", ""))
     (base / "decisiones-lote.csv").write_text(
         "Marca temporal,Correo,Tipo,Objeto,Decisión\n"
-        "2026-10-01 11:00:00,coord@example.invalid,lote,"
+        "2026-10-01 11:00:00,aprobador@example.invalid,lote,"
         f"{objeto_lote},apruebo_lote\n",
         encoding="utf-8",
     )
@@ -1234,8 +1229,8 @@ def _plan(opciones: Opciones) -> list[str]:
         "[5] HU-014 certificados (offline)",
         "    python scripts/emitir_certificados.py --actividad SYN-001 "
         "--lista-csv <evidencia>/hu014/lista.csv --linea "
-        "<evidencia>/hu014/linea.txt --aprobador coord@example.invalid "
-        "--solicitante aux@example.invalid --directorio <evidencia>/hu014/run",
+        "<evidencia>/hu014/linea.txt "
+        "--solicitante aprobador@example.invalid --directorio <evidencia>/hu014/run",
         "    python scripts/registrar_form_decisiones.py --directorio "
         "<evidencia>/hu014/run --respuestas-csv "
         "<evidencia>/hu014/decisiones-linea.csv --padron "

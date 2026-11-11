@@ -126,8 +126,9 @@ DESCRIPCION_ESTRATO = {
         "de recordatorios y los candidatos a confirmación de inscripción."
     ),
     "Aprobación": (
-        "Registra la validación humana: aprobaciones semántica y utilitaria por "
-        "actividad, aprobación de lote y decisión de publicación, con identidad "
+        "Registra la validación humana: aprobación única de contenido por "
+        "pieza, aprobación del lote por quien lo genera (certificados) o por "
+        "el responsable de pagos, y decisión de publicación, con identidad "
         "verificada por Google y rol tomado de un padrón."
     ),
     "Cola y envío": (
@@ -409,10 +410,10 @@ LISTA_CONTROL = [
         "`tests/test_linea_descriptiva.py`, `tests/test_procesar_gacetilla.py`."
     ),
     (
-        "Verificar la doble aprobación (semántica y utilitaria) y la aprobación "
-        "de lote: sin las dos decisiones no hay encolado ni emisión, y editar la "
-        "lista de cierre o la plantilla cambia el objeto y la aprobación previa "
-        "deja de aplicar. "
+        "Verificar la aprobación única de contenido y la aprobación de lote: "
+        "sin esas decisiones registradas no hay encolado ni emisión, y editar "
+        "la lista de cierre o la plantilla cambia el objeto y la aprobación "
+        "previa deja de aplicar. "
         "Evidencia: `src/agente1/confirmaciones.py`, "
         "`src/agente1/linea_descriptiva.py`; `tests/test_confirmaciones.py`, "
         "`tests/test_linea_descriptiva.py`."

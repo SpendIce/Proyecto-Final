@@ -12,11 +12,12 @@ reales:
 2. **Decisión** — los dos objetos se declaran pendientes en el registro de
    decisiones (`<directorio>/estado-decisiones/`), igual que haría el
    correo de «borrador listo» del canal. Después una "hoja de respuestas"
-   CSV — `--respuestas-csv`, o la que el propio script escribe con las tres
-   aprobaciones del circuito— pasa por `CanalFormDecisiones`, que valida
-   rol y catálogo igual que el Form real. El correo de cada respuesta se
+   CSV — `--respuestas-csv`, o la que el propio script escribe con las dos
+   decisiones del circuito (#125)— pasa por `CanalFormDecisiones`, que
+   valida rol y catálogo igual que el Form real. El correo de cada
+   respuesta se
    resuelve contra el padrón (`--padron-roles`), nunca contra un supuesto.
-3. **Lote** — con las tres decisiones `registrada`, `correr_lote_actividad`
+3. **Lote** — con las dos decisiones `registrada`, `correr_lote_actividad`
    renderiza el correo de cada preinscripto del padrón de la actividad
    (`--padron-csv`), encola con clave idempotente y drena la cola contra
    `DestinoConfirmacionesFake`. Las entregas simuladas quedan en
@@ -50,9 +51,8 @@ from agente1.confirmaciones import (
     RegistroConfirmacionesArchivo,
 )
 from agente1.decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
     DECISION_APRUEBO_LOTE,
-    DECISION_APRUEBO_SEMANTICA,
-    DECISION_APRUEBO_UTILITARIA,
     TIPO_LOTE,
     TIPO_PLANTILLA,
     CanalFormDecisiones,
@@ -85,11 +85,11 @@ _ENTRY_TIPO_OFFLINE = "entry.000000021"
 _ENTRY_OBJETO_OFFLINE = "entry.000000022"
 _ENTRY_DECISION_OFFLINE = "entry.000000023"
 
-# Correos del padrón de roles sintético de la demo: sólo existen en el
-# CSV `--padron-roles` que el recorrido documenta. `responsable` firma la
-# aprobación semántica y `coordinador` la utilitaria y el lote.
-_CORREO_SEMANTICA = "rgc@example.invalid"
-_CORREO_UTILITARIA = "coord@example.invalid"
+# Correo del padrón de roles sintético de la demo: sólo existe en el
+# CSV `--padron-roles` que el recorrido documenta. La persona autorizada
+# firma la aprobación de contenido de la plantilla y, por generar el lote,
+# también la del lote (#125).
+_CORREO_APROBADOR = "aprobador@example.invalid"
 
 # Salida del generador fake: desde `plantilla_actividad_v2` (#140) el
 # modelo devuelve sólo un párrafo de prosa descriptiva, sin un solo dato ni
@@ -114,7 +114,7 @@ def _emitir(payload: dict[str, object]) -> None:
 
 
 def _respuestas_sinteticas(path: Path, *, plantilla_id: str, lote_id: str) -> None:
-    """La "hoja" del Form de decisiones con las tres aprobaciones.
+    """La "hoja" del Form de decisiones con las dos decisiones del circuito.
 
     La escribe el script porque los ids son dinámicos (derivan del hash
     del documento): en la demostración real una persona copiaría los
@@ -131,25 +131,16 @@ def _respuestas_sinteticas(path: Path, *, plantilla_id: str, lote_id: str) -> No
         escritor.writerow(
             [
                 "2026-10-11 09:00:00",
-                _CORREO_SEMANTICA,
+                _CORREO_APROBADOR,
                 TIPO_PLANTILLA,
                 plantilla_id,
-                DECISION_APRUEBO_SEMANTICA,
-            ]
-        )
-        escritor.writerow(
-            [
-                "2026-10-11 09:05:00",
-                _CORREO_UTILITARIA,
-                TIPO_PLANTILLA,
-                plantilla_id,
-                DECISION_APRUEBO_UTILITARIA,
+                DECISION_APRUEBO_CONTENIDO,
             ]
         )
         escritor.writerow(
             [
                 "2026-10-11 09:10:00",
-                _CORREO_UTILITARIA,
+                _CORREO_APROBADOR,
                 TIPO_LOTE,
                 lote_id,
                 DECISION_APRUEBO_LOTE,
@@ -204,7 +195,7 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "CSV que imita la hoja del Form de decisiones. Sin él, el "
             "script escribe en <directorio>/respuestas-decisiones.csv las "
-            "tres aprobaciones del circuito con los correos del padrón "
+            "dos decisiones del circuito con el correo del padrón "
             "sintético del recorrido."
         ),
     )

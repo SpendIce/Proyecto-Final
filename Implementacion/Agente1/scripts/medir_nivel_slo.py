@@ -12,8 +12,8 @@ indicadores de la resolución #65 sobre un rango de fechas:
 - tiempo de atención: p95 del Form de pedido al aviso;
 - latencia por pieza: p95 de `latencia_s` por tipo (objetivo pendiente
   de #50/#51, se declara así);
-- aprobación → envío: p95 de la doble aprobación al envío dentro de la
-  ventana, con `ENVIO_INDETERMINADO` como incidente;
+- aprobación → envío: p95 de la aprobación registrada (contenido + lote)
+  al envío dentro de la ventana, con `ENVIO_INDETERMINADO` como incidente;
 - integridad del gate: toda pieza en validación humana con gate aprobado.
 
 El script **no mide contenido ni inventa números**: donde la muestra no
