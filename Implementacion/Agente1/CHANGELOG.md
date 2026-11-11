@@ -79,9 +79,24 @@ Dirección. Detalle en el procedimiento.
     para pruebas y evidencia), adapter PostgreSQL (`persistencia.py`,
     entrada idempotente por `idempotency_key`, bandeja, reserva con
     `FOR UPDATE SKIP LOCKED` y plazo, cierre con revisión de pieza y
-    purga de prosa transitoria) y worker (`worker.py`) que reutiliza el
-    pipeline `interpretar_solicitud` → `generar_pieza` → destino por
-    marca, sin duplicar colas ni gates.
+    reparto `vencer_solicitudes`/`purgar_prosa` por rol) y worker
+    (`worker.py`) que reutiliza el pipeline `interpretar_solicitud` →
+    `generar_pieza` → destino por marca, sin duplicar colas ni gates.
+  - `DespachoGacetilla` en `interpretacion.py` +
+    `procesar_gacetilla_estructurada` en `procesamiento.py`: los siete
+    tipos de gacetilla pasan por el núcleo —misma identidad, autorización
+    por rol, clasificación, gates y auditoría HU-013 que el resto del
+    agente—; los seis sin actividad van por el pipeline estructurado y no
+    por un despacho paralelo en el canal.
+  - La bandeja la ve todo el padrón SEU; sólo la creación de pedidos
+    exige un rol habilitado, y la autorización se resuelve en el
+    servidor en cada request. «Nuevo pedido» es la entrada principal
+    tras el login.
+  - Seguridad: `POST /ingresar` valida el double-submit `g_csrf_token`
+    de Google Identity Services en modo real y el CSRF propio en modo
+    prueba; el modo prueba se niega a arrancar con un client ID real,
+    cookie `Secure`, host no-loopback o dentro del contenedor; en modo
+    real `AGENTE1_WEB_DOMINIO` es obligatorio y `hd` se verifica siempre.
   - `src/agente1/web/plantillas/` y `src/agente1/web/estaticos/`:
     plantillas del lado del servidor con la identidad FIE (azul
     `#081E4B`, neutros, Encode Sans + Roboto servidas localmente con
@@ -90,24 +105,32 @@ Dirección. Detalle en el procedimiento.
     (campos web en `solicitudes`, `ejecuciones` y `borradores`,
     `prosa_transitoria` para la prosa transitoria con purga diaria).
   - `migrations/0005_roles_canal_web.up/down.sql`: roles `agente1_app`
-    (opera sin tocar la auditoría) y `agente1_mantenimiento` (dueño de
-    la prosa para el VACUUM diario).
+    (opera sin tocar la auditoría y con `SELECT` sobre las secuencias
+    para el `pg_dump` diario) y `agente1_mantenimiento` (dueño de
+    la prosa para el VACUUM diario y dueño del evento `prosa_purgada`).
   - `src/agente1/respaldo.py`, `scripts/respaldar_estado.py`,
     `scripts/restaurar_respaldo.py`: el respaldo diario incluye
-    `postgres/agente1.pgdump` cuando hay DSN declarada y la
-    restauración lo vuelca con `psql`; el respaldo falla cerrado si
-    `pg_dump` falta (ADR 0009).
+    `postgres/agente1.pgdump` con `--clean --if-exists` cuando hay DSN
+    declarada y la restauración lo vuelca con `psql`; el respaldo falla
+    cerrado si `pg_dump` falta (ADR 0009). `entorno_libpq` pasa las
+    credenciales del DSN por `PG*` del subproceso — nunca en argv.
   - `scripts/servidor_web.py`, `scripts/worker_canal_web.py`,
     `scripts/purgar_canal_web.py` y paso diario `purga_canal_web` en
     `cli_scheduler.py`: los procesos del canal web y su retención
     encadenados a la purga + respaldo del día.
   - `docker/compose.yaml`: servicios `postgres` (red interna, sin
     puertos fuera del stack), `web` y `worker` bajo el perfil
-    `canal-web`; `scripts/contenedor_entrypoint.py` mapea los comandos
-    `web` y `worker`.
-  - `tests/test_canal_web.py` y `tests/test_canal_web_persistencia.py`:
-    ingreso/sesión/CSRF/pedido con servicios inyectados, y las pruebas
-    del ADR 0016 (1, 3, 5, 6, 7, 8, 9) sobre PostgreSQL real.
+    `canal-web` — `docker compose config` sin el perfil resuelve igual
+    que en `main`; `scripts/contenedor_entrypoint.py` mapea los comandos
+    `web` y `worker` y marca `AGENTE1_CONTENEDOR=si`; el `scheduler` se
+    suma a la red `canal` con los DSN del canal web y el `Dockerfile`
+    instala `postgresql-client-16`, misma mayor que `postgres:16`.
+  - `tests/test_canal_web.py`, `tests/test_despacho_gacetilla.py` y
+    `tests/test_canal_web_persistencia.py`: ingreso/sesión/CSRF/pedido
+    con servicios inyectados, los siete tipos por el seam del núcleo con
+    LLM fake, y las pruebas del ADR 0016 (1, 3, 5, 6, 7, 8, 9) sobre
+    PostgreSQL real conectadas como `agente1_app` y
+    `agente1_mantenimiento`.
   - `evidencias/canal-web-*.png`: capturas de las pantallas con datos
     sintéticos y servicios fake.
   - `pyproject.toml`/`uv.lock`: `fastapi`, `uvicorn`, `jinja2`,

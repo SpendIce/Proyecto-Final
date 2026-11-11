@@ -19,12 +19,19 @@
       <option value="{{ t.id }}"
         data-actividad="{{ '1' if t.actividad else '' }}"
         data-publicos="{{ '1' if t.publicos else '' }}"
+        data-area="{{ '1' if t.usa_area else '' }}"
+        data-firma="{{ '1' if t.usa_firma else '' }}"
+        {% if not t.disponible %}disabled{% endif %}
         {% if valores.get('tipo') == t.id %}selected{% endif %}>
-        {{ t.nombre }}
+        {{ t.nombre }}{% if not t.disponible %} — todavía no disponible{% endif %}
       </option>
       {% endfor %}
     </select>
-    {% if errores.get('tipo') %}<p class="campo-error">El tipo no pertenece a la lista cerrada.</p>{% endif %}
+    {% if errores.get('tipo') == 'tipo_no_disponible' %}
+      <p class="campo-error">Ese tipo todavía no está disponible en la web.</p>
+    {% elif errores.get('tipo') %}
+      <p class="campo-error">El tipo no pertenece a la lista cerrada.</p>
+    {% endif %}
 
     <div id="bloque-actividad" class="bloque" hidden>
       <label for="actividad">Actividad</label>
@@ -32,12 +39,19 @@
         <option value="">Elegí la actividad</option>
         {% for a in actividades %}
         <option value="{{ a.id_actividad }}"
+          data-titulo="{{ a.titulo }}"
+          data-fechas="{{ a.fecha_inicio }}{% if a.fecha_fin %} al {{ a.fecha_fin }}{% endif %}"
+          data-organiza="{{ a.organiza }}"
           {% if valores.get('actividad') == a.id_actividad %}selected{% endif %}>
           {{ a.titulo or a.id_actividad }}
         </option>
         {% endfor %}
       </select>
-      <p class="ayuda">Los datos de la actividad se precargan desde la fuente institucional.</p>
+      <dl id="datos-actividad" class="ficha ficha-actividad" hidden>
+        <dt>Título</dt><dd data-campo="titulo"></dd>
+        <dt>Fechas</dt><dd data-campo="fechas"></dd>
+        <dt>Organiza</dt><dd data-campo="organiza"></dd>
+      </dl>
       {% if errores.get('actividad') %}<p class="campo-error">Elegí una actividad de la lista.</p>{% endif %}
     </div>
 
@@ -66,19 +80,21 @@
     {% endif %}
     {% endfor %}
 
-    <label for="area">Área emisora</label>
-    <select id="area" name="area" required>
-      <option value="">Elegí el área</option>
-      {% for id_area, nombre in areas.items() %}
-      <option value="{{ id_area }}"
-        {% if valores.get('area') == id_area %}selected{% endif %}>
-        {{ nombre }}
-      </option>
-      {% endfor %}
-    </select>
-    {% if errores.get('area') %}<p class="campo-error">Elegí un área de la lista.</p>{% endif %}
+    <div id="bloque-area" class="bloque" hidden>
+      <label for="area">Área emisora</label>
+      <select id="area" name="area">
+        <option value="">Elegí el área</option>
+        {% for id_area, nombre in areas.items() %}
+        <option value="{{ id_area }}"
+          {% if valores.get('area') == id_area %}selected{% endif %}>
+          {{ nombre }}
+        </option>
+        {% endfor %}
+      </select>
+      {% if errores.get('area') %}<p class="campo-error">Elegí un área de la lista.</p>{% endif %}
+    </div>
 
-    <fieldset class="bloque">
+    <fieldset id="bloque-firma" class="bloque" hidden>
       <legend>Firma de área en el pie</legend>
       <label class="opcion"><input type="radio" name="firma" value="si"
         {% if valores.get('firma', 'si') == 'si' %}checked{% endif %}> Con firma de área</label>
@@ -93,7 +109,7 @@
         {% for id_pub, nombre in publicos.items() %}
         <label class="opcion">
           <input type="checkbox" name="publicos" value="{{ id_pub }}"
-            {% if valores.get('publicos') == id_pub %}checked{% endif %}>
+            {% if id_pub in valores.get('publicos', []) %}checked{% endif %}>
           {{ nombre }}
         </label>
         {% endfor %}
@@ -119,15 +135,34 @@
   var tipo = document.getElementById('tipo');
   var actividad = document.getElementById('bloque-actividad');
   var selectAct = document.getElementById('actividad');
+  var datosAct = document.getElementById('datos-actividad');
+  var area = document.getElementById('bloque-area');
+  var selectArea = document.getElementById('area');
+  var firma = document.getElementById('bloque-firma');
   var publicos = document.getElementById('bloque-publicos');
   var bloques = document.querySelectorAll('.campos-tipo');
+  function datosActividad() {
+    var op = selectAct.options[selectAct.selectedIndex];
+    var con = op && op.dataset.titulo;
+    datosAct.hidden = !con;
+    if (con) {
+      datosAct.querySelector('[data-campo="titulo"]').textContent = op.dataset.titulo;
+      datosAct.querySelector('[data-campo="fechas"]').textContent = op.dataset.fechas;
+      datosAct.querySelector('[data-campo="organiza"]').textContent = op.dataset.organiza;
+    }
+  }
   function actualizar() {
     var op = tipo.options[tipo.selectedIndex];
     var conAct = op && op.dataset.actividad === '1';
     var conPub = op && op.dataset.publicos === '1';
+    var conArea = op && op.dataset.area === '1';
+    var conFirma = op && op.dataset.firma === '1';
     actividad.hidden = !conAct;
     selectAct.required = !!conAct;
     publicos.hidden = !conPub;
+    area.hidden = !conArea;
+    selectArea.required = !!conArea;
+    firma.hidden = !conFirma;
     bloques.forEach(function (b) {
       var activo = b.dataset.tipo === tipo.value;
       b.hidden = !activo;
@@ -135,8 +170,10 @@
         el.disabled = !activo;
       });
     });
+    datosActividad();
   }
   tipo.addEventListener('change', actualizar);
+  selectAct.addEventListener('change', datosActividad);
   actualizar();
 })();
 </script>

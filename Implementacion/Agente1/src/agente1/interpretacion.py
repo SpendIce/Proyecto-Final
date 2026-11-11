@@ -132,6 +132,7 @@ from typing import Callable, Mapping, Protocol
 
 from .destinos import DestinoBorradores, ReferenciaBorrador
 from .fuentes import FuenteSolicitudes
+from .gacetillas import requiere_actividad, tipos
 from .pagos import PlanPago
 from .plantillas_actividad import (
     ResultadoPlantillaActividad,
@@ -139,7 +140,11 @@ from .plantillas_actividad import (
 )
 from .posts import procesar_post_estructurado
 from .presupuesto import presupuesto_minimo_num_predict
-from .procesamiento import Generator, procesar_solicitud
+from .procesamiento import (
+    Generator,
+    procesar_gacetilla_estructurada,
+    procesar_solicitud,
+)
 from .registro_auditoria import escribir_registro
 
 HU = "HU-013"
@@ -1176,6 +1181,28 @@ def _descartar_pendiente(
 
 
 @dataclass(frozen=True)
+class DespachoGacetilla:
+    """El pedido de gacetilla ya estructurado por un canal (#149).
+
+    El canal web entrega el tipo elegido en la lista cerrada, los campos
+    del contrato de entrada del tipo ya confirmados y —para los tipos con
+    ficha— el identificador de la actividad elegida en el catálogo. Con un
+    despacho declarado el seam salta la resolución del texto (que en la
+    web es un derivado, no el pedido) y despacha al pipeline del tipo con
+    los mismos controles de siempre: identidad, rol habilitado,
+    clasificación determinística del texto y auditoría HU-013. Las
+    indicaciones libres viajan dentro del `texto`, como dato no
+    privilegiado del pedido: entran al hash del registro y a la
+    clasificación, nunca a un prompt.
+    """
+
+    tipo: str
+    id_solicitud: str
+    actividad: str | None = None
+    campos: Mapping[str, str] | None = None
+
+
+@dataclass(frozen=True)
 class IdentidadSolicitante:
     """Quién pide y con qué rol, tal como lo afirma el canal.
 
@@ -1300,6 +1327,7 @@ def _interpretar_solicitud_sin_guarda(
     interprete: Generator | None = None,
     emisor_certificados: Callable[..., object] | None = None,
     planes_pago: Mapping[str, PlanPago] | None = None,
+    despacho_gacetilla: "DespachoGacetilla | None" = None,
 ) -> ResultadoInterpretacion:
     """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
 
@@ -1330,6 +1358,13 @@ def _interpretar_solicitud_sin_guarda(
     Se invoca sólo con `id_actividad` y `solicitante` y devuelve un
     `ResultadoEmisionCertificados`; sin él, un pedido `emitir_certificados`
     termina `FALLIDA` con `emisor_no_configurado` en vez de despacharse.
+
+    `despacho_gacetilla` es el pedido ya estructurado de un canal (#149,
+    canal web): tipo cerrado, campos confirmados y —en los tipos con
+    ficha— la actividad elegida. Despacha al pipeline del tipo con los
+    mismos controles de siempre; `texto` sigue clasificándose y auditándose
+    igual, y las indicaciones libres del pedido viajan en él como dato no
+    privilegiado (ADR 0001), nunca como instrucción.
     """
 
     correlation_id = str(uuid.uuid4())
@@ -1372,6 +1407,24 @@ def _interpretar_solicitud_sin_guarda(
             estado="RECHAZADA",
             resultado="rol_no_habilitado",
             error="El rol de quien pide no está habilitado para interactuar con el agente",
+        )
+
+    if despacho_gacetilla is not None:
+        # El canal ya resolvió tipo y campos (hoy: el canal web, #149). El
+        # despacho corre después de la identidad y del rol, con la misma
+        # clasificación del texto y la misma auditoría que cualquier
+        # mensaje: lo único que se salta es la resolución de qué actividad
+        # pidió la persona, porque el canal la declaró explícita.
+        return _despachar_gacetilla(
+            despacho=despacho_gacetilla,
+            texto_seguro=texto_seguro,
+            solicitante=solicitante,
+            fuente=fuente,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            destino=destino,
+            log_path=log_path,
+            correlation_id=correlation_id,
         )
 
     # #25: antes de clasificar, se mira si esta persona tiene una interacción
@@ -1750,6 +1803,129 @@ _RESULTADOS_POR_ESTADO = {
 }
 
 
+def _despachar_gacetilla(
+    *,
+    despacho: "DespachoGacetilla",
+    texto_seguro: str,
+    solicitante: IdentidadSolicitante,
+    fuente: FuenteSolicitudes,
+    directorio_salida: Path,
+    generator: Generator,
+    destino: DestinoBorradores | None,
+    log_path: Path,
+    correlation_id: str,
+) -> ResultadoInterpretacion:
+    """Despacho del pedido estructurado de gacetilla (#149, canal web).
+
+    La clasificación del texto corre igual que siempre y es el único lugar
+    donde el texto decide algo: tiene que salir `generar_gacetilla` —
+    el canal arma un texto determinístico que la menciona— o el pedido se
+    rechaza con el código del catálogo, como cualquier mensaje. El tipo y
+    la actividad nunca se infieren del texto: los declaró el canal, en la
+    lista cerrada y en el catálogo de la fuente. Los seis tipos sin ficha
+    van a `procesar_gacetilla_estructurada`, el pipeline que comparte los
+    seams declarativos, el gate y la auditoría con `procesar_solicitud`;
+    el tipo con ficha sigue por el pipeline de siempre.
+    """
+
+    intencion = _clasificar_intencion(texto_seguro)
+    if intencion != "generar_gacetilla":
+        entrada_catalogo = INTENCIONES_POR_ID.get(intencion)
+        return _finalizar(
+            log_path=log_path,
+            correlation_id=correlation_id,
+            texto=texto_seguro,
+            solicitante=solicitante,
+            intencion=intencion,
+            id_actividad=None,
+            modelo_utilizado=False,
+            estado="RECHAZADA",
+            resultado=(
+                str(entrada_catalogo["codigo_rechazo"])
+                if entrada_catalogo is not None
+                else "fuera_de_alcance"
+            ),
+            error=(
+                "La solicitud no corresponde a una intención con despacho "
+                "disponible en este seam"
+            ),
+        )
+    tipo = str(despacho.tipo)
+    if tipo not in tipos():
+        return _finalizar(
+            log_path=log_path,
+            correlation_id=correlation_id,
+            texto=texto_seguro,
+            solicitante=solicitante,
+            intencion=intencion,
+            id_actividad=None,
+            modelo_utilizado=False,
+            estado="INVALIDA",
+            resultado="solicitud_invalida",
+            error="El tipo de pieza no pertenece a la lista cerrada",
+        )
+    if requiere_actividad(tipo):
+        id_actividad = (
+            despacho.actividad.strip()
+            if isinstance(despacho.actividad, str)
+            else None
+        ) or None
+        if id_actividad is None:
+            return _finalizar(
+                log_path=log_path,
+                correlation_id=correlation_id,
+                texto=texto_seguro,
+                solicitante=solicitante,
+                intencion=intencion,
+                id_actividad=None,
+                modelo_utilizado=False,
+                estado="INCOMPLETA",
+                resultado="identificador_no_encontrado",
+                error="El tipo de pieza exige una actividad declarada",
+            )
+        resultado_proceso = procesar_solicitud(
+            fuente=fuente,
+            id_solicitud=id_actividad,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            destino=destino,
+        )
+        resumen = None
+        if resultado_proceso.estado == "PENDIENTE_VALIDACION":
+            resumen = _resumen_desde_fuente(fuente, id_actividad)
+    else:
+        id_actividad = None
+        resultado_proceso = procesar_gacetilla_estructurada(
+            tipo=tipo,
+            campos=despacho.campos or {},
+            id_solicitud=despacho.id_solicitud,
+            directorio_salida=directorio_salida,
+            generator=generator,
+            destino=destino,
+        )
+        resumen = None
+        if resultado_proceso.estado == "PENDIENTE_VALIDACION":
+            resumen = f"Pieza {tipo} generada a partir del pedido declarado."
+    return _finalizar(
+        log_path=log_path,
+        correlation_id=correlation_id,
+        texto=texto_seguro,
+        solicitante=solicitante,
+        intencion=intencion,
+        id_actividad=id_actividad,
+        modelo_utilizado=False,
+        estado=resultado_proceso.estado,
+        resultado=_RESULTADOS_POR_ESTADO.get(
+            resultado_proceso.estado, "estado_no_reconocido"
+        ),
+        error=resultado_proceso.error,
+        borrador_path=resultado_proceso.borrador_path,
+        referencia_borrador=resultado_proceso.referencia_borrador,
+        resumen=resumen,
+        pipeline_correlation_id=resultado_proceso.correlation_id,
+    )
+
+
 def interpretar_solicitud(
     *,
     texto: str,
@@ -1763,6 +1939,7 @@ def interpretar_solicitud(
     interprete: Generator | None = None,
     emisor_certificados: Callable[..., object] | None = None,
     planes_pago: Mapping[str, PlanPago] | None = None,
+    despacho_gacetilla: "DespachoGacetilla | None" = None,
 ) -> ResultadoInterpretacion:
     """Entra un mensaje, sale un resultado. Nunca propaga excepciones.
 
@@ -1792,6 +1969,7 @@ def interpretar_solicitud(
             interprete=interprete,
             emisor_certificados=emisor_certificados,
             planes_pago=planes_pago,
+            despacho_gacetilla=despacho_gacetilla,
         )
     except Exception:
         return _finalizar(

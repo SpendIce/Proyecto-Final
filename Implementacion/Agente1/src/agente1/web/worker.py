@@ -1,47 +1,71 @@
 """Worker de generación del canal web (ADR 0016, issue #149).
 
 Corre fuera de la respuesta HTTP: toma una ejecución reservada por vez
-(`SELECT ... FOR UPDATE SKIP LOCKED` con plazo), genera la pieza con el
-núcleo vigente —`interpretar_solicitud` para difusión de actividad, las
-seams declaradas `confirmar_pieza`/`generar_pieza` para el resto— y deja
-el estado durable en la base.
+(`SELECT ... FOR UPDATE SKIP LOCKED` con plazo) y la despacha por
+`interpretar_solicitud` con el `DespachoGacetilla` estructurado del
+pedido, para los siete tipos: la misma clasificación determinística del
+texto, el mismo gate de rol y la misma auditoría HU-013 que cualquier
+otro canal, sin caminos paralelos en la app.
 
 Recuperación: si el proceso cae entre el Doc y el asiento, la reserva
 vence y otra corrida retoma el trabajo; el destino busca el Doc por la
 marca de la solicitud en sus propiedades antes de crear uno, así que la
 segunda corrida reutiliza el mismo documento (ADR 0016, prueba 1).
 
-Una falla reportada por el pipeline (gate rechazado, datos incompletos)
-cierra la ejecución como `FALLIDA` y la solicitud queda `ERROR`. Una
-excepción no prevista no toca el estado: la reserva vence sola y el
-trabajo vuelve a ser tomable.
+Decisiones que no se ven en el código:
+
+- **El límite de reintentos se mide por reservas tomadas.** Una falla
+  reportada por el pipeline (gate rechazado, datos incompletos, tipo no
+  disponible) cierra la ejecución de inmediato: no tiene sentido volver a
+  intentar lo mismo. Una excepción no prevista sí reintenta, pero con
+  tope `MAX_INTENTOS`: al agotarse, la ejecución queda `FALLIDA` con
+  `error_generacion` y la solicitud `ERROR`, visible en la bandeja, en
+  vez de colgar para siempre.
+- **El log nunca lleva prosa ni identidad**: una línea por falla con el
+  código estable, el id de la ejecución y el intento — los identificadores
+  ya son opacos y el detalle del motivo queda en el resultado durable.
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
-from ..destinos import BORRADOR_MARKER, ReferenciaBorrador
+from ..destinos import ReferenciaBorrador
 from ..fuentes import FuenteSolicitudes
-from ..gacetillas import (
-    confirmar_pieza,
-    generar_pieza,
-    modo_de,
-    nombre_doc,
-    requiere_actividad,
+from ..gacetillas import requiere_actividad
+from ..interpretacion import (
+    DespachoGacetilla,
+    IdentidadSolicitante,
+    interpretar_solicitud,
 )
-from ..interpretacion import IdentidadSolicitante, interpretar_solicitud
 from ..procesamiento import Generator
 from .persistencia import RepositorioWeb, TrabajoWeb
 
+logger = logging.getLogger(__name__)
+
+MAX_INTENTOS = 3
+
+# Estado del pipeline → cierre durable de la ejecución. Los códigos son el
+# vocabulario cerrado del esquema (`ejecuciones.resultado`): un resultado
+# fuera de la lista rompe el CHECK, así que el mapa es exhaustivo.
+_CIERRE_POR_ESTADO = {
+    "INCOMPLETA": ("INCOMPLETA", "datos_incompletos"),
+    "INVALIDA": ("FALLIDA", "source_invalid"),
+    "RECHAZADA": ("FALLIDA", "channel_invalid"),
+    "FALLIDA": ("FALLIDA", "error_generacion"),
+    "PENDIENTE_DESAMBIGUACION": ("FALLIDA", "error_generacion"),
+}
+
 
 class FalloGeneracion(RuntimeError):
-    """El pipeline reportó una falla esperada: la ejecución queda FALLIDA."""
+    """El pipeline reportó una falla esperada: la ejecución queda cerrada."""
 
-    def __init__(self, resultado: str) -> None:
+    def __init__(self, estado: str, resultado: str) -> None:
+        self.estado = estado
         self.resultado = resultado
         super().__init__(resultado)
 
@@ -146,48 +170,50 @@ def _generar_pieza(
     directorio_salida: Path,
     destino: DestinoPorMarca,
 ) -> tuple[str, ResultadoDestinoWeb]:
-    """Corre el pipeline del tipo y devuelve (texto, destino del Doc)."""
+    """Despacha el trabajo por `interpretar_solicitud` y vuelca el resultado.
+
+    El `DespachoGacetilla` declara el tipo de la lista cerrada, la
+    actividad de los tipos con ficha y los campos confirmados del pedido;
+    el texto del mensaje es derivado y lleva la descripción del pedido
+    como dato no privilegiado (ADR 0001): la clasificación la lee, el
+    prompt nunca.
+    """
     destino_marcado = _DestinoMarcado(destino, marca=trabajo.id_solicitud)
     if requiere_actividad(trabajo.tipo_pieza):
-        # Mismo despacho que el Form: texto determinístico del pedido,
-        # interpretar_solicitud decide (fuente, gate, destino, auditoría).
-        resultado = interpretar_solicitud(
-            texto=f"gacetilla actividad {trabajo.actividad_ref}",
-            solicitante=IdentidadSolicitante(
-                identificador=trabajo.solicitante_hash, rol=trabajo.rol
-            ),
-            fuente=fuente,
-            directorio_salida=directorio_salida,
-            generator=generator,
-            destino=destino_marcado,
-        )
-        if resultado.estado != "PENDIENTE_VALIDACION":
-            raise FalloGeneracion("error_generacion")
+        texto = f"gacetilla actividad {trabajo.actividad_ref}"
     else:
-        campos = {
-            clave: str(valor)
-            for clave, valor in trabajo.campos.get("pieza", {}).items()
-        }
-        if modo_de(trabajo.tipo_pieza) == "genera":
-            pieza, errores = generar_pieza(
-                trabajo.tipo_pieza, campos, generator
-            )
-        else:
-            pieza, errores = confirmar_pieza(trabajo.tipo_pieza, campos)
-        if errores or not pieza:
-            raise FalloGeneracion("salida_no_conforme")
-        contenido = f"{BORRADOR_MARKER}{pieza}"
-        nombre = nombre_doc(
-            trabajo.tipo_pieza, campos, datetime.now().date()
-        )
-        destino_marcado.guardar(
-            trabajo.id_solicitud, contenido, nombre=nombre
-        )
+        texto = f"gacetilla {trabajo.tipo_pieza}"
+    if trabajo.descripcion:
+        texto = f"{texto}. {trabajo.descripcion}"
+    resultado = interpretar_solicitud(
+        texto=texto,
+        solicitante=IdentidadSolicitante(
+            identificador=trabajo.solicitante_hash, rol=trabajo.rol
+        ),
+        fuente=fuente,
+        directorio_salida=directorio_salida,
+        generator=generator,
+        destino=destino_marcado,
+        despacho_gacetilla=DespachoGacetilla(
+            tipo=trabajo.tipo_pieza,
+            id_solicitud=trabajo.id_solicitud,
+            actividad=trabajo.actividad_ref,
+            campos={
+                clave: str(valor)
+                for clave, valor in trabajo.campos.get("pieza", {}).items()
+            },
+        ),
+    )
+    estado, resultado_codigo = _CIERRE_POR_ESTADO.get(
+        resultado.estado, ("FALLIDA", "error_generacion")
+    )
+    if resultado.estado != "PENDIENTE_VALIDACION":
+        raise FalloGeneracion(estado, resultado_codigo)
     if (
         destino_marcado.ultimo is None
         or destino_marcado.ultimo_contenido is None
     ):
-        raise FalloGeneracion("error_generacion")
+        raise FalloGeneracion("FALLIDA", "error_generacion")
     return destino_marcado.ultimo_contenido, destino_marcado.ultimo
 
 
@@ -201,6 +227,7 @@ def correr_una_vez(
     destino: DestinoPorMarca,
     plazo_segundos: int = 300,
     ahora: datetime | None = None,
+    max_intentos: int = MAX_INTENTOS,
 ) -> TrabajoWeb | None:
     """Un ciclo del worker: reserva, genera y asienta. `None` si no hay trabajo."""
     trabajo = repositorio.tomar_trabajo(
@@ -219,16 +246,41 @@ def correr_una_vez(
             destino=destino,
         )
     except FalloGeneracion as fallo:
+        logger.warning(
+            "worker_fallo id_ejecucion=%s resultado=%s",
+            trabajo.id_ejecucion,
+            fallo.resultado,
+        )
         repositorio.fallar_trabajo(
             id_ejecucion=trabajo.id_ejecucion,
             id_solicitud=trabajo.id_solicitud,
+            estado=fallo.estado,
             resultado=fallo.resultado,
             ahora=ahora,
         )
         return trabajo
     except Exception:
-        # Caída o error de infraestructura: no se toca el estado; la
-        # reserva vence y otra corrida retoma sin duplicar el Doc.
+        # Error de infraestructura o caída: la reserva vence y otra corrida
+        # retoma sin duplicar el Doc, hasta el tope de reintentos; después
+        # la ejecución queda cerrada y la solicitud visible «Con error».
+        if trabajo.intentos >= max_intentos:
+            logger.warning(
+                "worker_sin_reintento id_ejecucion=%s intentos=%s",
+                trabajo.id_ejecucion,
+                trabajo.intentos,
+            )
+            repositorio.fallar_trabajo(
+                id_ejecucion=trabajo.id_ejecucion,
+                id_solicitud=trabajo.id_solicitud,
+                resultado="error_generacion",
+                ahora=ahora,
+            )
+        else:
+            logger.warning(
+                "worker_error_no_previsto id_ejecucion=%s intento=%s",
+                trabajo.id_ejecucion,
+                trabajo.intentos,
+            )
         return trabajo
     repositorio.completar_trabajo(
         id_ejecucion=trabajo.id_ejecucion,

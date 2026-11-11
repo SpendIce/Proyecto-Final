@@ -22,7 +22,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from agente1.canal_form import PadronRoles
-from agente1.web.app import ConfiguracionWeb, crear_app
+from agente1.web.app import (
+    CLIENT_ID_PRUEBA,
+    ConfiguracionInvalida,
+    ConfiguracionWeb,
+    crear_app,
+    validar_configuracion,
+)
 from agente1.web.identidad import (
     IdentidadVerificada,
     VerificacionIdentidadError,
@@ -140,8 +146,10 @@ CORREO_LECTOR = "lector@example.invalid"
 CORREO_EXTERNO = "externo@example.invalid"
 
 
-@pytest.fixture()
-def mundo() -> Mundo:
+def _mundo(
+    monkeypatch: pytest.MonkeyPatch | None = None,
+    publicos_extra: dict[str, str] | None = None,
+) -> Mundo:
     padron = PadronRoles(
         {CORREO_SEU: "coordinador_seu", CORREO_LECTOR: "lector_seu"}
     )
@@ -157,10 +165,19 @@ def mundo() -> Mundo:
             ),
         }
     )
+    if monkeypatch is not None and publicos_extra:
+        from agente1.web import app as modulo_app
+
+        real = modulo_app.publicos_destinatarios
+        monkeypatch.setattr(
+            modulo_app,
+            "publicos_destinatarios",
+            lambda: {**real(), **publicos_extra},
+        )
     repo = RepositorioMemoria()
     app = crear_app(
         config=ConfiguracionWeb(
-            google_client_id="cliente-prueba",
+            google_client_id=CLIENT_ID_PRUEBA,
             modo_prueba=True,
             cookie_secure=False,
         ),
@@ -168,14 +185,33 @@ def mundo() -> Mundo:
         padron=padron,
         repositorio=repo,
         sesiones=sesiones,
-        actividades=[{"id_actividad": "SYN-001", "titulo": "Taller"}],
+        actividades=[
+            {
+                "id_actividad": "SYN-001",
+                "titulo": "Taller",
+                "fecha_inicio": "2026-11-20",
+                "fecha_fin": "",
+                "organiza": "SEU",
+            }
+        ],
     )
     return Mundo(TestClient(app), repo, sesiones)
 
 
+@pytest.fixture()
+def mundo() -> Mundo:
+    return _mundo()
+
+
 def _ingresar(client: TestClient, token: str = "tok-seu"):
+    """Login del modo prueba: GET para el CSRF propio y POST con él."""
+    formulario = client.get("/ingresar")
+    marca = 'name="csrf" value="'
+    csrf = formulario.text.split(marca, 1)[1].split('"', 1)[0]
     return client.post(
-        "/ingresar", data={"credential": token}, follow_redirects=False
+        "/ingresar",
+        data={"credential": token, "csrf": csrf},
+        follow_redirects=False,
     )
 
 
@@ -191,7 +227,8 @@ def test_login_crea_sesion_y_cookie_segura(mundo: Mundo) -> None:
     assert "HttpOnly" in cookie
     assert "SameSite=lax" in cookie
     assert "a1_sesion=" in cookie
-    assert respuesta.headers["location"] == "/bandeja"
+    # Rol habilitado: «Nuevo pedido» es la entrada principal.
+    assert respuesta.headers["location"] == "/nuevo-pedido"
 
 
 def test_token_invalido_rechaza(mundo: Mundo) -> None:
@@ -472,3 +509,367 @@ def test_verificador_google_con_claves_de_prueba() -> None:
         verificador.verificar(
             firmar({**base_payload, "iss": "https://falso.invalid"})
         )
+
+
+# ---------- salvaguardas del modo prueba y del modo real ----------
+
+
+def _config_prueba(**kwargs: Any) -> ConfiguracionWeb:
+    base = {
+        "google_client_id": CLIENT_ID_PRUEBA,
+        "modo_prueba": True,
+        "cookie_secure": False,
+    }
+    base.update(kwargs)
+    return ConfiguracionWeb(**base)
+
+
+def test_modo_prueba_rechaza_client_id_real() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        validar_configuracion(
+            _config_prueba(google_client_id="123.apps.googleusercontent.com")
+        )
+
+
+def test_modo_prueba_rechaza_cookie_secure() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        validar_configuracion(_config_prueba(cookie_secure=True))
+
+
+def test_modo_prueba_rechaza_host_no_loopback() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        validar_configuracion(_config_prueba(), host="0.0.0.0")
+    with pytest.raises(ConfiguracionInvalida):
+        validar_configuracion(_config_prueba(), host="192.168.1.10")
+    # Loopback sí: es donde el modo prueba tiene sentido.
+    validar_configuracion(_config_prueba(), host="127.0.0.1")
+    validar_configuracion(_config_prueba(), host="localhost")
+
+
+def test_modo_prueba_rechaza_contenedor() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        validar_configuracion(_config_prueba(), en_contenedor=True)
+
+
+def test_modo_real_exige_client_id() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        validar_configuracion(
+            ConfiguracionWeb(google_client_id="", dominio_hd="x.invalid")
+        )
+
+
+def test_modo_real_exige_dominio() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        validar_configuracion(
+            ConfiguracionWeb(google_client_id="c", dominio_hd=None)
+        )
+
+
+# ---------- CSRF del login ----------
+
+
+def test_login_prueba_rechaza_post_sin_csrf(mundo: Mundo) -> None:
+    respuesta = mundo.client.post(
+        "/ingresar",
+        data={"credential": "tok-seu"},
+        follow_redirects=False,
+    )
+    assert respuesta.status_code == 403
+    assert "a1_sesion" not in respuesta.headers.get("set-cookie", "")
+
+
+def test_login_prueba_rechaza_csrf_sin_cookie(mundo: Mundo) -> None:
+    respuesta = mundo.client.post(
+        "/ingresar",
+        data={"credential": "tok-seu", "csrf": "inventado"},
+        follow_redirects=False,
+    )
+    assert respuesta.status_code == 403
+
+
+def _mundo_real() -> Mundo:
+    """App en modo real con verificador fake inyectado por el mismo seam.
+
+    El verificador no es el de Google pero el camino es el real: exige el
+    double-submit `g_csrf_token` como haría el formulario de GIS.
+    """
+    padron = PadronRoles({CORREO_SEU: "coordinador_seu"})
+    verificador = VerificadorFake(
+        {"tok-seu": IdentidadVerificada("sub-seu", CORREO_SEU, "x.invalid")}
+    )
+    repo = RepositorioMemoria()
+    app = crear_app(
+        config=ConfiguracionWeb(
+            google_client_id="cliente-real",
+            dominio_hd="x.invalid",
+            modo_prueba=False,
+        ),
+        verificador=verificador,
+        padron=padron,
+        repositorio=repo,
+        sesiones=SesionesMemoria(ahora=_ahora),
+    )
+    return Mundo(TestClient(app), repo, SesionesMemoria())
+
+
+def test_login_real_exige_g_csrf_token() -> None:
+    mundo_real = _mundo_real()
+    client = mundo_real.client
+    # Sin cookie ni campo: rechazo.
+    assert (
+        client.post("/ingresar", data={"credential": "tok-seu"}).status_code
+        == 403
+    )
+    # Cookie sin el campo del formulario: rechazo.
+    client.cookies.set("g_csrf_token", "valor-1")
+    assert (
+        client.post("/ingresar", data={"credential": "tok-seu"}).status_code
+        == 403
+    )
+    # Campo que no coincide con la cookie: rechazo.
+    assert (
+        client.post(
+            "/ingresar",
+            data={"credential": "tok-seu", "g_csrf_token": "otro"},
+        ).status_code
+        == 403
+    )
+    # Double-submit correcto: sigue la verificación del token.
+    respuesta = client.post(
+        "/ingresar",
+        data={"credential": "tok-seu", "g_csrf_token": "valor-1"},
+        follow_redirects=False,
+    )
+    assert respuesta.status_code == 303
+
+
+# ---------- sesión vencida: también los POST se rechazan ----------
+
+
+def test_post_rechazado_con_sesion_vencida(mundo: Mundo) -> None:
+    _ingresar(mundo.client)
+    csrf = _csrf_de(mundo)
+    AHORA[0] = AHORA[0] + timedelta(minutes=31)
+    respuesta = mundo.client.post(
+        "/nuevo-pedido",
+        data={"csrf": csrf, "llave": "l", "tipo": "cronica_de_evento"},
+        follow_redirects=False,
+    )
+    assert respuesta.status_code == 303
+    assert respuesta.headers["location"] == "/ingresar"
+    assert mundo.repo.solicitudes == {}
+
+
+# ---------- formulario: contratos y preservación ----------
+
+
+def test_formulario_conserva_publicos_multiples(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # El catálogo real hoy tiene un solo público; para probar que la
+    # preservación no pierde selecciones múltiples se amplía con un id
+    # sintético por el mismo accesor público que usa la app.
+    mundo = _mundo(
+        monkeypatch,
+        publicos_extra={"docentes_no_docentes": "Docentes y no docentes"},
+    )
+    _ingresar(mundo.client)
+    csrf = _csrf_de(mundo)
+    respuesta = mundo.client.post(
+        "/nuevo-pedido",
+        data={
+            "csrf": csrf,
+            "llave": "l5",
+            "tipo": "cronica_de_evento",
+            # Sin los campos requeridos del contrato: re-render con error.
+            "publicos": ["alumnos_ingenieria", "docentes_no_docentes"],
+        },
+        follow_redirects=False,
+    )
+    assert respuesta.status_code == 400
+    html = respuesta.text
+    import re
+
+    marcados = re.findall(
+        r'<input type="checkbox" name="publicos" value="([^"]+)"\s*checked',
+        html,
+    )
+    assert sorted(marcados) == [
+        "alumnos_ingenieria",
+        "docentes_no_docentes",
+    ]
+
+
+def test_formulario_muestra_datos_institucionales(mundo: Mundo) -> None:
+    _ingresar(mundo.client)
+    respuesta = mundo.client.get("/nuevo-pedido")
+    assert respuesta.status_code == 200
+    # La ficha de la actividad viaja en los datos del select: título,
+    # fechas y organiza salen del catálogo, no se escriben a mano.
+    assert 'data-titulo="Taller"' in respuesta.text
+    assert 'data-fechas="2026-11-20' in respuesta.text
+    assert 'data-organiza="SEU"' in respuesta.text
+
+
+def test_formulario_no_pide_area_donde_el_contrato_no_la_usa(
+    mundo: Mundo,
+) -> None:
+    _ingresar(mundo.client)
+    html = mundo.client.get("/nuevo-pedido").text
+    # crónica no usa área emisora según su contrato de entrada.
+    import re
+
+    opciones = re.findall(
+        r'<option value="([a-z_]+)"[^>]*data-area="([^"]*)"', html
+    )
+    por_tipo = dict(opciones)
+    assert por_tipo["cronica_de_evento"] == ""
+    assert por_tipo["aviso_de_otra_area"] == "1"
+
+
+def test_pedido_sin_publicos_requeridos_da_error(mundo: Mundo) -> None:
+    _ingresar(mundo.client)
+    csrf = _csrf_de(mundo)
+    respuesta = mundo.client.post(
+        "/nuevo-pedido",
+        data={
+            "csrf": csrf,
+            "llave": "l6",
+            "tipo": "cronica_de_evento",
+            "campo_titulo": "T",
+            "campo_cuerpo": "C",
+        },
+        follow_redirects=False,
+    )
+    assert respuesta.status_code == 400
+
+
+def test_titulos_legibles_en_bandeja_y_detalle(mundo: Mundo) -> None:
+    _ingresar(mundo.client)
+    csrf = _csrf_de(mundo)
+    mundo.client.post(
+        "/nuevo-pedido",
+        data={
+            "csrf": csrf,
+            "llave": "l7",
+            "tipo": "cronica_de_evento",
+            "campo_titulo": "Crónica de la muestra",
+            "campo_cuerpo": "Texto confirmado.",
+            "publicos": "alumnos_ingenieria",
+        },
+        follow_redirects=False,
+    )
+    bandeja = mundo.client.get("/bandeja")
+    # El título del pedido aparece, no el código técnico como título.
+    assert "Crónica de la muestra" in bandeja.text
+    detalle = mundo.client.get("/solicitudes/web-0000")
+    assert "<h1" in detalle.text
+    assert detalle.text.index("Crónica de la muestra") < detalle.text.index(
+        "web-0000"
+    )
+
+
+def test_difusion_usa_titulo_del_catalogo(mundo: Mundo) -> None:
+    _ingresar(mundo.client)
+    csrf = _csrf_de(mundo)
+    mundo.client.post(
+        "/nuevo-pedido",
+        data={
+            "csrf": csrf,
+            "llave": "l8",
+            "tipo": "difusion_de_actividad",
+            "actividad": "SYN-001",
+            "publicos": "alumnos_ingenieria",
+        },
+        follow_redirects=False,
+    )
+    bandeja = mundo.client.get("/bandeja")
+    # El título institucional de la actividad, no el id técnico.
+    assert "Taller" in bandeja.text
+
+
+# ---------- prueba 9 del ADR 0016: los logs no llevan token ni prosa ----------
+
+
+def test_logs_sin_token_ni_prosa(
+    mundo: Mundo, caplog, tmp_path
+) -> None:
+    """Ni el token del ingreso ni la prosa del pedido aparecen en los logs
+    de la app ni del worker (prueba 9, con marcadores sintéticos)."""
+    import logging
+
+    from agente1.web.persistencia import TrabajoWeb
+    from agente1.web.worker import correr_una_vez
+
+    prosa_marcada = "PROSA-MARCADA-" + "p" * 8
+    with caplog.at_level(logging.DEBUG):
+        _ingresar(mundo.client)  # el token "tok-seu" viaja en el POST
+        csrf = _csrf_de(mundo)
+        mundo.client.post(
+            "/nuevo-pedido",
+            data={
+                "csrf": csrf,
+                "llave": "l9",
+                "tipo": "cronica_de_evento",
+                "campo_titulo": "Título",
+                "campo_cuerpo": prosa_marcada,
+            },
+            follow_redirects=False,
+        )
+
+        # El worker corre sobre un repo fake con la prosa marcada y una
+        # generación que falla: sus líneas tampoco la llevan.
+        class RepoFalla:
+            def __init__(self) -> None:
+                self.trabajo = TrabajoWeb(
+                    id_ejecucion="e1",
+                    id_solicitud="web-1",
+                    tipo_pieza="cronica_de_evento",
+                    actividad_ref=None,
+                    rol="coordinador_seu",
+                    solicitante_hash="ab" * 32,
+                    descripcion=prosa_marcada,
+                    campos={"pieza": {"titulo": "T", "cuerpo": prosa_marcada}},
+                    intentos=3,
+                )
+
+            def tomar_trabajo(self, **_kw):
+                trabajo, self.trabajo = self.trabajo, None
+                return trabajo
+
+            def fallar_trabajo(self, **_kw):
+                pass
+
+            def completar_trabajo(self, **_kw):
+                raise AssertionError("no debía completarse")
+
+        class FuenteVacia:
+            def obtener(self, id_actividad):
+                raise KeyError(id_actividad)
+
+            def enumerar(self):
+                return []
+
+        class GeneradorRoto:
+            modelo = "fake-roto"
+
+            def generate(self, prompt: str, num_predict: int = 0) -> str:
+                raise RuntimeError("caída sintética")
+
+        class DestinoVacio:
+            def buscar_o_crear(self, **_kw):
+                raise RuntimeError("sin destino")
+
+        correr_una_vez(
+            repositorio=RepoFalla(),
+            worker_id="w-test",
+            fuente=FuenteVacia(),
+            generator=GeneradorRoto(),
+            directorio_salida=tmp_path,
+            destino=DestinoVacio(),
+            max_intentos=3,
+        )
+
+    registro = "\n".join(r.getMessage() for r in caplog.records)
+    assert "tok-seu" not in registro
+    assert prosa_marcada not in registro

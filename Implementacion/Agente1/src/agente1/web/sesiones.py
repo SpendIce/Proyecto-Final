@@ -6,6 +6,22 @@ vida como máximo; si el proceso se reinicia, todas las sesiones se pierden
 y la persona vuelve a ingresar. Guarda el `sub` de Google, el correo (para
 volver a resolver el rol contra el padrón en cada request), el rol vigente
 y el token CSRF. Nunca guarda el ID token.
+
+Decisiones que no se ven en el código:
+
+- **Sólo memoria es la decisión, no una limitación** (ADR 0016): una
+  sesión durable en la base obligaría a purgarla, auditarla y respaldarla
+  — más superficie para guardar lo mismo que el navegador ya pide de
+  nuevo en un minuto. Perderlas todas con un reinicio es aceptable: el
+  login es un clic de Google, no un trámite.
+- **El rol vive en la sesión pero no manda**: se guarda para mostrar la
+  interfaz coherente, y la autorización lo vuelve a resolver contra el
+  padrón en cada request. Si el padrón cambia el rol a mitad de sesión,
+  el próximo request ve el rol nuevo — nunca el que quedó guardado.
+- **El ID token no se guarda**: una vez verificado, la sesión conserva
+  `sub` y correo para reconocer a la persona. El token es una credencial
+  efímera de Google; retenerlo no compra nada y lo convierte en secreto
+  que proteger.
 """
 
 from __future__ import annotations

@@ -261,10 +261,13 @@ def _pasos_diarios(
 
             pasos.append(PasoDiario("purga", correr_purga))
 
-    # Purga del canal web (ADR 0016): existe cuando el entorno declara el
-    # DSN de la base y el script está en el checkout. Comparte el flag con
-    # la purga de confirmaciones: si alguna falla, el respaldo del día no
-    # corre, porque el artefacto no puede llevar prosa vencida.
+    # Purga del canal web (ADR 0016): existe cuando el entorno declara
+    # ambos DSN — el de la app para vencer y el de mantenimiento para
+    # purgar y aspirar— y el script está en el checkout. Sin base
+    # configurada viaja en `pasos_declarados` y se asienta `pendiente`,
+    # como los otros pasos opt-in. Comparte el flag con la purga de
+    # confirmaciones: si alguna falla, el respaldo del día no corre,
+    # porque el artefacto no puede llevar prosa vencida.
     script_purga_web = (
         config.repo
         / "Implementacion"
@@ -272,7 +275,13 @@ def _pasos_diarios(
         / "scripts"
         / "purgar_canal_web.py"
     )
-    if env.get("AGENTE1_POSTGRES_DSN") and script_purga_web.is_file():
+    purga_web_configurada = (
+        script_purga_web.is_file()
+        and bool(env.get("AGENTE1_POSTGRES_DSN"))
+        and bool(env.get("AGENTE1_POSTGRES_DSN_MANTENIMIENTO"))
+    )
+    declarados: list[str] = []
+    if purga_web_configurada:
 
         def correr_purga_web() -> None:
             resultado = subprocess.run(
@@ -290,6 +299,8 @@ def _pasos_diarios(
                 raise RuntimeError("purga_canal_web_error")
 
         pasos.append(PasoDiario("purga_canal_web", correr_purga_web))
+    elif script_purga_web.is_file():
+        declarados.append("purga_canal_web")
 
     script_respaldo = (
         config.repo
@@ -302,7 +313,7 @@ def _pasos_diarios(
         clave.startswith(_PREFIJO_RESPALDO) for clave in env
     )
     if not respaldo_configurado:
-        return pasos, ("respaldo",)
+        return pasos, tuple(declarados + ["respaldo"])
 
     def correr_respaldo() -> None:
         # Mismo patrón que la purga: subproceso con el entorno heredado
@@ -332,7 +343,7 @@ def _pasos_diarios(
             raise RuntimeError("respaldo_diario_error")
 
     pasos.append(PasoDiario("respaldo", correr_respaldo))
-    return pasos, ()
+    return pasos, tuple(declarados)
 
 
 def _parsear_ahora(texto: str) -> datetime:

@@ -42,6 +42,25 @@ LABEL org.opencontainers.image.source="https://github.com/SpendIce/Proyecto-Fina
       org.opencontainers.image.description="Agente 1 (Extensión Bot) del P100: borradores con validación humana" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
+# Cliente de PostgreSQL en la misma versión mayor que la imagen `postgres`
+# del stack (16): el respaldo diario corre `pg_dump`/`psql` del canal web
+# (ADR 0016) y el `pg_dump` exige no ser más viejo que el servidor. La
+# imagen base es Debian y su `postgresql-client` queda atrás, así que el
+# paquete sale del repo oficial de PostgreSQL (PGDG).
+RUN set -eux; \
+    . /etc/os-release; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends wget ca-certificates gnupg; \
+    install -d /usr/share/postgresql-common/pgdg; \
+    wget -qO /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+        https://www.postgresql.org/media/keys/ACCC4CF8.asc; \
+    echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends postgresql-client-16; \
+    apt-get purge -y wget gnupg; \
+    apt-get autoremove -y; \
+    rm -rf /var/lib/apt/lists/*
 # Sin `.git` en la imagen: el commit del tag viaja en el entorno para la
 # evidencia de las corridas (`corrida_unica.py`).
 ENV AGENTE1_REVISION=${REVISION}

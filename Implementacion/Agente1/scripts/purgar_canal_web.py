@@ -2,16 +2,24 @@
 """Purga diaria del canal web (ADR 0016, issue #149).
 
 El paso de retención mínima que el scheduler corre una vez por día, antes
-del respaldo: vence las solicitudes sin actividad por la ventana (30 días)
-y vacía la prosa transitoria de las solicitudes cerradas — el texto queda
-en NULL, conservando clase, hash y marcas. Después corre el VACUUM de la
-tabla, con el rol de mantenimiento.
+del respaldo, con el reparto de roles de la migración 0005:
+
+1. `agente1_app` vence: pasa a `VENCIDA` toda solicitud abierta sin
+   actividad por la ventana (30 días). Es el rol que sirve la app y el
+   único que escribe el ciclo de vida.
+2. `agente1_mantenimiento` purga y vacía: pone en NULL la prosa
+   transitoria de toda solicitud cerrada —conservando clase, hash y
+   marcas— y corre el VACUUM de la tabla, del que es dueña.
+
+Sin el DSN de mantenimiento el paso falla cerrado: una purga que corre
+con el rol de la app podría tocar el contenido que la retención ya cerró,
+que es justo lo que el reparto evita.
 
 Entorno:
 
-- `AGENTE1_POSTGRES_DSN` (obligatoria): conexión del paso; en producción
-  debe apuntar al rol `agente1_mantenimiento`, dueño de la tabla de prosa,
-  para que el VACUUM corra con mínimo privilegio.
+- `AGENTE1_POSTGRES_DSN` (obligatoria): conexión como `agente1_app`.
+- `AGENTE1_POSTGRES_DSN_MANTENIMIENTO` (obligatoria): conexión como
+  `agente1_mantenimiento`.
 
 Uso:
 
@@ -39,6 +47,12 @@ from agente1.web.persistencia import (  # noqa: E402
 )
 
 
+def _invalida(code: str) -> int:
+    print(json.dumps({"status": "INVALID", "error_code": code},
+                     sort_keys=True))
+    return 2
+
+
 def main(
     argv: list[str] | None = None,
     *,
@@ -58,38 +72,36 @@ def main(
     args = parser.parse_args(argv)
     entorno = environ if environ is not None else os.environ
 
-    dsn = entorno.get("AGENTE1_POSTGRES_DSN")
-    if not dsn:
-        print(json.dumps(
-            {"status": "INVALID", "error_code": "purga_dsn_ausente"},
-            sort_keys=True,
-        ))
-        return 2
+    dsn_app = entorno.get("AGENTE1_POSTGRES_DSN")
+    dsn_mantenimiento = entorno.get("AGENTE1_POSTGRES_DSN_MANTENIMIENTO")
+    if not dsn_app or not dsn_mantenimiento:
+        return _invalida("purga_dsn_ausente")
     ahora = None
     if args.ahora is not None:
         ahora = datetime.fromisoformat(args.ahora.replace("Z", "+00:00"))
         if ahora.tzinfo is None:
-            print(json.dumps(
-                {"status": "INVALID", "error_code": "purga_ahora_invalid"},
-                sort_keys=True,
-            ))
-            return 2
+            return _invalida("purga_ahora_invalid")
 
-    repositorio = RepositorioWeb(functools.partial(conectar, dsn))
-    resultado = repositorio.vencer_y_purgar(
+    repositorio_app = RepositorioWeb(functools.partial(conectar, dsn_app))
+    vencidas = repositorio_app.vencer_solicitudes(
         ahora=ahora, ventana_dias=args.ventana_dias
     )
+
+    repositorio_mantenimiento = RepositorioWeb(
+        functools.partial(conectar, dsn_mantenimiento)
+    )
+    purgadas = repositorio_mantenimiento.purgar_prosa(ahora=ahora)
     vacuum = False
     if not args.sin_vacuum:
-        RepositorioWeb.vaciar_prosa(dsn)
+        RepositorioWeb.vaciar_prosa(dsn_mantenimiento)
         vacuum = True
 
     print(
         json.dumps(
             {
                 "status": "OK",
-                "vencidas": resultado.vencidas,
-                "purgadas": resultado.purgadas,
+                "vencidas": vencidas,
+                "purgadas": purgadas,
                 "vacuum": vacuum,
             },
             sort_keys=True,

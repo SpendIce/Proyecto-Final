@@ -331,8 +331,10 @@ def test_purga_diaria_invoca_el_script_real(tmp_path: Path, capsys) -> None:
 
     salida = json.loads(capsys.readouterr().out)
     assert codigo == 0
+    # Sin DSN del canal la purga web queda declarada, como el respaldo.
     assert salida["mantenimiento"] == {
         "purga": "completada",
+        "purga_canal_web": "pendiente",
         "respaldo": "pendiente",
     }
     # El propio log de la purga (#87) quedó asentado bajo el directorio.
@@ -350,8 +352,11 @@ def test_sin_registro_de_confirmaciones_no_hay_purga(tmp_path: Path, capsys) -> 
 
     salida = json.loads(capsys.readouterr().out)
     assert codigo == 0
-    # Sin registro configurado el slot sólo declara el paso futuro.
-    assert salida["mantenimiento"] == {"respaldo": "pendiente"}
+    # Sin registro configurado el slot sólo declara los pasos futuros.
+    assert salida["mantenimiento"] == {
+        "purga_canal_web": "pendiente",
+        "respaldo": "pendiente",
+    }
 
 
 def test_lock_de_archivo_presente_en_el_directorio(tmp_path: Path, capsys) -> None:

@@ -1102,6 +1102,34 @@ class ResultadoRestauracion:
     audit_path: Path
 
 
+def entorno_libpq(dsn: str) -> dict[str, str]:
+    """Entorno libpq del subproceso `pg_dump`/`psql` a partir del DSN.
+
+    El DSN llega con la credencial embebida; el subproceso nunca la recibe
+    por argv —visible en la tabla de procesos— sino por las variables
+    `PG*` de su entorno, que no viajan por línea de comandos. `options`
+    (el `search_path` del esquema desechable) vuelve a `PGOPTIONS`.
+    """
+    from psycopg.conninfo import conninfo_to_dict
+
+    partes = conninfo_to_dict(dsn)
+    entorno: dict[str, str] = {}
+    mapa = {
+        "host": "PGHOST",
+        "port": "PGPORT",
+        "user": "PGUSER",
+        "password": "PGPASSWORD",
+        "dbname": "PGDATABASE",
+        "options": "PGOPTIONS",
+        "sslmode": "PGSSLMODE",
+    }
+    for clave, variable in mapa.items():
+        valor = partes.get(clave)
+        if valor:
+            entorno[variable] = str(valor)
+    return entorno
+
+
 def _restaurar_postgres_si_hay(
     dump: bytes | None, postgres_dsn: str | None
 ) -> bool:
@@ -1110,7 +1138,10 @@ def _restaurar_postgres_si_hay(
     Un artefacto con miembro `postgres/` y sin DSN declarado aborta la
     restauración entera antes de tocar la base: el operador decide dónde
     vuelca. El `psql` corre con `ON_ERROR_STOP` y el dump en un temporal
-    `0600` que se borra siempre.
+    `0600` que se borra siempre; el volcado del día se genera con
+    `--clean --if-exists`, así que la restauración reemplaza el esquema
+    declarado en vez de sumarle filas — es determinística sobre la base
+    que el operador indique.
     """
     if dump is None:
         return False
@@ -1131,10 +1162,10 @@ def _restaurar_postgres_si_hay(
     try:
         os.chmod(nombre_tmp, 0o600)
         proceso = subprocess.run(
-            [psql, postgres_dsn, "-X", "-q",
-             "-v", "ON_ERROR_STOP=1", "-f", nombre_tmp],
+            [psql, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", nombre_tmp],
             capture_output=True,
             text=True,
+            env={**os.environ, **entorno_libpq(postgres_dsn)},
         )
         if proceso.returncode != 0:
             raise RespaldoDiarioError(

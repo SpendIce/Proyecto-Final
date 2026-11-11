@@ -6,18 +6,25 @@ entorno; el repositorio no guarda client IDs, dominios ni credenciales:
 
 - `AGENTE1_POSTGRES_DSN` (obligatoria): DSN de la base con las
   migraciones 0004+ aplicadas; en producción conecta como `agente1_app`.
-- `AGENTE1_WEB_GOOGLE_CLIENT_ID` (obligatoria salvo modo prueba): el
-  client ID que DSI entrega (#62).
-- `AGENTE1_WEB_DOMINIO`: dominio `hd` institucional exigido al token.
+- `AGENTE1_WEB_GOOGLE_CLIENT_ID` (obligatoria en modo real): el client
+  ID que DSI entrega (#62). Declarado junto a `AGENTE1_WEB_MODO_PRUEBA=si`
+  es un fallo de arranque: el modo prueba no convive con un client ID.
+- `AGENTE1_WEB_DOMINIO` (obligatoria en modo real): dominio `hd`
+  institucional exigido al token. Sin dominio el canal cierra el
+  arranque, porque `hd` es el único límite de la cuenta.
 - `AGENTE1_PADRON_ROLES_CSV` (obligatoria): padrón de roles (ADR 0005).
 - `AGENTE1_TABLA` (obligatoria): CSV de actividades de la fuente, para el
   select condicional del pedido.
 - `AGENTE1_WEB_MODO_PRUEBA=si`: verificador fake sin Google — el token
   `prueba:<correo>` ingresa con ese correo sintético. Sólo desarrollo y
-  evidencia; nunca en producción.
+  evidencia: el arranque se niega si corre con cookie `Secure`, con host
+  que no sea loopback o dentro del contenedor (`AGENTE1_CONTENEDOR=si`,
+  que declara el compose).
 - `AGENTE1_WEB_COOKIE_SECURE=no`: permite probar por HTTP local. Default
   `si`, como exige la cookie `Secure` del diseño.
 - `AGENTE1_WEB_HOST` / `AGENTE1_WEB_PORT`: escucha (default 127.0.0.1:8080).
+- `AGENTE1_WEB_CORREOS_PRUEBA`: correos sintéticos habilitados por el
+  verificador fake, separados por coma (`a@example.invalid,b@…`).
 
 Uso:
 
@@ -70,7 +77,12 @@ def main(
 
     from agente1.canal_form import cargar_padron_roles_csv
     from agente1.fuentes import CsvFuenteSolicitudes
-    from agente1.web.app import ConfiguracionWeb, crear_app
+    from agente1.web.app import (
+        CLIENT_ID_PRUEBA,
+        ConfiguracionInvalida,
+        ConfiguracionWeb,
+        crear_app,
+    )
     from agente1.web.persistencia import RepositorioWeb, conectar
 
     modo_prueba = entorno.get("AGENTE1_WEB_MODO_PRUEBA", "").lower() == "si"
@@ -80,31 +92,33 @@ def main(
             VerificadorFake,
         )
 
-        def _verificador_prueba() -> VerificadorFake:
-            identidades = {}
-            for correo in entorno.get(
-                "AGENTE1_WEB_CORREOS_PRUEBA", ""
-            ).split(","):
-                correo = correo.strip()
-                if correo:
-                    identidades[f"prueba:{correo}"] = IdentidadVerificada(
-                        sub=f"prueba-sub-{correo}", correo=correo, hd=None
-                    )
-            return VerificadorFake(identidades)
-
-        verificador = _verificador_prueba()
-        client_id = entorno.get(
-            "AGENTE1_WEB_GOOGLE_CLIENT_ID", "modo-prueba"
+        identidades = {}
+        for correo in entorno.get(
+            "AGENTE1_WEB_CORREOS_PRUEBA", ""
+        ).split(","):
+            correo = correo.strip()
+            if correo:
+                identidades[f"prueba:{correo}"] = IdentidadVerificada(
+                    sub=f"prueba-sub-{correo}", correo=correo, hd=None
+                )
+        verificador = VerificadorFake(identidades)
+        # Si el entorno declara un client ID de Google a la vez que el
+        # modo prueba, la config llega con él y `validar_configuracion`
+        # cierra el arranque: el modo prueba no convive con un client ID.
+        client_id = (
+            entorno.get("AGENTE1_WEB_GOOGLE_CLIENT_ID") or CLIENT_ID_PRUEBA
         )
     else:
         from agente1.web.identidad import VerificadorGoogle
 
         client_id = entorno.get("AGENTE1_WEB_GOOGLE_CLIENT_ID")
+        dominio = entorno.get("AGENTE1_WEB_DOMINIO")
         if not client_id:
             return _invalida("web_google_client_id_ausente")
+        if not dominio:
+            return _invalida("web_dominio_ausente")
         verificador = VerificadorGoogle(
-            client_id=client_id,
-            dominio=entorno.get("AGENTE1_WEB_DOMINIO") or None,
+            client_id=client_id, dominio=dominio
         )
 
     try:
@@ -116,6 +130,7 @@ def main(
     except Exception:
         return _invalida("web_fuente_invalid")
 
+    host = args.host or entorno.get("AGENTE1_WEB_HOST", "127.0.0.1")
     config = ConfiguracionWeb(
         google_client_id=client_id,
         dominio_hd=entorno.get("AGENTE1_WEB_DOMINIO") or None,
@@ -123,13 +138,20 @@ def main(
         cookie_secure=entorno.get("AGENTE1_WEB_COOKIE_SECURE", "si") != "no",
     )
     repositorio = RepositorioWeb(functools.partial(conectar, dsn))
-    app = crear_app(
-        config=config,
-        verificador=verificador,
-        padron=padron,
-        repositorio=repositorio,
-        actividades=actividades,
-    )
+    try:
+        app = crear_app(
+            config=config,
+            verificador=verificador,
+            padron=padron,
+            repositorio=repositorio,
+            actividades=actividades,
+            host=host,
+            en_contenedor=(
+                entorno.get("AGENTE1_CONTENEDOR", "").lower() == "si"
+            ),
+        )
+    except ConfiguracionInvalida:
+        return _invalida("web_config_insegura")
     if args.una_ruta:
         print('{"status": "OK"}')
         return 0
@@ -138,7 +160,7 @@ def main(
 
     uvicorn.run(
         app,
-        host=args.host or entorno.get("AGENTE1_WEB_HOST", "127.0.0.1"),
+        host=host,
         port=args.port or int(entorno.get("AGENTE1_WEB_PORT", "8080")),
         log_level="warning",
     )

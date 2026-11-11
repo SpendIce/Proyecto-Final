@@ -381,6 +381,17 @@ def _padron_areas() -> dict[str, dict[str, str]]:
     return areas_resueltas
 
 
+def areas_emisoras() -> dict[str, str]:
+    """Padrón de áreas emisoras como `id -> nombre`, para la interfaz.
+
+    Es la lectura pública del mismo padrón que usa el canal Form: la web
+    (#149) arma su select de acá y valida contra la misma lista cerrada,
+    en vez de cargar el contrato por su cuenta.
+    """
+
+    return {id_area: area["nombre"] for id_area, area in _padron_areas().items()}
+
+
 def firma_de_area(id_area: str) -> str | None:
     """Firma institucional de área de la pieza, o `None` fuera del padrón.
 
@@ -436,6 +447,19 @@ def _padron_publicos() -> dict[str, dict[str, str]]:
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
         raise CanalFormError("canal_form_publicos_padron_invalido") from None
     return resueltos
+
+
+def publicos_destinatarios() -> dict[str, str]:
+    """Catálogo de públicos destinatarios como `id -> nombre` (#154).
+
+    Misma lectura pública que `areas_emisoras`: la web arma sus opciones
+    de acá y valida contra la misma lista cerrada que el canal Form.
+    """
+
+    return {
+        id_publico: publico["nombre"]
+        for id_publico, publico in _padron_publicos().items()
+    }
 
 
 def nombre_de_publico(id_publico: str) -> str | None:

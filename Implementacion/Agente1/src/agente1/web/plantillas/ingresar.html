@@ -11,6 +11,7 @@
   {% if error %}<p class="mensaje-error" role="alert">{{ error }}</p>{% endif %}
   {% if config.modo_prueba %}
   <form method="post" action="/ingresar" class="formulario">
+    <input type="hidden" name="csrf" value="{{ csrf_login }}">
     <label for="credential">Token de prueba (modo sin Google)</label>
     <input id="credential" name="credential" type="text" autocomplete="off">
     <button class="boton-primario" type="submit">Ingresar</button>

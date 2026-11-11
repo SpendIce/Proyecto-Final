@@ -311,6 +311,7 @@ def test_scheduler_corre_purga_y_respaldo_en_orden(
     assert salida["resultado"] == "completada"
     assert salida["mantenimiento"] == {
         "purga": "completada",
+        "purga_canal_web": "pendiente",
         "respaldo": "completada",
     }
     # El artefacto del día quedó en la carpeta fake: el mecanismo real del
@@ -340,6 +341,7 @@ def test_scheduler_respaldo_falla_no_detiene_la_corrida(
     assert salida["resultado"] == "completada"
     assert salida["mantenimiento"] == {
         "purga": "completada",
+        "purga_canal_web": "pendiente",
         "respaldo": "falla",
     }
     # La corrida hizo lo suyo igual: la fila quedó escrita.
@@ -364,7 +366,11 @@ def test_scheduler_respaldo_falla_si_la_purga_fallo(tmp_path: Path, capsys) -> N
 
     salida = json.loads(capsys.readouterr().out)
     assert codigo == 0
-    assert salida["mantenimiento"] == {"purga": "falla", "respaldo": "falla"}
+    assert salida["mantenimiento"] == {
+        "purga": "falla",
+        "purga_canal_web": "pendiente",
+        "respaldo": "falla",
+    }
     # Y no se subió ningún artefacto.
     assert not list(carpeta.glob("*.tar.gz"))
 
@@ -390,6 +396,7 @@ def test_scheduler_sin_carpeta_respaldo_queda_pendiente(
     assert codigo == 0
     assert salida["mantenimiento"] == {
         "purga": "completada",
+        "purga_canal_web": "pendiente",
         "respaldo": "pendiente",
     }
 

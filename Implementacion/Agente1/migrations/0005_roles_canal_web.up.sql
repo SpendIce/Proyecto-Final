@@ -1,8 +1,9 @@
--- Roles del canal web (ADR 0016): `agente1_app` corre la web y el worker
--- con mínimo privilegio (escribe estado, inserta auditoría, nunca la toca);
--- `agente1_mantenimiento` corre la purga diaria y el VACUUM de la prosa
--- transitoria. Las claves no viajan en la migración: las asigna quien
--- despliega, por variables de entorno o secrets del stack.
+-- Roles del canal web (ADR 0016): `agente1_app` corre la web, el worker
+-- y el vencimiento de solicitudes con mínimo privilegio (escribe estado,
+-- inserta auditoría, nunca la toca ni vacía prosa); `agente1_mantenimiento`
+-- corre la purga diaria de la prosa y su VACUUM. Las claves no viajan en
+-- la migración: las asigna quien despliega, por variables de entorno o
+-- secrets del stack.
 BEGIN;
 
 DO $$
@@ -19,23 +20,43 @@ $$;
 -- La aplicación lee y escribe el estado operativo de las tablas del
 -- agente. Sobre la auditoría sólo puede insertar: no UPDATE ni DELETE,
 -- para que una aplicación comprometida no pueda retocar la trazabilidad.
+-- Sobre la prosa transitoria lee e inserta (crear la solicitud la siembra,
+-- completar el trabajo guarda el generado): el UPDATE que la vacía es de
+-- la purga, no suyo.
 GRANT SELECT, INSERT, UPDATE, DELETE
     ON solicitudes, ejecuciones, borradores, defectos
     TO agente1_app;
 GRANT SELECT, INSERT ON validaciones TO agente1_app;
 GRANT SELECT, INSERT ON eventos_ejecucion TO agente1_app;
-GRANT SELECT, INSERT, UPDATE ON prosa_transitoria TO agente1_app;
+GRANT SELECT, INSERT ON prosa_transitoria TO agente1_app;
 GRANT USAGE ON SEQUENCE
     eventos_ejecucion_secuencia_seq,
     prosa_transitoria_secuencia_seq
     TO agente1_app;
 
--- El mantenimiento lee todo el estado, vacía la prosa transitoria y la
--- mantiene como dueño de tabla para que el VACUUM diario corra con su rol
--- (PostgreSQL exige ser dueño o superusuario para aspirar una tabla).
+-- El respaldo diario corre `pg_dump` con el DSN de la app y el volcado
+-- lee `last_value` de cada secuencia del esquema — USAGE no alcanza.
+-- El esquema lo decide el despliegue (la migración corre adentro de él),
+-- así que el grant va por `current_schema`.
+DO $$
+BEGIN
+    EXECUTE format(
+        'GRANT SELECT ON ALL SEQUENCES IN SCHEMA %I TO agente1_app',
+        current_schema()
+    );
+END
+$$;
+
+-- El mantenimiento lee todo el estado, vacía la prosa transitoria como
+-- dueño de la tabla (PostgreSQL exige ser dueño o superusuario para
+-- aspirarla) y asienta el evento `prosa_purgada` por solicitud en la
+-- auditoría de ejecuciones —sólo inserta, no toca lo asentado—. Nunca
+-- escribe el ciclo de vida de la solicitud.
 GRANT SELECT
-    ON solicitudes, ejecuciones, borradores, validaciones, defectos,
-       eventos_ejecucion
+    ON solicitudes, ejecuciones, borradores, validaciones, defectos
+    TO agente1_mantenimiento;
+GRANT SELECT, INSERT ON eventos_ejecucion TO agente1_mantenimiento;
+GRANT USAGE ON SEQUENCE eventos_ejecucion_secuencia_seq
     TO agente1_mantenimiento;
 ALTER TABLE prosa_transitoria OWNER TO agente1_mantenimiento;
 

@@ -1,20 +1,48 @@
 """Aplicación web del canal del Agente 1 (issue #149).
 
-HTML servido por FastAPI + Jinja2, del mismo origen: sin SPA ni build de
-frontend. JavaScript mínimo: el botón de Google Identity Services y el
+HTML servido por FastAPI + Jinja2, del mismo origen: sin SPA ni
+empaquetado de JavaScript. Lo que corre en el navegador es mínimo: el
+botón de Google Identity Services y el
 polling del estado «generando». Seguridad del diseño §3 y ADR 0014: el ID
 token se verifica en el servidor, la sesión vive sólo en memoria, toda
 escritura exige CSRF y el rol se resuelve contra el padrón en cada request;
 nunca se acepta rol ni correo enviados por el navegador.
+
+Decisiones que no se ven en el código:
+
+- **La bandeja la ve todo el padrón SEU; crear pide rol habilitado**
+  (definición del 11/11/2026). `autorizar` sólo exige sesión viva más rol
+  vigente del padrón; el gate de `ROLES_HABILITADOS` vive en el pedido
+  guiado, que es donde nace la solicitud.
+- **La entrada principal es «Nuevo pedido»** (ajuste del 04/11): `/` y el
+  retorno del login apuntan ahí cuando el rol puede pedir; el resto del
+  padrón aterriza en la bandeja, que es lo suyo.
+- **El CSRF del login no es el de la sesión** (todavía no hay sesión):
+  en modo real se valida el double-submit `g_csrf_token` que pone Google
+  Identity Services —cookie contra campo del formulario—; en modo prueba
+  el formulario lleva un `a1_login_csrf` propio, misma doctrina.
+- **La configuración se valida al construir la app**: modo real exige
+  client ID y dominio `hd`; modo prueba se niega a correr con cookie
+  `Secure` — una cookie segura jamás llega por HTTP de desarrollo, así
+  que un modo prueba «seguro» sólo puede ser un despliegue mal armado.
+- **La validación del pedido sale de los contratos**, no de una lista
+  propia: cada tipo declara en su contrato de entrada si usa área emisora,
+  firma de área y qué campos pide, y en el catálogo de tipos si pide
+  públicos. El formulario no ofrece ni exige lo que el tipo no usa, y el
+  servidor vuelve a validarlo todo.
+- **El hash del solicitante es hash del correo** (ADR 0016), igual que el
+  resto de la auditoría del sistema: el `sub` de Google queda en la
+  sesión en memoria, nunca en la base.
 """
 
 from __future__ import annotations
 
-import json
+import hashlib
+import hmac
+import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +51,11 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from ..canal_form import PadronRoles
+from ..canal_form import (
+    PadronRoles,
+    areas_emisoras,
+    publicos_destinatarios,
+)
 from ..gacetillas import (
     cargar_entrada,
     requiere_actividad,
@@ -40,6 +72,8 @@ from .persistencia import (
 from .sesiones import Sesion, SesionesMemoria
 
 _COOKIE = "a1_sesion"
+_COOKIE_CSRF_LOGIN = "a1_login_csrf"
+_COOKIE_CSRF_GIS = "g_csrf_token"
 _ESTADOS_VISIBLES = {
     "EN_COLA": "En cola",
     "GENERANDO": "Generando",
@@ -59,11 +93,22 @@ _NOMBRES_TIPOS = {
     "newsletter": "Newsletter",
 }
 _CAMPOS_AREA = {"cuerpo", "hecho", "condicion", "requisitos", "convocatoria"}
+_HOSTS_LOCALES = frozenset({"127.0.0.1", "localhost"})
+CLIENT_ID_PRUEBA = "modo-prueba"
+
+
+class ConfiguracionInvalida(ValueError):
+    """La configuración declarada no puede servir el canal con seguridad."""
 
 
 @dataclass(frozen=True)
 class ConfiguracionWeb:
-    """Config declarada por entorno: nada institucional queda en el repo."""
+    """Config declarada por entorno: nada institucional queda en el repo.
+
+    `google_client_id` y `dominio_hd` los entrega DSI (#62): en modo real
+    son obligatorios los dos — sin dominio no hay `hd` que exigir y el
+    diseño §3 lo hace cerrar en vez de dejar pasar cualquier cuenta.
+    """
 
     google_client_id: str
     dominio_hd: str | None = None
@@ -78,50 +123,93 @@ class PedidoInvalido(ValueError):
         super().__init__(code)
 
 
-def _catalogo_areas() -> dict[str, str]:
-    contrato = json.loads(
-        files("agente1")
-        .joinpath("contracts", "areas_emisoras_v2.json")
-        .read_text(encoding="utf-8")
-    )
-    return {str(a["id"]): str(a["nombre"]) for a in contrato["areas"]}
+def validar_configuracion(
+    config: ConfiguracionWeb,
+    *,
+    host: str | None = None,
+    en_contenedor: bool = False,
+) -> None:
+    """Cierra el arranque cuando la combinación declarada es insegura.
 
+    Modo real: exige client ID y dominio `hd` — sin ellos no hay nada que
+    verificar del token y el canal quedaría abierto a cualquiera.
 
-def _catalogo_publicos() -> dict[str, str]:
-    contrato = json.loads(
-        files("agente1")
-        .joinpath("contracts", "publicos_destinatarios_v1.json")
-        .read_text(encoding="utf-8")
-    )
-    return {str(p["id"]): str(p["nombre"]) for p in contrato["publicos"]}
-
-
-def _campos_por_tipo() -> dict[str, list[dict[str, Any]]]:
-    """Campos del formulario por tipo, desde los contratos de entrada.
-
-    `area_emisora` y `firma_de_area` salen del formulario aparte (el área
-    es un select de catálogo y la firma una opción separada), así que no se
-    repiten como inputs libres.
+    Modo prueba: es un verificador fake que acepta tokens inventados, así
+    que se niega a arrancar si hay cualquier señal de un despliegue real:
+    un client ID de Google configurado, cookie `Secure` (imposible por el
+    HTTP local donde el modo sirve), un host que no sea loopback o el
+    entrypoint del contenedor. Cualquiera de esas marcas significa que el
+    modo prueba llegó a un lugar donde nunca debió estar.
     """
-    resultado: dict[str, list[dict[str, Any]]] = {}
-    for tipo in tipos():
-        if tipo == "difusion_de_actividad":
-            resultado[tipo] = []
-            continue
-        entrada = cargar_entrada(tipo)
-        requeridos = set(entrada["required"])
-        campos = []
-        for nombre, prop in entrada.get("properties", {}).items():
-            if nombre in ("area_emisora", "firma_de_area"):
-                continue
-            campos.append(
-                {
-                    "nombre": nombre,
-                    "requerido": nombre in requeridos,
-                    "area": nombre in _CAMPOS_AREA,
-                }
+    if config.modo_prueba:
+        if config.google_client_id != CLIENT_ID_PRUEBA:
+            raise ConfiguracionInvalida(
+                "modo_prueba con client ID de Google configurado"
             )
-        resultado[tipo] = campos
+        if config.cookie_secure:
+            raise ConfiguracionInvalida(
+                "modo_prueba con cookie Secure exige HTTP local"
+            )
+        if host is not None and host not in _HOSTS_LOCALES:
+            raise ConfiguracionInvalida(
+                f"modo_prueba fuera de loopback: {host}"
+            )
+        if en_contenedor:
+            raise ConfiguracionInvalida(
+                "modo_prueba dentro del contenedor de despliegue"
+            )
+        return
+    if not config.google_client_id:
+        raise ConfiguracionInvalida("modo real sin client ID de Google")
+    if not config.dominio_hd:
+        raise ConfiguracionInvalida("modo real sin dominio institucional")
+
+
+def _campos_por_tipo() -> dict[str, dict[str, Any]]:
+    """Ficha del formulario por tipo, derivada de los contratos de entrada.
+
+    Para cada tipo declara si el contrato usa área emisora y firma de área
+    (los pide el formulario como select de padrón y opción separada, no
+    como inputs libres) y la lista de campos que sí son texto. Si el
+    contrato del tipo no carga, el tipo queda marcado `disponible=False` y
+    la interfaz lo muestra «todavía no disponible»: no se inventa un
+    formulario para un tipo sin contrato.
+    """
+    resultado: dict[str, dict[str, Any]] = {}
+    for tipo in tipos():
+        ficha: dict[str, Any] = {
+            "disponible": True,
+            "usa_area": False,
+            "usa_firma": False,
+            "campos": [],
+        }
+        try:
+            entrada = cargar_entrada(tipo)
+        except Exception:
+            ficha["disponible"] = False
+            resultado[tipo] = ficha
+            continue
+        propiedades = entrada.get("properties", {})
+        requeridos = set(entrada["required"])
+        ficha["usa_area"] = "area_emisora" in propiedades
+        ficha["usa_firma"] = "firma_de_area" in propiedades
+        campos = []
+        if not requiere_actividad(tipo):
+            # Con ficha de actividad el contrato se llena de la fuente
+            # institucional, no del formulario: la persona sólo elige la
+            # actividad y sus datos se muestran de sólo lectura.
+            for nombre in propiedades:
+                if nombre in ("area_emisora", "firma_de_area"):
+                    continue
+                campos.append(
+                    {
+                        "nombre": nombre,
+                        "requerido": nombre in requeridos,
+                        "area": nombre in _CAMPOS_AREA,
+                    }
+                )
+        ficha["campos"] = campos
+        resultado[tipo] = ficha
     return resultado
 
 
@@ -133,19 +221,27 @@ def crear_app(
     repositorio: RepositorioWeb,
     sesiones: SesionesMemoria | None = None,
     actividades: list[dict[str, str]] | None = None,
+    host: str | None = None,
+    en_contenedor: bool = False,
 ) -> FastAPI:
     """Fábrica de la app: todo servicio externo entra inyectado.
 
     `actividades` es la lista visible de la fuente de solicitudes (sólo
-    lectura), para el select condicional del pedido.
+    lectura), para el select condicional del pedido con sus datos
+    institucionales. `host` y `en_contenedor` alimentan las salvaguardas
+    del modo prueba (`validar_configuracion`).
     """
+    validar_configuracion(config, host=host, en_contenedor=en_contenedor)
     sesiones = sesiones if sesiones is not None else SesionesMemoria()
     base = Path(__file__).resolve().parent
     plantillas = Jinja2Templates(directory=str(base / "plantillas"))
-    areas = _catalogo_areas()
-    publicos = _catalogo_publicos()
-    campos_por_tipo = _campos_por_tipo()
+    areas = areas_emisoras()
+    publicos = publicos_destinatarios()
+    fichas_por_tipo = _campos_por_tipo()
     actividades = actividades or []
+    actividades_por_id = {
+        str(a.get("id_actividad", "")): a for a in actividades
+    }
 
     app = FastAPI(title="Agente 1 — Canal web", docs_url=None, redoc_url=None)
     app.mount(
@@ -181,34 +277,103 @@ def crear_app(
             return None
         return sesion
 
+    def rol_de(sesion: Sesion) -> str | None:
+        return padron.rol_para(sesion.correo)
+
+    def puede_pedir(sesion: Sesion) -> bool:
+        return rol_de(sesion) in ROLES_HABILITADOS
+
     def destino_login() -> RedirectResponse:
         return RedirectResponse("/ingresar", status_code=303)
 
+    def destino_inicio(sesion: Sesion) -> RedirectResponse:
+        return RedirectResponse(
+            "/nuevo-pedido" if puede_pedir(sesion) else "/bandeja",
+            status_code=303,
+        )
+
     def csrf_ok(sesion: Sesion, token: str | None) -> bool:
         return sesiones.verificar_csrf(sesion, token)
+
+    def _double_submit(request: Request, valor: str | None, cookie: str) -> bool:
+        """Comparación cookie↔formulario del login, en tiempo constante."""
+        de_cookie = request.cookies.get(cookie)
+        return bool(de_cookie) and bool(valor) and hmac.compare_digest(
+            de_cookie, valor
+        )
 
     # ---------- ingreso ----------
 
     @app.get("/", response_class=HTMLResponse)
     def raiz(request: Request) -> Response:
-        return RedirectResponse(
-            "/bandeja" if autorizar(request) else "/ingresar",
-            status_code=303,
+        sesion = autorizar(request)
+        if sesion is None:
+            return destino_login()
+        return destino_inicio(sesion)
+
+    def _render_ingresar(
+        request: Request, error: str | None, status_code: int = 200
+    ) -> HTMLResponse:
+        """El formulario de ingreso con su CSRF de double-submit reemitido.
+
+        En modo prueba el token lo pone la app (cookie `a1_login_csrf`
+        contra campo `csrf`); en modo real lo pone Google Identity
+        Services en `g_csrf_token` y acá no hay nada que reemitir.
+        """
+        csrf_login = ""
+        if config.modo_prueba:
+            csrf_login = secrets.token_urlsafe(32)
+        respuesta = render(
+            "ingresar.html",
+            request,
+            status_code=status_code,
+            error=error,
+            csrf_login=csrf_login,
         )
+        if csrf_login:
+            respuesta.set_cookie(
+                _COOKIE_CSRF_LOGIN,
+                csrf_login,
+                httponly=True,
+                secure=config.cookie_secure,
+                samesite="strict",
+                path="/ingresar",
+            )
+        return respuesta
 
     @app.get("/ingresar", response_class=HTMLResponse)
     def ingresar_form(request: Request) -> Response:
-        if autorizar(request):
-            return RedirectResponse("/bandeja", status_code=303)
-        return render("ingresar.html", request, error=None)
+        sesion = autorizar(request)
+        if sesion is not None:
+            return destino_inicio(sesion)
+        return _render_ingresar(request, error=None)
 
     @app.post("/ingresar", response_class=HTMLResponse)
-    def ingresar(request: Request, credential: str = Form("")) -> Response:
+    def ingresar(
+        request: Request,
+        credential: str = Form(""),
+        csrf: str = Form(""),
+        g_csrf_token: str = Form(""),
+    ) -> Response:
+        if config.modo_prueba:
+            if not _double_submit(request, csrf, _COOKIE_CSRF_LOGIN):
+                return _render_ingresar(
+                    request,
+                    status_code=403,
+                    error="El formulario venció. Recargá la página.",
+                )
+        elif not _double_submit(
+            request, g_csrf_token, _COOKIE_CSRF_GIS
+        ):
+            return _render_ingresar(
+                request,
+                status_code=403,
+                error="No pudimos validar el formulario de ingreso.",
+            )
         try:
             identidad = verificador.verificar(credential)
         except VerificacionIdentidadError:
-            return render(
-                "ingresar.html",
+            return _render_ingresar(
                 request,
                 error="No pudimos verificar tu identidad. Probá de nuevo.",
             )
@@ -220,7 +385,7 @@ def crear_app(
         sesion = sesiones.crear(
             sub=identidad.sub, correo=identidad.correo, rol=rol
         )
-        respuesta = RedirectResponse("/bandeja", status_code=303)
+        respuesta = destino_inicio(sesion)
         respuesta.set_cookie(
             _COOKIE,
             sesion.sid,
@@ -261,8 +426,11 @@ def crear_app(
                 "estado_visible": _ESTADOS_VISIBLES.get(
                     i.estado_web, i.estado_web
                 ),
-                "titulo": i.titulo or i.actividad_ref or i.id_solicitud,
-                "actividad": i.actividad_ref,
+                "titulo": i.titulo
+                or actividades_por_id.get(i.actividad_ref or "", {}).get(
+                    "titulo"
+                )
+                or _NOMBRES_TIPOS.get(i.tipo_pieza, i.tipo_pieza),
                 "creada": i.creada_en.strftime("%d/%m/%Y %H:%M"),
             }
             for i in repositorio.bandeja()
@@ -289,11 +457,19 @@ def crear_app(
     ) -> HTMLResponse:
         campos_pieza = detalle_sol.campos.get("pieza", {})
         campos_pedido = detalle_sol.campos.get("pedido", {})
+        actividad = actividades_por_id.get(detalle_sol.actividad_ref or "")
+        titulo = (
+            campos_pieza.get("titulo")
+            or (actividad or {}).get("titulo")
+            or _NOMBRES_TIPOS.get(detalle_sol.tipo_pieza)
+        )
         return render(
             "solicitud.html",
             request,
             sesion=sesion,
             s=detalle_sol,
+            titulo=titulo,
+            actividad=actividad,
             tipo=_NOMBRES_TIPOS.get(
                 detalle_sol.tipo_pieza, detalle_sol.tipo_pieza
             ),
@@ -329,10 +505,15 @@ def crear_app(
                     "nombre": _NOMBRES_TIPOS.get(t, t),
                     "actividad": requiere_actividad(t),
                     "publicos": requiere_publicos(t),
+                    "usa_area": fichas_por_tipo[t]["usa_area"],
+                    "usa_firma": fichas_por_tipo[t]["usa_firma"],
+                    "disponible": fichas_por_tipo[t]["disponible"],
                 }
                 for t in tipos()
             ],
-            "campos_por_tipo": campos_por_tipo,
+            "campos_por_tipo": {
+                t: f["campos"] for t, f in fichas_por_tipo.items()
+            },
             "areas": areas,
             "publicos": publicos,
             "actividades": actividades,
@@ -343,6 +524,8 @@ def crear_app(
         sesion = autorizar(request)
         if sesion is None:
             return destino_login()
+        if not puede_pedir(sesion):
+            return render("sin_permiso.html", request, status_code=403)
         return render(
             "nuevo_pedido.html",
             request,
@@ -351,30 +534,39 @@ def crear_app(
             **_formulario_ctx(sesion, uuid.uuid4().hex),
         )
 
-    def _validar_pedido(form: dict[str, Any]) -> dict[str, Any]:
+    def _validar_pedido(form: Any) -> dict[str, Any]:
         """Valida el pedido del lado del servidor y arma sus campos.
 
-        Devuelve `{"tipo", "actividad_ref", "campos", "descripcion"}` o
-        levanta `PedidoInvalido`. Todo valor estructurado sale de listas
-        cerradas; la prosa va separada, nunca como instrucción (ADR 0001).
+        Las reglas salen del contrato del tipo —el mismo que valida el
+        canal Form—: área y firma sólo si el contrato las usa, públicos
+        según el catálogo de tipos y campos según `properties`/`required`
+        de la entrada. Todo valor estructurado sale de listas cerradas;
+        la prosa va separada, nunca como instrucción (ADR 0001).
         """
         tipo = str(form.get("tipo", ""))
-        if tipo not in tipos():
+        ficha = fichas_por_tipo.get(tipo)
+        if ficha is None:
             raise PedidoInvalido("tipo_no_declarado", "tipo")
+        if not ficha["disponible"]:
+            raise PedidoInvalido("tipo_no_disponible", "tipo")
 
         actividad_ref = None
         if requiere_actividad(tipo):
             actividad_ref = str(form.get("actividad", "")).strip()
-            ids = {a.get("id_actividad") for a in actividades}
-            if actividad_ref not in ids:
+            if actividad_ref not in actividades_por_id:
                 raise PedidoInvalido("actividad_requerida", "actividad")
 
-        area_id = str(form.get("area", "")).strip()
-        if area_id not in areas:
-            raise PedidoInvalido("area_invalida", "area")
-        firma = str(form.get("firma", "si")).strip().lower()
-        if firma not in ("si", "no"):
-            raise PedidoInvalido("firma_invalida", "firma")
+        area_id = None
+        if ficha["usa_area"]:
+            area_id = str(form.get("area", "")).strip()
+            if area_id not in areas:
+                raise PedidoInvalido("area_invalida", "area")
+        firma = None
+        if ficha["usa_firma"]:
+            firma = str(form.get("firma", "si")).strip().lower()
+            if firma not in ("si", "no"):
+                raise PedidoInvalido("firma_invalida", "firma")
+
         publicos_ids = [str(p) for p in form.getlist("publicos") if str(p)]
         if any(p not in publicos for p in publicos_ids):
             raise PedidoInvalido("publico_invalido", "publicos")
@@ -382,20 +574,24 @@ def crear_app(
             raise PedidoInvalido("publicos_requeridos", "publicos")
 
         campos_pieza: dict[str, str] = {}
-        for campo in campos_por_tipo[tipo]:
+        for campo in ficha["campos"]:
             valor = str(form.get(f"campo_{campo['nombre']}", "")).strip()
             if campo["requerido"] and not valor:
                 raise PedidoInvalido("campo_requerido", campo["nombre"])
             if valor:
                 campos_pieza[campo["nombre"]] = valor
-        if not requiere_actividad(tipo):
-            if "area_emisora" in {
-                p for p in cargar_entrada(tipo).get("properties", {})
-            }:
-                campos_pieza["area_emisora"] = areas[area_id]
-            campos_pieza["firma_de_area"] = firma
+        if ficha["usa_area"]:
+            campos_pieza["area_emisora"] = areas[area_id]
+            if ficha["usa_firma"]:
+                campos_pieza["firma_de_area"] = firma
+        if actividad_ref is not None:
+            # El título institucional de la actividad viaja en la ficha del
+            # pedido: la bandeja y el detalle lo muestran sin resolver de
+            # nuevo, y el pipeline de difusión lo toma de la fuente igual.
+            campos_pieza.setdefault(
+                "titulo", actividades_por_id[actividad_ref].get("titulo", "")
+            )
 
-        descripcion = str(form.get("descripcion", "")).strip()
         campos = {
             "pieza": campos_pieza,
             "pedido": {
@@ -405,11 +601,12 @@ def crear_app(
                 "asunto": str(form.get("asunto", "")).strip(),
             },
         }
+        descripcion = str(form.get("descripcion", "")).strip()
         return {
             "tipo": tipo,
             "actividad_ref": actividad_ref,
             "campos": campos,
-            "descripcion": descripcion or "Sin descripción adicional.",
+            "descripcion": descripcion,
         }
 
     @app.post("/nuevo-pedido", response_class=HTMLResponse)
@@ -420,23 +617,25 @@ def crear_app(
         form = await request.form()
         if not csrf_ok(sesion, str(form.get("csrf", ""))):
             return render("sin_permiso.html", request, status_code=403)
-        rol = padron.rol_para(sesion.correo)
+        rol = rol_de(sesion)
         if rol not in ROLES_HABILITADOS:
             return render("sin_permiso.html", request, status_code=403)
+        llave = str(form.get("llave", "")).strip() or uuid.uuid4().hex
         try:
             pedido = _validar_pedido(form)
         except PedidoInvalido as exc:
-            llave = str(form.get("llave", "")) or uuid.uuid4().hex
             return render(
                 "nuevo_pedido.html",
                 request,
                 errores={exc.campo: exc.code},
-                valores={k: v for k, v in form.items()},
+                valores={
+                    **{k: v for k, v in form.items()},
+                    "publicos": [str(p) for p in form.getlist("publicos")],
+                },
                 status_code=400,
                 **_formulario_ctx(sesion, llave),
             )
-        llave = str(form.get("llave", "")).strip()
-        if not llave or len(llave) > 250:
+        if len(llave) > 250:
             llave = uuid.uuid4().hex
         try:
             creada = repositorio.crear_solicitud(
@@ -445,7 +644,7 @@ def crear_app(
                 rol=rol,
                 tipo_pieza=pedido["tipo"],
                 actividad_ref=pedido["actividad_ref"],
-                descripcion=pedido["descripcion"],
+                descripcion=pedido["descripcion"] or None,
                 campos=pedido["campos"],
                 ahora=datetime.now(timezone.utc),
             )
@@ -470,6 +669,5 @@ def crear_app(
 
 
 def _hash_solicitante(sesion: Sesion) -> str:
-    import hashlib
-
-    return hashlib.sha256(sesion.sub.encode("utf-8")).hexdigest()
+    """Hash del correo del solicitante (ADR 0016), como el resto de la auditoría."""
+    return hashlib.sha256(sesion.correo.encode("utf-8")).hexdigest()

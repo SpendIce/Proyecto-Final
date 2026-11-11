@@ -7,6 +7,21 @@ con texto) se vacía en la purga diaria posterior al cierre. Los eventos de
 auditoría llevan hashes y metadatos, nunca prosa ni identidad en claro.
 
 Las sesiones no viven acá: son memoria del proceso por diseño.
+
+Decisiones que no se ven en el código:
+
+- **La purga se reparte entre los dos roles de la base.** `agente1_app`
+  corre `vencer_solicitudes` (marca `VENCIDA` a la inactiva: es un UPDATE
+  de estado operativo) y `agente1_mantenimiento` corre `purgar_prosa` y el
+  VACUUM (es dueño de `prosa_transitoria`). Así el rol que sirve la app
+  no puede tocar el contenido que la retención ya cerró, y el rol de
+  mantenimiento no escribe el ciclo de vida de la solicitud.
+- **Los estados del predicado SQL no son literales sueltos**: viajan
+  parametrizados desde `ESTADOS_ABIERTOS`/`ESTADOS_CIERRE`, la misma
+  fuente que usa la interfaz para mostrar «abierta» o «cerrada».
+- **`tomar_trabajo` devuelve cuántas reservas ya hubo** contando los
+  eventos `reserva_tomada` del propio registro: el límite de reintentos
+  del worker no necesita otra columna ni otro estado.
 """
 
 from __future__ import annotations
@@ -28,6 +43,25 @@ VENTANA_VENCIMIENTO_DIAS = 30
 
 def _hash(texto: str) -> str:
     return hashlib.sha256(texto.encode("utf-8")).hexdigest()
+
+
+def _prosa_de(filas: list) -> tuple[str | None, dict, str | None]:
+    """Desarma las filas de `prosa_transitoria` en (descripción, campos, generado).
+
+    Único lugar que conoce las clases de prosa: el detalle de la app y el
+    trabajo del worker leen las tres clases con el mismo parseo.
+    """
+    descripcion = None
+    campos: dict = {}
+    generado = None
+    for clase, texto in filas:
+        if clase == "descripcion":
+            descripcion = texto
+        elif clase == "campos":
+            campos = json.loads(texto)
+        elif clase == "generado":
+            generado = texto
+    return descripcion, campos, generado
 
 
 class ConflictoIdempotencia(ValueError):
@@ -96,6 +130,7 @@ class TrabajoWeb:
     solicitante_hash: str
     descripcion: str | None
     campos: dict
+    intentos: int = 0
 
 
 @dataclass(frozen=True)
@@ -272,16 +307,7 @@ class RepositorioWeb:
                 " WHERE id_solicitud = %s ORDER BY numero_revision",
                 (id_solicitud,),
             ).fetchall()
-        descripcion = None
-        campos: dict = {}
-        generado = None
-        for clase, texto in prosas:
-            if clase == "descripcion":
-                descripcion = texto
-            elif clase == "campos":
-                campos = json.loads(texto)
-            elif clase == "generado":
-                generado = texto
+        descripcion, campos, generado = _prosa_de(prosas)
         return DetalleSolicitud(
             id_solicitud=fila[0], tipo_pieza=fila[1], actividad_ref=fila[2],
             estado_web=fila[3], rol=fila[4], solicitante_hash=fila[5],
@@ -356,22 +382,21 @@ class RepositorioWeb:
                     " ocurrido_en) VALUES (%s,'reserva_tomada',%s)",
                     (fila[0], ahora),
                 )
+                intentos = conn.execute(
+                    "SELECT COUNT(*) FROM eventos_ejecucion"
+                    " WHERE id_ejecucion = %s AND tipo = 'reserva_tomada'",
+                    (fila[0],),
+                ).fetchone()[0]
                 prosas = conn.execute(
                     "SELECT clase, texto FROM prosa_transitoria"
                     " WHERE id_solicitud = %s AND texto IS NOT NULL",
                     (fila[1],),
                 ).fetchall()
-        descripcion = None
-        campos: dict = {}
-        for clase, texto in prosas:
-            if clase == "descripcion":
-                descripcion = texto
-            elif clase == "campos":
-                campos = json.loads(texto)
+        descripcion, campos, _ = _prosa_de(prosas)
         return TrabajoWeb(
             id_ejecucion=fila[0], id_solicitud=fila[1], tipo_pieza=fila[2],
             actividad_ref=fila[3], rol=fila[4], solicitante_hash=fila[5],
-            descripcion=descripcion, campos=campos,
+            descripcion=descripcion, campos=campos, intentos=intentos,
         )
 
     def completar_trabajo(
@@ -445,17 +470,24 @@ class RepositorioWeb:
         id_ejecucion: str,
         id_solicitud: str,
         resultado: str = "error_generacion",
+        estado: str = "FALLIDA",
         error_code: str | None = None,
         ahora: datetime | None = None,
     ) -> None:
+        """Cierra la ejecución sin borrador y marca la solicitud `ERROR`.
+
+        `estado` es `FALLIDA` salvo que el pipeline haya respondido
+        `INCOMPLETA`: el esquema exige `resultado='datos_incompletos'` en
+        ese único caso, y acá el valor viaja con él.
+        """
         ahora = ahora or datetime.now(timezone.utc)
         with self._conexion_factory() as conn:
             with conn.transaction():
                 conn.execute(
-                    "UPDATE ejecuciones SET estado = 'FALLIDA',"
+                    "UPDATE ejecuciones SET estado = %s,"
                     " resultado = %s, error_code = %s, finalizada_en = %s"
                     " WHERE id_ejecucion = %s",
-                    (resultado, error_code, ahora, id_ejecucion),
+                    (estado, resultado, error_code, ahora, id_ejecucion),
                 )
                 conn.execute(
                     "UPDATE solicitudes SET estado_web = 'ERROR',"
@@ -470,40 +502,65 @@ class RepositorioWeb:
 
     # ---------- retención ----------
 
-    def vencer_y_purgar(
+    def vencer_solicitudes(
         self,
         *,
         ahora: datetime | None = None,
         ventana_dias: int = VENTANA_VENCIMIENTO_DIAS,
-    ) -> ResultadoPurga:
-        """Purga diaria (ADR 0016): vence inactivas y vacía la prosa.
+    ) -> int:
+        """Pasa a `VENCIDA` toda web abierta sin actividad por la ventana.
 
-        Primero pasa a `VENCIDA` toda solicitud abierta sin actividad por la
-        ventana; después pone en NULL el texto de la prosa transitoria de
-        toda solicitud cerrada (aprobada, descartada o vencida), conservando
-        clase, hash y marcas. El VACUUM corre aparte, con `vaciar_prosa`.
+        Corre con `agente1_app`: es un UPDATE del ciclo de vida operativo,
+        no toca prosa ni la auditoría (sólo inserta el evento de marca).
         """
         ahora = ahora or datetime.now(timezone.utc)
         corte = ahora - timedelta(days=ventana_dias)
         with self._conexion_factory() as conn:
             with conn.transaction():
-                vencidas = conn.execute(
-                    "UPDATE solicitudes SET estado_web = 'VENCIDA'"
+                filas = conn.execute(
+                    "UPDATE solicitudes SET estado_web = 'VENCIDA',"
+                    " ultima_actividad_en = %s"
                     " WHERE canal = 'web'"
-                    "   AND estado_web IN ('EN_COLA','GENERANDO','LISTA','ERROR')"
+                    "   AND estado_web = ANY(%s)"
                     "   AND ultima_actividad_en < %s"
                     " RETURNING id_solicitud",
-                    (corte,),
+                    (ahora, list(ESTADOS_ABIERTOS), corte),
                 ).fetchall()
+                for (id_solicitud,) in filas:
+                    ejecucion = conn.execute(
+                        "SELECT id_ejecucion FROM ejecuciones"
+                        " WHERE id_solicitud = %s ORDER BY creada_en LIMIT 1",
+                        (id_solicitud,),
+                    ).fetchone()
+                    if ejecucion is not None:
+                        conn.execute(
+                            "INSERT INTO eventos_ejecucion (id_ejecucion,"
+                            " tipo, ocurrido_en) VALUES"
+                            " (%s,'solicitud_vencida',%s)",
+                            (ejecucion[0], ahora),
+                        )
+        return len(filas)
+
+    def purgar_prosa(self, *, ahora: datetime | None = None) -> int:
+        """Vacía la prosa transitoria de toda solicitud cerrada (ADR 0016).
+
+        Corre con `agente1_mantenimiento`, dueño de `prosa_transitoria`:
+        pone el texto en NULL conservando clase, hash y marcas, y asienta
+        el evento `prosa_purgada` por solicitud. El VACUUM corre aparte,
+        con `vaciar_prosa`.
+        """
+        ahora = ahora or datetime.now(timezone.utc)
+        with self._conexion_factory() as conn:
+            with conn.transaction():
                 purgadas = conn.execute(
                     "UPDATE prosa_transitoria p SET texto = NULL,"
                     " purgada_en = %s FROM solicitudes s"
                     " WHERE p.id_solicitud = s.id_solicitud"
                     "   AND p.purgada_en IS NULL"
                     "   AND s.canal = 'web'"
-                    "   AND s.estado_web IN ('APROBADA','DESCARTADA','VENCIDA')"
+                    "   AND s.estado_web = ANY(%s)"
                     " RETURNING p.secuencia, p.id_solicitud",
-                    (ahora,),
+                    (ahora, list(ESTADOS_CIERRE)),
                 ).fetchall()
                 for _, id_solicitud in purgadas:
                     ejecucion = conn.execute(
@@ -518,33 +575,31 @@ class RepositorioWeb:
                             " (%s,'prosa_purgada',%s)",
                             (ejecucion[0], ahora),
                         )
-        return ResultadoPurga(
-            vencidas=len(vencidas), purgadas=len(purgadas)
+        return len(purgadas)
+
+    def vencer_y_purgar(
+        self,
+        *,
+        ahora: datetime | None = None,
+        ventana_dias: int = VENTANA_VENCIMIENTO_DIAS,
+    ) -> ResultadoPurga:
+        """Atajo de la purga completa en una sola conexión (ensayos).
+
+        Producción corre los dos pasos con roles distintos:
+        `vencer_solicitudes` como `agente1_app` y `purgar_prosa` más
+        `vaciar_prosa` como `agente1_mantenimiento` (ver el docstring del
+        módulo). Este atajo existe para las pruebas de desarrollo que
+        usan un solo DSN.
+        """
+        ahora = ahora or datetime.now(timezone.utc)
+        vencidas = self.vencer_solicitudes(
+            ahora=ahora, ventana_dias=ventana_dias
         )
+        purgadas = self.purgar_prosa(ahora=ahora)
+        return ResultadoPurga(vencidas=vencidas, purgadas=purgadas)
 
     @staticmethod
     def vaciar_prosa(dsn: str) -> None:
         """VACUUM de la prosa purgada: fuera de tx, con rol de mantenimiento."""
         with psycopg.connect(dsn, autocommit=True) as conn:
             conn.execute("VACUUM prosa_transitoria")
-
-    # ---------- lectura para pruebas y trazabilidad ----------
-
-    def prosa_textos(self, id_solicitud: str) -> list[str | None]:
-        with self._conexion_factory() as conn:
-            return [
-                f[0]
-                for f in conn.execute(
-                    "SELECT texto FROM prosa_transitoria"
-                    " WHERE id_solicitud = %s ORDER BY secuencia",
-                    (id_solicitud,),
-                ).fetchall()
-            ]
-
-    def ejecucion_estado(self, id_ejecucion: str) -> tuple | None:
-        with self._conexion_factory() as conn:
-            return conn.execute(
-                "SELECT estado, resultado, reservada_hasta, output_hash"
-                " FROM ejecuciones WHERE id_ejecucion = %s",
-                (id_ejecucion,),
-            ).fetchone()

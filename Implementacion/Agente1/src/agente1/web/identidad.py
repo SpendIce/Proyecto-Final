@@ -9,6 +9,21 @@ roles; nunca se acepta un rol ni un correo enviado por el cliente.
 El verificador es inyectable: producción apunta a los JWKS reales de
 Google; las pruebas firman tokens con claves propias y sirven el JWKS con
 un transporte fake, por el mismo camino de verificación.
+
+Decisiones que no se ven en el código:
+
+- **`hd` se verifica siempre que está configurado**, no sólo cuando el
+  token lo trae: un token sin `hd` contra un canal con dominio declarado
+  rechaza igual, porque la política es «esta cuenta institucional», no
+  «cualquier Google» (diseño §3).
+- **El `sub` nunca sale de la sesión**: lo que se conserva para el
+  padrón y la auditoría es el correo verificado — y de él sólo el hash
+  (ADR 0016). El identificador opaco de Google no le dice nada al resto
+  del sistema, que ya auditaba por hash de correo.
+- **El verificador es un puerto, no una conveniencia de test**: el mismo
+  código de verificación corre contra los JWKS de Google en producción y
+  contra claves de prueba en la suite, así que lo que se prueba es el
+  camino real, no un doble.
 """
 
 from __future__ import annotations

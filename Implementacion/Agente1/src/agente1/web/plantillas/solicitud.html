@@ -3,14 +3,21 @@
 {% block contenido %}
 <section aria-labelledby="t-solicitud">
   <div class="seccion-cabecera">
-    <h1 id="t-solicitud">Solicitud {{ s.id_solicitud }}</h1>
+    <h1 id="t-solicitud">{{ titulo }}</h1>
     <span class="estado estado-{{ s.estado_web|lower }}"
           data-estado="{{ s.estado_web }}">{{ estado_visible }}</span>
   </div>
   <dl class="ficha">
     <dt>Tipo de pieza</dt><dd>{{ tipo }}</dd>
-    {% if s.actividad_ref %}<dt>Actividad</dt><dd>{{ s.actividad_ref }}</dd>{% endif %}
-    {% if campos_pieza.get('titulo') %}<dt>Título</dt><dd>{{ campos_pieza['titulo'] }}</dd>{% endif %}
+    <dt>Pedido</dt><dd><code>{{ s.id_solicitud }}</code></dd>
+    {% if actividad %}
+    <dt>Actividad</dt><dd>{{ actividad.titulo }}</dd>
+    <dt>Fechas</dt><dd>{{ actividad.fecha_inicio }}{% if actividad.fecha_fin %} al {{ actividad.fecha_fin }}{% endif %}</dd>
+    <dt>Organiza</dt><dd>{{ actividad.organiza }}</dd>
+    {% elif s.actividad_ref %}
+    <dt>Actividad</dt><dd>{{ s.actividad_ref }}</dd>
+    {% endif %}
+    {% if campos_pieza.get('titulo') and not actividad %}<dt>Título</dt><dd>{{ campos_pieza['titulo'] }}</dd>{% endif %}
     {% if publicos %}<dt>Públicos</dt><dd>{{ publicos|join(', ') }}</dd>{% endif %}
     <dt>Creada</dt><dd>{{ s.creada_en.strftime('%d/%m/%Y %H:%M') }}</dd>
     <dt>Última actividad</dt><dd>{{ s.ultima_actividad_en.strftime('%d/%m/%Y %H:%M') }}</dd>
