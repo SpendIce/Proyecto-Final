@@ -69,7 +69,7 @@ Conjunto de decisiones registradas por personas con rol institucional autorizado
 _Evitar_: validacion automatica, aprobacion del agente, aprobacion al publicar sin registro
 
 **Plantilla aprobada**:
-Version de texto o de diseno de una pieza que el Agente 1 envia o emite (confirmacion, recordatorio, certificado), con aprobacion semantica y aprobacion utilitaria. Se aprueba una vez por version, no por pieza. Al enviar o emitir, el agente solo completa sus variables con datos: ningun texto que el modelo escriba llega a un destinatario sin haber pasado por esta aprobacion. Puede ser una plantilla base o una plantilla de actividad.
+Version de texto o de diseno de una pieza que el Agente 1 envia o emite (confirmacion, recordatorio, certificado), con la aprobacion de contenido de la persona autorizada. Se aprueba una vez por version, no por pieza. Al enviar o emitir, el agente solo completa sus variables con datos: ningun texto que el modelo escriba llega a un destinatario sin haber pasado por esta aprobacion. Puede ser una plantilla base o una plantilla de actividad.
 _Evitar_: plantilla generica, ejemplo, modelo de mail
 
 **Plantilla base**:
@@ -85,20 +85,16 @@ Decision de una persona autorizada, previa al envio o la emision, que confirma q
 _Evitar_: aprobacion de envio, aprobacion por destinatario
 
 **Lista de cierre**:
-Lista de las personas que terminaron una actividad, con sus datos y su condicion (asistencia o aprobacion), que carga quien gestiona el curso al cerrarla. Es la unica fuente de quien recibe un certificado y de que tipo: el Agente 1 nunca infiere un resultado academico. Su aprobacion de lote la da el Secretario de Extension, que firma; cualquier cambio posterior exige aprobarla de nuevo.
+Lista de las personas que terminaron una actividad, con sus datos y su condicion (asistencia o aprobacion), que carga quien gestiona el curso al cerrarla. Es la unica fuente de quien recibe un certificado y de que tipo: el Agente 1 nunca infiere un resultado academico. Su aprobacion de lote la da quien la genera, igual que el resto de las piezas (designacion del 11/11/2026, #125); la firma institucional queda pendiente de la SEU. Cualquier cambio posterior exige aprobarla de nuevo.
 _Evitar_: padron, lista de inscriptos, acta de notas
 
 **Decision de publicacion**:
 Registro que deja quien publica o descarta un borrador de difusion (gacetilla, post), con su identidad y su rol. Es la validacion humana de la difusion: el Agente 1 no publica, y la decision no dispara nada en el agente.
 _Evitar_: aprobacion semantica, aprobacion utilitaria, cuando se habla de difusion
 
-**Aprobacion semantica**:
-Decision del Responsable de Gestion del Conocimiento sobre si el contenido dice lo correcto: hechos, tono y consistencia institucional. Se aplica a una plantilla aprobada, no a cada pieza enviada.
-_Evitar_: revision editorial, visto bueno
-
-**Aprobacion utilitaria**:
-Decision del Coordinador de Extension sobre si la pieza sirve para el proposito y el canal previstos. Se aplica a una plantilla aprobada, no a cada pieza enviada.
-_Evitar_: aprobacion final, aprobacion del coordinador a secas
+**Aprobacion de contenido**:
+Decision unica de la persona autorizada por delegacion de la Secretaria (Juan Manuel o Josefina, designacion del 11/11/2026, #125) sobre una pieza de contenido —plantilla aprobada, linea descriptiva, confirmacion, certificado—: aprueba o rechaza. Reemplaza al par historico de aprobacion semantica (Responsable de Gestion del Conocimiento) y aprobacion utilitaria (Coordinador de Extension): ya no se exigen dos roles ni dos decisiones distintas por pieza. El lote de certificados lo aprueba quien lo genera; los lotes de pagos los aprueba Leandro.
+_Evitar_: aprobacion semantica, aprobacion utilitaria, doble aprobacion, aprobador final de certificados
 
 **Canal de interaccion**:
 Medio por el que una persona de la SEU le pide algo al Agente 1 y recibe la respuesta. Transporta pedidos y resultados: no es una conversacion abierta, y el Agente 1 no es un chatbot con el que se charla. Es independiente de la identidad con la que el agente opera contra los sistemas institucionales: recibir un pedido por un buzon no otorga los permisos de ese buzon.

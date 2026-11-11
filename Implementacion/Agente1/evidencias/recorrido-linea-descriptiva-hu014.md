@@ -7,13 +7,13 @@
   modelo, más de una línea, extensión excesiva, hechos del registro como
   modalidad o fechas) se rechaza antes de llegar a validación.
 - Que la línea se aprueba **una vez por actividad** por el Form de
-  decisiones con el mismo circuito que una plantilla: `apruebo_semantica`
-  del RGC y `apruebo_utilitaria` del Coordinador de Extensión sobre el
+  decisiones con el mismo circuito que una plantilla: `apruebo_contenido`
+  de la persona autorizada (rol `APROBADOR_CONTENIDO`, #125) sobre el
   objeto `linea_descriptiva-<id_actividad>-<hash de la línea>`.
 - Que `procesar_certificado` no emite ningún PDF con línea si falta el
-  `RegistroDecisiones`, el lote de cierre declarado, cualquiera de las dos
-  aprobaciones de la línea o la `apruebo_lote` del lote, y que cada falta
-  devuelve un código distinto.
+  `RegistroDecisiones`, el lote de cierre declarado, la aprobación de la
+  línea o la `apruebo_lote` del lote, y que cada falta devuelve un código
+  distinto.
 - Que con todo aprobado el documento sale por el fake con la línea y las
   variables del registro (modalidad, carga horaria) interpoladas por la
   plantilla determinista, nunca escritas por el modelo.
@@ -107,8 +107,8 @@ EOF
 mkdir -p /tmp/demo-decisiones
 cat > /tmp/demo-decisiones/padron.csv <<'EOF'
 correo,rol
-rgc@example.invalid,RESPONSABLE_GESTION_CONOCIMIENTO
-coord@example.invalid,COORDINADOR_EXTENSION
+aprobador@example.invalid,APROBADOR_CONTENIDO
+pagos@example.invalid,APROBADOR_PAGOS
 EOF
 
 OBJETO=$(PYTHONPATH=src python - <<'EOF'
@@ -134,20 +134,19 @@ PYTHONPATH=src python scripts/registrar_form_decisiones.py \
   --declarar "lote:lote-cierre-syn-001"
 ```
 
-El runner imprime el objeto y los links prellenados de las dos decisiones
-de la línea (semántica y utilitaria) más el del lote. En el flujo real el
-emisor del correo los declara con `declarar_linea_pendiente` y los adjunta
-en el aviso al par de roles; sin esta declaración la respuesta del Form se
-rechaza como `objeto_inexistente`.
+El runner imprime el objeto y los links prellenados de la decisión de
+contenido de la línea más el del lote. En el flujo real el emisor del
+correo los declara con `declarar_linea_pendiente` y los adjunta en el
+aviso a la persona autorizada; sin esta declaración la respuesta del Form
+se rechaza como `objeto_inexistente`.
 
-### 3. Registrar las tres decisiones del Form
+### 3. Registrar las dos decisiones del Form
 
 ```bash
 cat > /tmp/demo-decisiones/respuestas.csv <<EOF
 Marca temporal,Correo,Tipo de decisión,Objeto de la decisión,Decisión
-2026-10-11 09:00:00,rgc@example.invalid,linea_descriptiva,$OBJETO,apruebo_semantica
-2026-10-11 09:05:00,coord@example.invalid,linea_descriptiva,$OBJETO,apruebo_utilitaria
-2026-10-11 09:10:00,coord@example.invalid,lote,lote-cierre-syn-001,apruebo_lote
+2026-10-11 09:00:00,aprobador@example.invalid,linea_descriptiva,$OBJETO,apruebo_contenido
+2026-10-11 09:10:00,aprobador@example.invalid,lote,lote-cierre-syn-001,apruebo_lote
 EOF
 
 PYTHONPATH=src python scripts/registrar_form_decisiones.py \
@@ -156,11 +155,11 @@ PYTHONPATH=src python scripts/registrar_form_decisiones.py \
   --padron /tmp/demo-decisiones/padron.csv
 ```
 
-Las tres salen `registrada` y quedan en
+Las dos salen `registrada` y quedan en
 `/tmp/demo-decisiones/estado-decisiones/decisiones-procesadas.jsonl` con
-identidad hasheada y rol. Una cuarta fila con la semántica firmada por
-`coord@example.invalid` saldría `rechazada` con `rol_no_corresponde`: la
-semántica no la da el Coordinador ni la utilitaria el RGC.
+identidad hasheada y rol. Una tercera fila con la misma decisión firmada
+por `pagos@example.invalid` saldría `rechazada` con `rol_no_corresponde`:
+el contenido no lo aprueba el responsable de pagos (#125).
 
 ### 4. Emitir el certificado con todo el circuito
 
@@ -172,7 +171,7 @@ from agente1.certificados import (
     SolicitudCertificado, procesar_certificado,
 )
 from agente1.confirmaciones import (
-    AprobacionHumana, ROL_APROBACION_SEMANTICA, ROL_APROBACION_UTILITARIA,
+    AprobacionHumana, ROL_APROBADOR_CONTENIDO,
 )
 from agente1.decisiones_form import RegistroDecisiones
 
@@ -204,11 +203,11 @@ def aprobacion(rol):
 
 procesar_certificado(
     solicitud=solicitud, directorio_salida=Path("/tmp/demo-hu014"),
-    registro=registro, aprobacion=aprobacion(ROL_APROBACION_SEMANTICA),
+    registro=registro, aprobacion=aprobacion(ROL_APROBADOR_CONTENIDO),
 )
 resultado = procesar_certificado(
     solicitud=solicitud, directorio_salida=Path("/tmp/demo-hu014"),
-    registro=registro, aprobacion=aprobacion(ROL_APROBACION_UTILITARIA),
+    registro=registro,
     emitir=True, destino=destino,
     decisiones=decisiones, lote_cierre="lote-cierre-syn-001",
 )
@@ -228,9 +227,10 @@ El mismo script con variantes muestra cada código:
 
 - Sin `decisiones` ni `lote_cierre`: `decisions_registry_required` y
   `closing_batch_required` respectivamente.
-- Con sólo la fila de `apruebo_semantica` en el CSV del paso 3:
-  `descriptive_line_unapproved` (la aprobación parcial no habilita).
-- Con las dos de la línea pero sin la fila del lote:
+- Sin la fila de `apruebo_contenido` de la línea en el CSV del paso 3 —o
+  con una decisión de un rol ajeno, rechazada con `rol_no_corresponde`—:
+  `descriptive_line_unapproved`.
+- Con la de la línea pero sin la fila del lote:
   `closing_batch_unapproved`.
 - Con `linea_descriptiva` distinta de la aprobada: también
   `descriptive_line_unapproved`, porque el hash cambia el objeto.
@@ -251,7 +251,8 @@ PYTHONPYCACHEPREFIX=/tmp/agente1-pycache \
 
 Queda pendiente de la ejecución del operador en D2, igual que en #72: el
 Form real con correo verificado y padrón institucional, la línea generada
-contra el modelo del ambiente y las tres decisiones cargadas por las
-personas. La emisión en vivo del certificado con lista de participantes es
-alcance de #75; este recorrido deja verificable la precondición que esa
-emisión va a exigir.
+contra el modelo del ambiente y las decisiones cargadas por la persona
+autorizada — una de contenido para la línea y una de lote (#125). La
+emisión en vivo del certificado con lista de participantes es alcance de
+#75; este recorrido deja verificable la precondición que esa emisión va a
+exigir.
