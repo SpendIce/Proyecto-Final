@@ -1,0 +1,17 @@
+# Mailmap de la extracción — PLANTILLA.
+# Copiar junto a las reglas privadas como extraccion-mailmap.txt y completar
+# con las identidades reales que la historia deba ocultar. Ese archivo vive
+# FUERA del repo (el workspace lo tiene en .local-recovery/traspaso/, 0600):
+# nunca se commitea. El script lo pasa a `git filter-repo --mailmap`, que
+# reescribe autor, committer y tagger de toda la historia.
+#
+# Formato git-shortlog(1), una regla por línea:
+#   Nombre Correcto <correo@correcto> Nombre Viejo <correo@viejo>
+#   Nombre Correcto <correo@correcto> <correo@viejo>
+#   Nombre Correcto <correo@correcto> Nombre Viejo        (cualquier correo)
+#
+# Ejemplos (reemplazar por las identidades reales):
+Nombre del Autor <00000000+usuario@users.noreply.github.com> <correo-personal-del-autor@ejemplo.invalid>
+Autor A2 <autor-a2@users.noreply.github.com> <correo-personal-de-a2@ejemplo.invalid>
+Autor A2 <autor-a2@users.noreply.github.com> Nombre Real del Autor de A2
+Anonimizado <anonimizado@users.noreply.github.com> <cuenta-tecnica@ejemplo.invalid>

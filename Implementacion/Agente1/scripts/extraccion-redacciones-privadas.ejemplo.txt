@@ -1,0 +1,15 @@
+literal:<nombre-apellido-del-autor-de-a2>==>el autor del Agente 2
+literal:<usuario-o-alias-del-autor-de-a2>==>autor-a2
+literal:<correo-personal-del-autor-de-a2>==>autor-a2@example.invalid
+literal:<correo-personal-1-del-autor>==>autor@example.invalid
+literal:<correo-personal-2-del-autor>==>autor@example.invalid
+literal:<cuenta-tecnica-real>==>cuenta-tecnica
+literal:<sha256-de-la-cuenta-tecnica-real>==><sha256-de-la-cuenta-sintetica>
+literal:<id-del-proyecto-interno>==>proyecto-ejemplo
+literal:<hostname-del-servidor>==>host-de-laboratorio
+literal:<usuario-del-servidor>==>ope-a1
+literal:<archivo-del-workspace-anterior>==>pedidos-agente2
+literal:<ip-interna-de-un-fixture>==>192.0.2.10
+literal:<valor-con-forma-de-token>==>ya29.sintetico
+regex:(?i)\b([a-z0-9._%+-]+)@<dominio-de-correo-personal>==>\1@example.invalid
+regex:\b<login-interno-del-autor>\b==>operador

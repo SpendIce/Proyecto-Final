@@ -1,0 +1,10 @@
+regex:/home/[a-z0-9_-]+==>/home/<usuario>
+regex:(?i)\b([a-z0-9._%+-]+)@fie\.undef\.edu\.ar==>\1@example.invalid
+regex:(?i)\b([a-z0-9._%+-]+)@fie\.edu\.ar==>\1@example.invalid
+regex:(?i)\b([a-z0-9._%+-]+)@fmc\.undef\.edu\.ar==>\1@example.invalid
+regex:(?i)\b([a-z0-9._%+-]+)@[a-z0-9.-]+\.iam\.gserviceaccount\.com==>\1@example.invalid
+regex:(?i)\bfie\.undef\.edu\.ar==>fie.example.invalid
+regex:(?i)\bfie\.edu\.ar==>fie.example.invalid
+regex:(?i)\bfmc\.undef\.edu\.ar==>fmc.example.invalid
+regex:(?i)\b([a-z0-9._%+-]+)@undef\.edu\.ar==>\1@example.invalid
+regex:(?i)\bundef\.edu\.ar==>undef.example.invalid
