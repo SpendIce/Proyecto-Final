@@ -85,6 +85,25 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "Volver a 0002 alcanza sin restaurar el respaldo."
         ),
     ),
+    "0004_canal_web_agente1": Reversion(
+        reversible=True,
+        pierde_datos=True,
+        requiere_restaurar_respaldo=True,
+        nota=(
+            "El `down` elimina la tabla `prosa_transitoria` y las columnas del "
+            "canal web: descarta solicitudes web, revisiones y prosa "
+            "almacenadas. Con datos reales exige restaurar el respaldo."
+        ),
+    ),
+    "0005_roles_canal_web": Reversion(
+        reversible=True,
+        pierde_datos=False,
+        requiere_restaurar_respaldo=False,
+        nota=(
+            "El `down` quita grants y elimina los roles `agente1_app` y "
+            "`agente1_mantenimiento`: no toca datos. Volver a 0004 alcanza."
+        ),
+    ),
 }
 
 
