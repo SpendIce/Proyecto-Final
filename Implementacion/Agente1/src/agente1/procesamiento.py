@@ -60,9 +60,7 @@ from .fuentes import (
     FuenteSolicitudesError,
 )
 from .gacetillas import (
-    MAX_BORRADOR_CHARS as _MAX_BORRADOR_CHARS,
-)
-from .gacetillas import (
+    CAMPOS_DEL_PEDIDO_NO_DE_LA_PIEZA,
     PATRON_PROSA_SIN_DATOS,
     TIPO_DIFUSION,
     TipoGacetillaError,
@@ -70,6 +68,9 @@ from .gacetillas import (
     cargar_forma,
     fecha_larga,
     validar_pieza,
+)
+from .gacetillas import (
+    MAX_BORRADOR_CHARS as _MAX_BORRADOR_CHARS,
 )
 from .gacetillas import (
     campos_obligatorios as _campos_obligatorios,
@@ -105,7 +106,7 @@ _FORMA_DIFUSION = cargar_forma(TIPO_DIFUSION)
 # ejecuciones de la misma fila dieron textos distintos.
 PROMPT_VERSION = str(_FORMA_DIFUSION["salida_modelo"]["prompt_version"])
 CONTRACT_VERSION = str(cargar_entrada(TIPO_DIFUSION)["x-contract-version"])
-RENDERER_VERSION = "gacetilla_forma_declarada_v4"
+RENDERER_VERSION = "gacetilla_forma_declarada_v5"
 MAX_BORRADOR_CHARS = _MAX_BORRADOR_CHARS
 # Prefijo del nombre del Doc del borrador. El título del Doc no lleva la marca
 # completa (`BORRADOR_MARKER`, que va en el cuerpo): lleva este prefijo, para
@@ -949,8 +950,14 @@ def _construir_prompt(fila: dict[str, str]) -> str:
     )
     sustituciones: dict[str, str | None] = {
         **_lineas_de_lugar(fila),
+        # Los campos del pedido que no son hechos de la pieza (`publicos`,
+        # #154) nunca entran al prompt: deciden a quien se envia, no el
+        # texto. La fila de actividades no los trae, pero el filtro queda
+        # aca para que el contrato no dependa del llamador.
         "datos_fuente": "\n".join(
-            f"{campo}: {valor}" for campo, valor in fila.items()
+            f"{campo}: {valor}"
+            for campo, valor in fila.items()
+            if campo not in CAMPOS_DEL_PEDIDO_NO_DE_LA_PIEZA
         ),
     }
     for marcador, valor in sustituciones.items():

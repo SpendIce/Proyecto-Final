@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:entrada-gacetilla:aviso_de_otra_area:v2",
+  "title": "Contrato de entrada de la gacetilla de aviso de otra area",
+  "description": "El aviso informa un hecho de otra area. Los datos los confirma quien pide: publico, hecho, condicion y area emisora. La fecha es opcional porque hay avisos sin fecha de inicio. Que el pie imprima la firma del area es una opcion separada del pedido (#154), con default que conserva el comportamiento de siempre. No necesita actividad, modalidad, duracion ni inscripcion.",
+  "x-contract-version": "gacetilla_entrada_aviso_de_otra_area_v2",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-decision": "#154",
+  "x-adr-014": "docs/adr/0014-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
+  "x-contrato-previo": "gacetilla_entrada_aviso_de_otra_area_v1 (queda versionado para trazabilidad)",
+  "x-tipo": "aviso_de_otra_area",
+  "x-requiere_actividad": false,
+  "x-interpretacion_fallback": false,
+  "type": "object",
+  "required": ["titulo", "publico", "hecho", "condicion", "area_emisora"],
+  "no_aplican": [
+    "id_actividad",
+    "descripcion",
+    "fecha_inicio",
+    "fecha_fin",
+    "fecha_limite_inscripcion",
+    "hora",
+    "modalidad",
+    "duracion_horas",
+    "organiza",
+    "contacto",
+    "fuente",
+    "enlace_inscripcion",
+    "lugar",
+    "nombre",
+    "rol",
+    "dia",
+    "destinatarios",
+    "convocatoria",
+    "requisitos",
+    "enlace_adjunto"
+  ],
+  "properties": {
+    "titulo": {"type": "string", "minLength": 1},
+    "publico": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Calificación de la comunidad destinataria (por ejemplo, educativa). La formula la lee como «a la comunidad {publico}». Es la frase de la pieza: el publico de envio del pedido es otro campo, del catalogo de grupos, y nunca entra al texto."
+    },
+    "hecho": {"type": "string", "minLength": 1},
+    "fecha": {"type": "string", "x-required": false},
+    "condicion": {"type": "string", "minLength": 1},
+    "area_emisora": {"type": "string", "minLength": 1},
+    "firma_de_area": {
+      "type": "string",
+      "enum": ["si", "no"],
+      "x-required": false,
+      "x-default": "si",
+      "description": "Opcion del pedido, separada del area emisora (#154): con `no` la pieza no imprime la firma del area en el pie y el bloque `firmante` institucional va siempre. Sin el campo vale `si`, que conserva el comportamiento de la forma declarada de siempre."
+    }
+  },
+  "additionalProperties": false
+}

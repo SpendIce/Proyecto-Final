@@ -11,7 +11,7 @@ salida no reproduce las erratas del corpus, que necesita #105—.
 Desde el adendo del 17/10 (#120 con #121) el set tiene dos ejes: el eje 1
 (rúbrica humana 1 a 4) sólo sobre los tipos que generan, y el eje 2
 (conformidad de forma, binario y automático) sobre los siete tipos del
-contrato `tipos_gacetilla_v1`. Los chequeos de acá son de contrato, no de
+contrato `tipos_gacetilla_v2`. Los chequeos de acá son de contrato, no de
 calidad: no puntúan parecido a un FIE INFORMA; eso lo hace la rúbrica humana
 aprobada por Juani el 16/10, cuyas corridas de medición todavía no corrieron.
 """
@@ -52,7 +52,7 @@ MANIFEST = (
 DOCUMENTO = (
     ROOT / "evidencias" / "set-evaluacion-gacetillas-fie-informa-2026-10-14.md"
 )
-CONTRATO_TIPOS = ROOT / "src" / "agente1" / "contracts" / "tipos_gacetilla_v1.json"
+CONTRATO_TIPOS = ROOT / "src" / "agente1" / "contracts" / "tipos_gacetilla_v2.json"
 PROMPT_SALUDO = ROOT / "src" / "agente1" / "prompts" / "saludo_o_efemeride_v1.txt"
 
 def _sha256(path: Path) -> str:

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:tipos-gacetilla:v2",
+  "title": "Tipos de gacetilla del canal FIE Informa",
+  "description": "Conjunto cerrado de tipos de gacetilla. El tipo viaja declarado en la solicitud y selecciona la forma declarada, el contrato de entrada, las reglas de gate propias del tipo y el modo de produccion. Una solicitud no se aproxima al tipo mas parecido: se declara o se confirma. Cada tipo declara ademas que version de su forma y de su contrato de entrada usa el codigo, y si el pedido lleva publicos destinatarios del catalogo cerrado (#154): los publicos son del pedido, nunca de la pieza.",
+  "x-contract-version": "tipos_gacetilla_v2",
+  "x-decision": "#154",
+  "x-adr": "docs/adr/0012-la-gacetilla-declara-su-tipo-su-modo-y-su-forma.md",
+  "x-adr-014": "docs/adr/0014-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
+  "x-contrato-previo": "tipos_gacetilla_v1 (queda versionado para trazabilidad; el codigo usa esta version)",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, anexo «Esqueletos por tipo»",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. Los tipos y sus formas no fueron aprobados por la SEU.",
+  "modos": {
+    "genera": "El modelo escribe la prosa del cuerpo a partir de datos estructurados. Exige prompt propio del tipo.",
+    "extrae_y_confirma": "Los datos los carga quien pide y el agente solo los formatea. No hay prosa generada ni prompt, y el gate compara contra lo confirmado."
+  },
+  "tipos": [
+    {
+      "id": "difusion_de_actividad",
+      "nombre": "Difusion de actividad de extension",
+      "modo": "genera",
+      "requiere_actividad": true,
+      "forma_version": 1,
+      "entrada_version": 1,
+      "requiere_publicos": true
+    },
+    {
+      "id": "cronica_de_evento",
+      "nombre": "Cronica de evento",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false,
+      "destino_declarado": "genera desde Historia Viva cuando el Acervo tenga el material del evento (ver el adendo del 17/10 en #120)",
+      "forma_version": 1,
+      "entrada_version": 1,
+      "requiere_publicos": true
+    },
+    {
+      "id": "aviso_de_otra_area",
+      "nombre": "Aviso de otra area",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false,
+      "forma_version": 2,
+      "entrada_version": 2,
+      "requiere_publicos": true
+    },
+    {
+      "id": "convocatoria_interna",
+      "nombre": "Convocatoria interna",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false,
+      "forma_version": 2,
+      "entrada_version": 2,
+      "requiere_publicos": true
+    },
+    {
+      "id": "saludo_o_efemeride",
+      "nombre": "Saludo o efemeride",
+      "modo": "genera",
+      "requiere_actividad": false,
+      "forma_version": 1,
+      "entrada_version": 1,
+      "requiere_publicos": true
+    },
+    {
+      "id": "fallecimiento",
+      "nombre": "Comunicado de fallecimiento",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false,
+      "forma_version": 1,
+      "entrada_version": 1,
+      "requiere_publicos": true
+    },
+    {
+      "id": "newsletter",
+      "nombre": "Newsletter",
+      "modo": "extrae_y_confirma",
+      "requiere_actividad": false,
+      "forma_version": 2,
+      "entrada_version": 2,
+      "requiere_publicos": true
+    }
+  ]
+}
