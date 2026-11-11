@@ -19,18 +19,25 @@ produce para un formulario de correo verificado y una sola pregunta abierta:
 ``Marca temporal | Dirección de correo electrónico | <pedido>``
 
 Desde #122 la forma la declara un contrato versionado
-(`contracts/canal_form_respuestas_v{1,2}.json`): la v1 es la de siempre y
-sigue siendo el default; la v2 suma la primera pregunta de **tipo de
+(`contracts/canal_form_respuestas_v{1,2,3}.json`): la v1 es la de siempre
+y sigue siendo el default; la v2 suma la primera pregunta de **tipo de
 gacetilla** (lista cerrada tomada del contrato de tipos), la **actividad
 condicional** —sólo los tipos que la llevan; el ítem «No es una actividad /
 no figura» no registra nada— y el **área emisora** por un padrón cerrado
-(`contracts/areas_emisoras_v1.json`), porque de ese padrón sale la firma del
-área que imprime la pieza. Una fila estructurada que no cumple las listas
-cerradas no va al núcleo —nada puede rechazarla por dónde y «la clase más
-parecida» está prohibida—: el chequeo es del canal, no contiene prosa libre,
-y su desenlace es acotado (mensaje fijo + registro del atendido, sin
-generación). El núcleo no cambia; el texto que el armador deriva de la fila
-usa el mismo vocabulario determinístico de la repregunta
+(`contracts/areas_emisoras_v2.json`, la v1 queda para trazabilidad), porque
+de ese padrón sale la firma del área que imprime la pieza. La v3 (#154)
+suma la **firma de área** como opción separada del área —«qué área emite»
+y «si la pieza lleva firma de área» son dos decisiones del pedido— y los
+**públicos destinatarios** por catálogo cerrado
+(`contracts/publicos_destinatarios_v1.json`): grupos de correo de
+Workspace, elección múltiple, que sólo deciden a quién se envía la pieza y
+nunca entran a un prompt ni cambian el texto. Una fila estructurada que no
+cumple las listas cerradas no va al núcleo —nada puede rechazarla por
+dónde y «la clase más parecida» está prohibida—: el chequeo es del canal,
+no contiene prosa libre, y su desenlace es acotado
+(mensaje fijo + registro del atendido, sin generación). El núcleo no
+cambia; el texto que el armador deriva de la fila usa el mismo vocabulario
+determinístico de la repregunta
 (`gacetilla actividad <id>`), así que el pedido estructurado entra por el
 mismo clasificador de siempre.
 
@@ -145,6 +152,7 @@ from .gacetillas import (
     campos_que_no_aplican,
     modo_de,
     requiere_actividad,
+    requiere_publicos,
 )
 from .gacetillas import (
     tipos as tipos_de_gacetilla,
@@ -184,8 +192,8 @@ ROL_NO_EN_PADRON = "no_en_padron"
 # Posiciones de columna del contrato v1 (una sola pregunta abierta). Se
 # leen por posición, no por encabezado: los enunciados son texto libre y no
 # sirven de contrato. El contrato v2 (#122) suma tipo, actividad y área
-# emisora; sus posiciones viven en el archivo versionado y este módulo las
-# carga de ahí, no acá.
+# emisora; el v3 (#154) suma firma de área y públicos. Las posiciones
+# viven en el archivo versionado y este módulo las carga de ahí, no acá.
 COL_MARCA_TEMPORAL = 0
 COL_CORREO = 1
 COL_TEXTO = 2
@@ -196,7 +204,8 @@ COL_TEXTO = 2
 # default silencioso. Un valor desconocido invalida la configuración.
 CONTRATO_HOJA_V1 = "canal_form_respuestas_v1"
 CONTRATO_HOJA_V2 = "canal_form_respuestas_v2"
-CONTRATOS_HOJA = (CONTRATO_HOJA_V1, CONTRATO_HOJA_V2)
+CONTRATO_HOJA_V3 = "canal_form_respuestas_v3"
+CONTRATOS_HOJA = (CONTRATO_HOJA_V1, CONTRATO_HOJA_V2, CONTRATO_HOJA_V3)
 
 # Último ítem de la lista condicional de actividades (contrato v2): no da
 # de alta ninguna actividad. Elegida con un tipo que la necesita, el
@@ -349,7 +358,7 @@ def _padron_areas() -> dict[str, dict[str, str]]:
     try:
         texto = (
             files("agente1")
-            .joinpath("contracts", "areas_emisoras_v1.json")
+            .joinpath("contracts", "areas_emisoras_v2.json")
             .read_text(encoding="utf-8")
         )
         contrato = json.loads(texto)
@@ -387,6 +396,95 @@ def firma_de_area(id_area: str) -> str | None:
         return None
     area = _padron_areas().get(id_area.strip())
     return area["nombre"] if area is not None else None
+
+
+@lru_cache(maxsize=1)
+def _padron_publicos() -> dict[str, dict[str, str]]:
+    """El catálogo cerrado de públicos destinatarios de FIE Informa (#154).
+
+    Misma doctrina que el padrón de áreas: lista cerrada y versionada, un
+    id fuera del catálogo se rechaza. Un público es un grupo de correo de
+    Workspace (un tipo de cuenta), no una lista de personas; las
+    direcciones de los grupos no se versionan en este repo público, así que
+    el catálogo lleva sólo `id` y `nombre`. El público decide a quién se
+    envía la pieza: queda declarado en el pedido y nunca entra a un prompt
+    ni cambia el texto.
+    """
+
+    try:
+        texto = (
+            files("agente1")
+            .joinpath("contracts", "publicos_destinatarios_v1.json")
+            .read_text(encoding="utf-8")
+        )
+        contrato = json.loads(texto)
+        publicos = contrato["publicos"]
+        if not isinstance(publicos, list) or not publicos:
+            raise ValueError("públicos ausentes")
+        resueltos: dict[str, dict[str, str]] = {}
+        for publico in publicos:
+            id_publico = str(publico["id"]).strip()
+            nombre = str(publico["nombre"]).strip()
+            if (
+                not id_publico
+                or not nombre
+                or "\n" in id_publico
+                or "," in id_publico
+                or id_publico in resueltos
+            ):
+                raise ValueError("público inválido o repetido")
+            resueltos[id_publico] = {"nombre": nombre}
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        raise CanalFormError("canal_form_publicos_padron_invalido") from None
+    return resueltos
+
+
+def nombre_de_publico(id_publico: str) -> str | None:
+    """Nombre institucional del público, o `None` fuera del catálogo."""
+
+    if not isinstance(id_publico, str):
+        return None
+    publico = _padron_publicos().get(id_publico.strip())
+    return publico["nombre"] if publico is not None else None
+
+
+def _opcion_si_no(valor: str) -> str | None:
+    """«Sí»/«No» de una opción del Form, normalizada a `si`/`no`.
+
+    La firma de área es una opción separada del área emisora (#154). La
+    celda vacía vale `si`: el default declarado conserva el comportamiento
+    de la forma de siempre, que imprime el área en el pie. Otro valor no
+    pertenece a la lista cerrada de la pregunta.
+    """
+
+    if not valor:
+        return "si"
+    normalizado = _normalizar_etiqueta(valor)
+    if normalizado in ("si", "sí"):
+        return "si"
+    if normalizado == "no":
+        return "no"
+    return None
+
+
+def _publicos_desde_celda(valor: str) -> tuple[list[str], str | None]:
+    """Ids de públicos de la celda (elección múltiple, separados por coma).
+
+    Devuelve `(ids, None)` con la celda válida o `([], codigo)` con el
+    desenlace acotado: sin público elegido, un id fuera del catálogo o un
+    id repetido. Los ids son vocabulario cerrado del catálogo versionado
+    (`publicos_destinatarios_v1`), nunca texto libre.
+    """
+
+    ids = [parte.strip() for parte in valor.split(",") if parte.strip()]
+    if not ids:
+        return [], "publicos_requeridos"
+    padron = _padron_publicos()
+    if any(id_publico not in padron for id_publico in ids):
+        return [], "publico_fuera_de_padron"
+    if len(set(ids)) != len(ids):
+        return [], "publicos_repetidos"
+    return ids, None
 
 
 def _normalizar_etiqueta(valor: str) -> str:
@@ -723,6 +821,30 @@ MENSAJES_BLOQUEO = {
         "y no declara área emisora, así que nada se generó. Si el hecho lo "
         "emite otra área, el tipo correspondiente es aviso de otra área."
     ),
+    "firma_de_area_invalida": (
+        "La respuesta de firma de área no es una de las opciones del "
+        "formulario (Sí/No), así que nada se generó. La firma de área es "
+        "una opción separada del área emisora: sin elegir, la pieza firma "
+        "con el área como siempre."
+    ),
+    "publicos_requeridos": (
+        "El pedido no declaró ningún público destinatario, así que nada se "
+        "generó. Los públicos válidos son las opciones del formulario: "
+        "elegí al menos uno."
+    ),
+    "publico_fuera_de_padron": (
+        "Uno de los públicos declarados no está en el catálogo cerrado del "
+        "repo, así que nada se generó. Los públicos válidos son las "
+        "opciones del formulario."
+    ),
+    "publicos_repetidos": (
+        "El pedido declaró el mismo público más de una vez, así que nada "
+        "se generó. Elegí cada público una sola vez."
+    ),
+    "publicos_no_aplica": (
+        "El tipo declarado no lleva público destinatario y el campo quedó "
+        "elegido, así que nada se generó."
+    ),
 }
 
 
@@ -994,15 +1116,18 @@ class CanalFormPedidos:
     def _pedido_estructurado(
         self, fila: object
     ) -> tuple[PedidoCanal | None, BloqueoCanalV2 | None]:
-        """Una fila del contrato v2 hacia pedido despachable o bloqueo.
+        """Una fila del contrato v2/v3 hacia pedido despachable o bloqueo.
 
         El tipo es la primera pregunta y manda: entra validado contra la
-        lista cerrada de `tipos_gacetilla_v1` (leída del contrato, nunca
+        lista cerrada de `tipos_gacetilla_v2` (leída del contrato, nunca
         copiada). La actividad es condicional: sólo la llevan los tipos que
         el contrato declara con actividad, y el ítem «no es una actividad /
         no figura» no la registra nunca — la planilla institucional es la
         única fuente. El área emisora sale del padrón cerrado del repo, y la
-        firma de la pieza es la del padrón, no el texto de la hoja.
+        firma de la pieza es la del padrón, no el texto de la hoja. En la
+        hoja v3 se suman la firma de área —opción separada del área, con
+        default «si»— y los públicos del catálogo cerrado, que quedan
+        declarados en la estructura del pedido y nunca entran al texto.
 
         La marca y el correo cumplen lo mismo que en v1: identifican al
         solicitante y firman el `id_pedido`. El id de una fila estructurada
@@ -1020,11 +1145,31 @@ class CanalFormPedidos:
         tipo_crudo = _celda(fila, self._columnas_hoja["tipo_gacetilla"])
         actividad_cruda = _celda(fila, self._columnas_hoja["actividad"])
         area_cruda = _celda(fila, self._columnas_hoja["area_emisora"])
+        # Las columnas que la hoja declara suma su contrato (#154): la
+        # firma de área como opción separada del área y los públicos del
+        # catálogo. Una hoja v2 no las tiene: se leen como vacías y la
+        # validación no aplica.
+        firma_cruda = (
+            _celda(fila, self._columnas_hoja["firma_de_area"])
+            if "firma_de_area" in self._columnas_hoja
+            else ""
+        )
+        publicos_crudos = (
+            _celda(fila, self._columnas_hoja["publicos"])
+            if "publicos" in self._columnas_hoja
+            else ""
+        )
         texto = _celda(fila, self._columnas_hoja["pedido"])
         rol = self._padron.rol_para(correo) or ROL_NO_EN_PADRON
-        id_pedido = _id_pedido(
-            marca, correo, tipo_crudo, actividad_cruda, area_cruda, texto
-        )
+        # Las columnas estructuradas firman el id sólo cuando el contrato
+        # de la hoja las declara: una fila v2 produce el mismo id que antes.
+        partes_id = [marca, correo, tipo_crudo, actividad_cruda, area_cruda]
+        if "firma_de_area" in self._columnas_hoja:
+            partes_id.append(firma_cruda)
+        if "publicos" in self._columnas_hoja:
+            partes_id.append(publicos_crudos)
+        partes_id.append(texto)
+        id_pedido = _id_pedido(*partes_id)
 
         tipo = tipo_crudo if tipo_crudo in tipos_de_gacetilla() else None
         if tipo is None:
@@ -1081,6 +1226,37 @@ class CanalFormPedidos:
                 id_pedido, correo, rol, "area_requerida", tipo=tipo
             )
 
+        # Firma de área (#154): opción separada del área, sólo la llevan
+        # los tipos que exigen área emisora. El default declarado es «si»;
+        # el bloque `firmante` institucional va siempre. En los tipos sin
+        # área la celda no se lee.
+        firma_de_area_valor: str | None = None
+        if area_req and "firma_de_area" in self._columnas_hoja:
+            firma_de_area_valor = _opcion_si_no(firma_cruda)
+            if firma_de_area_valor is None:
+                return None, self._bloqueo(
+                    id_pedido, correo, rol, "firma_de_area_invalida", tipo=tipo
+                )
+
+        # Públicos destinatarios (#154): catálogo cerrado de grupos de
+        # Workspace, elección múltiple con al menos uno y sin repetidos.
+        # Sólo deciden a quién se envía la pieza: quedan declarados en la
+        # estructura del pedido y nunca entran al texto ni a un prompt.
+        publicos_ids: tuple[str, ...] = ()
+        if "publicos" in self._columnas_hoja:
+            if not requiere_publicos(tipo):
+                if publicos_crudos:
+                    return None, self._bloqueo(
+                        id_pedido, correo, rol, "publicos_no_aplica", tipo=tipo
+                    )
+            else:
+                ids, error = _publicos_desde_celda(publicos_crudos)
+                if error is not None:
+                    return None, self._bloqueo(
+                        id_pedido, correo, rol, error, tipo=tipo
+                    )
+                publicos_ids = tuple(ids)
+
         # El núcleo hoy sólo despacha gacetillas de actividad por el camino
         # determinístico de #115: el texto armado acá lleva la palabra clave
         # y el identificador explícito con el mismo vocabulario que ya usa
@@ -1090,6 +1266,16 @@ class CanalFormPedidos:
         # (#121): el bloqueo `tipo_sin_despacho` lo deja visible sin
         # aproximar la pieza a la clase más parecida.
         if modo_de(tipo) == "genera" and requiere_actividad(tipo):
+            estructura: dict[str, str] = {
+                "tipo": tipo,
+                "actividad": actividad_cruda,
+            }
+            if area_cruda:
+                estructura["area_emisora"] = area_cruda
+            if firma_de_area_valor is not None:
+                estructura["firma_de_area"] = firma_de_area_valor
+            if publicos_ids:
+                estructura["publicos"] = ",".join(publicos_ids)
             return (
                 PedidoCanal(
                     id_pedido=id_pedido,
@@ -1097,10 +1283,7 @@ class CanalFormPedidos:
                         identificador=correo, rol=rol
                     ),
                     texto=f"gacetilla actividad {actividad_cruda}",
-                    estructura={
-                        "tipo": tipo,
-                        "actividad": actividad_cruda,
-                    },
+                    estructura=estructura,
                 ),
                 None,
             )
@@ -1254,6 +1437,12 @@ class CanalFormPedidos:
             )
             if resultado.resumen:
                 lineas.append(_una_linea(resultado.resumen))
+            publicos_aviso = self._publicos_del_pedido(pedido)
+            if publicos_aviso:
+                # #154: el público es del pedido —a quién se envía— y la
+                # revisión lo ve acá, con el nombre del catálogo, nunca en
+                # la pieza ni en un prompt.
+                lineas.append(f"Públicos: {publicos_aviso}")
             url = _url_documento(resultado.referencia_borrador)
             if url is not None:
                 lineas.extend(("", f"Borrador: {url}"))
@@ -1369,6 +1558,27 @@ class CanalFormPedidos:
             if resultado.resumen:
                 lineas.append(_una_linea(resultado.resumen))
         return f"{MARCADOR_BORRADOR}\n\n" + "\n".join(lineas) + "\n"
+
+    def _publicos_del_pedido(self, pedido: PedidoCanal) -> str:
+        """Nombres de los públicos elegidos, para que la revisión los vea.
+
+        El pedido estructurado declara los ids del catálogo cerrado (#154);
+        el aviso muestra el nombre institucional, no el id. El público sólo
+        decide a quién se envía la pieza: no aparece en el borrador ni en
+        un prompt. Una hoja v1/v2 no trae la columna y el aviso queda como
+        antes.
+        """
+
+        estructura = pedido.estructura or {}
+        crudo = estructura.get("publicos")
+        if not crudo:
+            return ""
+        nombres = [
+            nombre_de_publico(id_publico.strip())
+            for id_publico in str(crudo).split(",")
+            if id_publico.strip()
+        ]
+        return ", ".join(nombre for nombre in nombres if nombre)
 
     def _enlace_propuesta(
         self, pedido: PedidoCanal, propuesta: PropuestaIntencion | None

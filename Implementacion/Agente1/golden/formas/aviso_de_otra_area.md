@@ -4,7 +4,7 @@ Se informa a la comunidad educativa que el estacionamiento para motos no estará
 
 Muchas gracias
 
-Secretaría Académica
+Facultad de Ingeniería del Ejército
 
 --
 Facultad de Ingeniería del Ejército

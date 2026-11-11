@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:areas-emisoras:v2",
+  "title": "Padron de areas emisoras de piezas de FIE Informa",
+  "description": "Lista cerrada y versionada de areas que pueden emitir una pieza por FIE Informa y la firma de area que la pieza imprime en su pie. La firma de la pieza sale de esta lista: un campo de texto libre reproduciria el bug ya visto (una pieza firmada por un area que no la emitio). El id viaja declarado en la solicitud; la firma institucional que imprime la pieza sale de aca, no del texto de la planilla de respuestas. Doctrine de padron cerrado: ADR 0005. El area `fie` es la opcion para las comunicaciones generales que no son de un area en particular (por ejemplo un fallecimiento o un aviso de estacionamiento) y su firma de pie es el nombre institucional de la facultad. Que la firma de area se imprima o no en el pie es una eleccion del pedido, separada del area (#154); el bloque `firmante` institucional de la forma va siempre.",
+  "x-contract-version": "areas_emisoras_v2",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL: la lista y sus nombres pendientes de confirmacion SEU, salvo el area `fie`, que la SEU definió con el autor del PPS el 11/11/2026.",
+  "x-decision": "#122, #154",
+  "x-contrato-previo": "areas_emisoras_v1 (queda versionado para trazabilidad; el codigo usa esta version)",
+  "x-fuente": "Documentos/PoC/Corpus-FIE-Informa-Historico-2026-10-13.md, apartado «Pie (firma)»: firmas de area observadas por tipo.",
+  "x-origen": "Equipo tecnico del PPS. Las areas y sus firmas salieron del corpus historico y no fueron aprobadas por la SEU; el area `fie` la definio la SEU con el autor del PPS el 11/11/2026.",
+  "areas": [
+    {
+      "id": "cursos_complementarios",
+      "nombre": "Departamento de Cursos Complementarios"
+    },
+    {
+      "id": "secretaria_de_extension",
+      "nombre": "Secretaría de Extensión Universitaria"
+    },
+    {
+      "id": "secretaria_academica",
+      "nombre": "Secretaría Académica"
+    },
+    {
+      "id": "doe",
+      "nombre": "DOE"
+    },
+    {
+      "id": "fie",
+      "nombre": "Facultad de Ingeniería del Ejército"
+    }
+  ]
+}

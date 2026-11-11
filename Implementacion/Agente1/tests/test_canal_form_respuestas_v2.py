@@ -11,7 +11,7 @@ v1 queda cubierta por `tests/test_canal_form.py` y un caso de regresión al
 final.
 
 La firma de área de la pieza sale del padrón cerrado
-(`contracts/areas_emisoras_v1.json`) vía el placeholder `{area_emisora}` de
+(`contracts/areas_emisoras_v2.json`) vía el placeholder `{area_emisora}` de
 la forma declarada del tipo: mismas formas de siempre, valor desde el
 padrón.
 """
@@ -292,6 +292,9 @@ def test_la_firma_del_area_sale_del_padron_cerrado() -> None:
     )
     assert firma_de_area(AREA_VALIDA) == "Secretaría Académica"
     assert firma_de_area("doe") == "DOE"
+    # #154: el área FIE emite las comunicaciones generales y su firma de pie
+    # es el nombre institucional exacto.
+    assert firma_de_area("fie") == "Facultad de Ingeniería del Ejército"
 
 
 def test_un_area_fuera_del_padron_no_tiene_firma() -> None:

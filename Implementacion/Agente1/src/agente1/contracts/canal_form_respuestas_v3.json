@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:canal-form-respuestas:v3",
+  "title": "Forma de la hoja de respuestas del Form de pedidos con tipo, firma de area y publicos (v3)",
+  "description": "Form de pedidos con el tipo de gacetilla como primera pregunta (lista cerrada), actividad condicional, area emisora por padron cerrado, firma de area como opcion separada del area (#154), publicos destinatarios por catalogo cerrado y un campo de texto libre para el resto del pedido. La SEU todavia no conocio el Form, asi que la interfaz no esta congelada y se puede cambiar. Quien crea el Form declara estas preguntas en este orden; el agente sigue sin crear ni escribir el Form: solo lee la hoja de respuestas.",
+  "x-contract-version": "canal_form_respuestas_v3",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL: la interfaz pendiente de revision con la SEU.",
+  "x-decision": "#154",
+  "x-adr-012-conexion": "Los otros seis tipos declaran su tipo en el campo de tipo y confirman sus datos ahi; el tipo no se infiere de la prosa (ADR 0012). El circuito de prosa libre #115 queda como camino de respaldo: lo que desemboca sin tipo declarado sigue siendo gacetilla de actividad.",
+  "x-adr-015": "docs/adr/0015-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
+  "x-contrato-hoja-previa": "canal_form_respuestas_v2",
+  "x-contrato-tipos": "urn:proyecto-centenario:agente1:tipos-gacetilla:v2",
+  "x-contrato-areas": "urn:proyecto-centenario:agente1:areas-emisoras:v2",
+  "x-contrato-publicos": "urn:proyecto-centenario:agente1:publicos-destinatarios:v1",
+  "x-insumo-provisional": "El desplegable de actividades se carga a mano con identificadores de la planilla de actividades (insumo provisional). Su sincronizacion automatica (Apps Script) queda declarada como destino del canal y no se construye en esta iteracion; el agente sigue sin escribir el Form.",
+  "columnas": {
+    "marca_temporal": 0,
+    "correo": 1,
+    "tipo_gacetilla": 2,
+    "actividad": 3,
+    "area_emisora": 4,
+    "firma_de_area": 5,
+    "publicos": 6,
+    "pedido": 7
+  },
+  "preguntas": [
+    {
+      "columna": "tipo_gacetilla",
+      "obligatoria": true,
+      "lista_cerrada": "los siete identificadores de tipos_gacetilla_v2 (las opciones del desplegable son los identificadores tal cual)",
+      "orden": "primera pregunta: el tipo manda y selecciona la forma declarada"
+    },
+    {
+      "columna": "actividad",
+      "condicional": "solo se pregunta si el tipo declarado lleva actividad (hoy difusion_de_actividad)",
+      "valores": "identificadores de la planilla de actividades",
+      "ultima_opcion": {
+        "etiqueta": "No es una actividad / no figura",
+        "efecto": "no da de alta ninguna actividad: para tipos que llevan actividad es desenlace acotado sin generar (cargarla en la planilla institucional no es tarea del agente); lleva a los tipos que no la necesitan"
+      }
+    },
+    {
+      "columna": "area_emisora",
+      "obligatoria_si": "el contrato de entrada del tipo exige area_emisora",
+      "lista_cerrada": "los identificadores de areas_emisoras_v2; la firma que imprime la pieza sale del padron, no del texto de la hoja"
+    },
+    {
+      "columna": "firma_de_area",
+      "aplica_si": "el tipo declarado exige area_emisora; en los demas tipos la celda no se lee",
+      "opcion_separada": "«que area emite» y «si la pieza lleva firma de area» son dos decisiones del pedido (#154). El bloque institucional fijo (`firmante`) va siempre, con o sin firma de area.",
+      "valores": ["Si", "No"],
+      "default": "Si (celda vacia): conserva el comportamiento de la forma declarada de siempre, que imprime el area en el pie"
+    },
+    {
+      "columna": "publicos",
+      "obligatoria_si": "el tipo declarado viaja por FIE Informa (`requiere_publicos` del contrato de tipos)",
+      "lista_cerrada": "los identificadores de publicos_destinatarios_v1, eleccion multiple: al menos uno y sin repetidos",
+      "efecto": "solo decide a quien se envia la pieza: queda declarado en la solicitud y visible en la revision; nunca entra a un prompt ni cambia el texto generado. Las direcciones de los grupos no se versionan: el catalogo lleva id y nombre."
+    },
+    {
+      "columna": "pedido",
+      "libre": true,
+      "entrada": "no confiable (ADR 0001): se transporta al nucleo y nunca se persiste ni entra a un prompt"
+    }
+  ],
+  "etiqueta_sin_actividad": "No es una actividad / no figura"
+}
