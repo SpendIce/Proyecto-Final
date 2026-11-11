@@ -85,10 +85,12 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Mapping, Protocol
 
 from .certificados import MARCA_PRUEBA, generar_pdf_certificado
 from .certificados_plantilla_seu import (
+    FIRMANTES_SEU,
+    RECURSOS_IMAGEN,
     TEMPLATE_VERSION_SEU,
     DatosCertificadoSeu,
     RecursosFirma,
@@ -114,6 +116,15 @@ from .linea_descriptiva import (
     objeto_id_linea_descriptiva,
     revisar_aprobacion_lote,
     revisar_linea_descriptiva,
+)
+from .plantillas_aprobadas import (
+    PLANTILLA_TIPO_MISSING,
+    PLANTILLA_VERSION_NO_APROBADA,
+    PlantillaCorreo,
+    id_version_plantilla,
+    plantilla_version_registrada,
+    renderizar_plantilla,
+    validar_forma_plantilla,
 )
 from .registro_auditoria import escribir_registro
 
@@ -326,6 +337,8 @@ def _pdf_para_persona(
     firmantes: tuple[Firmante, ...],
     recursos_firma: RecursosFirma | None,
     borrador: bool,
+    marcar_prueba: bool = True,
+    plantilla_asistencia: PlantillaCorreo | None = None,
 ) -> tuple[bytes, str]:
     """El PDF de una persona con la plantilla que dicta su condición.
 
@@ -333,6 +346,14 @@ def _pdf_para_persona(
     de firma de la custodia; `asistencia` queda en la plantilla
     provisional hasta que la SEU entregue o avale su variante — el
     `plantilla` devuelto es la traza de cuál salió.
+
+    `marcar_prueba` (#142) se apaga sólo en la emisión de modo
+    producción, donde el diseño SEU sale como pieza real sin la línea
+    «DOCUMENTO DE PRUEBA». `plantilla_asistencia` (#142) sólo llega en
+    modo producción para la condición `asistencia`: el cuerpo sale de la
+    redacción aprobada en vez de la provisional, sin la marca de prueba,
+    y la traza `plantilla` de la auditoría nombra la versión registrada
+    de esa plantilla, no la provisional que no se usó.
     """
 
     if persona.condicion == "aprobacion":
@@ -348,7 +369,10 @@ def _pdf_para_persona(
             linea_descriptiva=linea_descriptiva,
         )
         pdf = generar_pdf_certificado_seu(
-            datos, recursos=recursos_firma, borrador=borrador
+            datos,
+            recursos=recursos_firma,
+            borrador=borrador,
+            marcar_prueba=marcar_prueba,
         )
         return pdf, _PLANTILLA_POR_CONDICION[persona.condicion]
     _titulo, cuerpo = renderizar_certificado_lote(
@@ -357,8 +381,78 @@ def _pdf_para_persona(
         linea_descriptiva=linea_descriptiva,
         id_certificado=id_certificado,
         firmantes=firmantes,
+        plantilla=plantilla_asistencia,
     )
-    return generar_pdf_certificado(cuerpo, borrador=borrador), _PLANTILLA_POR_CONDICION[persona.condicion]
+    # La traza nombra la plantilla efectivamente usada: en producción, la
+    # versión registrada de `certificado_asistencia` — el id que el
+    # registro de decisiones autorizó —; en prueba, la provisional.
+    traza = (
+        id_version_plantilla("certificado_asistencia", plantilla_asistencia)
+        if plantilla_asistencia is not None
+        else _PLANTILLA_POR_CONDICION[persona.condicion]
+    )
+    return generar_pdf_certificado(cuerpo, borrador=borrador), traza
+
+
+# Variables que la plantilla aprobada de un certificado puede nombrar
+# (#142): el conjunto cierra el dato que el circuito completa, así que una
+# plantilla que declare otra cosa se rechaza al cargar la corrida.
+VARIABLES_CERTIFICADO = frozenset(
+    {
+        "encabezado",
+        "verbo",
+        "titulo",
+        "organiza",
+        "tratamiento",
+        "nombre",
+        "apellido",
+        "dni",
+        "duracion_horas",
+        "modalidad",
+        "fechas",
+        "linea_descriptiva",
+        "referencia",
+        "bloque_firmas",
+    }
+)
+
+# Las del correo que lleva el PDF al titular: cubre el asunto y el cuerpo.
+VARIABLES_CORREO_CERTIFICADO = frozenset(
+    {"tratamiento", "nombre", "apellido", "titulo", "id_actividad"}
+)
+
+
+def _modo_envio_destino(destino: object) -> str:
+    """El modo de envío que declara el destino; ausente es `prueba`.
+
+    El destino de archivo y los dobles de test no conocen modos: conservan
+    el comportamiento de siempre, que es el de prueba. `DestinoCorreoArchivo`
+    se declara acá mismo porque vive en este módulo.
+    """
+
+    from .gmail_envio import MODO_ENVIO_PRODUCCION, MODO_ENVIO_PRUEBA
+
+    return (
+        MODO_ENVIO_PRODUCCION
+        if getattr(destino, "modo", None) == MODO_ENVIO_PRODUCCION
+        else MODO_ENVIO_PRUEBA
+    )
+
+
+def _modo_entrega(destino: object) -> str:
+    """Identificador del destino que entregó, para la línea de auditoría.
+
+    Mismo vocabulario que `confirmaciones.modo_entrega` más
+    `archivo_offline` para el destino de archivo de este módulo: es lo que
+    distingue en `delivery_mode` un envío por lista de prueba de uno por la
+    lista aprobada.
+    """
+
+    if type(destino) is DestinoCorreoArchivo:
+        return "archivo_offline"
+    from .confirmaciones import modo_entrega
+
+    return modo_entrega(destino)
 
 
 def renderizar_certificado_lote(
@@ -368,6 +462,7 @@ def renderizar_certificado_lote(
     linea_descriptiva: str,
     id_certificado: str,
     firmantes: tuple[Firmante, ...] = FIRMANTES_DECLARADOS,
+    plantilla: PlantillaCorreo | None = None,
 ) -> tuple[str, str]:
     """Arma (título, cuerpo) del certificado con la plantilla base fija.
 
@@ -375,6 +470,11 @@ def renderizar_certificado_lote(
     administrativo, el texto lo dan los datos de la fila y de la actividad.
     La primera línea del cuerpo es la marca de prueba permanente; el PDF
     de muestra agrega además `BORRADOR — NO EMITIR` por arriba.
+
+    `plantilla` (#142) sólo llega en modo producción: el cuerpo sale de la
+    redacción aprobada por condición con las mismas variables, sin la
+    marca de prueba ni la declaración provisional. Las variables que el
+    texto aprobado puede nombrar son las de `VARIABLES_CERTIFICADO`.
     """
 
     encabezado, verbo = _TEXTO_POR_CONDICION[persona.condicion]
@@ -387,6 +487,24 @@ def renderizar_certificado_lote(
         f"________________________________\n{f.nombre.strip()}\n{f.cargo.strip()}"
         for f in firmantes
     )
+    if plantilla is not None:
+        valores = {
+            "encabezado": encabezado,
+            "verbo": verbo,
+            "titulo": actividad["titulo"].strip(),
+            "organiza": actividad["organiza"].strip(),
+            "tratamiento": persona.tratamiento,
+            "nombre": persona.nombre,
+            "apellido": persona.apellido,
+            "dni": persona.dni,
+            "duracion_horas": actividad["duracion_horas"].strip(),
+            "modalidad": actividad["modalidad"].strip(),
+            "fechas": fechas,
+            "linea_descriptiva": linea_descriptiva.strip(),
+            "referencia": id_certificado,
+            "bloque_firmas": bloque_firmas,
+        }
+        return titulo, renderizar_plantilla(plantilla.cuerpo, valores)
     cuerpo = (
         f"{MARCA_PRUEBA}\n\n"
         f"{encabezado}\n\n"
@@ -421,6 +539,7 @@ def procesar_emision_certificados(
     directorio_salida: Path | str,
     firmantes: tuple[Firmante, ...] = FIRMANTES_DECLARADOS,
     recursos_firma: RecursosFirma | None = None,
+    plantillas_aprobadas: Mapping[str, PlantillaCorreo] | None = None,
     correlation_id: str | None = None,
 ) -> ResultadoEmisionCertificados:
     """Corre el circuito de emisión del lote de cierre de una actividad.
@@ -445,12 +564,26 @@ def procesar_emision_certificados(
     la plantilla SEU de aprobación (#126): resuelve imágenes desde la
     carpeta restringida configurada fuera del repo; sin él, los espacios
     de firma salen marcados como insumo no provisto.
+
+    El modo lo declara el destino (#142): con `modo="produccion"` el
+    certificado de `aprobacion` sale del diseño SEU ya recibido (#126), el
+    de `asistencia` —aún pendiente— exige la plantilla aprobada
+    `certificado_asistencia` de `plantillas_aprobadas` y el correo del
+    titular sale de `correo_certificado` del mismo archivo, sin la marca
+    de prueba ni la de borrador. La aprueba la SEU, por la definición del
+    11/11: aprueba quien genera la pieza. Sin las plantillas que el lote
+    necesita la corrida es `INVALIDA` con `approved_template_missing`
+    antes de mandar nada.
     """
 
     cid = correlation_id or _hash(f"emision|{id_actividad}")[:16]
     salida = Path(directorio_salida)
     salida.mkdir(parents=True, exist_ok=True)
     log_path = salida / LOG_NAME
+    from .gmail_envio import MODO_ENVIO_PRODUCCION
+
+    en_produccion = _modo_envio_destino(destino) == MODO_ENVIO_PRODUCCION
+    delivery_mode = _modo_entrega(destino)
     solicitante_hash = _hash(
         solicitante_correo.lower().strip()
         if isinstance(solicitante_correo, str)
@@ -594,6 +727,80 @@ def procesar_emision_certificados(
         objeto_lote=objeto_lote,
     )
 
+    # 2b. En producción el correo del titular sale de la plantilla aprobada
+    # `correo_certificado` (#142) y, si el lote tiene `asistencia` —aún sin
+    # diseño institucional—, de `certificado_asistencia`; `aprobacion` ya
+    # compone el diseño SEU recibido (#126) y no exige entrada. Que el
+    # archivo las declare no alcanza: cada versión tiene que tener la
+    # `apruebo_contenido` registrada en `registro_decisiones` (definición
+    # del 11/11, #125). Y para el diseño SEU la custodia tiene que
+    # resolver el símbolo y todas las firmas: un PDF real no puede salir
+    # con «[firma: insumo restringido no provisto]». Cualquier falta es
+    # INVALIDA antes de entregar al primer titular.
+    plantillas = dict(plantillas_aprobadas or {})
+    if en_produccion:
+        requeridas = {"correo_certificado"}
+        if any(p.condicion == "asistencia" for p in personas):
+            requeridas.add("certificado_asistencia")
+        if not requeridas <= set(plantillas):
+            evento("plantillas_aprobadas_incompletas")
+            return resultado(
+                "INVALIDA",
+                "faltan plantillas aprobadas para el modo producción",
+                PLANTILLA_TIPO_MISSING,
+            )
+        for tipo in sorted(requeridas):
+            invalida = validar_forma_plantilla(
+                plantillas[tipo],
+                asunto_requerido=tipo == "correo_certificado",
+                variables_permitidas=(
+                    VARIABLES_CERTIFICADO
+                    if tipo == "certificado_asistencia"
+                    else VARIABLES_CORREO_CERTIFICADO
+                ),
+            )
+            if invalida is not None:
+                evento("plantillas_aprobadas_invalidas")
+                return resultado(
+                    "INVALIDA",
+                    "una plantilla aprobada no cumple la forma declarada",
+                    invalida,
+                )
+        for tipo in sorted(requeridas):
+            if not plantilla_version_registrada(
+                registro_decisiones,
+                tipo=tipo,
+                plantilla=plantillas[tipo],
+            ):
+                evento("plantilla_version_no_aprobada", tipo=tipo)
+                return resultado(
+                    "INVALIDA",
+                    "la plantilla no tiene la aprobación registrada "
+                    "sobre su versión",
+                    PLANTILLA_VERSION_NO_APROBADA,
+                )
+        correo_certificado = plantillas["correo_certificado"]
+        if any(p.condicion == "aprobacion" for p in personas):
+            requeridos = set(RECURSOS_IMAGEN) | {
+                f.recurso for f in FIRMANTES_SEU if f.recurso is not None
+            }
+            faltantes = [
+                nombre
+                for nombre in sorted(requeridos)
+                if recursos_firma is None
+                or recursos_firma.leer(nombre) is None
+            ]
+            if faltantes:
+                evento(
+                    "recursos_firma_incompletos",
+                    cantidad_faltantes=len(faltantes),
+                )
+                return resultado(
+                    "INVALIDA",
+                    "faltan recursos de firma para emitir en producción",
+                    "signature_resources_missing",
+                )
+
     # 3. La línea descriptiva: sin su aprobación no hay PDF.
     texto_linea = (
         linea_descriptiva.strip()
@@ -653,21 +860,47 @@ def procesar_emision_certificados(
                 "personas": str(len(personas)),
             },
         )
-        pdf_muestra, plantilla_muestra = _pdf_para_persona(
-            persona=personas[0],
-            actividad=actividad,
-            linea_descriptiva=texto_linea,
-            id_certificado=f"cert-{id_actividad.strip()}-{personas[0].dni}",
-            firmantes=firmantes,
-            recursos_firma=recursos_firma,
-            borrador=True,
-        )
+        try:
+            pdf_muestra, plantilla_muestra = _pdf_para_persona(
+                persona=personas[0],
+                actividad=actividad,
+                linea_descriptiva=texto_linea,
+                id_certificado=(
+                    f"cert-{id_actividad.strip()}-{personas[0].dni}"
+                ),
+                firmantes=firmantes,
+                recursos_firma=recursos_firma,
+                borrador=True,
+                plantilla_asistencia=(
+                    plantillas.get("certificado_asistencia")
+                    if en_produccion
+                    else None
+                ),
+            )
+        except Exception as exc:
+            # Un render que falla —una `{{variable}}` sin dato en la
+            # plantilla aprobada— no puede dejar el aviso a medio camino:
+            # queda su línea de auditoría y la corrida cierra como FALLIDA.
+            code = getattr(exc, "code", "render_muestra_fallido")
+            evento(
+                "aviso_aprobacion",
+                resultado="fallido",
+                code=str(code),
+                delivery_mode=delivery_mode,
+            )
+            return resultado(
+                "FALLIDA",
+                "no se pudo componer el certificado de muestra",
+                str(code),
+            )
         enlace = enlaces.enlace(
             tipo="lote", objeto_id=objeto_lote, decision="apruebo_lote"
         )
+        # El aviso al aprobador es operativo, no una pieza institucional:
+        # en producción sólo pierde la marca de borrador del correo; el PDF
+        # de muestra sigue marcado borrador porque es eso, una muestra.
         cuerpo_aviso = (
-            MARCADOR_BORRADOR_CORREO
-            + "\n\n"
+            ("" if en_produccion else MARCADOR_BORRADOR_CORREO + "\n\n")
             + "Se pidió la emisión de los certificados de una actividad y el "
             "lote de cierre quedó pendiente de su aprobación.\n\n"
             f"Actividad: {actividad['titulo']} ({id_actividad.strip()})\n"
@@ -692,7 +925,12 @@ def procesar_emision_certificados(
             )
         except Exception as exc:
             code = getattr(exc, "code", "aviso_aprobacion_fallido")
-            evento("aviso_aprobacion", resultado="fallido", code=str(code))
+            evento(
+                "aviso_aprobacion",
+                resultado="fallido",
+                code=str(code),
+                delivery_mode=delivery_mode,
+            )
             return resultado(
                 "FALLIDA",
                 "no se pudo enviar el correo de aprobación del lote",
@@ -702,6 +940,7 @@ def procesar_emision_certificados(
             "aviso_aprobacion",
             resultado="enviado",
             plantilla_muestra=plantilla_muestra,
+            delivery_mode=delivery_mode,
         )
         resumen = (
             "el lote quedó pendiente y se envió el correo de aprobación "
@@ -721,28 +960,52 @@ def procesar_emision_certificados(
     fallidas = 0
     for persona in personas:
         id_certificado = f"cert-{id_actividad.strip()}-{persona.dni}"
-        pdf, plantilla = _pdf_para_persona(
-            persona=persona,
-            actividad=actividad,
-            linea_descriptiva=texto_linea,
-            id_certificado=id_certificado,
-            firmantes=firmantes,
-            recursos_firma=recursos_firma,
-            borrador=False,
-        )
         destinatario_hash = _hash(persona.mail.lower())
         certificado_ref_hash = _hash(id_certificado)
         holder_hash = _hash(
             f"{persona.nombre}|{persona.apellido}|{persona.dni}"
         )
+        # El render va adentro del mismo try que la entrega: un error de
+        # plantilla —una `{{variable}}` sin dato— no puede cortar el lote a
+        # mitad sin su línea `entrega` ni el `cierre` final de auditoría.
+        plantilla = _PLANTILLA_POR_CONDICION.get(
+            persona.condicion, "desconocida"
+        )
         try:
-            destino.entregar(
-                idempotency_key=_hash(
-                    f"entrega_cert|{objeto_lote}|{id_certificado}"
+            pdf, plantilla = _pdf_para_persona(
+                persona=persona,
+                actividad=actividad,
+                linea_descriptiva=texto_linea,
+                id_certificado=id_certificado,
+                firmantes=firmantes,
+                recursos_firma=recursos_firma,
+                borrador=False,
+                marcar_prueba=not en_produccion,
+                plantilla_asistencia=(
+                    plantillas.get("certificado_asistencia")
+                    if en_produccion
+                    else None
                 ),
-                destinatario=persona.mail,
-                asunto=f"[Agente 1] Certificado — {actividad['titulo']}",
-                cuerpo=(
+            )
+            if en_produccion:
+                valores_correo = {
+                    "tratamiento": persona.tratamiento,
+                    "nombre": persona.nombre,
+                    "apellido": persona.apellido,
+                    "titulo": actividad["titulo"],
+                    "id_actividad": id_actividad.strip(),
+                }
+                asunto_correo = renderizar_plantilla(
+                    correo_certificado.asunto or "", valores_correo
+                )
+                cuerpo_correo = renderizar_plantilla(
+                    correo_certificado.cuerpo, valores_correo
+                )
+            else:
+                asunto_correo = (
+                    f"[Agente 1] Certificado — {actividad['titulo']}"
+                )
+                cuerpo_correo = (
                     MARCADOR_BORRADOR_CORREO
                     + "\n\n"
                     + f"{persona.tratamiento} {persona.apellido}:\n\n"
@@ -750,7 +1013,14 @@ def procesar_emision_certificados(
                     f"actividad {actividad['titulo']}.\n"
                     "Es un documento de prueba: no tiene validez "
                     "institucional.\n"
+                )
+            destino.entregar(
+                idempotency_key=_hash(
+                    f"entrega_cert|{objeto_lote}|{id_certificado}"
                 ),
+                destinatario=persona.mail,
+                asunto=asunto_correo,
+                cuerpo=cuerpo_correo,
                 adjunto=_adjunto_pdf(f"{id_certificado}.pdf", pdf),
             )
         except Exception as exc:
@@ -764,6 +1034,7 @@ def procesar_emision_certificados(
                 holder_hash=holder_hash,
                 certificado_ref_hash=certificado_ref_hash,
                 plantilla=plantilla,
+                delivery_mode=delivery_mode,
             )
             continue  # rechazo de política o falla del medio: no reintenta
         emitidas += 1
@@ -775,6 +1046,7 @@ def procesar_emision_certificados(
             certificado_ref_hash=certificado_ref_hash,
             pdf_hash=_hash_bytes(pdf),
             plantilla=plantilla,
+            delivery_mode=delivery_mode,
         )
     estado = (
         "EMITIDA"
@@ -857,6 +1129,14 @@ class DestinoCorreoArchivo:
 
     def __init__(self, path: Path | str) -> None:
         self._path = Path(path)
+
+    @property
+    def modo(self) -> str:
+        # El archivo offline es un destino del modo prueba: nunca sale a
+        # la red ni a una lista aprobada.
+        from .gmail_envio import MODO_ENVIO_PRUEBA
+
+        return MODO_ENVIO_PRUEBA
 
     def entregar(
         self,

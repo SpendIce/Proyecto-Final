@@ -72,6 +72,10 @@ Guía rápida de módulos:
                               gates y aprobación una vez por actividad (#74).
 - `buzon`                     puerto del buzón propio del agente (ADR 0004).
 - `plantillas_actividad`      HU-012, plantilla de correo por actividad (#73).
+- `plantillas_aprobadas`      plantillas de correo aprobadas por tipo para el
+                              modo producción: archivo declarado por entorno,
+                              sustitución `{{variable}}` y poda de las marcas
+                              de prueba (#142).
 """
 
 from .buzon import BuzonPropio, BuzonPropioEml, BuzonPropioMemoria
@@ -123,6 +127,10 @@ from .plantillas_actividad import (
     procesar_plantilla_actividad,
     renderizar_pieza_actividad,
 )
+from .plantillas_aprobadas import (
+    PlantillaCorreo,
+    cargar_plantillas_aprobadas,
+)
 from .posts import PoliticaPost, procesar_post, procesar_post_estructurado
 from .posts_efemeride import procesar_post_efemeride
 from .procesamiento import FakeGenerator, ResultadoProceso, procesar_fila_csv
@@ -152,6 +160,7 @@ __all__ = [
     "IdentidadSolicitante",
     "ItemEnvio",
     "OllamaGenerator",
+    "PlantillaCorreo",
     "PoliticaPost",
     "ROL_APROBADOR_CONTENIDO",
     "ROL_APROBADOR_PAGOS",
@@ -168,6 +177,7 @@ __all__ = [
     "SolicitudConfirmacion",
     "TIPO_INSTRUCCIONES_PAGO",
     "aprobar_plantilla_recordatorio",
+    "cargar_plantillas_aprobadas",
     "correr_control_pagos",
     "correr_lote_actividad",
     "correr_lote_recordatorios",

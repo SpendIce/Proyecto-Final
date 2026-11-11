@@ -67,6 +67,10 @@ from agente1.plantillas_actividad import (
     procesar_plantilla_actividad,
     renderizar_pieza_actividad,
 )
+from agente1.plantillas_aprobadas import (
+    PlantillaCorreo,
+    id_version_plantilla,
+)
 
 ROOT = Path(__file__).parents[1]
 DATASET = ROOT / "data" / "actividades_sinteticas.csv"
@@ -1461,3 +1465,215 @@ def test_runner_hoja_contrato_desconocido_rechaza(
     assert salida == 2
     lineas = capsys.readouterr().out.splitlines()
     assert json.loads(lineas[0])["resultado"] == "canal_form_config_invalid"
+
+
+# --- Modo producción (#142) ---------------------------------------------------
+
+MARCADOR_PRUEBA = "BORRADOR — NO ENVIAR"
+_LINEA_PROVISIONAL_TEST = (
+    "Este texto es una plantilla provisional y requiere validación "
+    "humana antes de cualquier envío."
+)
+
+# Plantilla sintética declarada para probar el modo producción: no es la
+# redacción institucional — la de la SEU sigue pendiente y llega por
+# `AGENTE1_PLANTILLAS_APROBADAS_PATH` —. Las variables son las del
+# contrato de actividad (`VARIABLES_CONOCIDAS`).
+PLANTILLA_ACTIVIDAD_SINTETICA = {
+    "correo_actividad": PlantillaCorreo(
+        asunto="{{actividad}}",
+        cuerpo=(
+            "Hola {{nombre_destinatario}},\n\n"
+            "Te escribimos por tu preinscripción a {{actividad}}, que "
+            "comienza el {{fecha_inicio}}.\n\n"
+            "Contacto: {{contacto}}\n"
+        ),
+    )
+}
+
+
+def _aprobar_version_correo_actividad(
+    registro: RegistroDecisiones, *, correlativo: int = 90
+) -> None:
+    """La `apruebo_contenido` de la versión sintética del tipo."""
+
+    _decision_registrada(
+        registro,
+        tipo=TIPO_PLANTILLA,
+        objeto_id=id_version_plantilla(
+            "correo_actividad",
+            PLANTILLA_ACTIVIDAD_SINTETICA["correo_actividad"],
+        ),
+        decision=DECISION_APRUEBO_CONTENIDO,
+        rol=ROL_CONTENIDO,
+        correlativo=correlativo,
+    )
+
+
+def test_en_prueba_la_pieza_lleva_marca_y_linea_provisional(
+    tmp_path: Path,
+) -> None:
+    documento = _documento(tmp_path)
+
+    asunto, cuerpo = renderizar_pieza_actividad(
+        documento=documento,
+        fila=_fila_syn001(),
+        plan=None,
+        destinatario=_destinatarios()[0],
+    )
+
+    assert asunto.startswith(f"[{MARCADOR_PRUEBA}] ")
+    assert cuerpo.startswith(MARCADOR_PRUEBA)
+    assert _LINEA_PROVISIONAL_TEST in cuerpo
+
+
+def test_en_produccion_la_pieza_viaja_sin_marcas(tmp_path: Path) -> None:
+    """El cuerpo sale entero de la plantilla aprobada del tipo, sin poda."""
+
+    documento = _documento(tmp_path)
+
+    asunto, cuerpo = renderizar_pieza_actividad(
+        documento=documento,
+        fila=_fila_syn001(),
+        plan=None,
+        destinatario=_destinatarios()[0],
+        modo_envio="produccion",
+        plantilla_aprobada=PLANTILLA_ACTIVIDAD_SINTETICA["correo_actividad"],
+    )
+
+    assert "BORRADOR" not in asunto
+    assert asunto == _fila_syn001()["titulo"]
+    assert MARCADOR_PRUEBA not in cuerpo
+    assert _LINEA_PROVISIONAL_TEST not in cuerpo
+    assert "{{" not in cuerpo
+
+
+def test_en_produccion_con_plan_el_asunto_sigue_siendo_el_del_plan(
+    tmp_path: Path,
+) -> None:
+    documento = _documento(tmp_path, plan=_plan_syn001())
+
+    asunto, cuerpo = renderizar_pieza_actividad(
+        documento=documento,
+        fila=_fila_syn001(),
+        plan=_plan_syn001(),
+        destinatario=_destinatarios()[0],
+        modo_envio="produccion",
+        plantilla_aprobada=PLANTILLA_ACTIVIDAD_SINTETICA["correo_actividad"],
+    )
+
+    # La llave de asociación de respuestas no cambia en producción.
+    assert asunto == "Pre-Inscripción Taller Sintético"
+    assert MARCADOR_PRUEBA not in cuerpo
+
+
+def test_un_modo_desconocido_invalida_el_lote_de_actividad(
+    tmp_path: Path,
+) -> None:
+    documento = _documento(tmp_path)
+    decisiones = RegistroDecisiones(tmp_path / "estado-decisiones")
+    _aprobar_circuito(decisiones, documento=documento)
+
+    resultado = encolar_lote_actividad(
+        documento=documento,
+        fila=_fila_syn001(),
+        plan=None,
+        destinatarios=_destinatarios(),
+        decisiones=decisiones,
+        registro=RegistroConfirmacionesMemoria(),
+        cola=ColaEnviosMemoria(),
+        directorio_salida=tmp_path / "salida",
+        modo_envio="espacial",
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "send_mode_invalid"
+
+
+def test_el_lote_de_actividad_en_produccion_encola_cuerpos_limpios(
+    tmp_path: Path,
+) -> None:
+    documento = _documento(tmp_path)
+    decisiones = RegistroDecisiones(tmp_path / "estado-decisiones")
+    _aprobar_circuito(decisiones, documento=documento)
+    _aprobar_version_correo_actividad(decisiones)
+    registro = RegistroConfirmacionesMemoria()
+    cola = ColaEnviosMemoria()
+
+    resultado = encolar_lote_actividad(
+        documento=documento,
+        fila=_fila_syn001(),
+        plan=None,
+        destinatarios=_destinatarios(),
+        decisiones=decisiones,
+        registro=registro,
+        cola=cola,
+        directorio_salida=tmp_path / "salida",
+        modo_envio="produccion",
+        plantillas_aprobadas=PLANTILLA_ACTIVIDAD_SINTETICA,
+    )
+
+    assert resultado.estado == "ENVIO_ENCOLADO"
+    assert len(cola.pendientes()) == 2
+    for destinatario in _destinatarios():
+        clave = clave_item_actividad(
+            actividad_id="SYN-001",
+            id_inscripcion=destinatario.id_inscripcion,
+            documento=documento,
+        )
+        guardado = registro.obtener(clave)
+        assert guardado.estado == "ENVIO_ENCOLADO"
+        assert MARCADOR_PRUEBA not in guardado.cuerpo
+        assert _LINEA_PROVISIONAL_TEST not in guardado.cuerpo
+        assert "BORRADOR" not in guardado.asunto
+
+
+def test_en_produccion_sin_la_plantilla_del_tipo_es_invalida(
+    tmp_path: Path,
+) -> None:
+    """El documento generado es provisional: no hay poda en producción."""
+
+    documento = _documento(tmp_path)
+    decisiones = RegistroDecisiones(tmp_path / "estado-decisiones")
+    _aprobar_circuito(decisiones, documento=documento)
+
+    resultado = encolar_lote_actividad(
+        documento=documento,
+        fila=_fila_syn001(),
+        plan=None,
+        destinatarios=_destinatarios(),
+        decisiones=decisiones,
+        registro=RegistroConfirmacionesMemoria(),
+        cola=ColaEnviosMemoria(),
+        directorio_salida=tmp_path / "salida",
+        modo_envio="produccion",
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_missing"
+
+
+def test_en_produccion_sin_la_aprobacion_de_version_es_invalida(
+    tmp_path: Path,
+) -> None:
+    """La plantilla en el archivo sin `apruebo_contenido` no autoriza."""
+
+    documento = _documento(tmp_path)
+    decisiones = RegistroDecisiones(tmp_path / "estado-decisiones")
+    _aprobar_circuito(decisiones, documento=documento)
+
+    resultado = encolar_lote_actividad(
+        documento=documento,
+        fila=_fila_syn001(),
+        plan=None,
+        destinatarios=_destinatarios(),
+        decisiones=decisiones,
+        registro=RegistroConfirmacionesMemoria(),
+        cola=ColaEnviosMemoria(),
+        directorio_salida=tmp_path / "salida",
+        modo_envio="produccion",
+        plantillas_aprobadas=PLANTILLA_ACTIVIDAD_SINTETICA,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "template_version_unapproved"

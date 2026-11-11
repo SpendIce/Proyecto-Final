@@ -69,7 +69,7 @@ Conjunto de decisiones registradas por personas con rol institucional autorizado
 _Evitar_: validacion automatica, aprobacion del agente, aprobacion al publicar sin registro
 
 **Plantilla aprobada**:
-Version de texto o de diseno de una pieza que el Agente 1 envia o emite (confirmacion, recordatorio, certificado), con la aprobacion de contenido de la persona autorizada. Se aprueba una vez por version, no por pieza. Al enviar o emitir, el agente solo completa sus variables con datos: ningun texto que el modelo escriba llega a un destinatario sin haber pasado por esta aprobacion. Puede ser una plantilla base o una plantilla de actividad.
+Version de texto o de diseno de una pieza que el Agente 1 envia o emite (confirmacion, recordatorio, certificado), con la aprobacion de contenido de la persona autorizada registrada en el sistema. Se aprueba una vez por version, no por pieza, y la aprobacion queda atada al hash del texto: una edicion posterior es otra version sin aprobacion. Que el texto exista en un archivo no lo vuelve aprobado; la aprobacion es la decision registrada, no la presencia del texto (ADR 0019). Al enviar o emitir, el agente solo completa sus variables con datos: ningun texto que el modelo escriba llega a un destinatario sin haber pasado por esta aprobacion. Puede ser una plantilla base o una plantilla de actividad.
 _Evitar_: plantilla generica, ejemplo, modelo de mail
 
 **Plantilla base**:

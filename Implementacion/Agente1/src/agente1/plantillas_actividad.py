@@ -95,6 +95,18 @@ from .destinos import (
 )
 from .fuentes import FuenteSolicitudes, FuenteSolicitudesError
 from .pagos import PlanPago
+from .plantillas_aprobadas import (
+    LINEA_PROVISIONAL as _LINEA_PROVISIONAL,
+)
+from .plantillas_aprobadas import (
+    PLANTILLA_TIPO_MISSING,
+    PLANTILLA_VERSION_NO_APROBADA,
+    PlantillaCorreo,
+    modo_envio_efectivo,
+    plantilla_version_registrada,
+    renderizar_plantilla,
+    validar_forma_plantilla,
+)
 from .posts import (
     PATRON_ATRIBUCION_FACTUAL,
     PATRON_EMAIL,
@@ -240,12 +252,6 @@ PATRON_SALUDO_O_CIERRE = re.compile(
     r"cordialmente|un\s+saludo)\b",
     flags=re.IGNORECASE | re.MULTILINE,
 )
-
-_LINEA_PROVISIONAL = (
-    "Este texto es una plantilla provisional y requiere validación "
-    "humana antes de cualquier envío."
-)
-
 
 @dataclass(frozen=True)
 class ResultadoPlantillaActividad(ResultadoProceso):
@@ -853,12 +859,21 @@ def _decision_registrada(
     )
 
 
+# El tipo de la pieza que el lote de actividad entrega (#142): el correo
+# por destinatario. En producción se compone desde la plantilla aprobada
+# por tipo — la redacción institucional de la SEU — nunca podando las
+# marcas del documento generado, que es texto `PROVISIONAL_NO_INSTITUCIONAL`.
+TIPO_PLANTILLA_CORREO_ACTIVIDAD = "correo_actividad"
+
+
 def renderizar_pieza_actividad(
     *,
     documento: str,
     fila: dict[str, str],
     plan: PlanPago | None,
     destinatario: DestinatarioActividad,
+    modo_envio: str = "prueba",
+    plantilla_aprobada: PlantillaCorreo | None = None,
 ) -> tuple[str, str]:
     """Asunto y cuerpo del correo de un destinatario. Sin modelo.
 
@@ -874,7 +889,16 @@ def renderizar_pieza_actividad(
     actividad (§4.2 del diseño de control de pagos) — y sin plan el
     título con la marca de borrador, porque ya no hay asociación de
     respuestas que proteger.
+
+    `modo_envio` (#142): en `prueba` el cuerpo conserva la marca de
+    borrador y la línea provisional que el documento aprobado lleva en su
+    sección central. En `produccion` el correo se compone entero desde
+    `plantilla_aprobada` — el tipo `correo_actividad`, ya verificado por
+    el llamador — porque el documento generado es texto provisional y
+    ninguna poda de marcas lo vuelve texto institucional.
     """
+
+    from .gmail_envio import MODO_ENVIO_PRODUCCION
 
     for campo in CAMPOS_FILA_OBLIGATORIOS:
         if not isinstance(fila.get(campo), str) or not fila[campo].strip():
@@ -916,6 +940,21 @@ def renderizar_pieza_actividad(
             else "Sin bonificaciones declaradas."
         )
 
+    if modo_envio == MODO_ENVIO_PRODUCCION:
+        if plantilla_aprobada is None:
+            raise ValueError("plantilla aprobada requerida en producción")
+        # El asunto del plan conserva su precedencia: es la llave de
+        # asociación de respuestas, no texto libre. Sin plan, el asunto
+        # aprobado de la plantilla del tipo.
+        asunto_prod = (
+            plan.asunto_preinscripcion.strip()
+            if plan is not None and plan.asunto_preinscripcion.strip()
+            else renderizar_plantilla(plantilla_aprobada.asunto or "", valores)
+        )
+        return asunto_prod, renderizar_plantilla(
+            plantilla_aprobada.cuerpo, valores
+        )
+
     cuerpo = _seccion_cuerpo(documento)
     # La sustitución va por el nombre capturado, no por el literal
     # `{{nombre}}`: una variante con espacios (`{{ nombre }}`) que el gate
@@ -942,6 +981,8 @@ def encolar_lote_actividad(
     registro: RegistroConfirmaciones,
     cola: ColaEnvios,
     directorio_salida: Path,
+    modo_envio: str | None = None,
+    plantillas_aprobadas: Mapping[str, PlantillaCorreo] | None = None,
 ) -> ResultadoLoteActividad:
     """Encola el correo de cada destinatario hacia la entrega simulada.
 
@@ -957,6 +998,18 @@ def encolar_lote_actividad(
     `PENDIENTE_VALIDACION` → `ENVIO_ENCOLADO` e `ItemEnvio` en la cola.
     La entrega no pasa por acá: la hace `drenar_envios` con su candado
     de destino habilitado, como cualquier envío de HU-012.
+
+    `modo_envio` (#142) fija cómo se compone cada cuerpo: `prueba` —el
+    default— conserva las marcas que exige el destino de prueba;
+    `produccion` compone cada correo desde la plantilla aprobada por tipo
+    `correo_actividad` de `plantillas_aprobadas`, cuya versión también
+    tiene que tener la `apruebo_contenido` registrada. El documento
+    generado es `PROVISIONAL_NO_INSTITUCIONAL` y podarle las marcas no lo
+    vuelve institucional: sin plantilla del tipo es
+    `approved_template_missing`, sin la decisión sobre su versión exacta
+    es `template_version_unapproved`, y un modo desconocido es
+    `INVALIDA` con `send_mode_invalid` antes de evaluar autorización
+    alguna.
     """
 
     # Constantes del catálogo de decisiones (#72): import perezoso por el
@@ -969,6 +1022,11 @@ def encolar_lote_actividad(
     )
     from .decisiones_form import (
         RegistroDecisiones as _RegistroDecisiones,
+    )
+    from .gmail_envio import (
+        MODO_ENVIO_PRODUCCION,
+        MODO_ENVIO_PRUEBA,
+        MODOS_ENVIO,
     )
 
     correlation_id = str(uuid.uuid4())
@@ -1001,6 +1059,29 @@ def encolar_lote_actividad(
 
     if not isinstance(decisiones, _RegistroDecisiones):
         return rechazo_lote("INVALIDA", "decisiones_registry_missing")
+    modo = modo_envio or MODO_ENVIO_PRUEBA
+    if modo not in MODOS_ENVIO:
+        return rechazo_lote("INVALIDA", "send_mode_invalid")
+    plantilla_tipo: PlantillaCorreo | None = None
+    if modo == MODO_ENVIO_PRODUCCION:
+        plantilla_tipo = (plantillas_aprobadas or {}).get(
+            TIPO_PLANTILLA_CORREO_ACTIVIDAD
+        )
+        if plantilla_tipo is None:
+            return rechazo_lote("INVALIDA", PLANTILLA_TIPO_MISSING)
+        invalida = validar_forma_plantilla(
+            plantilla_tipo,
+            asunto_requerido=True,
+            variables_permitidas=VARIABLES_CONOCIDAS,
+        )
+        if invalida is not None:
+            return rechazo_lote("INVALIDA", invalida)
+        if not plantilla_version_registrada(
+            decisiones,
+            tipo=TIPO_PLANTILLA_CORREO_ACTIVIDAD,
+            plantilla=plantilla_tipo,
+        ):
+            return rechazo_lote("INVALIDA", PLANTILLA_VERSION_NO_APROBADA)
     if not actividad_id:
         return rechazo_lote("INVALIDA", "activity_id_missing")
     if not _decision_registrada(
@@ -1039,6 +1120,8 @@ def encolar_lote_actividad(
             fila=fila,
             plan=plan,
             destinatario=destinatario,
+            modo_envio=modo,
+            plantilla_aprobada=plantilla_tipo,
         )
         clave = clave_item_actividad(
             actividad_id=actividad_id,
@@ -1112,15 +1195,31 @@ def correr_lote_actividad(
     cola: ColaEnvios,
     destino: DestinoConfirmaciones,
     directorio_salida: Path,
+    modo_envio: str | None = None,
+    plantillas_aprobadas: Mapping[str, PlantillaCorreo] | None = None,
 ) -> tuple[ResultadoLoteActividad, tuple[ResultadoEnvioEncolado, ...]]:
     """El circuito completo: encolar el lote habilitado y drenar la cola.
 
     El drenaje es `drenar_envios` con su candado de destino habilitado,
     igual que en recordatorios: la entrega existe sólo contra el destino
     explícito — el fake en la demostración — nunca contra un transporte
-    real implícito.
+    real implícito. El modo (#142) tiene una sola fuente: `destino.modo`.
+    Un `modo_envio` que diga otra cosa es `INVALIDA` con
+    `send_mode_mismatch`, porque el destino va a aplicar su contrato de
+    marcas igual.
     """
 
+    modo_destino = modo_envio_efectivo(destino, modo_envio)
+    if modo_destino is None:
+        return ResultadoLoteActividad(
+            estado="INVALIDA",
+            plantilla_id="",
+            lote_id="",
+            log_path=_log_lote(directorio_salida),
+            correlation_id=str(uuid.uuid4()),
+            items=(),
+            error="send_mode_mismatch",
+        ), ()
     resultado_lote = encolar_lote_actividad(
         documento=documento,
         fila=fila,
@@ -1128,6 +1227,8 @@ def correr_lote_actividad(
         destinatarios=destinatarios,
         decisiones=decisiones,
         registro=registro,
+        modo_envio=modo_destino,
+        plantillas_aprobadas=plantillas_aprobadas,
         cola=cola,
         directorio_salida=directorio_salida,
     )
