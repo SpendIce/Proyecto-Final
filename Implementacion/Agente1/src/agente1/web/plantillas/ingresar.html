@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Ingresar · Agente 1{% endblock %}
+{% block contenido %}
+<section class="tarjeta ingreso" aria-labelledby="t-ingreso">
+  <h1 id="t-ingreso">Ingresar</h1>
+  <p>
+    El canal web del Agente 1 usa la cuenta institucional de Google.
+    La identidad se verifica en el servidor y los permisos salen del
+    padrón de roles.
+  </p>
+  {% if error %}<p class="mensaje-error" role="alert">{{ error }}</p>{% endif %}
+  {% if config.modo_prueba %}
+  <form method="post" action="/ingresar" class="formulario">
+    <label for="credential">Token de prueba (modo sin Google)</label>
+    <input id="credential" name="credential" type="text" autocomplete="off">
+    <button class="boton-primario" type="submit">Ingresar</button>
+  </form>
+  {% else %}
+  <div id="g_id_onload"
+       data-client_id="{{ config.google_client_id }}"
+       data-login_uri="/ingresar"
+       data-ux_mode="redirect"
+       data-auto_prompt="false"></div>
+  <div class="g_id_signin"
+       data-type="standard"
+       data-shape="rectangular"
+       data-theme="outline"
+       data-text="signin_with"
+       data-size="large"></div>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  {% endif %}
+</section>
+{% endblock %}

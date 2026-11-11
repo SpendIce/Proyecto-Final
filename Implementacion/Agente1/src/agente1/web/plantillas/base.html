@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}Agente 1 · Canal web{% endblock %}</title>
+<link rel="stylesheet" href="/estaticos/estilos.css">
+</head>
+<body>
+<header class="cabecera">
+  <div class="cabecera-marca">
+    <img class="logo" src="/estaticos/img/imagotipo-fie-blanco.png"
+         alt="Facultad de Ingeniería del Ejército">
+    <span class="cabecera-servicio">Agente 1 · Comunicación institucional</span>
+  </div>
+  {% if sesion %}
+  <nav class="nav" aria-label="Navegación principal">
+    <a class="nav-primario" href="/nuevo-pedido">Nuevo pedido</a>
+    <a class="nav-enlace" href="/bandeja">Bandeja</a>
+    <form class="salir" method="post" action="/salir">
+      <input type="hidden" name="csrf" value="{{ sesion.csrf_token }}">
+      <button class="nav-enlace" type="submit">Salir</button>
+    </form>
+  </nav>
+  {% endif %}
+</header>
+<main class="contenido">
+{% block contenido %}{% endblock %}
+</main>
+</body>
+</html>

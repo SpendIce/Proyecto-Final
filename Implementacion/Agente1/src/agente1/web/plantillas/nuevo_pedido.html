@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block titulo %}Nuevo pedido · Agente 1{% endblock %}
+{% block contenido %}
+<section aria-labelledby="t-nuevo">
+  <h1 id="t-nuevo">Nuevo pedido</h1>
+  <p class="ayuda">
+    El pedido queda registrado de manera durable: el agente genera el
+    borrador en segundo plano y el estado se recupera en esta misma bandeja.
+  </p>
+  {% if errores %}<p class="mensaje-error" role="alert">Revisá los campos marcados.</p>{% endif %}
+  <form class="formulario" method="post" action="/nuevo-pedido">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="llave" value="{{ llave }}">
+
+    <label for="tipo">Tipo de pieza</label>
+    <select id="tipo" name="tipo" required>
+      <option value="">Elegí un tipo</option>
+      {% for t in tipos %}
+      <option value="{{ t.id }}"
+        data-actividad="{{ '1' if t.actividad else '' }}"
+        data-publicos="{{ '1' if t.publicos else '' }}"
+        {% if valores.get('tipo') == t.id %}selected{% endif %}>
+        {{ t.nombre }}
+      </option>
+      {% endfor %}
+    </select>
+    {% if errores.get('tipo') %}<p class="campo-error">El tipo no pertenece a la lista cerrada.</p>{% endif %}
+
+    <div id="bloque-actividad" class="bloque" hidden>
+      <label for="actividad">Actividad</label>
+      <select id="actividad" name="actividad">
+        <option value="">Elegí la actividad</option>
+        {% for a in actividades %}
+        <option value="{{ a.id_actividad }}"
+          {% if valores.get('actividad') == a.id_actividad %}selected{% endif %}>
+          {{ a.titulo or a.id_actividad }}
+        </option>
+        {% endfor %}
+      </select>
+      <p class="ayuda">Los datos de la actividad se precargan desde la fuente institucional.</p>
+      {% if errores.get('actividad') %}<p class="campo-error">Elegí una actividad de la lista.</p>{% endif %}
+    </div>
+
+    {% for tipo_id, campos in campos_por_tipo.items() %}
+    {% if campos %}
+    <fieldset class="bloque campos-tipo" data-tipo="{{ tipo_id }}" hidden>
+      <legend>Datos de la pieza</legend>
+      {% for campo in campos %}
+      <label for="campo_{{ campo.nombre }}_{{ tipo_id }}">
+        {{ campo.nombre|replace('_', ' ')|capitalize }}
+        {% if campo.requerido %}<span aria-hidden="true">*</span>{% endif %}
+      </label>
+      {% if campo.area %}
+      <textarea id="campo_{{ campo.nombre }}_{{ tipo_id }}"
+                name="campo_{{ campo.nombre }}" rows="4"
+                {{ 'required' if campo.requerido else '' }}>{{ valores.get('campo_' ~ campo.nombre, '') }}</textarea>
+      {% else %}
+      <input id="campo_{{ campo.nombre }}_{{ tipo_id }}" type="text"
+             name="campo_{{ campo.nombre }}"
+             value="{{ valores.get('campo_' ~ campo.nombre, '') }}"
+             {{ 'required' if campo.requerido else '' }}>
+      {% endif %}
+      {% if errores.get(campo.nombre) %}<p class="campo-error">Este campo es obligatorio.</p>{% endif %}
+      {% endfor %}
+    </fieldset>
+    {% endif %}
+    {% endfor %}
+
+    <label for="area">Área emisora</label>
+    <select id="area" name="area" required>
+      <option value="">Elegí el área</option>
+      {% for id_area, nombre in areas.items() %}
+      <option value="{{ id_area }}"
+        {% if valores.get('area') == id_area %}selected{% endif %}>
+        {{ nombre }}
+      </option>
+      {% endfor %}
+    </select>
+    {% if errores.get('area') %}<p class="campo-error">Elegí un área de la lista.</p>{% endif %}
+
+    <fieldset class="bloque">
+      <legend>Firma de área en el pie</legend>
+      <label class="opcion"><input type="radio" name="firma" value="si"
+        {% if valores.get('firma', 'si') == 'si' %}checked{% endif %}> Con firma de área</label>
+      <label class="opcion"><input type="radio" name="firma" value="no"
+        {% if valores.get('firma') == 'no' %}checked{% endif %}> Sin firma de área</label>
+      <p class="ayuda">El bloque institucional de la FIE va siempre.</p>
+    </fieldset>
+
+    <div id="bloque-publicos" class="bloque" hidden>
+      <fieldset>
+        <legend>Públicos destinatarios</legend>
+        {% for id_pub, nombre in publicos.items() %}
+        <label class="opcion">
+          <input type="checkbox" name="publicos" value="{{ id_pub }}"
+            {% if valores.get('publicos') == id_pub %}checked{% endif %}>
+          {{ nombre }}
+        </label>
+        {% endfor %}
+        <p class="ayuda">Define a quién se envía; no cambia el texto de la pieza.</p>
+        {% if errores.get('publicos') %}<p class="campo-error">Elegí al menos un público válido.</p>{% endif %}
+      </fieldset>
+    </div>
+
+    <label for="descripcion">Descripción e indicaciones</label>
+    <textarea id="descripcion" name="descripcion" rows="5"
+      placeholder="Qué comunica la pieza y con qué propósito">{{ valores.get('descripcion', '') }}</textarea>
+
+    <label for="asunto">Asunto <span class="opcional">(opcional)</span></label>
+    <input id="asunto" name="asunto" type="text"
+           value="{{ valores.get('asunto', '') }}"
+           placeholder="Queda vacío si no hace falta un asunto editorial">
+
+    <button class="boton-primario" type="submit">Enviar pedido</button>
+  </form>
+</section>
+<script>
+(function () {
+  var tipo = document.getElementById('tipo');
+  var actividad = document.getElementById('bloque-actividad');
+  var selectAct = document.getElementById('actividad');
+  var publicos = document.getElementById('bloque-publicos');
+  var bloques = document.querySelectorAll('.campos-tipo');
+  function actualizar() {
+    var op = tipo.options[tipo.selectedIndex];
+    var conAct = op && op.dataset.actividad === '1';
+    var conPub = op && op.dataset.publicos === '1';
+    actividad.hidden = !conAct;
+    selectAct.required = !!conAct;
+    publicos.hidden = !conPub;
+    bloques.forEach(function (b) {
+      var activo = b.dataset.tipo === tipo.value;
+      b.hidden = !activo;
+      b.querySelectorAll('input,textarea').forEach(function (el) {
+        el.disabled = !activo;
+      });
+    });
+  }
+  tipo.addEventListener('change', actualizar);
+  actualizar();
+})();
+</script>
+{% endblock %}

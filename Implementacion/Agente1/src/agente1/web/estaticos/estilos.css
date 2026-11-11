@@ -1,0 +1,227 @@
+/* Canal web del Agente 1 — identidad visual FIE (Manual 2026).
+   Azul institucional y neutros declarados; Encode Sans para títulos y
+   textos cortos, Roboto para texto corrido. */
+
+/* Fuentes variables servidas desde la app (licencia OFL en
+   fuentes/OFL-*.txt): Encode Sans cubre 400-700, Roboto 300-700. */
+@font-face {
+  font-family: "Encode Sans";
+  src: url("/estaticos/fuentes/encode-sans.woff2") format("woff2-variations");
+  font-weight: 100 1000; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url("/estaticos/fuentes/roboto.woff2") format("woff2-variations");
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+
+:root {
+  --azul-fie: #081E4B;
+  --neutro-claro: #EAE9E5;
+  --neutro-medio: #A59F97;
+  --neutro-oscuro: #3E3A42;
+  --blanco: #FFFFFF;
+  --error: #8C1D18;
+  --fuente-titulos: "Encode Sans", "Segoe UI", system-ui, sans-serif;
+  --fuente-texto: "Roboto", "Segoe UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--fuente-texto);
+  font-weight: 400;
+  color: var(--neutro-oscuro);
+  background: var(--neutro-claro);
+  line-height: 1.5;
+}
+
+h1, h2, h3, legend, .boton-primario, .nav-primario, .estado {
+  font-family: var(--fuente-titulos);
+}
+
+h1 { font-weight: 700; font-size: 1.6rem; margin: 0 0 0.5rem; }
+h2 { font-weight: 600; font-size: 1.15rem; margin-top: 1.75rem; }
+
+.cabecera {
+  background: var(--azul-fie);
+  color: var(--blanco);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  padding: 0.9rem 2rem;
+}
+.cabecera-marca { display: flex; align-items: center; gap: 1rem; }
+.logo { height: 2.6rem; width: auto; display: block; }
+.cabecera-servicio {
+  font-family: var(--fuente-titulos);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+.nav { display: flex; align-items: center; gap: 1.25rem; }
+.nav a, .nav button {
+  color: var(--blanco);
+  text-decoration: none;
+  font-family: var(--fuente-titulos);
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: none;
+  border: none;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+.nav-enlace { border-bottom: 2px solid transparent; }
+.nav-enlace:hover { border-bottom-color: var(--blanco); }
+.nav-primario {
+  background: var(--blanco);
+  color: var(--azul-fie) !important;
+  padding: 0.4rem 1rem !important;
+  border-radius: 4px;
+}
+.salir { margin: 0; }
+
+.contenido {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+.tarjeta {
+  background: var(--blanco);
+  border-radius: 6px;
+  padding: 2rem;
+  max-width: 30rem;
+  margin: 3rem auto;
+  box-shadow: 0 1px 3px rgba(8, 30, 75, 0.15);
+}
+.ingreso { text-align: center; }
+.ingreso .formulario { text-align: left; }
+
+.seccion-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.boton-primario {
+  display: inline-block;
+  background: var(--azul-fie);
+  color: var(--blanco);
+  border: none;
+  border-radius: 4px;
+  padding: 0.6rem 1.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.boton-primario:hover { filter: brightness(1.15); }
+
+.bandeja { list-style: none; margin: 0; padding: 0; }
+.bandeja-item {
+  background: var(--blanco);
+  border-left: 4px solid var(--neutro-medio);
+  border-radius: 4px;
+  margin-bottom: 0.6rem;
+  padding: 0.8rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.bandeja-enlace { color: var(--neutro-oscuro); text-decoration: none; flex: 1; }
+.bandeja-titulo {
+  display: block;
+  font-family: var(--fuente-titulos);
+  font-weight: 600;
+}
+.bandeja-meta { font-size: 0.85rem; color: var(--neutro-oscuro); opacity: 0.85; }
+.vacio { padding: 1rem 0; }
+
+.estado {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--neutro-claro);
+  color: var(--neutro-oscuro);
+}
+.estado-en_cola { background: var(--neutro-medio); color: var(--blanco); }
+.estado-generando { background: var(--azul-fie); color: var(--blanco); }
+.estado-lista { background: #1F6E3C; color: var(--blanco); }
+.estado-error { background: var(--error); color: var(--blanco); }
+.estado-aprobada { background: #1F6E3C; color: var(--blanco); }
+.estado-descartada { background: var(--neutro-oscuro); color: var(--blanco); }
+.estado-vencida { background: var(--neutro-medio); color: var(--neutro-oscuro); }
+
+.formulario { display: flex; flex-direction: column; gap: 0.4rem; }
+.formulario label { font-family: var(--fuente-titulos); font-weight: 600; margin-top: 1rem; }
+.formulario input[type="text"],
+.formulario select,
+.formulario textarea {
+  font-family: var(--fuente-texto);
+  font-size: 1rem;
+  color: var(--neutro-oscuro);
+  background: var(--blanco);
+  border: 1px solid var(--neutro-medio);
+  border-radius: 4px;
+  padding: 0.55rem 0.7rem;
+  width: 100%;
+}
+.formulario fieldset {
+  border: 1px solid var(--neutro-medio);
+  border-radius: 4px;
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem 1rem;
+  background: var(--blanco);
+}
+.opcion { display: block; font-weight: 400; margin: 0.3rem 0; }
+.opcional { font-weight: 400; font-size: 0.85rem; }
+.bloque { margin: 0; }
+.ayuda { font-size: 0.85rem; color: var(--neutro-oscuro); opacity: 0.85; margin: 0.25rem 0 0; }
+.mensaje-error { color: var(--error); font-weight: 700; }
+.campo-error { color: var(--error); font-size: 0.85rem; margin: 0.1rem 0 0; }
+.formulario .boton-primario { margin-top: 1.5rem; align-self: flex-start; }
+
+.ficha { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1.5rem; }
+.ficha dt { font-family: var(--fuente-titulos); font-weight: 600; }
+.ficha dd { margin: 0; }
+
+.prosa, .pieza {
+  background: var(--blanco);
+  border: 1px solid var(--neutro-medio);
+  border-radius: 4px;
+  padding: 1rem;
+  white-space: pre-wrap;
+  font-family: var(--fuente-texto);
+}
+.aviso-estado {
+  background: var(--blanco);
+  border-left: 4px solid var(--azul-fie);
+  padding: 0.8rem 1rem;
+  border-radius: 4px;
+}
+
+a { color: var(--azul-fie); }
+
+:focus-visible {
+  outline: 3px solid var(--neutro-medio);
+  outline-offset: 2px;
+}
+
+@media (max-width: 40rem) {
+  .cabecera { padding: 0.75rem 1rem; }
+  .logo { height: 2.1rem; }
+  .cabecera-servicio { display: none; }
+  .bandeja-item { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+  .ficha { grid-template-columns: 1fr; }
+}
