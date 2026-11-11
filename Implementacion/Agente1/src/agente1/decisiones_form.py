@@ -23,25 +23,28 @@ la persona no los escribe ni los elige. El catálogo vigente:
 - `publicacion` — decisión sobre el borrador de una pieza de difusión
   (HU-010 gacetilla, HU-011 post): `publique` o `descarte`. Es el registro
   de «lo publiqué / lo descarté». No habilita ni ejecuta nada en el agente.
-- `plantilla` — aprobación de una versión de plantilla, una decisión por
-  rol: `apruebo_semantica` (Responsable de Gestión del Conocimiento) o
-  `apruebo_utilitaria` (Coordinador de Extensión). El objeto es el id de la
+- `plantilla` — aprobación de una versión de plantilla: `apruebo_contenido`,
+  una sola decisión de la persona autorizada. El objeto es el id de la
   versión.
 - `lote` — aprobación de un lote (incluye la habilitación de envíos de una
-  actividad): `apruebo_lote`, decisión utilitaria del Coordinador. El objeto
-  es el id del lote.
+  actividad y el lote de cierre de certificados): `apruebo_lote`, una sola
+  decisión de la persona autorizada — en el lote de certificados, quien lo
+  genera. El objeto es el id del lote.
 - `linea_descriptiva` — aprobación de la línea descriptiva de una actividad
-  para el certificado de HU-014 (#74), una decisión por rol igual que la
-  plantilla: `apruebo_semantica` o `apruebo_utilitaria`. El objeto es
+  para el certificado de HU-014 (#74): `apruebo_contenido`, una sola
+  decisión de la persona autorizada. El objeto es
   `linea_descriptiva-<id_actividad>-<hash>` (los `:` de la notación del
   ticket no entran en `ID_RE`; la forma elegida la deriva
   `linea_descriptiva.objeto_id_linea_descriptiva` y está documentada en el
   README para que #75 la consuma igual).
 
 El rol que cada decisión exige es parte del catálogo (`ROLES_POR_DECISION`)
-y sigue el acta del 22/09: semántica al RGC, utilitaria al Coordinador. La
+y sigue la designación vigente (actas SEU del 19/10/2026 y precisión del
+11/11/2026, #125): una sola persona autorizada por delegación —Juan Manuel
+o Josefina en la SEU— aprueba contenido y su uso, en reemplazo del par
+semántica/utilitaria del acta del 22/09. La
 decisión de publicación es la validación humana de la difusión (#52) y la
-puede registrar cualquiera de los dos roles designados: un rol operativo del
+registra la misma persona autorizada: un rol operativo del
 padrón (`coordinador_seu`, `auxiliar_seu`) que pida piezas no puede decidir
 sobre ellas.
 
@@ -77,8 +80,7 @@ La respuesta ya procesada no se relee: el id de respuesta es el hash de la
 fila completa (`marca|correo|tipo|objeto|decisión`), así que el mismo envío
 releído se deduplica. Dos decisiones distintas sobre el mismo objeto —
 «publiqué» y después «descarté»— son eventos distintos y quedan los dos:
-el registro es append-only de eventos y la interpretación del conjunto (una
-plantilla está aprobada cuando existen las dos decisiones, por ejemplo) la
+el registro es append-only de eventos y la interpretación del conjunto la
 hace el consumidor del registro, no este adapter.
 """
 
@@ -104,9 +106,7 @@ from .canal_form import (
     cargar_padron_roles_csv,
 )
 from .confirmaciones import (
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
-    ROLES_APROBACION,
+    ROL_APROBADOR_CONTENIDO,
     email_valido,
 )
 from .google_workspace import (
@@ -140,43 +140,38 @@ TIPO_LINEA_DESCRIPTIVA = "linea_descriptiva"
 
 DECISION_PUBLIQUE = "publique"
 DECISION_DESCARTE = "descarte"
-DECISION_APRUEBO_SEMANTICA = "apruebo_semantica"
-DECISION_APRUEBO_UTILITARIA = "apruebo_utilitaria"
+DECISION_APRUEBO_CONTENIDO = "apruebo_contenido"
 DECISION_APRUEBO_LOTE = "apruebo_lote"
 
 DECISIONES_POR_TIPO: dict[str, frozenset[str]] = {
     TIPO_PUBLICACION: frozenset({DECISION_PUBLIQUE, DECISION_DESCARTE}),
-    TIPO_PLANTILLA: frozenset(
-        {DECISION_APRUEBO_SEMANTICA, DECISION_APRUEBO_UTILITARIA}
-    ),
+    TIPO_PLANTILLA: frozenset({DECISION_APRUEBO_CONTENIDO}),
     TIPO_LOTE: frozenset({DECISION_APRUEBO_LOTE}),
-    TIPO_LINEA_DESCRIPTIVA: frozenset(
-        {DECISION_APRUEBO_SEMANTICA, DECISION_APRUEBO_UTILITARIA}
-    ),
+    TIPO_LINEA_DESCRIPTIVA: frozenset({DECISION_APRUEBO_CONTENIDO}),
 }
 TIPOS_DECISION = frozenset(DECISIONES_POR_TIPO)
 
-# Rol del padrón que cada (tipo, decisión) exige. La publicación es la
-# validación de la difusión y la puede dejar cualquiera de los dos roles
-# designados; las aprobaciones de plantilla son una por rol; el lote es
-# decisión utilitaria del Coordinador (habilita envíos de la actividad); la
-# línea descriptiva del certificado sigue el mismo circuito que la plantilla
-# (una aprobación por rol, #74).
+# Rol del padrón que cada (tipo, decisión) exige. Todas las decisiones de
+# contenido y de uso las registra la misma persona autorizada por delegación
+# (#125): la publicación es la validación de la difusión, la plantilla y la
+# línea descriptiva se aprueban con una sola decisión, y el lote —de envíos
+# de actividad o de certificados— lo aprueba quien lo genera. Los lotes de
+# pagos tienen aprobador propio (`ROL_APROBADOR_PAGOS`) y no pasan por este
+# catálogo: su autorización viaja como `AprobacionHumana` en
+# `recordatorios.py`.
 ROLES_POR_DECISION: dict[tuple[str, str], frozenset[str]] = {
-    (TIPO_PUBLICACION, DECISION_PUBLIQUE): ROLES_APROBACION,
-    (TIPO_PUBLICACION, DECISION_DESCARTE): ROLES_APROBACION,
-    (TIPO_PLANTILLA, DECISION_APRUEBO_SEMANTICA): frozenset(
-        {ROL_APROBACION_SEMANTICA}
+    (TIPO_PUBLICACION, DECISION_PUBLIQUE): frozenset(
+        {ROL_APROBADOR_CONTENIDO}
     ),
-    (TIPO_PLANTILLA, DECISION_APRUEBO_UTILITARIA): frozenset(
-        {ROL_APROBACION_UTILITARIA}
+    (TIPO_PUBLICACION, DECISION_DESCARTE): frozenset(
+        {ROL_APROBADOR_CONTENIDO}
     ),
-    (TIPO_LOTE, DECISION_APRUEBO_LOTE): frozenset({ROL_APROBACION_UTILITARIA}),
-    (TIPO_LINEA_DESCRIPTIVA, DECISION_APRUEBO_SEMANTICA): frozenset(
-        {ROL_APROBACION_SEMANTICA}
+    (TIPO_PLANTILLA, DECISION_APRUEBO_CONTENIDO): frozenset(
+        {ROL_APROBADOR_CONTENIDO}
     ),
-    (TIPO_LINEA_DESCRIPTIVA, DECISION_APRUEBO_UTILITARIA): frozenset(
-        {ROL_APROBACION_UTILITARIA}
+    (TIPO_LOTE, DECISION_APRUEBO_LOTE): frozenset({ROL_APROBADOR_CONTENIDO}),
+    (TIPO_LINEA_DESCRIPTIVA, DECISION_APRUEBO_CONTENIDO): frozenset(
+        {ROL_APROBADOR_CONTENIDO}
     ),
 }
 
@@ -612,9 +607,8 @@ class EnlacesDecisiones:
     def enlaces_para(self, *, tipo: str, objeto_id: str) -> dict[str, str]:
         """Un link por decisión del catálogo del tipo.
 
-        Para `plantilla` y `linea_descriptiva` devuelve el link semántico y
-        el utilitario del mismo objeto; para `lote`, el único link de
-        aprobación.
+        Para `plantilla` y `linea_descriptiva` devuelve el único link de
+        `apruebo_contenido`; para `lote`, el de `apruebo_lote`.
         """
 
         if tipo not in DECISIONES_POR_TIPO:
@@ -852,9 +846,8 @@ __all__ = [
     "CanalFormDecisiones",
     "ConfiguracionFormDecisiones",
     "DECISIONES_POR_TIPO",
+    "DECISION_APRUEBO_CONTENIDO",
     "DECISION_APRUEBO_LOTE",
-    "DECISION_APRUEBO_SEMANTICA",
-    "DECISION_APRUEBO_UTILITARIA",
     "DECISION_DESCARTE",
     "DECISION_PUBLIQUE",
     "DecisionesFormError",

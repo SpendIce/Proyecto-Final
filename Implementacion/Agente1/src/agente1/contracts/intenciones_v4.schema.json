@@ -86,7 +86,9 @@
   ],
   "roles_habilitados_provisionales": [
     "coordinador_seu",
-    "auxiliar_seu"
+    "auxiliar_seu",
+    "APROBADOR_CONTENIDO",
+    "APROBADOR_PAGOS"
   ],
-  "x-roles-origen": "Equipo tecnico del PPS, a partir de las personas de HU-013 (coordinador y auxiliar de la SEU). Pendiente de definicion institucional de roles y permisos."
+  "x-roles-origen": "Equipo tecnico del PPS, a partir de las personas de HU-013 (coordinador y auxiliar de la SEU) y de la designacion vigente de #125 (persona autorizada de contenido y responsable de lotes de pagos). Pendiente de definicion institucional de roles y permisos."
 }

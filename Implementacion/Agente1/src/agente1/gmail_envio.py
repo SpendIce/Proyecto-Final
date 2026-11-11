@@ -12,7 +12,7 @@ del diseño de control de pagos (grilling del 2026-10-07):
 - **D12**: A1 sólo puede escribir a una **lista de direcciones de prueba**,
   hasta que la SEU apruebe la plantilla de cada tipo. Un destinatario fuera
   de la lista se rechaza *antes* de cualquier llamada de red, aunque el envío
-  tenga las dos aprobaciones. Pasar a destinatarios reales exige el modo
+  tenga la aprobación registrada. Pasar a destinatarios reales exige el modo
   producción y una lista aprobada, los dos por configuración (ticket #141);
   el código es el mismo.
 

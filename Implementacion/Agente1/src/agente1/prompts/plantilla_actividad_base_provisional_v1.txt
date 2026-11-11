@@ -21,6 +21,6 @@ LÍMITES:
 - Las variables {{...}} son las únicas vías de los datos dinámicos: destinatario, montos, cuotas, fechas, horarios, enlaces y datos personales. Ninguna se escribe en texto.
 - La prosa descriptiva la redacta el modelo sobre esta estructura; el resto del documento es fijo.
 - El render es determinista por destinatario; no se entrega este contenido a un LLM.
-- La plantilla resultante exige aprobación semántica y utilitaria por actividad, y los envíos una aprobación de lote, registradas en el Form de decisiones (#72).
+- La plantilla resultante exige una única aprobación de contenido por actividad, registrada por la persona autorizada, y los envíos una aprobación de lote, registradas en el Form de decisiones (#72, #125).
 - Sólo el destino habilitado — el fake explícito o el Gmail con lista de direcciones de prueba — puede entregarla.
 - La plantilla institucional definitiva queda PENDIENTE_SEU.

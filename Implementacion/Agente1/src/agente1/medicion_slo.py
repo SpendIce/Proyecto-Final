@@ -31,9 +31,9 @@ que la operación ya deja, sin tocar la red ni escribir en las fuentes:
   `latencia_s` y el certificado se renderiza determinista: ambos quedan
   como huecos explícitos.
 - **Aprobación → envío** — el circuito de lote por actividad (#73) es el
-  único que deja las dos anclas: las tres decisiones exigidas
-  (`apruebo_semantica` + `apruebo_utilitaria` sobre `tpl-…` y
-  `apruebo_lote` sobre `lote-…`) con su `timestamp` en
+  único que deja las dos anclas: las dos decisiones exigidas
+  (`apruebo_contenido` sobre `tpl-…` y
+  `apruebo_lote` sobre `lote-…`, #125) con su `timestamp` en
   `decisiones-procesadas.jsonl`, y el envío en el `actualizado_en` del
   registro durable cuando el ítem queda `ENVIADA_SIMULADA`. El ancla de
   aprobación es el `timestamp` de la última decisión requerida registrada
@@ -891,18 +891,18 @@ def indicador_aprobacion_envio(
     muestra_minima: int,
     corte: datetime | None = None,
 ) -> dict[str, Any]:
-    """Doble aprobación + lote → envío, p95 en segundos de ventana.
+    """Aprobación de contenido + lote → envío, p95 en segundos de ventana.
 
-    Ancla: el `timestamp` de la última de las tres decisiones requeridas
-    registrada (`apruebo_semantica` y `apruebo_utilitaria` sobre la
-    plantilla, `apruebo_lote` sobre el lote). El envío es el
+    Ancla: el `timestamp` de la última de las dos decisiones requeridas
+    registrada (`apruebo_contenido` sobre la
+    plantilla, `apruebo_lote` sobre el lote, #125). El envío es el
     `actualizado_en` del registro durable en `ENVIADA_SIMULADA`. El SLO
     corre dentro de la ventana, así que la muestra descuenta los tramos
     fuera de ella; el delta total viaja como auxiliar.
     """
 
     definicion = (
-        "desde la doble aprobación (plantilla y lote) hasta el envío; "
+        "desde la aprobación registrada (plantilla y lote) hasta el envío; "
         "ENVIO_INDETERMINADO cuenta como incidente fuera de la muestra"
     )
     objetivo_s = 2 * config.intervalo_s
@@ -953,8 +953,7 @@ def indicador_aprobacion_envio(
             continue
         plantilla_id = autorizado.get("plantilla_id")
         requeridas = (
-            ("plantilla", str(plantilla_id), "apruebo_semantica"),
-            ("plantilla", str(plantilla_id), "apruebo_utilitaria"),
+            ("plantilla", str(plantilla_id), "apruebo_contenido"),
             ("lote", str(lote_id), "apruebo_lote"),
         )
         instantes = [primeras.get(clave_dec) for clave_dec in requeridas]

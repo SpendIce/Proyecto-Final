@@ -27,19 +27,22 @@ El circuito, en orden:
 3. **La línea descriptiva tiene que estar aprobada.** Ningún PDF sale sin
    la aprobación de #74 sobre el objeto
    `linea_descriptiva-<id_actividad>-<sha256>` que define
-   `linea_descriptiva.objeto_id_linea_descriptiva`: una decisión semántica
-   (`apruebo_semantica`) del `responsable_gestion_conocimiento` y una
-   utilitaria (`apruebo_utilitaria`) del `coordinador_extension`,
-   registradas bajo el tipo `linea_descriptiva` por el mismo Form de
+   `linea_descriptiva.objeto_id_linea_descriptiva`: una sola decisión
+   (`apruebo_contenido`) de la persona autorizada (`APROBADOR_CONTENIDO`),
+   registrada bajo el tipo `linea_descriptiva` por el mismo Form de
    decisiones. El texto llega por parámetro inyectable; nunca se lee del
    pedido ni se hardcodea.
-4. **El lote lo aprueba el rol utilitario.** La aprobación vale por el
+4. **El lote lo aprueba quien lo genera.** Por la designación vigente
+   (#125) no hay «aprobador final de certificados»: la única aprobación
+   que habilita es la `apruebo_lote` registrada por la misma persona
+   autorizada que disparó la emisión y cargó la lista, con rol
+   `APROBADOR_CONTENIDO`. La aprobación vale por el
    hash de la lista: el objeto del Form de decisiones es
    `sha256("lote_cierre_certificados|<id_actividad>|<hash_lista>")`, así
    que editar la lista después de aprobar cambia el objeto y la aprobación
-   anterior no aplica (hay que aprobar de nuevo). El que cargó la lista no
-   puede ser su aprobador: si la única aprobación registrada viene de su
-   correo, no habilita. Mientras falta la aprobación se declara el objeto
+   anterior no aplica (hay que aprobar de nuevo). Una aprobación que viene
+   de otro correo o de alguien sin el rol no habilita. Mientras falta la
+   aprobación se declara el objeto
    pendiente y se manda el correo de aprobación con el enlace al Form y un
    PDF de muestra marcado `BORRADOR — NO EMITIR`.
 5. **La entrega va por Gmail con lista de prueba.** Un correo por
@@ -98,7 +101,7 @@ from .confirmaciones import (
     MARCADOR_BORRADOR as MARCADOR_BORRADOR_CORREO,
 )
 from .confirmaciones import (
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
     _hash,
 )
 from .decisiones_form import (
@@ -310,13 +313,14 @@ def revisar_aprobacion_lote(
     registro_decisiones: RegistroDecisiones,
     *,
     objeto_lote: str,
-    cargada_por_correo_hash: str,
+    generada_por_correo_hash: str,
 ) -> RevisionLote:
-    """Busca un `apruebo_lote` válido sobre el objeto del lote de cierre.
+    """Busca el `apruebo_lote` válido sobre el objeto del lote de cierre.
 
     Vale sólo una decisión `registrada`, de `tipo` `lote`, con
-    `decision` `apruebo_lote`, hecha por el rol utilitario y por un correo
-    que no sea el de quien cargó la lista. Las aprobaciones que fallan
+    `decision` `apruebo_lote`, hecha por el rol `APROBADOR_CONTENIDO` y por
+    el correo de quien generó el lote: quien lo genera lo aprueba (#125).
+    Las aprobaciones que fallan
     esas condiciones se cuentan en `descalificaciones` para la auditoría:
     existen, pero no habilitan.
     """
@@ -332,11 +336,11 @@ def revisar_aprobacion_lote(
             or entrada.get("resultado") != "registrada"
         ):
             continue
-        if entrada.get("rol") != ROL_APROBACION_UTILITARIA:
-            descalificaciones.append("aprobador_rol_no_utilitario")
+        if entrada.get("rol") != ROL_APROBADOR_CONTENIDO:
+            descalificaciones.append("aprobador_rol_no_autorizado")
             continue
-        if entrada.get("correo_hash") == cargada_por_correo_hash:
-            descalificaciones.append("aprobador_es_cargador")
+        if entrada.get("correo_hash") != generada_por_correo_hash:
+            descalificaciones.append("aprobador_no_es_generador")
             continue
         aprobada = True
         correo_hash_aprobador = entrada.get("correo_hash")
@@ -461,7 +465,6 @@ def procesar_emision_certificados(
     registro_decisiones: RegistroDecisiones,
     enlaces: EnlacesDecisiones,
     destino,
-    correo_aprobador: str,
     solicitante_correo: str,
     directorio_salida: Path | str,
     firmantes: tuple[Firmante, ...] = FIRMANTES_DECLARADOS,
@@ -474,12 +477,12 @@ def procesar_emision_certificados(
     `entregar(*, idempotency_key, destinatario, asunto, cuerpo, adjunto=None)`:
     en vivo es `GmailDestinoConfirmaciones` (la lista de prueba se valida
     adentro, antes de la red) y offline un destino de archivo.
-    `correo_aprobador` es el correo del rol utilitario que aprueba el lote.
     `solicitante_correo` es la identidad verificada del canal: la de quien
-    disparó el pedido y cargó la lista de cierre. Sirve para dos cosas: su
-    hash queda en la auditoría como `solicitante_hash`, y una aprobación del
-    lote que venga de ese mismo correo no habilita (quien carga la lista no
-    puede aprobarla).
+    disparó el pedido y cargó la lista de cierre, es decir quien genera el
+    lote. Sirve para tres cosas: su hash queda en la auditoría como
+    `solicitante_hash`, es el correo que tiene que registrar la
+    `apruebo_lote` — quien genera el lote lo aprueba (#125) — y es el
+    destinatario del aviso de aprobación pendiente.
     `recursos_firma` es el puerto de custodia del símbolo y las firmas de
     la plantilla SEU de aprobación (#126): resuelve imágenes desde la
     carpeta restringida configurada fuera del repo; sin él, los espacios
@@ -495,7 +498,7 @@ def procesar_emision_certificados(
         if isinstance(solicitante_correo, str)
         else ""
     )
-    cargada_por_hash = solicitante_hash
+    generada_por_hash = solicitante_hash
 
     def evento(nombre: str, **campos) -> None:
         escribir_registro(
@@ -579,8 +582,6 @@ def procesar_emision_certificados(
         )
 
     if _MAIL_RE.fullmatch(
-        correo_aprobador if isinstance(correo_aprobador, str) else ""
-    ) is None or _MAIL_RE.fullmatch(
         solicitante_correo if isinstance(solicitante_correo, str) else ""
     ) is None:
         evento("config_correo_invalido")
@@ -647,16 +648,16 @@ def procesar_emision_certificados(
         )
         return resultado(
             "PENDIENTE_APROBACION",
-            "la línea descriptiva no tiene las dos aprobaciones",
+            "la línea descriptiva no tiene la aprobación registrada",
             "linea_descriptiva_no_aprobada",
         )
     evento("linea_descriptiva_aprobada")
 
-    # 4. El lote lo aprueba el rol utilitario, atado al hash de la lista.
+    # 4. El lote lo aprueba quien lo genera, atado al hash de la lista.
     revision = revisar_aprobacion_lote(
         registro_decisiones,
         objeto_lote=objeto_lote,
-        cargada_por_correo_hash=cargada_por_hash,
+        generada_por_correo_hash=generada_por_hash,
     )
     evento(
         "autorizacion_lote",
@@ -699,14 +700,15 @@ def procesar_emision_certificados(
             f"Personas en la lista de cierre: {len(personas)}\n"
             "Adjunto: un certificado de muestra marcado como borrador "
             "(documento de prueba, sin validez).\n\n"
-            "Para aprobar el lote responda `apruebo_lote` en el Form de "
+            "El lote lo aprueba quien lo genera. Para aprobarlo responda "
+            "`apruebo_lote` en el Form de "
             "decisiones desde este enlace:\n"
             f"{enlace}\n"
         )
         try:
             destino.entregar(
                 idempotency_key=_hash(f"aviso_lote|{objeto_lote}"),
-                destinatario=correo_aprobador,
+                destinatario=solicitante_correo,
                 asunto=(
                     "[Agente 1] Aprobación pendiente — lote de certificados "
                     f"{id_actividad.strip()}"
@@ -841,11 +843,11 @@ def construir_emisor_certificados(**config):
     `interpretar_solicitud` despacha la intención `emitir_certificados` con
     dos argumentos (`id_actividad` y `solicitante`); esta fábrica captura el
     resto de la configuración —fuente, lector de lista, línea, registro y
-    enlaces de decisiones, destino, correo del aprobador, directorio— y
+    enlaces de decisiones, destino, directorio— y
     devuelve el callable listo para `emisor_certificados=...`.
     `solicitante` es la `IdentidadSolicitante` del canal: su identificador
     verificado se usa como `solicitante_correo`, la identidad que dispara
-    el pedido y que quedó registrada como cargadora de la lista.
+    el pedido y genera el lote — y por eso es quien lo aprueba (#125).
     """
 
     def emisor(

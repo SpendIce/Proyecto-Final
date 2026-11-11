@@ -76,8 +76,8 @@ Guía rápida de módulos:
 
 from .buzon import BuzonPropio, BuzonPropioEml, BuzonPropioMemoria
 from .confirmaciones import (
-    ROL_APROBACION_SEMANTICA,
-    ROL_APROBACION_UTILITARIA,
+    ROL_APROBADOR_CONTENIDO,
+    ROL_APROBADOR_PAGOS,
     TIPO_INSTRUCCIONES_PAGO,
     AprobacionHumana,
     ColaEnviosArchivo,
@@ -153,8 +153,8 @@ __all__ = [
     "ItemEnvio",
     "OllamaGenerator",
     "PoliticaPost",
-    "ROL_APROBACION_SEMANTICA",
-    "ROL_APROBACION_UTILITARIA",
+    "ROL_APROBADOR_CONTENIDO",
+    "ROL_APROBADOR_PAGOS",
     "RegistroConfirmacionesArchivo",
     "RegistroConfirmacionesMemoria",
     "ReservaReconciliada",

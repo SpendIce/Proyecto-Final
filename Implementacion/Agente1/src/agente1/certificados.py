@@ -1,7 +1,7 @@
 """Slice offline de HU-014: certificados en PDF, nunca emisión real.
 
 Genera el texto y el PDF de un certificado de asistencia o de aprobación y
-modela su ciclo de vida completo, incluida la doble aprobación humana y la
+modela su ciclo de vida completo, incluida la aprobación humana y la
 "emisión", pero **no existe ningún adapter que emita de verdad**. La única
 emisión posible es contra `DestinoCertificadosFake`, y se verifica en tiempo
 de ejecución comparando el tipo exacto (`type(destino) is not
@@ -15,10 +15,9 @@ antes de que exista la capacidad técnica de emitir. Cuando la SEU defina la
 plantilla institucional, el destino de entrega y la firma digital, lo que se
 agrega es un adapter, no la lógica de control.
 
-Estados: `PENDIENTE_VALIDACION` → `APROBADA_SEMANTICA` | `APROBADA_UTILITARIA`
-según cuál de las dos aprobaciones llega primero, y de ahí → `APROBADA`
-cuando llega la complementaria; cualquier decisión negativa lleva a
-`RECHAZADA`. Sólo desde `APROBADA` —las dos aprobaciones registradas— se
+Estados: `PENDIENTE_VALIDACION` → `APROBADA` con la aprobación registrada
+de la persona autorizada, o → `RECHAZADA` con su decisión negativa.
+Sólo desde `APROBADA` —la aprobación registrada— se
 puede pasar a `EMISION_RESERVADA` → `EMITIDA_SIMULADA` | `FALLIDA`. El paso
 intermedio existe para que una caída durante la emisión no deje el registro
 en un estado que habilite reintentar y emitir dos veces; al reinicio se
@@ -35,7 +34,7 @@ provisional. La firma digital que menciona el enunciado de la HU queda
 `PENDIENTE_SEU`.
 
 El circuito de decisión es el de HU-012 sin modificaciones: se reusan
-`AprobacionHumana`, `ROLES_APROBACION`, los estados parciales y el registro
+`AprobacionHumana`, `ROLES_APROBACION` y el registro
 durable archivo-por-clave (`os.link` + `flock`). Los helpers privados que se
 importan mantienen un único contrato de decisión y de hash entre las dos HU;
 los alias de registro sólo ponen el nombre del dominio en las firmas.
@@ -45,9 +44,11 @@ descriptiva de la actividad redactada por el modelo y las variables del
 registro (`id_actividad`, `modalidad`, `carga_horaria`). Con línea, la
 emisión exige dos precondiciones más, verificables contra el
 `RegistroDecisiones` del Form de decisiones (#72): la línea aprobada una
-vez por actividad con las dos decisiones por rol (`linea_descriptiva`,
+vez por actividad con una sola decisión del rol de contenido
+(`linea_descriptiva`, `apruebo_contenido`,
 objeto `linea_descriptiva-<id_actividad>-<hash>`), y el lote de cierre
-aprobado por el rol utilitario (`lote`, `apruebo_lote`). Sin línea queda el
+aprobado por la persona autorizada (`lote`, `apruebo_lote`, #125). Sin
+línea queda el
 camino provisional anterior, que #75 cierra para la emisión en vivo.
 """
 
@@ -61,9 +62,8 @@ from pathlib import Path
 from typing import Protocol
 
 from agente1.confirmaciones import (
-    _PARCIAL_POR_ROL,
-    ESTADOS_PARCIALES_APROBACION,
     ID_RE,
+    ROL_APROBADOR_CONTENIDO,
     AprobacionHumana,
     RegistroConfirmaciones,
     RegistroConfirmacionesArchivo,
@@ -230,7 +230,7 @@ def procesar_certificado(
     decisiones: RegistroDecisiones | None = None,
     lote_cierre: str | None = None,
 ) -> ResultadoCertificado:
-    """Genera y opcionalmente emite sólo a un fake, bajo doble aprobación.
+    """Genera y opcionalmente emite sólo a un fake, bajo aprobación única.
 
     El orden de los controles no es casual: primero los que descalifican la
     solicitud en sí (tipos, tipo de certificado del catálogo, campos
@@ -312,7 +312,10 @@ def procesar_certificado(
                 estado="INVALIDA",
                 error="descriptive_line_invalid",
             )
-    if aprobacion is not None and not _aprobacion_valida(aprobacion):
+    if aprobacion is not None and (
+        not _aprobacion_valida(aprobacion)
+        or aprobacion.rol != ROL_APROBADOR_CONTENIDO
+    ):
         return _resultado(
             log_path=log_path,
             solicitud=solicitud,
@@ -346,7 +349,7 @@ def procesar_certificado(
         and solicitud.linea_descriptiva is not None
     ):
         # Precondición del ticket #74: ningún PDF sale con una línea que no
-        # tenga las dos aprobaciones de la actividad registradas en el Form,
+        # tenga la aprobación registrada en el Form,
         # ni sin el lote de cierre aprobado. El código devuelto distingue
         # cada falta para que el operador sepa qué decisión falta.
         codigo = _precondicion_emision_con_linea(
@@ -368,14 +371,12 @@ def procesar_certificado(
     if aprobacion is None:
         if emitir:
             # Emisión sin decisión nueva: la autoriza el estado APROBADA, que
-            # sólo se alcanza con las dos aprobaciones registradas. Un pedido
+            # sólo se alcanza con la aprobación registrada. Un pedido
             # de emisión sin registro o sobre uno todavía en validación es
             # inválido y no crea ni mueve nada; sobre un registro que ya pasó
             # de ese punto —emitido, fallido, rechazado, indeterminado— es un
             # reintento y se responde como duplicado.
-            if existente is None or existente.estado in (
-                {"PENDIENTE_VALIDACION"} | ESTADOS_PARCIALES_APROBACION
-            ):
+            if existente is None or existente.estado == "PENDIENTE_VALIDACION":
                 return _resultado(
                     log_path=log_path,
                     solicitud=solicitud,
@@ -433,7 +434,7 @@ def procesar_certificado(
     if not aprobacion.aprobada:
         if not registro.transicionar(
             idempotency_key,
-            frozenset({"PENDIENTE_VALIDACION"} | ESTADOS_PARCIALES_APROBACION),
+            frozenset({"PENDIENTE_VALIDACION"}),
             "RECHAZADA",
         ):
             return _duplicada(
@@ -450,24 +451,16 @@ def procesar_certificado(
             aprobacion=aprobacion,
         )
 
-    # Cada rol deja su propio estado parcial; la aprobación del otro rol es la
-    # única que completa el circuito. Dos compare-and-set en cadena cierran la
-    # carrera entre aprobaciones simultáneas de roles distintos.
-    parcial_propia, parcial_ajena = _PARCIAL_POR_ROL[aprobacion.rol]
-    if registro.transicionar(
-        idempotency_key, frozenset({"PENDIENTE_VALIDACION"}), parcial_propia
+    # Una sola aprobación del rol autorizado habilita el documento: no hay
+    # estados parciales (#125).
+    if not registro.transicionar(
+        idempotency_key, frozenset({"PENDIENTE_VALIDACION"}), "APROBADA"
     ):
-        estado_actual = parcial_propia
-    elif registro.transicionar(
-        idempotency_key, frozenset({parcial_ajena}), "APROBADA"
-    ):
-        estado_actual = "APROBADA"
-    else:
         return _duplicada(log_path, solicitud, correlation_id, idempotency_key)
+    estado_actual = "APROBADA"
 
-    if not emitir or estado_actual != "APROBADA":
-        # Si se pidió emitir pero falta la otra aprobación, el estado devuelto
-        # lo dice explícitamente: la decisión quedó registrada y no se emitió.
+    if not emitir:
+        # La decisión quedó registrada; sin pedido de emisión no se emite.
         return _finalizar(
             log_path=log_path,
             solicitud=solicitud,
@@ -512,7 +505,7 @@ def _emitir(
     EMISION_RESERVADA y un reintento no vuelve a emitir, porque ya no está en
     APROBADA. Se prefiere un certificado no emitido a uno emitido dos veces.
     El PDF que sale del pipeline ya no lleva la marca de borrador: la marca
-    existe hasta la aprobación completa, y emitir exige las dos.
+    existe hasta la aprobación registrada.
     """
 
     if not registro.transicionar(
@@ -835,8 +828,8 @@ def _resultado(
         )
         if aprobacion is not None
         else None,
-        # El rol queda en claro para poder evidenciar que las dos aprobaciones
-        # vinieron de roles distintos; no es un dato personal.
+        # El rol queda en claro para evidenciar qué delegación aprobó; no
+        # es un dato personal.
         "approval_role": aprobacion.rol if aprobacion is not None else None,
         # Trazas del circuito de #74: el hash del texto de la línea (nunca el
         # texto), el objeto de decisión al que está atada y el objeto del

@@ -51,14 +51,15 @@ Qué hace la corrida, en el orden de §4.2 y §6.2 del diseño:
    cuando el padrón no puede acreditar la condición (D14). El lote es sólo
    una planificación: encolarlo es decisión del circuito por lote de
    `recordatorios.py`, que exige la plantilla preaprobada y la aprobación
-   utilitaria que lista sus ítems (D3).
+   del responsable de pagos que lista sus ítems (D3, #125).
 7. **Enumera los candidatos a confirmación.** `planificar_confirmaciones`
    devuelve los preinscriptos cuya cuota 1 quedó `PAGO_CONFIRMADO` o
    `BONIFICADA` — los dos estados que, según D9, habilitan la confirmación
    de inscripción. `COMPROBANTE_PRESENTADO` no alcanza: la Fundación es la
    que verifica el ingreso (D1). También es sólo planificación: el borrador
    lo emite el circuito por envío de `confirmaciones.py` con el tipo
-   `inscripcion`, bajo la doble aprobación de siempre, y la idempotencia
+   `inscripcion`, bajo la aprobación única de la persona autorizada (#125),
+   y la idempotencia
    del registro evita la segunda confirmación si la corrida se repite.
 
 El plan se lee de un CSV en formato largo — una fila por dato, cada uno con su
@@ -459,7 +460,7 @@ class CandidatoConfirmacion:
 class LoteRecordatorios:
     """El conjunto planeado de recordatorios del día, antes de aprobarse.
 
-    `clave_lote` identifica el conjunto que la aprobación utilitaria lista:
+    `clave_lote` identifica el conjunto que la aprobación de pagos lista:
     el hash del vector «lote, actividad, claves de ítems ordenadas». El lote
     no persiste nada — es la salida planeada de la corrida —; lo que persiste
     es cada ítem que el circuito por lote encole (ADR 0003, §5.2).
@@ -880,7 +881,8 @@ def planificar_confirmaciones(
     un `COMPROBANTE_PRESENTADO` no alcanza porque la Fundación es quien
     verifica el ingreso (D1). Función pura, como `planificar_recordatorios`:
     no toca registro ni cola — producir el borrador es decisión del
-    circuito por envío y la doble aprobación es de la persona que la emite.
+    circuito por envío y la aprobación es de la persona autorizada que la
+    registra.
     """
 
     candidatos: list[CandidatoConfirmacion] = []

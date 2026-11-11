@@ -269,9 +269,8 @@ _KEYWORD_POR_INTENCION = {
 # plantilla. El link lo mintea `EnlacesDecisiones`; acá sólo se nombra qué
 # aprobación registra cada uno.
 _ETIQUETA_DECISION = {
-    "apruebo_semantica": "Apruebo la revisión semántica de la plantilla",
-    "apruebo_utilitaria": "Apruebo la plantilla (decisión utilitaria)",
-    "apruebo_lote": "Habilito el lote de envíos de la actividad",
+    "apruebo_contenido": "Apruebo el contenido",
+    "apruebo_lote": "Habilito el lote",
 }
 
 _FRASES_ASUNTO = {
@@ -1458,9 +1457,10 @@ class CanalFormPedidos:
                     )
                 )
             if enlaces_objetos:
-                # #73: la plantilla exige la doble aprobación y el lote la
-                # suya; el aviso enumera cada objeto con sus links del Form
-                # de decisiones. Nada se envía sin las tres registradas.
+                # #73 y #125: la plantilla exige una aprobación única y el
+                # lote la suya; el aviso enumera cada objeto con sus links
+                # del Form de decisiones. Nada se envía sin las dos
+                # registradas.
                 lineas.extend(
                     (
                         "",

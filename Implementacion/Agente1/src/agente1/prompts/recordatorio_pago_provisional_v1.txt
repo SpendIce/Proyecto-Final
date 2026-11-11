@@ -15,6 +15,6 @@ Este texto es una plantilla provisional y requiere validación humana antes de c
 LÍMITES:
 - El render es determinista; no se entrega este contenido a un LLM.
 - Los medios de pago del plan, incluidos links o datos bancarios cuando el plan los declare, aparecen sólo en el cuerpo: la auditoría conserva hashes, nunca esos datos.
-- La plantilla se aprueba una sola vez con aprobación semántica y utilitaria; cada lote diario exige una aprobación utilitaria que lista sus ítems (D3, §5.3 del diseño).
+- La plantilla se aprueba una sola vez, por la persona autorizada de contenido; cada lote diario exige la aprobación del responsable de pagos, que lista sus ítems (D3, §5.3 del diseño; roles vigentes de #125).
 - Sólo el fake explícito puede simular entrega, drenando la cola de HU-012.
 - La plantilla institucional definitiva queda PENDIENTE_SEU.

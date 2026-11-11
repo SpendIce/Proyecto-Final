@@ -73,7 +73,6 @@ from urllib.parse import urlencode
 from .certificados import reconciliar_emisiones_reservadas
 from .confirmaciones import (
     CLAVE_REGISTRO_RE,
-    ESTADOS_PARCIALES_APROBACION,
     MARCADOR_BORRADOR,
     BorradorRegistrado,
     RegistroConfirmacionesArchivo,
@@ -143,11 +142,11 @@ _DIRS_SALIDA = (
 _ARCHIVOS_SALIDA = ("insumos-procesados.jsonl",)
 
 # Estados desde los que una entrega puede seguir sin otra decisión humana:
-# las dos aprobaciones parciales, la aprobación completa y la espera en
-# cola. Si la última transición es posterior a la marca del respaldo, la
-# restauración los declara `ENVIO_INDETERMINADO` (ver docstring del módulo).
+# la aprobación registrada y la espera en cola (#125: sin estados
+# parciales). Si la última transición es posterior a la marca del respaldo,
+# la restauración los declara `ENVIO_INDETERMINADO` (ver docstring del
+# módulo).
 _ESTADOS_APROBACION_POSTERIORES = (
-    *sorted(ESTADOS_PARCIALES_APROBACION),
     "APROBADA",
     "ENVIO_ENCOLADO",
 )
