@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:publicos-destinatarios:v1",
+  "title": "Catalogo de publicos destinatarios de FIE Informa",
+  "description": "Lista cerrada y versionada de publicos destinatarios de las piezas de FIE Informa. Un publico es un grupo de correo de Workspace (un tipo de cuenta), no una lista de personas: el pedido elige uno o mas ids de esta lista y el grupo resuelve a quien llega la pieza. El publico es del pedido, no de la pieza: queda declarado en la solicitud y visible en la revision, pero nunca entra a un prompt ni cambia el texto generado. Misma doctrina de padron cerrado que las areas emisoras (ADR 0005): un id fuera del catalogo se rechaza.",
+  "x-contract-version": "publicos_destinatarios_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL: la lista arranca solo con el publico que la SEU confirmo con el autor del PPS el 11/11/2026.",
+  "x-decision": "#154",
+  "x-adr-014": "docs/adr/0014-area-emisora-y-firma-opcional-publico-como-catalogo-de-grupos.md",
+  "x-fuente": "Definicion de la SEU con el autor del PPS, 11/11/2026.",
+  "x-origen": "SEU y equipo tecnico del PPS.",
+  "x-ampliacion": "Sumar un publico es agregar una entrada en una version nueva del catalogo, sin cambiar el modelo conceptual: cada publico es id + nombre.",
+  "x-no-versionar": "Las direcciones de los grupos de Workspace no viven en este archivo ni en ningun archivo del repo, que es publico: el catalogo lleva solo id y nombre. La correspondencia id -> direccion del grupo queda fuera del repo, igual que el padron de roles.",
+  "publicos": [
+    {
+      "id": "alumnos_ingenieria",
+      "nombre": "Alumnos de ingeniería"
+    }
+  ]
+}
