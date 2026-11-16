@@ -146,3 +146,43 @@ def test_servidor_web_rechaza_cuenta_fuera_de_la_lista(
         "status": "INVALID",
         "error_code": "web_workspace_config_invalid",
     }
+
+
+def test_worker_canal_web_genera_con_ollama_sin_thinking(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Con thinking, gemma4 gasta el `num_predict` antes de responder.
+
+    Mismo defecto que el scheduler corrigió en la 0.5.3: el primer pedido
+    real del canal web en el servidor (16/11) terminó en `error_generacion`
+    a los 133 s con la respuesta vacía.
+    """
+    capturado: dict[str, Any] = {}
+
+    class GeneradorFalso:
+        def __init__(self, **kwargs: Any) -> None:
+            capturado.update(kwargs)
+
+    monkeypatch.setattr("agente1.ollama.OllamaGenerator", GeneradorFalso)
+    monkeypatch.setattr(
+        "agente1.web.worker.correr_una_vez", lambda **_kwargs: None
+    )
+    modulo = _cargar_script("worker_canal_web")
+
+    codigo = modulo.main(
+        [
+            "--tabla",
+            str(ROOT / "data" / "actividades_sinteticas.csv"),
+            "--salida",
+            str(tmp_path / "salida"),
+            "--ollama-model",
+            "gemma4:e4b",
+            "--destino-fake",
+            "--una-vez",
+        ],
+        environ=_entorno(tmp_path),
+    )
+
+    assert codigo == 0
+    assert capturado["modelo"] == "gemma4:e4b"
+    assert capturado["think"] is False
