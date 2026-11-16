@@ -6,7 +6,13 @@
 <title>{% block titulo %}Agente 1 · Canal web{% endblock %}</title>
 <link rel="stylesheet" href="/estaticos/estilos.css">
 </head>
-<body>
+<body{% if config.modo_demo %} class="con-demo"{% endif %}>
+{% if config.modo_demo %}
+<div class="banda-demo" role="status">
+  Modo demostración: sin verificación de identidad · vence el
+  {{ config.demo_hasta.strftime('%d/%m/%Y') }}
+</div>
+{% endif %}
 <header class="cabecera">
   <div class="cabecera-marca">
     <img class="logo" src="/estaticos/img/imagotipo-fie-blanco.png"

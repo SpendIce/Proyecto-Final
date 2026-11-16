@@ -211,6 +211,25 @@ h2 { font-weight: 600; font-size: 1.15rem; margin-top: 1.75rem; }
   border-radius: 4px;
 }
 
+/* Banda del modo demostración (ADR 0019): fija al pie en todas las
+   páginas, declara que la identidad no se verificó y hasta cuándo corre.
+   El padding de `body.con-demo` le deja lugar para no tapar contenido. */
+.banda-demo {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 10;
+  background: var(--azul-fie);
+  color: var(--blanco);
+  border-top: 2px solid var(--neutro-medio);
+  font-family: var(--fuente-titulos);
+  font-weight: 600;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  text-align: center;
+  padding: 0.45rem 1rem;
+}
+body.con-demo { padding-bottom: 2.2rem; }
+
 a { color: var(--azul-fie); }
 
 :focus-visible {
@@ -224,4 +243,5 @@ a { color: var(--azul-fie); }
   .cabecera-servicio { display: none; }
   .bandeja-item { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
   .ficha { grid-template-columns: 1fr; }
+  .banda-demo { font-size: 0.75rem; padding: 0.4rem 0.6rem; }
 }

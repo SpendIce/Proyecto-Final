@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titulo %}Demostración vencida · Agente 1{% endblock %}
+{% block contenido %}
+<section class="tarjeta aviso" aria-labelledby="t-vencida">
+  <h1 id="t-vencida">La demostración venció</h1>
+  <p>
+    El modo demostración del canal web del Agente 1 quedó habilitado
+    hasta el {{ config.demo_hasta.strftime('%d/%m/%Y') }}. Las sesiones
+    de la demostración ya no son válidas.
+  </p>
+  <p class="ayuda">
+    Es un despliegue temporario mientras DSI no entrega el dominio, el
+    HTTPS ni el cliente OAuth de Google (#62). Cuando llegue la
+    credencial, el canal vuelve al ingreso con verificación de identidad.
+  </p>
+</section>
+{% endblock %}

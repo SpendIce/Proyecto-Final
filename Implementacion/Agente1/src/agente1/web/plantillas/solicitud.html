@@ -21,6 +21,9 @@
     {% if publicos %}<dt>Públicos</dt><dd>{{ publicos|join(', ') }}</dd>{% endif %}
     <dt>Creada</dt><dd>{{ s.creada_en.strftime('%d/%m/%Y %H:%M') }}</dd>
     <dt>Última actividad</dt><dd>{{ s.ultima_actividad_en.strftime('%d/%m/%Y %H:%M') }}</dd>
+    {% if s.canal == 'web-demo' %}
+    <dt>Origen</dt><dd>Modo demostración · identidad sin verificar</dd>
+    {% endif %}
   </dl>
 
   {% if s.descripcion %}

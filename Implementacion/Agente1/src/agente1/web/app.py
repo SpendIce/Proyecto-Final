@@ -20,11 +20,25 @@ Decisiones que no se ven en el código:
 - **El CSRF del login no es el de la sesión** (todavía no hay sesión):
   en modo real se valida el double-submit `g_csrf_token` que pone Google
   Identity Services —cookie contra campo del formulario—; en modo prueba
-  el formulario lleva un `a1_login_csrf` propio, misma doctrina.
+  y en modo demostración el formulario lleva un `a1_login_csrf` propio,
+  misma doctrina.
 - **La configuración se valida al construir la app**: modo real exige
   client ID y dominio `hd`; modo prueba se niega a correr con cookie
   `Secure` — una cookie segura jamás llega por HTTP de desarrollo, así
   que un modo prueba «seguro» sólo puede ser un despliegue mal armado.
+- **El modo demostración no es un atajo del modo prueba** (ADR 0019):
+  existe porque DSI no entregó el client ID de Google (#62) y la
+  presentación no podía esperar. Reemplaza la verificación del token por
+  la elección de una identidad del padrón, con vencimiento declarado
+  (`demo_hasta`, como máximo 14 días), correos cerrados que deben estar
+  en el padrón, cookie `Secure` exigida y banda visible en todas las
+  páginas. Lo que crea queda marcado `web-demo` en la solicitud, nunca
+  como identidad verificada. A diferencia del modo prueba sí puede correr
+  dentro del contenedor y escuchar en `0.0.0.0` del contenedor: la
+  exposición la limita el compose (el puerto se publica sólo en
+  `127.0.0.1` del host) y el acceso entra por `tailscale serve` dentro
+  del tailnet o por túnel SSH — el aislamiento lo hace el despliegue,
+  no un bind de loopback.
 - **La validación del pedido sale de los contratos**, no de una lista
   propia: cada tipo declara en su contrato de entrada si usa área emisora,
   firma de área y qué campos pide, y en el catálogo de tipos si pide
@@ -41,8 +55,9 @@ import hashlib
 import hmac
 import secrets
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -65,15 +80,18 @@ from ..gacetillas import (
 from ..interpretacion import ROLES_HABILITADOS
 from .identidad import VerificacionIdentidadError, VerificadorIdToken
 from .persistencia import (
+    CANAL_WEB,
+    CANAL_WEB_DEMO,
     ConflictoIdempotencia,
     DetalleSolicitud,
     RepositorioWeb,
 )
-from .sesiones import Sesion, SesionesMemoria
+from .sesiones import ORIGEN_DEMO, Sesion, SesionesMemoria
 
 _COOKIE = "a1_sesion"
 _COOKIE_CSRF_LOGIN = "a1_login_csrf"
 _COOKIE_CSRF_GIS = "g_csrf_token"
+_DEMO_DIAS_MAX = 14
 _ESTADOS_VISIBLES = {
     "EN_COLA": "En cola",
     "GENERANDO": "Generando",
@@ -108,11 +126,21 @@ class ConfiguracionWeb:
     `google_client_id` y `dominio_hd` los entrega DSI (#62): en modo real
     son obligatorios los dos — sin dominio no hay `hd` que exigir y el
     diseño §3 lo hace cerrar en vez de dejar pasar cualquier cuenta.
+
+    `modo_demo` (ADR 0019) reemplaza la verificación de Google por la
+    elección de una identidad del padrón, para la presentación sin el
+    client ID: exige `demo_hasta` (último día válido, a lo sumo 14 días
+    adelante) y `demo_correos`, la lista cerrada de correos del padrón
+    que el formulario ofrece en «Entrar como». Corre con cookie `Secure`
+    — entra por HTTPS del tailnet o por túnel SSH, nunca por HTTP.
     """
 
     google_client_id: str
     dominio_hd: str | None = None
     modo_prueba: bool = False
+    modo_demo: bool = False
+    demo_hasta: date | None = None
+    demo_correos: tuple[str, ...] = ()
     cookie_secure: bool = True
 
 
@@ -128,6 +156,8 @@ def validar_configuracion(
     *,
     host: str | None = None,
     en_contenedor: bool = False,
+    padron: PadronRoles | None = None,
+    hoy: Callable[[], date] | None = None,
 ) -> None:
     """Cierra el arranque cuando la combinación declarada es insegura.
 
@@ -140,7 +170,23 @@ def validar_configuracion(
     HTTP local donde el modo sirve), un host que no sea loopback o el
     entrypoint del contenedor. Cualquiera de esas marcas significa que el
     modo prueba llegó a un lugar donde nunca debió estar.
+
+    Modo demostración: reemplaza la verificación de Google por la elección
+    de una identidad del padrón, así que exige su propia cerca — fecha de
+    vencimiento declarada y acotada (ya pasada o a más de
+    `_DEMO_DIAS_MAX` días rechaza), lista de correos cerrada donde cada
+    uno debe tener rol en el padrón, cookie `Secure` (entra por HTTPS del
+    tailnet o túnel SSH) y ninguna marca de otro modo: ni modo prueba ni
+    client ID de Google. A diferencia del modo prueba sí puede correr
+    dentro del contenedor y en `0.0.0.0`: la exposición la limita el
+    compose (puerto publicado sólo en `127.0.0.1` del host) y el acceso
+    por `tailscale serve`/túnel SSH, así que esas señales no son
+    sospechosas acá (ADR 0019). `padron` es la fuente de verdad de los
+    correos; `hoy` es la costura del reloj para las pruebas.
     """
+    if config.modo_demo:
+        _validar_modo_demo(config, padron=padron, hoy=hoy)
+        return
     if config.modo_prueba:
         if config.google_client_id != CLIENT_ID_PRUEBA:
             raise ConfiguracionInvalida(
@@ -163,6 +209,53 @@ def validar_configuracion(
         raise ConfiguracionInvalida("modo real sin client ID de Google")
     if not config.dominio_hd:
         raise ConfiguracionInvalida("modo real sin dominio institucional")
+
+
+def _validar_modo_demo(
+    config: ConfiguracionWeb,
+    *,
+    padron: PadronRoles | None,
+    hoy: Callable[[], date] | None,
+) -> None:
+    """La cerca del modo demostración (ADR 0019), en orden de rechazo."""
+    if config.modo_prueba:
+        raise ConfiguracionInvalida(
+            "modo_demo no convive con modo_prueba"
+        )
+    if config.google_client_id:
+        raise ConfiguracionInvalida(
+            "modo_demo con client ID de Google configurado"
+        )
+    if not config.cookie_secure:
+        raise ConfiguracionInvalida(
+            "modo_demo exige cookie Secure: entra por HTTPS del tailnet"
+        )
+    if config.demo_hasta is None:
+        raise ConfiguracionInvalida(
+            "modo_demo sin fecha de vencimiento (AGENTE1_WEB_DEMO_HASTA)"
+        )
+    if not config.demo_correos:
+        raise ConfiguracionInvalida(
+            "modo_demo sin lista de correos (AGENTE1_WEB_DEMO_CORREOS)"
+        )
+    fecha_hoy = (
+        hoy if hoy is not None else (lambda: datetime.now(timezone.utc).date())
+    )()
+    if config.demo_hasta < fecha_hoy:
+        raise ConfiguracionInvalida(
+            "modo_demo con fecha de vencimiento ya pasada"
+        )
+    if config.demo_hasta - fecha_hoy > timedelta(days=_DEMO_DIAS_MAX):
+        raise ConfiguracionInvalida(
+            f"modo_demo con vencimiento a más de {_DEMO_DIAS_MAX} días"
+        )
+    if padron is None:
+        raise ConfiguracionInvalida("modo_demo sin padrón de roles")
+    for correo in config.demo_correos:
+        if padron.rol_para(correo) is None:
+            raise ConfiguracionInvalida(
+                "modo_demo con correo fuera del padrón de roles"
+            )
 
 
 def _campos_por_tipo() -> dict[str, dict[str, Any]]:
@@ -223,15 +316,29 @@ def crear_app(
     actividades: list[dict[str, str]] | None = None,
     host: str | None = None,
     en_contenedor: bool = False,
+    hoy: Callable[[], date] | None = None,
 ) -> FastAPI:
     """Fábrica de la app: todo servicio externo entra inyectado.
 
     `actividades` es la lista visible de la fuente de solicitudes (sólo
     lectura), para el select condicional del pedido con sus datos
     institucionales. `host` y `en_contenedor` alimentan las salvaguardas
-    del modo prueba (`validar_configuracion`).
+    del modo prueba (`validar_configuracion`). `hoy` es la costura del
+    reloj del modo demostración: el vencimiento se consulta en cada
+    request, no sólo al arrancar.
     """
-    validar_configuracion(config, host=host, en_contenedor=en_contenedor)
+    validar_configuracion(
+        config,
+        host=host,
+        en_contenedor=en_contenedor,
+        padron=padron,
+        hoy=hoy,
+    )
+    hoy_fn = (
+        hoy
+        if hoy is not None
+        else (lambda: datetime.now(timezone.utc).date())
+    )
     sesiones = sesiones if sesiones is not None else SesionesMemoria()
     base = Path(__file__).resolve().parent
     plantillas = Jinja2Templates(directory=str(base / "plantillas"))
@@ -250,6 +357,34 @@ def crear_app(
         name="estaticos",
     )
 
+    def demo_vencida() -> bool:
+        """Pasada la fecha declarada, la demostración ya no corre."""
+        return (
+            config.modo_demo
+            and config.demo_hasta is not None
+            and hoy_fn() > config.demo_hasta
+        )
+
+    @app.middleware("http")
+    async def _vencimiento_demo(request: Request, call_next):  # type: ignore[no-untyped-def]
+        """El vencimiento se enforce en ejecución, no sólo al arrancar.
+
+        Pasada `demo_hasta` todo request responde 503 con su página —
+        salvo los estáticos, que la propia página necesita— y la sesión
+        demo presentada se cierra: queda inválida aunque el proceso siga.
+        """
+        if not demo_vencida() or request.url.path.startswith("/estaticos"):
+            return await call_next(request)
+        sesion = sesiones.obtener(request.cookies.get(_COOKIE))
+        if sesion is not None and sesion.origen == ORIGEN_DEMO:
+            sesiones.cerrar(sesion.sid)
+        return plantillas.TemplateResponse(
+            request=request,
+            name="demo_vencida.html",
+            context={"config": config},
+            status_code=503,
+        )
+
     def render(
         nombre: str,
         request: Request,
@@ -264,7 +399,15 @@ def crear_app(
         )
 
     def sesion_de(request: Request) -> Sesion | None:
-        return sesiones.obtener(request.cookies.get(_COOKIE))
+        sesion = sesiones.obtener(request.cookies.get(_COOKIE))
+        if (
+            sesion is not None
+            and sesion.origen == ORIGEN_DEMO
+            and demo_vencida()
+        ):
+            sesiones.cerrar(sesion.sid)
+            return None
+        return sesion
 
     def autorizar(request: Request) -> Sesion | None:
         """Sesión viva + rol vigente del padrón, en cada request."""
@@ -316,12 +459,15 @@ def crear_app(
     ) -> HTMLResponse:
         """El formulario de ingreso con su CSRF de double-submit reemitido.
 
-        En modo prueba el token lo pone la app (cookie `a1_login_csrf`
-        contra campo `csrf`); en modo real lo pone Google Identity
-        Services en `g_csrf_token` y acá no hay nada que reemitir.
+        En modo prueba y en modo demostración el token lo pone la app
+        (cookie `a1_login_csrf` contra campo `csrf`); en modo real lo pone
+        Google Identity Services en `g_csrf_token` y acá no hay nada que
+        reemitir. En modo demo el select «Entrar como» lista los correos
+        declarados con el rol que el padrón les da — el rol se muestra,
+        nunca se acepta del navegador.
         """
         csrf_login = ""
-        if config.modo_prueba:
+        if config.modo_prueba or config.modo_demo:
             csrf_login = secrets.token_urlsafe(32)
         respuesta = render(
             "ingresar.html",
@@ -329,6 +475,10 @@ def crear_app(
             status_code=status_code,
             error=error,
             csrf_login=csrf_login,
+            identidades_demo=[
+                {"correo": correo, "rol": padron.rol_para(correo)}
+                for correo in config.demo_correos
+            ],
         )
         if csrf_login:
             respuesta.set_cookie(
@@ -354,7 +504,48 @@ def crear_app(
         credential: str = Form(""),
         csrf: str = Form(""),
         g_csrf_token: str = Form(""),
+        correo: str = Form(""),
     ) -> Response:
+        if config.modo_demo:
+            # El ingreso demo elige una identidad de la lista declarada;
+            # el rol lo resuelve el padrón en el servidor, nunca lo trae
+            # el formulario. La sesión queda marcada con origen `demo` y
+            # lo que crea se asienta como `web-demo` (ADR 0019).
+            if not _double_submit(request, csrf, _COOKIE_CSRF_LOGIN):
+                return _render_ingresar(
+                    request,
+                    status_code=403,
+                    error="El formulario venció. Recargá la página.",
+                )
+            correo_demo = correo.strip().lower()
+            if correo_demo not in {
+                c.strip().lower() for c in config.demo_correos
+            }:
+                return _render_ingresar(
+                    request,
+                    status_code=403,
+                    error="Elegí una identidad de la lista.",
+                )
+            rol = padron.rol_para(correo_demo)
+            if rol is None:
+                return render("sin_permiso.html", request, status_code=403)
+            sesion = sesiones.crear(
+                sub=f"demo:{correo_demo}",
+                correo=correo_demo,
+                rol=rol,
+                origen=ORIGEN_DEMO,
+            )
+            respuesta = destino_inicio(sesion)
+            respuesta.set_cookie(
+                _COOKIE,
+                sesion.sid,
+                httponly=True,
+                secure=config.cookie_secure,
+                samesite="lax",
+                max_age=8 * 3600,
+                path="/",
+            )
+            return respuesta
         if config.modo_prueba:
             if not _double_submit(request, csrf, _COOKIE_CSRF_LOGIN):
                 return _render_ingresar(
@@ -646,6 +837,11 @@ def crear_app(
                 actividad_ref=pedido["actividad_ref"],
                 descripcion=pedido["descripcion"] or None,
                 campos=pedido["campos"],
+                canal=(
+                    CANAL_WEB_DEMO
+                    if sesion.origen == ORIGEN_DEMO
+                    else CANAL_WEB
+                ),
                 ahora=datetime.now(timezone.utc),
             )
         except ConflictoIdempotencia:
