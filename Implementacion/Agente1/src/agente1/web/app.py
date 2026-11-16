@@ -53,7 +53,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import importlib.metadata
+import logging
 import secrets
 import uuid
 from collections.abc import Callable
@@ -70,14 +70,17 @@ from fastapi.templating import Jinja2Templates
 from ..canal_form import (
     PadronRoles,
     areas_emisoras,
+    hash_correo,
     publicos_destinatarios,
 )
+from ..confirmaciones import ROL_APROBADOR_CONTENIDO
 from ..decisiones_form import (
     DECISION_DESCARTE,
     DECISION_PUBLIQUE,
     ROLES_POR_DECISION,
     TIPO_PUBLICACION,
 )
+from ..destinos import DestinoBorradoresError
 from ..gacetillas import (
     cargar_entrada,
     requiere_actividad,
@@ -85,6 +88,11 @@ from ..gacetillas import (
     tipos,
 )
 from ..interpretacion import ROLES_HABILITADOS
+from ..manifest_version import (
+    IntegridadError,
+    raiz_agente,
+    version_desde_pyproject,
+)
 from .docs_canal import ExportadorDocs
 from .identidad import VerificacionIdentidadError, VerificadorIdToken
 from .persistencia import (
@@ -95,6 +103,8 @@ from .persistencia import (
     RepositorioWeb,
 )
 from .sesiones import ORIGEN_DEMO, Sesion, SesionesMemoria
+
+logger = logging.getLogger(__name__)
 
 _COOKIE = "a1_sesion"
 _COOKIE_CSRF_LOGIN = "a1_login_csrf"
@@ -113,14 +123,21 @@ _ORIGEN_REVISION = {
     "generada": "generada",
     "editada_docs": "editada en Docs",
 }
+_AVISOS_DOC = {
+    "doc_inexistente": "El Doc ya no existe.",
+    "exportador_invalido": "No se pudo interpretar el Doc.",
+    "workspace_no_disponible": "Workspace no está disponible.",
+    "exportador_ausente": "Workspace no está disponible en este despliegue.",
+}
 _AVISOS_REVISION = {
+    **_AVISOS_DOC,
     "importada": "Revisión nueva traída del Doc.",
     "sin_cambios": "El Doc no tiene cambios nuevos.",
     "no_disponible": "Todavía no hay Doc para traer cambios.",
     "inexistente": "La solicitud no existe.",
-    "exportador_ausente": "Workspace no está disponible en este despliegue.",
 }
 _AVISOS_DECISION = {
+    **_AVISOS_DOC,
     "aprobada": "Pieza aprobada. El recorrido de difusión quedó cerrado.",
     "descartada": "Pieza descartada. El recorrido quedó cerrado.",
     "doc_cambiado": "El Doc cambió: traé los cambios antes de aprobar.",
@@ -128,7 +145,6 @@ _AVISOS_DECISION = {
     "duplicada": "La decisión ya estaba registrada.",
     "cerrada": "La solicitud ya está cerrada.",
     "inexistente": "La solicitud no existe.",
-    "exportador_ausente": "Workspace no está disponible en este despliegue.",
 }
 _AVISOS_ERROR = {
     "doc_cambiado",
@@ -137,6 +153,9 @@ _AVISOS_ERROR = {
     "cerrada",
     "inexistente",
     "exportador_ausente",
+    "doc_inexistente",
+    "exportador_invalido",
+    "workspace_no_disponible",
     "no_disponible",
 }
 _NOMBRES_TIPOS = {
@@ -149,12 +168,25 @@ _NOMBRES_TIPOS = {
     "newsletter": "Newsletter",
 }
 _CAMPOS_AREA = {"cuerpo", "hecho", "condicion", "requisitos", "convocatoria"}
+# Quién puede traer cambios del Doc: quien puede pedir una pieza o quien
+# decide sobre contenido. El resto del padrón ve la bandeja y la revisión,
+# pero no mueve la revisión vigente.
+_ROLES_REVISION_DOC = ROLES_HABILITADOS | {ROL_APROBADOR_CONTENIDO}
 _HOSTS_LOCALES = frozenset({"127.0.0.1", "localhost"})
 CLIENT_ID_PRUEBA = "modo-prueba"
 
 
 class ConfiguracionInvalida(ValueError):
-    """La configuración declarada no puede servir el canal con seguridad."""
+    """La configuración declarada no puede servir el canal con seguridad.
+
+    `code` es el código estable que el arranque imprime. Los rechazos de
+    configuración comparten `web_config_insegura`; la versión ilegible tiene
+    el suyo para que el operador sepa qué corregir.
+    """
+
+    def __init__(self, mensaje: str, *, code: str = "web_config_insegura") -> None:
+        self.code = code
+        super().__init__(mensaje)
 
 
 @dataclass(frozen=True)
@@ -381,9 +413,12 @@ def crear_app(
     )
     if version_agente is None:
         try:
-            version_agente = importlib.metadata.version("agente1")
-        except importlib.metadata.PackageNotFoundError:
-            version_agente = "desconocida"
+            version_agente = version_desde_pyproject(raiz_agente())
+        except IntegridadError:
+            raise ConfiguracionInvalida(
+                "web_version_agente_ausente",
+                code="web_version_agente_ausente",
+            ) from None
     hoy_fn = (
         hoy
         if hoy is not None
@@ -475,6 +510,9 @@ def crear_app(
 
     def puede_pedir(sesion: Sesion) -> bool:
         return rol_de(sesion) in ROLES_HABILITADOS
+
+    def puede_revisar_doc(sesion: Sesion) -> bool:
+        return rol_de(sesion) in _ROLES_REVISION_DOC
 
     def destino_login() -> RedirectResponse:
         return RedirectResponse("/ingresar", status_code=303)
@@ -718,6 +756,7 @@ def crear_app(
             exportador is not None
             and detalle_sol.estado_web == "LISTA"
             and detalle_sol.doc_ref is not None
+            and puede_revisar_doc(sesion)
         )
         puede_decidir = (
             puede_traer
@@ -757,7 +796,6 @@ def crear_app(
             puede_traer=puede_traer,
             puede_decidir=puede_decidir,
             revision_vigente_id=vigente.id_borrador if vigente else None,
-            revision_vigente_hash=vigente.output_hash if vigente else "",
             csrf=sesion.csrf_token,
             aviso=aviso,
             aviso_error=aviso_error,
@@ -788,6 +826,8 @@ def crear_app(
         form = await request.form()
         if not csrf_ok(sesion, str(form.get("csrf", ""))):
             return render("sin_permiso.html", request, status_code=403)
+        if not puede_revisar_doc(sesion):
+            return render("sin_permiso.html", request, status_code=403)
         detalle_sol = repositorio.obtener(id_solicitud)
         if detalle_sol is None:
             return render("sin_permiso.html", request, status_code=404)
@@ -800,12 +840,12 @@ def crear_app(
             )
         try:
             texto = exportador.exportar_texto(detalle_sol.doc_ref)
-        except Exception:
+        except DestinoBorradoresError as error:
             return _render_detalle(
                 request,
                 sesion,
                 detalle_sol,
-                *_aviso(_AVISOS_REVISION, "exportador_ausente"),
+                *_aviso(_AVISOS_REVISION, _aviso_exportador(error)),
             )
         resultado = repositorio.importar_revision(
             id_solicitud=id_solicitud,
@@ -848,15 +888,28 @@ def crear_app(
                 *_aviso(_AVISOS_DECISION, "exportador_ausente"),
             )
         # La aprobación es sobre el Doc tal como está ahora: se reexporta
-        # y el hash viaja a persistencia, que es quien decide si cambió.
+        # y el hash viaja a persistencia, que es quien decide si cambió. La
+        # revisión de Drive se lee a continuación; si el adapter no la
+        # provee queda NULL explícito en `validaciones.head_revision_id`.
         try:
             texto_doc = exportador.exportar_texto(detalle_sol.doc_ref)
-        except Exception:
+        except DestinoBorradoresError as error:
             return _render_detalle(
                 request,
                 sesion,
                 detalle_sol,
-                *_aviso(_AVISOS_DECISION, "exportador_ausente"),
+                *_aviso(_AVISOS_DECISION, _aviso_exportador(error)),
+            )
+        try:
+            head_revision_id = exportador.head_revision(detalle_sol.doc_ref)
+        except DestinoBorradoresError as error:
+            # La decisión se ata al hash del texto, no a la revisión de
+            # Drive. Si el dato no se puede leer, queda NULL y se sigue.
+            head_revision_id = None
+            logger.warning(
+                "decision_head_revision_no_disponible id_solicitud=%s codigo=%s",
+                id_solicitud,
+                error.code,
             )
         estado_final = {
             DECISION_PUBLIQUE: "APROBADA",
@@ -872,6 +925,7 @@ def crear_app(
             rol=rol,
             origen_identidad=sesion.origen,
             version_agente=version_agente,
+            head_revision_id=head_revision_id,
             ahora=datetime.now(timezone.utc),
         )
         aviso, es_error = _aviso(_AVISOS_DECISION, resultado.codigo)
@@ -1065,6 +1119,27 @@ def crear_app(
     return app
 
 
+_CODIGOS_EXPORTADOR_INVALIDO = frozenset(
+    {"destination_contract_invalid", "drive_response_invalid"}
+)
+
+
+def _aviso_exportador(error: DestinoBorradoresError) -> str:
+    """Código de aviso para una falla del exportador, sin prosa de la API.
+
+    Un 404 de Drive es que el Doc ya no existe; un contrato o una respuesta
+    que no se puede interpretar es un fallo del Doc, no de la config; el
+    resto es Workspace no disponible. Un error que no sea del adapter no se
+    atrapa: se propaga y queda en el log del servidor en vez de mostrarse
+    como falta de config.
+    """
+    if error.code == "drive_resource_not_found":
+        return "doc_inexistente"
+    if error.code in _CODIGOS_EXPORTADOR_INVALIDO:
+        return "exportador_invalido"
+    return "workspace_no_disponible"
+
+
 def _hash_solicitante(sesion: Sesion) -> str:
-    """Hash del correo del solicitante (ADR 0016), como el resto de la auditoría."""
-    return hashlib.sha256(sesion.correo.encode("utf-8")).hexdigest()
+    """Hash del correo del solicitante (ADR 0016), normalizado como el worker."""
+    return hash_correo(sesion.correo)

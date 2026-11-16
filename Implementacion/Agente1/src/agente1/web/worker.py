@@ -34,6 +34,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
+from ..canal_form import hash_correo
 from ..destinos import ReferenciaBorrador, ResultadoDestinoPorMarca
 from ..fuentes import FuenteSolicitudes
 from ..gacetillas import requiere_actividad
@@ -270,7 +271,10 @@ def correr_una_vez(
     resolución `solicitante_hash → correo` contra el padrón y el worker
     comparte el Doc con `writer` antes de asentar. Sin correo resoluble
     la generación sigue igual — el Doc queda accesible por la carpeta— y
-    el aviso queda en el log, nunca en la base.
+    el aviso queda en el log, nunca en la base. Si `compartir` falla
+    también sigue: el Doc ya existe y la solicitud queda `LISTA`; el
+    intento fallido se asienta como `permiso_no_otorgado` con el hash del
+    correo.
     """
     trabajo = repositorio.tomar_trabajo(
         worker_id=worker_id,
@@ -287,17 +291,6 @@ def correr_una_vez(
             directorio_salida=directorio_salida,
             destino=destino,
         )
-        compartido_con_hash = None
-        if correo_para_hash is not None:
-            correo = correo_para_hash(trabajo.solicitante_hash)
-            if correo is not None:
-                destino.compartir(resultado_destino.doc_ref, correo)
-                compartido_con_hash = _hash_solicitante(correo)
-            else:
-                logger.warning(
-                    "worker_compartir_sin_correo id_solicitud=%s",
-                    trabajo.id_solicitud,
-                )
     except FalloGeneracion as fallo:
         logger.warning(
             "worker_fallo id_ejecucion=%s resultado=%s",
@@ -335,6 +328,30 @@ def correr_una_vez(
                 trabajo.intentos,
             )
         return trabajo
+    compartido_con_hash = None
+    permiso_no_otorgado_hash = None
+    if correo_para_hash is not None:
+        correo = correo_para_hash(trabajo.solicitante_hash)
+        if correo is None:
+            logger.warning(
+                "worker_compartir_sin_correo id_solicitud=%s",
+                trabajo.id_solicitud,
+            )
+        else:
+            try:
+                destino.compartir(resultado_destino.doc_ref, correo)
+            except Exception as error:
+                # El Doc ya existe: un permiso que no se pudo otorgar no
+                # convierte la generación en fallida. Se asienta el intento
+                # con el hash del correo y la solicitud sigue `LISTA`.
+                permiso_no_otorgado_hash = hash_correo(correo)
+                logger.warning(
+                    "worker_permiso_no_otorgado id_solicitud=%s codigo=%s",
+                    trabajo.id_solicitud,
+                    getattr(error, "code", type(error).__name__),
+                )
+            else:
+                compartido_con_hash = hash_correo(correo)
     repositorio.completar_trabajo(
         id_ejecucion=trabajo.id_ejecucion,
         id_solicitud=trabajo.id_solicitud,
@@ -345,13 +362,7 @@ def correr_una_vez(
         doc_url=resultado_destino.doc_url,
         texto_documento=resultado_destino.texto_documento,
         compartido_con_hash=compartido_con_hash,
+        permiso_no_otorgado_hash=permiso_no_otorgado_hash,
         ahora=ahora,
     )
     return trabajo
-
-
-def _hash_solicitante(correo: str) -> str:
-    """Hash del correo, igual que el `solicitante_hash` de la solicitud."""
-    import hashlib
-
-    return hashlib.sha256(correo.encode("utf-8")).hexdigest()

@@ -471,6 +471,7 @@ class RepositorioWeb:
         doc_url: str | None = None,
         texto_documento: str | None = None,
         compartido_con_hash: str | None = None,
+        permiso_no_otorgado_hash: str | None = None,
         ahora: datetime | None = None,
     ) -> str:
         """Cierra la ejecución con su revisión de pieza, en una tx.
@@ -484,8 +485,10 @@ class RepositorioWeb:
         generado se conserva aparte en la prosa `generado`.
 
         `doc_url` es el enlace de edición del Doc (NULL con destinos que
-        no son Google) y `compartido_con_hash` el hash del correo con el
-        que el worker compartió el Doc, si el flag de compartir lo pidió.
+        no son Google). `compartido_con_hash` es el hash del correo con el
+        que el worker compartió el Doc; `permiso_no_otorgado_hash` deja
+        asentado el intento fallido sin contar la generación como fallida
+        —el Doc ya existe— y con el hash, nunca el correo en claro.
         """
         ahora = ahora or datetime.now(timezone.utc)
         output_hash = _hash(texto_generado)
@@ -552,6 +555,13 @@ class RepositorioWeb:
                         " ocurrido_en, evidencia_hash) VALUES"
                         " (%s,'doc_compartido',%s,%s)",
                         (id_ejecucion, ahora, compartido_con_hash),
+                    )
+                if permiso_no_otorgado_hash is not None:
+                    conn.execute(
+                        "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
+                        " ocurrido_en, evidencia_hash) VALUES"
+                        " (%s,'permiso_no_otorgado',%s,%s)",
+                        (id_ejecucion, ahora, permiso_no_otorgado_hash),
                     )
         return id_borrador
 
@@ -667,6 +677,7 @@ class RepositorioWeb:
         rol: str,
         origen_identidad: str,
         version_agente: str,
+        head_revision_id: str | None = None,
         ahora: datetime | None = None,
     ) -> ResultadoDecisionWeb:
         """Registra la decisión sobre la revisión vigente, en una tx.
@@ -681,6 +692,11 @@ class RepositorioWeb:
         - `revision_obsoleta`: el borrador decidido ya no es el vigente.
         - `duplicada`: la revisión ya tiene una decisión registrada.
         - `cerrada`/`inexistente`: la solicitud ya cerró o no existe.
+
+        `head_revision_id` es el `files.get` del Doc al momento de decidir.
+        Si el exportador no lo provee queda NULL explícito: la decisión sigue
+        atada al hash del texto (ADR 0016) y no se inventa una revisión de
+        Drive.
 
         Todo ocurre en la misma transacción: una caída a la mitad no deja
         ni decisión parcial ni revisión colgada (ADR 0016, prueba 2).
@@ -720,6 +736,7 @@ class RepositorioWeb:
                             doc_ref=doc_ref,
                             texto=texto_doc or "",
                             texto_hash=doc_hash,
+                            head_revision_id=head_revision_id,
                             ahora=ahora,
                         )
                         self._evento_rechazo_decision(
@@ -750,14 +767,16 @@ class RepositorioWeb:
                         " checklist_version, registrada_en,"
                         " borrador_creada_en, doc_hash,"
                         " senal, proporcion_cambiado, cantidad_ajustes,"
-                        " rol, origen_identidad, version_agente) VALUES"
+                        " rol, origen_identidad, version_agente,"
+                        " head_revision_id) VALUES"
                         " (%s,%s,%s,%s,'decision_web_v1',%s,%s,%s,%s,%s,%s,"
-                        " %s,%s,%s)",
+                        " %s,%s,%s,%s)",
                         (
                             f"val-{uuid.uuid4().hex[:16]}", vigente,
                             decision, validador_hash, ahora, borrador[1],
                             doc_hash, senal, proporcion, ajustes,
                             rol, origen_identidad, version_agente,
+                            head_revision_id,
                         ),
                     )
                     conn.execute(

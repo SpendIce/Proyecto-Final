@@ -199,20 +199,28 @@ def main(
         # que el worker con `--destino-docs`: nunca cae en silencio a un
         # canal sin Doc.
         try:
+            from agente1.workspace_auth import construir_token_provider
             from agente1.workspace_config import (
-                TokenEntornoProvider,
+                ConfiguracionWorkspaceError,
                 cargar_configuracion_workspace,
             )
 
             config_ws = cargar_configuracion_workspace(entorno)
-        except Exception:
+            token_provider = construir_token_provider(
+                entorno,
+                timeout_s=config_ws.timeout_s,
+                directorio_auditoria=Path(
+                    entorno.get("AGENTE1_ESTADO") or "."
+                ),
+            )
+        except ConfiguracionWorkspaceError:
             return _invalida("web_workspace_config_invalid")
         from agente1.google_workspace import GoogleDocsDestinoPorMarca
 
         exportador = GoogleDocsDestinoPorMarca(
             plantilla_id=config_ws.template_id,
             carpeta_id=config_ws.folder_id,
-            token_provider=TokenEntornoProvider(),
+            token_provider=token_provider,
             timeout_s=config_ws.timeout_s,
         )
     try:
@@ -228,8 +236,8 @@ def main(
             ),
             exportador=exportador,
         )
-    except ConfiguracionInvalida:
-        return _invalida("web_config_insegura")
+    except ConfiguracionInvalida as error:
+        return _invalida(error.code)
     if args.una_ruta:
         print('{"status": "OK"}')
         return 0

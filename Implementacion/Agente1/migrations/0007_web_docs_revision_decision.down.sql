@@ -1,11 +1,13 @@
 -- Revierte 0007: el esquema vuelve al estado de 0006.
 --
--- Si ya hay revisiones importadas (prosa `importado` o borradores sin
--- ejecución) o decisiones web registradas, los `ADD CONSTRAINT` y el
--- `SET NOT NULL` abortan la transacción en voz alta: el `down` nunca
--- reclasifica ni pierde una revisión o una decisión en silencio. El
--- retiro de la funcionalidad define qué se hace con esas filas antes de
--- revertir.
+-- El `down` aborta si hay revisiones importadas (prosa `importado` o
+-- borradores con `id_ejecucion NULL`): el `SET NOT NULL` y el `UNIQUE`
+-- que se recrean no las pueden representar. Las decisiones web, en
+-- cambio, **sí se pierden**: se borran `rol`, `origen_identidad` y
+-- `version_agente` sin chequear filas. Por eso el retiro de la
+-- funcionalidad exige restaurar el respaldo previo (o exportar esas
+-- columnas) antes de correr este `down`; el test lo clasifica como
+-- `pierde_datos`.
 BEGIN;
 
 ALTER TABLE validaciones

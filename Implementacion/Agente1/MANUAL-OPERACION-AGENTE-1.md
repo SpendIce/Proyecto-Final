@@ -611,7 +611,7 @@ Variables que lo controlan (env file del stack, nunca en el repo):
 |---|---|
 | `AGENTE1_WORKER_DESTINO` | `fake` (default) usa el destino en memoria; `docs` pasa el worker a `--destino-docs` sobre Drive real con la config `AGENTE1_WORKSPACE_*` del env file. Cualquier otro valor produce un flag que argparse rechaza al arrancar; sin flag o con ambos el worker cierra con `worker_destino_no_declarado`. |
 | `AGENTE1_WEB_DOCS` | `si` hace que `servidor_web` construya el exportador de Docs real y habilite los botones; sin él los POST responden `exportador_ausente`. Con `si` y config Workspace inválida el arranque cierra con `web_workspace_config_invalid`. |
-| `AGENTE1_WEB_DOCS_COMPARTIR` | `si` da permiso `writer` al correo de quien pidió (resuelto contra `AGENTE1_PADRON_ROLES_CSV`, sin `sendNotificationEmail`) al crear el Doc; el evento `doc_compartido` audita el hash del correo. Sin la variable el Doc queda sólo en la carpeta del agente. |
+| `AGENTE1_WEB_DOCS_COMPARTIR` | `si` da permiso `writer` al correo de quien pidió (resuelto contra `AGENTE1_PADRON_ROLES_CSV`, sin `sendNotificationEmail`) al generar el Doc, lo cree o lo reutilice; el evento `doc_compartido` audita el hash del correo. Si el permiso falla, el Doc existe y la solicitud queda `LISTA`; el evento `permiso_no_otorgado` guarda el hash del intento. Sin la variable el Doc queda sólo en la carpeta del agente. |
 
 | Código | Significado | Qué hacer |
 |---|---|---|
@@ -619,6 +619,7 @@ Variables que lo controlan (env file del stack, nunca en el repo):
 | `web_google_client_id_ausente` / `web_dominio_ausente` | Modo real sin client ID o sin dominio. | Pedir la credencial a DSI (#62) o declarar el dominio. |
 | `web_demo_hasta_invalid` | `AGENTE1_WEB_DEMO_HASTA` no es `AAAA-MM-DD`. | Corregir la fecha declarada. |
 | `web_config_insegura` | La combinación declarada viola una salvaguarda del modo (real, prueba o demo). | Revisar la tabla de arriba y los modos activos a la vez. |
+| `web_version_agente_ausente` | El arranque no pudo leer la versión de `pyproject.toml`; la decisión no se registra sin proveniencia. | Reponer `pyproject.toml` en la raíz del Agente 1 o cortar una versión con el manifest completo. |
 | `web_padron_invalid` / `web_fuente_invalid` | Padrón o tabla ilegibles. | Revisar `AGENTE1_PADRON_ROLES_CSV` y `AGENTE1_TABLA`. |
 | `web_workspace_config_invalid` | `AGENTE1_WEB_DOCS=si` pero la config `AGENTE1_WORKSPACE_*` falta o es inválida. | Completar el env file o apagar `AGENTE1_WEB_DOCS`. |
 | `worker_destino_no_declarado` | El worker arrancó sin `--destino-fake` ni `--destino-docs`, o con ambos. | Declarar `AGENTE1_WORKER_DESTINO=fake` o `docs` en el stack. |
