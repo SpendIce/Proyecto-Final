@@ -19,19 +19,24 @@ produce para un formulario de correo verificado y una sola pregunta abierta:
 ``Marca temporal | Dirección de correo electrónico | <pedido>``
 
 Desde #122 la forma la declara un contrato versionado
-(`contracts/canal_form_respuestas_v{1,2,3}.json`): la v1 es la de siempre
-y sigue siendo el default; la v2 suma la primera pregunta de **tipo de
-gacetilla** (lista cerrada tomada del contrato de tipos), la **actividad
-condicional** —sólo los tipos que la llevan; el ítem «No es una actividad /
-no figura» no registra nada— y el **área emisora** por un padrón cerrado
-(`contracts/areas_emisoras_v2.json`, la v1 queda para trazabilidad), porque
-de ese padrón sale la firma del área que imprime la pieza. La v3 (#154)
-suma la **firma de área** como opción separada del área —«qué área emite»
-y «si la pieza lleva firma de área» son dos decisiones del pedido— y los
-**públicos destinatarios** por catálogo cerrado
-(`contracts/publicos_destinatarios_v1.json`): grupos de correo de
-Workspace, elección múltiple, que sólo deciden a quién se envía la pieza y
-nunca entran a un prompt ni cambian el texto. Una fila estructurada que no
+(`contracts/canal_form_respuestas_v{1,2,3,4}.json`): la v1 es la de
+siempre y sigue siendo el default; la v2 suma la primera pregunta de
+**tipo de gacetilla** (lista cerrada tomada del contrato de tipos), la
+**actividad condicional** —sólo los tipos que la llevan; el ítem «No es
+una actividad / no figura» no registra nada— y el **área emisora** por un
+padrón cerrado (`contracts/areas_emisoras_v2.json`, la v1 queda para
+trazabilidad), porque de ese padrón sale la firma del área que imprime la
+pieza. La v3 (#154) suma la **firma de área** como opción separada del
+área —«qué área emite» y «si la pieza lleva firma de área» son dos
+decisiones del pedido— y los públicos destinatarios; la v4 mantiene las
+mismas columnas y apunta la pregunta de públicos al catálogo
+`publicos_destinatarios_v2` (los 18 grupos del listado, no sólo el
+confirmado por la SEU). Los **públicos destinatarios** salen del catálogo
+cerrado
+(`contracts/publicos_destinatarios_v2.json`, la v1 queda para
+trazabilidad): grupos de correo de Workspace, elección múltiple, que
+sólo deciden a quién se envía la pieza y nunca entran a un prompt ni
+cambian el texto. Una fila estructurada que no
 cumple las listas cerradas no va al núcleo —nada puede rechazarla por
 dónde y «la clase más parecida» está prohibida—: el chequeo es del canal,
 no contiene prosa libre, y su desenlace es acotado
@@ -206,7 +211,13 @@ COL_TEXTO = 2
 CONTRATO_HOJA_V1 = "canal_form_respuestas_v1"
 CONTRATO_HOJA_V2 = "canal_form_respuestas_v2"
 CONTRATO_HOJA_V3 = "canal_form_respuestas_v3"
-CONTRATOS_HOJA = (CONTRATO_HOJA_V1, CONTRATO_HOJA_V2, CONTRATO_HOJA_V3)
+CONTRATO_HOJA_V4 = "canal_form_respuestas_v4"
+CONTRATOS_HOJA = (
+    CONTRATO_HOJA_V1,
+    CONTRATO_HOJA_V2,
+    CONTRATO_HOJA_V3,
+    CONTRATO_HOJA_V4,
+)
 
 # Último ítem de la lista condicional de actividades (contrato v2): no da
 # de alta ninguna actividad. Elegida con un tipo que la necesita, el
@@ -425,7 +436,7 @@ def _padron_publicos() -> dict[str, dict[str, str]]:
     try:
         texto = (
             files("agente1")
-            .joinpath("contracts", "publicos_destinatarios_v1.json")
+            .joinpath("contracts", "publicos_destinatarios_v2.json")
             .read_text(encoding="utf-8")
         )
         contrato = json.loads(texto)
@@ -497,7 +508,7 @@ def _publicos_desde_celda(valor: str) -> tuple[list[str], str | None]:
     Devuelve `(ids, None)` con la celda válida o `([], codigo)` con el
     desenlace acotado: sin público elegido, un id fuera del catálogo o un
     id repetido. Los ids son vocabulario cerrado del catálogo versionado
-    (`publicos_destinatarios_v1`), nunca texto libre.
+    (`publicos_destinatarios_v2`), nunca texto libre.
     """
 
     ids = [parte.strip() for parte in valor.split(",") if parte.strip()]

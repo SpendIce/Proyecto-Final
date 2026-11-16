@@ -28,6 +28,7 @@ from agente1.canal_form import (
     CONTRATO_HOJA_V1,
     CONTRATO_HOJA_V2,
     CONTRATO_HOJA_V3,
+    CONTRATO_HOJA_V4,
     CanalFormPedidos,
     PadronRoles,
     cargar_configuracion_canal_form,
@@ -54,7 +55,7 @@ CATALOGO_PUBLICOS = (
     / "src"
     / "agente1"
     / "contracts"
-    / "publicos_destinatarios_v1.json"
+    / "publicos_destinatarios_v2.json"
 )
 
 CORREO_SOLICITANTE = "solicitante@example.invalid"
@@ -63,7 +64,7 @@ ROL_HABILITADO = "coordinador_seu"
 ID_ACTIVIDAD = "SYN-001"
 AREA_VALIDA = "secretaria_academica"
 PUBLICO_VALIDO = "alumnos_ingenieria"
-NOMBRE_PUBLICO = "Alumnos de ingeniería"
+NOMBRE_PUBLICO = "Alumnos Ingeniería"
 
 MARCA = "2026-11-11 09:30:00"
 FORM_ID = "FORM_ID_RESPUESTAS-10"
@@ -323,7 +324,10 @@ def test_el_contrato_v3_declara_las_columnas_nuevas() -> None:
 def test_el_catalogo_de_publicos_lleva_solo_id_y_nombre() -> None:
     catalogo = json.loads(CATALOGO_PUBLICOS.read_text(encoding="utf-8"))
     publicos = catalogo["publicos"]
-    assert [publico["id"] for publico in publicos] == [PUBLICO_VALIDO]
+    ids = [publico["id"] for publico in publicos]
+    # La v2 trae los 18 grupos del listado; el confirmado por la SEU sigue.
+    assert len(ids) == 18
+    assert PUBLICO_VALIDO in ids
     for publico in publicos:
         # El repo es público: las direcciones de los grupos de Workspace no
         # se versionan; el catálogo lleva sólo id y nombre.
@@ -337,7 +341,7 @@ def test_el_nombre_del_publico_sale_del_catalogo_cerrado() -> None:
     assert nombre_de_publico("") is None
 
 
-def test_config_acepta_las_tres_versiones_de_hoja() -> None:
+def test_config_acepta_las_cuatro_versiones_de_hoja() -> None:
     env_base = {
         "AGENTE1_FORM_PEDIDOS_SHEET_ID": "sheet_respuestas-1",
         "AGENTE1_FORM_PEDIDOS_RANGO_A1": "'Form Responses 1'!A1:H200",
@@ -346,7 +350,12 @@ def test_config_acepta_las_tres_versiones_de_hoja() -> None:
         "AGENTE1_FORM_PEDIDOS_TIMEOUT_S": "5",
         "AGENTE1_PADRON_ROLES_PATH": "/tmp/padron-roles.csv",
     }
-    for version in (CONTRATO_HOJA_V1, CONTRATO_HOJA_V2, CONTRATO_HOJA_V3):
+    for version in (
+        CONTRATO_HOJA_V1,
+        CONTRATO_HOJA_V2,
+        CONTRATO_HOJA_V3,
+        CONTRATO_HOJA_V4,
+    ):
         config = cargar_configuracion_canal_form(
             dict(env_base, AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO=version)
         )
