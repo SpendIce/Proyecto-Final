@@ -26,6 +26,17 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+Sin cambios todavía.
+
+## [0.6.0] - 2026-11-16
+
+Canal web del Agente 1 para la presentación de cursada (#149, #151, #153,
+#154): ingreso en modo demostración mientras DSI no entrega el client ID
+(ADR 0019), Doc por pedido, revisiones, aprobación atada al hash y correo
+prellenado en Gmail sin envío (ADR 0021); aprobación única (#125), plantilla
+SEU del certificado (#126) y producción sin marcas podadas (#142). Clase más
+alta: Mayor; en `0.x` sube `Y`.
+
 - **Menor — Aprobar ofrece el correo prellenado en Gmail, sin enviar
   (#153, ADR 0021).** Los públicos del pedido pasan al catálogo
   `publicos_destinatarios_v2` con los 18 grupos del listado (la v1
@@ -69,6 +80,36 @@ Dirección. Detalle en el procedimiento.
   `AGENTE1_WEB_DOCS_COMPARTIR=si` da `writer` al correo del solicitante
   al crear el Doc. Aprobar cierra el recorrido — no publica ni envía
   correos.
+
+- **Menor — renderers en modo producción sin marcas de borrador (#142).**
+  Capacidad nueva: los renderers componen el cuerpo desde la plantilla
+  aprobada por tipo en modo `produccion` y conservan las marcas en `prueba`
+  (default intacto). `plantillas_aprobadas.py` nuevo: carga el JSON de
+  plantillas que declara `AGENTE1_PLANTILLAS_APROBADAS_PATH` (fuera del
+  repo, como la lista aprobada), id de versión atado al hash del texto,
+  validación de forma compartida y sustitución `{{variable}}` sin llaves
+  sueltas. La aprobación no se infiere del archivo: por la definición del
+  11/11 (#125, ADR 0020) cada versión exige una `apruebo_contenido`
+  `registrada` de `APROBADOR_CONTENIDO` en el registro de decisiones sobre
+  `tpl-<tipo>-<hash>` — sin ella es `template_version_unapproved`; fallas
+  de carga `approved_templates_file_*`, de tipo `approved_template_*`.
+  El modo tiene una sola fuente (`destino.modo` en el Protocol): un
+  parámetro que no coincide es `send_mode_mismatch`. Los tipos `por_envio`
+  de HU-012, `recordatorio_pago` y `correo_actividad` exigen su plantilla
+  registrada — el texto provisional nunca viaja podado —; en HU-014 el
+  certificado de `aprobacion` sale del diseño SEU (#126) con
+  `marcar_prueba` apagado, `asistencia` exige `certificado_asistencia`,
+  el correo `correo_certificado`, y los recursos de firma completos
+  (`signature_resources_missing` si falta alguno antes de entregar). En
+  producción no se envía el aviso de estado del canal ni el correo al
+  aprobador del lote de certificados: los reemplaza el canal web (la
+  evaluación del lote en la web queda pendiente, fuera de este PR) y la
+  auditoría asienta `aviso_reemplazado_por_canal_web`; producción nunca
+  quita la marca de borrador. El aviso de respaldo quedó fuera de alcance.
+  Un borrador compuesto en prueba no sirve para una
+  entrega de producción (`template_body_mismatch`). Las redacciones
+  institucionales siguen pendientes de la SEU; las de los tests son
+  sintéticas declaradas.
 
 - **Mayor — aprobación única de contenido y lotes (#125).** La designación
   del 11/11/2026 reemplaza el par semántica + utilitaria: una sola persona

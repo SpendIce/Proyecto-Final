@@ -559,6 +559,36 @@ def decisiones_heredadas_del_objeto(
     )
 
 
+def decision_registrada(
+    registro: RegistroDecisiones,
+    *,
+    tipo: str,
+    objeto_id: str,
+    decision: str,
+    rol: str,
+) -> bool:
+    """¿El registro tiene esa decisión `registrada` sobre ese objeto?
+
+    Consulta compartida de los circuitos que habilitan una pieza: una
+    aprobación sólo existe si quedó como línea `registrada` del tipo,
+    el objeto, la decisión y el rol exactos en
+    `decisiones-procesadas.jsonl`. Sin registro, o con una decisión
+    sobre otro objeto — una versión de texto anterior, por ejemplo —,
+    devuelve `False` y el llamador falla cerrado (#142).
+    """
+
+    if not isinstance(registro, RegistroDecisiones):
+        return False
+    return any(
+        linea.get("tipo") == tipo
+        and linea.get("objeto_id") == objeto_id
+        and linea.get("decision") == decision
+        and linea.get("resultado") == RESULTADO_REGISTRADA
+        and linea.get("rol") == rol
+        for linea in registro.procesadas()
+    )
+
+
 def _leer_jsonl(path: Path) -> tuple[dict[str, object], ...]:
     if not path.exists():
         return ()
@@ -934,5 +964,6 @@ __all__ = [
     "cargar_configuracion_form_decisiones",
     "cargar_padron_roles_csv",
     "crear_lector_decisiones",
+    "decision_registrada",
     "decisiones_heredadas_del_objeto",
 ]

@@ -146,6 +146,7 @@ restringidos (`chmod 600`), y se inyecta por variables de entorno.
 | Env de Workspace | `~/.config/agente1/workspace-d2.env` | `AGENTE1_WORKSPACE_*` (ambiente, IDs de planilla/carpeta/plantilla, rango, timeout, cuenta por la que se hace pasar). |
 | Env del scheduler | `~/.config/agente1/scheduler.env` | `AGENTE1_SCHEDULER_*`, `AGENTE1_INSUMOS_RANGO_A1`, `AGENTE1_RESPALDO_*` y las `AGENTE1_WORKSPACE_*`. |
 | Padrón de roles | Fuera del repo, ruta en `AGENTE1_PADRON_ROLES_PATH` | Identidad y rol por persona, mantenido por la SEU (ADR 0005). |
+| Plantillas aprobadas por tipo | Fuera del repo, ruta en `AGENTE1_PLANTILLAS_APROBADAS_PATH` | JSON `{"<tipo>": {"asunto": "...", "cuerpo": "..."}}` con las redacciones que aprueba la SEU para el modo producción (#142). El texto no va al repo; la aprobación de cada versión queda en el registro de decisiones (ADR 0020). |
 | Datos operativos | Planillas de Google del ambiente | Planilla de actividades, respuestas de Forms, novedades de pago. Los mantiene su dueño; no son configuración del agente. |
 
 La lista completa de variables por subsistema está en los runbooks de
@@ -475,6 +476,42 @@ conforme. La tasa de conformidad, en cambio, es una medida de calidad (§7).
 | `lista_cierre_vacia` / `lista_cierre_duplicada` / `lista_cierre_fila_invalida` / `lista_cierre_condicion_vacia` | La lista de cierre no cumple el contrato. | Corregir la lista en la fuente; la cierra quien gestiona el curso. |
 | `padron_roles_missing` / `padron_roles_invalid` / `padron_fila_invalid` / `padron_id_duplicado` / `padron_actividad_distinta` | El padrón de roles no cumple el contrato. | Corregir el padrón (lo mantiene la SEU). |
 | `plan_*` (p. ej. `plan_cuotas_inconsistentes`, `plan_procedencia_invalid`, `plan_dato_obligatorio_ausente`, `plan_campo_desconocido`) | El plan de pago no cumple el contrato. | Corregir el plan de pago en la fuente. |
+| `approved_templates_file_missing` / `approved_templates_file_invalid` | Falta el archivo de plantillas aprobadas o su JSON no tiene la forma esperada (incluye una llave suelta o un placeholder mal formado). | Declarar `AGENTE1_PLANTILLAS_APROBADAS_PATH` y corregir el archivo fuera del repo; el agente no inventa redacciones. |
+| `approved_template_missing` / `approved_template_invalid` | El tipo pedido no está en el archivo, o su forma no cierra (asunto requerido vacío, variable desconocida o sin dato, falta `{{bloque_firmas}}` en el certificado de asistencia). | Agregar el tipo y corregir la redacción; revisar las variables que la corrida puede completar. |
+| `template_version_unapproved` | La versión exacta del texto no tiene la `apruebo_contenido` registrada de `APROBADOR_CONTENIDO` (ADR 0020). | Declarar el pendiente y registrar la decisión por el Form de decisiones (§5.9); editar el texto exige una aprobación nueva. |
+| `template_variable_without_value` | El render encontró una variable sin valor. | Corregir la plantilla o el dato de la corrida; nunca se entrega una llave suelta. |
+| `send_mode_invalid` / `send_mode_mismatch` | El destino no declara un modo de envío válido, o el `modo_envio` de la corrida contradice al del destino. | Revisar `AGENTE1_GMAIL_MODO` y no pasar un modo distinto al del destino. |
+| `aviso_reemplazado_por_canal_web` | En producción el aviso operativo no se envía: el estado del pedido se ve en el canal web y el correo al aprobador del lote queda pendiente de la evaluación web. El pedido/lote sigue su curso. | Ninguna: es el comportamiento esperado. Producción nunca quita la marca de borrador; en prueba el aviso se envía marcado. |
+| `signature_resources_missing` | Faltan el símbolo o las firmas del certificado de aprobación, o los firmantes del certificado de asistencia. | Cargar la custodia de recursos (`AGENTE1_CERTIFICADOS_RECURSOS_DIR`) y revisar la lista de firmantes. |
+
+**Plantillas aprobadas por tipo (#142).** En producción el agente no poda un
+borrador: compone cada correo o certificado desde la plantilla del tipo. El
+texto vive en el archivo de `AGENTE1_PLANTILLAS_APROBADAS_PATH` y la versión
+exacta se identifica como `tpl-<tipo>-<hash>` (`id_version_plantilla`). Que el
+tipo esté en el archivo no autoriza: hace falta la `apruebo_contenido`
+`registrada` de `APROBADOR_CONTENIDO` sobre ese id. Para habilitar una
+redacción:
+
+1. Escribir el tipo en el archivo externo y calcular su id de versión
+   (`id_version_plantilla`; el valor sale también del error
+   `template_version_unapproved` de la corrida).
+2. Declarar el objeto pendiente:
+   `uv run python scripts/registrar_form_decisiones.py --declarar
+   plantilla:tpl-<tipo>-<hash>`.
+3. La persona con rol `APROBADOR_CONTENIDO` responde `apruebo_contenido` por
+   el Form de decisiones (§5.9). Después de la decisión, la corrida de
+   producción compone desde esa versión.
+
+El certificado de `asistencia` exige `{{bloque_firmas}}` en la plantilla y una
+lista de firmantes no vacía. Si el texto cambia, el hash cambia y hay que
+registrar una aprobación nueva: la anterior queda atada a la versión vieja.
+
+En producción, si el lote de certificados todavía no está aprobado, el lote
+queda `PENDIENTE_APROBACION` y el PDF de muestra se genera marcado, pero el
+correo al aprobador con el enlace al Form **no se envía**: la evaluación del
+lote va a pasar a la web (pendiente, fuera de este PR). La auditoría asienta
+`aviso_aprobacion` con `resultado: reemplazado` y el código
+`aviso_reemplazado_por_canal_web`.
 
 Los códigos `runner_*` (por ejemplo `runner_live_not_enabled`,
 `runner_live_write_not_confirmed`, `runner_live_config_invalid`,
@@ -536,6 +573,13 @@ manda. Una difusión con identificador bien formado de una actividad no
 cargada entra al núcleo igual que por prosa y vuelve `INVALIDA` sin
 generación.
 
+En modo producción el canal no manda el aviso de registro o estado del
+pedido: con el canal web, el estado se ve ahí. El pedido se atiende igual y
+el registro asienta `aviso: reemplazada` con el código
+`aviso_reemplazado_por_canal_web`, sin fallar la atención. En modo prueba el
+aviso se envía y conserva `BORRADOR — NO ENVIAR`; producción tampoco poda
+esa marca: la sacan las personas antes de enviar.
+
 | Código | Significado | Qué hacer |
 |---|---|---|
 | `canal_form_config_incomplete` / `canal_form_config_invalid` / `canal_form_config_unknown_key` | Configuración del canal de pedidos por Form, incluida la versión de contrato de hoja (`AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO`). | Revisar el env file. |
@@ -543,6 +587,7 @@ generación.
 | `canal_form_areas_padron_invalido` | El padrón cerrado de áreas emisoras no se puede leer o está mal armado. | Revisar `contracts/areas_emisoras_v2.json`; el arranque sin padrón de áreas no habilita a medias. |
 | `canal_form_publicos_padron_invalido` | El catálogo cerrado de públicos destinatarios no se puede leer o está mal armado. | Revisar `contracts/publicos_destinatarios_v1.json`. |
 | `canal_form_registry_invalid` / `canal_form_registry_unavailable` | El registro de atendidos está dañado o no está. | Revisar `atendidos-canal-form.jsonl`. |
+| `aviso_reemplazado_por_canal_web` | En producción el aviso de estado no se envía: lo reemplaza el canal web. El registro queda `aviso: reemplazada`. | Ninguna: el pedido se atendió y el estado se consulta en la web. En prueba el aviso sigue marcado y se envía. |
 | `canal_form_decisiones_config_incomplete` / `canal_form_decisiones_config_invalid` / `canal_form_decisiones_config_unknown_key` | Configuración del Form de decisiones. | Revisar el env file. |
 | `decisiones_registry_invalid` | El registro de decisiones está dañado. | Revisar `decisiones-procesadas.jsonl`. |
 | `decision_objeto_invalid` / `decision_tipo_invalid` / `decision_link_invalid` / `decision_detalle_invalid` | La decisión no corresponde a un objeto, tipo, enlace o detalle válidos. | Registrar la decisión con el objeto y el rol correctos. |

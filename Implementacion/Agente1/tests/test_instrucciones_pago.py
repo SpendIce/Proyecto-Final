@@ -43,6 +43,14 @@ from agente1.confirmaciones import (
     drenar_envios,
     procesar_confirmacion,
 )
+from agente1.decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
+    RESULTADO_REGISTRADA,
+    TIPO_PLANTILLA,
+    RegistroDecisiones,
+    ResultadoDecision,
+)
+from agente1.gmail_envio import MODO_ENVIO_PRODUCCION
 from agente1.instrucciones_pago import (
     solicitud_confirmacion_inscripcion,
     solicitud_instrucciones_pago,
@@ -60,6 +68,10 @@ from agente1.pagos import (
     cargar_padron_csv,
     cargar_plan_pagos_csv,
     correr_control_pagos,
+)
+from agente1.plantillas_aprobadas import (
+    PlantillaCorreo,
+    id_version_plantilla,
 )
 
 CONTACTO = "extension@example.test"
@@ -186,6 +198,86 @@ def test_el_cuerpo_es_determinista_entre_procesos(tmp_path):
 
     assert (primera.asunto, primera.cuerpo) == (segunda.asunto, segunda.cuerpo)
     assert primera.idempotency_key == segunda.idempotency_key
+
+
+# --- Modo producción (#142) -----------------------------------------------------
+
+
+# Plantilla sintética declarada para probar el modo producción: no es una
+# redacción institucional — la de la SEU sigue pendiente y llega por
+# `AGENTE1_PLANTILLAS_APROBADAS_PATH` —.
+PLANTILLA_PAGO_SINTETICA = {
+    "instrucciones_pago": PlantillaCorreo(
+        asunto=None,
+        cuerpo=(
+            "Hola {{nombre_destinatario}},\n\n"
+            "Preinscripción a {{actividad}}.\n"
+            "{{linea_fecha_limite}}"
+            "Inicio: {{fecha_inicio}}.\n\n"
+            "{{detalle_cuotas}}\n\n"
+            "Medios de pago: {{medios_pago}}.\n"
+            "{{linea_bonificaciones}}\n"
+            "Contacto: {{contacto}}\n"
+        ),
+    )
+}
+
+
+def _decisiones_con_pago(tmp_path: Path) -> RegistroDecisiones:
+    """Registro con la `apruebo_contenido` de la plantilla sintética."""
+
+    registro = RegistroDecisiones(tmp_path / "estado-decisiones")
+    registro.registrar(
+        ResultadoDecision(
+            id_respuesta=f"{1:064x}",
+            correo_hash="a" * 64,
+            rol=ROL_APROBADOR_CONTENIDO,
+            rol_origen="padron",
+            tipo=TIPO_PLANTILLA,
+            objeto_id=id_version_plantilla(
+                "instrucciones_pago",
+                PLANTILLA_PAGO_SINTETICA["instrucciones_pago"],
+            ),
+            decision=DECISION_APRUEBO_CONTENIDO,
+            resultado=RESULTADO_REGISTRADA,
+            rechazo_codigo=None,
+            marca_temporal_form="2026-10-11 09:00:00",
+            timestamp="2026-10-11T09:00:00+00:00",
+        )
+    )
+    return registro
+
+
+def test_en_produccion_el_cuerpo_sale_de_la_plantilla_aprobada(tmp_path):
+    """El asunto sigue siendo el del plan; el cuerpo, el texto aprobado."""
+
+    resultado = procesar(
+        tmp_path,
+        RegistroConfirmacionesMemoria(),
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=PLANTILLA_PAGO_SINTETICA,
+        decisiones=_decisiones_con_pago(tmp_path),
+    )
+
+    assert resultado.estado == "PENDIENTE_VALIDACION"
+    # La llave de asociación de respuestas no cambia en producción.
+    assert resultado.asunto == ASUNTO
+    assert "BORRADOR" not in resultado.cuerpo
+    assert "plantilla provisional" not in resultado.cuerpo
+    assert "Preinscripción a" in resultado.cuerpo
+    assert "- Cuota 1: $20.000." in resultado.cuerpo
+    assert "{{" not in resultado.cuerpo
+
+
+def test_en_produccion_sin_la_plantilla_del_tipo_es_invalida(tmp_path):
+    resultado = procesar(
+        tmp_path,
+        RegistroConfirmacionesMemoria(),
+        modo_envio=MODO_ENVIO_PRODUCCION,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_missing"
 
 
 def test_respuesta_al_asunto_del_borrador_se_asocia_al_plan(tmp_path):

@@ -54,7 +54,6 @@ from http.client import HTTPException, HTTPSConnection
 from typing import Protocol
 from urllib.parse import quote
 
-from .confirmaciones import email_valido
 from .destinos import (
     ID_SOLICITUD_RE,
     DestinoBorradores,
@@ -642,6 +641,11 @@ class GoogleDocsDestinoPorMarca:
         Idempotente del lado de Drive: si el correo ya tiene el permiso,
         `permissions.create` devuelve el vigente y nada cambia.
         """
+        # Import diferido: `confirmaciones` importa (vía plantillas aprobadas
+        # y la config de Workspace) este módulo; a nivel de módulo el ciclo
+        # no se resuelve.
+        from .confirmaciones import email_valido
+
         if not email_valido(correo):
             raise DestinoBorradoresError("destination_contract_invalid")
         headers = self._headers()

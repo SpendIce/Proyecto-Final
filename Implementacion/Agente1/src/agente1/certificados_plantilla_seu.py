@@ -503,6 +503,7 @@ def generar_pdf_certificado_seu(
     recursos: RecursosFirma | None = None,
     firmantes: tuple[FirmanteSeu, ...] = FIRMANTES_SEU,
     borrador: bool = False,
+    marcar_prueba: bool = True,
 ) -> bytes:
     """Compone el certificado de aprobación con el diseño SEU recibido.
 
@@ -512,6 +513,10 @@ def generar_pdf_certificado_seu(
     `recursos` resuelve el símbolo y las firmas desde la custodia; cada
     recurso ausente deja su espacio reservado declarado. Determinista:
     mismo `datos`, mismos recursos, mismos bytes.
+
+    `marcar_prueba` (default `True`) deja la línea «DOCUMENTO DE PRUEBA —
+    SIN VALIDEZ»: sólo se apaga cuando el circuito corre en modo
+    producción (#142), donde el diseño aprobado es la pieza real.
     """
 
     imagenes: dict[str, _Imagen] = {}
@@ -545,7 +550,8 @@ def generar_pdf_certificado_seu(
     if borrador:
         partes.append(_linea_centrada(MARCADOR_BORRADOR, 12, y, "F2"))
         y -= 15
-    partes.append(_linea_centrada(MARCA_PRUEBA, 11, y, "F2"))
+    if marcar_prueba:
+        partes.append(_linea_centrada(MARCA_PRUEBA, 11, y, "F2"))
 
     # Símbolo FIE: centrado en lo alto, como en el original.
     simbolo = imagenes.get(RECURSO_SIMBOLO_FIE)

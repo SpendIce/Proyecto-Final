@@ -91,7 +91,9 @@ El correo de aviso (D12 de #38): todo cuerpo empieza con
 destinatario es el correo verificado del pedido —que en D2 tiene que estar
 además en la lista de direcciones permitidas; si no está, la entrega se
 rechaza antes de la red y queda `aviso: rechazada` en el registro, sin
-reintento ni re-despacho del pedido.
+reintento ni re-despacho del pedido. En modo producción el aviso no se
+envía: el estado del pedido se ve en el canal web y el registro asienta
+`aviso: reemplazada` con `aviso_reemplazado_por_canal_web`.
 
 Repregunta sin prosa: cuando el núcleo devuelve `PENDIENTE_DESAMBIGUACION`,
 el aviso trae **un link prellenado por candidata** —`viewform?usp=pp_url&
@@ -147,6 +149,7 @@ from urllib.parse import quote
 
 from .canal import PedidoCanal
 from .confirmaciones import (
+    AVISO_REEMPLAZADO_POR_CANAL_WEB,
     MARCADOR_BORRADOR,
     DestinoConfirmaciones,
     EntregaRechazadaError,
@@ -978,10 +981,15 @@ class CanalFormPedidos:
         decisiones: EnlacesDecisiones | None = None,
         contrato_hoja: str = CONTRATO_HOJA_V1,
     ) -> None:
+        # Import perezoso: `gmail_envio` importa `confirmaciones`, que este
+        # módulo ya consume a nivel de módulo.
+        from .gmail_envio import MODOS_ENVIO
+
         if (
             not callable(getattr(lector, "leer_valores", None))
             or not isinstance(padron, PadronRoles)
             or not callable(getattr(avisos, "entregar", None))
+            or getattr(avisos, "modo", None) not in MODOS_ENVIO
             or not isinstance(directorio_estado, Path)
             or not isinstance(form_id, str)
             or ID_RE.fullmatch(form_id) is None
@@ -1487,13 +1495,20 @@ class CanalFormPedidos:
     ) -> tuple[str, str | None]:
         """Un intento de `gmail.send`; el desenlace vuelve para el registro.
 
-        `EntregaRechazadaError` es una prohibición de política —destinatario
-        fuera de la lista de prueba, cuerpo sin marca—: se registra como
-        `rechazada` con su código, sin reintento. Cualquier otra excepción
-        del destino (caída del medio, auth) es `fallida`. Nunca propaga:
-        responder no puede romper el bucle de atención.
+        En producción no hay intento: el aviso operativo lo reemplaza el
+        canal web, así que se devuelve `reemplazada` con su código sin
+        tocar el destino. En prueba, `EntregaRechazadaError` es una
+        prohibición de política —destinatario fuera de la lista de prueba,
+        cuerpo sin marca—: se registra como `rechazada` con su código, sin
+        reintento. Cualquier otra excepción del destino (caída del medio,
+        auth) es `fallida`. Nunca propaga: responder no puede romper el
+        bucle de atención.
         """
 
+        from .gmail_envio import MODO_ENVIO_PRODUCCION
+
+        if self._avisos.modo == MODO_ENVIO_PRODUCCION:
+            return "reemplazada", AVISO_REEMPLAZADO_POR_CANAL_WEB
         try:
             self._avisos.entregar(
                 idempotency_key=_hash(
@@ -1519,13 +1534,16 @@ class CanalFormPedidos:
     ) -> str:
         """Texto del aviso: sólo datos institucionales y links, nunca prosa.
 
-        Todo cuerpo empieza con `MARCADOR_BORRADOR` porque el destino Gmail
-        lo exige mientras rija la lista de prueba (D12). Lo que sigue sale
-        del `ResultadoInterpretacion` —resumen con datos de la fuente, error
-        con mensajes fijos, candidatas del índice—, nunca del texto del
-        pedido ni del cuerpo del borrador. `enlaces_decision` son los links
-        prellenados del Form de decisiones (#72): etiqueta fija más URL, la
-        pieza publicada o descartada la decide una persona, no el agente.
+        Todo cuerpo —también el de producción— empieza con
+        `MARCADOR_BORRADOR`: la marca la sacan las personas antes de
+        enviar, el agente no la poda. En producción el aviso ni siquiera
+        se entrega (lo reemplaza el canal web; ver `_enviar_aviso`). Lo
+        que sigue sale del `ResultadoInterpretacion` —resumen con datos
+        de la fuente, error con mensajes fijos, candidatas del índice—,
+        nunca del texto del pedido ni del cuerpo del borrador.
+        `enlaces_decision` son los links prellenados del Form de
+        decisiones (#72): etiqueta fija más URL, la pieza publicada o
+        descartada la decide una persona, no el agente.
         """
 
         ref = _ref_pedido(pedido.id_pedido)
@@ -1658,7 +1676,8 @@ class CanalFormPedidos:
                 lineas.append(_una_linea(resultado.error))
             if resultado.resumen:
                 lineas.append(_una_linea(resultado.resumen))
-        return f"{MARCADOR_BORRADOR}\n\n" + "\n".join(lineas) + "\n"
+        cuerpo = "\n".join(lineas) + "\n"
+        return f"{MARCADOR_BORRADOR}\n\n" + cuerpo
 
     def _publicos_del_pedido(self, pedido: PedidoCanal) -> str:
         """Nombres de los públicos elegidos, para que la revisión los vea.

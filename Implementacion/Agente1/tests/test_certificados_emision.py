@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pytest
 
+import agente1.certificados_emision as certificados_emision
+from agente1.canal_form import LectorValoresCsv, PadronRoles
 from agente1.certificados_emision import (
     ListaCierreError,
     hash_lista_cierre,
@@ -32,12 +34,19 @@ from agente1.confirmaciones import (
     _hash,
 )
 from agente1.decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
+    RESULTADO_REGISTRADA,
+    TIPO_PLANTILLA,
+    CanalFormDecisiones,
     EnlacesDecisiones,
     RegistroDecisiones,
     ResultadoDecision,
 )
 from agente1.fuentes import CsvFuenteSolicitudes
-from agente1.gmail_envio import GmailDestinoConfirmaciones
+from agente1.gmail_envio import (
+    MODO_ENVIO_PRODUCCION,
+    GmailDestinoConfirmaciones,
+)
 from agente1.google_workspace import (
     GoogleSheetsLectorValores,
     RespuestaHttp,
@@ -47,6 +56,11 @@ from agente1.linea_descriptiva import (
     objeto_id_linea_descriptiva,
 )
 from agente1.manifest_version import identidad_version_agente
+from agente1.plantillas_aprobadas import (
+    PlantillaAprobadaError,
+    PlantillaCorreo,
+    id_version_plantilla,
+)
 
 ROOT = Path(__file__).parents[1]
 
@@ -247,6 +261,7 @@ def _ejecutar(
     lector=None,
     destino=None,
     recursos_firma=None,
+    plantillas_aprobadas=None,
 ):
     """Corre `procesar_emision_certificados` con todo fake e inyectable."""
 
@@ -269,6 +284,7 @@ def _ejecutar(
         solicitante_rol=solicitante_rol,
         directorio_salida=tmp_path / "salida",
         recursos_firma=recursos_firma,
+        plantillas_aprobadas=plantillas_aprobadas,
     )
     return resultado, registro, transporte, tokens
 
@@ -914,3 +930,571 @@ def test_pedir_lote_con_rol_de_contenido_sigue_el_circuito(
         tmp_path, solicitante_rol=ROL_APROBADOR_CONTENIDO
     )
     assert resultado.estado in {"PENDIENTE_APROBACION", "EMITIDA"}
+
+
+# --- Modo producción (#142) ---------------------------------------------------
+
+
+def _destino_produccion(
+    respuestas: list[RespuestaHttp | Exception],
+):
+    transporte = TransporteSecuencia(respuestas)
+    tokens = TokenFijo()
+    destino = GmailDestinoConfirmaciones(
+        destinatarios_permitidos=MAILS_PERMITIDOS,
+        token_provider=tokens,
+        transport=transporte,
+        timeout_s=5,
+        modo=MODO_ENVIO_PRODUCCION,
+    )
+    return destino, transporte, tokens
+
+
+# Plantillas sintéticas declaradas para las pruebas: no son la redacción
+# institucional del certificado — la de `aprobacion` ya llegó como diseño
+# SEU (#126) y la de `asistencia` sigue PENDIENTE_SEU —, sólo ejercitan
+# el mecanismo de producción con texto inventado para el test.
+def _plantillas_sinteticas() -> dict[str, PlantillaCorreo]:
+    cuerpo_cert = (
+        "{{encabezado}}\n\n"
+        "{{organiza}} certifica que {{tratamiento}} {{nombre}} {{apellido}} "
+        "(DNI {{dni}}) {{verbo}} {{titulo}}, {{modalidad}}, "
+        "{{duracion_horas}} horas, {{fechas}}.\n\n"
+        "{{linea_descriptiva}}\n\n"
+        "Referencia: {{referencia}}\n\n"
+        "{{bloque_firmas}}\n"
+    )
+    return {
+        "certificado_asistencia": PlantillaCorreo(
+            asunto=None, cuerpo=cuerpo_cert
+        ),
+        "correo_certificado": PlantillaCorreo(
+            asunto="Certificado — {{titulo}}",
+            cuerpo=(
+                "{{tratamiento}} {{apellido}}:\n\n"
+                "Se adjunta el certificado de {{titulo}} "
+                "({{id_actividad}}).\n"
+            ),
+        ),
+    }
+
+
+def _aprobar_versiones_plantillas(
+    registro: RegistroDecisiones,
+    plantillas: dict[str, PlantillaCorreo],
+) -> None:
+    """La `apruebo_contenido` de cada versión sintética (definición 11/11).
+
+    Sin la decisión registrada sobre el objeto `tpl-<tipo>-<hash>` la
+    plantilla del archivo no autoriza en producción: mismo circuito que
+    las plantillas de actividad.
+    """
+
+    for tipo, plantilla in sorted(plantillas.items()):
+        registro.registrar(
+            _decision(
+                correo=CORREO_APROBADOR,
+                rol=ROL_APROBADOR_CONTENIDO,
+                tipo="plantilla",
+                objeto=id_version_plantilla(tipo, plantilla),
+                decision="apruebo_contenido",
+                marca="2026-10-11 08:30:00",
+            )
+        )
+
+
+def _recursos_firma_sinteticos() -> RecursosFirmaDirectorio:
+    """La custodia con los tres recursos que el diseño SEU exige."""
+
+    return RecursosFirmaDirectorio(
+        Path(__file__).parent / "fixtures" / "recursos-firma"
+    )
+
+
+def test_en_produccion_sin_plantillas_la_corrida_es_invalida(tmp_path: Path):
+    destino, transporte, _ = _destino_produccion(_ok_envio(10))
+
+    resultado, registro, _, _ = _ejecutar(tmp_path, destino=destino)
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_missing"
+    assert transporte.solicitudes == []
+
+
+def test_en_produccion_una_plantilla_incompleta_es_invalida(tmp_path: Path):
+    """El correo del titular exige asunto aprobado en producción."""
+
+    plantillas = _plantillas_sinteticas()
+    plantillas["correo_certificado"] = PlantillaCorreo(
+        asunto=None, cuerpo="Texto."
+    )
+    destino, transporte, _ = _destino_produccion(_ok_envio(10))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        plantillas_aprobadas=plantillas,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_invalid"
+    assert transporte.solicitudes == []
+
+
+def test_en_produccion_la_emision_viaja_sin_marcas(tmp_path: Path):
+    """Certificado y correo desde las plantillas aprobadas, cuerpos limpios."""
+
+    destino, transporte, _ = _destino_produccion(_ok_envio(10))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    objeto_lote = objeto_lote_cierre(
+        ACTIVIDAD_ID, hash_lista_cierre(parsear_lista_cierre(PERSONAS))
+    )
+    _aprobar_lote(registro, objeto_lote=objeto_lote)
+    plantillas = _plantillas_sinteticas()
+    _aprobar_versiones_plantillas(registro, plantillas)
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=plantillas,
+    )
+
+    assert resultado.estado == "EMITIDA"
+    assert len(transporte.solicitudes) == len(PERSONAS)
+    for solicitud_http in transporte.solicitudes:
+        mensaje = _mime_de(solicitud_http)
+        cuerpo_texto = mensaje.get_body(("plain",)).get_content()
+        assert "BORRADOR" not in cuerpo_texto
+        assert "DOCUMENTO DE PRUEBA" not in cuerpo_texto
+        # El PDF adjunto tampoco lleva las marcas del documento de prueba.
+        pdf = _adjunto_pdf_de(mensaje)
+        assert b"BORRADOR" not in pdf
+        assert b"DOCUMENTO DE PRUEBA" not in pdf
+    # La auditoría de cada entrega distingue el destino que la hizo.
+    entregas = [
+        e for e in _leer_log(resultado) if e["evento"] == "entrega"
+    ]
+    assert len(entregas) == len(PERSONAS)
+    assert all(e["delivery_mode"] == "gmail_production" for e in entregas)
+
+
+def test_en_produccion_un_titular_fuera_de_la_lista_falla_sin_reintento(
+    tmp_path: Path,
+):
+    """Cierre #142 + lista aprobada: el titular no aprobado no llega a la red.
+
+    El cuerpo ya salió del renderer de producción, así que el único control
+    que lo frena es la lista del adapter: `recipient_off_approved_list` por
+    ese titular, sin reintento, y el resto del lote sale igual.
+    """
+
+    destino, transporte, _ = _destino_produccion(_ok_envio(3))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    filas = PERSONAS + [
+        ["Eva", "Nadir", "30777888", "eva.nadir@example.test", "Sra.", "aprobacion"]
+    ]
+    hash_lista = hash_lista_cierre(parsear_lista_cierre(filas))
+    _aprobar_lote(
+        registro, objeto_lote=objeto_lote_cierre(ACTIVIDAD_ID, hash_lista)
+    )
+    plantillas = _plantillas_sinteticas()
+    _aprobar_versiones_plantillas(registro, plantillas)
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path,
+        filas=filas,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=plantillas,
+    )
+
+    assert resultado.estado == "EMITIDA_PARCIAL"
+    assert resultado.emitidas == 3
+    assert resultado.entregas_fallidas == 1
+    assert len(transporte.solicitudes) == 3
+    entregas = [
+        e for e in _leer_log(resultado) if e["evento"] == "entrega"
+    ]
+    fallida = [e for e in entregas if e["resultado"] == "fallida"]
+    assert len(fallida) == 1
+    assert fallida[0]["code"] == "recipient_off_approved_list"
+    assert fallida[0]["delivery_mode"] == "gmail_production"
+
+
+def test_en_produccion_sin_aprobacion_de_version_es_invalida(tmp_path: Path):
+    """La plantilla en el archivo sin `apruebo_contenido` no autoriza."""
+
+    destino, transporte, _ = _destino_produccion(_ok_envio(10))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    objeto_lote = objeto_lote_cierre(
+        ACTIVIDAD_ID, hash_lista_cierre(parsear_lista_cierre(PERSONAS))
+    )
+    _aprobar_lote(registro, objeto_lote=objeto_lote)
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=_plantillas_sinteticas(),
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "template_version_unapproved"
+    assert transporte.solicitudes == []
+
+
+def test_en_produccion_sin_recursos_de_firma_es_invalida(tmp_path: Path):
+    """Un PDF sin el símbolo y las firmas no puede salir sin marca (#142)."""
+
+    destino, transporte, _ = _destino_produccion(_ok_envio(10))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    objeto_lote = objeto_lote_cierre(
+        ACTIVIDAD_ID, hash_lista_cierre(parsear_lista_cierre(PERSONAS))
+    )
+    _aprobar_lote(registro, objeto_lote=objeto_lote)
+    plantillas = _plantillas_sinteticas()
+    _aprobar_versiones_plantillas(registro, plantillas)
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        plantillas_aprobadas=plantillas,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "signature_resources_missing"
+    assert transporte.solicitudes == []
+
+
+def test_en_prueba_el_certificado_conserva_sus_marcas(tmp_path: Path):
+    """El default no se movió: la muestra y el aviso siguen marcados."""
+
+    destino, transporte, _ = _destino(_ok_envio(10))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+    )
+
+    assert resultado.estado == "PENDIENTE_APROBACION"
+    assert len(transporte.solicitudes) == 1
+    mensaje = _mime_de(transporte.solicitudes[0])
+    cuerpo_texto = mensaje.get_body(("plain",)).get_content()
+    assert "BORRADOR — NO ENVIAR" in cuerpo_texto
+    pdf = _adjunto_pdf_de(mensaje)
+    assert b"BORRADOR" in pdf
+
+
+def test_en_produccion_asistencia_sin_bloque_de_firmas_es_invalida(
+    tmp_path: Path,
+):
+    """Un certificado de asistencia sin bloque de firmas no es emitible."""
+
+    destino, transporte, _ = _destino_produccion(_ok_envio(10))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    objeto_lote = objeto_lote_cierre(
+        ACTIVIDAD_ID, hash_lista_cierre(parsear_lista_cierre(PERSONAS))
+    )
+    _aprobar_lote(registro, objeto_lote=objeto_lote)
+    plantillas = _plantillas_sinteticas()
+    plantillas["certificado_asistencia"] = PlantillaCorreo(
+        asunto=None,
+        cuerpo=(
+            "{{encabezado}}\n\n"
+            "{{organiza}} certifica que {{nombre}} {{apellido}} "
+            "{{verbo}} {{titulo}}.\n"
+        ),
+    )
+    _aprobar_versiones_plantillas(registro, plantillas)
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=plantillas,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_invalid"
+    assert transporte.solicitudes == []
+
+
+def test_en_produccion_asistencia_con_bloque_lleva_los_firmantes(
+    tmp_path: Path,
+):
+    """El PDF compuesto desde la plantilla aprobada imprime las dos firmas."""
+
+    filas = [PERSONAS[0], PERSONAS[2]]
+    destino, transporte, _ = _destino_produccion(_ok_envio(10))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    _aprobar_lote(
+        registro,
+        objeto_lote=objeto_lote_cierre(
+            ACTIVIDAD_ID, hash_lista_cierre(parsear_lista_cierre(filas))
+        ),
+    )
+    plantillas = _plantillas_sinteticas()
+    _aprobar_versiones_plantillas(registro, plantillas)
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path,
+        filas=filas,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=plantillas,
+    )
+
+    assert resultado.estado == "EMITIDA"
+    assert len(transporte.solicitudes) == 2
+    for solicitud_http in transporte.solicitudes:
+        texto_pdf = _texto_pdf(
+            _adjunto_pdf_de(_mime_de(solicitud_http))
+        )
+        assert b"Moreira" in texto_pdf
+        assert b"Fiorito" in texto_pdf
+
+
+def test_una_falla_de_render_por_titular_no_corta_el_lote(
+    tmp_path: Path, monkeypatch
+):
+    """El render va dentro del try por titular: la falla deja auditoría."""
+
+    destino, transporte, _ = _destino_produccion(_ok_envio(10))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    _aprobar_lote(
+        registro,
+        objeto_lote=objeto_lote_cierre(
+            ACTIVIDAD_ID, hash_lista_cierre(parsear_lista_cierre(PERSONAS))
+        ),
+    )
+    plantillas = _plantillas_sinteticas()
+    _aprobar_versiones_plantillas(registro, plantillas)
+    original = certificados_emision._pdf_para_persona
+
+    def _falla_para_ana(**kwargs):
+        if kwargs["persona"].dni == PERSONAS[0][2]:
+            raise PlantillaAprobadaError("template_variable_without_value")
+        return original(**kwargs)
+
+    monkeypatch.setattr(
+        certificados_emision, "_pdf_para_persona", _falla_para_ana
+    )
+
+    resultado, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=plantillas,
+    )
+
+    assert resultado.estado == "EMITIDA_PARCIAL"
+    assert resultado.emitidas == len(PERSONAS) - 1
+    assert resultado.entregas_fallidas == 1
+    assert len(transporte.solicitudes) == len(PERSONAS) - 1
+    eventos = _leer_log(resultado)
+    fallida = [e for e in eventos if e["evento"] == "entrega" and e["resultado"] == "fallida"]
+    assert len(fallida) == 1
+    assert fallida[0]["code"] == "template_variable_without_value"
+    assert any(e["evento"] == "cierre" for e in eventos)
+
+
+def test_la_version_de_la_plantilla_se_aprueba_por_el_form_de_decisiones(
+    tmp_path: Path,
+):
+    """El alta real del pendiente y la decisión por `CanalFormDecisiones`.
+
+    Antes de la decisión el gate de producción rechaza por versión sin
+    aprobar; un rol equivocado o un objeto que no es el pendiente no
+    habilitan; con la decisión correcta la emisión sale.
+    """
+
+    destino, transporte, _ = _destino_produccion(_ok_envio(10))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    _aprobar_lote(
+        registro,
+        objeto_lote=objeto_lote_cierre(
+            ACTIVIDAD_ID, hash_lista_cierre(parsear_lista_cierre(PERSONAS))
+        ),
+    )
+    plantillas = _plantillas_sinteticas()
+    objetos = {
+        tipo: id_version_plantilla(tipo, plantilla)
+        for tipo, plantilla in plantillas.items()
+    }
+    for objeto in objetos.values():
+        registro.declarar_pendiente(tipo=TIPO_PLANTILLA, objeto_id=objeto)
+
+    antes, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=plantillas,
+    )
+    assert antes.estado == "INVALIDA"
+    assert antes.error == "template_version_unapproved"
+    assert transporte.solicitudes == []
+
+    # Un objeto que no es el pendiente y un correo con otro rol no habilitan.
+    respuestas_malas = tmp_path / "respuestas-malas.csv"
+    respuestas_malas.write_text(
+        "Marca temporal,Correo,Tipo,Objeto,Decisión\n"
+        f"2026-10-11 09:00:00,{CORREO_APROBADOR},{TIPO_PLANTILLA},"
+        f"tpl-correo_certificado-000000000000,{DECISION_APRUEBO_CONTENIDO}\n"
+        f"2026-10-11 09:01:00,{CORREO_OTRO},{TIPO_PLANTILLA},"
+        f"{objetos['certificado_asistencia']},{DECISION_APRUEBO_CONTENIDO}\n",
+        encoding="utf-8",
+    )
+    canal_malo = CanalFormDecisiones(
+        lector=LectorValoresCsv(respuestas_malas),
+        padron=PadronRoles(
+            {
+                CORREO_APROBADOR: ROL_APROBADOR_CONTENIDO,
+                CORREO_OTRO: ROL_APROBADOR_PAGOS,
+            }
+        ),
+        registro=registro,
+    )
+    rechazadas = canal_malo.atender()
+    assert all(
+        r.resultado != RESULTADO_REGISTRADA for r in rechazadas
+    )
+    sigue_sin_aprobar, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=plantillas,
+    )
+    assert sigue_sin_aprobar.error == "template_version_unapproved"
+    assert transporte.solicitudes == []
+
+    # La decisión correcta, declarada y procesada por el mismo canal.
+    respuestas = tmp_path / "respuestas.csv"
+    respuestas.write_text(
+        "Marca temporal,Correo,Tipo,Objeto,Decisión\n"
+        + "".join(
+            f"2026-10-11 09:02:0{i},{CORREO_APROBADOR},{TIPO_PLANTILLA},"
+            f"{objeto},{DECISION_APRUEBO_CONTENIDO}\n"
+            for i, objeto in enumerate(sorted(objetos.values()))
+        ),
+        encoding="utf-8",
+    )
+    canal = CanalFormDecisiones(
+        lector=LectorValoresCsv(respuestas),
+        padron=PadronRoles({CORREO_APROBADOR: ROL_APROBADOR_CONTENIDO}),
+        registro=registro,
+    )
+    assert all(
+        r.resultado == RESULTADO_REGISTRADA for r in canal.atender()
+    )
+
+    despues, _, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=plantillas,
+    )
+    assert despues.estado == "EMITIDA"
+    assert len(transporte.solicitudes) == len(PERSONAS)
+
+
+def test_en_produccion_el_aviso_al_aprobador_no_se_envia(
+    tmp_path: Path, monkeypatch
+):
+    """En producción el lote queda pendiente sin correo al aprobador.
+
+    La evaluación del lote pasa a la web (fuera de este PR): el aviso con
+    enlace al Form no se manda. El PDF de muestra se sigue generando
+    marcado y la auditoría asienta el reemplazo.
+    """
+
+    destino, transporte, _ = _destino_produccion(_ok_envio(2))
+    registro = _registro(tmp_path)
+    _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
+    plantillas = _plantillas_sinteticas()
+    _aprobar_versiones_plantillas(registro, plantillas)
+    original = certificados_emision._pdf_para_persona
+    muestra: dict[str, bytes] = {}
+
+    def _espia(**kwargs):
+        pdf, traza = original(**kwargs)
+        if kwargs["borrador"]:
+            muestra["pdf"] = pdf
+        return pdf, traza
+
+    monkeypatch.setattr(
+        certificados_emision, "_pdf_para_persona", _espia
+    )
+
+    resultado, registro, _, _ = _ejecutar(
+        tmp_path,
+        registro=registro,
+        destino=destino,
+        recursos_firma=_recursos_firma_sinteticos(),
+        plantillas_aprobadas=plantillas,
+    )
+
+    assert resultado.estado == "PENDIENTE_APROBACION"
+    assert resultado.error == "lote_no_aprobado"
+    assert transporte.solicitudes == []
+    # La muestra se generó marcada aunque no se entregue.
+    assert b"BORRADOR" in muestra["pdf"]
+    objeto_lote = objeto_lote_cierre(
+        ACTIVIDAD_ID, hash_lista_cierre(parsear_lista_cierre(PERSONAS))
+    )
+    assert any(
+        p["tipo"] == "lote" and p["objeto_id"] == objeto_lote
+        for p in registro.pendientes()
+    )
+    avisos = [
+        e
+        for e in _leer_log(resultado)
+        if e["evento"] == "aviso_aprobacion"
+    ]
+    assert avisos[-1]["resultado"] == "reemplazado"
+    assert avisos[-1]["code"] == "aviso_reemplazado_por_canal_web"
+
+
+def test_un_destino_sin_modo_no_cae_silenciosamente_en_prueba(
+    tmp_path: Path,
+):
+    """El modo ausente o desconocido es `send_mode_invalid`, no `prueba`."""
+
+    class DestinoSinModo:
+        def __init__(self) -> None:
+            self.entregas: list[dict[str, object]] = []
+
+        def entregar(self, **kwargs) -> None:
+            self.entregas.append(kwargs)
+
+    destino = DestinoSinModo()
+
+    resultado, _, _, _ = _ejecutar(tmp_path, destino=destino)
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "send_mode_invalid"
+    assert destino.entregas == []
