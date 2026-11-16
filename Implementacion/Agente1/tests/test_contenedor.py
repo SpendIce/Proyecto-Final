@@ -221,6 +221,18 @@ def test_el_scheduler_queda_apagado_salvo_perfil(compose: dict) -> None:
     assert compose["services"]["scheduler"]["profiles"] == ["scheduler"]
 
 
+def test_el_modo_demo_se_configura_por_variables_del_stack(compose: dict) -> None:
+    # Las variables del modo demostración llegan vacías por defecto (`:-`,
+    # nunca `:?`): con el perfil apagado el `config` resuelve igual que antes.
+    entorno = compose["services"]["web"]["environment"]
+    for variable in (
+        "AGENTE1_WEB_MODO_DEMO",
+        "AGENTE1_WEB_DEMO_HASTA",
+        "AGENTE1_WEB_DEMO_CORREOS",
+    ):
+        assert entorno[variable] == f"${{{variable}:-}}"
+
+
 def test_el_agente_llega_a_ollama_por_el_relay(compose: dict) -> None:
     for servicio in ("consola", "scheduler"):
         assert compose["services"][servicio]["environment"]["AGENTE1_OLLAMA_UPSTREAM"] == "ollama:11434"
