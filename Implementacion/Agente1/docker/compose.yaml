@@ -255,9 +255,12 @@ services:
       AGENTE1_PADRON_ROLES_CSV: ${AGENTE1_PADRON_ROLES_CSV:-/state/padron_roles.csv}
       AGENTE1_WEB_DOCS_COMPARTIR: ${AGENTE1_WEB_DOCS_COMPARTIR:-}
       HOME: /tmp
+    # `salida`: con `--destino-docs` el worker pide el token y escribe el
+    # Doc en Drive. Ollama sigue sin egreso en la red interna `modelo`.
     networks:
       - canal
       - modelo
+      - salida
     depends_on:
       migrador:
         condition: service_completed_successfully

@@ -340,3 +340,16 @@ def test_el_runtime_lleva_los_datos_que_los_scripts_leen() -> None:
     runtime = DOCKERFILE.read_text(encoding="utf-8").split("AS runtime", 1)[1]
     for directorio in ("src", "scripts", "data", "golden", "migrations", "systemd", "docker"):
         assert f"COPY {directorio} ./{directorio}" in runtime
+
+
+def test_el_worker_sale_a_google_para_escribir_el_doc(compose: dict) -> None:
+    """Con `--destino-docs` el worker pide token y escribe en Drive.
+
+    Sin la red `salida` (las otras dos son internas) el primer pedido real
+    del 16/11 terminó en `workspace_auth_unavailable`. Ollama sigue en la
+    red interna `modelo`, sin egreso.
+    """
+    worker = compose["services"]["worker"]
+    assert set(worker["networks"]) == {"canal", "modelo", "salida"}
+    assert compose["networks"]["canal"]["internal"] is True
+    assert compose["networks"]["modelo"]["internal"] is True
