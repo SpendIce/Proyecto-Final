@@ -74,8 +74,9 @@ Guía rápida de módulos:
 - `plantillas_actividad`      HU-012, plantilla de correo por actividad (#73).
 - `plantillas_aprobadas`      plantillas de correo aprobadas por tipo para el
                               modo producción: archivo declarado por entorno,
-                              sustitución `{{variable}}` y poda de las marcas
-                              de prueba (#142).
+                              sustitución `{{variable}}` sin llaves sueltas y
+                              la validación de forma que los circuitos
+                              comparten (#142).
 """
 
 from .buzon import BuzonPropio, BuzonPropioEml, BuzonPropioMemoria

@@ -1493,7 +1493,10 @@ PLANTILLA_ACTIVIDAD_SINTETICA = {
 
 
 def _aprobar_version_correo_actividad(
-    registro: RegistroDecisiones, *, correlativo: int = 90
+    registro: RegistroDecisiones,
+    *,
+    plantilla: PlantillaCorreo | None = None,
+    correlativo: int = 90,
 ) -> None:
     """La `apruebo_contenido` de la versión sintética del tipo."""
 
@@ -1502,7 +1505,7 @@ def _aprobar_version_correo_actividad(
         tipo=TIPO_PLANTILLA,
         objeto_id=id_version_plantilla(
             "correo_actividad",
-            PLANTILLA_ACTIVIDAD_SINTETICA["correo_actividad"],
+            plantilla or PLANTILLA_ACTIVIDAD_SINTETICA["correo_actividad"],
         ),
         decision=DECISION_APRUEBO_CONTENIDO,
         rol=ROL_CONTENIDO,
@@ -1677,3 +1680,127 @@ def test_en_produccion_sin_la_aprobacion_de_version_es_invalida(
 
     assert resultado.estado == "INVALIDA"
     assert resultado.error == "template_version_unapproved"
+
+
+def test_en_produccion_una_variable_de_fila_sin_dato_invalida_el_lote(
+    tmp_path: Path,
+) -> None:
+    """`{{lugar}}` en la plantilla con una fila sin lugar no se entrega."""
+
+    documento = _documento(tmp_path)
+    decisiones = RegistroDecisiones(tmp_path / "estado-decisiones")
+    _aprobar_circuito(decisiones, documento=documento)
+    plantilla = PlantillaCorreo(
+        asunto="{{actividad}}",
+        cuerpo=(
+            "Hola {{nombre_destinatario}},\n\n"
+            "Te esperamos en {{lugar}}.\n"
+        ),
+    )
+    _aprobar_version_correo_actividad(decisiones, plantilla=plantilla)
+    fila = dict(_fila_syn001())
+    fila.pop("lugar")
+    cola = ColaEnviosMemoria()
+
+    resultado = encolar_lote_actividad(
+        documento=documento,
+        fila=fila,
+        plan=None,
+        destinatarios=_destinatarios(),
+        decisiones=decisiones,
+        registro=RegistroConfirmacionesMemoria(),
+        cola=cola,
+        directorio_salida=tmp_path / "salida",
+        modo_envio="produccion",
+        plantillas_aprobadas={"correo_actividad": plantilla},
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_invalid"
+    assert not cola.pendientes()
+    lineas = [
+        json.loads(linea)
+        for linea in resultado.log_path.read_text(encoding="utf-8").splitlines()
+        if linea.strip()
+    ]
+    assert any(
+        linea["evento"] == "autorizacion_lote"
+        and linea["estado"] == "INVALIDA"
+        for linea in lineas
+    )
+
+
+def test_en_produccion_una_variable_de_plan_sin_plan_invalida_el_lote(
+    tmp_path: Path,
+) -> None:
+    """`{{detalle_cuotas}}` sin plan tampoco tiene dato que completar."""
+
+    documento = _documento(tmp_path)
+    decisiones = RegistroDecisiones(tmp_path / "estado-decisiones")
+    _aprobar_circuito(decisiones, documento=documento)
+    plantilla = PlantillaCorreo(
+        asunto="{{actividad}}",
+        cuerpo=(
+            "Hola {{nombre_destinatario}},\n\n"
+            "Cuotas: {{detalle_cuotas}}\n"
+        ),
+    )
+    _aprobar_version_correo_actividad(decisiones, plantilla=plantilla)
+    cola = ColaEnviosMemoria()
+
+    resultado = encolar_lote_actividad(
+        documento=documento,
+        fila=_fila_syn001(),
+        plan=None,
+        destinatarios=_destinatarios(),
+        decisiones=decisiones,
+        registro=RegistroConfirmacionesMemoria(),
+        cola=cola,
+        directorio_salida=tmp_path / "salida",
+        modo_envio="produccion",
+        plantillas_aprobadas={"correo_actividad": plantilla},
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_invalid"
+    assert not cola.pendientes()
+
+
+def test_en_produccion_el_plan_provee_el_asunto_sin_asunto_aprobado(
+    tmp_path: Path,
+) -> None:
+    """Con plan, el asunto es la llave de asociación: no exige asunto propio."""
+
+    documento = _documento(tmp_path, plan=_plan_syn001())
+    decisiones = RegistroDecisiones(tmp_path / "estado-decisiones")
+    _aprobar_circuito(decisiones, documento=documento)
+    plantilla = PlantillaCorreo(
+        asunto=None,
+        cuerpo="Hola {{nombre_destinatario}}, te esperamos.\n",
+    )
+    _aprobar_version_correo_actividad(decisiones, plantilla=plantilla)
+    registro = RegistroConfirmacionesMemoria()
+
+    resultado = encolar_lote_actividad(
+        documento=documento,
+        fila=_fila_syn001(),
+        plan=_plan_syn001(),
+        destinatarios=_destinatarios(),
+        decisiones=decisiones,
+        registro=registro,
+        cola=ColaEnviosMemoria(),
+        directorio_salida=tmp_path / "salida",
+        modo_envio="produccion",
+        plantillas_aprobadas={"correo_actividad": plantilla},
+    )
+
+    assert resultado.estado == "ENVIO_ENCOLADO"
+    for destinatario in _destinatarios():
+        clave = clave_item_actividad(
+            actividad_id="SYN-001",
+            id_inscripcion=destinatario.id_inscripcion,
+            documento=documento,
+        )
+        assert registro.obtener(clave).asunto == (
+            "Pre-Inscripción Taller Sintético"
+        )

@@ -34,7 +34,7 @@ Dirección. Detalle en el procedimiento.
   repo, como la lista aprobada), id de versión atado al hash del texto,
   validación de forma compartida y sustitución `{{variable}}` sin llaves
   sueltas. La aprobación no se infiere del archivo: por la definición del
-  11/11 (#125, ADR 0019) cada versión exige una `apruebo_contenido`
+  11/11 (#125, ADR 0020) cada versión exige una `apruebo_contenido`
   `registrada` de `APROBADOR_CONTENIDO` en el registro de decisiones sobre
   `tpl-<tipo>-<hash>` — sin ella es `template_version_unapproved`; fallas
   de carga `approved_templates_file_*`, de tipo `approved_template_*`.

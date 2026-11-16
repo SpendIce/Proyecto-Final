@@ -746,6 +746,63 @@ cercado. El procedimiento de habilitación y lo que falta para operar en
 producción están en
 `evidencias/modo-produccion-gmail-2026-10-20.md`.
 
+### Plantillas aprobadas por tipo en modo producción (#142)
+
+En producción los renderers no podan las marcas de un documento provisional:
+cada pieza se compone entera desde una plantilla aprobada por tipo. El texto
+lo redacta la SEU y vive fuera del repo, en el archivo JSON que declara
+`AGENTE1_PLANTILLAS_APROBADAS_PATH`:
+
+```json
+{
+  "correo_actividad": {
+    "asunto": "{{actividad}}",
+    "cuerpo": "Hola {{nombre_destinatario}}, te esperamos el {{fecha_inicio}}.\n\nContacto: {{contacto}}\n"
+  },
+  "certificado_asistencia": {
+    "cuerpo": "{{encabezado}}\n\n...\n\n{{bloque_firmas}}\n"
+  }
+}
+```
+
+- **Tipos.** Los cinco `por_envio` de HU-012 (`inscripcion`, `participacion`,
+  `situacion_pagos`, `aprobacion`, `instrucciones_pago`), `recordatorio_pago`,
+  `correo_actividad`, `certificado_asistencia` y `correo_certificado`.
+  `certificado_aprobacion` no se declara: su diseño SEU es el ADR 0017.
+- **Variables.** `{{variable}}` con nombres del contrato del tipo; una llave
+  suelta o un placeholder mal formado (`{{nombre.apellido}}`,
+  `{{nombre completo}}`) invalida el archivo. Una variable que la corrida no
+  puede completar —`{{lugar}}` en una fila sin lugar, `{{detalle_cuotas}}` sin
+  plan— invalida el lote antes de encolar.
+- **Aprobación atada al texto.** Que la plantilla exista no la vuelve
+  aprobada: la versión exacta —`tpl-<tipo>-<sha256 del asunto y el cuerpo>`,
+  que calcula `id_version_plantilla`— tiene que tener una `apruebo_contenido`
+  `registrada` de `APROBADOR_CONTENIDO` en el registro de decisiones
+  (ADR 0020). Un texto editado cambia el id y no hereda la aprobación.
+- **Alta del pendiente.** El circuito no lo declara solo: antes de la decisión
+  se corre `uv run python scripts/registrar_form_decisiones.py --declarar
+  plantilla:tpl-<tipo>-<hash>`, que imprime los links prellenados; la persona
+  autorizada responde por el Form de decisiones.
+- **Firmas del certificado de asistencia.** La plantilla
+  `certificado_asistencia` tiene que incluir `{{bloque_firmas}}` y el lote
+  tiene que traer firmantes; si falta cualquiera de los dos, el lote es
+  `INVALIDA` antes de emitir.
+- **Códigos.** `approved_templates_file_missing` /
+  `approved_templates_file_invalid` (carga del archivo),
+  `approved_template_missing` (tipo ausente), `approved_template_invalid`
+  (forma), `template_version_unapproved` (versión sin decisión) y
+  `template_variable_without_value` (render). El modo lo declara el destino:
+  ausente o desconocido es `send_mode_invalid`; un `modo_envio` que contradice
+  al destino es `send_mode_mismatch`. `signature_resources_missing` cubre la
+  falta del símbolo o de las firmas, y también la de firmantes del certificado
+  de asistencia.
+
+Las pruebas (`tests/test_plantillas_aprobadas.py`,
+`tests/test_plantillas_actividad.py`,
+`tests/test_recordatorios_pagos.py`, `tests/test_gmail_envio.py` y
+`tests/test_certificados_emision.py`) ejercitan el mecanismo con plantillas
+sintéticas: las redacciones institucionales siguen pendientes de la SEU.
+
 Las APIs primarias (`SolicitudConfirmacion`, `AprobacionHumana`,
 `ResultadoConfirmacion`, `RegistroConfirmacionesMemoria`,
 `RegistroConfirmacionesArchivo`, `reconciliar_envios_reservados`,

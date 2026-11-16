@@ -422,23 +422,6 @@ VARIABLES_CORREO_CERTIFICADO = frozenset(
 )
 
 
-def _modo_envio_destino(destino: object) -> str:
-    """El modo de envío que declara el destino; ausente es `prueba`.
-
-    El destino de archivo y los dobles de test no conocen modos: conservan
-    el comportamiento de siempre, que es el de prueba. `DestinoCorreoArchivo`
-    se declara acá mismo porque vive en este módulo.
-    """
-
-    from .gmail_envio import MODO_ENVIO_PRODUCCION, MODO_ENVIO_PRUEBA
-
-    return (
-        MODO_ENVIO_PRODUCCION
-        if getattr(destino, "modo", None) == MODO_ENVIO_PRODUCCION
-        else MODO_ENVIO_PRUEBA
-    )
-
-
 def _modo_entrega(destino: object) -> str:
     """Identificador del destino que entregó, para la línea de auditoría.
 
@@ -570,20 +553,20 @@ def procesar_emision_certificados(
     de `asistencia` —aún pendiente— exige la plantilla aprobada
     `certificado_asistencia` de `plantillas_aprobadas` y el correo del
     titular sale de `correo_certificado` del mismo archivo, sin la marca
-    de prueba ni la de borrador. La aprueba la SEU, por la definición del
-    11/11: aprueba quien genera la pieza. Sin las plantillas que el lote
-    necesita la corrida es `INVALIDA` con `approved_template_missing`
-    antes de mandar nada.
+    de prueba ni la de borrador. La aprobación de contenido de cada
+    plantilla la registra el rol `APROBADOR_CONTENIDO` sobre la versión
+    exacta del texto (ADR 0020); la del lote la registra quien lo genera
+    (ADR 0018). Sin las plantillas que el lote necesita la corrida es
+    `INVALIDA` con `approved_template_missing` antes de mandar nada.
     """
 
     cid = correlation_id or _hash(f"emision|{id_actividad}")[:16]
     salida = Path(directorio_salida)
     salida.mkdir(parents=True, exist_ok=True)
     log_path = salida / LOG_NAME
-    from .gmail_envio import MODO_ENVIO_PRODUCCION
+    from .gmail_envio import MODO_ENVIO_PRODUCCION, MODOS_ENVIO
 
-    en_produccion = _modo_envio_destino(destino) == MODO_ENVIO_PRODUCCION
-    delivery_mode = _modo_entrega(destino)
+    modo_envio = getattr(destino, "modo", None)
     solicitante_hash = _hash(
         solicitante_correo.lower().strip()
         if isinstance(solicitante_correo, str)
@@ -625,6 +608,19 @@ def procesar_emision_certificados(
         id_actividad=id_actividad,
         solicitante_hash=solicitante_hash,
     )
+
+    # El modo lo declara el destino. Un destino sin `modo` o con un valor
+    # fuera de `MODOS_ENVIO` no puede caer en `prueba` por omisión: eso
+    # emitiría con el contrato equivocado sin que nadie lo note.
+    if modo_envio not in MODOS_ENVIO:
+        evento("send_mode_invalid", modo=str(modo_envio))
+        return resultado(
+            "INVALIDA",
+            "el destino no declara un modo de envío válido",
+            "send_mode_invalid",
+        )
+    en_produccion = modo_envio == MODO_ENVIO_PRODUCCION
+    delivery_mode = _modo_entrega(destino)
 
     # 0. Pedir o generar el lote exige el rol de contenido (#125, ADR 0018):
     # quien lo aprueba es quien lo genera, así que un rol operativo nunca
@@ -758,6 +754,13 @@ def procesar_emision_certificados(
                     if tipo == "certificado_asistencia"
                     else VARIABLES_CORREO_CERTIFICADO
                 ),
+                # Sin el bloque, el certificado de asistencia saldría sin
+                # firmas: el cuerpo aprobado tiene que traerlo.
+                variables_requeridas=(
+                    frozenset({"bloque_firmas"})
+                    if tipo == "certificado_asistencia"
+                    else frozenset()
+                ),
             )
             if invalida is not None:
                 evento("plantillas_aprobadas_invalidas")
@@ -766,6 +769,16 @@ def procesar_emision_certificados(
                     "una plantilla aprobada no cumple la forma declarada",
                     invalida,
                 )
+        if (
+            any(p.condicion == "asistencia" for p in personas)
+            and not firmantes
+        ):
+            evento("firmantes_ausentes")
+            return resultado(
+                "INVALIDA",
+                "el certificado de asistencia no tiene firmantes",
+                "signature_resources_missing",
+            )
         for tipo in sorted(requeridas):
             if not plantilla_version_registrada(
                 registro_decisiones,

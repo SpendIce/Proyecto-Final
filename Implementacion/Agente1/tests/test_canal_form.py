@@ -768,6 +768,13 @@ def test_registro_atendidos_corrupto_frena_la_lectura(tmp_path: Path) -> None:
 
 
 def test_canal_valida_sus_dependencias_al_construir(tmp_path: Path) -> None:
+    class AvisoSinModo:
+        def entregar(self, **kwargs) -> None:
+            raise AssertionError("no se entrega en esta prueba")
+
+    class AvisoConModoInvalido(AvisoSinModo):
+        modo = "espacial"
+
     padron = _padron_default()
     avisos = GmailDestinoConfirmaciones(
         destinatarios_permitidos={CORREO_SOLICITANTE},
@@ -780,6 +787,11 @@ def test_canal_valida_sus_dependencias_al_construir(tmp_path: Path) -> None:
         {"lector": LectorValoresCsv(tmp_path / "x.csv"), "form_id": "id mal"},
         {"lector": LectorValoresCsv(tmp_path / "x.csv"), "entry_id": "otra"},
         {"lector": LectorValoresCsv(tmp_path / "x.csv"), "directorio_estado": "str"},
+        {"lector": LectorValoresCsv(tmp_path / "x.csv"), "avisos": AvisoSinModo()},
+        {
+            "lector": LectorValoresCsv(tmp_path / "x.csv"),
+            "avisos": AvisoConModoInvalido(),
+        },
     ):
         base = {
             "padron": padron,

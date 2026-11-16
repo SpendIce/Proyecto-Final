@@ -161,11 +161,31 @@ def cargar_plantillas_aprobadas(
             # un cuerpo que el adapter rechaza con `draft_marker_in_production`
             # o, peor, una marca que pasa inadvertida a mitad del cuerpo.
             raise ConfiguracionWorkspaceError(PLANTILLAS_FILE_INVALID)
+        if _tiene_placeholders_malformados(entrada["cuerpo"]) or (
+            isinstance(asunto, str)
+            and _tiene_placeholders_malformados(asunto)
+        ):
+            # Un placeholder mal formado no es una variable: el render no lo
+            # sustituye y llegaría literal al destinatario.
+            raise ConfiguracionWorkspaceError(PLANTILLAS_FILE_INVALID)
         plantillas[tipo] = PlantillaCorreo(
             asunto=asunto.strip() if isinstance(asunto, str) else None,
             cuerpo=entrada["cuerpo"],
         )
     return plantillas
+
+
+def _tiene_placeholders_malformados(texto: str) -> bool:
+    """¿Quedan `{{`/`}}` que no forman una variable válida?
+
+    La sustitución sólo reconoce `{{nombre}}`; un `{{nombre.apellido}}`,
+    `{{nombre completo}}` o una llave suelta no matchea y el render la
+    dejaría literal en el correo. Se comprueba después de quitar las
+    variables bien formadas, así que una plantilla válida no deja rastro.
+    """
+
+    resto = _PLACEHOLDER_RE.sub("", texto)
+    return "{{" in resto or "}}" in resto
 
 
 def _tiene_marcas_borrador(texto: str) -> bool:
@@ -252,23 +272,30 @@ def validar_forma_plantilla(
     *,
     asunto_requerido: bool,
     variables_permitidas: frozenset[str],
+    variables_requeridas: frozenset[str] = frozenset(),
 ) -> str | None:
     """La forma que toda plantilla aprobada tiene que cumplir por tipo.
 
     Devuelve `None` si cierra o el código de rechazo si no:
-    `approved_template_invalid` cubre las dos fallas — el asunto
-    obligatorio vacío y una variable que el circuito no completa — porque
-    ambas son «la redacción registrada no tiene la forma que el tipo
-    exige». La usan todos los circuitos de producción para no repetir la
-    validación a mano.
+    `approved_template_invalid` cubre tres fallas — el asunto obligatorio
+    vacío, una variable que el circuito no completa y una variable
+    requerida que la redacción no incluye — porque todas son «la redacción
+    registrada no tiene la forma que el tipo exige». La usan todos los
+    circuitos de producción para no repetir la validación a mano.
     """
 
     if asunto_requerido and not (plantilla.asunto or "").strip():
+        return PLANTILLA_TIPO_INVALID
+    if _tiene_placeholders_malformados(
+        plantilla.cuerpo
+    ) or _tiene_placeholders_malformados(plantilla.asunto or ""):
         return PLANTILLA_TIPO_INVALID
     variables = variables_plantilla(plantilla.cuerpo) | variables_plantilla(
         plantilla.asunto or ""
     )
     if not variables <= variables_permitidas:
+        return PLANTILLA_TIPO_INVALID
+    if not variables_requeridas <= variables:
         return PLANTILLA_TIPO_INVALID
     return None
 
@@ -282,6 +309,8 @@ def renderizar_plantilla(texto: str, valores: Mapping[str, str]) -> str:
     suelta al destinatario, mismo criterio que los renderers existentes.
     """
 
+    if _tiene_placeholders_malformados(texto):
+        raise PlantillaAprobadaError("template_variable_without_value")
     resultado = _PLACEHOLDER_RE.sub(
         lambda match: valores.get(match.group(1), match.group(0)), texto
     )

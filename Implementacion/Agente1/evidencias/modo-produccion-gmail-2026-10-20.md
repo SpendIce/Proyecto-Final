@@ -37,7 +37,7 @@ hardcodea. La lista aprobada y las plantillas por tipo las define la SEU;
 ni #141 ni #142 las inventan.
 
 **Que el archivo declare la plantilla no alcanza.** Por la definición del
-11/11 (#125, ADR 0019), «aprobada» es un hecho del registro, no del
+11/11 (#125, ADR 0020), «aprobada» es un hecho del registro, no del
 archivo: en producción una plantilla sólo se usa si su **versión exacta**
 tiene una `apruebo_contenido` `registrada` de `APROBADOR_CONTENIDO` en el
 registro de decisiones, sobre el objeto `tpl-<tipo>-<hash del texto>`
@@ -129,7 +129,7 @@ producción queda como última línea: cualquier cuerpo marcado se rechaza con
 ## Qué falta para operar en producción
 
 - **Las plantillas institucionales aprobadas.** El mecanismo ya existe
-  (#142, ADR 0019) pero las redacciones siguen pendientes. Por la
+  (#142, ADR 0020) pero las redacciones siguen pendientes. Por la
   definición del 11/11 (#125), cada plantilla la aprueba quien genera la
   pieza: la SEU para las piezas que emite, con la `apruebo_contenido`
   registrada sobre la versión exacta del texto. Quedan pendientes:

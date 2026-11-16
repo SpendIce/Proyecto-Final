@@ -971,6 +971,29 @@ def renderizar_pieza_actividad(
     return f"[{MARCADOR_BORRADOR}] {fila['titulo'].strip()}", cuerpo
 
 
+def _variables_completables(
+    fila: dict[str, str], plan: PlanPago | None
+) -> frozenset[str]:
+    """Las variables que esta corrida puede completar de verdad.
+
+    No es el catálogo entero (`VARIABLES_CONOCIDAS`): una variable de fila
+    sólo tiene valor si su columna vino con dato, y las del plan sólo si
+    hay plan. Validar contra el catálogo dejaría pasar una plantilla con
+    `{{lugar}}` para una fila sin lugar, que el render recién descubre a
+    mitad del lote.
+    """
+
+    variables = set(VARIABLES_REQUERIDAS)
+    variables.update(
+        variable
+        for variable, columna in COLUMNA_POR_VARIABLE_FILA.items()
+        if fila.get(columna, "").strip()
+    )
+    if plan is not None:
+        variables.update(VARIABLES_PLAN)
+    return frozenset(variables)
+
+
 def encolar_lote_actividad(
     *,
     documento: str,
@@ -1071,8 +1094,12 @@ def encolar_lote_actividad(
             return rechazo_lote("INVALIDA", PLANTILLA_TIPO_MISSING)
         invalida = validar_forma_plantilla(
             plantilla_tipo,
-            asunto_requerido=True,
-            variables_permitidas=VARIABLES_CONOCIDAS,
+            # Con plan, el asunto es la llave de asociación de respuestas y
+            # lo fija el dato: la plantilla no necesita traer uno propio.
+            asunto_requerido=not (
+                plan is not None and plan.asunto_preinscripcion.strip()
+            ),
+            variables_permitidas=_variables_completables(fila, plan),
         )
         if invalida is not None:
             return rechazo_lote("INVALIDA", invalida)

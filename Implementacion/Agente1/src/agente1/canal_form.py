@@ -903,10 +903,15 @@ class CanalFormPedidos:
         decisiones: EnlacesDecisiones | None = None,
         contrato_hoja: str = CONTRATO_HOJA_V1,
     ) -> None:
+        # Import perezoso: `gmail_envio` importa `confirmaciones`, que este
+        # módulo ya consume a nivel de módulo.
+        from .gmail_envio import MODOS_ENVIO
+
         if (
             not callable(getattr(lector, "leer_valores", None))
             or not isinstance(padron, PadronRoles)
             or not callable(getattr(avisos, "entregar", None))
+            or getattr(avisos, "modo", None) not in MODOS_ENVIO
             or not isinstance(directorio_estado, Path)
             or not isinstance(form_id, str)
             or ID_RE.fullmatch(form_id) is None
@@ -1444,13 +1449,17 @@ class CanalFormPedidos:
     ) -> str:
         """Texto del aviso: sólo datos institucionales y links, nunca prosa.
 
-        Todo cuerpo empieza con `MARCADOR_BORRADOR` porque el destino Gmail
-        lo exige mientras rija la lista de prueba (D12). Lo que sigue sale
-        del `ResultadoInterpretacion` —resumen con datos de la fuente, error
-        con mensajes fijos, candidatas del índice—, nunca del texto del
-        pedido ni del cuerpo del borrador. `enlaces_decision` son los links
-        prellenados del Form de decisiones (#72): etiqueta fija más URL, la
-        pieza publicada o descartada la decide una persona, no el agente.
+        En prueba el cuerpo empieza con `MARCADOR_BORRADOR` porque el
+        destino Gmail lo exige mientras rija la lista de prueba (D12). En
+        producción el aviso operativo viaja sin la marca, porque el
+        adapter de producción la rechaza; el modo lo declara el destino y
+        el constructor exige que sea uno de `MODOS_ENVIO`. Lo que sigue
+        sale del `ResultadoInterpretacion` —resumen con datos de la
+        fuente, error con mensajes fijos, candidatas del índice—, nunca
+        del texto del pedido ni del cuerpo del borrador. `enlaces_decision`
+        son los links prellenados del Form de decisiones (#72): etiqueta
+        fija más URL, la pieza publicada o descartada la decide una
+        persona, no el agente.
         """
 
         ref = _ref_pedido(pedido.id_pedido)

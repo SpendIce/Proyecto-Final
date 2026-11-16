@@ -143,6 +143,26 @@ def test_una_plantilla_marcada_no_es_texto_aprobado(tmp_path: Path, marca):
     assert error.value.code == "approved_templates_file_invalid"
 
 
+@pytest.mark.parametrize(
+    "placeholder",
+    ["{{nombre.apellido}}", "{{nombre completo}}", "{{", "}}"],
+)
+def test_un_placeholder_malformado_no_carga(
+    tmp_path: Path, placeholder: str
+):
+    """`{{nombre.apellido}}` no es una variable: el render la dejaría pasar."""
+
+    path = _archivo(
+        tmp_path, {"inscripcion": {"cuerpo": f"Hola {placeholder}."}}
+    )
+
+    with pytest.raises(ConfiguracionWorkspaceError) as error:
+        cargar_plantillas_aprobadas(
+            {PLANTILLAS_APROBADAS_PATH_ENV: str(path)}
+        )
+    assert error.value.code == "approved_templates_file_invalid"
+
+
 def test_la_marca_en_el_asunto_tambien_se_rechaza(tmp_path: Path):
     path = _archivo(
         tmp_path,
@@ -194,6 +214,15 @@ def test_renderizar_plantilla_sustituye_todas_las_llaves():
 def test_una_variable_sin_valor_frena_la_composicion():
     with pytest.raises(PlantillaAprobadaError) as error:
         renderizar_plantilla("Hola {{nombre_destinatario}}.", {})
+    assert error.value.code == "template_variable_without_value"
+
+
+@pytest.mark.parametrize(
+    "texto", ["Hola {{nombre.apellido}}.", "Hola {{nombre completo}}.", "Hola {{"]
+)
+def test_el_render_rechaza_llaves_que_no_son_variables(texto: str):
+    with pytest.raises(PlantillaAprobadaError) as error:
+        renderizar_plantilla(texto, {})
     assert error.value.code == "template_variable_without_value"
 
 
@@ -252,6 +281,47 @@ def test_validar_forma_rechaza_una_variable_desconocida():
             variables_permitidas=frozenset({"nombre_destinatario"}),
         )
         == "approved_template_invalid"
+    )
+
+
+def test_validar_forma_rechaza_un_placeholder_malformado():
+    plantilla = PlantillaCorreo(
+        asunto="Aviso", cuerpo="Hola {{nombre.apellido}}."
+    )
+
+    assert (
+        validar_forma_plantilla(
+            plantilla,
+            asunto_requerido=True,
+            variables_permitidas=frozenset({"nombre_destinatario"}),
+        )
+        == "approved_template_invalid"
+    )
+
+
+def test_validar_forma_exige_las_variables_requeridas_del_tipo():
+    sin_bloque = PlantillaCorreo(asunto="Aviso", cuerpo="Hola {{nombre}}.")
+    con_bloque = PlantillaCorreo(
+        asunto="Aviso", cuerpo="Hola {{nombre}}.\n{{bloque_firmas}}"
+    )
+
+    assert (
+        validar_forma_plantilla(
+            sin_bloque,
+            asunto_requerido=True,
+            variables_permitidas=frozenset({"nombre", "bloque_firmas"}),
+            variables_requeridas=frozenset({"bloque_firmas"}),
+        )
+        == "approved_template_invalid"
+    )
+    assert (
+        validar_forma_plantilla(
+            con_bloque,
+            asunto_requerido=True,
+            variables_permitidas=frozenset({"nombre", "bloque_firmas"}),
+            variables_requeridas=frozenset({"bloque_firmas"}),
+        )
+        is None
     )
 
 
