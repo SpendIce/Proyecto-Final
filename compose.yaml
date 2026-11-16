@@ -40,7 +40,7 @@ x-agente1: &agente1
     - /tmp
     - /srv/p100/Implementacion/Agente1/tmp:mode=1777
     - /srv/p100/Implementacion/Agente1/salida:mode=1777
-  image: ghcr.io/spendice/agente1@sha256:71ce5ce1c175745ef87552225c618024165baeabfe8345761d26b8da16f06d55
+  image: ghcr.io/spendice/agente1@sha256:8774b8a8aa8b22f4ca7e01221cf12f953068dd50c6650160e82bf3e6f9ab522a
   user: "${AGENTE1_UID:-1003}:${AGENTE1_GID:-1003}"
   environment:
     AGENTE1_ENV_FILE: ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/workspace-d2.env
@@ -255,9 +255,12 @@ services:
       AGENTE1_PADRON_ROLES_CSV: ${AGENTE1_PADRON_ROLES_CSV:-/state/padron_roles.csv}
       AGENTE1_WEB_DOCS_COMPARTIR: ${AGENTE1_WEB_DOCS_COMPARTIR:-}
       HOME: /tmp
+    # `salida`: con `--destino-docs` el worker pide el token y escribe el
+    # Doc en Drive. Ollama sigue sin egreso en la red interna `modelo`.
     networks:
       - canal
       - modelo
+      - salida
     depends_on:
       migrador:
         condition: service_completed_successfully
