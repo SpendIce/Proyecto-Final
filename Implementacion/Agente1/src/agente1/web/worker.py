@@ -43,7 +43,13 @@ from ..interpretacion import (
     interpretar_solicitud,
 )
 from ..procesamiento import Generator
-from .persistencia import RepositorioWeb, TrabajoWeb
+from .persistencia import (
+    CANAL_WEB,
+    CANAL_WEB_DEMO,
+    RepositorioWeb,
+    TrabajoWeb,
+)
+from .sesiones import ORIGEN_DEMO, ORIGEN_GOOGLE
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +168,19 @@ class _DestinoMarcado:
         return resultado.referencia
 
 
+def _origen_identidad(canal: str) -> str | None:
+    """El origen de la identidad que afirmó el canal, para la auditoría.
+
+    `web-demo` es la elección de identidad del modo demostración (sin
+    verificar, ADR 0019); `web` pasó por el ID token de Google. Otros
+    canales no declaran origen en este incremento.
+    """
+    return {
+        CANAL_WEB: ORIGEN_GOOGLE,
+        CANAL_WEB_DEMO: ORIGEN_DEMO,
+    }.get(canal)
+
+
 def _generar_pieza(
     trabajo: TrabajoWeb,
     *,
@@ -188,7 +207,9 @@ def _generar_pieza(
     resultado = interpretar_solicitud(
         texto=texto,
         solicitante=IdentidadSolicitante(
-            identificador=trabajo.solicitante_hash, rol=trabajo.rol
+            identificador=trabajo.solicitante_hash,
+            rol=trabajo.rol,
+            origen=_origen_identidad(trabajo.canal),
         ),
         fuente=fuente,
         directorio_salida=directorio_salida,
