@@ -8,9 +8,8 @@ igual que lo haría el slot diario en el host.
 
 import csv
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from pathlib import Path
-from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -19,7 +18,7 @@ import agente1.cli_scheduler as cli_scheduler
 from agente1.cli_scheduler import _pasos_diarios
 from agente1.cli_scheduler import main as main_scheduler
 from agente1.insumos_corrida import COLUMNAS_INSUMOS_AGENTES_V1
-from agente1.scheduler import LOCK_NOMBRE, LOG_NOMBRE
+from agente1.scheduler import LOCK_NOMBRE, LOG_NOMBRE, ConfiguracionScheduler
 
 ZONA = ZoneInfo("America/Argentina/Buenos_Aires")
 # 2026-10-05 es lunes.
@@ -420,7 +419,14 @@ class _ResultadoSubproceso:
 
 
 def _pasos_web(tmp_path: Path, env: dict[str, str]):
-    config = SimpleNamespace(repo=REPO_SCHEDULER, registro_confirmaciones=None)
+    config = ConfiguracionScheduler(
+        intervalo_s=300,
+        dias=frozenset({1}),
+        desde=time(8),
+        hasta=time(16),
+        zona=ZONA,
+        repo=REPO_SCHEDULER,
+    )
     return _pasos_diarios(config, tmp_path / "salida", env)
 
 
