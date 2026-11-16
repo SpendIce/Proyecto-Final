@@ -28,6 +28,13 @@ Dirección. Detalle en el procedimiento.
 
 Sin cambios todavía.
 
+## [0.6.2] - 2026-11-16
+
+- **Parche — el worker del canal web sale a Google.** El servicio `worker` sólo
+  estaba en las redes internas `canal` y `modelo`: con `--destino-docs` no podía
+  pedir el token ni escribir el Doc (`workspace_auth_unavailable` en el primer
+  pedido real). Suma la red `salida`, igual que `web`; Ollama sigue sin egreso.
+
 ## [0.6.1] - 2026-11-16
 
 - **Parche — el worker del canal web genera sin thinking.** `worker_canal_web`

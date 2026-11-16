@@ -1,7 +1,7 @@
 {
   "archivos_sha256": {
     "Dockerfile": "b4871a3cd33838a8fe3f89856d14a8e3ba0fbe99e7c67d468bb4dd7c07a06c10",
-    "docker/compose.yaml": "8bcf521e8741f80dafbaaa3f095cd5af9ddc10f8a9ff518664cf29528873988d",
+    "docker/compose.yaml": "b76cf00ca9d4b622e558b2e6ec0357438bf4e916f19a580cb1869ab75d77ddc4",
     "migrations/0001_persistencia_agente1.down.sql": "a576d7b8ad9eeb18068f50c04956b5bf0a5304a87c8c26df1311479f236fa0a0",
     "migrations/0001_persistencia_agente1.up.sql": "b87d67dc6c0220f73d61b0c44417d397e56d1a715be57d817960feef4a023b14",
     "migrations/0002_integridad_referencial_borradores.down.sql": "24caa7a9a9c2001280f48a17339f1898fc63af2c63a06ad61dbac358d104bb7a",
@@ -18,7 +18,7 @@
     "migrations/0007_web_docs_revision_decision.up.sql": "9a043b53090ac79c801b2026d8472ec97ff54c4af2af7c7902454cf3becb501e",
     "migrations/0008_correo_prellenado_aprobacion.down.sql": "822cccd30de91874a853722636d29d53ccff9c3f20e5c9d56ed06bd4e233d466",
     "migrations/0008_correo_prellenado_aprobacion.up.sql": "5201951b8e70f03769a90c8cd2f0b4e3e87d9e8a250074c3fb60dd9c6f9ce709",
-    "pyproject.toml": "569116612a9ddc52372abc91d949133e1faefb69799391c72d3dead67f31aea5",
+    "pyproject.toml": "7a1f250e842386817b73a40be6237cf0995e5af9e07df61f0e26f572f2675b62",
     "scripts/anexo1_presentacion.py": "a5043d608b242ec10a63c73b9be5c1f4387595dfe4744235e47a975e43027398",
     "scripts/anexo2_calidad.py": "6d5bc627622bf4f4904b3150f862cb0d1990a06c3662d5d13c60ebb48407df4f",
     "scripts/anexo3_seguridad.py": "f15c23b14fea0919f8da189eba35137270716ab613c3f638f8c1d1c8e92933cc",
@@ -260,8 +260,8 @@
     "systemd/agente1-scheduler-loop.service": "b73c70a32920ec44a47d13faba3956ba9c6feeb0c2022689600f6ae34b1854db",
     "systemd/agente1-scheduler.service": "a80a2f5735871a31f6b3a4f6daf9c694267c03b569971f69e495a1fe027fc5cb",
     "systemd/agente1-scheduler.timer": "33268d7df468209d9467ab212df0cf0caa511c7fa6b0cd9bb6beea3ba83b8ab8",
-    "uv.lock": "6c589c3852f8fec7288a6e4f25d11ce278c5fd2863cd39e75e8b5335965f8da2"
+    "uv.lock": "3c73269ff22cf3e2ae2b14d0a478248bfa852714668996adf30504aa9f66aab5"
   },
   "schema_version": "agente1_manifest_version_v1",
-  "version": "0.6.1"
+  "version": "0.6.2"
 }
