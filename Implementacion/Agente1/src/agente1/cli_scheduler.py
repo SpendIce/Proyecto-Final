@@ -262,9 +262,11 @@ def _pasos_diarios(
             pasos.append(PasoDiario("purga", correr_purga))
 
     # Purga del canal web (ADR 0016): existe cuando el entorno declara
-    # ambos DSN — el de la app para vencer y el de mantenimiento para
-    # purgar y aspirar— y el script está en el checkout. Sin base
-    # configurada viaja en `pasos_declarados` y se asienta `pendiente`,
+    # cualquiera de los dos DSN —el de la app para vencer y el de
+    # mantenimiento para purgar y aspirar— y el script está en el
+    # checkout. Si falta el otro, el script falla cerrado con
+    # `purga_dsn_ausente`; ese fallo frena el respaldo del día. Sólo sin
+    # ningún DSN viaja en `pasos_declarados` y se asienta `pendiente`,
     # como los otros pasos opt-in. Comparte el flag con la purga de
     # confirmaciones: si alguna falla, el respaldo del día no corre,
     # porque el artefacto no puede llevar prosa vencida.
@@ -275,10 +277,9 @@ def _pasos_diarios(
         / "scripts"
         / "purgar_canal_web.py"
     )
-    purga_web_configurada = (
-        script_purga_web.is_file()
-        and bool(env.get("AGENTE1_POSTGRES_DSN"))
-        and bool(env.get("AGENTE1_POSTGRES_DSN_MANTENIMIENTO"))
+    purga_web_configurada = script_purga_web.is_file() and bool(
+        env.get("AGENTE1_POSTGRES_DSN")
+        or env.get("AGENTE1_POSTGRES_DSN_MANTENIMIENTO")
     )
     declarados: list[str] = []
     if purga_web_configurada:

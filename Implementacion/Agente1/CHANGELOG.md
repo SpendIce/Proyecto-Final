@@ -204,6 +204,60 @@ Dirección. Detalle en el procedimiento.
   - El público sólo decide a quién se envía: declarado en el pedido, el
     registro y el aviso, y excluido de todo prompt
     (`CAMPOS_DEL_PEDIDO_NO_DE_LA_PIEZA`). Ver ADR 0015.
+- **Menor — migrador one-shot del canal web en el despliegue (#149).** El
+  perfil `canal-web` deja de depender de que alguien aplique el esquema y
+  asigne las claves a mano: un servicio `migrador` corre una vez sobre la
+  base vacía, aplica las `*.up.sql` pendientes en orden y asigna las claves
+  de `agente1_app` y `agente1_mantenimiento`; `web` y `worker` arrancan sólo
+  si termina bien. No corta versión por sí solo.
+  - `scripts/migrar_canal_web.py`: tabla de control
+    `migraciones_aplicadas(version, aplicada_en, sha256)`, cada migración y
+    su asiento en una transacción, idempotente y fail-closed si una ya
+    aplicada cambió de sha256; claves con `ALTER ROLE` vía `\getenv` de
+    `psql`, nunca por argv ni en la salida; salida JSON con
+    `status`/`error_code` como los demás scripts.
+  - `scripts/contenedor_entrypoint.py`: comando `migrar`.
+  - `docker/compose.yaml`: servicio `migrador` del perfil `canal-web`, con
+    `restart: "no"`, red `canal` y variables `${VAR:-}`; `web` y `worker`
+    pasan a depender de `migrador: service_completed_successfully`. Sin el
+    perfil, `docker compose config` resuelve igual que antes.
+  - `MANUAL-OPERACION-AGENTE-1.md` (§2.5 y §5.12): variables del stack con
+    placeholders, idempotencia, rotación de claves y códigos del migrador.
+  - `tests/test_migrar_canal_web.py`: base efímera desde cero, roles que
+    loguean con sus claves, segunda corrida sin cambios, sha alterado,
+    variables faltantes y claves ausentes de stdout/stderr.
+- **Parche — la imagen runtime instala las dependencias del canal web
+  (#149).** La etapa `runtime` del `Dockerfile` no instalaba las
+  dependencias que `pyproject.toml` declara desde #163 —`fastapi`,
+  `uvicorn`, `psycopg`, `jinja2`, `pyjwt`, `google-auth` y
+  `python-multipart`—, así que `web` y `worker` no podían arrancar. Además
+  se declara `requests` como dependencia de producción: el transporte de
+  `google-auth` lo importa y no estaba en `pyproject.toml`.
+  - `Dockerfile`: etapa `deps` nueva que construye `/opt/venv` con
+    `uv sync --frozen --no-dev --no-install-project`; `runtime` copia el
+    venv y usa su Python en el `ENTRYPOINT`. `uv` y el grupo de desarrollo
+    no quedan en la imagen final; se mantienen el usuario no root, el
+    cliente `postgresql-client-16`, la base por digest y la ausencia de
+    tests y `.git`.
+  - `tests/test_contenedor.py`: el contrato del `Dockerfile` fija el venv
+    de producción, el `--no-dev` de `deps`, el grupo de desarrollo en
+    `test` y la ausencia de `uv`, `pytest` y `ruff` en `runtime`.
+- **Parche — PostgreSQL arranca con el mínimo privilegio y la purga no
+  deja prosa sin retención (#149).**
+  - `docker/compose.yaml`: `postgres` corre como `70:70` (el
+    `postgres` de la imagen alpine) y no suma capacidades; conserva
+    `read_only`, `cap_drop: ALL`, `no-new-privileges`, la red interna
+    `canal` y la ausencia de puertos publicados. `/run` y `/tmp` van en
+    tmpfs con modo 1777 para que el entrypoint cree el socket sin root.
+  - `src/agente1/cli_scheduler.py`: con cualquiera de los dos DSN del
+    canal la purga se considera configurada y se invoca; si falta el
+    otro, el script falla cerrado con `purga_dsn_ausente` y el respaldo
+    del día no corre. Sólo sin ningún DSN queda `pendiente`.
+  - `src/agente1/web/persistencia.py`: `prosa_purgada` se asienta una
+    sola vez por solicitud; `evidencia_hash` compromete la cantidad de
+    filas purgadas de esa solicitud.
+  - Tests: capacidades mínimas de `postgres`, los tres casos de la purga
+    del scheduler y el evento agrupado por solicitud.
 
 ## [0.5.10] - 2026-10-27
 
