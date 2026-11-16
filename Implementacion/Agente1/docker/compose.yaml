@@ -155,6 +155,34 @@ services:
       retries: 10
       start_period: 10s
 
+  # Bootstrap de la base del canal web (#149, ADR 0016): aplica las
+  # migraciones pendientes desde una base vacía y asigna las claves de
+  # `agente1_app` y `agente1_mantenimiento`. Corre una vez por despliegue
+  # y no reintenta: si falla, `web` y `worker` no arrancan. No depende de
+  # Ollama ni monta la configuración del host; el DSN y las dos claves
+  # llegan del stack de Portainer, con `${VAR:-}` para que el compose sin
+  # el perfil `canal-web` resuelva igual que antes. Sólo monta `/state`,
+  # donde el entrypoint deja la auditoría de integridad.
+  migrador:
+    <<: *agente1
+    profiles: ["canal-web"]
+    command: ["migrar"]
+    restart: "no"
+    environment:
+      AGENTE1_ESTADO: /state
+      AGENTE1_OLLAMA_UPSTREAM: ""
+      AGENTE1_POSTGRES_ADMIN_DSN: ${AGENTE1_POSTGRES_ADMIN_DSN:-}
+      AGENTE1_POSTGRES_APP_PASSWORD: ${AGENTE1_POSTGRES_APP_PASSWORD:-}
+      AGENTE1_POSTGRES_MANTENIMIENTO_PASSWORD: ${AGENTE1_POSTGRES_MANTENIMIENTO_PASSWORD:-}
+      HOME: /tmp
+    volumes:
+      - ${AGENTE1_HOST_ESTADO:-/home/jgone/p100/estado-contenedor}:/state
+    networks:
+      - canal
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   web:
     <<: *agente1
     profiles: ["canal-web"]
@@ -177,8 +205,8 @@ services:
       - canal
       - salida
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrador:
+        condition: service_completed_successfully
 
   worker:
     <<: *agente1
@@ -204,8 +232,8 @@ services:
       - canal
       - modelo
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrador:
+        condition: service_completed_successfully
 
 volumes:
   postgres-data:

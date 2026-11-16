@@ -16,6 +16,8 @@ interna) lo prueba el workflow `agente1-imagen` y queda en la evidencia.
 from __future__ import annotations
 
 import importlib.util
+import json
+import os
 import socket
 import sys
 import threading
@@ -131,6 +133,7 @@ def test_comandos_del_contenedor() -> None:
     assert consola[2:] == ["--host", "0.0.0.0", "--port", "8080"]
     assert ep.comando_para(["scheduler", "--loop"])[1:] == ["-m", "agente1", "scheduler", "--loop"]
     assert ep.comando_para(["smoke", "--live"])[1].endswith("scripts/workspace_smoke.py")
+    assert ep.comando_para(["migrar"])[1].endswith("scripts/migrar_canal_web.py")
     assert ep.comando_para(["python", "-V"]) == ["python", "-V"]
 
 
@@ -158,6 +161,22 @@ def test_verificar_sale_cero_sin_lanzar_nada(tmp_path: Path, monkeypatch) -> Non
     monkeypatch.setattr(ep, "verificar", lambda estado: None)
     monkeypatch.setattr(ep.subprocess, "Popen", lambda *a, **k: pytest.fail("no debe lanzar"))
     assert ep.main(["verificar"], {"AGENTE1_ESTADO": str(tmp_path), "AGENTE1_OLLAMA_UPSTREAM": ""}) == 0
+
+
+def test_el_comando_migrar_llega_al_script(tmp_path: Path, monkeypatch, capfd) -> None:
+    """`migrar` ejecuta el migrador; sin DSN sale 2 con el código estructurado."""
+    monkeypatch.setattr(ep, "verificar", lambda estado: None)
+    entorno = {
+        clave: valor
+        for clave, valor in os.environ.items()
+        if not clave.startswith("AGENTE1_POSTGRES") and clave != "AGENTE1_ENV_FILE"
+    }
+    entorno.update(
+        {"AGENTE1_ESTADO": str(tmp_path), "AGENTE1_OLLAMA_UPSTREAM": ""}
+    )
+    assert ep.main(["migrar"], entorno) == 2
+    salida, _ = capfd.readouterr()
+    assert json.loads(salida)["error_code"] == "migrar_dsn_admin_ausente"
 
 
 def test_el_hijo_recibe_el_env_file_y_su_codigo_de_salida(tmp_path: Path, monkeypatch) -> None:
@@ -224,6 +243,23 @@ def test_el_scheduler_queda_apagado_salvo_perfil(compose: dict) -> None:
 def test_el_agente_llega_a_ollama_por_el_relay(compose: dict) -> None:
     for servicio in ("consola", "scheduler"):
         assert compose["services"][servicio]["environment"]["AGENTE1_OLLAMA_UPSTREAM"] == "ollama:11434"
+
+
+def test_el_migrador_corre_una_vez_antes_de_web_y_worker(compose: dict) -> None:
+    """El bootstrap del canal web no reintenta y bloquea a los procesos."""
+    migrador = compose["services"]["migrador"]
+    assert migrador["profiles"] == ["canal-web"]
+    assert migrador["command"] == ["migrar"]
+    assert migrador["restart"] == "no"
+    assert migrador["networks"] == ["canal"]
+    assert migrador["image"] == compose["services"]["consola"]["image"]
+    assert migrador["depends_on"]["postgres"]["condition"] == "service_healthy"
+    # Ninguna variable del perfil usa `:?`: el stack sin canal resuelve igual.
+    for valor in migrador["environment"].values():
+        assert ":?" not in str(valor)
+    for servicio in ("web", "worker"):
+        dependencia = compose["services"][servicio]["depends_on"]["migrador"]
+        assert dependencia["condition"] == "service_completed_successfully"
 
 
 # --- Dockerfile -----------------------------------------------------------
