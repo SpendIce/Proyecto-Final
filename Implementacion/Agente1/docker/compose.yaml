@@ -174,6 +174,9 @@ services:
       AGENTE1_WEB_MODO_DEMO: ${AGENTE1_WEB_MODO_DEMO:-}
       AGENTE1_WEB_DEMO_HASTA: ${AGENTE1_WEB_DEMO_HASTA:-}
       AGENTE1_WEB_DEMO_CORREOS: ${AGENTE1_WEB_DEMO_CORREOS:-}
+      # Con `si`, el servidor exporta los Docs por Drive real (#153); la
+      # config Workspace llega por `AGENTE1_ENV_FILE`, como en el worker.
+      AGENTE1_WEB_DOCS: ${AGENTE1_WEB_DOCS:-}
       AGENTE1_WEB_PORT: "8080"
       HOME: /tmp
     networks:
@@ -192,7 +195,10 @@ services:
       - /state/actividades.csv
       - --salida
       - /state/worker
-      - --destino-fake
+      # El destino del Doc se opta por el stack (#153): sin la variable
+      # el worker sigue en el fake en memoria; con `docs` pasa al
+      # adapter real de Drive con la config Workspace del env file.
+      - --destino-${AGENTE1_WORKER_DESTINO:-fake}
       - --ollama-model
       - gemma4:e4b
     environment:
@@ -202,6 +208,8 @@ services:
       AGENTE1_CONTENEDOR: "si"
       AGENTE1_POSTGRES_DSN: ${AGENTE1_POSTGRES_DSN:-}
       AGENTE1_WORKER_ID: worker-1
+      AGENTE1_PADRON_ROLES_CSV: ${AGENTE1_PADRON_ROLES_CSV:-/state/padron_roles.csv}
+      AGENTE1_WEB_DOCS_COMPARTIR: ${AGENTE1_WEB_DOCS_COMPARTIR:-}
       HOME: /tmp
     networks:
       - canal

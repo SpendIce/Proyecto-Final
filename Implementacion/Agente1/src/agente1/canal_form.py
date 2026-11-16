@@ -125,6 +125,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import hmac
 import json
 import math
 import os
@@ -574,6 +575,24 @@ class PadronRoles:
         if not isinstance(correo, str):
             return None
         return self._roles.get(correo.strip().lower())
+
+    def correo_para_hash(self, solicitante_hash: str) -> str | None:
+        """El correo del padrón cuyo SHA-256 es `solicitante_hash`.
+
+        Es el camino inverso que usa el worker del canal web para dar el
+        permiso `writer` del Doc (#153): la solicitud sólo guarda el hash
+        del correo y el permiso necesita la dirección real, que vive en
+        el padrón. Devuelve `None` si ningún correo del padrón coincide —
+        la solicitud no inventa un destinatario.
+        """
+
+        if not isinstance(solicitante_hash, str):
+            return None
+        for correo in self._roles:
+            candidato = hashlib.sha256(correo.encode("utf-8")).hexdigest()
+            if hmac.compare_digest(candidato, solicitante_hash):
+                return correo
+        return None
 
     @classmethod
     def desde_entorno(
