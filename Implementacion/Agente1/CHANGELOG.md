@@ -28,6 +28,15 @@ Dirección. Detalle en el procedimiento.
 
 Sin cambios todavía.
 
+## [0.6.3] - 2026-11-16
+
+- **Parche — el destino Docs deja en el log la causa del token.** Cuando el
+  proveedor de credencial falla, `GoogleDocsDestinoPorMarca` escribe en stderr su
+  código estable (`workspace_key_unreadable`, `workspace_token_exchange_*`,
+  `workspace_auth_signing_unavailable`…) antes de devolver
+  `workspace_auth_unavailable`. Sin secretos; diagnostica el fallo del primer
+  pedido real del canal web.
+
 ## [0.6.2] - 2026-11-16
 
 - **Parche — el worker del canal web sale a Google.** El servicio `worker` sólo

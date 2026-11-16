@@ -186,3 +186,27 @@ def test_worker_canal_web_genera_con_ollama_sin_thinking(
     assert codigo == 0
     assert capturado["modelo"] == "gemma4:e4b"
     assert capturado["think"] is False
+
+
+def test_destino_docs_deja_en_stderr_el_codigo_del_token(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`workspace_auth_unavailable` sola no distingue la causa en el servidor."""
+    from agente1.destinos import DestinoBorradoresError
+    from agente1.google_workspace import GoogleDocsDestinoPorMarca
+    from agente1.workspace_config import ConfiguracionWorkspaceError
+
+    class ProveedorQueFalla:
+        def obtener_access_token(self) -> str:
+            raise ConfiguracionWorkspaceError("workspace_key_unreadable")
+
+    destino = GoogleDocsDestinoPorMarca(
+        plantilla_id="plantilla_1",
+        carpeta_id="carpeta_1",
+        token_provider=ProveedorQueFalla(),
+        timeout_s=5,
+    )
+    with pytest.raises(DestinoBorradoresError) as error:
+        destino._obtener_token()
+    assert error.value.code == "workspace_auth_unavailable"
+    assert "workspace_key_unreadable" in capsys.readouterr().err

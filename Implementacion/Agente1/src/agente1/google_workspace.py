@@ -48,6 +48,7 @@ import hashlib
 import json
 import math
 import re
+import sys
 import time
 from dataclasses import dataclass
 from http.client import HTTPException, HTTPSConnection
@@ -732,7 +733,15 @@ class GoogleDocsDestinoPorMarca:
     def _obtener_token(self) -> str:
         try:
             token = self._token_provider.obtener_access_token()
-        except Exception:
+        except Exception as exc:
+            # El código del proveedor (p. ej. `workspace_key_unreadable`,
+            # `workspace_token_exchange_unavailable`) no lleva secretos y es
+            # lo único que distingue la causa en el log del contenedor.
+            print(
+                "google_docs_destino: token no disponible: "
+                f"{_codigo_de(exc)}",
+                file=sys.stderr,
+            )
             raise DestinoBorradoresError("workspace_auth_unavailable") from None
         if (
             not isinstance(token, str)
@@ -1024,6 +1033,14 @@ def _escapar_q_drive(valor: str) -> str:
     """
 
     return valor.replace("\\", "\\\\").replace("'", "\\'")
+
+
+def _codigo_de(exc: BaseException) -> str:
+    """Código estable de una excepción del proveedor, o su clase."""
+    codigo = getattr(exc, "code", None)
+    if isinstance(codigo, str) and re.fullmatch(r"[a-z0-9_]{1,80}", codigo):
+        return codigo
+    return type(exc).__name__
 
 
 def _codigo_drive(status: int) -> str:
