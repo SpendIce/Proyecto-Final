@@ -167,6 +167,38 @@ que corre es la que está escrita, no un default silencioso.
 | El token se emite y se audita | Una línea en `logs/cuenta-suplantada.jsonl` por token pedido. |
 | Reportes operativos | `scripts/operaciones_seguras.py health\|reconcile\|consolidate\|retention` (dry-run, no modifican nada). |
 
+### 2.5 Canal web: bootstrap de la base
+
+El perfil `canal-web` del stack levanta la base, un **migrador one-shot** y
+los procesos `web` y `worker`. El migrador corre una sola vez
+(`restart: "no"`), antes que ellos: aplica las migraciones `0001`–`0005` que
+falten, asienta versión y sha256 en `migraciones_aplicadas` y asigna las
+claves de los roles que crea la 0005. Si sale distinto de cero, `web` y
+`worker` no arrancan (`depends_on: service_completed_successfully`).
+
+No hace falta shell en el host: todo se declara en *Portainer → Stacks →
+agente1 → Environment variables*. Para encender el canal web y el scheduler:
+
+| Variable | Valor (placeholder) | Para qué |
+|---|---|---|
+| `COMPOSE_PROFILES` | `scheduler,canal-web` | Enciende el scheduler y el canal web. |
+| `AGENTE1_POSTGRES_PASSWORD` | `<clave-del-superusuario-de-la-base>` | Clave con la que `postgres` inicializa el volumen. |
+| `AGENTE1_POSTGRES_ADMIN_DSN` | `postgresql://<usuario-admin>:<clave-admin>@<host-de-la-base>:<puerto>/<base>` | Conexión del migrador, como superusuario de la base. |
+| `AGENTE1_POSTGRES_APP_PASSWORD` | `<clave-de-agente1_app>` | Clave que el migrador asigna a `agente1_app`. |
+| `AGENTE1_POSTGRES_MANTENIMIENTO_PASSWORD` | `<clave-de-agente1_mantenimiento>` | Clave que el migrador asigna a `agente1_mantenimiento`. |
+| `AGENTE1_POSTGRES_DSN` | `postgresql://agente1_app:<clave-de-agente1_app>@<host-de-la-base>:<puerto>/<base>` | Conexión de `web` y `worker`. |
+| `AGENTE1_POSTGRES_DSN_MANTENIMIENTO` | `postgresql://agente1_mantenimiento:<clave-de-agente1_mantenimiento>@<host-de-la-base>:<puerto>/<base>` | Conexión de la purga diaria que corre el scheduler. |
+
+El migrador es idempotente: la segunda corrida no aplica nada y sale 0. Cada
+migración es atómica: si una falla, las anteriores quedan aplicadas con su
+fila de control y la corrida siguiente retoma desde la pendiente. Si una
+migración **ya aplicada** cambió de sha256, falla cerrado con
+`migrar_sha256_distinto` y no la reaplica. Para rotar la clave de un rol se
+cambia su variable en el stack y se hace *Pull and redeploy*: el migrador
+vuelve a ejecutar `ALTER ROLE` al arrancar. Ni el DSN ni las claves se
+imprimen; la salida es un JSON con `status`, `aplicadas`, `ya_aplicadas` y
+`roles`.
+
 ---
 
 ## 3. Credenciales
@@ -534,6 +566,26 @@ legítimos, como datos incompletos): un encadenamiento no debe seguir como si se
 hubiera generado algo. El smoke de Workspace usa `0`/`2`/`3`/`4` (éxito,
 configuración inválida, token ausente o inseguro, y falla cerrada de red o
 contrato), según su runbook §4.
+
+### 5.12 Canal web: migrador y base
+
+El canal web arranca con el perfil `canal-web` del stack (ver §2.5). El
+migrador es el único proceso que escribe el esquema y las claves de rol; si
+falla, `web` y `worker` no arrancan. Su salida es una línea JSON: `status:
+OK` con `aplicadas`, `ya_aplicadas` y `roles`, o `status: INVALID` con
+`error_code`.
+
+| Código | Significado | Qué hacer |
+|---|---|---|
+| `migrar_dsn_admin_ausente` / `migrar_clave_app_ausente` / `migrar_clave_mantenimiento_ausente` | Falta una variable del stack. | Completar `AGENTE1_POSTGRES_ADMIN_DSN`, `AGENTE1_POSTGRES_APP_PASSWORD` y `AGENTE1_POSTGRES_MANTENIMIENTO_PASSWORD` y redesplegar. |
+| `migrar_dsn_admin_invalido` | El DSN no es una URL ni una cadena `clave=valor` de libpq. | Revisar la forma del DSN en el stack. |
+| `migrar_cliente_psql_ausente` | La imagen no tiene el cliente `psql`. | No debería pasar: la imagen instala `postgresql-client-16`. Cortar una versión nueva. |
+| `migrar_migraciones_ausentes` / `migrar_migracion_invalida` | La imagen no lleva las migraciones o una no tiene el par `BEGIN`/`COMMIT` esperado. | No editar la base a mano: cortar una versión nueva con las migraciones completas. |
+| `migrar_sha256_distinto` | Una migración ya aplicada cambió de contenido. | No se reaplica: restaurar la versión anterior de la imagen o agregar una migración nueva; revisar quién editó historia. |
+| `migrar_control_fallido` / `migrar_migracion_fallida` / `migrar_roles_fallidos` | Falló el acceso a la base, una migración o la asignación de claves. | Revisar los logs del migrador y la salud de `postgres`. Cada migración es atómica: las anteriores quedan aplicadas con su fila de control y la corrida siguiente retoma desde la pendiente. |
+
+Una segunda corrida no aplica nada y sale 0: es el comportamiento esperado
+cuando Portainer redespliega el mismo stack.
 
 ---
 
