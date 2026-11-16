@@ -35,6 +35,13 @@ from datetime import datetime, timedelta, timezone
 INACTIVIDAD_MAX = timedelta(minutes=30)
 VIDA_MAX = timedelta(hours=8)
 
+# Origen de la identidad de la sesión (ADR 0019): `google` es el ID token
+# verificado por el servidor; `demo` es la elección de identidad del modo
+# demostración, que no verifica nada. La marca viaja a la solicitud para
+# que lo creado en la demo nunca figure como identidad verificada.
+ORIGEN_GOOGLE = "google"
+ORIGEN_DEMO = "demo"
+
 
 @dataclass(frozen=True)
 class Sesion:
@@ -44,6 +51,7 @@ class Sesion:
     sub: str
     correo: str
     rol: str
+    origen: str
     csrf_token: str
     creada_en: datetime
     ultimo_uso_en: datetime
@@ -59,13 +67,16 @@ class SesionesMemoria:
         self._sesiones: dict[str, Sesion] = {}
         self._ahora = ahora or (lambda: datetime.now(timezone.utc))
 
-    def crear(self, *, sub: str, correo: str, rol: str) -> Sesion:
+    def crear(
+        self, *, sub: str, correo: str, rol: str, origen: str = ORIGEN_GOOGLE
+    ) -> Sesion:
         ahora = self._ahora()
         sesion = Sesion(
             sid=secrets.token_urlsafe(32),
             sub=sub,
             correo=correo,
             rol=rol,
+            origen=origen,
             csrf_token=secrets.token_urlsafe(32),
             creada_en=ahora,
             ultimo_uso_en=ahora,

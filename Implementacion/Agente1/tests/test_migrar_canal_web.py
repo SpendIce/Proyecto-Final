@@ -37,7 +37,14 @@ CLAVES = {
     "agente1_app": "clave-app-" + uuid.uuid4().hex[:8],
     "agente1_mantenimiento": "clave-mant-" + uuid.uuid4().hex[:8],
 }
-VERSIONES = [
+# Todas las migraciones que lleva la imagen, en orden: cada una nueva entra
+# sola al bootstrap sin tocar estas pruebas. Las cinco primeras fijan el
+# piso del canal web (esquema + roles de la 0005).
+VERSIONES = sorted(
+    p.name.removesuffix(".up.sql")
+    for p in (ROOT / "migrations").glob("*.up.sql")
+)
+assert VERSIONES[:5] == [
     "0001_persistencia_agente1",
     "0002_integridad_referencial_borradores",
     "0003_rechazo_timestamps_futuros",
@@ -128,7 +135,7 @@ def _tablas(dsn: str) -> set[str]:
 
 
 def test_base_vacia_aplica_todo_y_los_roles_loguean(modulo, base, capfd) -> None:
-    """Base vacía → 0001–0005 aplicadas y cada rol conecta con su clave."""
+    """Base vacía → todas las migraciones aplicadas y cada rol conecta con su clave."""
     assert _correr(modulo, base) == 0
     salida, _ = capfd.readouterr()
     resultado = json.loads(salida)

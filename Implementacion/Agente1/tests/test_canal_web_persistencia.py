@@ -61,7 +61,7 @@ CLAVES_ROLES = {
 
 @pytest.fixture()
 def base():
-    """Esquema desechable con las migraciones 0001 a 0005 aplicadas.
+    """Esquema desechable con las migraciones 0001 a 0006 aplicadas.
 
     Además deja a los dos roles con clave y `USAGE` del esquema, como el
     despliegue haría en el suyo: las pruebas de rol conectan con ellos.
@@ -176,8 +176,25 @@ def test_bandeja_y_detalle(base: str) -> None:
     assert detalle is not None
     assert detalle.descripcion == "Descripción sintética del pedido."
     assert detalle.campos["pieza"]["titulo"] == "Título sintético"
+    assert detalle.canal == "web"
     assert repo.obtener("web-ajena") is None
     assert repo.estado_de(creada.id_solicitud) == "EN_COLA"
+
+
+def test_solicitud_con_canal_web_demo(base: str) -> None:
+    """Una solicitud creada en modo demostración queda marcada `web-demo`
+    (ADR 0019): la misma bandeja y la misma retención, pero sin figurar
+    como identidad verificada por Google."""
+    repo = RepositorioWeb(_fabrica(base))
+    creada = _crear(repo, "web:demo1", canal="web-demo")
+    detalle = repo.obtener(creada.id_solicitud)
+    assert detalle is not None
+    assert detalle.canal == "web-demo"
+    # Entra a la bandeja y al ciclo de vencimiento como cualquier web.
+    assert [i.id_solicitud for i in repo.bandeja()] == [creada.id_solicitud]
+    trabajo = repo.tomar_trabajo(worker_id="w1")
+    assert trabajo is not None
+    assert trabajo.id_solicitud == creada.id_solicitud
 
 
 def test_reserva_con_plazo_y_recuperacion(base: str) -> None:

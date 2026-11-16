@@ -40,6 +40,15 @@ ESTADOS_ABIERTOS = ("EN_COLA", "GENERANDO", "LISTA", "ERROR")
 ESTADOS_CIERRE = ("APROBADA", "DESCARTADA", "VENCIDA")
 VENTANA_VENCIMIENTO_DIAS = 30
 
+# Canales del canal web (ADR 0019): `web` es la entrada con identidad
+# verificada por Google; `web-demo` la creada en modo demostración, que no
+# verifica identidad. La bandeja, la reserva del worker y la retención las
+# tratan igual — el origen sólo declara cómo entró la solicitud, nunca la
+# esconde detrás del canal verificado.
+CANAL_WEB = "web"
+CANAL_WEB_DEMO = "web-demo"
+CANALES_WEB = (CANAL_WEB, CANAL_WEB_DEMO)
+
 
 def _hash(texto: str) -> str:
     return hashlib.sha256(texto.encode("utf-8")).hexdigest()
@@ -112,6 +121,7 @@ class DetalleSolicitud:
     estado_web: str
     rol: str
     solicitante_hash: str
+    canal: str
     creada_en: datetime
     ultima_actividad_en: datetime
     descripcion: str | None
@@ -130,6 +140,7 @@ class TrabajoWeb:
     solicitante_hash: str
     descripcion: str | None
     campos: dict
+    canal: str = CANAL_WEB
     intentos: int = 0
 
 
@@ -163,8 +174,9 @@ class RepositorioWeb:
         rol: str,
         tipo_pieza: str,
         actividad_ref: str | None,
-        descripcion: str,
+        descripcion: str | None,
         campos: dict,
+        canal: str = CANAL_WEB,
         ahora: datetime | None = None,
     ) -> SolicitudCreada:
         """Crea solicitud + ejecución + prosa + evento en una sola tx.
@@ -172,14 +184,18 @@ class RepositorioWeb:
         La clave de idempotencia (UNIQUE en `ejecuciones`) absorbe doble
         clic y reenvío del formulario: la segunda entrega con la misma
         firma devuelve la solicitud ya creada; con otra firma, conflicto.
+        `canal` registra el origen de la identidad (`web`/`web-demo`).
         """
         ahora = ahora or datetime.now(timezone.utc)
         id_solicitud = f"web-{uuid.uuid4().hex[:16]}"
         id_ejecucion = f"webe-{uuid.uuid4().hex[:16]}"
         campos_json = json.dumps(campos, ensure_ascii=False, sort_keys=True)
+        # La descripción es opcional en el pedido: su hash se deriva de
+        # cadena vacía, mientras la fila conserva NULL.
+        desc_hash = _hash(descripcion or "")
         input_hash = _hash(
             f"{idempotency_key}|{solicitante_hash}|{tipo_pieza}|"
-            f"{actividad_ref or ''}|{campos_json}|{_hash(descripcion)}"
+            f"{actividad_ref or ''}|{campos_json}|{desc_hash}"
         )
         try:
             with self._conexion_factory() as conn:
@@ -189,10 +205,11 @@ class RepositorioWeb:
                         " fuente_tipo, creada_en, canal, solicitante_hash,"
                         " rol, tipo_pieza, actividad_ref, estado_web,"
                         " ultima_actividad_en) VALUES"
-                        " (%s,%s,'web',%s,'web',%s,%s,%s,%s,'EN_COLA',%s)",
+                        " (%s,%s,'web',%s,%s,%s,%s,%s,%s,'EN_COLA',%s)",
                         (
-                            id_solicitud, input_hash, ahora, solicitante_hash,
-                            rol, tipo_pieza, actividad_ref, ahora,
+                            id_solicitud, input_hash, ahora, canal,
+                            solicitante_hash, rol, tipo_pieza, actividad_ref,
+                            ahora,
                         ),
                     )
                     conn.execute(
@@ -206,15 +223,20 @@ class RepositorioWeb:
                             input_hash, ahora,
                         ),
                     )
-                    conn.execute(
-                        "INSERT INTO prosa_transitoria (id_solicitud,"
-                        " id_ejecucion, clase, texto, texto_hash, creada_en)"
-                        " VALUES (%s,%s,'descripcion',%s,%s,%s)",
-                        (
-                            id_solicitud, id_ejecucion, descripcion,
-                            _hash(descripcion), ahora,
-                        ),
-                    )
+                    # La prosa `descripcion` sólo existe cuando el pedido
+                    # la trae: `texto` NULL en esta tabla está reservado
+                    # a la purga, nunca a la escritura.
+                    if descripcion is not None:
+                        conn.execute(
+                            "INSERT INTO prosa_transitoria (id_solicitud,"
+                            " id_ejecucion, clase, texto, texto_hash,"
+                            " creada_en)"
+                            " VALUES (%s,%s,'descripcion',%s,%s,%s)",
+                            (
+                                id_solicitud, id_ejecucion, descripcion,
+                                desc_hash, ahora,
+                            ),
+                        )
                     conn.execute(
                         "INSERT INTO prosa_transitoria (id_solicitud,"
                         " id_ejecucion, clase, texto, texto_hash, creada_en)"
@@ -274,8 +296,9 @@ class RepositorioWeb:
                 "   WHERE p.id_solicitud = s.id_solicitud"
                 "     AND p.clase = 'campos' AND p.texto IS NOT NULL"
                 "   LIMIT 1) AS titulo"
-                " FROM solicitudes s WHERE s.canal = 'web'"
-                " ORDER BY s.ultima_actividad_en DESC"
+                " FROM solicitudes s WHERE s.canal = ANY(%s)"
+                " ORDER BY s.ultima_actividad_en DESC",
+                (list(CANALES_WEB),),
             ).fetchall()
         return [
             ItemBandeja(
@@ -290,9 +313,11 @@ class RepositorioWeb:
         with self._conexion_factory() as conn:
             fila = conn.execute(
                 "SELECT id_solicitud, tipo_pieza, actividad_ref, estado_web,"
-                " rol, solicitante_hash, creada_en, ultima_actividad_en"
-                " FROM solicitudes WHERE id_solicitud = %s AND canal = 'web'",
-                (id_solicitud,),
+                " rol, solicitante_hash, canal, creada_en,"
+                " ultima_actividad_en"
+                " FROM solicitudes"
+                " WHERE id_solicitud = %s AND canal = ANY(%s)",
+                (id_solicitud, list(CANALES_WEB)),
             ).fetchone()
             if fila is None:
                 return None
@@ -311,7 +336,8 @@ class RepositorioWeb:
         return DetalleSolicitud(
             id_solicitud=fila[0], tipo_pieza=fila[1], actividad_ref=fila[2],
             estado_web=fila[3], rol=fila[4], solicitante_hash=fila[5],
-            creada_en=fila[6], ultima_actividad_en=fila[7],
+            canal=fila[6],
+            creada_en=fila[7], ultima_actividad_en=fila[8],
             descripcion=descripcion, campos=campos,
             texto_generado=generado,
             revisiones=tuple(
@@ -327,8 +353,8 @@ class RepositorioWeb:
         with self._conexion_factory() as conn:
             fila = conn.execute(
                 "SELECT estado_web FROM solicitudes"
-                " WHERE id_solicitud = %s AND canal = 'web'",
-                (id_solicitud,),
+                " WHERE id_solicitud = %s AND canal = ANY(%s)",
+                (id_solicitud, list(CANALES_WEB)),
             ).fetchone()
         return fila[0] if fila else None
 
@@ -352,7 +378,7 @@ class RepositorioWeb:
             with conn.transaction():
                 fila = conn.execute(
                     "SELECT e.id_ejecucion, e.id_solicitud, s.tipo_pieza,"
-                    " s.actividad_ref, s.rol, s.solicitante_hash"
+                    " s.actividad_ref, s.rol, s.solicitante_hash, s.canal"
                     " FROM ejecuciones e"
                     " JOIN solicitudes s ON s.id_solicitud = e.id_solicitud"
                     " WHERE e.estado = 'INICIADA'"
@@ -396,6 +422,7 @@ class RepositorioWeb:
         return TrabajoWeb(
             id_ejecucion=fila[0], id_solicitud=fila[1], tipo_pieza=fila[2],
             actividad_ref=fila[3], rol=fila[4], solicitante_hash=fila[5],
+            canal=fila[6],
             descripcion=descripcion, campos=campos, intentos=intentos,
         )
 
@@ -520,11 +547,11 @@ class RepositorioWeb:
                 filas = conn.execute(
                     "UPDATE solicitudes SET estado_web = 'VENCIDA',"
                     " ultima_actividad_en = %s"
-                    " WHERE canal = 'web'"
+                    " WHERE canal = ANY(%s)"
                     "   AND estado_web = ANY(%s)"
                     "   AND ultima_actividad_en < %s"
                     " RETURNING id_solicitud",
-                    (ahora, list(ESTADOS_ABIERTOS), corte),
+                    (ahora, list(CANALES_WEB), list(ESTADOS_ABIERTOS), corte),
                 ).fetchall()
                 for (id_solicitud,) in filas:
                     ejecucion = conn.execute(
@@ -558,10 +585,10 @@ class RepositorioWeb:
                     " purgada_en = %s FROM solicitudes s"
                     " WHERE p.id_solicitud = s.id_solicitud"
                     "   AND p.purgada_en IS NULL"
-                    "   AND s.canal = 'web'"
+                    "   AND s.canal = ANY(%s)"
                     "   AND s.estado_web = ANY(%s)"
                     " RETURNING p.secuencia, p.id_solicitud",
-                    (ahora, list(ESTADOS_CIERRE)),
+                    (ahora, list(CANALES_WEB), list(ESTADOS_CIERRE)),
                 ).fetchall()
                 por_solicitud: dict[str, int] = {}
                 for _, id_solicitud in purgadas:

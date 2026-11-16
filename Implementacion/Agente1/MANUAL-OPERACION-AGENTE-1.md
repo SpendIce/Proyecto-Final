@@ -592,6 +592,66 @@ OK` con `aplicadas`, `ya_aplicadas` y `roles`, o `status: INVALID` con
 Una segunda corrida no aplica nada y sale 0: es el comportamiento esperado
 cuando Portainer redespliega el mismo stack.
 
+### 5.13 Canal web y modo demostración
+
+El canal web (perfil `canal-web` del stack, servicios `web` y `worker`)
+arranca en modo real con `AGENTE1_WEB_GOOGLE_CLIENT_ID` +
+`AGENTE1_WEB_DOMINIO` y exige ambos: sin el client ID de DSI (#62) no hay
+token que verificar y sin dominio no hay `hd` que exigir.
+
+Mientras el client ID no llega, existe el **modo demostración** (ADR
+0019): `AGENTE1_WEB_MODO_DEMO=si` reemplaza la verificación de Google por
+la elección de una identidad del padrón en `/ingresar`. Se activa por
+variables del stack (el `env` file del canal, no el repo):
+
+| Variable | Contenido |
+|---|---|
+| `AGENTE1_WEB_MODO_DEMO` | `si` para habilitar; vacío apaga el modo. |
+| `AGENTE1_WEB_DEMO_HASTA` | `AAAA-MM-DD`, último día válido. A lo sumo 14 días adelante del arranque; la demo ya vencida o sin fecha no arranca. |
+| `AGENTE1_WEB_DEMO_CORREOS` | Correos separados por coma, cada uno con rol vigente en el padrón (`AGENTE1_PADRON_ROLES_CSV`). Son las identidades que ofrece «Entrar como». |
+
+El arranque cierra (`web_config_insegura`) si falta alguna, si la fecha
+ya pasó o está a más de 14 días, si algún correo no está en el padrón, si
+se combina con `AGENTE1_WEB_MODO_PRUEBA=si` o con
+`AGENTE1_WEB_GOOGLE_CLIENT_ID`, o si la cookie no es `Secure`. Una fecha
+mal armada sale con `web_demo_hasta_invalid`. A diferencia del modo
+prueba, el modo demo sí corre dentro del contenedor y en `0.0.0.0` del
+contenedor: la exposición la limita el compose (el puerto se publica sólo
+en `127.0.0.1` del host) y el acceso entra por el tailnet o por túnel
+SSH.
+
+**Exposición.** El servicio `web` publica
+`127.0.0.1:<puerto-host>:8080` (default `8443`). Para darle acceso por el
+tailnet con HTTPS terminado en el host:
+
+```bash
+tailscale serve --bg --https=443 http://127.0.0.1:8443
+```
+
+y la URL queda `https://<host>.<tailnet>.ts.net/`. Alternativa sin
+tailnet: túnel SSH `ssh -L 8443:127.0.0.1:8443 <usuario>@<host>`.
+
+**Vencimiento.** Pasada `AGENTE1_WEB_DEMO_HASTA` todo request responde
+503 con «La demostración venció» (los estáticos siguen sirviendo para que
+la página cargue su CSS) y las sesiones demo quedan inválidas aunque el
+contenedor siga corriendo. Para retirarlo: apagar la variable, volver al
+modo real cuando DSI entregue el client ID, y dejar que las solicitudes
+`web-demo` completen su ciclo con la retención vigente.
+
+**Trazabilidad.** Lo creado en modo demo se asienta con canal `web-demo`
+(migración 0006): la bandeja, el worker, el vencimiento y la purga lo
+tratan igual que `web`, y la auditoría HU-013 registra
+`origen_identidad: demo`. Una solicitud demo nunca figura como identidad
+verificada por Google ni sirve como evidencia de identidad.
+
+| Código | Significado | Qué hacer |
+|---|---|---|
+| `web_config_incomplete` | Falta DSN, padrón o tabla. | Revisar el env file del canal. |
+| `web_google_client_id_ausente` / `web_dominio_ausente` | Modo real sin client ID o sin dominio. | Pedir la credencial a DSI (#62) o declarar el dominio. |
+| `web_demo_hasta_invalid` | `AGENTE1_WEB_DEMO_HASTA` no es `AAAA-MM-DD`. | Corregir la fecha declarada. |
+| `web_config_insegura` | La combinación declarada viola una salvaguarda del modo (real, prueba o demo). | Revisar la tabla de arriba y los modos activos a la vez. |
+| `web_padron_invalid` / `web_fuente_invalid` | Padrón o tabla ilegibles. | Revisar `AGENTE1_PADRON_ROLES_CSV` y `AGENTE1_TABLA`. |
+
 ---
 
 ## 6. Políticas

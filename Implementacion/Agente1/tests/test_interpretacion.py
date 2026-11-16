@@ -440,6 +440,9 @@ def test_registro_conserva_unicamente_el_derivado_estructurado(tmp_path: Path) -
         "solicitante_rol",
         "solicitante_hash",
         "identidad_verificada",
+        # ADR 0019: cómo el canal obtuvo la identidad (`google`/`demo`),
+        # o `null` cuando el canal no la declara.
+        "origen_identidad",
         "estado",
         "resultado",
         "error",

@@ -133,6 +133,23 @@ Dirección. Detalle en el procedimiento.
     `agente1_mantenimiento`.
   - `evidencias/canal-web-*.png`: capturas de las pantallas con datos
     sintéticos y servicios fake.
+  - **Modo demostración sin login** (`AGENTE1_WEB_MODO_DEMO=si`, ADR
+    0019): para la presentación del 18/11/2026 sin el client ID de DSI
+    (#62), `/ingresar` ofrece «Entrar como» sobre una lista cerrada de
+    correos del padrón (`AGENTE1_WEB_DEMO_CORREOS`) con el rol que el
+    padrón resuelve en el servidor, nunca el que manda el navegador.
+    Exige `AGENTE1_WEB_DEMO_HASTA` a lo sumo 14 días adelante, cookie
+    `Secure` y no convive con el modo prueba ni con un client ID real;
+    sí corre en el contenedor y en `0.0.0.0` porque la exposición la
+    limita el compose (puerto en `127.0.0.1` del host) más
+    `tailscale serve` o túnel SSH. Pasada la fecha, todo request salvo
+    estáticos responde 503 «La demostración venció» y las sesiones demo
+    quedan inválidas. La sesión marca `origen` (`google`/`demo`), la
+    solicitud se asienta con canal `web-demo` (migración
+    `0006_canal_web_demo`) y la auditoría HU-013 suma
+    `origen_identidad`: lo creado en la demo nunca figura como identidad
+    verificada. Bandeja, worker, vencimiento y purga tratan `web-demo`
+    igual que `web`.
   - `pyproject.toml`/`uv.lock`: `fastapi`, `uvicorn`, `jinja2`,
     `psycopg`, `google-auth`, `pyjwt`, `python-multipart`, `httpx`.
 

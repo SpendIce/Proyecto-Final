@@ -3,13 +3,33 @@
 {% block contenido %}
 <section class="tarjeta ingreso" aria-labelledby="t-ingreso">
   <h1 id="t-ingreso">Ingresar</h1>
+  {% if config.modo_demo %}
+  <p>
+    Demostración del canal web del Agente 1: elegí una identidad del
+    padrón para recorrerlo. No verificamos quién sos.
+  </p>
+  {% else %}
   <p>
     El canal web del Agente 1 usa la cuenta institucional de Google.
     La identidad se verifica en el servidor y los permisos salen del
     padrón de roles.
   </p>
+  {% endif %}
   {% if error %}<p class="mensaje-error" role="alert">{{ error }}</p>{% endif %}
-  {% if config.modo_prueba %}
+  {% if config.modo_demo %}
+  <form method="post" action="/ingresar" class="formulario">
+    <input type="hidden" name="csrf" value="{{ csrf_login }}">
+    <label for="correo">Entrar como</label>
+    <select id="correo" name="correo" required>
+      {% for identidad in identidades_demo %}
+      <option value="{{ identidad.correo }}">
+        {{ identidad.correo }} · {{ identidad.rol }}
+      </option>
+      {% endfor %}
+    </select>
+    <button class="boton-primario" type="submit">Ingresar</button>
+  </form>
+  {% elif config.modo_prueba %}
   <form method="post" action="/ingresar" class="formulario">
     <input type="hidden" name="csrf" value="{{ csrf_login }}">
     <label for="credential">Token de prueba (modo sin Google)</label>
@@ -17,6 +37,7 @@
     <button class="boton-primario" type="submit">Ingresar</button>
   </form>
   {% else %}
+  {# modo real: Google Identity Services #}
   <div id="g_id_onload"
        data-client_id="{{ config.google_client_id }}"
        data-login_uri="/ingresar"
