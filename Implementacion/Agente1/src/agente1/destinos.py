@@ -81,6 +81,23 @@ class DestinoBorradores(Protocol):
     ) -> ReferenciaBorrador: ...
 
 
+@dataclass(frozen=True)
+class ResultadoDestinoPorMarca:
+    """Lo que devuelve un destino «un Doc por solicitud» (ADR 0016, #153).
+
+    `doc_ref` es el id del documento para reexportarlo; `doc_url` el
+    enlace de edición que la interfaz muestra (NULL cuando el destino no
+    es Google); `texto_documento` el texto del Doc tal como lo devuelve
+    la exportación — la base del hash con la que se detectan ediciones.
+    """
+
+    referencia: ReferenciaBorrador
+    doc_ref: str
+    head_revision_id: str | None = None
+    doc_url: str | None = None
+    texto_documento: str | None = None
+
+
 class DestinoBorradoresError(RuntimeError):
     """Falla de escritura, con pista opcional para reconciliación manual.
 

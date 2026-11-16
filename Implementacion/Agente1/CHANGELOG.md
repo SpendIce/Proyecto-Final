@@ -26,6 +26,91 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+Sin cambios todavía.
+
+## [0.6.0] - 2026-11-16
+
+Canal web del Agente 1 para la presentación de cursada (#149, #151, #153,
+#154): ingreso en modo demostración mientras DSI no entrega el client ID
+(ADR 0019), Doc por pedido, revisiones, aprobación atada al hash y correo
+prellenado en Gmail sin envío (ADR 0021); aprobación única (#125), plantilla
+SEU del certificado (#126) y producción sin marcas podadas (#142). Clase más
+alta: Mayor; en `0.x` sube `Y`.
+
+- **Menor — Aprobar ofrece el correo prellenado en Gmail, sin enviar
+  (#153, ADR 0021).** Los públicos del pedido pasan al catálogo
+  `publicos_destinatarios_v2` con los 18 grupos del listado (la v1
+  queda para trazabilidad; sólo id y nombre). La correspondencia
+  id → dirección y los `usos_candidatos` viven fuera del repo en el
+  catálogo `AGENTE1_AUDIENCIAS_PATH`, y el arranque de la web es
+  fail-closed si un público del contrato no tiene mapeo
+  (`web_audiencias_invalid` / `web_config_insegura`). «Nuevo pedido»
+  preselecciona públicos por `usos_candidatos` del tipo. Tras
+  `APROBADA`, la página muestra «Preparar correo» —públicos con la
+  marca «pendiente de aprobación SEU», asunto y enlaces «Abrir con la
+  cuenta» (`authuser`) y «Elegir otra cuenta» (`AccountChooser`)— y el
+  click de aprobar intenta abrir `/solicitudes/{id}/correo` en el mismo
+  gesto: la pestaña espera la decisión y, con la aprobación asentada,
+  redirige al compose de Gmail con destinatarios en `bcc` (nunca `to`),
+  `su` y `body` de la revisión aprobada; si el cuerpo no entra en la
+  URL va por portapapeles. La auditoría de la decisión registra
+  `prellenado_publicos` (migración `0008`), nunca direcciones, y no hay
+  registro de envío: sin `gmail.send`, sin borradores por API, sin el
+  scope `gmail.compose`. La hoja del Form suma
+  `canal_form_respuestas_v4` (mismas columnas, públicos del catálogo
+  nuevo).
+
+- **Menor — Doc por solicitud, revisiones y aprobación en el canal web
+  (#153).** El worker escribe el borrador en un Google Doc marcado con
+  `a1_solicitud` en `appProperties` y lo reutiliza en reintentos en vez
+  de duplicarlo (`GoogleDocsDestinoPorMarca`, `--destino-docs` vs
+  `--destino-fake`; el stack lo opta por `AGENTE1_WORKER_DESTINO`).
+  La página de la solicitud gana el enlace «Editar en Google Docs», la
+  tabla de revisiones (`generada`/`editada en Docs`, hash corto,
+  vigente), «Traer cambios del Doc» (exporta `text/plain`, crea revisión
+  nueva sólo si el hash cambió) y «Aprobar/Descartar» — ambos POST con
+  CSRF, rol `APROBADOR_CONTENIDO` del padrón, y la decisión queda atada
+  al hash del Doc reexportado: si el Doc cambió desde que se mostró, el
+  rechazo importa la revisión nueva (prueba 4 del ADR 0016). La
+  decisión registra rol, `origen_identidad` (`google`/`demo`) y
+  `version_agente`. Migración `0007`: `doc_ref`/`doc_url` en
+  `solicitudes`, `origen` en `borradores` (`id_ejecucion` queda
+  opcional para revisiones importadas), prosa `importado` enlazada a su
+  borrador y metadatos de decisión en `validaciones`. Opcional:
+  `AGENTE1_WEB_DOCS_COMPARTIR=si` da `writer` al correo del solicitante
+  al crear el Doc. Aprobar cierra el recorrido — no publica ni envía
+  correos.
+
+- **Menor — renderers en modo producción sin marcas de borrador (#142).**
+  Capacidad nueva: los renderers componen el cuerpo desde la plantilla
+  aprobada por tipo en modo `produccion` y conservan las marcas en `prueba`
+  (default intacto). `plantillas_aprobadas.py` nuevo: carga el JSON de
+  plantillas que declara `AGENTE1_PLANTILLAS_APROBADAS_PATH` (fuera del
+  repo, como la lista aprobada), id de versión atado al hash del texto,
+  validación de forma compartida y sustitución `{{variable}}` sin llaves
+  sueltas. La aprobación no se infiere del archivo: por la definición del
+  11/11 (#125, ADR 0020) cada versión exige una `apruebo_contenido`
+  `registrada` de `APROBADOR_CONTENIDO` en el registro de decisiones sobre
+  `tpl-<tipo>-<hash>` — sin ella es `template_version_unapproved`; fallas
+  de carga `approved_templates_file_*`, de tipo `approved_template_*`.
+  El modo tiene una sola fuente (`destino.modo` en el Protocol): un
+  parámetro que no coincide es `send_mode_mismatch`. Los tipos `por_envio`
+  de HU-012, `recordatorio_pago` y `correo_actividad` exigen su plantilla
+  registrada — el texto provisional nunca viaja podado —; en HU-014 el
+  certificado de `aprobacion` sale del diseño SEU (#126) con
+  `marcar_prueba` apagado, `asistencia` exige `certificado_asistencia`,
+  el correo `correo_certificado`, y los recursos de firma completos
+  (`signature_resources_missing` si falta alguno antes de entregar). En
+  producción no se envía el aviso de estado del canal ni el correo al
+  aprobador del lote de certificados: los reemplaza el canal web (la
+  evaluación del lote en la web queda pendiente, fuera de este PR) y la
+  auditoría asienta `aviso_reemplazado_por_canal_web`; producción nunca
+  quita la marca de borrador. El aviso de respaldo quedó fuera de alcance.
+  Un borrador compuesto en prueba no sirve para una
+  entrega de producción (`template_body_mismatch`). Las redacciones
+  institucionales siguen pendientes de la SEU; las de los tests son
+  sintéticas declaradas.
+
 - **Mayor — aprobación única de contenido y lotes (#125).** La designación
   del 11/11/2026 reemplaza el par semántica + utilitaria: una sola persona
   autorizada (`APROBADOR_CONTENIDO`, decisión `apruebo_contenido`) aprueba
@@ -64,6 +149,95 @@ Dirección. Detalle en el procedimiento.
     `plantilla_actividad_base_provisional_v2.txt` y
     `recordatorio_pago_provisional_v2.txt`; las v4/v2/v1 quedan
     versionadas y legibles.
+- **Mayor — canal web del Agente 1 (#149).** Base del canal web según el
+  diseño «Bandeja y pieza» y los ADR 0014 y 0016: ingreso con Google
+  Identity (ID token verificado en el servidor con `google-auth`, `hd` del
+  dominio configurable), sesión sólo en memoria (30 min de inactividad,
+  8 h de máximo, cookie `HttpOnly`/`Secure`/`SameSite`), autorización por
+  padrón en cada request, CSRF en toda escritura, bandeja compartida de
+  la SEU, pedido guiado por listas cerradas (tipo, actividad, área
+  emisora, firma de área, públicos del #154) y estado recuperable de la
+  solicitud. La revisión y decisión de piezas queda para #153.
+  - `src/agente1/web/`: app FastAPI+Jinja2 (`app.py`), sesiones en
+    memoria (`sesiones.py`), verificador de identidad inyectable
+    (`identidad.py`, con `VerificadorGoogle` real y `VerificadorFake`
+    para pruebas y evidencia), adapter PostgreSQL (`persistencia.py`,
+    entrada idempotente por `idempotency_key`, bandeja, reserva con
+    `FOR UPDATE SKIP LOCKED` y plazo, cierre con revisión de pieza y
+    reparto `vencer_solicitudes`/`purgar_prosa` por rol) y worker
+    (`worker.py`) que reutiliza el pipeline `interpretar_solicitud` →
+    `generar_pieza` → destino por marca, sin duplicar colas ni gates.
+  - `DespachoGacetilla` en `interpretacion.py` +
+    `procesar_gacetilla_estructurada` en `procesamiento.py`: los siete
+    tipos de gacetilla pasan por el núcleo —misma identidad, autorización
+    por rol, clasificación, gates y auditoría HU-013 que el resto del
+    agente—; los seis sin actividad van por el pipeline estructurado y no
+    por un despacho paralelo en el canal.
+  - La bandeja la ve todo el padrón SEU; sólo la creación de pedidos
+    exige un rol habilitado, y la autorización se resuelve en el
+    servidor en cada request. «Nuevo pedido» es la entrada principal
+    tras el login.
+  - Seguridad: `POST /ingresar` valida el double-submit `g_csrf_token`
+    de Google Identity Services en modo real y el CSRF propio en modo
+    prueba; el modo prueba se niega a arrancar con un client ID real,
+    cookie `Secure`, host no-loopback o dentro del contenedor; en modo
+    real `AGENTE1_WEB_DOMINIO` es obligatorio y `hd` se verifica siempre.
+  - `src/agente1/web/plantillas/` y `src/agente1/web/estaticos/`:
+    plantillas del lado del servidor con la identidad FIE (azul
+    `#081E4B`, neutros, Encode Sans + Roboto servidas localmente con
+    licencia OFL, imagotipo blanco autorizado en el encabezado).
+  - `migrations/0004_canal_web_agente1.up/down.sql`: esquema del canal
+    (campos web en `solicitudes`, `ejecuciones` y `borradores`,
+    `prosa_transitoria` para la prosa transitoria con purga diaria).
+  - `migrations/0005_roles_canal_web.up/down.sql`: roles `agente1_app`
+    (opera sin tocar la auditoría y con `SELECT` sobre las secuencias
+    para el `pg_dump` diario) y `agente1_mantenimiento` (dueño de
+    la prosa para el VACUUM diario y dueño del evento `prosa_purgada`).
+  - `src/agente1/respaldo.py`, `scripts/respaldar_estado.py`,
+    `scripts/restaurar_respaldo.py`: el respaldo diario incluye
+    `postgres/agente1.pgdump` con `--clean --if-exists` cuando hay DSN
+    declarada y la restauración lo vuelca con `psql`; el respaldo falla
+    cerrado si `pg_dump` falta (ADR 0009). `entorno_libpq` pasa las
+    credenciales del DSN por `PG*` del subproceso — nunca en argv.
+  - `scripts/servidor_web.py`, `scripts/worker_canal_web.py`,
+    `scripts/purgar_canal_web.py` y paso diario `purga_canal_web` en
+    `cli_scheduler.py`: los procesos del canal web y su retención
+    encadenados a la purga + respaldo del día.
+  - `docker/compose.yaml`: servicios `postgres` (red interna, sin
+    puertos fuera del stack), `web` y `worker` bajo el perfil
+    `canal-web` — `docker compose config` sin el perfil resuelve igual
+    que en `main`; `scripts/contenedor_entrypoint.py` mapea los comandos
+    `web` y `worker` y marca `AGENTE1_CONTENEDOR=si`; el `scheduler` se
+    suma a la red `canal` con los DSN del canal web y el `Dockerfile`
+    instala `postgresql-client-16`, misma mayor que `postgres:16`.
+  - `tests/test_canal_web.py`, `tests/test_despacho_gacetilla.py` y
+    `tests/test_canal_web_persistencia.py`: ingreso/sesión/CSRF/pedido
+    con servicios inyectados, los siete tipos por el seam del núcleo con
+    LLM fake, y las pruebas del ADR 0016 (1, 3, 5, 6, 7, 8, 9) sobre
+    PostgreSQL real conectadas como `agente1_app` y
+    `agente1_mantenimiento`.
+  - `evidencias/canal-web-*.png`: capturas de las pantallas con datos
+    sintéticos y servicios fake.
+  - **Modo demostración sin login** (`AGENTE1_WEB_MODO_DEMO=si`, ADR
+    0019): para la presentación del 18/11/2026 sin el client ID de DSI
+    (#62), `/ingresar` ofrece «Entrar como» sobre una lista cerrada de
+    correos del padrón (`AGENTE1_WEB_DEMO_CORREOS`) con el rol que el
+    padrón resuelve en el servidor, nunca el que manda el navegador.
+    Exige `AGENTE1_WEB_DEMO_HASTA` a lo sumo 14 días adelante, cookie
+    `Secure` y no convive con el modo prueba ni con un client ID real;
+    sí corre en el contenedor y en `0.0.0.0` porque la exposición la
+    limita el compose (puerto en `127.0.0.1` del host) más
+    `tailscale serve` o túnel SSH. Pasada la fecha, todo request salvo
+    estáticos responde 503 «La demostración venció» y las sesiones demo
+    quedan inválidas. La sesión marca `origen` (`google`/`demo`), la
+    solicitud se asienta con canal `web-demo` (migración
+    `0006_canal_web_demo`) y la auditoría HU-013 suma
+    `origen_identidad`: lo creado en la demo nunca figura como identidad
+    verificada. Bandeja, worker, vencimiento y purga tratan `web-demo`
+    igual que `web`.
+  - `pyproject.toml`/`uv.lock`: `fastapi`, `uvicorn`, `jinja2`,
+    `psycopg`, `google-auth`, `pyjwt`, `python-multipart`, `httpx`.
+
 - **Menor — plantilla SEU del certificado de aprobación (#126).** La
   emisión de `aprobacion` compone el diseño recibido de la SEU como PDF
   reproducible; `asistencia` sigue con la provisional pendiente de la
@@ -115,6 +289,60 @@ Dirección. Detalle en el procedimiento.
   - El público sólo decide a quién se envía: declarado en el pedido, el
     registro y el aviso, y excluido de todo prompt
     (`CAMPOS_DEL_PEDIDO_NO_DE_LA_PIEZA`). Ver ADR 0015.
+- **Menor — migrador one-shot del canal web en el despliegue (#149).** El
+  perfil `canal-web` deja de depender de que alguien aplique el esquema y
+  asigne las claves a mano: un servicio `migrador` corre una vez sobre la
+  base vacía, aplica las `*.up.sql` pendientes en orden y asigna las claves
+  de `agente1_app` y `agente1_mantenimiento`; `web` y `worker` arrancan sólo
+  si termina bien. No corta versión por sí solo.
+  - `scripts/migrar_canal_web.py`: tabla de control
+    `migraciones_aplicadas(version, aplicada_en, sha256)`, cada migración y
+    su asiento en una transacción, idempotente y fail-closed si una ya
+    aplicada cambió de sha256; claves con `ALTER ROLE` vía `\getenv` de
+    `psql`, nunca por argv ni en la salida; salida JSON con
+    `status`/`error_code` como los demás scripts.
+  - `scripts/contenedor_entrypoint.py`: comando `migrar`.
+  - `docker/compose.yaml`: servicio `migrador` del perfil `canal-web`, con
+    `restart: "no"`, red `canal` y variables `${VAR:-}`; `web` y `worker`
+    pasan a depender de `migrador: service_completed_successfully`. Sin el
+    perfil, `docker compose config` resuelve igual que antes.
+  - `MANUAL-OPERACION-AGENTE-1.md` (§2.5 y §5.12): variables del stack con
+    placeholders, idempotencia, rotación de claves y códigos del migrador.
+  - `tests/test_migrar_canal_web.py`: base efímera desde cero, roles que
+    loguean con sus claves, segunda corrida sin cambios, sha alterado,
+    variables faltantes y claves ausentes de stdout/stderr.
+- **Parche — la imagen runtime instala las dependencias del canal web
+  (#149).** La etapa `runtime` del `Dockerfile` no instalaba las
+  dependencias que `pyproject.toml` declara desde #163 —`fastapi`,
+  `uvicorn`, `psycopg`, `jinja2`, `pyjwt`, `google-auth` y
+  `python-multipart`—, así que `web` y `worker` no podían arrancar. Además
+  se declara `requests` como dependencia de producción: el transporte de
+  `google-auth` lo importa y no estaba en `pyproject.toml`.
+  - `Dockerfile`: etapa `deps` nueva que construye `/opt/venv` con
+    `uv sync --frozen --no-dev --no-install-project`; `runtime` copia el
+    venv y usa su Python en el `ENTRYPOINT`. `uv` y el grupo de desarrollo
+    no quedan en la imagen final; se mantienen el usuario no root, el
+    cliente `postgresql-client-16`, la base por digest y la ausencia de
+    tests y `.git`.
+  - `tests/test_contenedor.py`: el contrato del `Dockerfile` fija el venv
+    de producción, el `--no-dev` de `deps`, el grupo de desarrollo en
+    `test` y la ausencia de `uv`, `pytest` y `ruff` en `runtime`.
+- **Parche — PostgreSQL arranca con el mínimo privilegio y la purga no
+  deja prosa sin retención (#149).**
+  - `docker/compose.yaml`: `postgres` corre como `70:70` (el
+    `postgres` de la imagen alpine) y no suma capacidades; conserva
+    `read_only`, `cap_drop: ALL`, `no-new-privileges`, la red interna
+    `canal` y la ausencia de puertos publicados. `/run` y `/tmp` van en
+    tmpfs con modo 1777 para que el entrypoint cree el socket sin root.
+  - `src/agente1/cli_scheduler.py`: con cualquiera de los dos DSN del
+    canal la purga se considera configurada y se invoca; si falta el
+    otro, el script falla cerrado con `purga_dsn_ausente` y el respaldo
+    del día no corre. Sólo sin ningún DSN queda `pendiente`.
+  - `src/agente1/web/persistencia.py`: `prosa_purgada` se asienta una
+    sola vez por solicitud; `evidencia_hash` compromete la cantidad de
+    filas purgadas de esa solicitud.
+  - Tests: capacidades mínimas de `postgres`, los tres casos de la purga
+    del scheduler y el evento agrupado por solicitud.
 
 ## [0.5.10] - 2026-10-27
 

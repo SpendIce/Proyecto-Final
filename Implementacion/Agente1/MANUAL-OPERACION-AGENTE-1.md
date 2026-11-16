@@ -146,6 +146,7 @@ restringidos (`chmod 600`), y se inyecta por variables de entorno.
 | Env de Workspace | `~/.config/agente1/workspace-d2.env` | `AGENTE1_WORKSPACE_*` (ambiente, IDs de planilla/carpeta/plantilla, rango, timeout, cuenta por la que se hace pasar). |
 | Env del scheduler | `~/.config/agente1/scheduler.env` | `AGENTE1_SCHEDULER_*`, `AGENTE1_INSUMOS_RANGO_A1`, `AGENTE1_RESPALDO_*` y las `AGENTE1_WORKSPACE_*`. |
 | Padrón de roles | Fuera del repo, ruta en `AGENTE1_PADRON_ROLES_PATH` | Identidad y rol por persona, mantenido por la SEU (ADR 0005). |
+| Plantillas aprobadas por tipo | Fuera del repo, ruta en `AGENTE1_PLANTILLAS_APROBADAS_PATH` | JSON `{"<tipo>": {"asunto": "...", "cuerpo": "..."}}` con las redacciones que aprueba la SEU para el modo producción (#142). El texto no va al repo; la aprobación de cada versión queda en el registro de decisiones (ADR 0020). |
 | Datos operativos | Planillas de Google del ambiente | Planilla de actividades, respuestas de Forms, novedades de pago. Los mantiene su dueño; no son configuración del agente. |
 
 La lista completa de variables por subsistema está en los runbooks de
@@ -166,6 +167,43 @@ que corre es la que está escrita, no un default silencioso.
 | El scheduler corre | Una línea `resultado: "completada"` en `logs/scheduler-corridas.jsonl` dentro de la ventana. |
 | El token se emite y se audita | Una línea en `logs/cuenta-suplantada.jsonl` por token pedido. |
 | Reportes operativos | `scripts/operaciones_seguras.py health\|reconcile\|consolidate\|retention` (dry-run, no modifican nada). |
+
+### 2.5 Canal web: bootstrap de la base
+
+El perfil `canal-web` del stack levanta la base, un **migrador one-shot** y
+los procesos `web` y `worker`. El migrador corre una sola vez
+(`restart: "no"`), antes que ellos: aplica las migraciones `0001`–`0005` que
+falten, asienta versión y sha256 en `migraciones_aplicadas` y asigna las
+claves de los roles que crea la 0005. Si sale distinto de cero, `web` y
+`worker` no arrancan (`depends_on: service_completed_successfully`).
+
+No hace falta shell en el host: todo se declara en *Portainer → Stacks →
+agente1 → Environment variables*. Para encender el canal web y el scheduler:
+
+| Variable | Valor (placeholder) | Para qué |
+|---|---|---|
+| `COMPOSE_PROFILES` | `scheduler,canal-web` | Enciende el scheduler y el canal web. |
+| `AGENTE1_POSTGRES_PASSWORD` | `<clave-del-superusuario-de-la-base>` | Clave con la que `postgres` inicializa el volumen. |
+| `AGENTE1_POSTGRES_ADMIN_DSN` | `postgresql://<usuario-admin>:<clave-admin>@<host-de-la-base>:<puerto>/<base>` | Conexión del migrador, como superusuario de la base. |
+| `AGENTE1_POSTGRES_APP_PASSWORD` | `<clave-de-agente1_app>` | Clave que el migrador asigna a `agente1_app`. |
+| `AGENTE1_POSTGRES_MANTENIMIENTO_PASSWORD` | `<clave-de-agente1_mantenimiento>` | Clave que el migrador asigna a `agente1_mantenimiento`. |
+| `AGENTE1_POSTGRES_DSN` | `postgresql://agente1_app:<clave-de-agente1_app>@<host-de-la-base>:<puerto>/<base>` | Conexión de `web` y `worker`. |
+| `AGENTE1_POSTGRES_DSN_MANTENIMIENTO` | `postgresql://agente1_mantenimiento:<clave-de-agente1_mantenimiento>@<host-de-la-base>:<puerto>/<base>` | Conexión de la purga diaria que corre el scheduler. |
+
+La base corre como `70:70` (el usuario `postgres` de la imagen alpine) y
+conserva `read_only`, `cap_drop: ALL`, `no-new-privileges` y la red interna
+`canal`, sin puertos publicados. `/run` y `/tmp` van en tmpfs con modo 1777
+para que el entrypoint cree el socket sin root.
+
+El migrador es idempotente: la segunda corrida no aplica nada y sale 0. Cada
+migración es atómica: si una falla, las anteriores quedan aplicadas con su
+fila de control y la corrida siguiente retoma desde la pendiente. Si una
+migración **ya aplicada** cambió de sha256, falla cerrado con
+`migrar_sha256_distinto` y no la reaplica. Para rotar la clave de un rol se
+cambia su variable en el stack y se hace *Pull and redeploy*: el migrador
+vuelve a ejecutar `ALTER ROLE` al arrancar. Ni el DSN ni las claves se
+imprimen; la salida es un JSON con `status`, `aplicadas`, `ya_aplicadas` y
+`roles`.
 
 ---
 
@@ -438,6 +476,42 @@ conforme. La tasa de conformidad, en cambio, es una medida de calidad (§7).
 | `lista_cierre_vacia` / `lista_cierre_duplicada` / `lista_cierre_fila_invalida` / `lista_cierre_condicion_vacia` | La lista de cierre no cumple el contrato. | Corregir la lista en la fuente; la cierra quien gestiona el curso. |
 | `padron_roles_missing` / `padron_roles_invalid` / `padron_fila_invalid` / `padron_id_duplicado` / `padron_actividad_distinta` | El padrón de roles no cumple el contrato. | Corregir el padrón (lo mantiene la SEU). |
 | `plan_*` (p. ej. `plan_cuotas_inconsistentes`, `plan_procedencia_invalid`, `plan_dato_obligatorio_ausente`, `plan_campo_desconocido`) | El plan de pago no cumple el contrato. | Corregir el plan de pago en la fuente. |
+| `approved_templates_file_missing` / `approved_templates_file_invalid` | Falta el archivo de plantillas aprobadas o su JSON no tiene la forma esperada (incluye una llave suelta o un placeholder mal formado). | Declarar `AGENTE1_PLANTILLAS_APROBADAS_PATH` y corregir el archivo fuera del repo; el agente no inventa redacciones. |
+| `approved_template_missing` / `approved_template_invalid` | El tipo pedido no está en el archivo, o su forma no cierra (asunto requerido vacío, variable desconocida o sin dato, falta `{{bloque_firmas}}` en el certificado de asistencia). | Agregar el tipo y corregir la redacción; revisar las variables que la corrida puede completar. |
+| `template_version_unapproved` | La versión exacta del texto no tiene la `apruebo_contenido` registrada de `APROBADOR_CONTENIDO` (ADR 0020). | Declarar el pendiente y registrar la decisión por el Form de decisiones (§5.9); editar el texto exige una aprobación nueva. |
+| `template_variable_without_value` | El render encontró una variable sin valor. | Corregir la plantilla o el dato de la corrida; nunca se entrega una llave suelta. |
+| `send_mode_invalid` / `send_mode_mismatch` | El destino no declara un modo de envío válido, o el `modo_envio` de la corrida contradice al del destino. | Revisar `AGENTE1_GMAIL_MODO` y no pasar un modo distinto al del destino. |
+| `aviso_reemplazado_por_canal_web` | En producción el aviso operativo no se envía: el estado del pedido se ve en el canal web y el correo al aprobador del lote queda pendiente de la evaluación web. El pedido/lote sigue su curso. | Ninguna: es el comportamiento esperado. Producción nunca quita la marca de borrador; en prueba el aviso se envía marcado. |
+| `signature_resources_missing` | Faltan el símbolo o las firmas del certificado de aprobación, o los firmantes del certificado de asistencia. | Cargar la custodia de recursos (`AGENTE1_CERTIFICADOS_RECURSOS_DIR`) y revisar la lista de firmantes. |
+
+**Plantillas aprobadas por tipo (#142).** En producción el agente no poda un
+borrador: compone cada correo o certificado desde la plantilla del tipo. El
+texto vive en el archivo de `AGENTE1_PLANTILLAS_APROBADAS_PATH` y la versión
+exacta se identifica como `tpl-<tipo>-<hash>` (`id_version_plantilla`). Que el
+tipo esté en el archivo no autoriza: hace falta la `apruebo_contenido`
+`registrada` de `APROBADOR_CONTENIDO` sobre ese id. Para habilitar una
+redacción:
+
+1. Escribir el tipo en el archivo externo y calcular su id de versión
+   (`id_version_plantilla`; el valor sale también del error
+   `template_version_unapproved` de la corrida).
+2. Declarar el objeto pendiente:
+   `uv run python scripts/registrar_form_decisiones.py --declarar
+   plantilla:tpl-<tipo>-<hash>`.
+3. La persona con rol `APROBADOR_CONTENIDO` responde `apruebo_contenido` por
+   el Form de decisiones (§5.9). Después de la decisión, la corrida de
+   producción compone desde esa versión.
+
+El certificado de `asistencia` exige `{{bloque_firmas}}` en la plantilla y una
+lista de firmantes no vacía. Si el texto cambia, el hash cambia y hay que
+registrar una aprobación nueva: la anterior queda atada a la versión vieja.
+
+En producción, si el lote de certificados todavía no está aprobado, el lote
+queda `PENDIENTE_APROBACION` y el PDF de muestra se genera marcado, pero el
+correo al aprobador con el enlace al Form **no se envía**: la evaluación del
+lote va a pasar a la web (pendiente, fuera de este PR). La auditoría asienta
+`aviso_aprobacion` con `resultado: reemplazado` y el código
+`aviso_reemplazado_por_canal_web`.
 
 Los códigos `runner_*` (por ejemplo `runner_live_not_enabled`,
 `runner_live_write_not_confirmed`, `runner_live_config_invalid`,
@@ -499,6 +573,13 @@ manda. Una difusión con identificador bien formado de una actividad no
 cargada entra al núcleo igual que por prosa y vuelve `INVALIDA` sin
 generación.
 
+En modo producción el canal no manda el aviso de registro o estado del
+pedido: con el canal web, el estado se ve ahí. El pedido se atiende igual y
+el registro asienta `aviso: reemplazada` con el código
+`aviso_reemplazado_por_canal_web`, sin fallar la atención. En modo prueba el
+aviso se envía y conserva `BORRADOR — NO ENVIAR`; producción tampoco poda
+esa marca: la sacan las personas antes de enviar.
+
 | Código | Significado | Qué hacer |
 |---|---|---|
 | `canal_form_config_incomplete` / `canal_form_config_invalid` / `canal_form_config_unknown_key` | Configuración del canal de pedidos por Form, incluida la versión de contrato de hoja (`AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO`). | Revisar el env file. |
@@ -506,6 +587,7 @@ generación.
 | `canal_form_areas_padron_invalido` | El padrón cerrado de áreas emisoras no se puede leer o está mal armado. | Revisar `contracts/areas_emisoras_v2.json`; el arranque sin padrón de áreas no habilita a medias. |
 | `canal_form_publicos_padron_invalido` | El catálogo cerrado de públicos destinatarios no se puede leer o está mal armado. | Revisar `contracts/publicos_destinatarios_v1.json`. |
 | `canal_form_registry_invalid` / `canal_form_registry_unavailable` | El registro de atendidos está dañado o no está. | Revisar `atendidos-canal-form.jsonl`. |
+| `aviso_reemplazado_por_canal_web` | En producción el aviso de estado no se envía: lo reemplaza el canal web. El registro queda `aviso: reemplazada`. | Ninguna: el pedido se atendió y el estado se consulta en la web. En prueba el aviso sigue marcado y se envía. |
 | `canal_form_decisiones_config_incomplete` / `canal_form_decisiones_config_invalid` / `canal_form_decisiones_config_unknown_key` | Configuración del Form de decisiones. | Revisar el env file. |
 | `decisiones_registry_invalid` | El registro de decisiones está dañado. | Revisar `decisiones-procesadas.jsonl`. |
 | `decision_objeto_invalid` / `decision_tipo_invalid` / `decision_link_invalid` / `decision_detalle_invalid` | La decisión no corresponde a un objeto, tipo, enlace o detalle válidos. | Registrar la decisión con el objeto y el rol correctos. |
@@ -534,6 +616,153 @@ legítimos, como datos incompletos): un encadenamiento no debe seguir como si se
 hubiera generado algo. El smoke de Workspace usa `0`/`2`/`3`/`4` (éxito,
 configuración inválida, token ausente o inseguro, y falla cerrada de red o
 contrato), según su runbook §4.
+
+### 5.12 Canal web: migrador y base
+
+El canal web arranca con el perfil `canal-web` del stack (ver §2.5). El
+migrador es el único proceso que escribe el esquema y las claves de rol; si
+falla, `web` y `worker` no arrancan. Su salida es una línea JSON: `status:
+OK` con `aplicadas`, `ya_aplicadas` y `roles`, o `status: INVALID` con
+`error_code`.
+
+| Código | Significado | Qué hacer |
+|---|---|---|
+| `migrar_dsn_admin_ausente` / `migrar_clave_app_ausente` / `migrar_clave_mantenimiento_ausente` | Falta una variable del stack. | Completar `AGENTE1_POSTGRES_ADMIN_DSN`, `AGENTE1_POSTGRES_APP_PASSWORD` y `AGENTE1_POSTGRES_MANTENIMIENTO_PASSWORD` y redesplegar. |
+| `migrar_dsn_admin_invalido` | El DSN no es una URL ni una cadena `clave=valor` de libpq. | Revisar la forma del DSN en el stack. |
+| `migrar_cliente_psql_ausente` | La imagen no tiene el cliente `psql`. | No debería pasar: la imagen instala `postgresql-client-16`. Cortar una versión nueva. |
+| `migrar_migraciones_ausentes` / `migrar_migracion_invalida` | La imagen no lleva las migraciones o una no tiene el par `BEGIN`/`COMMIT` esperado. | No editar la base a mano: cortar una versión nueva con las migraciones completas. |
+| `migrar_sha256_distinto` | Una migración ya aplicada cambió de contenido. | No se reaplica: restaurar la versión anterior de la imagen o agregar una migración nueva; revisar quién editó historia. |
+| `migrar_control_fallido` / `migrar_migracion_fallida` / `migrar_roles_fallidos` | Falló el acceso a la base, una migración o la asignación de claves. | Revisar los logs del migrador y la salud de `postgres`. Cada migración es atómica: las anteriores quedan aplicadas con su fila de control y la corrida siguiente retoma desde la pendiente. |
+
+Una segunda corrida no aplica nada y sale 0: es el comportamiento esperado
+cuando Portainer redespliega el mismo stack.
+
+### 5.13 Canal web y modo demostración
+
+El canal web (perfil `canal-web` del stack, servicios `web` y `worker`)
+arranca en modo real con `AGENTE1_WEB_GOOGLE_CLIENT_ID` +
+`AGENTE1_WEB_DOMINIO` y exige ambos: sin el client ID de DSI (#62) no hay
+token que verificar y sin dominio no hay `hd` que exigir.
+
+Mientras el client ID no llega, existe el **modo demostración** (ADR
+0019): `AGENTE1_WEB_MODO_DEMO=si` reemplaza la verificación de Google por
+la elección de una identidad del padrón en `/ingresar`. Se activa por
+variables del stack (el `env` file del canal, no el repo):
+
+| Variable | Contenido |
+|---|---|
+| `AGENTE1_WEB_MODO_DEMO` | `si` para habilitar; vacío apaga el modo. |
+| `AGENTE1_WEB_DEMO_HASTA` | `AAAA-MM-DD`, último día válido. A lo sumo 14 días adelante del arranque; la demo ya vencida o sin fecha no arranca. |
+| `AGENTE1_WEB_DEMO_CORREOS` | Correos separados por coma, cada uno con rol vigente en el padrón (`AGENTE1_PADRON_ROLES_CSV`). Son las identidades que ofrece «Entrar como». |
+
+El arranque cierra (`web_config_insegura`) si falta alguna, si la fecha
+ya pasó o está a más de 14 días, si algún correo no está en el padrón, si
+se combina con `AGENTE1_WEB_MODO_PRUEBA=si` o con
+`AGENTE1_WEB_GOOGLE_CLIENT_ID`, o si la cookie no es `Secure`. Una fecha
+mal armada sale con `web_demo_hasta_invalid`. A diferencia del modo
+prueba, el modo demo sí corre dentro del contenedor y en `0.0.0.0` del
+contenedor: la exposición la limita el compose (el puerto se publica sólo
+en `127.0.0.1` del host) y el acceso entra por el tailnet o por túnel
+SSH.
+
+**Exposición.** El servicio `web` publica
+`127.0.0.1:<puerto-host>:8080` (default `8443`). Para darle acceso por el
+tailnet con HTTPS terminado en el host:
+
+```bash
+tailscale serve --bg --https=443 http://127.0.0.1:8443
+```
+
+y la URL queda `https://<host>.<tailnet>.ts.net/`. Alternativa sin
+tailnet: túnel SSH `ssh -L 8443:127.0.0.1:8443 <usuario>@<host>`.
+
+**Vencimiento.** Pasada `AGENTE1_WEB_DEMO_HASTA` todo request responde
+503 con «La demostración venció» (los estáticos siguen sirviendo para que
+la página cargue su CSS) y las sesiones demo quedan inválidas aunque el
+contenedor siga corriendo. Para retirarlo: apagar la variable, volver al
+modo real cuando DSI entregue el client ID, y dejar que las solicitudes
+`web-demo` completen su ciclo con la retención vigente.
+
+**Trazabilidad.** Lo creado en modo demo se asienta con canal `web-demo`
+(migración 0006): la bandeja, el worker, el vencimiento y la purga lo
+tratan igual que `web`, y la auditoría HU-013 registra
+`origen_identidad: demo`. Una solicitud demo nunca figura como identidad
+verificada por Google ni sirve como evidencia de identidad.
+
+**Doc por solicitud, revisiones y aprobación (ADR 0016, #153).** Cuando
+el worker termina la generación, escribe el borrador en **un** Google
+Doc marcado con la solicitud en `appProperties` (`a1_solicitud`): si la
+corrida cae y se retoma, la búsqueda por la marca reutiliza el Doc en
+vez de crear otro. La página de la solicitud muestra el enlace «Editar
+en Google Docs», las revisiones (número, origen `generada`/`editada en
+Docs`, fecha, hash corto) y los botones:
+
+- **Traer cambios del Doc** exporta el texto del Doc (`files.export`
+  `text/plain`) y crea una revisión nueva sólo si el hash cambió.
+- **Aprobar / Descartar** reexporta el Doc y exige que su hash coincida
+  con el de la revisión vigente mostrada; si cambió, el rechazo avisa
+  «El Doc cambió: traé los cambios antes de aprobar» y asienta la
+  revisión nueva. La decisión registra rol, origen de identidad
+  (`google`/`demo`), versión del agente y hash del Doc; exige el rol
+  `APROBADOR_CONTENIDO` del padrón. Aprobar **cierra** el recorrido:
+  no publica, no envía correos ni aporta a Historia Viva.
+
+**Correo prellenado al aprobar (ADR 0021, #153).** Con
+`AGENTE1_AUDIENCIAS_PATH` declarada, aprobar ofrece «Preparar correo»:
+la página muestra los públicos del pedido por nombre (con la marca
+«pendiente de aprobación SEU» si su estado lo es), el asunto y dos
+enlaces —«Abrir con la cuenta \<correo de la sesión\>»
+(`authuser`) y «Elegir otra cuenta» (`AccountChooser`)— que abren Gmail
+en modo redactar con los destinatarios en **Cco** y el cuerpo de la
+revisión aprobada. El click de «Aprobar» intenta abrir esa pestaña en
+el mismo gesto; si el bloqueador lo frena, los botones quedan. El
+agente **no envía nada**: sin `gmail.send`, sin borradores por API, sin
+el scope `gmail.compose` — la persona revisa y envía ella. Si el cuerpo
+no entra en la URL, el bloque ofrece «Copiar cuerpo» (Clipboard API) y
+el aviso «pegá el cuerpo en el correo». La auditoría de la decisión
+guarda los ids de públicos de la oferta (`prellenado_publicos`), nunca
+direcciones, y no hay registro de envío.
+
+El **catálogo de audiencias** vive fuera del repo, como el padrón: un
+JSON con `version: audiencias_institucionales_v1`, `fuente`
+(`total_grupos`, `dominio`), `estado_general` y la lista `audiencias`.
+Cada audiencia declara `id`, `nombre`, `direccion` (grupo de Workspace),
+`categoria`, `alcance_esperado`, `usos_candidatos`, `estado_aprobacion`,
+`observacion` y opcional `origen_uso` — el esquema está en
+`contracts/audiencias_institucionales_v1.schema.json`. Los
+`usos_candidatos` preseleccionan públicos por tipo en «Nuevo pedido».
+En producción el archivo es
+`~/.config/agente1/audiencias-institucionales.json` (0600) y el compose
+lo toma del directorio de config del host, montado `ro`. El arranque es
+fail-closed: si el archivo no carga o un público del contrato no tiene
+dirección, la web no arranca.
+
+Variables que lo controlan (env file del stack, nunca en el repo):
+
+| Variable | Contenido |
+|---|---|
+| `AGENTE1_WORKER_DESTINO` | `fake` (default) usa el destino en memoria; `docs` pasa el worker a `--destino-docs` sobre Drive real con la config `AGENTE1_WORKSPACE_*` del env file. Cualquier otro valor produce un flag que argparse rechaza al arrancar; sin flag o con ambos el worker cierra con `worker_destino_no_declarado`. |
+| `AGENTE1_WEB_DOCS` | `si` hace que `servidor_web` construya el exportador de Docs real y habilite los botones; sin él los POST responden `exportador_ausente`. Con `si` y config Workspace inválida el arranque cierra con `web_workspace_config_invalid`. |
+| `AGENTE1_WEB_DOCS_COMPARTIR` | `si` da permiso `writer` al correo de quien pidió (resuelto contra `AGENTE1_PADRON_ROLES_CSV`, sin `sendNotificationEmail`) al generar el Doc, lo cree o lo reutilice; el evento `doc_compartido` audita el hash del correo. Si el permiso falla, el Doc existe y la solicitud queda `LISTA`; el evento `permiso_no_otorgado` guarda el hash del intento. Sin la variable el Doc queda sólo en la carpeta del agente. |
+| `AGENTE1_AUDIENCIAS_PATH` | Ruta del catálogo externo de audiencias (ADR 0021): habilita la preselección de públicos, «Preparar correo» y `/solicitudes/{id}/correo`. El compose lo apunta a `${AGENTE1_HOST_CONFIG}/audiencias-institucionales.json`. Si el archivo no carga el arranque cierra con `web_audiencias_invalid`, y si le falta el mapeo de un público del contrato cierra con `web_config_insegura` (el mensaje nombra el id, nunca la dirección). Sin la variable el prellenado queda apagado y `/correo` muestra el motivo. |
+
+| Código | Significado | Qué hacer |
+|---|---|---|
+| `web_config_incomplete` | Falta DSN, padrón o tabla. | Revisar el env file del canal. |
+| `web_google_client_id_ausente` / `web_dominio_ausente` | Modo real sin client ID o sin dominio. | Pedir la credencial a DSI (#62) o declarar el dominio. |
+| `web_demo_hasta_invalid` | `AGENTE1_WEB_DEMO_HASTA` no es `AAAA-MM-DD`. | Corregir la fecha declarada. |
+| `web_config_insegura` | La combinación declarada viola una salvaguarda del modo (real, prueba o demo). | Revisar la tabla de arriba y los modos activos a la vez. |
+| `web_version_agente_ausente` | El arranque no pudo leer la versión de `pyproject.toml`; la decisión no se registra sin proveniencia. | Reponer `pyproject.toml` en la raíz del Agente 1 o cortar una versión con el manifest completo. |
+| `web_padron_invalid` / `web_fuente_invalid` | Padrón o tabla ilegibles. | Revisar `AGENTE1_PADRON_ROLES_CSV` y `AGENTE1_TABLA`. |
+| `web_workspace_config_invalid` | `AGENTE1_WEB_DOCS=si` pero la config `AGENTE1_WORKSPACE_*` falta o es inválida. | Completar el env file o apagar `AGENTE1_WEB_DOCS`. |
+| `web_audiencias_invalid` | `AGENTE1_AUDIENCIAS_PATH` declarada pero el catálogo no carga (ausente, JSON inválido o versión desconocida). | Revisar el archivo externo contra `contracts/audiencias_institucionales_v1.schema.json` o quitar la variable. |
+| `worker_destino_no_declarado` | El worker arrancó sin `--destino-fake` ni `--destino-docs`, o con ambos. | Declarar `AGENTE1_WORKER_DESTINO=fake` o `docs` en el stack. |
+| `worker_workspace_config_invalid` | `--destino-docs` sin config Workspace completa. | Completar el env file o volver a `fake`. |
+| `worker_padron_ausente` / `worker_padron_invalid` | `AGENTE1_WEB_DOCS_COMPARTIR=si` sin padrón legible. | Revisar `AGENTE1_PADRON_ROLES_CSV`. |
+| `exportador_ausente` (aviso en página) | POST de revisión/decisión sin `AGENTE1_WEB_DOCS=si`. | Habilitar el exportador o ignorar: la solicitud sigue su ciclo. |
+| `drive_auth_denied` / `docs_auth_denied` | El token de Workspace no tiene permiso en Drive/Docs. | Revisar scopes y la delegación de la cuenta. |
+| `drive_response_invalid` | Drive devolvió algo que no cumple el contrato — incluye **dos Docs con la misma marca** (estado corrupto). | Reconciliar a mano los documentos marcados con `a1_solicitud`. |
+| `docs_update_failed_orphaned` | El Doc se creó pero el volcado falló: queda un Doc huérfano. | La próxima corrida lo reutiliza por la marca; el hash de referencia adjunto permite reconciliarlo a mano si persiste. |
 
 ---
 

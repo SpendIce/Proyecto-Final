@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}Sin permiso · Agente 1{% endblock %}
+{% block contenido %}
+<section class="tarjeta aviso" aria-labelledby="t-sinpermiso">
+  <h1 id="t-sinpermiso">Sin permiso para usar el canal</h1>
+  <p>
+    Tu identidad se verificó, pero tu cuenta no figura en el padrón de
+    roles con acceso al canal web del Agente 1.
+  </p>
+  <p>
+    Si creés que es un error, pedí la incorporación al referente de la
+    Secretaría de Extensión Universitaria.
+  </p>
+  <p><a class="nav-enlace" href="/ingresar">Volver al ingreso</a></p>
+</section>
+{% endblock %}

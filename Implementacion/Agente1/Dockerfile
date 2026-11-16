@@ -1,12 +1,16 @@
 # syntax=docker/dockerfile:1
 #
-# Imagen del Agente 1 (#143, ADR 0013). Dos etapas útiles:
+# Imagen del Agente 1 (#143, ADR 0013). Tres etapas útiles:
 #
-# - `test`: la suite y el linter corren adentro, con el mismo Python que el
-#   runtime. El CI la construye en cada PR y push (`--target test`).
-# - `runtime`: sólo el código controlado, sin tests ni dependencias de terceros
-#   (el proyecto declara `dependencies = []`), con un usuario no root. Es la
-#   imagen que se publica en ghcr.io al cortar una versión.
+# - `deps`: construye `/opt/venv` con las dependencias de producción de
+#   `uv.lock` (`--no-dev --no-install-project`). El binario `uv` y el grupo
+#   de desarrollo no pasan a la imagen final.
+# - `test`: la suite y el linter corren adentro, con las dependencias de
+#   desarrollo y el mismo Python que el runtime. El CI la construye en cada
+#   PR y push (`--target test`).
+# - `runtime`: el código controlado y el venv de `deps`, sin tests, sin `uv`
+#   y con un usuario no root. Es la imagen que se publica en ghcr.io al
+#   cortar una versión.
 #
 # Nunca entra a la imagen: la clave de la cuenta de servicio, el env file, el
 # estado ni los modelos. Todo eso se monta en tiempo de ejecución (compose).
@@ -26,6 +30,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TZ=America/Argentina/Buenos_Aires
 WORKDIR /srv/p100/Implementacion/Agente1
 
+FROM base AS deps
+COPY --from=uv /uv /usr/local/bin/uv
+ENV UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/venv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
 FROM base AS test
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/venv
@@ -42,10 +52,31 @@ LABEL org.opencontainers.image.source="https://github.com/SpendIce/Proyecto-Fina
       org.opencontainers.image.description="Agente 1 (Extensión Bot) del P100: borradores con validación humana" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
+# Cliente de PostgreSQL en la misma versión mayor que la imagen `postgres`
+# del stack (16): el respaldo diario corre `pg_dump`/`psql` del canal web
+# (ADR 0016) y el `pg_dump` exige no ser más viejo que el servidor. La
+# imagen base es Debian y su `postgresql-client` queda atrás, así que el
+# paquete sale del repo oficial de PostgreSQL (PGDG).
+RUN set -eux; \
+    . /etc/os-release; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends wget ca-certificates gnupg; \
+    install -d /usr/share/postgresql-common/pgdg; \
+    wget -qO /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+        https://www.postgresql.org/media/keys/ACCC4CF8.asc; \
+    echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends postgresql-client-16; \
+    apt-get purge -y wget gnupg; \
+    apt-get autoremove -y; \
+    rm -rf /var/lib/apt/lists/*
 # Sin `.git` en la imagen: el commit del tag viaja en el entorno para la
 # evidencia de las corridas (`corrida_unica.py`).
 ENV AGENTE1_REVISION=${REVISION}
 RUN useradd --uid 10001 --user-group --no-create-home --shell /usr/sbin/nologin agente1
+COPY --from=deps /opt/venv /opt/venv
+ENV PATH=/opt/venv/bin:$PATH
 COPY pyproject.toml uv.lock manifest-version.json Dockerfile ./
 COPY src ./src
 COPY scripts ./scripts
@@ -55,5 +86,5 @@ COPY docker ./docker
 COPY data ./data
 COPY golden ./golden
 USER 10001
-ENTRYPOINT ["python", "/srv/p100/Implementacion/Agente1/scripts/contenedor_entrypoint.py"]
+ENTRYPOINT ["/opt/venv/bin/python", "/srv/p100/Implementacion/Agente1/scripts/contenedor_entrypoint.py"]
 CMD ["consola"]

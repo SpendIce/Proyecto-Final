@@ -33,7 +33,12 @@ from agente1.canal_form import (
 )
 from agente1.confirmaciones import MARCADOR_BORRADOR
 from agente1.fuentes import CsvFuenteSolicitudes, FuenteSolicitudesError
-from agente1.gmail_envio import GMAIL_SEND_TARGET, GmailDestinoConfirmaciones
+from agente1.gmail_envio import (
+    GMAIL_SEND_TARGET,
+    MODO_ENVIO_PRODUCCION,
+    MODO_ENVIO_PRUEBA,
+    GmailDestinoConfirmaciones,
+)
 from agente1.google_workspace import (
     GoogleDrivePlantillaDestinoBorradores,
     GoogleSheetsLectorValores,
@@ -191,6 +196,7 @@ def crear_canal(
     destinatarios: set[str] | None = None,
     gmail_error: Exception | None = None,
     doc_id: str = "doc_copiado-777",
+    modo_avisos: str = MODO_ENVIO_PRUEBA,
 ) -> tuple[CanalFormPedidos, TransporteRouter]:
     router = TransporteRouter(
         values=values if values is not None else [ENCABEZADOS_HOJA, fila_respuesta()],
@@ -211,6 +217,7 @@ def crear_canal(
             token_provider=TokenFijo(),
             transport=router,
             timeout_s=5,
+            modo=modo_avisos,
         ),
         directorio_estado=tmp_path / "estado",
         form_id=FORM_ID,
@@ -761,6 +768,13 @@ def test_registro_atendidos_corrupto_frena_la_lectura(tmp_path: Path) -> None:
 
 
 def test_canal_valida_sus_dependencias_al_construir(tmp_path: Path) -> None:
+    class AvisoSinModo:
+        def entregar(self, **kwargs) -> None:
+            raise AssertionError("no se entrega en esta prueba")
+
+    class AvisoConModoInvalido(AvisoSinModo):
+        modo = "espacial"
+
     padron = _padron_default()
     avisos = GmailDestinoConfirmaciones(
         destinatarios_permitidos={CORREO_SOLICITANTE},
@@ -773,6 +787,11 @@ def test_canal_valida_sus_dependencias_al_construir(tmp_path: Path) -> None:
         {"lector": LectorValoresCsv(tmp_path / "x.csv"), "form_id": "id mal"},
         {"lector": LectorValoresCsv(tmp_path / "x.csv"), "entry_id": "otra"},
         {"lector": LectorValoresCsv(tmp_path / "x.csv"), "directorio_estado": "str"},
+        {"lector": LectorValoresCsv(tmp_path / "x.csv"), "avisos": AvisoSinModo()},
+        {
+            "lector": LectorValoresCsv(tmp_path / "x.csv"),
+            "avisos": AvisoConModoInvalido(),
+        },
     ):
         base = {
             "padron": padron,
@@ -1419,3 +1438,37 @@ def test_la_propuesta_no_persiste_ni_la_prosa_ni_el_correo(
     # Los términos que aportó el modelo tampoco viajan al aviso: la actividad
     # se nombra con el título institucional.
     assert CORREO_SOLICITANTE not in cuerpo
+
+
+# --- Modo producción (#142) -----------------------------------------------------
+
+
+def test_en_produccion_el_aviso_lo_reemplaza_el_canal_web(
+    tmp_path: Path,
+) -> None:
+    """En producción el estado se ve en la web: no se manda el aviso."""
+
+    canal, router = crear_canal(tmp_path, modo_avisos=MODO_ENVIO_PRODUCCION)
+
+    resultados = _atender(canal, router, tmp_path)
+
+    # El pedido sigue igual: no se falla por no poder mandar el aviso.
+    assert resultados[0].estado == "PENDIENTE_VALIDACION"
+    assert _correos_gmail(router) == []
+    (registro,) = _atendidos(tmp_path)
+    assert registro["aviso"] == "reemplazada"
+    assert registro["aviso_codigo"] == "aviso_reemplazado_por_canal_web"
+
+
+def test_en_prueba_el_aviso_conserva_la_marca_de_siempre(
+    tmp_path: Path,
+) -> None:
+    canal, router = crear_canal(tmp_path)
+
+    _atender(canal, router, tmp_path)
+
+    (mensaje,) = _correos_gmail(router)
+    assert MARCADOR_BORRADOR in _cuerpo(mensaje)
+    (registro,) = _atendidos(tmp_path)
+    assert registro["aviso"] == "enviada"
+    assert registro["aviso_codigo"] is None

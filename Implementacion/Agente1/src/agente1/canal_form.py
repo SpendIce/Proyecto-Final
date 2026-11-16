@@ -19,19 +19,24 @@ produce para un formulario de correo verificado y una sola pregunta abierta:
 ``Marca temporal | Dirección de correo electrónico | <pedido>``
 
 Desde #122 la forma la declara un contrato versionado
-(`contracts/canal_form_respuestas_v{1,2,3}.json`): la v1 es la de siempre
-y sigue siendo el default; la v2 suma la primera pregunta de **tipo de
-gacetilla** (lista cerrada tomada del contrato de tipos), la **actividad
-condicional** —sólo los tipos que la llevan; el ítem «No es una actividad /
-no figura» no registra nada— y el **área emisora** por un padrón cerrado
-(`contracts/areas_emisoras_v2.json`, la v1 queda para trazabilidad), porque
-de ese padrón sale la firma del área que imprime la pieza. La v3 (#154)
-suma la **firma de área** como opción separada del área —«qué área emite»
-y «si la pieza lleva firma de área» son dos decisiones del pedido— y los
-**públicos destinatarios** por catálogo cerrado
-(`contracts/publicos_destinatarios_v1.json`): grupos de correo de
-Workspace, elección múltiple, que sólo deciden a quién se envía la pieza y
-nunca entran a un prompt ni cambian el texto. Una fila estructurada que no
+(`contracts/canal_form_respuestas_v{1,2,3,4}.json`): la v1 es la de
+siempre y sigue siendo el default; la v2 suma la primera pregunta de
+**tipo de gacetilla** (lista cerrada tomada del contrato de tipos), la
+**actividad condicional** —sólo los tipos que la llevan; el ítem «No es
+una actividad / no figura» no registra nada— y el **área emisora** por un
+padrón cerrado (`contracts/areas_emisoras_v2.json`, la v1 queda para
+trazabilidad), porque de ese padrón sale la firma del área que imprime la
+pieza. La v3 (#154) suma la **firma de área** como opción separada del
+área —«qué área emite» y «si la pieza lleva firma de área» son dos
+decisiones del pedido— y los públicos destinatarios; la v4 mantiene las
+mismas columnas y apunta la pregunta de públicos al catálogo
+`publicos_destinatarios_v2` (los 18 grupos del listado, no sólo el
+confirmado por la SEU). Los **públicos destinatarios** salen del catálogo
+cerrado
+(`contracts/publicos_destinatarios_v2.json`, la v1 queda para
+trazabilidad): grupos de correo de Workspace, elección múltiple, que
+sólo deciden a quién se envía la pieza y nunca entran a un prompt ni
+cambian el texto. Una fila estructurada que no
 cumple las listas cerradas no va al núcleo —nada puede rechazarla por
 dónde y «la clase más parecida» está prohibida—: el chequeo es del canal,
 no contiene prosa libre, y su desenlace es acotado
@@ -86,7 +91,9 @@ El correo de aviso (D12 de #38): todo cuerpo empieza con
 destinatario es el correo verificado del pedido —que en D2 tiene que estar
 además en la lista de direcciones permitidas; si no está, la entrega se
 rechaza antes de la red y queda `aviso: rechazada` en el registro, sin
-reintento ni re-despacho del pedido.
+reintento ni re-despacho del pedido. En modo producción el aviso no se
+envía: el estado del pedido se ve en el canal web y el registro asienta
+`aviso: reemplazada` con `aviso_reemplazado_por_canal_web`.
 
 Repregunta sin prosa: cuando el núcleo devuelve `PENDIENTE_DESAMBIGUACION`,
 el aviso trae **un link prellenado por candidata** —`viewform?usp=pp_url&
@@ -125,6 +132,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import hmac
 import json
 import math
 import os
@@ -141,6 +149,7 @@ from urllib.parse import quote
 
 from .canal import PedidoCanal
 from .confirmaciones import (
+    AVISO_REEMPLAZADO_POR_CANAL_WEB,
     MARCADOR_BORRADOR,
     DestinoConfirmaciones,
     EntregaRechazadaError,
@@ -205,7 +214,13 @@ COL_TEXTO = 2
 CONTRATO_HOJA_V1 = "canal_form_respuestas_v1"
 CONTRATO_HOJA_V2 = "canal_form_respuestas_v2"
 CONTRATO_HOJA_V3 = "canal_form_respuestas_v3"
-CONTRATOS_HOJA = (CONTRATO_HOJA_V1, CONTRATO_HOJA_V2, CONTRATO_HOJA_V3)
+CONTRATO_HOJA_V4 = "canal_form_respuestas_v4"
+CONTRATOS_HOJA = (
+    CONTRATO_HOJA_V1,
+    CONTRATO_HOJA_V2,
+    CONTRATO_HOJA_V3,
+    CONTRATO_HOJA_V4,
+)
 
 # Último ítem de la lista condicional de actividades (contrato v2): no da
 # de alta ninguna actividad. Elegida con un tipo que la necesita, el
@@ -381,6 +396,17 @@ def _padron_areas() -> dict[str, dict[str, str]]:
     return areas_resueltas
 
 
+def areas_emisoras() -> dict[str, str]:
+    """Padrón de áreas emisoras como `id -> nombre`, para la interfaz.
+
+    Es la lectura pública del mismo padrón que usa el canal Form: la web
+    (#149) arma su select de acá y valida contra la misma lista cerrada,
+    en vez de cargar el contrato por su cuenta.
+    """
+
+    return {id_area: area["nombre"] for id_area, area in _padron_areas().items()}
+
+
 def firma_de_area(id_area: str) -> str | None:
     """Firma institucional de área de la pieza, o `None` fuera del padrón.
 
@@ -413,7 +439,7 @@ def _padron_publicos() -> dict[str, dict[str, str]]:
     try:
         texto = (
             files("agente1")
-            .joinpath("contracts", "publicos_destinatarios_v1.json")
+            .joinpath("contracts", "publicos_destinatarios_v2.json")
             .read_text(encoding="utf-8")
         )
         contrato = json.loads(texto)
@@ -436,6 +462,19 @@ def _padron_publicos() -> dict[str, dict[str, str]]:
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
         raise CanalFormError("canal_form_publicos_padron_invalido") from None
     return resueltos
+
+
+def publicos_destinatarios() -> dict[str, str]:
+    """Catálogo de públicos destinatarios como `id -> nombre` (#154).
+
+    Misma lectura pública que `areas_emisoras`: la web arma sus opciones
+    de acá y valida contra la misma lista cerrada que el canal Form.
+    """
+
+    return {
+        id_publico: publico["nombre"]
+        for id_publico, publico in _padron_publicos().items()
+    }
 
 
 def nombre_de_publico(id_publico: str) -> str | None:
@@ -472,7 +511,7 @@ def _publicos_desde_celda(valor: str) -> tuple[list[str], str | None]:
     Devuelve `(ids, None)` con la celda válida o `([], codigo)` con el
     desenlace acotado: sin público elegido, un id fuera del catálogo o un
     id repetido. Los ids son vocabulario cerrado del catálogo versionado
-    (`publicos_destinatarios_v1`), nunca texto libre.
+    (`publicos_destinatarios_v2`), nunca texto libre.
     """
 
     ids = [parte.strip() for parte in valor.split(",") if parte.strip()]
@@ -515,6 +554,28 @@ def es_id_actividad(valor: str) -> bool:
     return PATRON_IDENTIFICADOR_EXPLICITO.fullmatch(valor.strip()) is not None
 
 
+def normalizar_correo(correo: str) -> str:
+    """La forma canónica de una dirección: sin espacios y en minúscula.
+
+    Google trata las direcciones como insensibles a mayúsculas y el padrón
+    las guarda normalizadas. App y worker comparten esta función para que el
+    hash del solicitante sea el mismo en los dos lados.
+    """
+
+    return correo.strip().lower()
+
+
+def hash_correo(correo: str) -> str:
+    """El sha256 de la dirección normalizada, único hash de identidad.
+
+    Es el `solicitante_hash` de la solicitud y el `compartido_con_hash` del
+    Doc: un solo helper evita que el worker busque un hash que la app no
+    escribió cuando Google devuelve la dirección con otra caja.
+    """
+
+    return hashlib.sha256(normalizar_correo(correo).encode("utf-8")).hexdigest()
+
+
 class PadronRoles:
     """Correo verificado → rol autorizado (ADR 0005), cargado fuera del repo.
 
@@ -535,7 +596,7 @@ class PadronRoles:
         except Exception:
             raise ConfiguracionWorkspaceError("padron_roles_invalid") from None
         for correo, rol in items:
-            correo_n = correo.strip().lower() if isinstance(correo, str) else ""
+            correo_n = normalizar_correo(correo) if isinstance(correo, str) else ""
             rol_n = rol.strip() if isinstance(rol, str) else ""
             if not email_valido(correo_n) or _ROL_PADRON_RE.fullmatch(rol_n) is None:
                 raise ConfiguracionWorkspaceError("padron_roles_invalid")
@@ -549,7 +610,24 @@ class PadronRoles:
 
         if not isinstance(correo, str):
             return None
-        return self._roles.get(correo.strip().lower())
+        return self._roles.get(normalizar_correo(correo))
+
+    def correo_para_hash(self, solicitante_hash: str) -> str | None:
+        """El correo del padrón cuyo SHA-256 es `solicitante_hash`.
+
+        Es el camino inverso que usa el worker del canal web para dar el
+        permiso `writer` del Doc (#153): la solicitud sólo guarda el hash
+        del correo y el permiso necesita la dirección real, que vive en
+        el padrón. Devuelve `None` si ningún correo del padrón coincide —
+        la solicitud no inventa un destinatario.
+        """
+
+        if not isinstance(solicitante_hash, str):
+            return None
+        for correo in self._roles:
+            if hmac.compare_digest(hash_correo(correo), solicitante_hash):
+                return correo
+        return None
 
     @classmethod
     def desde_entorno(
@@ -903,10 +981,15 @@ class CanalFormPedidos:
         decisiones: EnlacesDecisiones | None = None,
         contrato_hoja: str = CONTRATO_HOJA_V1,
     ) -> None:
+        # Import perezoso: `gmail_envio` importa `confirmaciones`, que este
+        # módulo ya consume a nivel de módulo.
+        from .gmail_envio import MODOS_ENVIO
+
         if (
             not callable(getattr(lector, "leer_valores", None))
             or not isinstance(padron, PadronRoles)
             or not callable(getattr(avisos, "entregar", None))
+            or getattr(avisos, "modo", None) not in MODOS_ENVIO
             or not isinstance(directorio_estado, Path)
             or not isinstance(form_id, str)
             or ID_RE.fullmatch(form_id) is None
@@ -1412,13 +1495,20 @@ class CanalFormPedidos:
     ) -> tuple[str, str | None]:
         """Un intento de `gmail.send`; el desenlace vuelve para el registro.
 
-        `EntregaRechazadaError` es una prohibición de política —destinatario
-        fuera de la lista de prueba, cuerpo sin marca—: se registra como
-        `rechazada` con su código, sin reintento. Cualquier otra excepción
-        del destino (caída del medio, auth) es `fallida`. Nunca propaga:
-        responder no puede romper el bucle de atención.
+        En producción no hay intento: el aviso operativo lo reemplaza el
+        canal web, así que se devuelve `reemplazada` con su código sin
+        tocar el destino. En prueba, `EntregaRechazadaError` es una
+        prohibición de política —destinatario fuera de la lista de prueba,
+        cuerpo sin marca—: se registra como `rechazada` con su código, sin
+        reintento. Cualquier otra excepción del destino (caída del medio,
+        auth) es `fallida`. Nunca propaga: responder no puede romper el
+        bucle de atención.
         """
 
+        from .gmail_envio import MODO_ENVIO_PRODUCCION
+
+        if self._avisos.modo == MODO_ENVIO_PRODUCCION:
+            return "reemplazada", AVISO_REEMPLAZADO_POR_CANAL_WEB
         try:
             self._avisos.entregar(
                 idempotency_key=_hash(
@@ -1444,13 +1534,16 @@ class CanalFormPedidos:
     ) -> str:
         """Texto del aviso: sólo datos institucionales y links, nunca prosa.
 
-        Todo cuerpo empieza con `MARCADOR_BORRADOR` porque el destino Gmail
-        lo exige mientras rija la lista de prueba (D12). Lo que sigue sale
-        del `ResultadoInterpretacion` —resumen con datos de la fuente, error
-        con mensajes fijos, candidatas del índice—, nunca del texto del
-        pedido ni del cuerpo del borrador. `enlaces_decision` son los links
-        prellenados del Form de decisiones (#72): etiqueta fija más URL, la
-        pieza publicada o descartada la decide una persona, no el agente.
+        Todo cuerpo —también el de producción— empieza con
+        `MARCADOR_BORRADOR`: la marca la sacan las personas antes de
+        enviar, el agente no la poda. En producción el aviso ni siquiera
+        se entrega (lo reemplaza el canal web; ver `_enviar_aviso`). Lo
+        que sigue sale del `ResultadoInterpretacion` —resumen con datos
+        de la fuente, error con mensajes fijos, candidatas del índice—,
+        nunca del texto del pedido ni del cuerpo del borrador.
+        `enlaces_decision` son los links prellenados del Form de
+        decisiones (#72): etiqueta fija más URL, la pieza publicada o
+        descartada la decide una persona, no el agente.
         """
 
         ref = _ref_pedido(pedido.id_pedido)
@@ -1583,7 +1676,8 @@ class CanalFormPedidos:
                 lineas.append(_una_linea(resultado.error))
             if resultado.resumen:
                 lineas.append(_una_linea(resultado.resumen))
-        return f"{MARCADOR_BORRADOR}\n\n" + "\n".join(lineas) + "\n"
+        cuerpo = "\n".join(lineas) + "\n"
+        return f"{MARCADOR_BORRADOR}\n\n" + cuerpo
 
     def _publicos_del_pedido(self, pedido: PedidoCanal) -> str:
         """Nombres de los públicos elegidos, para que la revisión los vea.
@@ -1702,7 +1796,9 @@ class CanalFormPedidos:
         registro: dict[str, object] = {
             "version": REGISTRO_ATENDIDOS_VERSION,
             "id_pedido": pedido.id_pedido,
-            "solicitante_hash": _hash(pedido.solicitante.identificador),
+            "solicitante_hash": hash_correo(
+                pedido.solicitante.identificador
+            ),
             "rol": pedido.solicitante.rol,
             "identidad_canal": "correo_verificado_form",
             "rol_origen": (

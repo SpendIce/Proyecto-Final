@@ -47,6 +47,7 @@ import uuid
 from dataclasses import asdict, dataclass
 from importlib.resources import files
 from pathlib import Path
+from typing import Mapping
 
 from .confirmaciones import (
     CLAVE_REGISTRO_RE,
@@ -73,6 +74,15 @@ from .pagos import (
     ItemRecordatorio,
     LoteRecordatorios,
     PlanPago,
+)
+from .plantillas_aprobadas import (
+    PLANTILLA_TIPO_MISSING,
+    PLANTILLA_VERSION_NO_APROBADA,
+    PlantillaCorreo,
+    modo_envio_efectivo,
+    plantilla_version_registrada,
+    renderizar_plantilla,
+    validar_forma_plantilla,
 )
 from .registro_auditoria import escribir_registro
 from .tipos_notificacion import descripcion_tipo
@@ -315,6 +325,9 @@ def encolar_lote_recordatorios(
     registro: RegistroConfirmaciones,
     cola: ColaEnvios,
     directorio_salida: Path,
+    modo_envio: str | None = None,
+    plantillas_aprobadas: Mapping[str, PlantillaCorreo] | None = None,
+    decisiones=None,
 ) -> ResultadoLote:
     """Encola los ítems del lote aprobado hacia la entrega simulada.
 
@@ -337,12 +350,40 @@ def encolar_lote_recordatorios(
     `DUPLICADA`), `PENDIENTE_VALIDACION` → `ENVIO_ENCOLADO` y `ItemEnvio`
     en la cola. La entrega no pasa por acá: la hace `drenar_envios` con su
     candado de destino fake, como cualquier envío de HU-012.
+
+    `modo_envio` (#142) fija cómo se compone cada cuerpo: `prueba` —el
+    default— conserva las marcas de borrador que exige el destino de
+    prueba; `produccion` compone cada ítem desde la plantilla aprobada
+    por tipo `recordatorio_pago` de `plantillas_aprobadas`, cuya versión
+    tiene que tener la `apruebo_contenido` registrada en `decisiones`
+    (definición del 11/11, #125). El texto provisional declarado
+    `PROVISIONAL_NO_INSTITUCIONAL` nunca viaja sin marca: sin plantilla
+    del tipo es `approved_template_missing`, sin la decisión registrada
+    es `template_version_unapproved`, y un modo desconocido es
+    `send_mode_invalid` antes de tocar el registro.
     """
 
     correlation_id = str(uuid.uuid4())
     log_path = _log_path(directorio_salida)
     aprobacion = aprobacion_lote.aprobacion
     items_aprobados = sorted(aprobacion_lote.items)
+
+    from .gmail_envio import (
+        MODO_ENVIO_PRODUCCION,
+        MODO_ENVIO_PRUEBA,
+        MODOS_ENVIO,
+    )
+
+    modo = modo_envio or MODO_ENVIO_PRUEBA
+    if modo not in MODOS_ENVIO:
+        return ResultadoLote(
+            estado="INVALIDA",
+            clave_lote=lote.clave_lote,
+            log_path=log_path,
+            correlation_id=correlation_id,
+            items=(),
+            error="send_mode_invalid",
+        )
 
     def rechazo_lote(estado: str, error: str) -> ResultadoLote:
         _auditar(
@@ -363,6 +404,27 @@ def encolar_lote_recordatorios(
             items=(),
             error=error,
         )
+
+    plantilla_tipo: PlantillaCorreo | None = None
+    if modo == MODO_ENVIO_PRODUCCION:
+        plantilla_tipo = (plantillas_aprobadas or {}).get(
+            TIPO_PLANTILLA_RECORDATORIO
+        )
+        if plantilla_tipo is None:
+            return rechazo_lote("INVALIDA", PLANTILLA_TIPO_MISSING)
+        invalida = validar_forma_plantilla(
+            plantilla_tipo,
+            asunto_requerido=True,
+            variables_permitidas=VARIABLES_RECORDATORIO,
+        )
+        if invalida is not None:
+            return rechazo_lote("INVALIDA", invalida)
+        if not plantilla_version_registrada(
+            decisiones,
+            tipo=TIPO_PLANTILLA_RECORDATORIO,
+            plantilla=plantilla_tipo,
+        ):
+            return rechazo_lote("INVALIDA", PLANTILLA_VERSION_NO_APROBADA)
 
     if (
         not _aprobacion_valida(aprobacion, rol=ROL_APROBADOR_PAGOS)
@@ -399,7 +461,12 @@ def encolar_lote_recordatorios(
 
     resultados: list[ResultadoItemLote] = []
     for item in lote.items:
-        asunto, cuerpo = renderizar_recordatorio(plan=plan, item=item)
+        asunto, cuerpo = renderizar_recordatorio(
+            plan=plan,
+            item=item,
+            modo_envio=modo,
+            plantilla_aprobada=plantilla_tipo,
+        )
         if not registro.crear(item.idempotency_key, asunto, cuerpo):
             estado_item = "DUPLICADA"
             _auditar_item(
@@ -486,6 +553,9 @@ def correr_lote_recordatorios(
     cola: ColaEnvios,
     destino: DestinoConfirmaciones,
     directorio_salida: Path,
+    modo_envio: str | None = None,
+    plantillas_aprobadas: Mapping[str, PlantillaCorreo] | None = None,
+    decisiones=None,
 ) -> tuple[ResultadoLote, tuple[ResultadoEnvioEncolado, ...]]:
     """El circuito completo del día: encolar el lote aprobado y drenar.
 
@@ -493,9 +563,21 @@ def correr_lote_recordatorios(
     candado exige el destino habilitado por tipo exacto, así que la entrega
     existe sólo contra el fake (o el Gmail con lista, según la política
     vigente de D12). La función no agrega controles: los viven el encolado
-    y el worker.
+    y el worker. El modo (#142) tiene una sola fuente: `destino.modo`. Un
+    `modo_envio` que diga otra cosa es `INVALIDA` con `send_mode_mismatch`,
+    porque el destino va a aplicar su contrato de marcas igual.
     """
 
+    modo_destino = modo_envio_efectivo(destino, modo_envio)
+    if modo_destino is None:
+        return ResultadoLote(
+            estado="INVALIDA",
+            clave_lote=lote.clave_lote,
+            log_path=_log_path(directorio_salida),
+            correlation_id=str(uuid.uuid4()),
+            items=(),
+            error="send_mode_mismatch",
+        ), ()
     resultado_lote = encolar_lote_recordatorios(
         plan=plan,
         lote=lote,
@@ -503,6 +585,9 @@ def correr_lote_recordatorios(
         registro=registro,
         cola=cola,
         directorio_salida=directorio_salida,
+        modo_envio=modo_destino,
+        plantillas_aprobadas=plantillas_aprobadas,
+        decisiones=decisiones,
     )
     drenajes = drenar_envios(
         registro=registro,
@@ -513,8 +598,31 @@ def correr_lote_recordatorios(
     return resultado_lote, drenajes
 
 
+# Las variables que un ítem de recordatorio puede completar en la
+# plantilla aprobada por tipo (#142). El conjunto lo define este circuito:
+# son los datos del plan y del ítem que `renderizar_recordatorio` sabe
+# poner. La SEU redacta sobre ellos; una `{{variable}}` por fuera hace la
+# plantilla inválida para este tipo.
+TIPO_PLANTILLA_RECORDATORIO = "recordatorio_pago"
+VARIABLES_RECORDATORIO = frozenset(
+    {
+        "nombre_destinatario",
+        "actividad",
+        "nro_cuota",
+        "monto",
+        "fecha_referencia",
+        "anticipacion",
+        "medios_pago",
+    }
+)
+
+
 def renderizar_recordatorio(
-    *, plan: PlanPago, item: ItemRecordatorio
+    *,
+    plan: PlanPago,
+    item: ItemRecordatorio,
+    modo_envio: str = "prueba",
+    plantilla_aprobada: PlantillaCorreo | None = None,
 ) -> tuple[str, str]:
     """Asunto y cuerpo del ítem, desde la plantilla versionada. Sin modelo.
 
@@ -524,7 +632,16 @@ def renderizar_recordatorio(
     a medio renderizar: se rechaza en vez de entregar una llave suelta al
     destinatario. Los medios de pago salen del plan — con links o datos
     bancarios cuando el plan los declare — y llegan sólo acá, al cuerpo.
+
+    `modo_envio` (#142): en `prueba` el cuerpo lleva la marca de borrador y
+    la línea provisional, y el asunto el prefijo de borrador, como siempre.
+    En `produccion` el ítem se compone entero desde la plantilla aprobada
+    por tipo —`plantilla_aprobada`, ya verificada por el llamador—: el
+    texto provisional declarado `PROVISIONAL_NO_INSTITUCIONAL` nunca se
+    poda de marcas para entregarlo.
     """
+
+    from .gmail_envio import MODO_ENVIO_PRODUCCION
 
     asunto_base = descripcion_tipo(TIPO_RECORDATORIO_PAGO)["plantilla"][
         "asunto_base"
@@ -543,6 +660,13 @@ def renderizar_recordatorio(
         ),
         "medios_pago": medios or "A confirmar por la Secretaría de Extensión",
     }
+    if modo_envio == MODO_ENVIO_PRODUCCION:
+        if plantilla_aprobada is None:
+            raise ValueError("plantilla aprobada requerida en producción")
+        return (
+            renderizar_plantilla(plantilla_aprobada.asunto or "", valores),
+            renderizar_plantilla(plantilla_aprobada.cuerpo, valores),
+        )
     cuerpo = _seccion_cuerpo(TEXTO_PLANTILLA)
     for clave, valor in valores.items():
         cuerpo = cuerpo.replace("{{" + clave + "}}", valor)

@@ -34,6 +34,14 @@ from agente1.confirmaciones import (
     RegistroConfirmacionesMemoria,
     drenar_envios,
 )
+from agente1.decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
+    RESULTADO_REGISTRADA,
+    TIPO_PLANTILLA,
+    RegistroDecisiones,
+    ResultadoDecision,
+)
+from agente1.gmail_envio import MODO_ENVIO_PRODUCCION
 from agente1.pagos import (
     ANTICIPACIONES_DEFAULT,
     TIPO_RECORDATORIO_PAGO,
@@ -44,6 +52,10 @@ from agente1.pagos import (
     clave_item_recordatorio,
     correr_control_pagos,
     fecha_de_corrida,
+)
+from agente1.plantillas_aprobadas import (
+    PlantillaCorreo,
+    id_version_plantilla,
 )
 from agente1.recordatorios import (
     CLAVE_PLANTILLA_RECORDATORIO,
@@ -968,3 +980,189 @@ def test_los_registros_durables_comparten_la_infraestructura(tmp_path):
 def test_el_tipo_es_el_del_catalogo(tmp_path):
     assert TIPO_RECORDATORIO_PAGO == "recordatorio_pago"
     assert TEMPLATE_VERSION == "recordatorio_pago_provisional_v2"
+
+
+# --- Modo producción (#142) ---------------------------------------------------
+
+MARCADOR = "BORRADOR — NO ENVIAR"
+LINEA_PROVISIONAL = (
+    "Este texto es una plantilla provisional y requiere validación "
+    "humana antes de cualquier envío."
+)
+
+# Plantilla sintética declarada para probar el modo producción: no es la
+# redacción institucional — la de la SEU sigue pendiente y llega por
+# `AGENTE1_PLANTILLAS_APROBADAS_PATH` —. Las variables son las que el
+# circuito sabe completar (`recordatorios.VARIABLES_RECORDATORIO`).
+PLANTILLA_RECORDATORIO_SINTETICA = {
+    "recordatorio_pago": PlantillaCorreo(
+        asunto="Recordatorio: {{actividad}}",
+        cuerpo=(
+            "Hola {{nombre_destinatario}},\n\n"
+            "Te recordamos la cuota {{nro_cuota}} de {{actividad}} por "
+            "${{monto}}, {{anticipacion}} (fecha de referencia "
+            "{{fecha_referencia}}).\n\n"
+            "Medios de pago: {{medios_pago}}\n"
+        ),
+    )
+}
+
+
+def _decisiones_con_recordatorio(tmp_path: Path) -> RegistroDecisiones:
+    """Registro con la `apruebo_contenido` de la versión sintética."""
+
+    registro = RegistroDecisiones(tmp_path / "estado-decisiones")
+    registro.registrar(
+        ResultadoDecision(
+            id_respuesta=f"{1:064x}",
+            correo_hash="a" * 64,
+            rol=ROL_APROBADOR_CONTENIDO,
+            rol_origen="padron",
+            tipo=TIPO_PLANTILLA,
+            objeto_id=id_version_plantilla(
+                "recordatorio_pago",
+                PLANTILLA_RECORDATORIO_SINTETICA["recordatorio_pago"],
+            ),
+            decision=DECISION_APRUEBO_CONTENIDO,
+            resultado=RESULTADO_REGISTRADA,
+            rechazo_codigo=None,
+            marca_temporal_form="2026-10-11 09:00:00",
+            timestamp="2026-10-11T09:00:00+00:00",
+        )
+    )
+    return registro
+
+
+def test_en_prueba_el_item_lleva_marca_y_linea_provisional(tmp_path):
+    plan, lote = armar_lote(tmp_path)
+
+    asunto, cuerpo = renderizar_recordatorio(plan=plan, item=lote.items[0])
+
+    assert asunto.startswith(f"[{MARCADOR}] ")
+    assert cuerpo.startswith(MARCADOR)
+    assert LINEA_PROVISIONAL in cuerpo
+
+
+def test_en_produccion_el_item_viaja_sin_marcas(tmp_path):
+    """El cuerpo sale entero de la plantilla aprobada del tipo, sin poda."""
+
+    plan, lote = armar_lote(tmp_path)
+
+    asunto, cuerpo = renderizar_recordatorio(
+        plan=plan,
+        item=lote.items[0],
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantilla_aprobada=PLANTILLA_RECORDATORIO_SINTETICA[
+            "recordatorio_pago"
+        ],
+    )
+
+    assert not asunto.startswith("[")
+    assert "BORRADOR" not in asunto
+    assert MARCADOR not in cuerpo
+    assert LINEA_PROVISIONAL not in cuerpo
+    assert "Te recordamos la cuota 1" in cuerpo
+    assert "Medios de pago: A confirmar" in cuerpo
+    assert "{{" not in cuerpo
+
+
+def test_un_modo_desconocido_invalida_el_lote(tmp_path):
+    plan, lote = armar_lote(tmp_path)
+    registro = RegistroConfirmacionesMemoria()
+    cola = ColaEnviosMemoria()
+    aprobar_plantilla(registro, tmp_path / "salida")
+
+    resultado = encolar_lote_recordatorios(
+        plan=plan,
+        lote=lote,
+        aprobacion_lote=aprobacion_lote(lote),
+        registro=registro,
+        cola=cola,
+        directorio_salida=tmp_path / "salida",
+        modo_envio="espacial",
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "send_mode_invalid"
+    assert cola.pendientes() == ()
+
+
+def test_el_lote_en_produccion_encola_cuerpos_limpios(tmp_path):
+    """Lo que queda en el registro ya puede entregarlo el adapter."""
+
+    plan, lote = armar_lote(tmp_path)
+    registro = RegistroConfirmacionesMemoria()
+    cola = ColaEnviosMemoria()
+    salida = tmp_path / "salida"
+    aprobar_plantilla(registro, salida)
+
+    resultado = encolar_lote_recordatorios(
+        plan=plan,
+        lote=lote,
+        aprobacion_lote=aprobacion_lote(lote),
+        registro=registro,
+        cola=cola,
+        directorio_salida=salida,
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=PLANTILLA_RECORDATORIO_SINTETICA,
+        decisiones=_decisiones_con_recordatorio(tmp_path),
+    )
+
+    assert resultado.estado == "ENVIO_ENCOLADO"
+    assert len(cola.pendientes()) == 2
+    for item in lote.items:
+        guardado = registro.obtener(item.idempotency_key)
+        assert guardado.estado == "ENVIO_ENCOLADO"
+        assert MARCADOR not in guardado.cuerpo
+        assert LINEA_PROVISIONAL not in guardado.cuerpo
+        assert "BORRADOR" not in guardado.asunto
+
+
+def test_en_produccion_sin_la_plantilla_del_tipo_es_invalida(tmp_path):
+    """El texto provisional nunca viaja sin marca: no hay poda en producción."""
+
+    plan, lote = armar_lote(tmp_path)
+    registro = RegistroConfirmacionesMemoria()
+    cola = ColaEnviosMemoria()
+    salida = tmp_path / "salida"
+    aprobar_plantilla(registro, salida)
+
+    resultado = encolar_lote_recordatorios(
+        plan=plan,
+        lote=lote,
+        aprobacion_lote=aprobacion_lote(lote),
+        registro=registro,
+        cola=cola,
+        directorio_salida=salida,
+        modo_envio=MODO_ENVIO_PRODUCCION,
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "approved_template_missing"
+    assert cola.pendientes() == ()
+
+
+def test_en_produccion_sin_la_aprobacion_de_version_es_invalida(tmp_path):
+    """Una plantilla en el archivo pero sin `apruebo_contenido` no autoriza."""
+
+    plan, lote = armar_lote(tmp_path)
+    registro = RegistroConfirmacionesMemoria()
+    cola = ColaEnviosMemoria()
+    salida = tmp_path / "salida"
+    aprobar_plantilla(registro, salida)
+
+    resultado = encolar_lote_recordatorios(
+        plan=plan,
+        lote=lote,
+        aprobacion_lote=aprobacion_lote(lote),
+        registro=registro,
+        cola=cola,
+        directorio_salida=salida,
+        modo_envio=MODO_ENVIO_PRODUCCION,
+        plantillas_aprobadas=PLANTILLA_RECORDATORIO_SINTETICA,
+        decisiones=RegistroDecisiones(tmp_path / "estado-decisiones"),
+    )
+
+    assert resultado.estado == "INVALIDA"
+    assert resultado.error == "template_version_unapproved"
+    assert cola.pendientes() == ()

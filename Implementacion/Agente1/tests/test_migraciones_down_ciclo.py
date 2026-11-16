@@ -85,6 +85,61 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "Volver a 0002 alcanza sin restaurar el respaldo."
         ),
     ),
+    "0004_canal_web_agente1": Reversion(
+        reversible=True,
+        pierde_datos=True,
+        requiere_restaurar_respaldo=True,
+        nota=(
+            "El `down` elimina la tabla `prosa_transitoria` y las columnas del "
+            "canal web: descarta solicitudes web, revisiones y prosa "
+            "almacenadas. Con datos reales exige restaurar el respaldo."
+        ),
+    ),
+    "0005_roles_canal_web": Reversion(
+        reversible=True,
+        pierde_datos=False,
+        requiere_restaurar_respaldo=False,
+        nota=(
+            "El `down` quita grants y elimina los roles `agente1_app` y "
+            "`agente1_mantenimiento`: no toca datos. Volver a 0004 alcanza."
+        ),
+    ),
+    "0006_canal_web_demo": Reversion(
+        reversible=True,
+        pierde_datos=False,
+        requiere_restaurar_respaldo=False,
+        nota=(
+            "El `down` sólo restringe `solicitudes_canal_check` y "
+            "`solicitudes_web_campos_check` a su forma de 0005: no toca "
+            "datos, y aborta en voz alta si quedan filas `web-demo` porque "
+            "reclasificarlas como `web` las mentiría verificadas (ADR "
+            "0019). Volver a 0005 alcanza."
+        ),
+    ),
+    "0007_web_docs_revision_decision": Reversion(
+        reversible=True,
+        pierde_datos=True,
+        requiere_restaurar_respaldo=True,
+        nota=(
+            "El `down` elimina las columnas del Doc por solicitud "
+            "(`doc_ref`, `doc_url`), el origen de revisión y los metadatos "
+            "de la decisión web: descarta referencias a documentos de "
+            "Drive, revisiones importadas y proveniencia registradas. Con "
+            "datos reales exige restaurar el respaldo."
+        ),
+    ),
+    "0008_correo_prellenado_aprobacion": Reversion(
+        reversible=True,
+        pierde_datos=True,
+        requiere_restaurar_respaldo=True,
+        nota=(
+            "El `down` elimina `prellenado_publicos` de `validaciones`: "
+            "descarta los ids de públicos a los que cada aprobación "
+            "ofreció el correo prellenado, evidencia registrada de la "
+            "decisión (ADR 0021). Con datos reales exige restaurar el "
+            "respaldo."
+        ),
+    ),
 }
 
 
