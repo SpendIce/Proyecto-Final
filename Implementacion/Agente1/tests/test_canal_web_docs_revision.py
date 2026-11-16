@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
@@ -36,6 +37,7 @@ from agente1.destinos import BORRADOR_MARKER, DestinoBorradoresError
 from agente1.google_workspace import (
     GoogleDocsDestinoPorMarca,
     RespuestaHttp,
+    _escapar_q_drive,
 )
 from agente1.web.app import (
     ConfiguracionInvalida,
@@ -130,8 +132,13 @@ def test_destino_crea_doc_cuando_la_marca_no_existe() -> None:
     )
     assert resultado.texto_documento == BORRADOR_MARKER + "Texto del Doc.\n"
     buscar, copiar, volcar, _exportar, _head = transporte.solicitudes
-    # La búsqueda por marca precede a la copia: marca en `appProperties`.
-    assert "a1_solicitud" in buscar["target"]
+    # La búsqueda por marca precede a la copia: marca en `appProperties`
+    # y acotada a la carpeta configurada del agente.
+    consulta = parse_qs(urlsplit(buscar["target"]).query)["q"][0]
+    assert consulta == (
+        "appProperties has {key='a1_solicitud' and value='web-0001'}"
+        " and 'carpeta_OK-1' in parents and trashed=false"
+    )
     assert copiar["target"].startswith(
         "/drive/v3/files/plantilla_OK-1/copy"
     )
@@ -197,6 +204,34 @@ def test_destino_reescribe_si_la_corrida_anterior_dejo_otro_texto() -> None:
     pedidos = json.loads(reemplazo["body"])["requests"]
     assert pedidos[0]["deleteContentRange"]["range"]["endIndex"] == 29
     assert pedidos[1]["insertText"]["text"] == BORRADOR_MARKER + "Texto nuevo.\n"
+
+
+def test_destino_rechaza_marca_fuera_del_formato_sin_http() -> None:
+    destino, transporte = _destino([])
+    with pytest.raises(DestinoBorradoresError) as error:
+        destino.buscar_o_crear(
+            marca="web-1' or trashed=true",
+            id_solicitud="web-0001",
+            contenido=BORRADOR_MARKER + "x",
+            nombre=None,
+        )
+    assert error.value.code == "destination_contract_invalid"
+    assert transporte.solicitudes == []
+
+
+def test_escape_de_q_drive_escapa_comillas_y_barras() -> None:
+    assert _escapar_q_drive("a'b\\c") == "a\\'b\\\\c"
+
+
+def test_head_revision_lee_files_get_del_doc() -> None:
+    destino, transporte = _destino(
+        [RespuestaHttp(200, b'{"headRevisionId":"42"}')]
+    )
+
+    assert destino.head_revision("doc-1") == "42"
+    assert transporte.solicitudes[0]["target"] == (
+        "/drive/v3/files/doc-1?fields=headRevisionId&supportsAllDrives=true"
+    )
 
 
 def test_destino_marca_duplicada_es_estado_corrupto() -> None:
@@ -387,6 +422,7 @@ def test_decision_aprobada_cierra_con_metadatos(base: str) -> None:
         rol="APROBADOR_CONTENIDO",
         origen_identidad="google",
         version_agente="0.5.10",
+        head_revision_id="7",
         ahora=AHORA,
     )
 
@@ -395,13 +431,13 @@ def test_decision_aprobada_cierra_con_metadatos(base: str) -> None:
     with _fabrica(base)() as conn:
         fila = conn.execute(
             "SELECT decision, rol, origen_identidad, version_agente,"
-            " senal, cantidad_ajustes FROM validaciones"
+            " senal, cantidad_ajustes, head_revision_id FROM validaciones"
             " WHERE id_borrador = %s",
             (id_borrador,),
         ).fetchone()
     assert fila == (
         "APROBADA", "APROBADOR_CONTENIDO", "google", "0.5.10",
-        "sin_cambios", 0,
+        "sin_cambios", 0, "7",
     )
 
 
@@ -533,6 +569,48 @@ def test_decision_duplicada_es_rechazo_idempotente(base: str) -> None:
 
 
 @necesita_pg
+def test_dos_decisiones_concurrentes_dejan_una_sola_validacion(base: str) -> None:
+    """Dos POST reales a la vez: el `FOR UPDATE` deja una sola decisión."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    repo = RepositorioWeb(_fabrica(base))
+    creada = _crear(repo, "web:d12")
+    id_borrador = _trabajo_completo(repo, creada.id_solicitud)
+    barrera = threading.Barrier(2, timeout=10)
+
+    def decidir(_indice: int) -> ResultadoDecisionWeb:
+        barrera.wait()
+        return repo.registrar_decision(
+            id_solicitud=creada.id_solicitud,
+            id_borrador=id_borrador,
+            decision="APROBADA",
+            doc_hash=_sha("Texto generado.\n"),
+            texto_doc="Texto generado.\n",
+            validador_hash="cd" * 32,
+            rol="APROBADOR_CONTENIDO",
+            origen_identidad="google",
+            version_agente="0.5.10",
+            head_revision_id="7",
+            ahora=AHORA,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        resultados = list(pool.map(decidir, range(2)))
+
+    assert sorted(resultado.codigo for resultado in resultados) == [
+        "aprobada",
+        "cerrada",
+    ]
+    assert repo.estado_de(creada.id_solicitud) == "APROBADA"
+    with _fabrica(base)() as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM validaciones WHERE id_borrador = %s",
+            (id_borrador,),
+        ).fetchone()[0] == 1
+
+
+@necesita_pg
 def test_decision_fallida_no_deja_estado_parcial(base: str) -> None:
     """Prueba 2 del ADR 0016: una caída a mitad de la decisión no deja ni
     decisión ni cierre parcial — toda la operación es una transacción.
@@ -563,6 +641,62 @@ def test_decision_fallida_no_deja_estado_parcial(base: str) -> None:
             "SELECT COUNT(*) FROM validaciones WHERE id_borrador = %s",
             (id_borrador,),
         ).fetchone()[0] == 0
+
+
+@necesita_pg
+def test_compartir_fallido_no_falla_la_generacion(
+    base: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from types import SimpleNamespace
+
+    from agente1.web.worker import DestinoPorMarcaMemoria, correr_una_vez
+
+    repo = RepositorioWeb(_fabrica(base))
+    creada = _crear(repo, "web:d11")
+    destino = DestinoPorMarcaMemoria()
+
+    def falla(_doc_ref: str, _correo: str) -> None:
+        raise DestinoBorradoresError("drive_auth_denied")
+
+    monkeypatch.setattr(destino, "compartir", falla)
+
+    def interpretar_falso(*, destino, **_kwargs):
+        destino.guardar(
+            "web-d11", BORRADOR_MARKER + "Texto del Doc.\n", nombre=None
+        )
+        return SimpleNamespace(estado="PENDIENTE_VALIDACION")
+
+    monkeypatch.setattr(
+        "agente1.web.worker.interpretar_solicitud", interpretar_falso
+    )
+    trabajo = correr_una_vez(
+        repositorio=repo,
+        worker_id="w1",
+        fuente=None,
+        generator=None,
+        directorio_salida=tmp_path,
+        destino=destino,
+        correo_para_hash=lambda _hash: "Persona@Example.Invalid",
+        ahora=AHORA,
+    )
+
+    assert trabajo is not None
+    assert repo.estado_de(creada.id_solicitud) == "LISTA"
+    from agente1.canal_form import hash_correo
+
+    with _fabrica(base)() as conn:
+        eventos = {
+            fila[0]: fila[1]
+            for fila in conn.execute(
+                "SELECT tipo, evidencia_hash FROM eventos_ejecucion"
+                " WHERE id_ejecucion = %s",
+                (trabajo.id_ejecucion,),
+            ).fetchall()
+        }
+    assert eventos["permiso_no_otorgado"] == hash_correo(
+        "persona@example.invalid"
+    )
+    assert "doc_compartido" not in eventos
 
 
 @necesita_pg
@@ -754,6 +888,7 @@ class RepoRevisiones:
         rol: str,
         origen_identidad: str,
         version_agente: str,
+        head_revision_id: str | None = None,
         prellenado_publicos: list[str] | None = None,
         ahora: datetime | None = None,
     ) -> ResultadoDecisionWeb:
@@ -782,6 +917,7 @@ class RepoRevisiones:
                 "rol": rol,
                 "origen_identidad": origen_identidad,
                 "version_agente": version_agente,
+                "head_revision_id": head_revision_id,
                 "prellenado_publicos": prellenado_publicos,
             }
         )
@@ -805,6 +941,8 @@ class MundoDocs:
 def _mundo_docs(
     modo_demo: bool = False,
     catalogo: CatalogoAudiencias | None = None,
+    *,
+    version_agente: str | None = "0.0.0-test",
 ) -> MundoDocs:
     padron = PadronRoles(
         {
@@ -837,6 +975,7 @@ def _mundo_docs(
         demo_correos=(CORREO_SEU, CORREO_APROBADOR) if modo_demo else (),
         cookie_secure=modo_demo,
     )
+    extra = {} if version_agente is None else {"version_agente": version_agente}
     app = crear_app(
         config=config,
         verificador=verificador,
@@ -845,9 +984,9 @@ def _mundo_docs(
         sesiones=sesiones,
         actividades=[],
         exportador=docs,
-        version_agente="0.0.0-test",
         hoy=lambda: date(2026, 11, 16),
         catalogo_audiencias=catalogo,
+        **extra,
     )
     base_url = "https://testserver" if modo_demo else "http://testserver"
     return MundoDocs(TestClient(app, base_url=base_url), repo, sesiones, docs)
@@ -911,6 +1050,27 @@ def _solicitud_lista(
         creada.id_solicitud, resultado.doc_ref, texto
     )
     return creada.id_solicitud
+
+
+def test_hash_del_correo_normaliza_mayusculas() -> None:
+    from agente1.canal_form import hash_correo
+    from agente1.web.app import _hash_solicitante
+    from agente1.web.sesiones import Sesion
+
+    sesion = Sesion(
+        sid="s1",
+        sub="sub-1",
+        correo="  Persona@Example.Invalid ",
+        rol="coordinador_seu",
+        origen="google",
+        csrf_token="csrf",
+        creada_en=AHORA,
+        ultimo_uso_en=AHORA,
+    )
+
+    assert _hash_solicitante(sesion) == hash_correo(
+        "persona@example.invalid"
+    )
 
 
 def test_traer_cambios_sin_cambios_avisa() -> None:
@@ -981,6 +1141,118 @@ def test_aprobar_con_hash_vigente_cierra() -> None:
     assert decision["rol"] == "APROBADOR_CONTENIDO"
     assert decision["origen_identidad"] == "google"
     assert decision["version_agente"] == "0.0.0-test"
+    assert decision["head_revision_id"] == "head-1"
+
+
+def test_decision_sin_version_inyectada_usa_la_de_pyproject() -> None:
+    from agente1.manifest_version import raiz_agente, version_desde_pyproject
+
+    mundo = _mundo_docs(version_agente=None)
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo)
+    vigente = mundo.repo.obtener(sid).revisiones[-1]
+
+    mundo.client.post(
+        f"/solicitudes/{sid}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "revision": vigente.id_borrador,
+            "accion": "aprobar",
+        },
+    )
+
+    assert mundo.repo.decisiones[0]["version_agente"] == (
+        version_desde_pyproject(raiz_agente())
+    )
+
+
+def test_crear_app_falla_con_codigo_si_no_puede_leer_la_version(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from agente1.manifest_version import IntegridadError
+    from agente1.web.app import (
+        CLIENT_ID_PRUEBA,
+        ConfiguracionInvalida,
+        ConfiguracionWeb,
+        crear_app,
+    )
+
+    def version_ilegible(_raiz):
+        raise IntegridadError("manifest_version_invalido")
+
+    monkeypatch.setattr(
+        "agente1.web.app.version_desde_pyproject", version_ilegible
+    )
+    config = ConfiguracionWeb(
+        google_client_id=CLIENT_ID_PRUEBA,
+        modo_prueba=True,
+        cookie_secure=False,
+    )
+    with pytest.raises(ConfiguracionInvalida) as error:
+        crear_app(
+            config=config,
+            verificador=VerificadorFake({}),
+            padron=PadronRoles({CORREO_SEU: "coordinador_seu"}),
+            repositorio=RepoRevisiones(),
+            sesiones=SesionesMemoria(),
+            actividades=[],
+            version_agente=None,
+        )
+
+    assert error.value.code == "web_version_agente_ausente"
+
+
+def test_decision_guarda_la_head_revision_actualizada_tras_editar() -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo)
+    doc_ref = mundo.repo.obtener(sid).doc_ref
+    mundo.docs.editar(doc_ref, "Edición revisada.\n")
+
+    mundo.client.post(
+        f"/solicitudes/{sid}/traer-cambios",
+        data={"csrf": _csrf(mundo)},
+    )
+    vigente = mundo.repo.obtener(sid).revisiones[-1]
+    mundo.client.post(
+        f"/solicitudes/{sid}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "revision": vigente.id_borrador,
+            "accion": "aprobar",
+        },
+    )
+
+    assert mundo.repo.decisiones[0]["head_revision_id"] == "head-2"
+
+
+def test_decision_sigue_si_no_se_puede_leer_la_head_revision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo)
+    vigente = mundo.repo.obtener(sid).revisiones[-1]
+    monkeypatch.setattr(
+        mundo.docs,
+        "head_revision",
+        lambda _doc_ref: (_ for _ in ()).throw(
+            DestinoBorradoresError("drive_unavailable")
+        ),
+    )
+
+    respuesta = mundo.client.post(
+        f"/solicitudes/{sid}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "revision": vigente.id_borrador,
+            "accion": "aprobar",
+        },
+    )
+
+    assert "aprobada" in respuesta.text.lower()
+    assert mundo.repo.estado_de(sid) == "APROBADA"
+    assert mundo.repo.decisiones[0]["head_revision_id"] is None
 
 
 def test_aprobar_con_doc_cambiado_rechaza() -> None:
@@ -1023,6 +1295,120 @@ def test_decidir_con_rol_no_autorizado_da_403() -> None:
 
     assert respuesta.status_code == 403
     assert mundo.repo.decisiones == []
+
+
+def test_traer_cambios_sin_csrf_da_403() -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-seu")
+    sid = _solicitud_lista(mundo)
+    doc_ref = mundo.repo.obtener(sid).doc_ref
+    mundo.docs.editar(doc_ref, "Edición que no debe importarse.\n")
+
+    respuesta = mundo.client.post(
+        f"/solicitudes/{sid}/traer-cambios",
+        data={"csrf": "trucho"},
+    )
+
+    assert respuesta.status_code == 403
+    assert len(mundo.repo.obtener(sid).revisiones) == 1
+
+
+def test_traer_cambios_aprobador_de_contenido_puede() -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo)
+    doc_ref = mundo.repo.obtener(sid).doc_ref
+    mundo.docs.editar(doc_ref, "Edición revisada.\n")
+
+    respuesta = mundo.client.post(
+        f"/solicitudes/{sid}/traer-cambios",
+        data={"csrf": _csrf(mundo)},
+    )
+
+    assert respuesta.status_code == 200
+    assert len(mundo.repo.obtener(sid).revisiones) == 2
+
+
+def test_traer_cambios_con_rol_no_autorizado_da_403() -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-lector")
+    sid = _solicitud_lista(mundo)
+    doc_ref = mundo.repo.obtener(sid).doc_ref
+    mundo.docs.editar(doc_ref, "Edición que no debe importarse.\n")
+
+    respuesta = mundo.client.post(
+        f"/solicitudes/{sid}/traer-cambios",
+        data={"csrf": _csrf(mundo)},
+    )
+
+    assert respuesta.status_code == 403
+    assert len(mundo.repo.obtener(sid).revisiones) == 1
+
+
+def test_traer_cambios_doc_inexistente_avisa() -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-seu")
+    sid = _solicitud_lista(mundo)
+    mundo.docs.exportar_texto = lambda _doc_ref: (_ for _ in ()).throw(
+        DestinoBorradoresError("drive_resource_not_found")
+    )
+
+    respuesta = mundo.client.post(
+        f"/solicitudes/{sid}/traer-cambios",
+        data={"csrf": _csrf(mundo)},
+    )
+
+    assert "El Doc ya no existe" in respuesta.text
+    assert "Workspace no está disponible" not in respuesta.text
+
+
+def test_traer_cambios_workspace_no_disponible_avisa() -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-seu")
+    sid = _solicitud_lista(mundo)
+    mundo.docs.exportar_texto = lambda _doc_ref: (_ for _ in ()).throw(
+        DestinoBorradoresError("drive_unavailable")
+    )
+
+    respuesta = mundo.client.post(
+        f"/solicitudes/{sid}/traer-cambios",
+        data={"csrf": _csrf(mundo)},
+    )
+
+    assert "Workspace no está disponible" in respuesta.text
+    assert "El Doc ya no existe" not in respuesta.text
+
+
+def test_traer_cambios_respuesta_invalida_avisa() -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-seu")
+    sid = _solicitud_lista(mundo)
+    mundo.docs.exportar_texto = lambda _doc_ref: (_ for _ in ()).throw(
+        DestinoBorradoresError("drive_response_invalid")
+    )
+
+    respuesta = mundo.client.post(
+        f"/solicitudes/{sid}/traer-cambios",
+        data={"csrf": _csrf(mundo)},
+    )
+
+    assert "No se pudo interpretar el Doc" in respuesta.text
+    assert "Workspace no está disponible" not in respuesta.text
+
+
+def test_traer_cambios_error_no_previsto_propaga() -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-seu")
+    sid = _solicitud_lista(mundo)
+    mundo.docs.exportar_texto = lambda _doc_ref: (_ for _ in ()).throw(
+        RuntimeError("falla de programación")
+    )
+
+    with pytest.raises(RuntimeError, match="falla de programación"):
+        mundo.client.post(
+            f"/solicitudes/{sid}/traer-cambios",
+            data={"csrf": _csrf(mundo)},
+        )
 
 
 def test_decidir_sin_csrf_da_403() -> None:

@@ -32,9 +32,14 @@ Decisiones que no se ven en el código:
   plantilla salió bien pero el volcado del texto falló, quedó un documento
   vacío en la carpeta. Se informa con el hash del id para que una persona lo
   ubique y lo limpie: el agente no borra nada por su cuenta.
-- **Escribir es siempre "crear nuevo".** No hay ninguna operación que
-  modifique un documento existente, cambie permisos o comparta: la copia de la
-  plantilla es el único camino.
+- **No todo lo que escribe crea un documento nuevo.** El adapter
+  contractual (`GoogleDocsDestinoBorradores`) sólo crea; el destino del
+  canal web (`GoogleDocsDestinoPorMarca`) busca el Doc de la solicitud dentro
+  de la carpeta configurada, reemplaza su cuerpo si hace falta y —con el flag
+  del stack— da `writer` a quien pidió. Es el único camino que modifica un Doc
+  existente y toca permisos, y está acotado a la plantilla y a la carpeta
+  configuradas: la búsqueda lleva `'<carpeta>' in parents` y el permiso es
+  `writer` sobre ese Doc, sin notificación.
 """
 
 from __future__ import annotations
@@ -51,6 +56,7 @@ from urllib.parse import quote
 
 from .confirmaciones import email_valido
 from .destinos import (
+    ID_SOLICITUD_RE,
     DestinoBorradores,
     DestinoBorradoresError,
     ReferenciaBorrador,
@@ -599,6 +605,7 @@ class GoogleDocsDestinoPorMarca:
         elegir uno al azar.
         """
         validar_entrada_borrador(id_solicitud, contenido)
+        _validar_marca_drive(marca)
         nombre_efectivo = nombre_doc_efectivo(id_solicitud, nombre)
         headers = self._headers()
         deadline = time.monotonic() + self._timeout_s
@@ -697,6 +704,20 @@ class GoogleDocsDestinoPorMarca:
         except UnicodeDecodeError:
             raise DestinoBorradoresError("drive_response_invalid") from None
 
+    def head_revision(self, doc_ref: str) -> str | None:
+        """El `headRevisionId` vigente del Doc, o `None` si Drive no lo da.
+
+        La decisión del canal web se ata a la revisión que efectivamente se
+        revisó; cuando el dato no está disponible queda NULL explícito en
+        `validaciones.head_revision_id` en vez de inventar uno.
+        """
+        headers = self._headers()
+        return self._head_revision(
+            self._doc_id(doc_ref),
+            headers=headers,
+            deadline=time.monotonic() + self._timeout_s,
+        )
+
     # ---------- interno ----------
 
     def _doc_id(self, doc_ref: str) -> str:
@@ -729,9 +750,12 @@ class GoogleDocsDestinoPorMarca:
     def _buscar_por_marca(
         self, marca: str, *, headers: dict[str, str], deadline: float
     ) -> dict[str, str] | None:
+        _validar_marca_drive(marca)
         consulta = (
             f"appProperties has {{key='{APP_PROPERTY_SOLICITUD}'"
-            f" and value='{marca}'}} and trashed=false"
+            f" and value='{_escapar_q_drive(marca)}'}}"
+            f" and '{_escapar_q_drive(self._carpeta_id)}' in parents"
+            " and trashed=false"
         )
         try:
             respuesta = self._transport.request(
@@ -978,6 +1002,24 @@ class GoogleDocsDestinoPorMarca:
             raise DestinoBorradoresError("drive_response_invalid") from None
         head = documento.get("headRevisionId") if isinstance(documento, dict) else None
         return head if isinstance(head, str) and head else None
+
+
+def _validar_marca_drive(marca: object) -> None:
+    """La marca de una solicitud es un identificador, no texto libre."""
+    if not isinstance(marca, str) or ID_SOLICITUD_RE.fullmatch(marca) is None:
+        raise DestinoBorradoresError("destination_contract_invalid")
+
+
+def _escapar_q_drive(valor: str) -> str:
+    """Escapa un literal de la sintaxis `q` de Drive.
+
+    La `q` de Drive usa comillas simples para los strings y la barra
+    invertida como escape. Un identificador válido nunca las lleva, pero el
+    valor se escapa igual antes de interpolarse: la consulta no depende de
+    que el validador de entrada se acuerde de rechazarlas.
+    """
+
+    return valor.replace("\\", "\\\\").replace("'", "\\'")
 
 
 def _codigo_drive(status: int) -> str:

@@ -28,7 +28,8 @@ Doc se inyecta con una opción explícita:
   si falta — nunca cae al fake en silencio.
 
 Con `AGENTE1_WEB_DOCS_COMPARTIR=si` el worker da `writer` al correo de
-quien pidió (resuelto contra `AGENTE1_PADRON_ROLES_CSV`) al crear el Doc;
+quien pidió (resuelto contra `AGENTE1_PADRON_ROLES_CSV`) al generar el Doc
+—lo cree o lo reutilice—;
 sin la variable no toca permisos y el Doc queda accesible por la carpeta.
 """
 
@@ -98,20 +99,28 @@ def main(
     compartir = entorno.get("AGENTE1_WEB_DOCS_COMPARTIR", "").lower() == "si"
     if args.destino_docs:
         try:
+            from agente1.workspace_auth import construir_token_provider
             from agente1.workspace_config import (
-                TokenEntornoProvider,
+                ConfiguracionWorkspaceError,
                 cargar_configuracion_workspace,
             )
 
             config_ws = cargar_configuracion_workspace(entorno)
-        except Exception:
+            token_provider = construir_token_provider(
+                entorno,
+                timeout_s=config_ws.timeout_s,
+                directorio_auditoria=Path(
+                    entorno.get("AGENTE1_ESTADO") or "."
+                ),
+            )
+        except ConfiguracionWorkspaceError:
             return _invalida("worker_workspace_config_invalid")
         from agente1.google_workspace import GoogleDocsDestinoPorMarca
 
         destino = GoogleDocsDestinoPorMarca(
             plantilla_id=config_ws.template_id,
             carpeta_id=config_ws.folder_id,
-            token_provider=TokenEntornoProvider(),
+            token_provider=token_provider,
             timeout_s=config_ws.timeout_s,
         )
     else:

@@ -7,8 +7,8 @@ worker y la app en desarrollo y evidencia: un Drive en memoria donde la
 marca de la solicitud es la clave, como en el adapter real.
 
 El adapter real (`google_workspace.GoogleDocsDestinoPorMarca`)
-implementa ambos puertos sobre la API de Drive; acá no hay código de
-producción además de los contratos.
+implementa el destino por marca y el exportador sobre la API de Drive;
+acá no hay código de producción además de los contratos.
 """
 
 from __future__ import annotations
@@ -22,15 +22,11 @@ from ..destinos import (
 
 
 class ExportadorDocs(Protocol):
-    """Lo único que la app le pide al Doc: su texto plano."""
+    """Lo que la app le pide al Doc: su texto plano y su revisión vigente."""
 
     def exportar_texto(self, doc_ref: str) -> str: ...
 
-
-class CompartidorDocs(Protocol):
-    """El permiso `writer` opcional para quien pidió (flag del stack)."""
-
-    def compartir(self, doc_ref: str, correo: str) -> None: ...
+    def head_revision(self, doc_ref: str) -> str | None: ...
 
 
 class DocsCanalMemoria:
@@ -64,6 +60,7 @@ class DocsCanalMemoria:
                 "ref": ReferenciaBorrador(
                     tipo="docs_fake", referencia=doc_ref
                 ),
+                "head_num": 1,
                 "head": "head-1",
                 "nombre": nombre,
             }
@@ -89,6 +86,14 @@ class DocsCanalMemoria:
             raise DestinoBorradoresError("drive_resource_not_found")
         return doc.get("contenido", "")
 
+    def head_revision(self, doc_ref: str) -> str | None:
+        doc = self.docs.get(doc_ref)
+        if doc is None:
+            from ..destinos import DestinoBorradoresError
+
+            raise DestinoBorradoresError("drive_resource_not_found")
+        return doc.get("head")
+
     def compartir(self, doc_ref: str, correo: str) -> None:
         if doc_ref not in self.docs:
             from ..destinos import DestinoBorradoresError
@@ -97,5 +102,8 @@ class DocsCanalMemoria:
         self.compartidos.append((doc_ref, correo))
 
     def editar(self, doc_ref: str, contenido: str) -> None:
-        """La mano de la persona en el Doc: cambia el texto exportado."""
-        self.docs[doc_ref]["contenido"] = contenido
+        """La mano de la persona en el Doc: cambia texto y revisión de Drive."""
+        doc = self.docs[doc_ref]
+        doc["contenido"] = contenido
+        doc["head_num"] = int(doc.get("head_num", 1)) + 1
+        doc["head"] = f"head-{doc['head_num']}"

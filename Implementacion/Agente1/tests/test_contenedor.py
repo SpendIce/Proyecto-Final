@@ -16,6 +16,8 @@ interna) lo prueba el workflow `agente1-imagen` y queda en la evidencia.
 from __future__ import annotations
 
 import importlib.util
+import json
+import os
 import socket
 import sys
 import threading
@@ -131,6 +133,7 @@ def test_comandos_del_contenedor() -> None:
     assert consola[2:] == ["--host", "0.0.0.0", "--port", "8080"]
     assert ep.comando_para(["scheduler", "--loop"])[1:] == ["-m", "agente1", "scheduler", "--loop"]
     assert ep.comando_para(["smoke", "--live"])[1].endswith("scripts/workspace_smoke.py")
+    assert ep.comando_para(["migrar"])[1].endswith("scripts/migrar_canal_web.py")
     assert ep.comando_para(["python", "-V"]) == ["python", "-V"]
 
 
@@ -158,6 +161,22 @@ def test_verificar_sale_cero_sin_lanzar_nada(tmp_path: Path, monkeypatch) -> Non
     monkeypatch.setattr(ep, "verificar", lambda estado: None)
     monkeypatch.setattr(ep.subprocess, "Popen", lambda *a, **k: pytest.fail("no debe lanzar"))
     assert ep.main(["verificar"], {"AGENTE1_ESTADO": str(tmp_path), "AGENTE1_OLLAMA_UPSTREAM": ""}) == 0
+
+
+def test_el_comando_migrar_llega_al_script(tmp_path: Path, monkeypatch, capfd) -> None:
+    """`migrar` ejecuta el migrador; sin DSN sale 2 con el código estructurado."""
+    monkeypatch.setattr(ep, "verificar", lambda estado: None)
+    entorno = {
+        clave: valor
+        for clave, valor in os.environ.items()
+        if not clave.startswith("AGENTE1_POSTGRES") and clave != "AGENTE1_ENV_FILE"
+    }
+    entorno.update(
+        {"AGENTE1_ESTADO": str(tmp_path), "AGENTE1_OLLAMA_UPSTREAM": ""}
+    )
+    assert ep.main(["migrar"], entorno) == 2
+    salida, _ = capfd.readouterr()
+    assert json.loads(salida)["error_code"] == "migrar_dsn_admin_ausente"
 
 
 def test_el_hijo_recibe_el_env_file_y_su_codigo_de_salida(tmp_path: Path, monkeypatch) -> None:
@@ -205,6 +224,24 @@ def test_todos_los_servicios_estan_endurecidos(compose: dict, servicio: str) -> 
         assert "docker.sock" not in volumen
 
 
+def test_postgres_corre_sin_root_y_sin_capacidades(compose: dict) -> None:
+    """La base conserva el aislamiento y no suma capacidades."""
+    postgres = compose["services"]["postgres"]
+    assert postgres["user"] == "70:70"
+    assert postgres["read_only"] is True
+    assert postgres["cap_drop"] == ["ALL"]
+    assert "cap_add" not in postgres
+    assert postgres["tmpfs"] == ["/tmp:mode=1777", "/run:mode=1777"]
+    assert "no-new-privileges:true" in postgres["security_opt"]
+    assert postgres["restart"] == "unless-stopped"
+    assert "ports" not in postgres
+    assert postgres["networks"] == ["canal"]
+    assert any(
+        volumen.endswith(":/var/lib/postgresql/data")
+        for volumen in postgres["volumes"]
+    )
+
+
 def test_la_configuracion_del_host_se_monta_en_solo_lectura(compose: dict) -> None:
     for servicio in ("consola", "scheduler"):
         volumenes = compose["services"][servicio]["volumes"]
@@ -238,6 +275,23 @@ def test_el_agente_llega_a_ollama_por_el_relay(compose: dict) -> None:
         assert compose["services"][servicio]["environment"]["AGENTE1_OLLAMA_UPSTREAM"] == "ollama:11434"
 
 
+def test_el_migrador_corre_una_vez_antes_de_web_y_worker(compose: dict) -> None:
+    """El bootstrap del canal web no reintenta y bloquea a los procesos."""
+    migrador = compose["services"]["migrador"]
+    assert migrador["profiles"] == ["canal-web"]
+    assert migrador["command"] == ["migrar"]
+    assert migrador["restart"] == "no"
+    assert migrador["networks"] == ["canal"]
+    assert migrador["image"] == compose["services"]["consola"]["image"]
+    assert migrador["depends_on"]["postgres"]["condition"] == "service_healthy"
+    # Ninguna variable del perfil usa `:?`: el stack sin canal resuelve igual.
+    for valor in migrador["environment"].values():
+        assert ":?" not in str(valor)
+    for servicio in ("web", "worker"):
+        dependencia = compose["services"][servicio]["depends_on"]["migrador"]
+        assert dependencia["condition"] == "service_completed_successfully"
+
+
 # --- Dockerfile -----------------------------------------------------------
 
 
@@ -246,7 +300,29 @@ def test_dockerfile_fija_la_base_por_digest_y_corre_como_no_root() -> None:
     assert "ARG PYTHON_IMAGE=python:3.12-slim@sha256:" in texto
     runtime = texto.split("AS runtime", 1)[1]
     assert "USER 10001" in runtime
-    assert 'ENTRYPOINT ["python", "/srv/p100/Implementacion/Agente1/scripts/contenedor_entrypoint.py"]' in runtime
+    assert (
+        'ENTRYPOINT ["/opt/venv/bin/python", '
+        '"/srv/p100/Implementacion/Agente1/scripts/contenedor_entrypoint.py"]'
+    ) in runtime
+
+
+def test_dockerfile_runtime_instala_las_dependencias_de_produccion() -> None:
+    """El runtime lleva un venv con `uv.lock` sin el grupo dev ni `uv`."""
+    texto = DOCKERFILE.read_text(encoding="utf-8")
+    deps = texto.split("AS deps", 1)[1].split("FROM base AS test", 1)[0]
+    assert "uv sync --frozen --no-dev --no-install-project" in deps
+
+    test = texto.split("AS test", 1)[1].split("FROM base AS runtime", 1)[0]
+    assert "uv sync --frozen --no-install-project" in test
+    assert "--no-dev" not in test
+
+    runtime = texto.split("AS runtime", 1)[1]
+    assert "COPY --from=deps /opt/venv /opt/venv" in runtime
+    assert "ENV PATH=/opt/venv/bin:$PATH" in runtime
+    assert "COPY --from=uv" not in runtime
+    assert "uv sync" not in runtime
+    assert "pytest" not in runtime
+    assert "ruff" not in runtime
 
 
 def test_dockerfile_no_hornea_secretos_ni_modelos() -> None:

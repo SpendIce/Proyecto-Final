@@ -12,7 +12,7 @@ El alcance actual es deliberadamente local y reproducible:
 
 - Puerto de entrada con adapter CSV y adapter contractual de Google Sheets probado offline.
 - Generador fake determinista para regresión y adapter HTTP para Ollama local.
-- Puerto de salida con adapter Markdown y adapter contractual de Google Docs probado offline.
+- Puerto de salida con adapter Markdown, adapter contractual de Google Docs probado offline y el Doc por solicitud del canal web (#153), con la carpeta autorizada como límite.
 - Estado `PENDIENTE_VALIDACION` y encabezado `BORRADOR — NO PUBLICAR` en toda salida exitosa.
 - Rechazo previo a la generación cuando falta un campo obligatorio.
 - Rechazo de identificadores fuera de la allowlist antes de resolver paths de salida.
@@ -240,7 +240,9 @@ Las pruebas usan un token provider y un transporte fake inyectados. **No existe 
 
 El seam `DestinoBorradores` mantiene el adapter Markdown local y permite inyectar el adapter Docs después del gate mecánico. El adapter contractual hace exactamente dos operaciones sobre el host oficial fijo: crea un documento con título `BORRADOR — NO PUBLICAR — <id>` y luego inserta el borrador validado en el índice 1 mediante `documents.batchUpdate`. No ejecuta operaciones de compartir, enviar, publicar ni aplicar una plantilla institucional.
 
-Las dos solicitudes comparten una deadline total, limitan las respuestas a 1 MiB y no se reintentan. `documents.create` y `batchUpdate` no forman una transacción única: si la segunda operación falla, puede quedar un documento vacío. Ese caso termina en `FALLIDA` y registra sólo un hash de reconciliación opaco, nunca el document ID, token, contenido, cuerpo remoto o URL completa. El adapter sigue siendo **exclusivamente contractual/offline**: no hay OAuth, credenciales, permisos, carpeta institucional, template ID ni ejecución live.
+Las dos solicitudes comparten una deadline total, limitan las respuestas a 1 MiB y no se reintentan. `documents.create` y `batchUpdate` no forman una transacción única: si la segunda operación falla, puede quedar un documento vacío. Ese caso termina en `FALLIDA` y registra sólo un hash de reconciliación opaco, nunca el document ID, token, contenido, cuerpo remoto o URL completa. El adapter contractual sigue siendo **offline**: no hay OAuth, credenciales, permisos, carpeta institucional, template ID ni ejecución live.
+
+El canal web (#153, ADR 0016) usa otro adapter, `GoogleDocsDestinoPorMarca`, que sí trabaja sobre Drive real cuando `AGENTE1_WEB_DOCS=si` y `AGENTE1_WORKER_DESTINO=docs`. Busca el Doc de la solicitud por `appProperties` **acotado a la carpeta configurada** (`'<folder_id>' in parents`), reutiliza el existente, reemplaza su cuerpo si una corrida anterior dejó otro texto y lee `headRevisionId` con `files.get`. Con `AGENTE1_WEB_DOCS_COMPARTIR=si`, el worker da `writer` al correo de quien pidió —resuelto contra el padrón y normalizado en minúsculas— al generar el Doc, lo cree o lo reutilice, sin correo de notificación; es el único camino del agente que modifica un Doc existente o toca permisos, y sigue acotado a la plantilla y a la carpeta configuradas. La app reexporta el texto (`files.export`) para «Traer cambios» y para atar la decisión al hash efectivamente revisado. Los errores distinguen Doc inexistente (404) de Workspace no disponible.
 
 ## Ejecutar la matriz contractual simulada
 

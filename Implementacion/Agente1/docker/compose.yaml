@@ -130,12 +130,22 @@ services:
   # antes con el canal apagado. `web` y `worker` comparten la red `canal`
   # con la base; `web` además sale por `salida` para servir la consola, y
   # el `scheduler` la ve cuando el perfil está activo para la purga.
+  # La base corre como el uid/gid `70:70` de `postgres:16.4-alpine`
+  # —el dueño de PGDATA en la imagen—, así no necesita root ni
+  # capacidades para preparar el volumen nuevo ni para reiniciar sobre
+  # el existente; el volumen nombrado hereda ese dueño en su primera
+  # creación. `/run` y `/tmp` van en tmpfs con modo 1777 porque el
+  # entrypoint crea `/var/run/postgresql` como usuario no root. Se
+  # mantienen `read_only` (escribe en el volumen y en esos tmpfs, no en
+  # la raíz), `cap_drop: ALL`, `no-new-privileges`, la red interna
+  # `canal` y la ausencia de puertos publicados.
   postgres:
     <<: *endurecido
     profiles: ["canal-web"]
+    user: "70:70"
     tmpfs:
-      - /tmp
-      - /run
+      - /tmp:mode=1777
+      - /run:mode=1777
     image: postgres:16.4-alpine
     environment:
       POSTGRES_USER: ${AGENTE1_POSTGRES_USUARIO:-agente1}
@@ -154,6 +164,34 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  # Bootstrap de la base del canal web (#149, ADR 0016): aplica las
+  # migraciones pendientes desde una base vacía y asigna las claves de
+  # `agente1_app` y `agente1_mantenimiento`. Corre una vez por despliegue
+  # y no reintenta: si falla, `web` y `worker` no arrancan. No depende de
+  # Ollama ni monta la configuración del host; el DSN y las dos claves
+  # llegan del stack de Portainer, con `${VAR:-}` para que el compose sin
+  # el perfil `canal-web` resuelva igual que antes. Sólo monta `/state`,
+  # donde el entrypoint deja la auditoría de integridad.
+  migrador:
+    <<: *agente1
+    profiles: ["canal-web"]
+    command: ["migrar"]
+    restart: "no"
+    environment:
+      AGENTE1_ESTADO: /state
+      AGENTE1_OLLAMA_UPSTREAM: ""
+      AGENTE1_POSTGRES_ADMIN_DSN: ${AGENTE1_POSTGRES_ADMIN_DSN:-}
+      AGENTE1_POSTGRES_APP_PASSWORD: ${AGENTE1_POSTGRES_APP_PASSWORD:-}
+      AGENTE1_POSTGRES_MANTENIMIENTO_PASSWORD: ${AGENTE1_POSTGRES_MANTENIMIENTO_PASSWORD:-}
+      HOME: /tmp
+    volumes:
+      - ${AGENTE1_HOST_ESTADO:-/home/jgone/p100/estado-contenedor}:/state
+    networks:
+      - canal
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   web:
     <<: *agente1
@@ -189,8 +227,8 @@ services:
       - canal
       - salida
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrador:
+        condition: service_completed_successfully
 
   worker:
     <<: *agente1
@@ -221,8 +259,8 @@ services:
       - canal
       - modelo
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrador:
+        condition: service_completed_successfully
 
 volumes:
   postgres-data:

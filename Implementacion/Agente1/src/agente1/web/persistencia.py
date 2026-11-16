@@ -471,6 +471,7 @@ class RepositorioWeb:
         doc_url: str | None = None,
         texto_documento: str | None = None,
         compartido_con_hash: str | None = None,
+        permiso_no_otorgado_hash: str | None = None,
         ahora: datetime | None = None,
     ) -> str:
         """Cierra la ejecución con su revisión de pieza, en una tx.
@@ -484,8 +485,10 @@ class RepositorioWeb:
         generado se conserva aparte en la prosa `generado`.
 
         `doc_url` es el enlace de edición del Doc (NULL con destinos que
-        no son Google) y `compartido_con_hash` el hash del correo con el
-        que el worker compartió el Doc, si el flag de compartir lo pidió.
+        no son Google). `compartido_con_hash` es el hash del correo con el
+        que el worker compartió el Doc; `permiso_no_otorgado_hash` deja
+        asentado el intento fallido sin contar la generación como fallida
+        —el Doc ya existe— y con el hash, nunca el correo en claro.
         """
         ahora = ahora or datetime.now(timezone.utc)
         output_hash = _hash(texto_generado)
@@ -552,6 +555,13 @@ class RepositorioWeb:
                         " ocurrido_en, evidencia_hash) VALUES"
                         " (%s,'doc_compartido',%s,%s)",
                         (id_ejecucion, ahora, compartido_con_hash),
+                    )
+                if permiso_no_otorgado_hash is not None:
+                    conn.execute(
+                        "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
+                        " ocurrido_en, evidencia_hash) VALUES"
+                        " (%s,'permiso_no_otorgado',%s,%s)",
+                        (id_ejecucion, ahora, permiso_no_otorgado_hash),
                     )
         return id_borrador
 
@@ -667,6 +677,7 @@ class RepositorioWeb:
         rol: str,
         origen_identidad: str,
         version_agente: str,
+        head_revision_id: str | None = None,
         prellenado_publicos: list[str] | None = None,
         ahora: datetime | None = None,
     ) -> ResultadoDecisionWeb:
@@ -682,6 +693,11 @@ class RepositorioWeb:
         - `revision_obsoleta`: el borrador decidido ya no es el vigente.
         - `duplicada`: la revisión ya tiene una decisión registrada.
         - `cerrada`/`inexistente`: la solicitud ya cerró o no existe.
+
+        `head_revision_id` es el `files.get` del Doc al momento de decidir.
+        Si el exportador no lo provee queda NULL explícito: la decisión sigue
+        atada al hash del texto (ADR 0016) y no se inventa una revisión de
+        Drive.
 
         `prellenado_publicos` (ADR 0021) son los ids de públicos a los que
         la aprobación ofreció el correo prellenado de Gmail — ids del
@@ -726,6 +742,7 @@ class RepositorioWeb:
                             doc_ref=doc_ref,
                             texto=texto_doc or "",
                             texto_hash=doc_hash,
+                            head_revision_id=head_revision_id,
                             ahora=ahora,
                         )
                         self._evento_rechazo_decision(
@@ -757,14 +774,15 @@ class RepositorioWeb:
                         " borrador_creada_en, doc_hash,"
                         " senal, proporcion_cambiado, cantidad_ajustes,"
                         " rol, origen_identidad, version_agente,"
-                        " prellenado_publicos) VALUES"
+                        " head_revision_id, prellenado_publicos) VALUES"
                         " (%s,%s,%s,%s,'decision_web_v1',%s,%s,%s,%s,%s,%s,"
-                        " %s,%s,%s,%s::jsonb)",
+                        " %s,%s,%s,%s,%s::jsonb)",
                         (
                             f"val-{uuid.uuid4().hex[:16]}", vigente,
                             decision, validador_hash, ahora, borrador[1],
                             doc_hash, senal, proporcion, ajustes,
                             rol, origen_identidad, version_agente,
+                            head_revision_id,
                             json.dumps(prellenado_publicos)
                             if prellenado_publicos
                             else None,
@@ -964,8 +982,9 @@ class RepositorioWeb:
 
         Corre con `agente1_mantenimiento`, dueño de `prosa_transitoria`:
         pone el texto en NULL conservando clase, hash y marcas, y asienta
-        el evento `prosa_purgada` por solicitud. El VACUUM corre aparte,
-        con `vaciar_prosa`.
+        un solo evento `prosa_purgada` por solicitud. `evidencia_hash`
+        compromete la cantidad de filas purgadas de esa solicitud. El
+        VACUUM corre aparte, con `vaciar_prosa`.
         """
         ahora = ahora or datetime.now(timezone.utc)
         with self._conexion_factory() as conn:
@@ -980,7 +999,12 @@ class RepositorioWeb:
                     " RETURNING p.secuencia, p.id_solicitud",
                     (ahora, list(CANALES_WEB), list(ESTADOS_CIERRE)),
                 ).fetchall()
+                por_solicitud: dict[str, int] = {}
                 for _, id_solicitud in purgadas:
+                    por_solicitud[id_solicitud] = (
+                        por_solicitud.get(id_solicitud, 0) + 1
+                    )
+                for id_solicitud, filas in por_solicitud.items():
                     ejecucion = conn.execute(
                         "SELECT id_ejecucion FROM ejecuciones"
                         " WHERE id_solicitud = %s ORDER BY creada_en LIMIT 1",
@@ -989,9 +1013,13 @@ class RepositorioWeb:
                     if ejecucion is not None:
                         conn.execute(
                             "INSERT INTO eventos_ejecucion (id_ejecucion,"
-                            " tipo, ocurrido_en) VALUES"
-                            " (%s,'prosa_purgada',%s)",
-                            (ejecucion[0], ahora),
+                            " tipo, ocurrido_en, evidencia_hash) VALUES"
+                            " (%s,'prosa_purgada',%s,%s)",
+                            (
+                                ejecucion[0],
+                                ahora,
+                                _hash(f"prosa_purgada:{filas}"),
+                            ),
                         )
         return len(purgadas)
 
