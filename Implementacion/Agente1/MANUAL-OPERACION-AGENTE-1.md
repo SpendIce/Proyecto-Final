@@ -587,6 +587,32 @@ tratan igual que `web`, y la auditoría HU-013 registra
 `origen_identidad: demo`. Una solicitud demo nunca figura como identidad
 verificada por Google ni sirve como evidencia de identidad.
 
+**Doc por solicitud, revisiones y aprobación (ADR 0016, #153).** Cuando
+el worker termina la generación, escribe el borrador en **un** Google
+Doc marcado con la solicitud en `appProperties` (`a1_solicitud`): si la
+corrida cae y se retoma, la búsqueda por la marca reutiliza el Doc en
+vez de crear otro. La página de la solicitud muestra el enlace «Editar
+en Google Docs», las revisiones (número, origen `generada`/`editada en
+Docs`, fecha, hash corto) y los botones:
+
+- **Traer cambios del Doc** exporta el texto del Doc (`files.export`
+  `text/plain`) y crea una revisión nueva sólo si el hash cambió.
+- **Aprobar / Descartar** reexporta el Doc y exige que su hash coincida
+  con el de la revisión vigente mostrada; si cambió, el rechazo avisa
+  «El Doc cambió: traé los cambios antes de aprobar» y asienta la
+  revisión nueva. La decisión registra rol, origen de identidad
+  (`google`/`demo`), versión del agente y hash del Doc; exige el rol
+  `APROBADOR_CONTENIDO` del padrón. Aprobar **cierra** el recorrido:
+  no publica, no envía correos ni aporta a Historia Viva.
+
+Variables que lo controlan (env file del stack, nunca en el repo):
+
+| Variable | Contenido |
+|---|---|
+| `AGENTE1_WORKER_DESTINO` | `fake` (default) usa el destino en memoria; `docs` pasa el worker a `--destino-docs` sobre Drive real con la config `AGENTE1_WORKSPACE_*` del env file. Cualquier otro valor produce un flag que argparse rechaza al arrancar; sin flag o con ambos el worker cierra con `worker_destino_no_declarado`. |
+| `AGENTE1_WEB_DOCS` | `si` hace que `servidor_web` construya el exportador de Docs real y habilite los botones; sin él los POST responden `exportador_ausente`. Con `si` y config Workspace inválida el arranque cierra con `web_workspace_config_invalid`. |
+| `AGENTE1_WEB_DOCS_COMPARTIR` | `si` da permiso `writer` al correo de quien pidió (resuelto contra `AGENTE1_PADRON_ROLES_CSV`, sin `sendNotificationEmail`) al crear el Doc; el evento `doc_compartido` audita el hash del correo. Sin la variable el Doc queda sólo en la carpeta del agente. |
+
 | Código | Significado | Qué hacer |
 |---|---|---|
 | `web_config_incomplete` | Falta DSN, padrón o tabla. | Revisar el env file del canal. |
@@ -594,6 +620,14 @@ verificada por Google ni sirve como evidencia de identidad.
 | `web_demo_hasta_invalid` | `AGENTE1_WEB_DEMO_HASTA` no es `AAAA-MM-DD`. | Corregir la fecha declarada. |
 | `web_config_insegura` | La combinación declarada viola una salvaguarda del modo (real, prueba o demo). | Revisar la tabla de arriba y los modos activos a la vez. |
 | `web_padron_invalid` / `web_fuente_invalid` | Padrón o tabla ilegibles. | Revisar `AGENTE1_PADRON_ROLES_CSV` y `AGENTE1_TABLA`. |
+| `web_workspace_config_invalid` | `AGENTE1_WEB_DOCS=si` pero la config `AGENTE1_WORKSPACE_*` falta o es inválida. | Completar el env file o apagar `AGENTE1_WEB_DOCS`. |
+| `worker_destino_no_declarado` | El worker arrancó sin `--destino-fake` ni `--destino-docs`, o con ambos. | Declarar `AGENTE1_WORKER_DESTINO=fake` o `docs` en el stack. |
+| `worker_workspace_config_invalid` | `--destino-docs` sin config Workspace completa. | Completar el env file o volver a `fake`. |
+| `worker_padron_ausente` / `worker_padron_invalid` | `AGENTE1_WEB_DOCS_COMPARTIR=si` sin padrón legible. | Revisar `AGENTE1_PADRON_ROLES_CSV`. |
+| `exportador_ausente` (aviso en página) | POST de revisión/decisión sin `AGENTE1_WEB_DOCS=si`. | Habilitar el exportador o ignorar: la solicitud sigue su ciclo. |
+| `drive_auth_denied` / `docs_auth_denied` | El token de Workspace no tiene permiso en Drive/Docs. | Revisar scopes y la delegación de la cuenta. |
+| `drive_response_invalid` | Drive devolvió algo que no cumple el contrato — incluye **dos Docs con la misma marca** (estado corrupto). | Reconciliar a mano los documentos marcados con `a1_solicitud`. |
+| `docs_update_failed_orphaned` | El Doc se creó pero el volcado falló: queda un Doc huérfano. | La próxima corrida lo reutiliza por la marca; el hash de referencia adjunto permite reconciliarlo a mano si persiste. |
 
 ---
 

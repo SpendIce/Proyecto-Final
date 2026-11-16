@@ -26,6 +26,27 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+- **Menor — Doc por solicitud, revisiones y aprobación en el canal web
+  (#153).** El worker escribe el borrador en un Google Doc marcado con
+  `a1_solicitud` en `appProperties` y lo reutiliza en reintentos en vez
+  de duplicarlo (`GoogleDocsDestinoPorMarca`, `--destino-docs` vs
+  `--destino-fake`; el stack lo opta por `AGENTE1_WORKER_DESTINO`).
+  La página de la solicitud gana el enlace «Editar en Google Docs», la
+  tabla de revisiones (`generada`/`editada en Docs`, hash corto,
+  vigente), «Traer cambios del Doc» (exporta `text/plain`, crea revisión
+  nueva sólo si el hash cambió) y «Aprobar/Descartar» — ambos POST con
+  CSRF, rol `APROBADOR_CONTENIDO` del padrón, y la decisión queda atada
+  al hash del Doc reexportado: si el Doc cambió desde que se mostró, el
+  rechazo importa la revisión nueva (prueba 4 del ADR 0016). La
+  decisión registra rol, `origen_identidad` (`google`/`demo`) y
+  `version_agente`. Migración `0007`: `doc_ref`/`doc_url` en
+  `solicitudes`, `origen` en `borradores` (`id_ejecucion` queda
+  opcional para revisiones importadas), prosa `importado` enlazada a su
+  borrador y metadatos de decisión en `validaciones`. Opcional:
+  `AGENTE1_WEB_DOCS_COMPARTIR=si` da `writer` al correo del solicitante
+  al crear el Doc. Aprobar cierra el recorrido — no publica ni envía
+  correos.
+
 - **Mayor — aprobación única de contenido y lotes (#125).** La designación
   del 11/11/2026 reemplaza el par semántica + utilitaria: una sola persona
   autorizada (`APROBADOR_CONTENIDO`, decisión `apruebo_contenido`) aprueba
