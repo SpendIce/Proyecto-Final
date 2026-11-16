@@ -76,7 +76,8 @@
   {% endif %}
   {% if puede_decidir %}
   <form method="post" action="/solicitudes/{{ s.id_solicitud }}/decidir"
-        class="acciones-decision">
+        class="acciones-decision" id="form-decidir"
+        {% if correo_auto %}data-correo-url="/solicitudes/{{ s.id_solicitud }}/correo"{% endif %}>
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="revision" value="{{ revision_vigente_id }}">
     <button type="submit" name="accion" value="aprobar">Aprobar</button>
@@ -88,6 +89,45 @@
     La pieza quedó {{ estado_visible|lower }}. El recorrido de difusión
     está cerrado.
   </p>
+  {% if s.estado_web == 'APROBADA' and correo %}
+  <h2>Preparar correo</h2>
+  <dl class="ficha">
+    <dt>Destinatarios (Cco)</dt>
+    <dd>
+      <ul class="lista-destinatarios">
+        {% for d in correo.destinatarios %}
+        <li>{{ d.nombre }}{% if d.pendiente %}
+          <span class="marca-pendiente">pendiente de aprobación SEU</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </dd>
+    <dt>Asunto</dt><dd>{{ correo.asunto }}</dd>
+  </dl>
+  {% if not correo.cuerpo_en_url %}
+  <p class="aviso-estado">El cuerpo no entra en el enlace: copialo con el botón y pegá el cuerpo en el correo.</p>
+  <pre id="cuerpo-correo" class="pieza" hidden>{{ correo.cuerpo }}</pre>
+  <p>
+    <button type="button" id="copiar-cuerpo">Copiar cuerpo</button>
+    <span id="aviso-copiar" class="ayuda"></span>
+  </p>
+  {% endif %}
+  <p class="acciones-correo">
+    <a class="boton-primario"
+       href="/solicitudes/{{ s.id_solicitud }}/correo?cuenta=sesion"
+       target="_blank" rel="noopener">
+      Abrir con la cuenta {{ correo.correo_sesion }}
+    </a>
+    <a class="enlace-doc"
+       href="/solicitudes/{{ s.id_solicitud }}/correo"
+       target="_blank" rel="noopener">
+      Elegir otra cuenta
+    </a>
+  </p>
+  <p class="ayuda">
+    El agente no envía nada: se abre Gmail con el correo prellenado y la
+    persona revisa y envía ella.
+  </p>
+  {% endif %}
   {% if texto_vigente %}
   <h2>Texto vigente al cerrar</h2>
   <pre class="pieza">{{ texto_vigente }}</pre>
@@ -105,6 +145,51 @@
   <p class="aviso-estado">La solicitud quedó vencida por inactividad.</p>
   {% endif %}
 </section>
+{% if correo_auto %}
+<script>
+// Al aprobar se abre la pestaña del correo en el mismo click, antes de
+// que viaje el POST: el popup nace del gesto del usuario y el bloqueador
+// no lo frena. La pestaña espera la decisión y muestra el motivo si no
+// quedó aprobada (ADR 0021).
+(function () {
+  var form = document.getElementById('form-decidir');
+  if (!form || !form.dataset.correoUrl) return;
+  form.addEventListener('submit', function (e) {
+    var boton = e.submitter;
+    if (boton && boton.name === 'accion' && boton.value === 'aprobar') {
+      window.open(form.dataset.correoUrl, '_blank', 'noopener');
+    }
+  });
+})();
+</script>
+{% endif %}
+{% if s.estado_web == 'APROBADA' and correo and not correo.cuerpo_en_url %}
+<script>
+// Clipboard API: copia el cuerpo aprobado para pegarlo en el correo. Si
+// el navegador no la ofrece (contexto no seguro), el texto se muestra
+// para copiarlo a mano.
+(function () {
+  var boton = document.getElementById('copiar-cuerpo');
+  var cuerpo = document.getElementById('cuerpo-correo');
+  var aviso = document.getElementById('aviso-copiar');
+  if (!boton || !cuerpo) return;
+  boton.addEventListener('click', function () {
+    var texto = cuerpo.textContent;
+    function manual() {
+      cuerpo.hidden = false;
+      if (aviso) aviso.textContent = 'Copiá el texto de abajo.';
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(function () {
+        if (aviso) aviso.textContent = 'Cuerpo copiado: pegalo en el correo.';
+      }, manual);
+    } else {
+      manual();
+    }
+  });
+})();
+</script>
+{% endif %}
 {% if s.estado_web in ('EN_COLA', 'GENERANDO') %}
 <script>
 (function () {

@@ -26,6 +26,29 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+- **Menor — Aprobar ofrece el correo prellenado en Gmail, sin enviar
+  (#153, ADR 0021).** Los públicos del pedido pasan al catálogo
+  `publicos_destinatarios_v2` con los 18 grupos del listado (la v1
+  queda para trazabilidad; sólo id y nombre). La correspondencia
+  id → dirección y los `usos_candidatos` viven fuera del repo en el
+  catálogo `AGENTE1_AUDIENCIAS_PATH`, y el arranque de la web es
+  fail-closed si un público del contrato no tiene mapeo
+  (`web_audiencias_invalid` / `web_config_insegura`). «Nuevo pedido»
+  preselecciona públicos por `usos_candidatos` del tipo. Tras
+  `APROBADA`, la página muestra «Preparar correo» —públicos con la
+  marca «pendiente de aprobación SEU», asunto y enlaces «Abrir con la
+  cuenta» (`authuser`) y «Elegir otra cuenta» (`AccountChooser`)— y el
+  click de aprobar intenta abrir `/solicitudes/{id}/correo` en el mismo
+  gesto: la pestaña espera la decisión y, con la aprobación asentada,
+  redirige al compose de Gmail con destinatarios en `bcc` (nunca `to`),
+  `su` y `body` de la revisión aprobada; si el cuerpo no entra en la
+  URL va por portapapeles. La auditoría de la decisión registra
+  `prellenado_publicos` (migración `0008`), nunca direcciones, y no hay
+  registro de envío: sin `gmail.send`, sin borradores por API, sin el
+  scope `gmail.compose`. La hoja del Form suma
+  `canal_form_respuestas_v4` (mismas columnas, públicos del catálogo
+  nuevo).
+
 - **Menor — Doc por solicitud, revisiones y aprobación en el canal web
   (#153).** El worker escribe el borrador en un Google Doc marcado con
   `a1_solicitud` en `appProperties` y lo reutiliza en reintentos en vez

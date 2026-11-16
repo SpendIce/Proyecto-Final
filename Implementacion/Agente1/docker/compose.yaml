@@ -215,6 +215,12 @@ services:
       # Con `si`, el servidor exporta los Docs por Drive real (#153); la
       # config Workspace llega por `AGENTE1_ENV_FILE`, como en el worker.
       AGENTE1_WEB_DOCS: ${AGENTE1_WEB_DOCS:-}
+      # Catálogo externo de audiencias del prellenado de correo (ADR
+      # 0021): vive en el directorio de config del host, ya montado `ro`;
+      # si el archivo no carga o le falta un público del contrato, el
+      # arranque de la web cierra. Sin el archivo el servicio no arranca:
+      # el default asume el despliegue de producción.
+      AGENTE1_AUDIENCIAS_PATH: ${AGENTE1_AUDIENCIAS_PATH:-${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/audiencias-institucionales.json}
       AGENTE1_WEB_PORT: "8080"
       HOME: /tmp
     networks:

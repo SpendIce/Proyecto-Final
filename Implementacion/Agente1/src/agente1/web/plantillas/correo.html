@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block titulo %}Correo · Agente 1{% endblock %}
+{% block contenido %}
+<section aria-labelledby="t-correo">
+  <h1 id="t-correo">Preparar correo</h1>
+  {% if motivo == 'en_cola' %}
+  <p class="aviso-estado">
+    El pedido está en cola: el agente todavía no generó el borrador. Esta
+    pestaña espera la decisión y se actualiza sola.
+  </p>
+  {% elif motivo == 'generando' %}
+  <p class="aviso-estado">
+    El agente está generando el borrador. Esta pestaña espera la decisión
+    y se actualiza sola.
+  </p>
+  {% elif motivo == 'en_revision' %}
+  <p class="aviso-estado">
+    La solicitud está en revisión: todavía no hay aprobación. Esta
+    pestaña espera la decisión y se actualiza sola.
+  </p>
+  {% elif motivo == 'con_error' %}
+  <p class="mensaje-error" role="alert">
+    La generación falló: no hay correo que preparar.
+  </p>
+  {% elif motivo == 'descartada' %}
+  <p class="aviso-estado">
+    La solicitud fue descartada: no hay correo que preparar.
+  </p>
+  {% elif motivo == 'vencida' %}
+  <p class="aviso-estado">
+    La solicitud quedó vencida por inactividad: no hay correo que
+    preparar.
+  </p>
+  {% elif motivo == 'sin_catalogo' %}
+  <p class="mensaje-error" role="alert">
+    Este despliegue no tiene catálogo de audiencias declarado
+    (AGENTE1_AUDIENCIAS_PATH): el prellenado no está disponible.
+  </p>
+  {% elif motivo == 'sin_publicos' %}
+  <p class="aviso-estado">
+    El pedido no declara públicos destinatarios: no hay correo que
+    preparar.
+  </p>
+  {% elif motivo == 'texto_purgado' %}
+  <p class="aviso-estado">
+    El texto aprobado ya se purgó: el correo no se puede prellenar.
+  </p>
+  {% else %}
+  <p class="mensaje-error" role="alert">
+    La solicitud no está aprobada o el prellenado no se pudo construir:
+    no hay correo que preparar.
+  </p>
+  {% endif %}
+  <p><a href="/solicitudes/{{ s.id_solicitud }}">Volver a la solicitud</a></p>
+</section>
+{% if espera %}
+<script>
+// La pestaña se abrió con el click de Aprobar y puede llegar antes del
+// POST: espera a que la solicitud salga de los estados pendientes y
+// recarga — con la aprobación asentada esta misma ruta redirige a Gmail.
+(function () {
+  setInterval(function () {
+    fetch(window.location.pathname.replace(/\/correo$/, '/estado'))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (['EN_COLA', 'GENERANDO', 'LISTA'].indexOf(d.estado) === -1) {
+          window.location.reload();
+        }
+      })
+      .catch(function () {});
+  }, 1500);
+})();
+</script>
+{% endif %}
+{% endblock %}

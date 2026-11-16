@@ -662,6 +662,36 @@ Docs`, fecha, hash corto) y los botones:
   `APROBADOR_CONTENIDO` del padrón. Aprobar **cierra** el recorrido:
   no publica, no envía correos ni aporta a Historia Viva.
 
+**Correo prellenado al aprobar (ADR 0021, #153).** Con
+`AGENTE1_AUDIENCIAS_PATH` declarada, aprobar ofrece «Preparar correo»:
+la página muestra los públicos del pedido por nombre (con la marca
+«pendiente de aprobación SEU» si su estado lo es), el asunto y dos
+enlaces —«Abrir con la cuenta \<correo de la sesión\>»
+(`authuser`) y «Elegir otra cuenta» (`AccountChooser`)— que abren Gmail
+en modo redactar con los destinatarios en **Cco** y el cuerpo de la
+revisión aprobada. El click de «Aprobar» intenta abrir esa pestaña en
+el mismo gesto; si el bloqueador lo frena, los botones quedan. El
+agente **no envía nada**: sin `gmail.send`, sin borradores por API, sin
+el scope `gmail.compose` — la persona revisa y envía ella. Si el cuerpo
+no entra en la URL, el bloque ofrece «Copiar cuerpo» (Clipboard API) y
+el aviso «pegá el cuerpo en el correo». La auditoría de la decisión
+guarda los ids de públicos de la oferta (`prellenado_publicos`), nunca
+direcciones, y no hay registro de envío.
+
+El **catálogo de audiencias** vive fuera del repo, como el padrón: un
+JSON con `version: audiencias_institucionales_v1`, `fuente`
+(`total_grupos`, `dominio`), `estado_general` y la lista `audiencias`.
+Cada audiencia declara `id`, `nombre`, `direccion` (grupo de Workspace),
+`categoria`, `alcance_esperado`, `usos_candidatos`, `estado_aprobacion`,
+`observacion` y opcional `origen_uso` — el esquema está en
+`contracts/audiencias_institucionales_v1.schema.json`. Los
+`usos_candidatos` preseleccionan públicos por tipo en «Nuevo pedido».
+En producción el archivo es
+`~/.config/agente1/audiencias-institucionales.json` (0600) y el compose
+lo toma del directorio de config del host, montado `ro`. El arranque es
+fail-closed: si el archivo no carga o un público del contrato no tiene
+dirección, la web no arranca.
+
 Variables que lo controlan (env file del stack, nunca en el repo):
 
 | Variable | Contenido |
@@ -669,6 +699,7 @@ Variables que lo controlan (env file del stack, nunca en el repo):
 | `AGENTE1_WORKER_DESTINO` | `fake` (default) usa el destino en memoria; `docs` pasa el worker a `--destino-docs` sobre Drive real con la config `AGENTE1_WORKSPACE_*` del env file. Cualquier otro valor produce un flag que argparse rechaza al arrancar; sin flag o con ambos el worker cierra con `worker_destino_no_declarado`. |
 | `AGENTE1_WEB_DOCS` | `si` hace que `servidor_web` construya el exportador de Docs real y habilite los botones; sin él los POST responden `exportador_ausente`. Con `si` y config Workspace inválida el arranque cierra con `web_workspace_config_invalid`. |
 | `AGENTE1_WEB_DOCS_COMPARTIR` | `si` da permiso `writer` al correo de quien pidió (resuelto contra `AGENTE1_PADRON_ROLES_CSV`, sin `sendNotificationEmail`) al generar el Doc, lo cree o lo reutilice; el evento `doc_compartido` audita el hash del correo. Si el permiso falla, el Doc existe y la solicitud queda `LISTA`; el evento `permiso_no_otorgado` guarda el hash del intento. Sin la variable el Doc queda sólo en la carpeta del agente. |
+| `AGENTE1_AUDIENCIAS_PATH` | Ruta del catálogo externo de audiencias (ADR 0021): habilita la preselección de públicos, «Preparar correo» y `/solicitudes/{id}/correo`. El compose lo apunta a `${AGENTE1_HOST_CONFIG}/audiencias-institucionales.json`. Si el archivo no carga el arranque cierra con `web_audiencias_invalid`, y si le falta el mapeo de un público del contrato cierra con `web_config_insegura` (el mensaje nombra el id, nunca la dirección). Sin la variable el prellenado queda apagado y `/correo` muestra el motivo. |
 
 | Código | Significado | Qué hacer |
 |---|---|---|
@@ -679,6 +710,7 @@ Variables que lo controlan (env file del stack, nunca en el repo):
 | `web_version_agente_ausente` | El arranque no pudo leer la versión de `pyproject.toml`; la decisión no se registra sin proveniencia. | Reponer `pyproject.toml` en la raíz del Agente 1 o cortar una versión con el manifest completo. |
 | `web_padron_invalid` / `web_fuente_invalid` | Padrón o tabla ilegibles. | Revisar `AGENTE1_PADRON_ROLES_CSV` y `AGENTE1_TABLA`. |
 | `web_workspace_config_invalid` | `AGENTE1_WEB_DOCS=si` pero la config `AGENTE1_WORKSPACE_*` falta o es inválida. | Completar el env file o apagar `AGENTE1_WEB_DOCS`. |
+| `web_audiencias_invalid` | `AGENTE1_AUDIENCIAS_PATH` declarada pero el catálogo no carga (ausente, JSON inválido o versión desconocida). | Revisar el archivo externo contra `contracts/audiencias_institucionales_v1.schema.json` o quitar la variable. |
 | `worker_destino_no_declarado` | El worker arrancó sin `--destino-fake` ni `--destino-docs`, o con ambos. | Declarar `AGENTE1_WORKER_DESTINO=fake` o `docs` en el stack. |
 | `worker_workspace_config_invalid` | `--destino-docs` sin config Workspace completa. | Completar el env file o volver a `fake`. |
 | `worker_padron_ausente` / `worker_padron_invalid` | `AGENTE1_WEB_DOCS_COMPARTIR=si` sin padrón legible. | Revisar `AGENTE1_PADRON_ROLES_CSV`. |

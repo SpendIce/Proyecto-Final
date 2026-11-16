@@ -67,6 +67,16 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from ..audiencias import (
+    ESTADO_APROBADA as AUDIENCIA_APROBADA,
+)
+from ..audiencias import (
+    CatalogoAudiencias,
+    ErrorAudiencias,
+    construir_prellenado,
+    url_accountchooser,
+    url_con_cuenta,
+)
 from ..canal_form import (
     PadronRoles,
     areas_emisoras,
@@ -389,6 +399,7 @@ def crear_app(
     hoy: Callable[[], date] | None = None,
     exportador: ExportadorDocs | None = None,
     version_agente: str | None = None,
+    catalogo_audiencias: CatalogoAudiencias | None = None,
 ) -> FastAPI:
     """Fábrica de la app: todo servicio externo entra inyectado.
 
@@ -403,6 +414,12 @@ def crear_app(
     botones de «Traer cambios» y «Aprobar/Descartar» no aparecen y los
     POST responden `exportador_ausente`. `version_agente` queda en cada
     decisión como proveniencia del binario que la registró.
+
+    `catalogo_audiencias` es el catálogo externo de audiencias (ADR 0021):
+    sin él el bloque «Preparar correo» no aparece y `/correo` muestra el
+    motivo. Con él el arranque es fail-closed: todo id del contrato de
+    públicos debe tener dirección en el catálogo — un id sin mapeo es un
+    despliegue mal armado y el mensaje nombra el id, nunca la dirección.
     """
     validar_configuracion(
         config,
@@ -430,6 +447,27 @@ def crear_app(
     areas = areas_emisoras()
     publicos = publicos_destinatarios()
     fichas_por_tipo = _campos_por_tipo()
+    if catalogo_audiencias is not None:
+        faltantes = [
+            pid
+            for pid in publicos
+            if pid not in catalogo_audiencias.por_id
+        ]
+        if faltantes:
+            raise ConfiguracionInvalida(
+                "públicos del contrato sin audiencia en el catálogo"
+                f" externo: {', '.join(sorted(faltantes))}"
+            )
+    usos_por_tipo: dict[str, list[str]] = {}
+    if catalogo_audiencias is not None:
+        orden_publicos = {pid: i for i, pid in enumerate(publicos)}
+        for audiencia in catalogo_audiencias.audiencias:
+            if audiencia.id not in publicos:
+                continue
+            for uso in audiencia.usos_candidatos:
+                usos_por_tipo.setdefault(uso, []).append(audiencia.id)
+        for ids_uso in usos_por_tipo.values():
+            ids_uso.sort(key=lambda pid: orden_publicos[pid])
     actividades = actividades or []
     actividades_por_id = {
         str(a.get("id_actividad", "")): a for a in actividades
@@ -763,6 +801,10 @@ def crear_app(
             and vigente is not None
             and rol in ROLES_POR_DECISION[(TIPO_PUBLICACION, DECISION_PUBLIQUE)]
         )
+        puede_correo = rol in ROLES_POR_DECISION[
+            (TIPO_PUBLICACION, DECISION_PUBLIQUE)
+        ]
+        correo = _contexto_correo(detalle_sol, titulo, sesion, puede_correo)
         return render(
             "solicitud.html",
             request,
@@ -795,11 +837,164 @@ def crear_app(
             doc_url=detalle_sol.doc_url,
             puede_traer=puede_traer,
             puede_decidir=puede_decidir,
+            correo=correo,
+            correo_auto=(
+                catalogo_audiencias is not None and puede_correo
+            ),
             revision_vigente_id=vigente.id_borrador if vigente else None,
             csrf=sesion.csrf_token,
             aviso=aviso,
             aviso_error=aviso_error,
         )
+
+    def _contexto_correo(
+        detalle_sol: DetalleSolicitud,
+        titulo: str | None,
+        sesion: Sesion,
+        puede_correo: bool,
+    ) -> dict[str, Any] | None:
+        """El bloque «Preparar correo» de la solicitud aprobada (ADR 0021).
+
+        Sólo aparece aprobada, con catálogo declarado y para el rol que
+        puede aprobar: las direcciones sólo salen dentro de la URL de
+        Gmail del aprobador, nunca en el HTML. Cuando el cuerpo no entra
+        en la URL, el bloque ofrece copiarlo al portapapeles.
+        """
+        if (
+            detalle_sol.estado_web != "APROBADA"
+            or catalogo_audiencias is None
+            or not puede_correo
+        ):
+            return None
+        ids = [
+            str(p)
+            for p in detalle_sol.campos.get("pedido", {}).get("publicos", [])
+        ]
+        por_id = catalogo_audiencias.por_id
+        destinatarios = [
+            {
+                "nombre": publicos.get(pid, pid),
+                "pendiente": (
+                    por_id.get(pid) is None
+                    or por_id[pid].estado_aprobacion != AUDIENCIA_APROBADA
+                ),
+            }
+            for pid in ids
+        ]
+        cuerpo = detalle_sol.texto_vigente or detalle_sol.texto_generado
+        en_url = False
+        if ids and cuerpo:
+            try:
+                prellenado = construir_prellenado(
+                    detalle_sol.tipo_pieza,
+                    titulo or "",
+                    cuerpo,
+                    catalogo_audiencias,
+                    seleccion=ids,
+                )
+                en_url = prellenado.cuerpo_portapapeles is None
+            except ErrorAudiencias:
+                en_url = False
+        return {
+            "asunto": titulo or "",
+            "destinatarios": destinatarios,
+            "cuerpo_en_url": en_url,
+            "cuerpo": cuerpo if not en_url else None,
+            "correo_sesion": sesion.correo,
+        }
+
+    def _motivo_correo(detalle_sol: DetalleSolicitud) -> str:
+        """Por qué `/correo` no redirige, en código legible para la plantilla."""
+        estados = {
+            "EN_COLA": "en_cola",
+            "GENERANDO": "generando",
+            "LISTA": "en_revision",
+            "ERROR": "con_error",
+            "DESCARTADA": "descartada",
+            "VENCIDA": "vencida",
+        }
+        return estados.get(detalle_sol.estado_web, "sin_aprobar")
+
+    @app.get(
+        "/solicitudes/{id_solicitud}/correo", response_class=HTMLResponse
+    )
+    def correo(
+        request: Request, id_solicitud: str, cuenta: str = ""
+    ) -> Response:
+        """Redirige al compose de Gmail o muestra el motivo (ADR 0021).
+
+        Misma puerta que la decisión: sesión viva y rol aprobador. La
+        pestaña que abre el click de Aprobar puede llegar antes del POST —
+        con la solicitud todavía `LISTA` la página espera y recarga sola
+        hasta que la decisión queda. Nunca redirige si no está aprobada:
+        el correo es de la revisión aprobada, no de otra cosa.
+        """
+        sesion = autorizar(request)
+        if sesion is None:
+            return destino_login()
+        detalle_sol = repositorio.obtener(id_solicitud)
+        if detalle_sol is None:
+            return render("sin_permiso.html", request, status_code=404)
+        if rol_de(sesion) not in ROLES_POR_DECISION[
+            (TIPO_PUBLICACION, DECISION_PUBLIQUE)
+        ]:
+            return render("sin_permiso.html", request, status_code=403)
+        motivo: str | None = None
+        prellenado = None
+        if catalogo_audiencias is None:
+            motivo = "sin_catalogo"
+        elif detalle_sol.estado_web != "APROBADA":
+            motivo = _motivo_correo(detalle_sol)
+        else:
+            ids = [
+                str(p)
+                for p in detalle_sol.campos.get("pedido", {}).get(
+                    "publicos", []
+                )
+            ]
+            cuerpo = (
+                detalle_sol.texto_vigente or detalle_sol.texto_generado
+            )
+            titulo = (
+                detalle_sol.campos.get("pieza", {}).get("titulo")
+                or (actividades_por_id.get(
+                    detalle_sol.actividad_ref or "", {}
+                )).get("titulo")
+                or _NOMBRES_TIPOS.get(detalle_sol.tipo_pieza, "")
+            )
+            if not ids:
+                motivo = "sin_publicos"
+            elif not cuerpo:
+                motivo = "texto_purgado"
+            else:
+                try:
+                    prellenado = construir_prellenado(
+                        detalle_sol.tipo_pieza,
+                        titulo,
+                        cuerpo,
+                        catalogo_audiencias,
+                        seleccion=ids,
+                    )
+                except ErrorAudiencias:
+                    motivo = "prellenado_invalido"
+        if motivo is not None or prellenado is None:
+            return render(
+                "correo.html",
+                request,
+                sesion=sesion,
+                s=detalle_sol,
+                motivo=motivo or "prellenado_invalido",
+                espera=detalle_sol.estado_web
+                in ("EN_COLA", "GENERANDO", "LISTA"),
+            )
+        try:
+            if cuenta == "sesion":
+                url = url_con_cuenta(prellenado.url, sesion.correo)
+            else:
+                url = url_accountchooser(prellenado.url)
+        except ErrorAudiencias:
+            url = url_accountchooser(prellenado.url)
+        return RedirectResponse(url, status_code=303)
 
     @app.get("/solicitudes/{id_solicitud}/estado")
     def estado(request: Request, id_solicitud: str) -> Response:
@@ -915,6 +1110,22 @@ def crear_app(
             DECISION_PUBLIQUE: "APROBADA",
             DECISION_DESCARTE: "RECHAZADA",
         }[decision]
+        # La auditoría registra que se ofreció el prellenado y a qué ids
+        # de públicos (ADR 0021): ids del catálogo, nunca direcciones. Sin
+        # catálogo o sin públicos la decisión queda sin oferta (NULL).
+        publicos_pedido = [
+            str(p)
+            for p in detalle_sol.campos.get("pedido", {}).get("publicos", [])
+        ]
+        prellenado_ids = (
+            publicos_pedido
+            if (
+                decision == DECISION_PUBLIQUE
+                and catalogo_audiencias is not None
+                and publicos_pedido
+            )
+            else None
+        )
         resultado = repositorio.registrar_decision(
             id_solicitud=id_solicitud,
             id_borrador=str(form.get("revision", "")),
@@ -926,6 +1137,7 @@ def crear_app(
             origen_identidad=sesion.origen,
             version_agente=version_agente,
             head_revision_id=head_revision_id,
+            prellenado_publicos=prellenado_ids,
             ahora=datetime.now(timezone.utc),
         )
         aviso, es_error = _aviso(_AVISOS_DECISION, resultado.codigo)
@@ -963,6 +1175,7 @@ def crear_app(
             "areas": areas,
             "publicos": publicos,
             "actividades": actividades,
+            "usos_por_tipo": usos_por_tipo,
         }
 
     @app.get("/nuevo-pedido", response_class=HTMLResponse)

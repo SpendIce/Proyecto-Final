@@ -130,8 +130,15 @@
     <button class="boton-primario" type="submit">Enviar pedido</button>
   </form>
 </section>
+<script type="application/json" id="usos-por-tipo">{{ usos_por_tipo | tojson }}</script>
 <script>
 (function () {
+  var usosPorTipo = {};
+  try {
+    usosPorTipo = JSON.parse(
+      document.getElementById('usos-por-tipo').textContent || '{}'
+    );
+  } catch (e) { usosPorTipo = {}; }
   var tipo = document.getElementById('tipo');
   var actividad = document.getElementById('bloque-actividad');
   var selectAct = document.getElementById('actividad');
@@ -172,6 +179,19 @@
     });
     datosActividad();
   }
+  // Preselección del catálogo externo (ADR 0021): al cambiar de tipo se
+  // marcan los públicos cuyo `usos_candidatos` incluye ese tipo; la
+  // persona ajusta a mano después. No corre en la carga inicial: los
+  // `valores` reposteados tras un error mandan sobre la sugerencia.
+  function preseleccionar() {
+    var sugeridos = usosPorTipo[tipo.value] || [];
+    document
+      .querySelectorAll('#bloque-publicos input[name="publicos"]')
+      .forEach(function (chk) {
+        chk.checked = sugeridos.indexOf(chk.value) !== -1;
+      });
+  }
+  tipo.addEventListener('change', preseleccionar);
   tipo.addEventListener('change', actualizar);
   selectAct.addEventListener('change', datosActividad);
   actualizar();
