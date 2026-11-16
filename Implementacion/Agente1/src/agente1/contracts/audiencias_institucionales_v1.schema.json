@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:proyecto-centenario:agente1:audiencias-institucionales:v1",
+  "title": "Catalogo externo de audiencias institucionales del Agente 1",
+  "description": "Esquema del archivo que vive fuera del repo en ~/.config/agente1/audiencias-institucionales.json. Declara la forma del catalogo, no las direcciones: la lista real no se versiona. El loader de src/agente1/audiencias.py aplica estas mismas reglas de forma fail-closed y agrega las que el esquema no puede expresar (ids y direcciones unicas, total_grupos coherente, email_valido).",
+  "x-contract-version": "audiencias_institucionales_v1",
+  "x-status": "PROVISIONAL_NO_INSTITUCIONAL",
+  "x-origen": "Equipo tecnico del PPS. Las audiencias y sus usos no fueron aprobados por la SEU.",
+  "type": "object",
+  "required": ["version", "fuente", "estado_general", "audiencias"],
+  "properties": {
+    "version": {
+      "const": "audiencias_institucionales_v1"
+    },
+    "fuente": {
+      "type": "object",
+      "required": [
+        "archivo",
+        "paginas",
+        "extraido_con",
+        "fecha_extraccion",
+        "total_grupos",
+        "dominio"
+      ],
+      "properties": {
+        "archivo": {"type": "string", "minLength": 1},
+        "paginas": {"type": "integer", "minimum": 1},
+        "extraido_con": {"type": "string", "minLength": 1},
+        "fecha_extraccion": {"type": "string", "minLength": 1},
+        "total_grupos": {"type": "integer", "minimum": 1},
+        "dominio": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "estado_general": {"type": "string", "minLength": 1},
+    "procedencia": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "audiencias": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/audiencia"}
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "audiencia": {
+      "type": "object",
+      "required": [
+        "id",
+        "nombre",
+        "direccion",
+        "categoria",
+        "alcance_esperado",
+        "usos_candidatos",
+        "estado_aprobacion",
+        "observacion"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "nombre": {"type": "string", "minLength": 1},
+        "direccion": {"type": "string", "format": "email", "minLength": 3},
+        "categoria": {
+          "enum": [
+            "alumnos",
+            "institucional",
+            "comunidad",
+            "docentes",
+            "graduados",
+            "personal",
+            "conduccion"
+          ]
+        },
+        "alcance_esperado": {
+          "enum": ["segmentado", "masivo", "interno", "desconocido"]
+        },
+        "usos_candidatos": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "estado_aprobacion": {
+          "enum": ["PENDIENTE_SEU", "APROBADA", "RECHAZADA"]
+        },
+        "observacion": {
+          "type": ["string", "null"]
+        },
+        "origen_uso": {
+          "enum": ["DECISION_USUARIO", "SUPUESTO", "PENDIENTE_SEU"]
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
