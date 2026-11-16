@@ -124,6 +124,11 @@ TEMPLATE_VERSION = "confirmacion_inscripcion_provisional_v1"
 POLICY_STATUS = "PROVISIONAL_NO_INSTITUCIONAL"
 MARCADOR_BORRADOR = "BORRADOR — NO ENVIAR"
 
+# Código de auditoría del aviso operativo que el canal web reemplaza en
+# producción (#142): el correo no se envía y el registro asienta el
+# reemplazo en vez de un envío.
+AVISO_REEMPLAZADO_POR_CANAL_WEB = "aviso_reemplazado_por_canal_web"
+
 # El tipo del correo de preinscripción con las instrucciones de pago (D8):
 # se declara en el catálogo v3 y tramita por este circuito con `datos_pago`.
 TIPO_INSTRUCCIONES_PAGO = "instrucciones_pago"

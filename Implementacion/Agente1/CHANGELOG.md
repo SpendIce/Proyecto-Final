@@ -45,9 +45,13 @@ Dirección. Detalle en el procedimiento.
   certificado de `aprobacion` sale del diseño SEU (#126) con
   `marcar_prueba` apagado, `asistencia` exige `certificado_asistencia`,
   el correo `correo_certificado`, y los recursos de firma completos
-  (`signature_resources_missing` si falta alguno antes de entregar). El
-  aviso del canal sale sin marca en producción; el de respaldo quedó
-  fuera de alcance. Un borrador compuesto en prueba no sirve para una
+  (`signature_resources_missing` si falta alguno antes de entregar). En
+  producción no se envía el aviso de estado del canal ni el correo al
+  aprobador del lote de certificados: los reemplaza el canal web (la
+  evaluación del lote en la web queda pendiente, fuera de este PR) y la
+  auditoría asienta `aviso_reemplazado_por_canal_web`; producción nunca
+  quita la marca de borrador. El aviso de respaldo quedó fuera de alcance.
+  Un borrador compuesto en prueba no sirve para una
   entrega de producción (`template_body_mismatch`). Las redacciones
   institucionales siguen pendientes de la SEU; las de los tests son
   sintéticas declaradas.

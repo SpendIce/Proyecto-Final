@@ -1443,23 +1443,21 @@ def test_la_propuesta_no_persiste_ni_la_prosa_ni_el_correo(
 # --- Modo producción (#142) -----------------------------------------------------
 
 
-def test_en_produccion_el_aviso_al_solicitante_viaja_sin_marcas(
+def test_en_produccion_el_aviso_lo_reemplaza_el_canal_web(
     tmp_path: Path,
 ) -> None:
-    """El aviso operativo no es pieza institucional: sale el mismo texto
-    sin la marca, porque el destino de producción la rechaza."""
+    """En producción el estado se ve en la web: no se manda el aviso."""
 
     canal, router = crear_canal(tmp_path, modo_avisos=MODO_ENVIO_PRODUCCION)
 
     resultados = _atender(canal, router, tmp_path)
 
+    # El pedido sigue igual: no se falla por no poder mandar el aviso.
     assert resultados[0].estado == "PENDIENTE_VALIDACION"
-    (mensaje,) = _correos_gmail(router)
-    cuerpo = _cuerpo(mensaje)
-    assert "BORRADOR" not in cuerpo
-    assert "docs.google.com/document/d/doc_copiado-777" in cuerpo
+    assert _correos_gmail(router) == []
     (registro,) = _atendidos(tmp_path)
-    assert registro["aviso"] == "enviada"
+    assert registro["aviso"] == "reemplazada"
+    assert registro["aviso_codigo"] == "aviso_reemplazado_por_canal_web"
 
 
 def test_en_prueba_el_aviso_conserva_la_marca_de_siempre(
@@ -1471,3 +1469,6 @@ def test_en_prueba_el_aviso_conserva_la_marca_de_siempre(
 
     (mensaje,) = _correos_gmail(router)
     assert MARCADOR_BORRADOR in _cuerpo(mensaje)
+    (registro,) = _atendidos(tmp_path)
+    assert registro["aviso"] == "enviada"
+    assert registro["aviso_codigo"] is None

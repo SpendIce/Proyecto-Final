@@ -1409,13 +1409,14 @@ def test_la_version_de_la_plantilla_se_aprueba_por_el_form_de_decisiones(
     assert len(transporte.solicitudes) == len(PERSONAS)
 
 
-def test_en_produccion_el_aviso_al_aprobador_no_lleva_marca(tmp_path: Path):
-    """R1 en avisos: registra el comportamiento actual, no lo bendice.
+def test_en_produccion_el_aviso_al_aprobador_no_se_envia(
+    tmp_path: Path, monkeypatch
+):
+    """En producción el lote queda pendiente sin correo al aprobador.
 
-    El aviso interno al aprobador es un mensaje operativo y hoy pierde la
-    marca de borrador en producción; el PDF de muestra la conserva. Si
-    Juani decide que R1 también rige este aviso, este test es el que hay
-    que cambiar junto con `certificados_emision`.
+    La evaluación del lote pasa a la web (fuera de este PR): el aviso con
+    enlace al Form no se manda. El PDF de muestra se sigue generando
+    marcado y la auditoría asienta el reemplazo.
     """
 
     destino, transporte, _ = _destino_produccion(_ok_envio(2))
@@ -1423,8 +1424,20 @@ def test_en_produccion_el_aviso_al_aprobador_no_lleva_marca(tmp_path: Path):
     _aprobar_linea(registro, id_actividad=ACTIVIDAD_ID, texto_linea=LINEA)
     plantillas = _plantillas_sinteticas()
     _aprobar_versiones_plantillas(registro, plantillas)
+    original = certificados_emision._pdf_para_persona
+    muestra: dict[str, bytes] = {}
 
-    resultado, _, _, _ = _ejecutar(
+    def _espia(**kwargs):
+        pdf, traza = original(**kwargs)
+        if kwargs["borrador"]:
+            muestra["pdf"] = pdf
+        return pdf, traza
+
+    monkeypatch.setattr(
+        certificados_emision, "_pdf_para_persona", _espia
+    )
+
+    resultado, registro, _, _ = _ejecutar(
         tmp_path,
         registro=registro,
         destino=destino,
@@ -1433,14 +1446,24 @@ def test_en_produccion_el_aviso_al_aprobador_no_lleva_marca(tmp_path: Path):
     )
 
     assert resultado.estado == "PENDIENTE_APROBACION"
-    assert len(transporte.solicitudes) == 1
-    mensaje = _mime_de(transporte.solicitudes[0])
-    assert mensaje["To"] == CORREO_SOLICITANTE
-    cuerpo = mensaje.get_body(("plain",)).get_content()
-    assert "apruebo_lote" in cuerpo
-    assert "BORRADOR" not in cuerpo
-    pdf = _adjunto_pdf_de(mensaje)
-    assert b"BORRADOR" in pdf
+    assert resultado.error == "lote_no_aprobado"
+    assert transporte.solicitudes == []
+    # La muestra se generó marcada aunque no se entregue.
+    assert b"BORRADOR" in muestra["pdf"]
+    objeto_lote = objeto_lote_cierre(
+        ACTIVIDAD_ID, hash_lista_cierre(parsear_lista_cierre(PERSONAS))
+    )
+    assert any(
+        p["tipo"] == "lote" and p["objeto_id"] == objeto_lote
+        for p in registro.pendientes()
+    )
+    avisos = [
+        e
+        for e in _leer_log(resultado)
+        if e["evento"] == "aviso_aprobacion"
+    ]
+    assert avisos[-1]["resultado"] == "reemplazado"
+    assert avisos[-1]["code"] == "aviso_reemplazado_por_canal_web"
 
 
 def test_un_destino_sin_modo_no_cae_silenciosamente_en_prueba(

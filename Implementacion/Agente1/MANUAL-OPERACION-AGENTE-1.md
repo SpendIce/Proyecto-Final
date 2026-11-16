@@ -444,6 +444,7 @@ conforme. La tasa de conformidad, en cambio, es una medida de calidad (§7).
 | `template_version_unapproved` | La versión exacta del texto no tiene la `apruebo_contenido` registrada de `APROBADOR_CONTENIDO` (ADR 0020). | Declarar el pendiente y registrar la decisión por el Form de decisiones (§5.9); editar el texto exige una aprobación nueva. |
 | `template_variable_without_value` | El render encontró una variable sin valor. | Corregir la plantilla o el dato de la corrida; nunca se entrega una llave suelta. |
 | `send_mode_invalid` / `send_mode_mismatch` | El destino no declara un modo de envío válido, o el `modo_envio` de la corrida contradice al del destino. | Revisar `AGENTE1_GMAIL_MODO` y no pasar un modo distinto al del destino. |
+| `aviso_reemplazado_por_canal_web` | En producción el aviso operativo no se envía: el estado del pedido se ve en el canal web y el correo al aprobador del lote queda pendiente de la evaluación web. El pedido/lote sigue su curso. | Ninguna: es el comportamiento esperado. Producción nunca quita la marca de borrador; en prueba el aviso se envía marcado. |
 | `signature_resources_missing` | Faltan el símbolo o las firmas del certificado de aprobación, o los firmantes del certificado de asistencia. | Cargar la custodia de recursos (`AGENTE1_CERTIFICADOS_RECURSOS_DIR`) y revisar la lista de firmantes. |
 
 **Plantillas aprobadas por tipo (#142).** En producción el agente no poda un
@@ -467,6 +468,13 @@ redacción:
 El certificado de `asistencia` exige `{{bloque_firmas}}` en la plantilla y una
 lista de firmantes no vacía. Si el texto cambia, el hash cambia y hay que
 registrar una aprobación nueva: la anterior queda atada a la versión vieja.
+
+En producción, si el lote de certificados todavía no está aprobado, el lote
+queda `PENDIENTE_APROBACION` y el PDF de muestra se genera marcado, pero el
+correo al aprobador con el enlace al Form **no se envía**: la evaluación del
+lote va a pasar a la web (pendiente, fuera de este PR). La auditoría asienta
+`aviso_aprobacion` con `resultado: reemplazado` y el código
+`aviso_reemplazado_por_canal_web`.
 
 Los códigos `runner_*` (por ejemplo `runner_live_not_enabled`,
 `runner_live_write_not_confirmed`, `runner_live_config_invalid`,
@@ -528,6 +536,13 @@ manda. Una difusión con identificador bien formado de una actividad no
 cargada entra al núcleo igual que por prosa y vuelve `INVALIDA` sin
 generación.
 
+En modo producción el canal no manda el aviso de registro o estado del
+pedido: con el canal web, el estado se ve ahí. El pedido se atiende igual y
+el registro asienta `aviso: reemplazada` con el código
+`aviso_reemplazado_por_canal_web`, sin fallar la atención. En modo prueba el
+aviso se envía y conserva `BORRADOR — NO ENVIAR`; producción tampoco poda
+esa marca: la sacan las personas antes de enviar.
+
 | Código | Significado | Qué hacer |
 |---|---|---|
 | `canal_form_config_incomplete` / `canal_form_config_invalid` / `canal_form_config_unknown_key` | Configuración del canal de pedidos por Form, incluida la versión de contrato de hoja (`AGENTE1_FORM_PEDIDOS_HOJA_CONTRATO`). | Revisar el env file. |
@@ -535,6 +550,7 @@ generación.
 | `canal_form_areas_padron_invalido` | El padrón cerrado de áreas emisoras no se puede leer o está mal armado. | Revisar `contracts/areas_emisoras_v2.json`; el arranque sin padrón de áreas no habilita a medias. |
 | `canal_form_publicos_padron_invalido` | El catálogo cerrado de públicos destinatarios no se puede leer o está mal armado. | Revisar `contracts/publicos_destinatarios_v1.json`. |
 | `canal_form_registry_invalid` / `canal_form_registry_unavailable` | El registro de atendidos está dañado o no está. | Revisar `atendidos-canal-form.jsonl`. |
+| `aviso_reemplazado_por_canal_web` | En producción el aviso de estado no se envía: lo reemplaza el canal web. El registro queda `aviso: reemplazada`. | Ninguna: el pedido se atendió y el estado se consulta en la web. En prueba el aviso sigue marcado y se envía. |
 | `canal_form_decisiones_config_incomplete` / `canal_form_decisiones_config_invalid` / `canal_form_decisiones_config_unknown_key` | Configuración del Form de decisiones. | Revisar el env file. |
 | `decisiones_registry_invalid` | El registro de decisiones está dañado. | Revisar `decisiones-procesadas.jsonl`. |
 | `decision_objeto_invalid` / `decision_tipo_invalid` / `decision_link_invalid` / `decision_detalle_invalid` | La decisión no corresponde a un objeto, tipo, enlace o detalle válidos. | Registrar la decisión con el objeto y el rol correctos. |

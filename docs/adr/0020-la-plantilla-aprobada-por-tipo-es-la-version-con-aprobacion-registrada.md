@@ -16,6 +16,15 @@ El texto de las plantillas por tipo vive fuera del repo, en el archivo que decla
 
 Los tipos del mecanismo son los cinco `por_envio` de HU-012, `recordatorio_pago`, `correo_actividad`, `certificado_asistencia` y `correo_certificado`. `certificado_aprobacion` no entra: su diseño institucional ya llegó como composición reproducible en ADR 0017.
 
+## Avisos operativos
+
+La decisión del 16/11/2026 separa las piezas institucionales de los avisos operativos y fija el criterio para el modo producción:
+
+- **Producción nunca quita la marca de borrador**, tampoco en un aviso operativo: la marca la sacan las personas antes de enviar. El cuerpo que el agente compone conserva `BORRADOR — NO ENVIAR`; el agente no poda marcas para que un texto provisional parezca aprobado.
+- **El aviso de registro o estado del pedido no se envía en producción.** Con el canal web, el estado del pedido se ve ahí. El canal no intenta la entrega, asienta `aviso: reemplazada` con el código `aviso_reemplazado_por_canal_web` en el registro de atendidos y sigue: el pedido no falla por no mandar el correo.
+- **El correo al aprobador del lote de certificados con enlace al Form tampoco se envía en producción.** La evaluación del lote va a pasar a la web (pendiente, fuera de este PR). El lote queda `PENDIENTE_APROBACION`, el PDF de muestra se sigue generando marcado y la auditoría asienta `aviso_aprobacion` con `resultado: reemplazado` y el mismo código.
+- **En modo prueba no cambia nada:** el aviso del canal y el correo al aprobador se envían, marcados como siempre.
+
 ## Considered Options
 
 - **Aceptar el archivo como prueba de aprobación.** Se descartó: el archivo lo edita quien opera el despliegue y no deja rastro de quién avaló el texto; una plantilla «aprobada» por existir viola la exigencia del glosario de que la validación humana queda registrada.

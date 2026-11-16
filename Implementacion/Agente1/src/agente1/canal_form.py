@@ -86,7 +86,9 @@ El correo de aviso (D12 de #38): todo cuerpo empieza con
 destinatario es el correo verificado del pedido —que en D2 tiene que estar
 además en la lista de direcciones permitidas; si no está, la entrega se
 rechaza antes de la red y queda `aviso: rechazada` en el registro, sin
-reintento ni re-despacho del pedido.
+reintento ni re-despacho del pedido. En modo producción el aviso no se
+envía: el estado del pedido se ve en el canal web y el registro asienta
+`aviso: reemplazada` con `aviso_reemplazado_por_canal_web`.
 
 Repregunta sin prosa: cuando el núcleo devuelve `PENDIENTE_DESAMBIGUACION`,
 el aviso trae **un link prellenado por candidata** —`viewform?usp=pp_url&
@@ -141,6 +143,7 @@ from urllib.parse import quote
 
 from .canal import PedidoCanal
 from .confirmaciones import (
+    AVISO_REEMPLAZADO_POR_CANAL_WEB,
     MARCADOR_BORRADOR,
     DestinoConfirmaciones,
     EntregaRechazadaError,
@@ -1417,13 +1420,20 @@ class CanalFormPedidos:
     ) -> tuple[str, str | None]:
         """Un intento de `gmail.send`; el desenlace vuelve para el registro.
 
-        `EntregaRechazadaError` es una prohibición de política —destinatario
-        fuera de la lista de prueba, cuerpo sin marca—: se registra como
-        `rechazada` con su código, sin reintento. Cualquier otra excepción
-        del destino (caída del medio, auth) es `fallida`. Nunca propaga:
-        responder no puede romper el bucle de atención.
+        En producción no hay intento: el aviso operativo lo reemplaza el
+        canal web, así que se devuelve `reemplazada` con su código sin
+        tocar el destino. En prueba, `EntregaRechazadaError` es una
+        prohibición de política —destinatario fuera de la lista de prueba,
+        cuerpo sin marca—: se registra como `rechazada` con su código, sin
+        reintento. Cualquier otra excepción del destino (caída del medio,
+        auth) es `fallida`. Nunca propaga: responder no puede romper el
+        bucle de atención.
         """
 
+        from .gmail_envio import MODO_ENVIO_PRODUCCION
+
+        if self._avisos.modo == MODO_ENVIO_PRODUCCION:
+            return "reemplazada", AVISO_REEMPLAZADO_POR_CANAL_WEB
         try:
             self._avisos.entregar(
                 idempotency_key=_hash(
@@ -1449,17 +1459,16 @@ class CanalFormPedidos:
     ) -> str:
         """Texto del aviso: sólo datos institucionales y links, nunca prosa.
 
-        En prueba el cuerpo empieza con `MARCADOR_BORRADOR` porque el
-        destino Gmail lo exige mientras rija la lista de prueba (D12). En
-        producción el aviso operativo viaja sin la marca, porque el
-        adapter de producción la rechaza; el modo lo declara el destino y
-        el constructor exige que sea uno de `MODOS_ENVIO`. Lo que sigue
-        sale del `ResultadoInterpretacion` —resumen con datos de la
-        fuente, error con mensajes fijos, candidatas del índice—, nunca
-        del texto del pedido ni del cuerpo del borrador. `enlaces_decision`
-        son los links prellenados del Form de decisiones (#72): etiqueta
-        fija más URL, la pieza publicada o descartada la decide una
-        persona, no el agente.
+        Todo cuerpo —también el de producción— empieza con
+        `MARCADOR_BORRADOR`: la marca la sacan las personas antes de
+        enviar, el agente no la poda. En producción el aviso ni siquiera
+        se entrega (lo reemplaza el canal web; ver `_enviar_aviso`). Lo
+        que sigue sale del `ResultadoInterpretacion` —resumen con datos
+        de la fuente, error con mensajes fijos, candidatas del índice—,
+        nunca del texto del pedido ni del cuerpo del borrador.
+        `enlaces_decision` son los links prellenados del Form de
+        decisiones (#72): etiqueta fija más URL, la pieza publicada o
+        descartada la decide una persona, no el agente.
         """
 
         ref = _ref_pedido(pedido.id_pedido)
@@ -1593,14 +1602,6 @@ class CanalFormPedidos:
             if resultado.resumen:
                 lineas.append(_una_linea(resultado.resumen))
         cuerpo = "\n".join(lineas) + "\n"
-        # El aviso es un mensaje operativo para la persona que pidió, no una
-        # pieza institucional: en producción el destino lo rechaza marcado,
-        # así que viaja el mismo texto sin la marca (mismo criterio que
-        # `AvisoConfiguracionGmail`). El modo lo declara el destino (#142).
-        from .gmail_envio import MODO_ENVIO_PRODUCCION
-
-        if self._avisos.modo == MODO_ENVIO_PRODUCCION:
-            return cuerpo
         return f"{MARCADOR_BORRADOR}\n\n" + cuerpo
 
     def _publicos_del_pedido(self, pedido: PedidoCanal) -> str:

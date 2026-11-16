@@ -100,11 +100,12 @@ from .certificados_plantilla_seu import (
     horas_reloj_texto,
 )
 from .confirmaciones import (
-    MARCADOR_BORRADOR as MARCADOR_BORRADOR_CORREO,
-)
-from .confirmaciones import (
+    AVISO_REEMPLAZADO_POR_CANAL_WEB,
     ROL_APROBADOR_CONTENIDO,
     _hash,
+)
+from .confirmaciones import (
+    MARCADOR_BORRADOR as MARCADOR_BORRADOR_CORREO,
 )
 from .decisiones_form import (
     EnlacesDecisiones,
@@ -906,14 +907,37 @@ def procesar_emision_certificados(
                 "no se pudo componer el certificado de muestra",
                 str(code),
             )
+        # En producción el aviso al aprobador no se envía: la evaluación
+        # del lote pasa a la web (pendiente, fuera de este PR). El PDF de
+        # muestra se sigue generando marcado; el lote queda pendiente y el
+        # registro asienta el reemplazo en vez de un envío.
+        sufijo_descalificaciones = (
+            " (había aprobaciones que no habilitan: "
+            + ", ".join(revision.descalificaciones)
+            + ")"
+            if revision.descalificaciones
+            else ""
+        )
+        if en_produccion:
+            evento(
+                "aviso_aprobacion",
+                resultado="reemplazado",
+                code=AVISO_REEMPLAZADO_POR_CANAL_WEB,
+                plantilla_muestra=plantilla_muestra,
+                delivery_mode=delivery_mode,
+            )
+            return resultado(
+                "PENDIENTE_APROBACION",
+                "el lote quedó pendiente de aprobación; el aviso por "
+                "correo no se envía en producción"
+                + sufijo_descalificaciones,
+                "lote_no_aprobado",
+            )
         enlace = enlaces.enlace(
             tipo="lote", objeto_id=objeto_lote, decision="apruebo_lote"
         )
-        # El aviso al aprobador es operativo, no una pieza institucional:
-        # en producción sólo pierde la marca de borrador del correo; el PDF
-        # de muestra sigue marcado borrador porque es eso, una muestra.
         cuerpo_aviso = (
-            ("" if en_produccion else MARCADOR_BORRADOR_CORREO + "\n\n")
+            MARCADOR_BORRADOR_CORREO + "\n\n"
             + "Se pidió la emisión de los certificados de una actividad y el "
             "lote de cierre quedó pendiente de su aprobación.\n\n"
             f"Actividad: {actividad['titulo']} ({id_actividad.strip()})\n"
@@ -958,13 +982,7 @@ def procesar_emision_certificados(
         resumen = (
             "el lote quedó pendiente y se envió el correo de aprobación "
             "con el certificado de muestra"
-        )
-        if revision.descalificaciones:
-            resumen += (
-                " (había aprobaciones que no habilitan: "
-                + ", ".join(revision.descalificaciones)
-                + ")"
-            )
+        ) + sufijo_descalificaciones
         return resultado("PENDIENTE_APROBACION", resumen, "lote_no_aprobado")
 
     # 5. Emisión: un correo con PDF por titular. Sin persistir el PDF ni la

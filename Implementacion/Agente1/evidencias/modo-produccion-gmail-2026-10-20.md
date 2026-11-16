@@ -88,16 +88,22 @@ declara `modo`, así que ningún circuito adivina el modo con `getattr`.
   versión. Además la custodia tiene que resolver el símbolo y todas las
   firmas del diseño SEU: un recurso faltante es `INVALIDA` con
   `signature_resources_missing` antes de entregar al primer titular —
-  ningún PDF sale sin marca y sin firmas. El aviso al aprobador sale sin
-  la marca de correo y la muestra adjunta conserva su marca de borrador,
-  porque es una muestra. La auditoría declara `plantilla` —la versión
-  efectivamente usada, `id_version_plantilla` para `asistencia` en
-  producción— y `delivery_mode` igual que en HU-012.
+  ningún PDF sale sin marca y sin firmas. En producción el aviso al
+  aprobador **no se envía**: la evaluación del lote pasa a la web
+  (pendiente, fuera de este PR), el lote queda pendiente, la muestra se
+  genera marcada y la auditoría asienta `aviso_aprobacion` con
+  `resultado: reemplazado` y `aviso_reemplazado_por_canal_web`. En prueba
+  el correo al aprobador sale marcado como siempre. La auditoría declara
+  `plantilla` —la versión efectivamente usada, `id_version_plantilla` para
+  `asistencia` en producción— y `delivery_mode` igual que en HU-012.
 - **Aviso operativo del canal** (`canal_form`): no es una pieza
-  institucional; en producción el mismo texto viaja sin la marca, porque
-  el destino la rechaza. En prueba conserva la marca de siempre. El aviso
-  de respaldo (`GmailAvisoOperador`) quedó fuera del alcance del ticket:
-  su marca no cambió.
+  institucional, pero producción tampoco le quita la marca: la marca la
+  sacan las personas antes de enviar. En producción el aviso **no se
+  envía** (el estado se ve en el canal web) y el registro asienta
+  `aviso: reemplazada` con `aviso_reemplazado_por_canal_web`; el pedido no
+  falla por eso. En prueba se envía y conserva la marca de siempre. El
+  aviso de respaldo (`GmailAvisoOperador`) quedó fuera del alcance del
+  ticket: su marca no cambió.
 
 En todos los casos el default sigue siendo `prueba` y el adapter de
 producción queda como última línea: cualquier cuerpo marcado se rechaza con
