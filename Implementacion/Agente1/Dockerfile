@@ -1,12 +1,16 @@
 # syntax=docker/dockerfile:1
 #
-# Imagen del Agente 1 (#143, ADR 0013). Dos etapas útiles:
+# Imagen del Agente 1 (#143, ADR 0013). Tres etapas útiles:
 #
-# - `test`: la suite y el linter corren adentro, con el mismo Python que el
-#   runtime. El CI la construye en cada PR y push (`--target test`).
-# - `runtime`: sólo el código controlado, sin tests ni dependencias de terceros
-#   (el proyecto declara `dependencies = []`), con un usuario no root. Es la
-#   imagen que se publica en ghcr.io al cortar una versión.
+# - `deps`: construye `/opt/venv` con las dependencias de producción de
+#   `uv.lock` (`--no-dev --no-install-project`). El binario `uv` y el grupo
+#   de desarrollo no pasan a la imagen final.
+# - `test`: la suite y el linter corren adentro, con las dependencias de
+#   desarrollo y el mismo Python que el runtime. El CI la construye en cada
+#   PR y push (`--target test`).
+# - `runtime`: el código controlado y el venv de `deps`, sin tests, sin `uv`
+#   y con un usuario no root. Es la imagen que se publica en ghcr.io al
+#   cortar una versión.
 #
 # Nunca entra a la imagen: la clave de la cuenta de servicio, el env file, el
 # estado ni los modelos. Todo eso se monta en tiempo de ejecución (compose).
@@ -25,6 +29,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/srv/p100/Implementacion/Agente1/src \
     TZ=America/Argentina/Buenos_Aires
 WORKDIR /srv/p100/Implementacion/Agente1
+
+FROM base AS deps
+COPY --from=uv /uv /usr/local/bin/uv
+ENV UV_LINK_MODE=copy UV_PROJECT_ENVIRONMENT=/opt/venv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
 FROM base AS test
 COPY --from=uv /uv /usr/local/bin/uv
@@ -65,6 +75,8 @@ RUN set -eux; \
 # evidencia de las corridas (`corrida_unica.py`).
 ENV AGENTE1_REVISION=${REVISION}
 RUN useradd --uid 10001 --user-group --no-create-home --shell /usr/sbin/nologin agente1
+COPY --from=deps /opt/venv /opt/venv
+ENV PATH=/opt/venv/bin:$PATH
 COPY pyproject.toml uv.lock manifest-version.json Dockerfile ./
 COPY src ./src
 COPY scripts ./scripts
@@ -74,5 +86,5 @@ COPY docker ./docker
 COPY data ./data
 COPY golden ./golden
 USER 10001
-ENTRYPOINT ["python", "/srv/p100/Implementacion/Agente1/scripts/contenedor_entrypoint.py"]
+ENTRYPOINT ["/opt/venv/bin/python", "/srv/p100/Implementacion/Agente1/scripts/contenedor_entrypoint.py"]
 CMD ["consola"]

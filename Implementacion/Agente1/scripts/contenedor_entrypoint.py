@@ -22,6 +22,7 @@ Comandos:
 - `consola`: la consola visual de la demo, escuchando en `0.0.0.0:8080` dentro
   del contenedor (el compose la publica sólo en `127.0.0.1` del host).
 - `scheduler ...`: `python -m agente1 scheduler ...` con los flags que siguen.
+- `migrar`: el bootstrap de la base del canal web (`scripts/migrar_canal_web.py`).
 - `verificar`: sólo la verificación de integridad; sale 0 si coincide.
 - `smoke ...` / `e2e ...`: `scripts/workspace_smoke.py` / `scripts/workspace_e2e.py`.
 - Cualquier otra cosa se ejecuta tal cual (por ejemplo `python -m agente1 ...`).
@@ -213,6 +214,8 @@ def comando_para(argv: Sequence[str]) -> list[str] | None:
         return [python, str(ROOT / "scripts" / "servidor_web.py"), "--host", "0.0.0.0", *resto]
     if nombre == "worker":
         return [python, str(ROOT / "scripts" / "worker_canal_web.py"), *resto]
+    if nombre == "migrar":
+        return [python, str(ROOT / "scripts" / "migrar_canal_web.py"), *resto]
     if nombre == "smoke":
         return [python, str(ROOT / "scripts" / "workspace_smoke.py"), *resto]
     if nombre == "e2e":

@@ -19,6 +19,7 @@ sin DSN se salta sin romper la determinística del resto.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -408,6 +409,38 @@ def test_vencida_y_purga_repartidas_por_rol(base: str) -> None:
     detalle = repo.obtener(aprobada.id_solicitud)
     assert detalle.descripcion is None
     assert detalle.campos == {}
+
+
+def test_purga_asienta_un_evento_por_solicitud_con_las_filas(base: str) -> None:
+    """La purga agrupa por solicitud: un evento, con la cantidad comprometida."""
+    repo = RepositorioWeb(_fabrica(base))
+    creada = _crear(repo, "web:ev1")
+    with _fabrica(base)() as conn:
+        conn.execute(
+            "UPDATE solicitudes SET estado_web = 'APROBADA'"
+            " WHERE id_solicitud = %s",
+            (creada.id_solicitud,),
+        )
+        conn.commit()
+        filas = conn.execute(
+            "SELECT count(*) FROM prosa_transitoria"
+            " WHERE id_solicitud = %s AND purgada_en IS NULL",
+            (creada.id_solicitud,),
+        ).fetchone()[0]
+    assert filas > 1
+    repo_mant = RepositorioWeb(
+        _fabrica(base, rol="agente1_mantenimiento")
+    )
+    assert repo_mant.purgar_prosa(ahora=AHORA) == filas
+    with _fabrica(base)() as conn:
+        eventos = conn.execute(
+            "SELECT evidencia_hash FROM eventos_ejecucion"
+            " WHERE id_ejecucion = %s AND tipo = 'prosa_purgada'",
+            (creada.id_ejecucion,),
+        ).fetchall()
+    assert len(eventos) == 1
+    esperado = hashlib.sha256(f"prosa_purgada:{filas}".encode()).hexdigest()
+    assert eventos[0][0] == esperado
 
 
 def test_purga_vacuum_y_respaldo_sin_prosa(base: str) -> None:

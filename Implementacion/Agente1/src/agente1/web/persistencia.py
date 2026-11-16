@@ -973,8 +973,9 @@ class RepositorioWeb:
 
         Corre con `agente1_mantenimiento`, dueño de `prosa_transitoria`:
         pone el texto en NULL conservando clase, hash y marcas, y asienta
-        el evento `prosa_purgada` por solicitud. El VACUUM corre aparte,
-        con `vaciar_prosa`.
+        un solo evento `prosa_purgada` por solicitud. `evidencia_hash`
+        compromete la cantidad de filas purgadas de esa solicitud. El
+        VACUUM corre aparte, con `vaciar_prosa`.
         """
         ahora = ahora or datetime.now(timezone.utc)
         with self._conexion_factory() as conn:
@@ -989,7 +990,12 @@ class RepositorioWeb:
                     " RETURNING p.secuencia, p.id_solicitud",
                     (ahora, list(CANALES_WEB), list(ESTADOS_CIERRE)),
                 ).fetchall()
+                por_solicitud: dict[str, int] = {}
                 for _, id_solicitud in purgadas:
+                    por_solicitud[id_solicitud] = (
+                        por_solicitud.get(id_solicitud, 0) + 1
+                    )
+                for id_solicitud, filas in por_solicitud.items():
                     ejecucion = conn.execute(
                         "SELECT id_ejecucion FROM ejecuciones"
                         " WHERE id_solicitud = %s ORDER BY creada_en LIMIT 1",
@@ -998,9 +1004,13 @@ class RepositorioWeb:
                     if ejecucion is not None:
                         conn.execute(
                             "INSERT INTO eventos_ejecucion (id_ejecucion,"
-                            " tipo, ocurrido_en) VALUES"
-                            " (%s,'prosa_purgada',%s)",
-                            (ejecucion[0], ahora),
+                            " tipo, ocurrido_en, evidencia_hash) VALUES"
+                            " (%s,'prosa_purgada',%s,%s)",
+                            (
+                                ejecucion[0],
+                                ahora,
+                                _hash(f"prosa_purgada:{filas}"),
+                            ),
                         )
         return len(purgadas)
 

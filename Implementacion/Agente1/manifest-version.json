@@ -1,7 +1,7 @@
 {
   "archivos_sha256": {
-    "Dockerfile": "3ffa0cc84575f76a13707ea8fd64ae948c8dbceac512966bd08407d6bba252c2",
-    "docker/compose.yaml": "9c2f6c36e2dc92f47cce8aa598adf88132aa9087dad4c1190dc14a7bd89177d4",
+    "Dockerfile": "b4871a3cd33838a8fe3f89856d14a8e3ba0fbe99e7c67d468bb4dd7c07a06c10",
+    "docker/compose.yaml": "0fd663ad0f9334818e268a029c34599a76e614bde35d5c40d49a2c8db308e8ca",
     "migrations/0001_persistencia_agente1.down.sql": "a576d7b8ad9eeb18068f50c04956b5bf0a5304a87c8c26df1311479f236fa0a0",
     "migrations/0001_persistencia_agente1.up.sql": "b87d67dc6c0220f73d61b0c44417d397e56d1a715be57d817960feef4a023b14",
     "migrations/0002_integridad_referencial_borradores.down.sql": "24caa7a9a9c2001280f48a17339f1898fc63af2c63a06ad61dbac358d104bb7a",
@@ -14,7 +14,7 @@
     "migrations/0005_roles_canal_web.up.sql": "cfa7954d216beec9bcd578f7c52d0ec6c1a42362ff22192cc8da47e81032721b",
     "migrations/0006_canal_web_demo.down.sql": "425dc061d96dc5ed296acff2f972d38946bd6cbb001c3bf100f334c44a3f2844",
     "migrations/0006_canal_web_demo.up.sql": "0e83f180a050e90db869533fcbbc4fc744bb1b5a22b8807d553f0866665cb4a1",
-    "pyproject.toml": "536cc69b4bd289eb10c97734a45097d0db46700010c95fa8f183dd6c9eb7f927",
+    "pyproject.toml": "adc87f911ec617ca2f8ac63d501b312efd36dfd5fdc44395f8670528d5bbbba3",
     "scripts/anexo1_presentacion.py": "a5043d608b242ec10a63c73b9be5c1f4387595dfe4744235e47a975e43027398",
     "scripts/anexo2_calidad.py": "6d5bc627622bf4f4904b3150f862cb0d1990a06c3662d5d13c60ebb48407df4f",
     "scripts/anexo3_seguridad.py": "f15c23b14fea0919f8da189eba35137270716ab613c3f638f8c1d1c8e92933cc",
@@ -22,7 +22,7 @@
     "scripts/atender_canal_form.py": "f946632edf4a9fb7f306a25a721dd3267d27198564df00c5cd6c8e36178dc861",
     "scripts/atender_canal_planilla.py": "1118c1d5d3ec9fc4346c83751a3c154b0b6a43c18a02d81ada74e1715e259946",
     "scripts/auditar_seguridad_d2.py": "456deec0e7c0f52851aadb9a805a618b8c069321edf7615973e8500626412302",
-    "scripts/contenedor_entrypoint.py": "a92e8c10b9e0d6900ec17d6a046ff65c129fed893d10683b39a5b9419e108ad3",
+    "scripts/contenedor_entrypoint.py": "56abcd4ce458d6bb898f19e097e164f82ed2878d9baa4ffdf5bcbbf82c219f4a",
     "scripts/corrida_plan_b_oauth.sh": "19dabb5e401935fb4933df6bf8b49648e3a96342f35cd9994cb0f9e1a0b0835b",
     "scripts/corrida_unica.py": "1a5befcbeee5f7e4e3d5e538fa430f58c102a10d91d4c59fa76967169d866f55",
     "scripts/demo_visual_plan_a.sh": "206b6c068546e74db4109eaec80f472140e20a9ea3151546db07ca26c7d0c7f0",
@@ -44,6 +44,7 @@
     "scripts/medir_modelos_hu012_hu014_canal.py": "b9e51fb07245834083574ab05395b14383d6a469079e04b4f83cacad4218dc89",
     "scripts/medir_nivel_slo.py": "659be7f416c545547b9bf7ac92732bcd64377341de66e03117aeaed02833247a",
     "scripts/medir_presupuesto_decodificacion.py": "27c0fe6a83dfbb1c08294f71129b3d7388845aba854ef0edb583d23129b24f22",
+    "scripts/migrar_canal_web.py": "0c73358043caa55c723465c48c7796588fdb7a5ef301ed94bceb60b4e380a3b7",
     "scripts/operaciones_seguras.py": "853a17d9b2e36a4193d4fd13b608bb847a118877468fa8fad5644cc0d2011776",
     "scripts/plantilla_actividad_lote_demo.py": "da7569792720659fe4545e38b5567a996d6814f5c9aca271cac625af301905cc",
     "scripts/plantilla_laboratorio.py": "d2b5e633b2b155f2cd0cb92048c4074c28dbf7f34d93b76d6ae58c2ad593e8be",
@@ -81,7 +82,7 @@
     "src/agente1/cli.py": "8c8562b7847cd66942b7f09a27188f506ab3a76383a8bc3a08c77a011b1d7cd7",
     "src/agente1/cli_insumos.py": "656d4c850e210071165beae882685e95ec7c7dcdf9c656776d9c70d90c1b88f9",
     "src/agente1/cli_pagos.py": "e3086a4b2da7454bdb9632efac8adb8df643739c097bc7e25811f1fc8a0050bb",
-    "src/agente1/cli_scheduler.py": "d757b22bc2a66234e4cc2631539a846dee26a0fb2ccf8edc7db672c2576593ab",
+    "src/agente1/cli_scheduler.py": "2c58e9aeb00dbfb241a328aa7e64025ad51630e5543ddb72192e9057b9d874b8",
     "src/agente1/config_entorno.py": "ebd333ee7c47f2e82291378bba6bf96042bfa593fa0173d81ec17b2fec4d4934",
     "src/agente1/confirmaciones.py": "bfda46aba2b8d9d5877a599c31e058d548b8d66601491c75489d207bbc8fc2d7",
     "src/agente1/contracts/areas_emisoras_v1.json": "f290751760c3eb4060f901d39868194c81635f8112ec2a2a01cf6aca27ec750c",
@@ -232,7 +233,7 @@
     "src/agente1/web/estaticos/fuentes/roboto.woff2": "1404ca348bd75ef836f4dd8b6f2cc719458642d1237c368296b2fc652dca47dc",
     "src/agente1/web/estaticos/img/imagotipo-fie-blanco.png": "ae9b6135d6607dea3eb42702278ef34922e2a2a90fc748d9d49acced9fcb3ce7",
     "src/agente1/web/identidad.py": "1f5709812268974cdaedd150ea9d6694b2e69475cd804a7c47709046df8a36f0",
-    "src/agente1/web/persistencia.py": "43451d45868c96c5978f33bce3773ef99bcfaabdf58e7fbf7a401e870ec1905c",
+    "src/agente1/web/persistencia.py": "9e8dca303823d622c0be9b6c81297e8c7d73b068756c201d3f8b5a1906a06db0",
     "src/agente1/web/plantillas/bandeja.html": "bc7972c60ab90efe67ed57cfe8ce6eaf2c7544c7c33510867ede5f606549d2e7",
     "src/agente1/web/plantillas/base.html": "36f3756c9fe99d09c3bc3b40ba8282b6eb373afa28044f66d7b66166c0a7ba08",
     "src/agente1/web/plantillas/demo_vencida.html": "cea2e38b322e4ea650dff0d8a4ff4a730a9c0c9ec4e108677549872382205029",
@@ -248,7 +249,7 @@
     "systemd/agente1-scheduler-loop.service": "b73c70a32920ec44a47d13faba3956ba9c6feeb0c2022689600f6ae34b1854db",
     "systemd/agente1-scheduler.service": "a80a2f5735871a31f6b3a4f6daf9c694267c03b569971f69e495a1fe027fc5cb",
     "systemd/agente1-scheduler.timer": "33268d7df468209d9467ab212df0cf0caa511c7fa6b0cd9bb6beea3ba83b8ab8",
-    "uv.lock": "5cf667ffe436311a21c5eef198cb3be37461b940c5f7343c30fed1260e3eec2c"
+    "uv.lock": "1d8c066eb6d4174223ae097289467b72b99f79589f5bad7021cd7c932759a4ab"
   },
   "schema_version": "agente1_manifest_version_v1",
   "version": "0.5.10"
