@@ -130,12 +130,22 @@ services:
   # antes con el canal apagado. `web` y `worker` comparten la red `canal`
   # con la base; `web` además sale por `salida` para servir la consola, y
   # el `scheduler` la ve cuando el perfil está activo para la purga.
+  # La base corre como el uid/gid `70:70` de `postgres:16.4-alpine`
+  # —el dueño de PGDATA en la imagen—, así no necesita root ni
+  # capacidades para preparar el volumen nuevo ni para reiniciar sobre
+  # el existente; el volumen nombrado hereda ese dueño en su primera
+  # creación. `/run` y `/tmp` van en tmpfs con modo 1777 porque el
+  # entrypoint crea `/var/run/postgresql` como usuario no root. Se
+  # mantienen `read_only` (escribe en el volumen y en esos tmpfs, no en
+  # la raíz), `cap_drop: ALL`, `no-new-privileges`, la red interna
+  # `canal` y la ausencia de puertos publicados.
   postgres:
     <<: *endurecido
     profiles: ["canal-web"]
+    user: "70:70"
     tmpfs:
-      - /tmp
-      - /run
+      - /tmp:mode=1777
+      - /run:mode=1777
     image: postgres:16.4-alpine
     environment:
       POSTGRES_USER: ${AGENTE1_POSTGRES_USUARIO:-agente1}

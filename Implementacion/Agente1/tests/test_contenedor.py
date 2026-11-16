@@ -224,6 +224,24 @@ def test_todos_los_servicios_estan_endurecidos(compose: dict, servicio: str) -> 
         assert "docker.sock" not in volumen
 
 
+def test_postgres_corre_sin_root_y_sin_capacidades(compose: dict) -> None:
+    """La base conserva el aislamiento y no suma capacidades."""
+    postgres = compose["services"]["postgres"]
+    assert postgres["user"] == "70:70"
+    assert postgres["read_only"] is True
+    assert postgres["cap_drop"] == ["ALL"]
+    assert "cap_add" not in postgres
+    assert postgres["tmpfs"] == ["/tmp:mode=1777", "/run:mode=1777"]
+    assert "no-new-privileges:true" in postgres["security_opt"]
+    assert postgres["restart"] == "unless-stopped"
+    assert "ports" not in postgres
+    assert postgres["networks"] == ["canal"]
+    assert any(
+        volumen.endswith(":/var/lib/postgresql/data")
+        for volumen in postgres["volumes"]
+    )
+
+
 def test_la_configuracion_del_host_se_monta_en_solo_lectura(compose: dict) -> None:
     for servicio in ("consola", "scheduler"):
         volumenes = compose["services"][servicio]["volumes"]
