@@ -104,6 +104,18 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "`agente1_mantenimiento`: no toca datos. Volver a 0004 alcanza."
         ),
     ),
+    "0006_canal_web_demo": Reversion(
+        reversible=True,
+        pierde_datos=False,
+        requiere_restaurar_respaldo=False,
+        nota=(
+            "El `down` sólo restringe `solicitudes_canal_check` y "
+            "`solicitudes_web_campos_check` a su forma de 0005: no toca "
+            "datos, y aborta en voz alta si quedan filas `web-demo` porque "
+            "reclasificarlas como `web` las mentiría verificadas (ADR "
+            "0019). Volver a 0005 alcanza."
+        ),
+    ),
 }
 
 
