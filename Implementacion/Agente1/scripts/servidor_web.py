@@ -41,6 +41,13 @@ entorno; el repositorio no guarda client IDs, dominios ni credenciales:
   «Aprobar/Descartar». Si la config falta o es inválida el arranque
   cierra con `web_workspace_config_invalid`; sin la variable los botones
   no aparecen y los POST responden `exportador_ausente`.
+- `AGENTE1_AUDIENCIAS_PATH` (ADR 0021): ruta del catálogo externo de
+  audiencias institucionales (fuera del repo, como el padrón). Declarada,
+  habilita la preselección de públicos en el pedido, el bloque «Preparar
+  correo» tras la aprobación y la ruta `/solicitudes/{id}/correo`. Si el
+  archivo no carga o le falta el mapeo de un público del contrato el
+  arranque cierra con `web_audiencias_invalid`; sin la variable el
+  prellenado queda apagado y `/correo` muestra el motivo.
 
 Uso:
 
@@ -192,6 +199,17 @@ def main(
         cookie_secure=entorno.get("AGENTE1_WEB_COOKIE_SECURE", "si") != "no",
     )
     repositorio = RepositorioWeb(functools.partial(conectar, dsn))
+    catalogo = None
+    audiencias_path = entorno.get("AGENTE1_AUDIENCIAS_PATH")
+    if audiencias_path:
+        # El catálogo externo es fail-closed igual que el padrón: si el
+        # archivo declarado no carga, no hay despliegue válido que servir.
+        try:
+            from agente1.audiencias import cargar_audiencias
+
+            catalogo = cargar_audiencias(audiencias_path)
+        except Exception:
+            return _invalida("web_audiencias_invalid")
     exportador = None
     if entorno.get("AGENTE1_WEB_DOCS", "").lower() == "si":
         # El Doc por solicitud (#153) se sirve sobre Drive real. Si la
@@ -227,8 +245,12 @@ def main(
                 entorno.get("AGENTE1_CONTENEDOR", "").lower() == "si"
             ),
             exportador=exportador,
+            catalogo_audiencias=catalogo,
         )
-    except ConfiguracionInvalida:
+    except ConfiguracionInvalida as exc:
+        # El motivo (p. ej. los ids de públicos sin audiencia mapeada) va a
+        # stderr: nunca lleva direcciones, sólo ids del contrato.
+        print(str(exc), file=sys.stderr)
         return _invalida("web_config_insegura")
     if args.una_ruta:
         print('{"status": "OK"}')
