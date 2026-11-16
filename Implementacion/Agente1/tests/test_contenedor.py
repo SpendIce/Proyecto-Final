@@ -270,7 +270,29 @@ def test_dockerfile_fija_la_base_por_digest_y_corre_como_no_root() -> None:
     assert "ARG PYTHON_IMAGE=python:3.12-slim@sha256:" in texto
     runtime = texto.split("AS runtime", 1)[1]
     assert "USER 10001" in runtime
-    assert 'ENTRYPOINT ["python", "/srv/p100/Implementacion/Agente1/scripts/contenedor_entrypoint.py"]' in runtime
+    assert (
+        'ENTRYPOINT ["/opt/venv/bin/python", '
+        '"/srv/p100/Implementacion/Agente1/scripts/contenedor_entrypoint.py"]'
+    ) in runtime
+
+
+def test_dockerfile_runtime_instala_las_dependencias_de_produccion() -> None:
+    """El runtime lleva un venv con `uv.lock` sin el grupo dev ni `uv`."""
+    texto = DOCKERFILE.read_text(encoding="utf-8")
+    deps = texto.split("AS deps", 1)[1].split("FROM base AS test", 1)[0]
+    assert "uv sync --frozen --no-dev --no-install-project" in deps
+
+    test = texto.split("AS test", 1)[1].split("FROM base AS runtime", 1)[0]
+    assert "uv sync --frozen --no-install-project" in test
+    assert "--no-dev" not in test
+
+    runtime = texto.split("AS runtime", 1)[1]
+    assert "COPY --from=deps /opt/venv /opt/venv" in runtime
+    assert "ENV PATH=/opt/venv/bin:$PATH" in runtime
+    assert "COPY --from=uv" not in runtime
+    assert "uv sync" not in runtime
+    assert "pytest" not in runtime
+    assert "ruff" not in runtime
 
 
 def test_dockerfile_no_hornea_secretos_ni_modelos() -> None:
