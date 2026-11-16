@@ -29,12 +29,13 @@ Decisiones que no se ven en el código:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Protocol
 
-from ..destinos import ReferenciaBorrador
+from ..canal_form import hash_correo
+from ..destinos import ReferenciaBorrador, ResultadoDestinoPorMarca
 from ..fuentes import FuenteSolicitudes
 from ..gacetillas import requiere_actividad
 from ..interpretacion import (
@@ -76,13 +77,11 @@ class FalloGeneracion(RuntimeError):
         super().__init__(resultado)
 
 
-@dataclass(frozen=True)
-class ResultadoDestinoWeb:
-    """Lo que devuelve el destino por marca: referencia y metadatos del Doc."""
-
-    referencia: ReferenciaBorrador
-    doc_ref: str
-    head_revision_id: str | None
+# El resultado del destino por marca vive en `destinos.py` porque el
+# adapter real (`google_workspace.GoogleDocsDestinoPorMarca`) y el fake
+# compartido (`docs_canal.DocsCanalMemoria`) también lo producen. Se
+# conserva el alias para no renombrar lo que ya lo importa.
+ResultadoDestinoWeb = ResultadoDestinoPorMarca
 
 
 class DestinoPorMarca(Protocol):
@@ -91,6 +90,10 @@ class DestinoPorMarca(Protocol):
     Antes de crear, busca por la marca de la solicitud en las propiedades
     del documento: una segunda corrida sobre la misma solicitud reutiliza
     el Doc existente y vuelca el contenido en él, nunca crea otro.
+
+    `compartir` es el permiso `writer` opcional para quien pidió (#153):
+    el worker lo llama sólo cuando el flag del stack lo declara y el
+    correo se resolvió contra el padrón.
     """
 
     def buscar_o_crear(
@@ -100,7 +103,9 @@ class DestinoPorMarca(Protocol):
         id_solicitud: str,
         contenido: str,
         nombre: str | None,
-    ) -> ResultadoDestinoWeb: ...
+    ) -> ResultadoDestinoPorMarca: ...
+
+    def compartir(self, doc_ref: str, correo: str) -> None: ...
 
 
 class DestinoPorMarcaMemoria:
@@ -132,8 +137,16 @@ class DestinoPorMarcaMemoria:
         return ResultadoDestinoWeb(
             referencia=doc["ref"],
             doc_ref=doc["ref"].referencia,
+            doc_url=(
+                f"https://docs.google.com/document/d/"
+                f"{doc['ref'].referencia}/edit"
+            ),
             head_revision_id=doc["head"],
+            texto_documento=contenido,
         )
+
+    def compartir(self, doc_ref: str, correo: str) -> None:
+        pass
 
 
 class _DestinoMarcado:
@@ -246,11 +259,23 @@ def correr_una_vez(
     generator: Generator,
     directorio_salida: Path,
     destino: DestinoPorMarca,
+    correo_para_hash: Callable[[str], str | None] | None = None,
     plazo_segundos: int = 300,
     ahora: datetime | None = None,
     max_intentos: int = MAX_INTENTOS,
 ) -> TrabajoWeb | None:
-    """Un ciclo del worker: reserva, genera y asienta. `None` si no hay trabajo."""
+    """Un ciclo del worker: reserva, genera y asienta. `None` si no hay trabajo.
+
+    `correo_para_hash` es el camino opcional del permiso de edición
+    (#153): con el flag de compartir activo, el script inyecta la
+    resolución `solicitante_hash → correo` contra el padrón y el worker
+    comparte el Doc con `writer` antes de asentar. Sin correo resoluble
+    la generación sigue igual — el Doc queda accesible por la carpeta— y
+    el aviso queda en el log, nunca en la base. Si `compartir` falla
+    también sigue: el Doc ya existe y la solicitud queda `LISTA`; el
+    intento fallido se asienta como `permiso_no_otorgado` con el hash del
+    correo.
+    """
     trabajo = repositorio.tomar_trabajo(
         worker_id=worker_id,
         plazo_segundos=plazo_segundos,
@@ -303,6 +328,30 @@ def correr_una_vez(
                 trabajo.intentos,
             )
         return trabajo
+    compartido_con_hash = None
+    permiso_no_otorgado_hash = None
+    if correo_para_hash is not None:
+        correo = correo_para_hash(trabajo.solicitante_hash)
+        if correo is None:
+            logger.warning(
+                "worker_compartir_sin_correo id_solicitud=%s",
+                trabajo.id_solicitud,
+            )
+        else:
+            try:
+                destino.compartir(resultado_destino.doc_ref, correo)
+            except Exception as error:
+                # El Doc ya existe: un permiso que no se pudo otorgar no
+                # convierte la generación en fallida. Se asienta el intento
+                # con el hash del correo y la solicitud sigue `LISTA`.
+                permiso_no_otorgado_hash = hash_correo(correo)
+                logger.warning(
+                    "worker_permiso_no_otorgado id_solicitud=%s codigo=%s",
+                    trabajo.id_solicitud,
+                    getattr(error, "code", type(error).__name__),
+                )
+            else:
+                compartido_con_hash = hash_correo(correo)
     repositorio.completar_trabajo(
         id_ejecucion=trabajo.id_ejecucion,
         id_solicitud=trabajo.id_solicitud,
@@ -310,6 +359,10 @@ def correr_una_vez(
         referencia=resultado_destino.doc_ref,
         doc_ref=resultado_destino.doc_ref,
         head_revision_id=resultado_destino.head_revision_id,
+        doc_url=resultado_destino.doc_url,
+        texto_documento=resultado_destino.texto_documento,
+        compartido_con_hash=compartido_con_hash,
+        permiso_no_otorgado_hash=permiso_no_otorgado_hash,
         ahora=ahora,
     )
     return trabajo

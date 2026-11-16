@@ -19,9 +19,18 @@ Uso:
 
 `--generador-salida` es el modo offline determinista (FakeGenerator); sin
 él se exige `--ollama-model` para el modelo real del stack. El destino del
-Doc se inyecta: `--destino-fake` usa el destino en memoria con marca de
-solicitud (desarrollo y evidencia); el adapter real de Docs con marca queda
-declarado para #153/el despliegue.
+Doc se inyecta con una opción explícita:
+
+- `--destino-fake` usa el destino en memoria con marca de solicitud
+  (desarrollo y evidencia).
+- `--destino-docs` usa `GoogleDocsDestinoPorMarca` sobre Drive real
+  (#153): exige la config `AGENTE1_WORKSPACE_*` completa y falla cerrado
+  si falta — nunca cae al fake en silencio.
+
+Con `AGENTE1_WEB_DOCS_COMPARTIR=si` el worker da `writer` al correo de
+quien pidió (resuelto contra `AGENTE1_PADRON_ROLES_CSV`) al generar el Doc
+—lo cree o lo reutilice—;
+sin la variable no toca permisos y el Doc queda accesible por la carpeta.
 """
 
 from __future__ import annotations
@@ -57,6 +66,7 @@ def main(
     parser.add_argument("--generador-salida", default=None)
     parser.add_argument("--ollama-model", default=None)
     parser.add_argument("--destino-fake", action="store_true")
+    parser.add_argument("--destino-docs", action="store_true")
     parser.add_argument("--worker-id", default=None)
     parser.add_argument("--plazo-segundos", type=int, default=300)
     parser.add_argument("--intervalo", type=float, default=5.0)
@@ -67,7 +77,7 @@ def main(
     dsn = entorno.get("AGENTE1_POSTGRES_DSN")
     if not dsn:
         return _invalida("worker_dsn_ausente")
-    if not args.destino_fake:
+    if args.destino_fake == args.destino_docs:
         return _invalida("worker_destino_no_declarado")
 
     from agente1.fuentes import CsvFuenteSolicitudes
@@ -86,7 +96,47 @@ def main(
 
     fuente = CsvFuenteSolicitudes(args.tabla)
     repositorio = RepositorioWeb(functools.partial(conectar, dsn))
-    destino = DestinoPorMarcaMemoria()
+    compartir = entorno.get("AGENTE1_WEB_DOCS_COMPARTIR", "").lower() == "si"
+    if args.destino_docs:
+        try:
+            from agente1.workspace_auth import construir_token_provider
+            from agente1.workspace_config import (
+                ConfiguracionWorkspaceError,
+                cargar_configuracion_workspace,
+            )
+
+            config_ws = cargar_configuracion_workspace(entorno)
+            token_provider = construir_token_provider(
+                entorno,
+                timeout_s=config_ws.timeout_s,
+                directorio_auditoria=Path(
+                    entorno.get("AGENTE1_ESTADO") or "."
+                ),
+            )
+        except ConfiguracionWorkspaceError:
+            return _invalida("worker_workspace_config_invalid")
+        from agente1.google_workspace import GoogleDocsDestinoPorMarca
+
+        destino = GoogleDocsDestinoPorMarca(
+            plantilla_id=config_ws.template_id,
+            carpeta_id=config_ws.folder_id,
+            token_provider=token_provider,
+            timeout_s=config_ws.timeout_s,
+        )
+    else:
+        destino = DestinoPorMarcaMemoria()
+    correo_para_hash = None
+    if compartir:
+        padron_csv = entorno.get("AGENTE1_PADRON_ROLES_CSV")
+        if not padron_csv:
+            return _invalida("worker_padron_ausente")
+        try:
+            from agente1.canal_form import cargar_padron_roles_csv
+
+            padron = cargar_padron_roles_csv(Path(padron_csv))
+        except Exception:
+            return _invalida("worker_padron_invalid")
+        correo_para_hash = padron.correo_para_hash
     worker_id = (
         args.worker_id
         or entorno.get("AGENTE1_WORKER_ID")
@@ -102,6 +152,7 @@ def main(
             generator=generator,
             directorio_salida=args.salida,
             destino=destino,
+            correo_para_hash=correo_para_hash,
             plazo_segundos=args.plazo_segundos,
         )
         if args.una_vez:

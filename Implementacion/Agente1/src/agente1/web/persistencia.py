@@ -26,6 +26,7 @@ Decisiones que no se ven en el código:
 
 from __future__ import annotations
 
+import difflib
 import hashlib
 import json
 import uuid
@@ -111,6 +112,7 @@ class RevisionPieza:
     doc_ref: str | None
     head_revision_id: str | None
     creada_en: datetime
+    origen: str | None = None
 
 
 @dataclass(frozen=True)
@@ -128,6 +130,26 @@ class DetalleSolicitud:
     campos: dict
     texto_generado: str | None
     revisiones: tuple[RevisionPieza, ...]
+    doc_ref: str | None = None
+    doc_url: str | None = None
+    texto_vigente: str | None = None
+
+
+@dataclass(frozen=True)
+class ResultadoImportacion:
+    """Lo que dejó «Traer cambios del Doc»: nada nuevo o revisión nueva."""
+
+    codigo: str
+    numero_revision: int | None = None
+    id_borrador: str | None = None
+
+
+@dataclass(frozen=True)
+class ResultadoDecisionWeb:
+    """Lo que dejó el POST de decisión: registrada o rechazada con código."""
+
+    codigo: str
+    id_borrador: str | None = None
 
 
 @dataclass(frozen=True)
@@ -314,7 +336,7 @@ class RepositorioWeb:
             fila = conn.execute(
                 "SELECT id_solicitud, tipo_pieza, actividad_ref, estado_web,"
                 " rol, solicitante_hash, canal, creada_en,"
-                " ultima_actividad_en"
+                " ultima_actividad_en, doc_ref, doc_url, revision_vigente"
                 " FROM solicitudes"
                 " WHERE id_solicitud = %s AND canal = ANY(%s)",
                 (id_solicitud, list(CANALES_WEB)),
@@ -328,10 +350,16 @@ class RepositorioWeb:
             ).fetchall()
             revisiones = conn.execute(
                 "SELECT id_borrador, numero_revision, output_hash, doc_ref,"
-                " head_revision_id, creada_en FROM borradores"
+                " head_revision_id, creada_en, origen FROM borradores"
                 " WHERE id_solicitud = %s ORDER BY numero_revision",
                 (id_solicitud,),
             ).fetchall()
+            vigente = conn.execute(
+                "SELECT texto FROM prosa_transitoria"
+                " WHERE id_solicitud = %s AND id_borrador = %s"
+                "   AND texto IS NOT NULL",
+                (id_solicitud, fila[11]),
+            ).fetchone()
         descripcion, campos, generado = _prosa_de(prosas)
         return DetalleSolicitud(
             id_solicitud=fila[0], tipo_pieza=fila[1], actividad_ref=fila[2],
@@ -344,8 +372,13 @@ class RepositorioWeb:
                 RevisionPieza(
                     id_borrador=r[0], numero_revision=r[1], output_hash=r[2],
                     doc_ref=r[3], head_revision_id=r[4], creada_en=r[5],
+                    origen=r[6],
                 )
                 for r in revisiones
+            ),
+            doc_ref=fila[9], doc_url=fila[10],
+            texto_vigente=(
+                vigente[0] if vigente is not None else generado
             ),
         )
 
@@ -435,14 +468,35 @@ class RepositorioWeb:
         referencia: str,
         doc_ref: str | None,
         head_revision_id: str | None,
+        doc_url: str | None = None,
+        texto_documento: str | None = None,
+        compartido_con_hash: str | None = None,
+        permiso_no_otorgado_hash: str | None = None,
         ahora: datetime | None = None,
     ) -> str:
         """Cierra la ejecución con su revisión de pieza, en una tx.
 
         Devuelve el id del borrador (la revisión vigente de la solicitud).
+
+        `texto_documento` es el texto del Doc tal como quedó exportado al
+        escribirlo: el `output_hash` de la revisión es el hash de ese
+        texto, la base con la que «Traer cambios del Doc» compara (ADR
+        0016 — la aprobación se ata al hash del Doc reimportado). El texto
+        generado se conserva aparte en la prosa `generado`.
+
+        `doc_url` es el enlace de edición del Doc (NULL con destinos que
+        no son Google). `compartido_con_hash` es el hash del correo con el
+        que el worker compartió el Doc; `permiso_no_otorgado_hash` deja
+        asentado el intento fallido sin contar la generación como fallida
+        —el Doc ya existe— y con el hash, nunca el correo en claro.
         """
         ahora = ahora or datetime.now(timezone.utc)
         output_hash = _hash(texto_generado)
+        doc_hash = (
+            _hash(texto_documento)
+            if texto_documento is not None
+            else output_hash
+        )
         id_borrador = f"borr-{uuid.uuid4().hex[:16]}"
         with self._conexion_factory() as conn:
             with conn.transaction():
@@ -452,43 +506,63 @@ class RepositorioWeb:
                     (id_solicitud,),
                 ).fetchone()[0]
                 conn.execute(
+                    # El output durable de la ejecución es el Doc: la FK
+                    # de 0002 ata (id_ejecucion, output_hash) entre
+                    # ejecución y borrador, así que ambos guardan el hash
+                    # del texto exportado — no el del texto generado, que
+                    # queda sólo en la prosa `generado` y su texto_hash.
                     "UPDATE ejecuciones SET estado = 'PENDIENTE_VALIDACION',"
                     " resultado = 'borrador_generado', output_hash = %s,"
                     " finalizada_en = %s WHERE id_ejecucion = %s",
-                    (output_hash, ahora, id_ejecucion),
+                    (doc_hash, ahora, id_ejecucion),
                 )
                 conn.execute(
                     "INSERT INTO borradores (id_borrador, id_ejecucion,"
                     " referencia_hash, output_hash, canal, estado, creada_en,"
                     " id_solicitud, numero_revision, doc_ref,"
-                    " head_revision_id) VALUES"
+                    " head_revision_id, origen) VALUES"
                     " (%s,%s,%s,%s,'gacetilla','PENDIENTE_VALIDACION',%s,"
-                    " %s,%s,%s,%s)",
+                    " %s,%s,%s,%s,'generada')",
                     (
                         id_borrador, id_ejecucion, _hash(referencia),
-                        output_hash, ahora, id_solicitud, numero,
+                        doc_hash, ahora, id_solicitud, numero,
                         doc_ref, head_revision_id,
                     ),
                 )
                 conn.execute(
                     "INSERT INTO prosa_transitoria (id_solicitud,"
-                    " id_ejecucion, clase, texto, texto_hash, creada_en)"
-                    " VALUES (%s,%s,'generado',%s,%s,%s)",
+                    " id_ejecucion, clase, texto, texto_hash, creada_en,"
+                    " id_borrador) VALUES (%s,%s,'generado',%s,%s,%s,%s)",
                     (id_solicitud, id_ejecucion, texto_generado,
-                     output_hash, ahora),
+                     output_hash, ahora, id_borrador),
                 )
                 conn.execute(
                     "UPDATE solicitudes SET estado_web = 'LISTA',"
-                    " revision_vigente = %s, ultima_actividad_en = %s"
+                    " revision_vigente = %s, ultima_actividad_en = %s,"
+                    " doc_ref = %s, doc_url = %s"
                     " WHERE id_solicitud = %s",
-                    (id_borrador, ahora, id_solicitud),
+                    (id_borrador, ahora, doc_ref, doc_url, id_solicitud),
                 )
                 conn.execute(
                     "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
                     " ocurrido_en, evidencia_hash) VALUES"
                     " (%s,'revision_generada',%s,%s)",
-                    (id_ejecucion, ahora, output_hash),
+                    (id_ejecucion, ahora, doc_hash),
                 )
+                if compartido_con_hash is not None:
+                    conn.execute(
+                        "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
+                        " ocurrido_en, evidencia_hash) VALUES"
+                        " (%s,'doc_compartido',%s,%s)",
+                        (id_ejecucion, ahora, compartido_con_hash),
+                    )
+                if permiso_no_otorgado_hash is not None:
+                    conn.execute(
+                        "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
+                        " ocurrido_en, evidencia_hash) VALUES"
+                        " (%s,'permiso_no_otorgado',%s,%s)",
+                        (id_ejecucion, ahora, permiso_no_otorgado_hash),
+                    )
         return id_borrador
 
     def fallar_trabajo(
@@ -526,6 +600,332 @@ class RepositorioWeb:
                     " ocurrido_en) VALUES (%s,'generacion_fallida',%s)",
                     (id_ejecucion, ahora),
                 )
+
+    # ---------- revisión y decisión del Doc (#153) ----------
+
+    def importar_revision(
+        self,
+        *,
+        id_solicitud: str,
+        texto: str,
+        head_revision_id: str | None = None,
+        ahora: datetime | None = None,
+    ) -> ResultadoImportacion:
+        """Registra el texto reexportado del Doc si su hash cambió.
+
+        Compara el hash del texto exportado con el de la revisión
+        vigente: igual → `sin_cambios`; distinto → crea la revisión
+        siguiente con origen `editada_docs`, guarda su texto en la prosa
+        transitoria enlazada al borrador y la deja vigente, sin tocar las
+        revisiones anteriores (ADR 0016, prueba 4).
+        """
+        ahora = ahora or datetime.now(timezone.utc)
+        texto_hash = _hash(texto)
+        with self._conexion_factory() as conn:
+            with conn.transaction():
+                fila = conn.execute(
+                    "SELECT revision_vigente, estado_web, doc_ref"
+                    " FROM solicitudes"
+                    " WHERE id_solicitud = %s AND canal = ANY(%s)"
+                    " FOR UPDATE",
+                    (id_solicitud, list(CANALES_WEB)),
+                ).fetchone()
+                if fila is None:
+                    return ResultadoImportacion("inexistente")
+                vigente, estado_web, doc_ref = fila
+                if estado_web != "LISTA" or doc_ref is None:
+                    return ResultadoImportacion("no_disponible")
+                hash_vigente = conn.execute(
+                    "SELECT output_hash FROM borradores"
+                    " WHERE id_borrador = %s",
+                    (vigente,),
+                ).fetchone()[0]
+                if hash_vigente == texto_hash:
+                    conn.execute(
+                        "UPDATE solicitudes SET ultima_actividad_en = %s"
+                        " WHERE id_solicitud = %s",
+                        (ahora, id_solicitud),
+                    )
+                    return ResultadoImportacion("sin_cambios")
+                id_borrador = self._importar_en_tx(
+                    conn,
+                    id_solicitud=id_solicitud,
+                    doc_ref=doc_ref,
+                    texto=texto,
+                    texto_hash=texto_hash,
+                    head_revision_id=head_revision_id,
+                    ahora=ahora,
+                )
+                numero = conn.execute(
+                    "SELECT numero_revision FROM borradores"
+                    " WHERE id_borrador = %s",
+                    (id_borrador,),
+                ).fetchone()[0]
+        return ResultadoImportacion(
+            "importada", numero_revision=numero, id_borrador=id_borrador
+        )
+
+    def registrar_decision(
+        self,
+        *,
+        id_solicitud: str,
+        id_borrador: str,
+        decision: str,
+        doc_hash: str,
+        texto_doc: str | None,
+        validador_hash: str,
+        rol: str,
+        origen_identidad: str,
+        version_agente: str,
+        head_revision_id: str | None = None,
+        ahora: datetime | None = None,
+    ) -> ResultadoDecisionWeb:
+        """Registra la decisión sobre la revisión vigente, en una tx.
+
+        `decision` es `APROBADA` o `RECHAZADA` (el vocabulario cerrado de
+        `validaciones`: el descarte viaja como RECHAZADA, ADR 0016).
+        Códigos de resultado:
+
+        - `aprobada`/`descartada`: decisión registrada, solicitud cerrada.
+        - `doc_cambiado`: el hash reexportado difiere del de la revisión
+          mostrada; se asienta la revisión nueva y se rechaza.
+        - `revision_obsoleta`: el borrador decidido ya no es el vigente.
+        - `duplicada`: la revisión ya tiene una decisión registrada.
+        - `cerrada`/`inexistente`: la solicitud ya cerró o no existe.
+
+        `head_revision_id` es el `files.get` del Doc al momento de decidir.
+        Si el exportador no lo provee queda NULL explícito: la decisión sigue
+        atada al hash del texto (ADR 0016) y no se inventa una revisión de
+        Drive.
+
+        Todo ocurre en la misma transacción: una caída a la mitad no deja
+        ni decisión parcial ni revisión colgada (ADR 0016, prueba 2).
+        """
+        ahora = ahora or datetime.now(timezone.utc)
+        if decision not in ("APROBADA", "RECHAZADA"):
+            raise RepositorioWebError("decision_fuera_de_catalogo")
+        with self._conexion_factory() as conn:
+            try:
+                with conn.transaction():
+                    fila = conn.execute(
+                        "SELECT revision_vigente, estado_web, doc_ref"
+                        " FROM solicitudes"
+                        " WHERE id_solicitud = %s AND canal = ANY(%s)"
+                        " FOR UPDATE",
+                        (id_solicitud, list(CANALES_WEB)),
+                    ).fetchone()
+                    if fila is None:
+                        return ResultadoDecisionWeb("inexistente")
+                    vigente, estado_web, doc_ref = fila
+                    if estado_web != "LISTA":
+                        return ResultadoDecisionWeb("cerrada")
+                    if id_borrador != vigente:
+                        self._evento_rechazo_decision(
+                            conn, id_solicitud, ahora, doc_hash
+                        )
+                        return ResultadoDecisionWeb("revision_obsoleta")
+                    borrador = conn.execute(
+                        "SELECT output_hash, creada_en FROM borradores"
+                        " WHERE id_borrador = %s",
+                        (vigente,),
+                    ).fetchone()
+                    if borrador[0] != doc_hash:
+                        importacion = self._importar_en_tx(
+                            conn,
+                            id_solicitud=id_solicitud,
+                            doc_ref=doc_ref,
+                            texto=texto_doc or "",
+                            texto_hash=doc_hash,
+                            head_revision_id=head_revision_id,
+                            ahora=ahora,
+                        )
+                        self._evento_rechazo_decision(
+                            conn, id_solicitud, ahora, doc_hash
+                        )
+                        return ResultadoDecisionWeb(
+                            "doc_cambiado",
+                            id_borrador=importacion,
+                        )
+                    duplicada = conn.execute(
+                        "SELECT 1 FROM validaciones WHERE id_borrador = %s",
+                        (vigente,),
+                    ).fetchone()
+                    if duplicada is not None:
+                        self._evento_rechazo_decision(
+                            conn, id_solicitud, ahora, doc_hash
+                        )
+                        return ResultadoDecisionWeb("duplicada")
+                    senal, proporcion, ajustes = self._senal_edicion(
+                        conn,
+                        id_solicitud=id_solicitud,
+                        doc_hash=doc_hash,
+                        texto_doc=texto_doc,
+                    )
+                    conn.execute(
+                        "INSERT INTO validaciones (id_validacion,"
+                        " id_borrador, decision, validador_ref_hash,"
+                        " checklist_version, registrada_en,"
+                        " borrador_creada_en, doc_hash,"
+                        " senal, proporcion_cambiado, cantidad_ajustes,"
+                        " rol, origen_identidad, version_agente,"
+                        " head_revision_id) VALUES"
+                        " (%s,%s,%s,%s,'decision_web_v1',%s,%s,%s,%s,%s,%s,"
+                        " %s,%s,%s,%s)",
+                        (
+                            f"val-{uuid.uuid4().hex[:16]}", vigente,
+                            decision, validador_hash, ahora, borrador[1],
+                            doc_hash, senal, proporcion, ajustes,
+                            rol, origen_identidad, version_agente,
+                            head_revision_id,
+                        ),
+                    )
+                    conn.execute(
+                        "UPDATE borradores SET estado = %s"
+                        " WHERE id_borrador = %s",
+                        (
+                            "APROBADO" if decision == "APROBADA"
+                            else "RECHAZADO",
+                            vigente,
+                        ),
+                    )
+                    conn.execute(
+                        "UPDATE solicitudes SET estado_web = %s,"
+                        " ultima_actividad_en = %s"
+                        " WHERE id_solicitud = %s",
+                        (
+                            "APROBADA" if decision == "APROBADA"
+                            else "DESCARTADA",
+                            ahora, id_solicitud,
+                        ),
+                    )
+                    conn.execute(
+                        "INSERT INTO eventos_ejecucion (id_ejecucion,"
+                        " tipo, ocurrido_en, evidencia_hash)"
+                        " SELECT id_ejecucion, 'decision_registrada', %s, %s"
+                        " FROM ejecuciones WHERE id_solicitud = %s"
+                        " ORDER BY creada_en LIMIT 1",
+                        (ahora, doc_hash, id_solicitud),
+                    )
+            except psycopg.errors.UniqueViolation:
+                # Doble clic o reenvío concurrente: la otra tx ya asentó
+                # la decisión — el rechazo es idempotente (prueba 3).
+                return ResultadoDecisionWeb("duplicada")
+        return ResultadoDecisionWeb(
+            "aprobada" if decision == "APROBADA" else "descartada",
+            id_borrador=vigente,
+        )
+
+    def _importar_en_tx(
+        self,
+        conn: psycopg.Connection,
+        *,
+        id_solicitud: str,
+        doc_ref: str,
+        texto: str,
+        texto_hash: str,
+        ahora: datetime,
+        head_revision_id: str | None = None,
+    ) -> str:
+        """Alta de una revisión `editada_docs` dentro de la tx del llamador."""
+        numero = conn.execute(
+            "SELECT COALESCE(MAX(numero_revision), 0) + 1"
+            " FROM borradores WHERE id_solicitud = %s",
+            (id_solicitud,),
+        ).fetchone()[0]
+        id_borrador = f"borr-{uuid.uuid4().hex[:16]}"
+        conn.execute(
+            "INSERT INTO borradores (id_borrador, id_ejecucion,"
+            " referencia_hash, output_hash, canal, estado, creada_en,"
+            " id_solicitud, numero_revision, doc_ref, head_revision_id,"
+            " origen) VALUES"
+            " (%s,NULL,%s,%s,'gacetilla','PENDIENTE_VALIDACION',%s,"
+            " %s,%s,%s,%s,'editada_docs')",
+            (
+                id_borrador, _hash(doc_ref), texto_hash, ahora,
+                id_solicitud, numero, doc_ref, head_revision_id,
+            ),
+        )
+        conn.execute(
+            "INSERT INTO prosa_transitoria (id_solicitud, id_ejecucion,"
+            " clase, texto, texto_hash, creada_en, id_borrador) VALUES"
+            " (%s,NULL,'importado',%s,%s,%s,%s)",
+            (id_solicitud, texto, texto_hash, ahora, id_borrador),
+        )
+        conn.execute(
+            "UPDATE solicitudes SET revision_vigente = %s,"
+            " ultima_actividad_en = %s WHERE id_solicitud = %s",
+            (id_borrador, ahora, id_solicitud),
+        )
+        conn.execute(
+            "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
+            " ocurrido_en, evidencia_hash)"
+            " SELECT id_ejecucion, 'revision_importada', %s, %s"
+            " FROM ejecuciones WHERE id_solicitud = %s"
+            " ORDER BY creada_en LIMIT 1",
+            (ahora, texto_hash, id_solicitud),
+        )
+        return id_borrador
+
+    def _evento_rechazo_decision(
+        self,
+        conn: psycopg.Connection,
+        id_solicitud: str,
+        ahora: datetime,
+        evidencia_hash: str,
+    ) -> None:
+        conn.execute(
+            "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
+            " ocurrido_en, evidencia_hash)"
+            " SELECT id_ejecucion, 'decision_rechazada', %s, %s"
+            " FROM ejecuciones WHERE id_solicitud = %s"
+            " ORDER BY creada_en LIMIT 1",
+            (ahora, evidencia_hash, id_solicitud),
+        )
+
+    def _senal_edicion(
+        self,
+        conn: psycopg.Connection,
+        *,
+        id_solicitud: str,
+        doc_hash: str,
+        texto_doc: str | None,
+    ) -> tuple[str | None, float | None, int]:
+        """Señal de edición de la aprobación (ADR 0016).
+
+        `sin_cambios` cuando el hash del Doc coincide con el de la
+        revisión generada; `con_cambios` cuando se editó. La proporción
+        es 1 menos la similitud entre el texto generado y el texto del
+        Doc, y los ajustes son las revisiones `editada_docs` acumuladas.
+        """
+        base = conn.execute(
+            "SELECT output_hash FROM borradores"
+            " WHERE id_solicitud = %s AND numero_revision = 1",
+            (id_solicitud,),
+        ).fetchone()
+        ajustes = conn.execute(
+            "SELECT COUNT(*) FROM borradores"
+            " WHERE id_solicitud = %s AND origen = 'editada_docs'",
+            (id_solicitud,),
+        ).fetchone()[0]
+        if base is None:
+            return None, None, ajustes
+        senal = "sin_cambios" if base[0] == doc_hash else "con_cambios"
+        if texto_doc is None:
+            return senal, None, ajustes
+        generado = conn.execute(
+            "SELECT texto FROM prosa_transitoria"
+            " WHERE id_solicitud = %s AND clase = 'generado'"
+            "   AND texto IS NOT NULL",
+            (id_solicitud,),
+        ).fetchone()
+        if generado is None:
+            return senal, None, ajustes
+        if senal == "sin_cambios":
+            return senal, 0.0, ajustes
+        ratio = difflib.SequenceMatcher(
+            None, generado[0], texto_doc
+        ).ratio()
+        return senal, round(1.0 - ratio, 4), ajustes
 
     # ---------- retención ----------
 

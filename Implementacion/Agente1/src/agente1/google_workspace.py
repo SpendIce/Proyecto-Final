@@ -32,9 +32,14 @@ Decisiones que no se ven en el código:
   plantilla salió bien pero el volcado del texto falló, quedó un documento
   vacío en la carpeta. Se informa con el hash del id para que una persona lo
   ubique y lo limpie: el agente no borra nada por su cuenta.
-- **Escribir es siempre "crear nuevo".** No hay ninguna operación que
-  modifique un documento existente, cambie permisos o comparta: la copia de la
-  plantilla es el único camino.
+- **No todo lo que escribe crea un documento nuevo.** El adapter
+  contractual (`GoogleDocsDestinoBorradores`) sólo crea; el destino del
+  canal web (`GoogleDocsDestinoPorMarca`) busca el Doc de la solicitud dentro
+  de la carpeta configurada, reemplaza su cuerpo si hace falta y —con el flag
+  del stack— da `writer` a quien pidió. Es el único camino que modifica un Doc
+  existente y toca permisos, y está acotado a la plantilla y a la carpeta
+  configuradas: la búsqueda lleva `'<carpeta>' in parents` y el permiso es
+  `writer` sobre ese Doc, sin notificación.
 """
 
 from __future__ import annotations
@@ -49,10 +54,13 @@ from http.client import HTTPException, HTTPSConnection
 from typing import Protocol
 from urllib.parse import quote
 
+from .confirmaciones import email_valido
 from .destinos import (
+    ID_SOLICITUD_RE,
     DestinoBorradores,
     DestinoBorradoresError,
     ReferenciaBorrador,
+    ResultadoDestinoPorMarca,
     nombre_doc_efectivo,
     validar_entrada_borrador,
 )
@@ -524,6 +532,514 @@ class GoogleDrivePlantillaDestinoBorradores(DestinoBorradores):
         ):
             raise DestinoBorradoresError("workspace_auth_unavailable")
         return token
+
+
+# Clave con la que el Doc de una solicitud del canal web queda marcado en
+# `appProperties` al nacer: el worker lo busca por esta marca antes de
+# crear, así que una corrida repetida reutiliza el mismo documento y no
+# duplica (ADR 0016, prueba 1).
+APP_PROPERTY_SOLICITUD = "a1_solicitud"
+
+
+class GoogleDocsDestinoPorMarca:
+    """Un Doc por solicitud del canal web, sobre Drive real (#153).
+
+    Implementa el puerto `DestinoPorMarca` del worker (`buscar_o_crear`)
+    y el `ExportadorDocs` que la app usa para reimportar (`exportar_texto`)
+    y compartir (`compartir`).
+
+    El Doc nace como copia de la plantilla institucional dentro de la
+    carpeta autorizada, con la marca de la solicitud en `appProperties`.
+    La escritura es la del flujo SEU: el borrador se antepone al
+    contenido de la plantilla. En la reutilización, si el texto exportado
+    ya empieza con el contenido nuevo no se toca nada; si no, el cuerpo
+    entero se reemplaza — el resultado queda determinista aunque la
+    corrida anterior haya caído a mitad de camino.
+
+    `compartir` es el único camino del agente que toca permisos de Drive:
+    existe sólo para darle `writer` al correo de quien pidió, cuando el
+    flag del stack lo declara. Sin ese flag el Doc queda en la carpeta
+    del agente, accesible por quienes ya tienen la carpeta.
+    """
+
+    def __init__(
+        self,
+        *,
+        plantilla_id: str,
+        carpeta_id: str,
+        token_provider: AccessTokenProvider,
+        transport: TransporteHttp | None = None,
+        timeout_s: float = 10.0,
+    ) -> None:
+        if (
+            not isinstance(plantilla_id, str)
+            or ID_RE.fullmatch(plantilla_id) is None
+            or not isinstance(carpeta_id, str)
+            or ID_RE.fullmatch(carpeta_id) is None
+            or isinstance(timeout_s, bool)
+            or not isinstance(timeout_s, (int, float))
+            or not math.isfinite(timeout_s)
+            or not 0 < timeout_s <= MAX_WORKSPACE_TIMEOUT_S
+        ):
+            raise ValueError("configuración de Google Drive inválida")
+        self._plantilla_id = plantilla_id
+        self._carpeta_id = carpeta_id
+        self._token_provider = token_provider
+        self._transport = transport or HttpsWorkspaceTransport()
+        self._timeout_s = float(timeout_s)
+
+    # ---------- puerto del worker ----------
+
+    def buscar_o_crear(
+        self,
+        *,
+        marca: str,
+        id_solicitud: str,
+        contenido: str,
+        nombre: str | None,
+    ) -> ResultadoDestinoPorMarca:
+        """Devuelve el Doc de la solicitud, creándolo si no existe.
+
+        La búsqueda por `appProperties` precede a la copia: si la marca
+        aparece dos veces el estado está corrupto y se frena en vez de
+        elegir uno al azar.
+        """
+        validar_entrada_borrador(id_solicitud, contenido)
+        _validar_marca_drive(marca)
+        nombre_efectivo = nombre_doc_efectivo(id_solicitud, nombre)
+        headers = self._headers()
+        deadline = time.monotonic() + self._timeout_s
+        doc = self._buscar_por_marca(marca, headers=headers, deadline=deadline)
+        if doc is None:
+            doc_id = self._copiar_plantilla(
+                marca, nombre_efectivo, headers=headers, deadline=deadline
+            )
+            self._volcar_inicial(
+                doc_id, contenido, headers=headers, deadline=deadline
+            )
+        else:
+            doc_id = doc["id"]
+            texto_actual = self.exportar_texto(doc_id)
+            if not texto_actual.startswith(contenido):
+                self._reemplazar_todo(
+                    doc_id, contenido, headers=headers, deadline=deadline
+                )
+        texto_documento = self.exportar_texto(doc_id)
+        head = self._head_revision(doc_id, headers=headers, deadline=deadline)
+        return ResultadoDestinoPorMarca(
+            referencia=ReferenciaBorrador(
+                tipo="google_drive_template", referencia=doc_id
+            ),
+            doc_ref=doc_id,
+            head_revision_id=head,
+            doc_url=f"https://docs.google.com/document/d/{doc_id}/edit",
+            texto_documento=texto_documento,
+        )
+
+    def compartir(self, doc_ref: str, correo: str) -> None:
+        """Da `writer` al correo en el Doc, sin correo de notificación.
+
+        Idempotente del lado de Drive: si el correo ya tiene el permiso,
+        `permissions.create` devuelve el vigente y nada cambia.
+        """
+        if not email_valido(correo):
+            raise DestinoBorradoresError("destination_contract_invalid")
+        headers = self._headers()
+        deadline = time.monotonic() + self._timeout_s
+        body = json.dumps(
+            {"type": "user", "role": "writer", "emailAddress": correo},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        try:
+            respuesta = self._transport.request(
+                method="POST",
+                host=DRIVE_HOST,
+                target=(
+                    f"/drive/v3/files/{self._doc_id(doc_ref)}/permissions"
+                    "?supportsAllDrives=true&sendNotificationEmail=false"
+                ),
+                headers=headers,
+                body=body,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+        except _RespuestaDemasiadoGrande:
+            raise DestinoBorradoresError("drive_response_too_large") from None
+        except Exception:
+            raise DestinoBorradoresError("drive_unavailable") from None
+        if len(respuesta.body) > MAX_WORKSPACE_RESPONSE_BYTES:
+            raise DestinoBorradoresError("drive_response_too_large")
+        if not 200 <= respuesta.status < 300:
+            raise DestinoBorradoresError(_codigo_drive(respuesta.status))
+
+    # ---------- puerto de la app ----------
+
+    def exportar_texto(self, doc_ref: str) -> str:
+        """El texto plano del Doc, tal como `files.export` lo devuelve."""
+        headers = self._headers()
+        try:
+            respuesta = self._transport.request(
+                method="GET",
+                host=DRIVE_HOST,
+                target=(
+                    f"/drive/v3/files/{self._doc_id(doc_ref)}/export"
+                    "?mimeType=text%2Fplain&supportsAllDrives=true"
+                ),
+                headers=headers,
+                body=None,
+                deadline=time.monotonic() + self._timeout_s,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+        except _RespuestaDemasiadoGrande:
+            raise DestinoBorradoresError("drive_response_too_large") from None
+        except Exception:
+            raise DestinoBorradoresError("drive_unavailable") from None
+        if len(respuesta.body) > MAX_WORKSPACE_RESPONSE_BYTES:
+            raise DestinoBorradoresError("drive_response_too_large")
+        if respuesta.status != 200:
+            raise DestinoBorradoresError(_codigo_drive(respuesta.status))
+        try:
+            return respuesta.body.decode("utf-8")
+        except UnicodeDecodeError:
+            raise DestinoBorradoresError("drive_response_invalid") from None
+
+    def head_revision(self, doc_ref: str) -> str | None:
+        """El `headRevisionId` vigente del Doc, o `None` si Drive no lo da.
+
+        La decisión del canal web se ata a la revisión que efectivamente se
+        revisó; cuando el dato no está disponible queda NULL explícito en
+        `validaciones.head_revision_id` en vez de inventar uno.
+        """
+        headers = self._headers()
+        return self._head_revision(
+            self._doc_id(doc_ref),
+            headers=headers,
+            deadline=time.monotonic() + self._timeout_s,
+        )
+
+    # ---------- interno ----------
+
+    def _doc_id(self, doc_ref: str) -> str:
+        if not isinstance(doc_ref, str) or ID_RE.fullmatch(doc_ref) is None:
+            raise DestinoBorradoresError("destination_contract_invalid")
+        return doc_ref
+
+    def _obtener_token(self) -> str:
+        try:
+            token = self._token_provider.obtener_access_token()
+        except Exception:
+            raise DestinoBorradoresError("workspace_auth_unavailable") from None
+        if (
+            not isinstance(token, str)
+            or not token.strip()
+            or token != token.strip()
+            or "\r" in token
+            or "\n" in token
+        ):
+            raise DestinoBorradoresError("workspace_auth_unavailable")
+        return token
+
+    def _headers(self) -> dict[str, str]:
+        return {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {self._obtener_token()}",
+            "Content-Type": "application/json; charset=utf-8",
+        }
+
+    def _buscar_por_marca(
+        self, marca: str, *, headers: dict[str, str], deadline: float
+    ) -> dict[str, str] | None:
+        _validar_marca_drive(marca)
+        consulta = (
+            f"appProperties has {{key='{APP_PROPERTY_SOLICITUD}'"
+            f" and value='{_escapar_q_drive(marca)}'}}"
+            f" and '{_escapar_q_drive(self._carpeta_id)}' in parents"
+            " and trashed=false"
+        )
+        try:
+            respuesta = self._transport.request(
+                method="GET",
+                host=DRIVE_HOST,
+                target=(
+                    "/drive/v3/files"
+                    f"?q={quote(consulta, safe='')}"
+                    "&fields=files(id,headRevisionId)"
+                    "&supportsAllDrives=true&includeItemsFromAllDrives=true"
+                    "&pageSize=2"
+                ),
+                headers=headers,
+                body=None,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+        except _RespuestaDemasiadoGrande:
+            raise DestinoBorradoresError("drive_response_too_large") from None
+        except Exception:
+            raise DestinoBorradoresError("drive_unavailable") from None
+        if len(respuesta.body) > MAX_WORKSPACE_RESPONSE_BYTES:
+            raise DestinoBorradoresError("drive_response_too_large")
+        if respuesta.status != 200:
+            raise DestinoBorradoresError(_codigo_drive(respuesta.status))
+        try:
+            documento = json.loads(respuesta.body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise DestinoBorradoresError("drive_response_invalid") from None
+        archivos = documento.get("files") if isinstance(documento, dict) else None
+        if not isinstance(archivos, list):
+            raise DestinoBorradoresError("drive_response_invalid")
+        if len(archivos) > 1:
+            # La marca debía ser única: dos documentos marcados con la
+            # misma solicitud es un estado corrupto, no una elección.
+            raise DestinoBorradoresError("drive_response_invalid")
+        if not archivos:
+            return None
+        encontrado = archivos[0]
+        if (
+            not isinstance(encontrado, dict)
+            or not isinstance(encontrado.get("id"), str)
+            or ID_RE.fullmatch(encontrado["id"]) is None
+        ):
+            raise DestinoBorradoresError("drive_response_invalid")
+        return encontrado
+
+    def _copiar_plantilla(
+        self,
+        marca: str,
+        nombre: str,
+        *,
+        headers: dict[str, str],
+        deadline: float,
+    ) -> str:
+        copy_body = json.dumps(
+            {
+                "name": nombre,
+                "parents": [self._carpeta_id],
+                "appProperties": {APP_PROPERTY_SOLICITUD: marca},
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        try:
+            copy_response = self._transport.request(
+                method="POST",
+                host=DRIVE_HOST,
+                target=(
+                    f"/drive/v3/files/{self._plantilla_id}/copy"
+                    "?supportsAllDrives=true&ignoreDefaultVisibility=true"
+                    "&fields=id"
+                ),
+                headers=headers,
+                body=copy_body,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+        except _RespuestaDemasiadoGrande:
+            raise DestinoBorradoresError("drive_response_too_large") from None
+        except Exception:
+            raise DestinoBorradoresError("drive_unavailable") from None
+        return _validar_copy_drive(copy_response)["id"]
+
+    def _volcar_inicial(
+        self,
+        doc_id: str,
+        contenido: str,
+        *,
+        headers: dict[str, str],
+        deadline: float,
+    ) -> None:
+        """Inserta el borrador al inicio, sobre el contenido de la plantilla."""
+        update_body = json.dumps(
+            {
+                "requests": [
+                    {
+                        "insertText": {
+                            "location": {"index": 1},
+                            "text": contenido,
+                        }
+                    }
+                ]
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        if len(update_body) > MAX_WORKSPACE_RESPONSE_BYTES:
+            raise DestinoBorradoresError("drive_request_too_large")
+        reconciliation_ref_hash = hashlib.sha256(
+            doc_id.encode("utf-8")
+        ).hexdigest()
+        try:
+            update_response = self._transport.request(
+                method="POST",
+                host=DOCS_HOST,
+                target=f"/v1/documents/{doc_id}:batchUpdate",
+                headers=headers,
+                body=update_body,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+            _validar_update_docs(update_response)
+        except Exception:
+            raise DestinoBorradoresError(
+                "docs_update_failed_orphaned",
+                reconciliation_ref_hash=reconciliation_ref_hash,
+            ) from None
+
+    def _reemplazar_todo(
+        self,
+        doc_id: str,
+        contenido: str,
+        *,
+        headers: dict[str, str],
+        deadline: float,
+    ) -> None:
+        """Deja el cuerpo del Doc igual al contenido nuevo.
+
+        En la reutilización por marca el Doc puede traer el texto de una
+        corrida caída o de una generación anterior: se borra todo el
+        cuerpo (salvo el cierre final que Docs exige) y se inserta el
+        nuevo, así el resultado no depende de cuánto alcanzó a escribirse
+        antes.
+        """
+        try:
+            get_response = self._transport.request(
+                method="GET",
+                host=DOCS_HOST,
+                target=(
+                    f"/v1/documents/{doc_id}"
+                    "?fields=body.content(endIndex)"
+                ),
+                headers=headers,
+                body=None,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+        except _RespuestaDemasiadoGrande:
+            raise DestinoBorradoresError("docs_response_too_large") from None
+        except Exception:
+            raise DestinoBorradoresError("docs_unavailable") from None
+        if len(get_response.body) > MAX_WORKSPACE_RESPONSE_BYTES:
+            raise DestinoBorradoresError("docs_response_too_large")
+        if get_response.status != 200:
+            raise DestinoBorradoresError(_codigo_docs(get_response.status))
+        try:
+            documento = json.loads(get_response.body.decode("utf-8"))
+            fin = max(
+                int(seccion["endIndex"])
+                for seccion in documento["body"]["content"]
+                if isinstance(seccion, dict) and "endIndex" in seccion
+            )
+        except (UnicodeDecodeError, json.JSONDecodeError, TypeError,
+                KeyError, ValueError):
+            raise DestinoBorradoresError("docs_response_invalid") from None
+        requests: list[dict[str, object]] = []
+        # El último carácter del cuerpo es un cierre que Docs no deja
+        # borrar: el rango va hasta fin-1.
+        if fin - 1 > 1:
+            requests.append(
+                {
+                    "deleteContentRange": {
+                        "range": {"startIndex": 1, "endIndex": fin - 1}
+                    }
+                }
+            )
+        requests.append(
+            {"insertText": {"location": {"index": 1}, "text": contenido}}
+        )
+        update_body = json.dumps(
+            {"requests": requests}, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
+        if len(update_body) > MAX_WORKSPACE_RESPONSE_BYTES:
+            raise DestinoBorradoresError("drive_request_too_large")
+        try:
+            update_response = self._transport.request(
+                method="POST",
+                host=DOCS_HOST,
+                target=f"/v1/documents/{doc_id}:batchUpdate",
+                headers=headers,
+                body=update_body,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+        except _RespuestaDemasiadoGrande:
+            raise DestinoBorradoresError("docs_response_too_large") from None
+        except Exception:
+            raise DestinoBorradoresError("docs_unavailable") from None
+        if len(update_response.body) > MAX_WORKSPACE_RESPONSE_BYTES:
+            raise DestinoBorradoresError("docs_response_too_large")
+        if not 200 <= update_response.status < 300:
+            raise DestinoBorradoresError(
+                _codigo_docs(update_response.status)
+            )
+
+    def _head_revision(
+        self, doc_id: str, *, headers: dict[str, str], deadline: float
+    ) -> str | None:
+        try:
+            respuesta = self._transport.request(
+                method="GET",
+                host=DRIVE_HOST,
+                target=(
+                    f"/drive/v3/files/{doc_id}"
+                    "?fields=headRevisionId&supportsAllDrives=true"
+                ),
+                headers=headers,
+                body=None,
+                deadline=deadline,
+                max_response_bytes=MAX_WORKSPACE_RESPONSE_BYTES,
+            )
+        except _RespuestaDemasiadoGrande:
+            raise DestinoBorradoresError("drive_response_too_large") from None
+        except Exception:
+            raise DestinoBorradoresError("drive_unavailable") from None
+        if len(respuesta.body) > MAX_WORKSPACE_RESPONSE_BYTES:
+            raise DestinoBorradoresError("drive_response_too_large")
+        if respuesta.status != 200:
+            raise DestinoBorradoresError(_codigo_drive(respuesta.status))
+        try:
+            documento = json.loads(respuesta.body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise DestinoBorradoresError("drive_response_invalid") from None
+        head = documento.get("headRevisionId") if isinstance(documento, dict) else None
+        return head if isinstance(head, str) and head else None
+
+
+def _validar_marca_drive(marca: object) -> None:
+    """La marca de una solicitud es un identificador, no texto libre."""
+    if not isinstance(marca, str) or ID_SOLICITUD_RE.fullmatch(marca) is None:
+        raise DestinoBorradoresError("destination_contract_invalid")
+
+
+def _escapar_q_drive(valor: str) -> str:
+    """Escapa un literal de la sintaxis `q` de Drive.
+
+    La `q` de Drive usa comillas simples para los strings y la barra
+    invertida como escape. Un identificador válido nunca las lleva, pero el
+    valor se escapa igual antes de interpolarse: la consulta no depende de
+    que el validador de entrada se acuerde de rechazarlas.
+    """
+
+    return valor.replace("\\", "\\\\").replace("'", "\\'")
+
+
+def _codigo_drive(status: int) -> str:
+    """Estado HTTP de Drive → vocabulario de error del destino."""
+    if status in {401, 403}:
+        return "drive_auth_denied"
+    if status == 404:
+        return "drive_resource_not_found"
+    if status == 429:
+        return "drive_rate_limited"
+    return "drive_unavailable"
+
+
+def _codigo_docs(status: int) -> str:
+    """Estado HTTP de Docs → vocabulario de error del destino."""
+    if status in {401, 403}:
+        return "docs_auth_denied"
+    if status == 429:
+        return "docs_rate_limited"
+    return "docs_unavailable"
 
 
 class HttpsWorkspaceTransport:

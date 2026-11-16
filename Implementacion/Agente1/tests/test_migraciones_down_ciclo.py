@@ -116,6 +116,18 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "0019). Volver a 0005 alcanza."
         ),
     ),
+    "0007_web_docs_revision_decision": Reversion(
+        reversible=True,
+        pierde_datos=True,
+        requiere_restaurar_respaldo=True,
+        nota=(
+            "El `down` elimina las columnas del Doc por solicitud "
+            "(`doc_ref`, `doc_url`), el origen de revisión y los metadatos "
+            "de la decisión web: descarta referencias a documentos de "
+            "Drive, revisiones importadas y proveniencia registradas. Con "
+            "datos reales exige restaurar el respaldo."
+        ),
+    ),
 }
 
 

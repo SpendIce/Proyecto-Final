@@ -125,6 +125,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import hmac
 import json
 import math
 import os
@@ -539,6 +540,28 @@ def es_id_actividad(valor: str) -> bool:
     return PATRON_IDENTIFICADOR_EXPLICITO.fullmatch(valor.strip()) is not None
 
 
+def normalizar_correo(correo: str) -> str:
+    """La forma canónica de una dirección: sin espacios y en minúscula.
+
+    Google trata las direcciones como insensibles a mayúsculas y el padrón
+    las guarda normalizadas. App y worker comparten esta función para que el
+    hash del solicitante sea el mismo en los dos lados.
+    """
+
+    return correo.strip().lower()
+
+
+def hash_correo(correo: str) -> str:
+    """El sha256 de la dirección normalizada, único hash de identidad.
+
+    Es el `solicitante_hash` de la solicitud y el `compartido_con_hash` del
+    Doc: un solo helper evita que el worker busque un hash que la app no
+    escribió cuando Google devuelve la dirección con otra caja.
+    """
+
+    return hashlib.sha256(normalizar_correo(correo).encode("utf-8")).hexdigest()
+
+
 class PadronRoles:
     """Correo verificado → rol autorizado (ADR 0005), cargado fuera del repo.
 
@@ -559,7 +582,7 @@ class PadronRoles:
         except Exception:
             raise ConfiguracionWorkspaceError("padron_roles_invalid") from None
         for correo, rol in items:
-            correo_n = correo.strip().lower() if isinstance(correo, str) else ""
+            correo_n = normalizar_correo(correo) if isinstance(correo, str) else ""
             rol_n = rol.strip() if isinstance(rol, str) else ""
             if not email_valido(correo_n) or _ROL_PADRON_RE.fullmatch(rol_n) is None:
                 raise ConfiguracionWorkspaceError("padron_roles_invalid")
@@ -573,7 +596,24 @@ class PadronRoles:
 
         if not isinstance(correo, str):
             return None
-        return self._roles.get(correo.strip().lower())
+        return self._roles.get(normalizar_correo(correo))
+
+    def correo_para_hash(self, solicitante_hash: str) -> str | None:
+        """El correo del padrón cuyo SHA-256 es `solicitante_hash`.
+
+        Es el camino inverso que usa el worker del canal web para dar el
+        permiso `writer` del Doc (#153): la solicitud sólo guarda el hash
+        del correo y el permiso necesita la dirección real, que vive en
+        el padrón. Devuelve `None` si ningún correo del padrón coincide —
+        la solicitud no inventa un destinatario.
+        """
+
+        if not isinstance(solicitante_hash, str):
+            return None
+        for correo in self._roles:
+            if hmac.compare_digest(hash_correo(correo), solicitante_hash):
+                return correo
+        return None
 
     @classmethod
     def desde_entorno(
@@ -1726,7 +1766,9 @@ class CanalFormPedidos:
         registro: dict[str, object] = {
             "version": REGISTRO_ATENDIDOS_VERSION,
             "id_pedido": pedido.id_pedido,
-            "solicitante_hash": _hash(pedido.solicitante.identificador),
+            "solicitante_hash": hash_correo(
+                pedido.solicitante.identificador
+            ),
             "rol": pedido.solicitante.rol,
             "identidad_canal": "correo_verificado_form",
             "rol_origen": (

@@ -35,6 +35,12 @@ entorno; el repositorio no guarda client IDs, dominios ni credenciales:
 - `AGENTE1_WEB_HOST` / `AGENTE1_WEB_PORT`: escucha (default 127.0.0.1:8080).
 - `AGENTE1_WEB_CORREOS_PRUEBA`: correos sintéticos habilitados por el
   verificador fake, separados por coma (`a@example.invalid,b@…`).
+- `AGENTE1_WEB_DOCS=si` (#153): el servidor construye el exportador de
+  Docs sobre Drive real con la config `AGENTE1_WORKSPACE_*` — la misma
+  que usa el worker con `--destino-docs`— y habilita «Traer cambios» y
+  «Aprobar/Descartar». Si la config falta o es inválida el arranque
+  cierra con `web_workspace_config_invalid`; sin la variable los botones
+  no aparecen y los POST responden `exportador_ausente`.
 
 Uso:
 
@@ -186,6 +192,37 @@ def main(
         cookie_secure=entorno.get("AGENTE1_WEB_COOKIE_SECURE", "si") != "no",
     )
     repositorio = RepositorioWeb(functools.partial(conectar, dsn))
+    exportador = None
+    if entorno.get("AGENTE1_WEB_DOCS", "").lower() == "si":
+        # El Doc por solicitud (#153) se sirve sobre Drive real. Si la
+        # config Workspace falta o es inválida el arranque cierra, igual
+        # que el worker con `--destino-docs`: nunca cae en silencio a un
+        # canal sin Doc.
+        try:
+            from agente1.workspace_auth import construir_token_provider
+            from agente1.workspace_config import (
+                ConfiguracionWorkspaceError,
+                cargar_configuracion_workspace,
+            )
+
+            config_ws = cargar_configuracion_workspace(entorno)
+            token_provider = construir_token_provider(
+                entorno,
+                timeout_s=config_ws.timeout_s,
+                directorio_auditoria=Path(
+                    entorno.get("AGENTE1_ESTADO") or "."
+                ),
+            )
+        except ConfiguracionWorkspaceError:
+            return _invalida("web_workspace_config_invalid")
+        from agente1.google_workspace import GoogleDocsDestinoPorMarca
+
+        exportador = GoogleDocsDestinoPorMarca(
+            plantilla_id=config_ws.template_id,
+            carpeta_id=config_ws.folder_id,
+            token_provider=token_provider,
+            timeout_s=config_ws.timeout_s,
+        )
     try:
         app = crear_app(
             config=config,
@@ -197,9 +234,10 @@ def main(
             en_contenedor=(
                 entorno.get("AGENTE1_CONTENEDOR", "").lower() == "si"
             ),
+            exportador=exportador,
         )
-    except ConfiguracionInvalida:
-        return _invalida("web_config_insegura")
+    except ConfiguracionInvalida as error:
+        return _invalida(error.code)
     if args.una_ruta:
         print('{"status": "OK"}')
         return 0
