@@ -28,6 +28,14 @@ Dirección. Detalle en el procedimiento.
 
 Sin cambios todavía.
 
+## [0.6.1] - 2026-11-16
+
+- **Parche — el worker del canal web genera sin thinking.** `worker_canal_web`
+  creaba `OllamaGenerator` sin `think=False`: con `gemma4:e4b` el modelo gastaba
+  el `num_predict` pensando y el primer pedido real en el servidor terminó en
+  `error_generacion` a los 133 s. Mismo arreglo que el scheduler en 0.5.3; test
+  en `tests/test_canal_web_arranque.py`.
+
 ## [0.6.0] - 2026-11-16
 
 Canal web del Agente 1 para la presentación de cursada (#149, #151, #153,

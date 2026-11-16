@@ -90,7 +90,9 @@ def main(
     elif args.ollama_model:
         from agente1.ollama import OllamaGenerator
 
-        generator = OllamaGenerator(modelo=args.ollama_model)
+        # Sin thinking: gemma4 gasta el `num_predict` pensando y la
+        # respuesta llega vacía (mismo arreglo que el scheduler en 0.5.3).
+        generator = OllamaGenerator(modelo=args.ollama_model, think=False)
     else:
         return _invalida("worker_generador_no_declarado")
 

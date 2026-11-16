@@ -18,7 +18,7 @@
     "migrations/0007_web_docs_revision_decision.up.sql": "9a043b53090ac79c801b2026d8472ec97ff54c4af2af7c7902454cf3becb501e",
     "migrations/0008_correo_prellenado_aprobacion.down.sql": "822cccd30de91874a853722636d29d53ccff9c3f20e5c9d56ed06bd4e233d466",
     "migrations/0008_correo_prellenado_aprobacion.up.sql": "5201951b8e70f03769a90c8cd2f0b4e3e87d9e8a250074c3fb60dd9c6f9ce709",
-    "pyproject.toml": "44a1dd35b1efe6ae9f1849e49ab86ed87ae0241331329c138529453bfa432a72",
+    "pyproject.toml": "569116612a9ddc52372abc91d949133e1faefb69799391c72d3dead67f31aea5",
     "scripts/anexo1_presentacion.py": "a5043d608b242ec10a63c73b9be5c1f4387595dfe4744235e47a975e43027398",
     "scripts/anexo2_calidad.py": "6d5bc627622bf4f4904b3150f862cb0d1990a06c3662d5d13c60ebb48407df4f",
     "scripts/anexo3_seguridad.py": "f15c23b14fea0919f8da189eba35137270716ab613c3f638f8c1d1c8e92933cc",
@@ -69,7 +69,7 @@
     "scripts/smoke_ollama.sh": "b83970be6d0662731de06a9b2814c70678ad46bb373120e0eacc8c809043eaa9",
     "scripts/smoke_posts.sh": "523a8b09f12fa37cc107cf50fe97a4e419948aa074327ac8777d5d33ef26459f",
     "scripts/wizard-gmail-cuenta-tecnica.sh": "3f4db1ec7061e8a1e292c0933e2e02a5b3f3e8ed6442605de3f6b2cc057ad251",
-    "scripts/worker_canal_web.py": "8000e24b320c8c3de286b33cd3f16b0fb1988d054e1b3cea7b21560c9848ee74",
+    "scripts/worker_canal_web.py": "5bc918bc0310d69124c01077e1186603b2319eea562d0a7ce19fe0ac8ef142a5",
     "scripts/workspace_e2e.py": "97ca98bb9de6776dd08a03b0e9097754a4292268df0c4399f9b02299bf818913",
     "scripts/workspace_smoke.py": "edb87c402c520013d7f51799ee34ac437b5fca55a7b95ee96a250c1a65c2aa94",
     "src/agente1/__init__.py": "bc5a4b9595d46a2b9cb924a3da240dc9342dc204270635a50e0dd934026634e0",
@@ -260,8 +260,8 @@
     "systemd/agente1-scheduler-loop.service": "b73c70a32920ec44a47d13faba3956ba9c6feeb0c2022689600f6ae34b1854db",
     "systemd/agente1-scheduler.service": "a80a2f5735871a31f6b3a4f6daf9c694267c03b569971f69e495a1fe027fc5cb",
     "systemd/agente1-scheduler.timer": "33268d7df468209d9467ab212df0cf0caa511c7fa6b0cd9bb6beea3ba83b8ab8",
-    "uv.lock": "39efd0cce793d614fd2164c780ea60347b73f79bcd5dea959de8ea2d96c3c9e6"
+    "uv.lock": "6c589c3852f8fec7288a6e4f25d11ce278c5fd2863cd39e75e8b5335965f8da2"
   },
   "schema_version": "agente1_manifest_version_v1",
-  "version": "0.6.0"
+  "version": "0.6.1"
 }
