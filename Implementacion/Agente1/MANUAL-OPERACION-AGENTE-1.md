@@ -189,6 +189,11 @@ agente1 → Environment variables*. Para encender el canal web y el scheduler:
 | `AGENTE1_POSTGRES_DSN` | `postgresql://agente1_app:<clave-de-agente1_app>@<host-de-la-base>:<puerto>/<base>` | Conexión de `web` y `worker`. |
 | `AGENTE1_POSTGRES_DSN_MANTENIMIENTO` | `postgresql://agente1_mantenimiento:<clave-de-agente1_mantenimiento>@<host-de-la-base>:<puerto>/<base>` | Conexión de la purga diaria que corre el scheduler. |
 
+La base corre como `70:70` (el usuario `postgres` de la imagen alpine) y
+conserva `read_only`, `cap_drop: ALL`, `no-new-privileges` y la red interna
+`canal`, sin puertos publicados. `/run` y `/tmp` van en tmpfs con modo 1777
+para que el entrypoint cree el socket sin root.
+
 El migrador es idempotente: la segunda corrida no aplica nada y sale 0. Cada
 migración es atómica: si una falla, las anteriores quedan aplicadas con su
 fila de control y la corrida siguiente retoma desde la pendiente. Si una

@@ -1,7 +1,7 @@
 {
   "archivos_sha256": {
     "Dockerfile": "b4871a3cd33838a8fe3f89856d14a8e3ba0fbe99e7c67d468bb4dd7c07a06c10",
-    "docker/compose.yaml": "f9a709cc0bb599b7ef4c63e2a19c6a049bdb9d51f26f2729cc432f0a3eb3b7fe",
+    "docker/compose.yaml": "a93c3651b33b467defc439d6bb184bab653dd165aa4b4f03e3d338cf6ef90bdb",
     "migrations/0001_persistencia_agente1.down.sql": "a576d7b8ad9eeb18068f50c04956b5bf0a5304a87c8c26df1311479f236fa0a0",
     "migrations/0001_persistencia_agente1.up.sql": "b87d67dc6c0220f73d61b0c44417d397e56d1a715be57d817960feef4a023b14",
     "migrations/0002_integridad_referencial_borradores.down.sql": "24caa7a9a9c2001280f48a17339f1898fc63af2c63a06ad61dbac358d104bb7a",
@@ -80,7 +80,7 @@
     "src/agente1/cli.py": "8c8562b7847cd66942b7f09a27188f506ab3a76383a8bc3a08c77a011b1d7cd7",
     "src/agente1/cli_insumos.py": "656d4c850e210071165beae882685e95ec7c7dcdf9c656776d9c70d90c1b88f9",
     "src/agente1/cli_pagos.py": "e3086a4b2da7454bdb9632efac8adb8df643739c097bc7e25811f1fc8a0050bb",
-    "src/agente1/cli_scheduler.py": "d757b22bc2a66234e4cc2631539a846dee26a0fb2ccf8edc7db672c2576593ab",
+    "src/agente1/cli_scheduler.py": "2c58e9aeb00dbfb241a328aa7e64025ad51630e5543ddb72192e9057b9d874b8",
     "src/agente1/config_entorno.py": "ebd333ee7c47f2e82291378bba6bf96042bfa593fa0173d81ec17b2fec4d4934",
     "src/agente1/confirmaciones.py": "bfda46aba2b8d9d5877a599c31e058d548b8d66601491c75489d207bbc8fc2d7",
     "src/agente1/contracts/areas_emisoras_v1.json": "f290751760c3eb4060f901d39868194c81635f8112ec2a2a01cf6aca27ec750c",
@@ -231,7 +231,7 @@
     "src/agente1/web/estaticos/fuentes/roboto.woff2": "1404ca348bd75ef836f4dd8b6f2cc719458642d1237c368296b2fc652dca47dc",
     "src/agente1/web/estaticos/img/imagotipo-fie-blanco.png": "ae9b6135d6607dea3eb42702278ef34922e2a2a90fc748d9d49acced9fcb3ce7",
     "src/agente1/web/identidad.py": "1f5709812268974cdaedd150ea9d6694b2e69475cd804a7c47709046df8a36f0",
-    "src/agente1/web/persistencia.py": "840d56ce8927b9787424b9cfbdb1a519064276381a2d3e9992d3aba932619805",
+    "src/agente1/web/persistencia.py": "86c5f0de9b4c150bfb303220009df9e6b9014d51fb13e471a6c72071e58cb696",
     "src/agente1/web/plantillas/bandeja.html": "bc7972c60ab90efe67ed57cfe8ce6eaf2c7544c7c33510867ede5f606549d2e7",
     "src/agente1/web/plantillas/base.html": "af5f11689ab7b1b2f7d5a06d8fb86a32cc7b43f10fb1a142a0ba23ea7b302f97",
     "src/agente1/web/plantillas/ingresar.html": "bf75e475a6e4f3298caefbf4a221475f1f5ea2da4ebd8045df23064e5e28c378",

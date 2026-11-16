@@ -225,6 +225,22 @@ Dirección. Detalle en el procedimiento.
   - `tests/test_contenedor.py`: el contrato del `Dockerfile` fija el venv
     de producción, el `--no-dev` de `deps`, el grupo de desarrollo en
     `test` y la ausencia de `uv`, `pytest` y `ruff` en `runtime`.
+- **Parche — PostgreSQL arranca con el mínimo privilegio y la purga no
+  deja prosa sin retención (#149).**
+  - `docker/compose.yaml`: `postgres` corre como `70:70` (el
+    `postgres` de la imagen alpine) y no suma capacidades; conserva
+    `read_only`, `cap_drop: ALL`, `no-new-privileges`, la red interna
+    `canal` y la ausencia de puertos publicados. `/run` y `/tmp` van en
+    tmpfs con modo 1777 para que el entrypoint cree el socket sin root.
+  - `src/agente1/cli_scheduler.py`: con cualquiera de los dos DSN del
+    canal la purga se considera configurada y se invoca; si falta el
+    otro, el script falla cerrado con `purga_dsn_ausente` y el respaldo
+    del día no corre. Sólo sin ningún DSN queda `pendiente`.
+  - `src/agente1/web/persistencia.py`: `prosa_purgada` se asienta una
+    sola vez por solicitud; `evidencia_hash` compromete la cantidad de
+    filas purgadas de esa solicitud.
+  - Tests: capacidades mínimas de `postgres`, los tres casos de la purga
+    del scheduler y el evento agrupado por solicitud.
 
 ## [0.5.10] - 2026-10-27
 
