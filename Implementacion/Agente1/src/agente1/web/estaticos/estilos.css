@@ -211,6 +211,30 @@ h2 { font-weight: 600; font-size: 1.15rem; margin-top: 1.75rem; }
   border-radius: 4px;
 }
 
+/* Doc por solicitud, revisiones y decisión (#153) */
+.enlace-doc {
+  font-family: var(--fuente-titulos);
+  font-weight: 600;
+  color: var(--azul-fie);
+}
+.tabla-revisiones {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--blanco);
+  border: 1px solid var(--neutro-medio);
+}
+.tabla-revisiones th, .tabla-revisiones td {
+  text-align: left;
+  padding: 0.45rem 0.8rem;
+  border-bottom: 1px solid var(--neutro-medio);
+}
+.tabla-revisiones th { font-family: var(--fuente-titulos); font-weight: 600; }
+.revision-vigente { background: #EAF3EC; }
+.acciones-decision { display: flex; gap: 0.8rem; margin-top: 1rem; }
+.acciones-decision button[name="accion"][value="descartar"] {
+  background: var(--neutro-oscuro);
+}
+
 /* Banda del modo demostración (ADR 0019): fija al pie en todas las
    páginas, declara que la identidad no se verificó y hasta cuándo corre.
    El padding de `body.con-demo` le deja lugar para no tapar contenido. */

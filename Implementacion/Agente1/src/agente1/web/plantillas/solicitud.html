@@ -31,13 +31,67 @@
   <p class="prosa">{{ s.descripcion }}</p>
   {% endif %}
 
-  {% if s.estado_web == 'LISTA' and s.texto_generado %}
-  <h2>Borrador generado</h2>
-  <p class="ayuda">
-    La revisión, la edición en Docs y la decisión llegan con la siguiente
-    etapa del canal. Acá se muestra el texto tal como quedó generado.
+  {% if aviso %}
+  <p class="{% if aviso_error %}mensaje-error{% else %}aviso-estado{% endif %}"
+     role="alert">{{ aviso }}</p>
+  {% endif %}
+
+  {% if doc_url %}
+  <h2>Documento</h2>
+  <p>
+    <a class="enlace-doc" href="{{ doc_url }}" target="_blank" rel="noopener">
+      Editar en Google Docs ↗
+    </a>
   </p>
-  <pre class="pieza">{{ s.texto_generado }}</pre>
+  {% endif %}
+
+  {% if revisiones %}
+  <h2>Revisiones</h2>
+  <table class="tabla-revisiones">
+    <thead>
+      <tr><th>N.º</th><th>Origen</th><th>Fecha</th><th>Hash</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in revisiones %}
+      <tr{% if r.vigente %} class="revision-vigente"{% endif %}>
+        <td>{{ r.numero }}</td>
+        <td>{{ r.origen }}</td>
+        <td>{{ r.creada }}</td>
+        <td><code>{{ r.hash_corto }}</code></td>
+        <td>{% if r.vigente %}<strong>vigente</strong>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if s.estado_web == 'LISTA' and texto_vigente %}
+  <h2>Borrador vigente</h2>
+  <pre class="pieza">{{ texto_vigente }}</pre>
+  {% if puede_traer %}
+  <form method="post" action="/solicitudes/{{ s.id_solicitud }}/traer-cambios">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit">Traer cambios del Doc</button>
+  </form>
+  {% endif %}
+  {% if puede_decidir %}
+  <form method="post" action="/solicitudes/{{ s.id_solicitud }}/decidir"
+        class="acciones-decision">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="revision" value="{{ revision_vigente_id }}">
+    <button type="submit" name="accion" value="aprobar">Aprobar</button>
+    <button type="submit" name="accion" value="descartar">Descartar</button>
+  </form>
+  {% endif %}
+  {% elif s.estado_web in ('APROBADA', 'DESCARTADA') %}
+  <p class="aviso-estado">
+    La pieza quedó {{ estado_visible|lower }}. El recorrido de difusión
+    está cerrado.
+  </p>
+  {% if texto_vigente %}
+  <h2>Texto vigente al cerrar</h2>
+  <pre class="pieza">{{ texto_vigente }}</pre>
+  {% endif %}
   {% elif s.estado_web in ('EN_COLA', 'GENERANDO') %}
   <p class="aviso-estado" id="aviso-estado">
     El agente está generando el borrador. Esta página se actualiza sola.

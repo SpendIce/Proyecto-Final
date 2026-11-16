@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import importlib.metadata
 import secrets
 import uuid
 from collections.abc import Callable
@@ -71,6 +72,12 @@ from ..canal_form import (
     areas_emisoras,
     publicos_destinatarios,
 )
+from ..decisiones_form import (
+    DECISION_DESCARTE,
+    DECISION_PUBLIQUE,
+    ROLES_POR_DECISION,
+    TIPO_PUBLICACION,
+)
 from ..gacetillas import (
     cargar_entrada,
     requiere_actividad,
@@ -78,6 +85,7 @@ from ..gacetillas import (
     tipos,
 )
 from ..interpretacion import ROLES_HABILITADOS
+from .docs_canal import ExportadorDocs
 from .identidad import VerificacionIdentidadError, VerificadorIdToken
 from .persistencia import (
     CANAL_WEB,
@@ -95,11 +103,41 @@ _DEMO_DIAS_MAX = 14
 _ESTADOS_VISIBLES = {
     "EN_COLA": "En cola",
     "GENERANDO": "Generando",
-    "LISTA": "Lista para revisar",
+    "LISTA": "En revisión",
     "ERROR": "Con error",
     "APROBADA": "Aprobada",
     "DESCARTADA": "Descartada",
     "VENCIDA": "Vencida",
+}
+_ORIGEN_REVISION = {
+    "generada": "generada",
+    "editada_docs": "editada en Docs",
+}
+_AVISOS_REVISION = {
+    "importada": "Revisión nueva traída del Doc.",
+    "sin_cambios": "El Doc no tiene cambios nuevos.",
+    "no_disponible": "Todavía no hay Doc para traer cambios.",
+    "inexistente": "La solicitud no existe.",
+    "exportador_ausente": "Workspace no está disponible en este despliegue.",
+}
+_AVISOS_DECISION = {
+    "aprobada": "Pieza aprobada. El recorrido de difusión quedó cerrado.",
+    "descartada": "Pieza descartada. El recorrido quedó cerrado.",
+    "doc_cambiado": "El Doc cambió: traé los cambios antes de aprobar.",
+    "revision_obsoleta": "La revisión cambió: se muestra la vigente.",
+    "duplicada": "La decisión ya estaba registrada.",
+    "cerrada": "La solicitud ya está cerrada.",
+    "inexistente": "La solicitud no existe.",
+    "exportador_ausente": "Workspace no está disponible en este despliegue.",
+}
+_AVISOS_ERROR = {
+    "doc_cambiado",
+    "revision_obsoleta",
+    "duplicada",
+    "cerrada",
+    "inexistente",
+    "exportador_ausente",
+    "no_disponible",
 }
 _NOMBRES_TIPOS = {
     "difusion_de_actividad": "Difusión de actividad",
@@ -317,6 +355,8 @@ def crear_app(
     host: str | None = None,
     en_contenedor: bool = False,
     hoy: Callable[[], date] | None = None,
+    exportador: ExportadorDocs | None = None,
+    version_agente: str | None = None,
 ) -> FastAPI:
     """Fábrica de la app: todo servicio externo entra inyectado.
 
@@ -326,6 +366,11 @@ def crear_app(
     del modo prueba (`validar_configuracion`). `hoy` es la costura del
     reloj del modo demostración: el vencimiento se consulta en cada
     request, no sólo al arrancar.
+
+    `exportador` es el puerto del Doc por solicitud (#153): sin él los
+    botones de «Traer cambios» y «Aprobar/Descartar» no aparecen y los
+    POST responden `exportador_ausente`. `version_agente` queda en cada
+    decisión como proveniencia del binario que la registró.
     """
     validar_configuracion(
         config,
@@ -334,6 +379,11 @@ def crear_app(
         padron=padron,
         hoy=hoy,
     )
+    if version_agente is None:
+        try:
+            version_agente = importlib.metadata.version("agente1")
+        except importlib.metadata.PackageNotFoundError:
+            version_agente = "desconocida"
     hoy_fn = (
         hoy
         if hoy is not None
@@ -644,7 +694,11 @@ def crear_app(
         return _render_detalle(request, sesion, detalle_sol)
 
     def _render_detalle(
-        request: Request, sesion: Sesion, detalle_sol: DetalleSolicitud
+        request: Request,
+        sesion: Sesion,
+        detalle_sol: DetalleSolicitud,
+        aviso: str | None = None,
+        aviso_error: bool = False,
     ) -> HTMLResponse:
         campos_pieza = detalle_sol.campos.get("pieza", {})
         campos_pedido = detalle_sol.campos.get("pedido", {})
@@ -653,6 +707,22 @@ def crear_app(
             campos_pieza.get("titulo")
             or (actividad or {}).get("titulo")
             or _NOMBRES_TIPOS.get(detalle_sol.tipo_pieza)
+        )
+        rol = rol_de(sesion)
+        vigente = (
+            detalle_sol.revisiones[-1]
+            if detalle_sol.revisiones
+            else None
+        )
+        puede_traer = (
+            exportador is not None
+            and detalle_sol.estado_web == "LISTA"
+            and detalle_sol.doc_ref is not None
+        )
+        puede_decidir = (
+            puede_traer
+            and vigente is not None
+            and rol in ROLES_POR_DECISION[(TIPO_PUBLICACION, DECISION_PUBLIQUE)]
         )
         return render(
             "solicitud.html",
@@ -671,7 +741,26 @@ def crear_app(
             publicos=[
                 publicos.get(p, p) for p in campos_pedido.get("publicos", [])
             ],
-            revisiones=detalle_sol.revisiones,
+            revisiones=[
+                {
+                    "numero": r.numero_revision,
+                    "origen": _ORIGEN_REVISION.get(r.origen, r.origen),
+                    "creada": r.creada_en.strftime("%d/%m/%Y %H:%M"),
+                    "hash_corto": r.output_hash[:12],
+                    "vigente": r is vigente,
+                }
+                for r in detalle_sol.revisiones
+            ],
+            texto_vigente=detalle_sol.texto_vigente
+            or detalle_sol.texto_generado,
+            doc_url=detalle_sol.doc_url,
+            puede_traer=puede_traer,
+            puede_decidir=puede_decidir,
+            revision_vigente_id=vigente.id_borrador if vigente else None,
+            revision_vigente_hash=vigente.output_hash if vigente else "",
+            csrf=sesion.csrf_token,
+            aviso=aviso,
+            aviso_error=aviso_error,
         )
 
     @app.get("/solicitudes/{id_solicitud}/estado")
@@ -682,6 +771,118 @@ def crear_app(
         if estado_web is None:
             return JSONResponse({"estado": "no_existe"}, status_code=404)
         return JSONResponse({"estado": estado_web})
+
+    # ---------- revisión y decisión sobre el Doc (#153) ----------
+
+    def _aviso(
+        tabla: dict[str, str], codigo: str
+    ) -> tuple[str, bool]:
+        """Texto visible del aviso y si es error, por código de resultado."""
+        return tabla.get(codigo, codigo), codigo in _AVISOS_ERROR
+
+    @app.post("/solicitudes/{id_solicitud}/traer-cambios")
+    async def traer_cambios(request: Request, id_solicitud: str) -> Response:
+        sesion = autorizar(request)
+        if sesion is None:
+            return destino_login()
+        form = await request.form()
+        if not csrf_ok(sesion, str(form.get("csrf", ""))):
+            return render("sin_permiso.html", request, status_code=403)
+        detalle_sol = repositorio.obtener(id_solicitud)
+        if detalle_sol is None:
+            return render("sin_permiso.html", request, status_code=404)
+        if exportador is None or detalle_sol.doc_ref is None:
+            return _render_detalle(
+                request,
+                sesion,
+                detalle_sol,
+                *_aviso(_AVISOS_REVISION, "exportador_ausente"),
+            )
+        try:
+            texto = exportador.exportar_texto(detalle_sol.doc_ref)
+        except Exception:
+            return _render_detalle(
+                request,
+                sesion,
+                detalle_sol,
+                *_aviso(_AVISOS_REVISION, "exportador_ausente"),
+            )
+        resultado = repositorio.importar_revision(
+            id_solicitud=id_solicitud,
+            texto=texto,
+            ahora=datetime.now(timezone.utc),
+        )
+        # Releer: si se importó, la página muestra la revisión nueva.
+        actualizado = repositorio.obtener(id_solicitud) or detalle_sol
+        return _render_detalle(
+            request, sesion, actualizado, *_aviso(_AVISOS_REVISION, resultado.codigo)
+        )
+
+    @app.post("/solicitudes/{id_solicitud}/decidir")
+    async def decidir(request: Request, id_solicitud: str) -> Response:
+        sesion = autorizar(request)
+        if sesion is None:
+            return destino_login()
+        form = await request.form()
+        if not csrf_ok(sesion, str(form.get("csrf", ""))):
+            return render("sin_permiso.html", request, status_code=403)
+        detalle_sol = repositorio.obtener(id_solicitud)
+        if detalle_sol is None:
+            return render("sin_permiso.html", request, status_code=404)
+        rol = rol_de(sesion)
+        accion = str(form.get("accion", ""))
+        decision = {
+            "aprobar": DECISION_PUBLIQUE,
+            "descartar": DECISION_DESCARTE,
+        }.get(accion)
+        if (
+            decision is None
+            or rol not in ROLES_POR_DECISION[(TIPO_PUBLICACION, decision)]
+        ):
+            return render("sin_permiso.html", request, status_code=403)
+        if exportador is None or detalle_sol.doc_ref is None:
+            return _render_detalle(
+                request,
+                sesion,
+                detalle_sol,
+                *_aviso(_AVISOS_DECISION, "exportador_ausente"),
+            )
+        # La aprobación es sobre el Doc tal como está ahora: se reexporta
+        # y el hash viaja a persistencia, que es quien decide si cambió.
+        try:
+            texto_doc = exportador.exportar_texto(detalle_sol.doc_ref)
+        except Exception:
+            return _render_detalle(
+                request,
+                sesion,
+                detalle_sol,
+                *_aviso(_AVISOS_DECISION, "exportador_ausente"),
+            )
+        estado_final = {
+            DECISION_PUBLIQUE: "APROBADA",
+            DECISION_DESCARTE: "RECHAZADA",
+        }[decision]
+        resultado = repositorio.registrar_decision(
+            id_solicitud=id_solicitud,
+            id_borrador=str(form.get("revision", "")),
+            doc_hash=hashlib.sha256(texto_doc.encode("utf-8")).hexdigest(),
+            texto_doc=texto_doc,
+            decision=estado_final,
+            validador_hash=_hash_solicitante(sesion),
+            rol=rol,
+            origen_identidad=sesion.origen,
+            version_agente=version_agente,
+            ahora=datetime.now(timezone.utc),
+        )
+        aviso, es_error = _aviso(_AVISOS_DECISION, resultado.codigo)
+        actualizado = repositorio.obtener(id_solicitud) or detalle_sol
+        return _render_detalle(
+            request,
+            sesion,
+            actualizado,
+            aviso=aviso,
+            aviso_error=es_error,
+        )
 
     # ---------- pedido guiado ----------
 
