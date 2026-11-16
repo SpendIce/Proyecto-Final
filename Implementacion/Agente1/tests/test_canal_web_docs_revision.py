@@ -27,13 +27,21 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from agente1.canal_form import PadronRoles
+from agente1.audiencias import (
+    Audiencia,
+    CatalogoAudiencias,
+)
+from agente1.canal_form import PadronRoles, publicos_destinatarios
 from agente1.destinos import BORRADOR_MARKER, DestinoBorradoresError
 from agente1.google_workspace import (
     GoogleDocsDestinoPorMarca,
     RespuestaHttp,
 )
-from agente1.web.app import ConfiguracionWeb, crear_app
+from agente1.web.app import (
+    ConfiguracionInvalida,
+    ConfiguracionWeb,
+    crear_app,
+)
 from agente1.web.docs_canal import DocsCanalMemoria
 from agente1.web.identidad import IdentidadVerificada, VerificadorFake
 from agente1.web.persistencia import (
@@ -746,6 +754,7 @@ class RepoRevisiones:
         rol: str,
         origen_identidad: str,
         version_agente: str,
+        prellenado_publicos: list[str] | None = None,
         ahora: datetime | None = None,
     ) -> ResultadoDecisionWeb:
         s = self.solicitudes.get(id_solicitud)
@@ -773,6 +782,7 @@ class RepoRevisiones:
                 "rol": rol,
                 "origen_identidad": origen_identidad,
                 "version_agente": version_agente,
+                "prellenado_publicos": prellenado_publicos,
             }
         )
         s["estado_web"] = (
@@ -794,6 +804,7 @@ class MundoDocs:
 
 def _mundo_docs(
     modo_demo: bool = False,
+    catalogo: CatalogoAudiencias | None = None,
 ) -> MundoDocs:
     padron = PadronRoles(
         {
@@ -836,6 +847,7 @@ def _mundo_docs(
         exportador=docs,
         version_agente="0.0.0-test",
         hoy=lambda: date(2026, 11, 16),
+        catalogo_audiencias=catalogo,
     )
     base_url = "https://testserver" if modo_demo else "http://testserver"
     return MundoDocs(TestClient(app, base_url=base_url), repo, sesiones, docs)
@@ -869,17 +881,23 @@ def _csrf(mundo: MundoDocs) -> str:
 
 
 def _solicitud_lista(
-    mundo: MundoDocs, texto: str = "Borrador inicial.\n"
+    mundo: MundoDocs,
+    texto: str = "Borrador inicial.\n",
+    publicos: tuple[str, ...] = (),
+    titulo: str = "Pieza de prueba",
 ) -> str:
     """Crea la solicitud y la deja en `LISTA` con Doc en el fake."""
     creada = mundo.repo.crear_solicitud(
-        idempotency_key="web:k1",
+        idempotency_key=f"web:k{uuid.uuid4().hex[:8]}",
         solicitante_hash="ab" * 32,
         rol="coordinador_seu",
         tipo_pieza="cronica_de_evento",
         actividad_ref=None,
         descripcion="desc",
-        campos={"pieza": {}, "pedido": {}},
+        campos={
+            "pieza": {"titulo": titulo},
+            "pedido": {"publicos": list(publicos)},
+        },
         canal="web",
         ahora=AHORA,
     )
@@ -1085,3 +1103,369 @@ def test_bandeja_muestra_estados_de_revision() -> None:
     mundo.repo.solicitudes[sid]["estado_web"] = "APROBADA"
     respuesta = mundo.client.get("/bandeja")
     assert "Aprobada" in respuesta.text
+
+
+# ===================== correo prellenado (ADR 0021) =====================
+
+
+def _catalogo_sintetico(
+    usos: dict[str, tuple[str, ...]] | None = None,
+    aprobadas: tuple[str, ...] = (),
+    faltantes: tuple[str, ...] = (),
+) -> CatalogoAudiencias:
+    """Catálogo externo sintético: los 18 públicos del contrato v2.
+
+    Las direcciones son `@example.invalid`, como en el resto de la suite:
+    ninguna dirección institucional aparece en el repo ni en la evidencia.
+    """
+    usos = usos or {}
+    audiencias = tuple(
+        Audiencia(
+            id=pid,
+            nombre=pid,
+            direccion=f"{pid.replace('_', '-')}@example.invalid",
+            categoria="institucional",
+            alcance_esperado="interno",
+            usos_candidatos=tuple(usos.get(pid, ())),
+            estado_aprobacion=(
+                "APROBADA" if pid in aprobadas else "PENDIENTE_SEU"
+            ),
+            observacion=None,
+        )
+        for pid in publicos_destinatarios()
+        if pid not in faltantes
+    )
+    return CatalogoAudiencias(
+        version="audiencias_institucionales_v1",
+        fuente={
+            "total_grupos": len(audiencias),
+            "dominio": "example.invalid",
+        },
+        estado_general="sintetico",
+        audiencias=audiencias,
+    )
+
+
+def _aprobar(mundo: MundoDocs, sid: str) -> None:
+    vigente = mundo.repo.obtener(sid).revisiones[-1]
+    respuesta = mundo.client.post(
+        f"/solicitudes/{sid}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "revision": vigente.id_borrador,
+            "accion": "aprobar",
+        },
+    )
+    assert "aprobada" in respuesta.text.lower()
+
+
+def _destino_compose(location: str) -> dict[str, list[str]]:
+    """La query de la URL de composición embebida en `continue`."""
+    from urllib.parse import parse_qs, urlparse
+
+    continue_ = parse_qs(urlparse(location).query)["continue"][0]
+    return parse_qs(continue_.split("?", 1)[1])
+
+
+def test_correo_redirige_a_accountchooser_con_bcc_su_body() -> None:
+    mundo = _mundo_docs(catalogo=_catalogo_sintetico())
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(
+        mundo,
+        texto="Cuerpo aprobado.\n",
+        publicos=("alumnos_ingenieria", "comunidad"),
+        titulo="Taller de vinculación",
+    )
+    _aprobar(mundo, sid)
+
+    respuesta = mundo.client.get(
+        f"/solicitudes/{sid}/correo", follow_redirects=False
+    )
+
+    assert respuesta.status_code == 303
+    location = respuesta.headers["location"]
+    assert location.startswith(
+        "https://accounts.google.com/AccountChooser?continue="
+    )
+    parametros = _destino_compose(location)
+    assert parametros["bcc"] == [
+        "alumnos-ingenieria@example.invalid,comunidad@example.invalid"
+    ]
+    assert parametros["su"] == ["Taller de vinculación"]
+    assert parametros["body"] == ["Cuerpo aprobado.\n"]
+    # La URL nunca lleva `to`: el reply-all institucional no sale de acá.
+    assert "to" not in parametros
+
+
+def test_correo_con_cuenta_sesion_lleva_authuser() -> None:
+    mundo = _mundo_docs(catalogo=_catalogo_sintetico())
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(
+        mundo, publicos=("alumnos_ingenieria",)
+    )
+    _aprobar(mundo, sid)
+
+    respuesta = mundo.client.get(
+        f"/solicitudes/{sid}/correo?cuenta=sesion",
+        follow_redirects=False,
+    )
+
+    assert respuesta.status_code == 303
+    location = respuesta.headers["location"]
+    assert location.startswith("https://mail.google.com/mail/?view=cm")
+    assert f"authuser={CORREO_APROBADOR.replace('@', '%40')}" in location
+    assert "to=" not in location
+
+
+def test_correo_rol_no_aprobador_no_ve_ni_obtiene() -> None:
+    mundo = _mundo_docs(catalogo=_catalogo_sintetico())
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo, publicos=("alumnos_ingenieria",))
+    _aprobar(mundo, sid)
+
+    # El lector del padrón no puede ni ver el bloque ni usar la ruta.
+    mundo.client.post("/salir", data={"csrf": _csrf(mundo)})
+    _ingresar(mundo.client, "tok-lector")
+    detalle = mundo.client.get(f"/solicitudes/{sid}")
+    assert "Preparar correo" not in detalle.text
+    respuesta = mundo.client.get(
+        f"/solicitudes/{sid}/correo", follow_redirects=False
+    )
+    assert respuesta.status_code == 403
+
+
+def test_correo_sin_aprobar_muestra_motivo_sin_redirigir() -> None:
+    mundo = _mundo_docs(catalogo=_catalogo_sintetico())
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo, publicos=("alumnos_ingenieria",))
+
+    respuesta = mundo.client.get(
+        f"/solicitudes/{sid}/correo", follow_redirects=False
+    )
+
+    assert respuesta.status_code == 200
+    assert "revisión" in respuesta.text
+    assert "mail.google.com" not in respuesta.text
+
+
+def test_correo_descartada_muestra_el_motivo() -> None:
+    mundo = _mundo_docs(catalogo=_catalogo_sintetico())
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo, publicos=("alumnos_ingenieria",))
+    vigente = mundo.repo.obtener(sid).revisiones[-1]
+    mundo.client.post(
+        f"/solicitudes/{sid}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "revision": vigente.id_borrador,
+            "accion": "descartar",
+        },
+    )
+
+    respuesta = mundo.client.get(
+        f"/solicitudes/{sid}/correo", follow_redirects=False
+    )
+
+    assert respuesta.status_code == 200
+    assert "descartada" in respuesta.text
+
+
+def test_detalle_aprobada_muestra_preparar_correo_sin_direcciones() -> None:
+    mundo = _mundo_docs(
+        catalogo=_catalogo_sintetico(aprobadas=("comunidad",))
+    )
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(
+        mundo,
+        publicos=("alumnos_ingenieria", "comunidad"),
+        titulo="Taller de vinculación",
+    )
+    _aprobar(mundo, sid)
+
+    detalle = mundo.client.get(f"/solicitudes/{sid}")
+
+    assert "Preparar correo" in detalle.text
+    assert "Abrir con la cuenta" in detalle.text
+    assert "Elegir otra cuenta" in detalle.text
+    assert "Taller de vinculación" in detalle.text
+    # Las audiencias pendientes de la SEU se marcan; la aprobada, no.
+    assert "pendiente de aprobación SEU" in detalle.text
+    # Las direcciones no salen en el HTML: sólo viajan dentro de la URL
+    # de Gmail del aprobador (la propia sesión sí nombra su correo).
+    assert "alumnos-ingenieria@example.invalid" not in detalle.text
+    assert "comunidad@example.invalid" not in detalle.text
+
+
+def test_correo_cuerpo_largo_no_viaja_en_la_url() -> None:
+    mundo = _mundo_docs(catalogo=_catalogo_sintetico())
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(
+        mundo,
+        texto=("Cuerpo largo. " * 800),
+        publicos=("alumnos_ingenieria",),
+    )
+    _aprobar(mundo, sid)
+
+    detalle = mundo.client.get(f"/solicitudes/{sid}")
+    assert "Copiar cuerpo" in detalle.text
+    assert "pegá el cuerpo en el correo" in detalle.text
+    respuesta = mundo.client.get(
+        f"/solicitudes/{sid}/correo", follow_redirects=False
+    )
+    parametros = _destino_compose(respuesta.headers["location"])
+    assert "body" not in parametros
+    assert parametros["bcc"] == ["alumnos-ingenieria@example.invalid"]
+
+
+def test_correo_sin_publicos_muestra_el_motivo() -> None:
+    mundo = _mundo_docs(catalogo=_catalogo_sintetico())
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo, publicos=())
+    _aprobar(mundo, sid)
+
+    respuesta = mundo.client.get(
+        f"/solicitudes/{sid}/correo", follow_redirects=False
+    )
+
+    assert respuesta.status_code == 200
+    assert "públicos" in respuesta.text
+
+
+def test_correo_sin_catalogo_muestra_el_motivo() -> None:
+    mundo = _mundo_docs()
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo, publicos=("alumnos_ingenieria",))
+    _aprobar(mundo, sid)
+
+    respuesta = mundo.client.get(
+        f"/solicitudes/{sid}/correo", follow_redirects=False
+    )
+
+    assert respuesta.status_code == 200
+    assert "catálogo de audiencias" in respuesta.text
+
+
+def test_decision_registra_los_publicos_del_prellenado() -> None:
+    mundo = _mundo_docs(catalogo=_catalogo_sintetico())
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(
+        mundo, publicos=("alumnos_ingenieria", "comunidad")
+    )
+    _aprobar(mundo, sid)
+
+    decision = mundo.repo.decisiones[0]
+    assert decision["prellenado_publicos"] == [
+        "alumnos_ingenieria",
+        "comunidad",
+    ]
+
+
+def test_descarte_no_registra_oferta_de_prellenado() -> None:
+    mundo = _mundo_docs(catalogo=_catalogo_sintetico())
+    _ingresar(mundo.client, "tok-apro")
+    sid = _solicitud_lista(mundo, publicos=("alumnos_ingenieria",))
+    vigente = mundo.repo.obtener(sid).revisiones[-1]
+    mundo.client.post(
+        f"/solicitudes/{sid}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "revision": vigente.id_borrador,
+            "accion": "descartar",
+        },
+    )
+
+    assert mundo.repo.decisiones[0]["prellenado_publicos"] is None
+
+
+def test_formulario_preselecciona_los_usos_del_tipo() -> None:
+    mundo = _mundo_docs(
+        catalogo=_catalogo_sintetico(
+            usos={
+                "comunidad": ("difusion_de_actividad",),
+                "fieinforma": (
+                    "difusion_de_actividad",
+                    "cronica_de_evento",
+                ),
+            }
+        )
+    )
+    _ingresar(mundo.client, "tok-seu")
+
+    respuesta = mundo.client.get("/nuevo-pedido")
+
+    assert 'id="usos-por-tipo"' in respuesta.text
+    blob = respuesta.text.split('id="usos-por-tipo">', 1)[1].split(
+        "</script>", 1
+    )[0]
+    usos = json.loads(blob)
+    # El orden sigue al contrato de públicos (comunidad va antes que
+    # fieinforma en `publicos_destinatarios_v2`).
+    assert usos["difusion_de_actividad"] == ["comunidad", "fieinforma"]
+    assert usos["cronica_de_evento"] == ["fieinforma"]
+
+
+def test_arranque_falla_con_publico_sin_audiencia_mapeada() -> None:
+    catalogo = _catalogo_sintetico(faltantes=("comunidad",))
+    with pytest.raises(ConfiguracionInvalida) as error:
+        _mundo_docs(catalogo=catalogo)
+    # El mensaje nombra el id del contrato, nunca una dirección.
+    assert "comunidad" in str(error.value)
+    assert "example.invalid" not in str(error.value)
+
+
+@necesita_pg
+def test_decision_guarda_prellenado_publicos_en_base(base: str) -> None:
+    repo = RepositorioWeb(_fabrica(base))
+    creada = _crear(repo, "web:c1")
+    id_borrador = _trabajo_completo(repo, creada.id_solicitud)
+
+    resultado = repo.registrar_decision(
+        id_solicitud=creada.id_solicitud,
+        id_borrador=id_borrador,
+        decision="APROBADA",
+        doc_hash=_sha("Texto generado.\n"),
+        texto_doc="Texto generado.\n",
+        validador_hash="cd" * 32,
+        rol="APROBADOR_CONTENIDO",
+        origen_identidad="google",
+        version_agente="0.5.10",
+        prellenado_publicos=["alumnos_ingenieria", "comunidad"],
+        ahora=AHORA,
+    )
+
+    assert resultado.codigo == "aprobada"
+    with _fabrica(base)() as conn:
+        fila = conn.execute(
+            "SELECT prellenado_publicos FROM validaciones"
+            " WHERE id_borrador = %s",
+            (id_borrador,),
+        ).fetchone()
+    assert fila[0] == ["alumnos_ingenieria", "comunidad"]
+
+
+@necesita_pg
+def test_decision_sin_prellenado_guarda_null_en_base(base: str) -> None:
+    repo = RepositorioWeb(_fabrica(base))
+    creada = _crear(repo, "web:c2")
+    id_borrador = _trabajo_completo(repo, creada.id_solicitud)
+
+    repo.registrar_decision(
+        id_solicitud=creada.id_solicitud,
+        id_borrador=id_borrador,
+        decision="RECHAZADA",
+        doc_hash=_sha("Texto generado.\n"),
+        texto_doc="Texto generado.\n",
+        validador_hash="cd" * 32,
+        rol="APROBADOR_CONTENIDO",
+        origen_identidad="google",
+        version_agente="0.5.10",
+        ahora=AHORA,
+    )
+
+    with _fabrica(base)() as conn:
+        fila = conn.execute(
+            "SELECT prellenado_publicos FROM validaciones"
+            " WHERE id_borrador = %s",
+            (id_borrador,),
+        ).fetchone()
+    assert fila[0] is None

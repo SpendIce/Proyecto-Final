@@ -43,10 +43,14 @@ VERSION_CATALOGO = "audiencias_institucionales_v1"
 # `to`: un reply-all a una lista institucional no debe salir de este flujo.
 BASE_COMPOSE = "https://mail.google.com/mail/?view=cm&fs=1&tf=1"
 
-# Tope practico de la URL. Por encima de este largo el cuerpo se copia al
-# portapapeles en vez de viajar en la URL; el umbral lo decide este modulo, no
-# el navegador.
-MAX_URL_COMPOSE = 1800
+# Tope practico de la URL de composicion. No hay tope documentado por
+# Google para `view=cm`; los navegadores toleran URLs mucho mas largas, pero
+# el servidor de Gmail puede rechazar GET excesivos y el `continue` de
+# AccountChooser casi triplica el largo al recodificar. 7000 caracteres es
+# un valor empirico con margen para cuerpos de gacetilla completos en la
+# URL: por encima, el cuerpo se copia al portapapeles en vez de viajar en
+# la URL; el umbral lo decide este modulo, no el navegador.
+MAX_URL_COMPOSE = 7000
 
 ESTADO_PENDIENTE_SEU = "PENDIENTE_SEU"
 ESTADO_APROBADA = "APROBADA"
@@ -240,6 +244,40 @@ def url_compose(
     if cuerpo is not None:
         parametros.append(("body", cuerpo))
     return f"{BASE_COMPOSE}&{urlencode(parametros, quote_via=quote)}"
+
+
+def url_accountchooser(url: str) -> str:
+    """Envuelve la URL de composicion en el selector de cuentas de Google.
+
+    `AccountChooser?continue=<url>` muestra las cuentas con sesion abierta
+    en el navegador y continua a la URL declarada con la que la persona
+    elija: es como el correo sale «en la cuenta que ella prefiera», sin
+    que el sistema decida por ella. El formato es el que usan los
+    servicios de Google entre si; no hay documentacion oficial del
+    parametro, asi que la interfaz ofrece ademas la alternativa
+    `url_con_cuenta`.
+    """
+
+    return (
+        "https://accounts.google.com/AccountChooser?continue="
+        + quote(url, safe="")
+        + "&service=mail"
+    )
+
+
+def url_con_cuenta(url: str, correo: object) -> str:
+    """La URL de composicion con `authuser=<correo>` preseleccionando la cuenta.
+
+    `authuser` es el parametro que Gmail usa para elegir entre las cuentas
+    firmadas del navegador: si el correo coincide con una abierta, el
+    compose arranca en ella; si no, Google pide iniciar sesion. El correo
+    debe ser una direccion valida — la sesion de la app lo provee, nunca
+    texto libre del pedido.
+    """
+
+    if not isinstance(correo, str) or not email_valido(correo.strip()):
+        raise ErrorAudiencias("audiencias_cuenta_invalida")
+    return f"{url}&authuser={quote(correo.strip())}"
 
 
 def construir_prellenado(

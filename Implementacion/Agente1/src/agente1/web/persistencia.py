@@ -667,6 +667,7 @@ class RepositorioWeb:
         rol: str,
         origen_identidad: str,
         version_agente: str,
+        prellenado_publicos: list[str] | None = None,
         ahora: datetime | None = None,
     ) -> ResultadoDecisionWeb:
         """Registra la decisión sobre la revisión vigente, en una tx.
@@ -681,6 +682,11 @@ class RepositorioWeb:
         - `revision_obsoleta`: el borrador decidido ya no es el vigente.
         - `duplicada`: la revisión ya tiene una decisión registrada.
         - `cerrada`/`inexistente`: la solicitud ya cerró o no existe.
+
+        `prellenado_publicos` (ADR 0021) son los ids de públicos a los que
+        la aprobación ofreció el correo prellenado de Gmail — ids del
+        catálogo, nunca direcciones. `None` registra NULL: descarte,
+        pedido sin públicos o despliegue sin catálogo.
 
         Todo ocurre en la misma transacción: una caída a la mitad no deja
         ni decisión parcial ni revisión colgada (ADR 0016, prueba 2).
@@ -750,14 +756,18 @@ class RepositorioWeb:
                         " checklist_version, registrada_en,"
                         " borrador_creada_en, doc_hash,"
                         " senal, proporcion_cambiado, cantidad_ajustes,"
-                        " rol, origen_identidad, version_agente) VALUES"
+                        " rol, origen_identidad, version_agente,"
+                        " prellenado_publicos) VALUES"
                         " (%s,%s,%s,%s,'decision_web_v1',%s,%s,%s,%s,%s,%s,"
-                        " %s,%s,%s)",
+                        " %s,%s,%s,%s::jsonb)",
                         (
                             f"val-{uuid.uuid4().hex[:16]}", vigente,
                             decision, validador_hash, ahora, borrador[1],
                             doc_hash, senal, proporcion, ajustes,
                             rol, origen_identidad, version_agente,
+                            json.dumps(prellenado_publicos)
+                            if prellenado_publicos
+                            else None,
                         ),
                     )
                     conn.execute(

@@ -1,6 +1,6 @@
 """Regresion del catalogo externo de audiencias y del prellenado de correo.
 
-Ninguna direccion institucional se versiona: las fixtures usan `@example.com`.
+Ninguna direccion institucional se versiona: las fixtures usan `@example.invalid`.
 El catalogo real vive fuera del repo, en
 `~/.config/agente1/audiencias-institucionales.json`, con `chmod 600`.
 """
@@ -32,7 +32,7 @@ MODULO = SRC / "agente1" / "audiencias.py"
 
 # Los 18 grupos del listado, sin sus direcciones reales. El id, el nombre, la
 # categoria y el alcance son los del catalogo externo; la direccion se reemplaza
-# por `@example.com` en la fixture.
+# por `@example.invalid` en la fixture.
 GRUPOS = (
     ("alumnos_geomatica", "Alumnos Geomatica", "alumnos_geomatica", "alumnos", "segmentado"),
     ("alumnos_ingenieria", "Alumnos Ingenieria", "alumnosingenieria", "alumnos", "segmentado"),
@@ -77,7 +77,7 @@ def _datos_catalogo() -> dict:
         audiencia = {
             "id": id_grupo,
             "nombre": nombre,
-            "direccion": f"{local}@example.com",
+            "direccion": f"{local}@example.invalid",
             "categoria": categoria,
             "alcance_esperado": alcance,
             "usos_candidatos": list(USOS_POR_GRUPO.get(id_grupo, [])),
@@ -96,7 +96,7 @@ def _datos_catalogo() -> dict:
             "extraido_con": "pdftotext -raw",
             "fecha_extraccion": "2026-11-16",
             "total_grupos": len(GRUPOS),
-            "dominio": "example.com",
+            "dominio": "example.invalid",
         },
         "estado_general": "PENDIENTE_APROBACION_SEU",
         "audiencias": audiencias,
@@ -205,17 +205,17 @@ def test_duplicados_exactos_colapsan(tmp_path):
     )
 
     assert len(prellenado.destinatarios) == 1
-    assert prellenado.destinatarios == ("fieinforma@example.com",)
+    assert prellenado.destinatarios == ("fieinforma@example.invalid",)
 
     url = url_compose(
-        ["Alumnos_Geomatica@example.com", "alumnos_geomatica@example.com"],
+        ["Alumnos_Geomatica@example.invalid", "alumnos_geomatica@example.invalid"],
         "Asunto",
     )
-    assert parse_qs(urlparse(url).query)["bcc"] == ["alumnos_geomatica@example.com"]
+    assert parse_qs(urlparse(url).query)["bcc"] == ["alumnos_geomatica@example.invalid"]
 
 
 def test_url_usa_quote_y_no_quote_plus():
-    url = url_compose(["alumnos_geomatica@example.com"], "Hola mundo")
+    url = url_compose(["alumnos_geomatica@example.invalid"], "Hola mundo")
 
     assert "su=Hola%20mundo" in url
     assert "su=Hola+mundo" not in url
@@ -229,7 +229,7 @@ def test_estado_invalido_falla_cerrado_sin_direcciones(tmp_path):
         cargar_audiencias(_escribir_catalogo(tmp_path, datos))
 
     assert error.value.codigo == "audiencias_catalogo_invalido"
-    assert "@example.com" not in str(error.value)
+    assert "@example.invalid" not in str(error.value)
 
 
 @pytest.mark.parametrize(
@@ -261,7 +261,7 @@ def test_campo_obligatorio_ausente_falla_cerrado(tmp_path, campo):
         lambda datos: datos["audiencias"][0].update({"id": "alumnos_ingenieria"}),
         lambda datos: datos["audiencias"][0].update({"direccion": "sin-arroba"}),
         lambda datos: datos["audiencias"][0].update(
-            {"direccion": "alumnosingenieria@example.com"}
+            {"direccion": "alumnosingenieria@example.invalid"}
         ),
         lambda datos: datos["audiencias"][0].update({"categoria": "otra"}),
         lambda datos: datos["audiencias"][0].update({"categoria": []}),
@@ -281,7 +281,7 @@ def test_catalogo_invalido_falla_cerrado_sin_filtrar_direcciones(tmp_path, mutac
         cargar_audiencias(_escribir_catalogo(tmp_path, datos))
 
     assert error.value.codigo.startswith("audiencias_")
-    assert "@example.com" not in str(error.value)
+    assert "@example.invalid" not in str(error.value)
 
 
 def test_archivo_inexistente_y_json_roto_fallan_cerrado(tmp_path):
@@ -344,8 +344,8 @@ def test_prellenado_no_filtra_por_aprobacion_y_devuelve_pendientes(tmp_path):
     )
 
     assert prellenado.destinatarios == (
-        "fieinforma@example.com",
-        "alumnos@example.com",
+        "fieinforma@example.invalid",
+        "alumnos@example.invalid",
     )
     assert prellenado.audiencias_pendientes == ("secretaria_academica",)
 

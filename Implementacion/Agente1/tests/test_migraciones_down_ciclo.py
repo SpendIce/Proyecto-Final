@@ -128,6 +128,18 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "datos reales exige restaurar el respaldo."
         ),
     ),
+    "0008_correo_prellenado_aprobacion": Reversion(
+        reversible=True,
+        pierde_datos=True,
+        requiere_restaurar_respaldo=True,
+        nota=(
+            "El `down` elimina `prellenado_publicos` de `validaciones`: "
+            "descarta los ids de públicos a los que cada aprobación "
+            "ofreció el correo prellenado, evidencia registrada de la "
+            "decisión (ADR 0021). Con datos reales exige restaurar el "
+            "respaldo."
+        ),
+    ),
 }
 
 
