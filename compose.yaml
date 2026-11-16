@@ -40,7 +40,7 @@ x-agente1: &agente1
     - /tmp
     - /srv/p100/Implementacion/Agente1/tmp:mode=1777
     - /srv/p100/Implementacion/Agente1/salida:mode=1777
-  image: ghcr.io/spendice/agente1@sha256:bb6b10ad5af3f60af4a7fe50bc063af5ff8665753ec5e447d1c7cc58f8442fcb
+  image: ghcr.io/spendice/agente1@sha256:71ce5ce1c175745ef87552225c618024165baeabfe8345761d26b8da16f06d55
   user: "${AGENTE1_UID:-1003}:${AGENTE1_GID:-1003}"
   environment:
     AGENTE1_ENV_FILE: ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/workspace-d2.env
