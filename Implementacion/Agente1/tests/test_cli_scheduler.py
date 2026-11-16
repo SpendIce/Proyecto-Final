@@ -10,10 +10,13 @@ import csv
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import pytest
 
+import agente1.cli_scheduler as cli_scheduler
+from agente1.cli_scheduler import _pasos_diarios
 from agente1.cli_scheduler import main as main_scheduler
 from agente1.insumos_corrida import COLUMNAS_INSUMOS_AGENTES_V1
 from agente1.scheduler import LOCK_NOMBRE, LOG_NOMBRE
@@ -406,3 +409,131 @@ def test_cli_rutea_el_subcomando_scheduler(tmp_path: Path, capsys) -> None:
     salida = json.loads(capsys.readouterr().out)
     assert codigo == 0
     assert salida["resultado"] == "omitida_ventana"
+
+
+REPO_SCHEDULER = Path(__file__).resolve().parents[3]
+
+
+class _ResultadoSubproceso:
+    def __init__(self, returncode: int) -> None:
+        self.returncode = returncode
+
+
+def _pasos_web(tmp_path: Path, env: dict[str, str]):
+    config = SimpleNamespace(repo=REPO_SCHEDULER, registro_confirmaciones=None)
+    return _pasos_diarios(config, tmp_path / "salida", env)
+
+
+def _fake_run(llamadas: list[str], codigos: dict[str, int]):
+    def correr(comando, **_kwargs):
+        script = Path(comando[1]).name
+        llamadas.append(script)
+        return _ResultadoSubproceso(codigos.get(script, 0))
+
+    return correr
+
+
+def test_purga_web_configurada_con_solo_el_dsn_de_la_app(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Con un DSN alcanza para invocar; el script falla cerrado y frena el respaldo."""
+    llamadas: list[str] = []
+    monkeypatch.setattr(
+        cli_scheduler.subprocess,
+        "run",
+        _fake_run(
+            llamadas,
+            {"purgar_canal_web.py": 2, "respaldar_estado.py": 0},
+        ),
+    )
+    pasos, declarados = _pasos_web(
+        tmp_path,
+        {
+            "AGENTE1_POSTGRES_DSN": "postgresql://app",
+            "AGENTE1_RESPALDO_CARPETA_FAKE": str(tmp_path / "carpeta"),
+        },
+    )
+    assert [paso.nombre for paso in pasos] == ["purga_canal_web", "respaldo"]
+    assert declarados == ()
+    with pytest.raises(RuntimeError, match="purga_canal_web_error"):
+        pasos[0].correr()
+    with pytest.raises(RuntimeError, match="respaldo_tras_purga_fallida"):
+        pasos[1].correr()
+    assert llamadas == ["purgar_canal_web.py"]
+
+
+def test_purga_web_configurada_con_solo_el_dsn_de_mantenimiento(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """El DSN de mantenimiento solo también alcanza; el script falla cerrado."""
+    llamadas: list[str] = []
+    monkeypatch.setattr(
+        cli_scheduler.subprocess,
+        "run",
+        _fake_run(
+            llamadas,
+            {"purgar_canal_web.py": 2, "respaldar_estado.py": 0},
+        ),
+    )
+    pasos, declarados = _pasos_web(
+        tmp_path,
+        {
+            "AGENTE1_POSTGRES_DSN_MANTENIMIENTO": "postgresql://mant",
+            "AGENTE1_RESPALDO_CARPETA_FAKE": str(tmp_path / "carpeta"),
+        },
+    )
+    assert [paso.nombre for paso in pasos] == ["purga_canal_web", "respaldo"]
+    assert declarados == ()
+    with pytest.raises(RuntimeError, match="purga_canal_web_error"):
+        pasos[0].correr()
+    with pytest.raises(RuntimeError, match="respaldo_tras_purga_fallida"):
+        pasos[1].correr()
+    assert llamadas == ["purgar_canal_web.py"]
+
+
+def test_sin_ningun_dsn_la_purga_web_queda_pendiente(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Sin DSN no se invoca la purga y el respaldo no queda bloqueado."""
+    llamadas: list[str] = []
+    monkeypatch.setattr(
+        cli_scheduler.subprocess,
+        "run",
+        _fake_run(llamadas, {"respaldar_estado.py": 0}),
+    )
+    pasos, declarados = _pasos_web(
+        tmp_path,
+        {"AGENTE1_RESPALDO_CARPETA_FAKE": str(tmp_path / "carpeta")},
+    )
+    assert [paso.nombre for paso in pasos] == ["respaldo"]
+    assert declarados == ("purga_canal_web",)
+    pasos[0].correr()
+    assert llamadas == ["respaldar_estado.py"]
+
+
+def test_con_los_dos_dsn_purga_y_respaldo_corren_en_orden(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Con ambos DSN, la purga y el respaldo se ejecutan en ese orden."""
+    llamadas: list[str] = []
+    monkeypatch.setattr(
+        cli_scheduler.subprocess,
+        "run",
+        _fake_run(
+            llamadas,
+            {"purgar_canal_web.py": 0, "respaldar_estado.py": 0},
+        ),
+    )
+    pasos, declarados = _pasos_web(
+        tmp_path,
+        {
+            "AGENTE1_POSTGRES_DSN": "postgresql://app",
+            "AGENTE1_POSTGRES_DSN_MANTENIMIENTO": "postgresql://mant",
+            "AGENTE1_RESPALDO_CARPETA_FAKE": str(tmp_path / "carpeta"),
+        },
+    )
+    assert [paso.nombre for paso in pasos] == ["purga_canal_web", "respaldo"]
+    assert declarados == ()
+    for paso in pasos:
+        paso.correr()
+    assert llamadas == ["purgar_canal_web.py", "respaldar_estado.py"]
