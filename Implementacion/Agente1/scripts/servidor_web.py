@@ -20,6 +20,16 @@ entorno; el repositorio no guarda client IDs, dominios ni credenciales:
   evidencia: el arranque se niega si corre con cookie `Secure`, con host
   que no sea loopback o dentro del contenedor (`AGENTE1_CONTENEDOR=si`,
   que declara el compose).
+- `AGENTE1_WEB_MODO_DEMO=si` (ADR 0019): demostración sin verificación de
+  Google — `/ingresar` ofrece elegir una identidad de una lista cerrada
+  del padrón. Exige `AGENTE1_WEB_DEMO_HASTA=AAAA-MM-DD` (último día
+  válido, a lo sumo 14 días adelante) y `AGENTE1_WEB_DEMO_CORREOS`
+  (correos separados por coma, todos con rol en el padrón). No convive
+  con el modo prueba ni con un client ID de Google, y exige cookie
+  `Secure`. A diferencia del modo prueba sí corre dentro del contenedor
+  y en `0.0.0.0`: la exposición la limita el compose (el puerto se
+  publica sólo en `127.0.0.1` del host) y el acceso entra por
+  `tailscale serve` dentro del tailnet o por túnel SSH.
 - `AGENTE1_WEB_COOKIE_SECURE=no`: permite probar por HTTP local. Default
   `si`, como exige la cookie `Secure` del diseño.
 - `AGENTE1_WEB_HOST` / `AGENTE1_WEB_PORT`: escucha (default 127.0.0.1:8080).
@@ -38,6 +48,7 @@ import functools
 import os
 import sys
 from collections.abc import Mapping
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +97,41 @@ def main(
     from agente1.web.persistencia import RepositorioWeb, conectar
 
     modo_prueba = entorno.get("AGENTE1_WEB_MODO_PRUEBA", "").lower() == "si"
-    if modo_prueba:
+    modo_demo = entorno.get("AGENTE1_WEB_MODO_DEMO", "").lower() == "si"
+    demo_hasta = None
+    demo_correos: tuple[str, ...] = ()
+    if modo_demo:
+        # La fecha se parsea acá para que una cadena mal armada cierre el
+        # arranque con su propio código antes de armar la config.
+        cruda = entorno.get("AGENTE1_WEB_DEMO_HASTA", "")
+        try:
+            demo_hasta = (
+                datetime.strptime(cruda.strip(), "%Y-%m-%d").date()
+                if cruda.strip()
+                else None
+            )
+        except ValueError:
+            return _invalida("web_demo_hasta_invalid")
+        demo_correos = tuple(
+            correo.strip()
+            for correo in entorno.get(
+                "AGENTE1_WEB_DEMO_CORREOS", ""
+            ).split(",")
+            if correo.strip()
+        )
+    if modo_demo or modo_prueba:
+        # Ninguno de los dos modos verifica con Google: el fake cubre el
+        # puerto `VerificadorIdToken`, aunque el modo demo resuelve el
+        # ingreso por su propia rama y nunca llega a `verificar`.
+        from agente1.web.identidad import VerificadorFake
+
+        verificador = VerificadorFake({})
+    if modo_demo:
+        # El client ID viaja a la config tal como lo declara el entorno:
+        # si hay uno, `validar_configuracion` cierra el arranque — el
+        # modo demo no convive con la verificación de Google (ADR 0019).
+        client_id = entorno.get("AGENTE1_WEB_GOOGLE_CLIENT_ID") or ""
+    elif modo_prueba:
         from agente1.web.identidad import (
             IdentidadVerificada,
             VerificadorFake,
@@ -135,6 +180,9 @@ def main(
         google_client_id=client_id,
         dominio_hd=entorno.get("AGENTE1_WEB_DOMINIO") or None,
         modo_prueba=modo_prueba,
+        modo_demo=modo_demo,
+        demo_hasta=demo_hasta,
+        demo_correos=demo_correos,
         cookie_secure=entorno.get("AGENTE1_WEB_COOKIE_SECURE", "si") != "no",
     )
     repositorio = RepositorioWeb(functools.partial(conectar, dsn))

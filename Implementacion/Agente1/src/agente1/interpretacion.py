@@ -1209,11 +1209,16 @@ class IdentidadSolicitante:
     Ver ADR 0002: el núcleo exige este dato y decide con él, pero no lo
     verifica. `identificador` es lo que el canal usó para reconocer a la
     persona (una cuenta, una casilla); nunca se persiste tal cual, sólo su
-    hash.
+    hash. `origen` declara cómo el canal obtuvo la identidad (`google` es
+    el ID token verificado, `demo` la elección de la demostración, ADR
+    0019): la auditoría la asienta para que lo creado en la demo nunca
+    figure como identidad verificada. `None` significa que el canal no la
+    declara.
     """
 
     identificador: str
     rol: str
+    origen: str | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -1225,6 +1230,13 @@ class IdentidadSolicitante:
             or "\n" in self.identificador
             or "\r" in self.rol
             or "\n" in self.rol
+        ):
+            raise ValueError("identidad de solicitante inválida")
+        if self.origen is not None and (
+            not isinstance(self.origen, str)
+            or not self.origen.strip()
+            or "\r" in self.origen
+            or "\n" in self.origen
         ):
             raise ValueError("identidad de solicitante inválida")
 
@@ -2110,6 +2122,12 @@ def _finalizar(
             _hash(solicitante.identificador) if solicitante is not None else None
         ),
         "identidad_verificada": False,
+        # ADR 0019: cómo el canal obtuvo la identidad (`google`/`demo`),
+        # o `null` si el canal no la declara. Nunca eleva `demo` a
+        # verificado.
+        "origen_identidad": (
+            solicitante.origen if solicitante is not None else None
+        ),
         "estado": estado,
         "resultado": resultado,
         "error": error,

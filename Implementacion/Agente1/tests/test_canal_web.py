@@ -15,7 +15,7 @@ import base64
 import json
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import pytest
@@ -67,6 +67,7 @@ class RepositorioMemoria:
         actividad_ref: str | None,
         descripcion: str,
         campos: dict,
+        canal: str = "web",
         ahora: datetime | None = None,
     ) -> SolicitudCreada:
         ahora = ahora or _ahora()
@@ -85,6 +86,7 @@ class RepositorioMemoria:
             "estado_web": "EN_COLA",
             "rol": rol,
             "solicitante_hash": solicitante_hash,
+            "canal": canal,
             "creada_en": ahora,
             "ultima_actividad_en": ahora,
             "descripcion": descripcion,
@@ -121,6 +123,7 @@ class RepositorioMemoria:
             estado_web=s["estado_web"],
             rol=s["rol"],
             solicitante_hash=s["solicitante_hash"],
+            canal=s["canal"],
             creada_en=s["creada_en"],
             ultima_actividad_en=s["ultima_actividad_en"],
             descripcion=s["descripcion"],
@@ -139,6 +142,7 @@ class Mundo:
     client: TestClient
     repo: RepositorioMemoria
     sesiones: SesionesMemoria
+    hoy: list | None = None
 
 
 CORREO_SEU = "solicitante@example.invalid"
@@ -828,6 +832,7 @@ def test_logs_sin_token_ni_prosa(
                     actividad_ref=None,
                     rol="coordinador_seu",
                     solicitante_hash="ab" * 32,
+                    canal="web",
                     descripcion=prosa_marcada,
                     campos={"pieza": {"titulo": "T", "cuerpo": prosa_marcada}},
                     intentos=3,
@@ -873,3 +878,312 @@ def test_logs_sin_token_ni_prosa(
     registro = "\n".join(r.getMessage() for r in caplog.records)
     assert "tok-seu" not in registro
     assert prosa_marcada not in registro
+
+
+# ---------- modo demostración sin login (#149, ADR 0019) ----------
+#
+# El modo demo reemplaza la verificación de Google por la elección de una
+# identidad del padrón, para la presentación sin el client ID de DSI (#62).
+# Tiene sus propias salvaguardas: fecha de vencimiento acotada, lista
+# cerrada de correos del padrón, cookie Secure, y no convive con el modo
+# prueba ni con un client ID real.
+
+
+def _config_demo(**kwargs: Any) -> ConfiguracionWeb:
+    base: dict[str, Any] = {
+        "google_client_id": "",
+        "modo_demo": True,
+        "demo_hasta": date(2026, 11, 19),
+        "demo_correos": (CORREO_SEU, CORREO_LECTOR),
+        "cookie_secure": True,
+    }
+    base.update(kwargs)
+    return ConfiguracionWeb(**base)
+
+
+_PADRON_DEMO = PadronRoles(
+    {CORREO_SEU: "coordinador_seu", CORREO_LECTOR: "lector_seu"}
+)
+
+
+def _validar_demo(config: ConfiguracionWeb, **kwargs: Any) -> None:
+    validar_configuracion(
+        config,
+        padron=_PADRON_DEMO,
+        hoy=lambda: date(2026, 11, 16),
+        **kwargs,
+    )
+
+
+def _mundo_demo(**kwargs: Any) -> Mundo:
+    """App en modo demostración con el reloj inyectado.
+
+    `mundo.hoy[0]` es la fecha que el servidor consulta en cada request:
+    moverla simula el paso del vencimiento sin reloj real.
+    """
+    hoy = kwargs.pop("hoy", None) or [date(2026, 11, 16)]
+    sesiones = SesionesMemoria(ahora=_ahora)
+    repo = RepositorioMemoria()
+    app = crear_app(
+        config=_config_demo(**kwargs),
+        verificador=VerificadorFake({}),
+        padron=_PADRON_DEMO,
+        repositorio=repo,
+        sesiones=sesiones,
+        actividades=[],
+        hoy=lambda: hoy[0],
+    )
+    # La demo corre detrás de HTTPS (tailscale serve o túnel SSH): sin él
+    # las cookies `Secure` — exigidas por el modo — no viajan.
+    client = TestClient(app, base_url="https://testserver")
+    return Mundo(client, repo, sesiones, hoy)
+
+
+def _ingresar_demo(
+    client: TestClient, correo: str = CORREO_SEU, **extra: str
+):
+    """Login del modo demo: GET para el CSRF propio y POST con el correo."""
+    formulario = client.get("/ingresar")
+    marca = 'name="csrf" value="'
+    csrf = formulario.text.split(marca, 1)[1].split('"', 1)[0]
+    return client.post(
+        "/ingresar",
+        data={"correo": correo, "csrf": csrf, **extra},
+        follow_redirects=False,
+    )
+
+
+# --- salvaguardas de arranque: un rechazo por combinación insegura ---
+
+
+def test_modo_demo_exige_fecha_de_vencimiento() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        _validar_demo(_config_demo(demo_hasta=None))
+
+
+def test_modo_demo_exige_lista_de_correos() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        _validar_demo(_config_demo(demo_correos=()))
+
+
+def test_modo_demo_rechaza_fecha_ya_pasada() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        validar_configuracion(
+            _config_demo(demo_hasta=date(2026, 11, 15)),
+            padron=_PADRON_DEMO,
+            hoy=lambda: date(2026, 11, 16),
+        )
+    # El día del vencimiento todavía es válido: la demo corre ese día.
+    _validar_demo(_config_demo(demo_hasta=date(2026, 11, 16)))
+
+
+def test_modo_demo_rechaza_fecha_a_mas_de_14_dias() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        _validar_demo(_config_demo(demo_hasta=date(2026, 12, 1)))
+    # Justo 14 días es el límite aceptado.
+    _validar_demo(_config_demo(demo_hasta=date(2026, 11, 30)))
+
+
+def test_modo_demo_rechaza_correo_fuera_del_padron() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        _validar_demo(
+            _config_demo(
+                demo_correos=(CORREO_SEU, CORREO_EXTERNO)
+            )
+        )
+
+
+def test_modo_demo_no_convive_con_modo_prueba() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        _validar_demo(_config_demo(modo_prueba=True))
+
+
+def test_modo_demo_rechaza_client_id_de_google() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        _validar_demo(
+            _config_demo(google_client_id="123.apps.googleusercontent.com")
+        )
+
+
+def test_modo_demo_exige_cookie_secure() -> None:
+    with pytest.raises(ConfiguracionInvalida):
+        _validar_demo(_config_demo(cookie_secure=False))
+
+
+def test_modo_demo_puede_correr_en_contenedor_y_red_interna() -> None:
+    # La exposición la limita el compose (puerto en 127.0.0.1 del host) y
+    # el acceso entra por tailscale serve o túnel SSH, así que el contenedor
+    # y un bind no-loopback no son señal de despliegue indebido como en el
+    # modo prueba.
+    _validar_demo(_config_demo(), host="0.0.0.0", en_contenedor=True)
+
+
+# --- ingreso por elección de identidad del padrón ---
+
+
+def test_login_demo_ofrece_select_con_roles_del_padron() -> None:
+    mundo = _mundo_demo()
+    respuesta = mundo.client.get("/ingresar")
+    assert respuesta.status_code == 200
+    assert "Entrar como" in respuesta.text
+    assert CORREO_SEU in respuesta.text
+    assert CORREO_LECTOR in respuesta.text
+    # El rol mostrado sale del padrón, no del navegador.
+    assert "coordinador_seu" in respuesta.text
+    assert "lector_seu" in respuesta.text
+    # Sin el script de Google en esta página.
+    assert "accounts.google.com/gsi/client" not in respuesta.text
+
+
+def test_login_demo_crea_sesion_y_cookie_segura() -> None:
+    mundo = _mundo_demo()
+    respuesta = _ingresar_demo(mundo.client)
+    assert respuesta.status_code == 303
+    cookie = respuesta.headers["set-cookie"]
+    assert "a1_sesion=" in cookie
+    assert "HttpOnly" in cookie
+    assert "Secure" in cookie
+    assert respuesta.headers["location"] == "/nuevo-pedido"
+    sesion = next(iter(mundo.sesiones._sesiones.values()))
+    assert sesion.correo == CORREO_SEU
+    assert sesion.origen == "demo"
+
+
+def test_login_demo_rechaza_correo_fuera_de_la_lista() -> None:
+    # El correo está en el padrón pero no en AGENTE1_WEB_DEMO_CORREOS.
+    mundo = _mundo_demo(demo_correos=(CORREO_SEU,))
+    respuesta = _ingresar_demo(mundo.client, correo=CORREO_LECTOR)
+    assert respuesta.status_code == 403
+    assert "a1_sesion" not in respuesta.headers.get("set-cookie", "")
+    assert len(mundo.sesiones) == 0
+
+
+def test_login_demo_ignora_el_rol_enviado_por_el_navegador() -> None:
+    mundo = _mundo_demo()
+    respuesta = _ingresar_demo(
+        mundo.client, rol="admin_total", correo=CORREO_SEU
+    )
+    assert respuesta.status_code == 303
+    sesion = next(iter(mundo.sesiones._sesiones.values()))
+    # El rol lo resuelve el padrón; el campo del formulario no pesa nada.
+    assert sesion.rol == "coordinador_seu"
+
+
+def test_login_demo_exige_csrf() -> None:
+    mundo = _mundo_demo()
+    # Sin CSRF: rechazo.
+    assert (
+        mundo.client.post("/ingresar", data={"correo": CORREO_SEU}).status_code
+        == 403
+    )
+    # CSRF que no coincide con la cookie: rechazo.
+    assert (
+        mundo.client.post(
+            "/ingresar",
+            data={"correo": CORREO_SEU, "csrf": "inventado"},
+        ).status_code
+        == 403
+    )
+    assert len(mundo.sesiones) == 0
+
+
+def test_login_demo_correo_sin_rol_en_padron_da_403() -> None:
+    # El arranque exige que cada correo de la lista esté en el padrón; si el
+    # padrón cambia en caliente, el POST vuelve a consultarlo y no deja pasar.
+    class PadronVivo:
+        def __init__(self) -> None:
+            self.roles = {
+                CORREO_SEU: "coordinador_seu",
+                CORREO_LECTOR: "lector_seu",
+            }
+
+        def rol_para(self, correo: str) -> str | None:
+            return self.roles.get(correo)
+
+    padron_vivo = PadronVivo()
+    repo = RepositorioMemoria()
+    sesiones = SesionesMemoria(ahora=_ahora)
+    app = crear_app(
+        config=_config_demo(),
+        verificador=VerificadorFake({}),
+        padron=padron_vivo,
+        repositorio=repo,
+        sesiones=sesiones,
+        hoy=lambda: date(2026, 11, 16),
+    )
+    # El correo figura en la lista demo pero ya no tiene rol en el padrón.
+    del padron_vivo.roles[CORREO_SEU]
+    client = TestClient(app, base_url="https://testserver")
+    respuesta = _ingresar_demo(client, correo=CORREO_SEU)
+    assert respuesta.status_code == 403
+    assert len(sesiones) == 0
+
+
+# --- vencimiento en ejecución ---
+
+
+def test_demo_vencida_responde_503_en_todo_menos_estaticos() -> None:
+    mundo = _mundo_demo()
+    _ingresar_demo(mundo.client)
+    assert mundo.hoy is not None
+    mundo.hoy[0] = date(2026, 11, 20)  # pasado el 19/11 declarado
+    for ruta in ("/bandeja", "/nuevo-pedido", "/ingresar", "/salud", "/"):
+        respuesta = mundo.client.get(ruta, follow_redirects=False)
+        assert respuesta.status_code == 503, ruta
+        assert "demostración venció" in respuesta.text
+    # Los estáticos siguen sirviendo (la página del 503 necesita el CSS).
+    assert mundo.client.get("/estaticos/estilos.css").status_code == 200
+
+
+def test_demo_vencida_invalida_las_sesiones_vivas() -> None:
+    mundo = _mundo_demo()
+    _ingresar_demo(mundo.client)
+    assert len(mundo.sesiones) == 1
+    assert mundo.hoy is not None
+    mundo.hoy[0] = date(2026, 11, 20)
+    mundo.client.get("/bandeja", follow_redirects=False)
+    assert len(mundo.sesiones) == 0
+
+
+def test_banda_demo_visible_y_con_fecha() -> None:
+    mundo = _mundo_demo()
+    ingreso = mundo.client.get("/ingresar")
+    assert "Modo demostración" in ingreso.text
+    assert "19/11/2026" in ingreso.text
+    _ingresar_demo(mundo.client)
+    bandeja = mundo.client.get("/bandeja")
+    assert "Modo demostración" in bandeja.text
+    assert "sin verificación de identidad" in bandeja.text
+
+
+def test_banda_demo_no_aparece_en_modo_prueba(mundo: Mundo) -> None:
+    respuesta = mundo.client.get("/ingresar")
+    assert "Modo demostración" not in respuesta.text
+
+
+# --- trazabilidad honesta: el origen queda marcado ---
+
+
+def test_pedido_demo_se_registra_con_canal_web_demo() -> None:
+    mundo = _mundo_demo()
+    _ingresar_demo(mundo.client)
+    csrf = _csrf_de(mundo)
+    respuesta = mundo.client.post(
+        "/nuevo-pedido",
+        data={
+            "csrf": csrf,
+            "llave": "demo-1",
+            "tipo": "cronica_de_evento",
+            "campo_titulo": "Crónica de la demo",
+            "campo_cuerpo": "Texto confirmado.",
+            "publicos": "alumnos_ingenieria",
+        },
+        follow_redirects=False,
+    )
+    assert respuesta.status_code == 303
+    solicitud = next(iter(mundo.repo.solicitudes.values()))
+    # La solicitud no puede figurar como identidad verificada por Google:
+    # su canal declara el origen demo.
+    assert solicitud["canal"] == "web-demo"
+    detalle = mundo.client.get(respuesta.headers["location"])
+    assert "demostración" in detalle.text
