@@ -28,6 +28,23 @@ Dirección. Detalle en el procedimiento.
 
 Sin cambios todavía.
 
+## [0.8.1] - 2026-11-17
+
+Encontrado al probar el ajuste generativo en el servidor con Ollama real
+(0.7.0): el ajuste falló y dejó la solicitud entera en `ERROR`.
+
+- **Parche — un ajuste fallido no inutiliza la solicitud.** Vuelve a `LISTA`
+  con la revisión vigente intacta; la vista avisa «El último ajuste no se
+  aplicó» con el motivo y se puede pedir otro o decidir.
+- **Parche — el pie institucional no viaja al modelo.** El texto después del
+  `--` es fijo de la forma: se saca del prompt y se repone tal cual, aunque la
+  salida lo omita o lo cambie.
+- **Parche — reintento y margen de tokens.** El ajuste reintenta una vez si la
+  salida no pasa el gate y usa un generador propio con el techo de
+  `num_predict` (1024) y de tiempo (300 s).
+- **Parche — `logs/ajustes.jsonl`.** Una línea por ajuste con resultado,
+  códigos del gate e intentos (sin prosa) en el estado del worker.
+
 ## [0.8.0] - 2026-11-17
 
 - **Menor — el lote de certificados se aprueba en la web (#168).** La bandeja

@@ -32,9 +32,10 @@ Decisiones que no se ven en el código:
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Protocol
 
@@ -52,7 +53,7 @@ from ..interpretacion import (
     interpretar_solicitud,
 )
 from ..procesamiento import Generator
-from .ajuste import ajustar_texto
+from .ajuste import ajustar
 from .persistencia import (
     CANAL_WEB,
     CANAL_WEB_DEMO,
@@ -80,10 +81,52 @@ _CIERRE_POR_ESTADO = {
 class FalloGeneracion(RuntimeError):
     """El pipeline reportó una falla esperada: la ejecución queda cerrada."""
 
-    def __init__(self, estado: str, resultado: str) -> None:
+    def __init__(
+        self,
+        estado: str,
+        resultado: str,
+        *,
+        errores: tuple[str, ...] = (),
+        intentos: int = 1,
+    ) -> None:
         self.estado = estado
         self.resultado = resultado
+        self.errores = errores
+        self.intentos = intentos
         super().__init__(resultado)
+
+
+def _registrar_ajuste(
+    directorio_salida: Path,
+    trabajo: TrabajoWeb,
+    *,
+    resultado: str,
+    errores: tuple[str, ...] = (),
+    intentos: int = 1,
+) -> None:
+    """Una línea por ajuste en `logs/ajustes.jsonl`: códigos, sin prosa.
+
+    Es lo que permite saber en el servidor por qué un ajuste no se aplicó
+    (qué control del gate falló) sin abrir la base ni los logs del
+    contenedor. Si no se puede escribir, el ajuste sigue igual.
+    """
+    registro = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "id_solicitud": trabajo.id_solicitud,
+        "id_ejecucion": trabajo.id_ejecucion,
+        "id_ajuste": trabajo.id_ajuste,
+        "tipo_pieza": trabajo.tipo_pieza,
+        "resultado": resultado,
+        "errores": list(errores),
+        "intentos": intentos,
+    }
+    try:
+        logs = directorio_salida / "logs"
+        logs.mkdir(parents=True, exist_ok=True)
+        with (logs / "ajustes.jsonl").open("a", encoding="utf-8") as archivo:
+            archivo.write(json.dumps(registro, ensure_ascii=False) + "\n")
+    except OSError:
+        logger.warning("worker_ajuste_sin_registro id=%s", trabajo.id_ejecucion)
 
 
 # El resultado del destino por marca vive en `destinos.py` porque el
@@ -289,7 +332,7 @@ def _ajustar_pieza(
     fuente: FuenteSolicitudes,
     generator: Generator,
     destino: DestinoPorMarca,
-) -> tuple[str, ResultadoDestinoWeb]:
+) -> tuple[str, ResultadoDestinoWeb, int]:
     """Reescribe la revisión vigente y la vuelca en el mismo Doc.
 
     El texto base es el que dejó la última revisión vigente, con las
@@ -300,18 +343,26 @@ def _ajustar_pieza(
     if trabajo.texto_base is None or trabajo.indicacion is None:
         raise FalloGeneracion("FALLIDA", "error_generacion")
     campos = _campos_de_validacion(trabajo, fuente=fuente)
-    texto, errores = ajustar_texto(
+    salida = ajustar(
         texto_base=trabajo.texto_base,
         indicacion=trabajo.indicacion,
         tipo=trabajo.tipo_pieza,
         campos=campos,
         generator=generator,
     )
+    texto = salida.texto
     if not texto:
         resultado = (
-            "salida_vacia" if "salida_vacia" in errores else "salida_no_conforme"
+            "salida_vacia"
+            if "salida_vacia" in salida.errores
+            else "salida_no_conforme"
         )
-        raise FalloGeneracion("FALLIDA", resultado)
+        raise FalloGeneracion(
+            "FALLIDA",
+            resultado,
+            errores=tuple(salida.errores),
+            intentos=salida.intentos,
+        )
     try:
         resultado_destino = destino.buscar_o_crear(
             marca=trabajo.id_solicitud,
@@ -320,8 +371,13 @@ def _ajustar_pieza(
             nombre=None,
         )
     except DestinoBorradoresError:
-        raise FalloGeneracion("FALLIDA", "destination_failure") from None
-    return texto, resultado_destino
+        raise FalloGeneracion(
+            "FALLIDA",
+            "destination_failure",
+            errores=("destination_failure",),
+            intentos=salida.intentos,
+        ) from None
+    return texto, resultado_destino, salida.intentos
 
 
 def correr_una_vez(
@@ -336,6 +392,7 @@ def correr_una_vez(
     plazo_segundos: int = 300,
     ahora: datetime | None = None,
     max_intentos: int = MAX_INTENTOS,
+    generator_ajuste: Generator | None = None,
 ) -> TrabajoWeb | None:
     """Un ciclo del worker: reserva, genera y asienta. `None` si no hay trabajo.
 
@@ -359,10 +416,10 @@ def correr_una_vez(
     es_ajuste = trabajo.clase == "ajuste"
     try:
         if es_ajuste:
-            texto, resultado_destino = _ajustar_pieza(
+            texto, resultado_destino, intentos_ajuste = _ajustar_pieza(
                 trabajo,
                 fuente=fuente,
-                generator=generator,
+                generator=generator_ajuste or generator,
                 destino=destino,
             )
         else:
@@ -379,13 +436,24 @@ def correr_una_vez(
             trabajo.id_ejecucion,
             fallo.resultado,
         )
+        # Un ajuste que no sirve no inutiliza la solicitud: la revisión
+        # vigente sigue en pie, se puede aprobar o pedir otro ajuste.
         repositorio.fallar_trabajo(
             id_ejecucion=trabajo.id_ejecucion,
             id_solicitud=trabajo.id_solicitud,
             estado=fallo.estado,
             resultado=fallo.resultado,
             ahora=ahora,
+            **({"estado_solicitud": "LISTA"} if es_ajuste else {}),
         )
+        if es_ajuste:
+            _registrar_ajuste(
+                directorio_salida,
+                trabajo,
+                resultado=fallo.resultado,
+                errores=fallo.errores,
+                intentos=fallo.intentos,
+            )
         return trabajo
     except Exception:
         # Error de infraestructura o caída: la reserva vence y otra corrida
@@ -402,7 +470,16 @@ def correr_una_vez(
                 id_solicitud=trabajo.id_solicitud,
                 resultado="error_generacion",
                 ahora=ahora,
+                **({"estado_solicitud": "LISTA"} if es_ajuste else {}),
             )
+            if es_ajuste:
+                _registrar_ajuste(
+                    directorio_salida,
+                    trabajo,
+                    resultado="error_generacion",
+                    errores=("error_no_previsto",),
+                    intentos=trabajo.intentos,
+                )
         else:
             logger.warning(
                 "worker_error_no_previsto id_ejecucion=%s intento=%s",
@@ -450,4 +527,11 @@ def correr_una_vez(
         id_ajuste=trabajo.id_ajuste if es_ajuste else None,
         ahora=ahora,
     )
+    if es_ajuste:
+        _registrar_ajuste(
+            directorio_salida,
+            trabajo,
+            resultado="borrador_generado",
+            intentos=intentos_ajuste,
+        )
     return trabajo

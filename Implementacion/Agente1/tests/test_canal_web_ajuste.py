@@ -16,6 +16,7 @@ Tres capas, como el resto de la suite del canal:
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import uuid
 from dataclasses import dataclass
@@ -846,3 +847,166 @@ def test_post_ajuste_idempotente_y_llave_repetida(base: str) -> None:
         mundo, id_solicitud, indicacion="tono más formal"
     )
     assert respuesta.status_code == 409
+
+
+# ============ robustez del ajuste (demo 17/11, Ollama real) ============
+
+
+class GeneradorSecuencia:
+    """Devuelve las respuestas en orden y guarda los prompts recibidos."""
+
+    modelo = "fake-secuencia"
+    num_predict = None
+
+    def __init__(self, *respuestas: str) -> None:
+        self._respuestas = list(respuestas)
+        self.prompts: list[str] = []
+
+    def generar(self, prompt: str) -> str:
+        self.prompts.append(prompt)
+        return self._respuestas.pop(0) if self._respuestas else ""
+
+
+def _sin_pie(texto: str) -> str:
+    return texto[: texto.rindex("\n--\n")] + "\n"
+
+
+def test_el_modelo_no_reescribe_el_pie_institucional() -> None:
+    """El pie (después de `--`) es fijo de la forma: no viaja al modelo y
+    se repone tal cual, aunque la salida lo omita o lo cambie."""
+
+    nuevo = _texto_ajustado("La jornada reunió a la comunidad.")
+    generador = GeneradorSecuencia(
+        _sin_pie(nuevo),
+    )
+    texto, errores = ajustar_texto(
+        texto_base=TEXTO_VALIDO,
+        indicacion="más breve",
+        tipo="cronica_de_evento",
+        campos=CAMPOS,
+        generator=generador,
+    )
+
+    assert errores == []
+    assert "Av. Cabildo" not in generador.prompts[0]
+    assert texto.rstrip("\n").endswith(TEXTO_VALIDO.rstrip("\n").split("\n--\n")[1])
+    assert "La jornada reunió a la comunidad." in texto
+
+    cambiado = _sin_pie(nuevo) + "--\nFacultad inventada\n"
+    texto, errores = ajustar_texto(
+        texto_base=TEXTO_VALIDO,
+        indicacion="más breve",
+        tipo="cronica_de_evento",
+        campos=CAMPOS,
+        generator=GeneradorSecuencia(cambiado),
+    )
+    assert errores == []
+    assert "Facultad inventada" not in texto
+    assert "Av. Cabildo" in texto
+
+
+def test_reintenta_una_vez_si_la_salida_no_sirve() -> None:
+    generador = GeneradorSecuencia(
+        "", _texto_ajustado("La jornada reunió a la comunidad.")
+    )
+    texto, errores = ajustar_texto(
+        texto_base=TEXTO_VALIDO,
+        indicacion="más breve",
+        tipo="cronica_de_evento",
+        campos=CAMPOS,
+        generator=generador,
+    )
+
+    assert errores == []
+    assert len(generador.prompts) == 2
+    assert "La jornada reunió a la comunidad." in texto
+
+
+def test_worker_ajuste_fallido_vuelve_a_lista_y_deja_registro(
+    tmp_path: Path,
+) -> None:
+    """Un ajuste que no sirve no inutiliza la solicitud: la revisión
+    vigente sigue y se puede aprobar o pedir otro ajuste. El motivo queda
+    en `logs/ajustes.jsonl` (códigos, sin prosa)."""
+
+    repo = RepoWorkerFalso(_trabajo_ajuste())
+
+    correr_una_vez(
+        repositorio=repo,
+        worker_id="w1",
+        fuente=FuenteVacia(),
+        generator=GeneradorSecuencia("", ""),
+        directorio_salida=tmp_path,
+        destino=DestinoEspia(),
+    )
+
+    assert repo.fallado is not None
+    assert repo.fallado["estado_solicitud"] == "LISTA"
+    lineas = (tmp_path / "logs" / "ajustes.jsonl").read_text().splitlines()
+    registro = json.loads(lineas[-1])
+    assert registro["resultado"] == "salida_vacia"
+    assert registro["errores"] == ["salida_vacia"]
+    assert registro["intentos"] == 2
+    assert registro["id_solicitud"] == "web-a1"
+    assert "más breve" not in lineas[-1]
+
+
+def test_worker_usa_el_generador_de_ajuste_si_lo_hay(tmp_path: Path) -> None:
+    repo = RepoWorkerFalso(_trabajo_ajuste())
+    ajuste = GeneradorSecuencia(_texto_ajustado("La jornada reunió a todos."))
+
+    correr_una_vez(
+        repositorio=repo,
+        worker_id="w1",
+        fuente=FuenteVacia(),
+        generator=GeneradorSecuencia(),
+        generator_ajuste=ajuste,
+        directorio_salida=tmp_path,
+        destino=DestinoPorMarcaMemoria(),
+    )
+
+    assert repo.completado is not None
+    assert len(ajuste.prompts) == 1
+
+
+def test_ajuste_fallido_deja_la_solicitud_en_lista_con_aviso(base: str) -> None:
+    repo = RepositorioWeb(_fabrica(base))
+    id_solicitud, id_base = _solicitud_en_lista(repo)
+    _ajustar(repo, id_solicitud, id_base)
+    trabajo = repo.tomar_trabajo(worker_id="w-ajuste", ahora=AHORA)
+    assert trabajo is not None
+
+    repo.fallar_trabajo(
+        id_ejecucion=trabajo.id_ejecucion,
+        id_solicitud=id_solicitud,
+        resultado="salida_no_conforme",
+        estado_solicitud="LISTA",
+        ahora=AHORA,
+    )
+
+    detalle = repo.obtener(id_solicitud)
+    assert detalle is not None
+    assert detalle.estado_web == "LISTA"
+    assert detalle.ultimo_ajuste_fallido == "salida_no_conforme"
+    assert len(detalle.revisiones) == 1
+
+
+def test_la_vista_avisa_que_el_ultimo_ajuste_no_se_aplico(base: str) -> None:
+    mundo = _mundo(base)
+    id_solicitud, id_base = _crear_lista(mundo)
+    _ajustar(mundo.repo, id_solicitud, id_base)
+    trabajo = mundo.repo.tomar_trabajo(worker_id="w-ajuste", ahora=AHORA)
+    assert trabajo is not None
+    mundo.repo.fallar_trabajo(
+        id_ejecucion=trabajo.id_ejecucion,
+        id_solicitud=id_solicitud,
+        resultado="salida_no_conforme",
+        estado_solicitud="LISTA",
+        ahora=AHORA,
+    )
+
+    html = mundo.client.get(f"/solicitudes/{id_solicitud}").text
+
+    assert "El último ajuste no se aplicó" in html
+    assert "Pedir ajuste" in html
+    assert "La generación falló" not in html

@@ -90,12 +90,24 @@ def main(
 
     if args.generador_salida is not None:
         generator = FakeGenerator(args.generador_salida)
+        generator_ajuste = generator
     elif args.ollama_model:
         from agente1.ollama import OllamaGenerator
 
         # Sin thinking: gemma4 gasta el `num_predict` pensando y la
         # respuesta llega vacía (mismo arreglo que el scheduler en 0.5.3).
         generator = OllamaGenerator(modelo=args.ollama_model, think=False)
+        # El ajuste reescribe la pieza entera (sin el pie): con el tope de
+        # la generación el modelo puede cortarla. Va con el techo de tokens
+        # y de tiempo; `num_predict` es un tope, no alarga una salida corta.
+        from agente1.ollama import MAX_OLLAMA_NUM_PREDICT, MAX_OLLAMA_TIMEOUT_S
+
+        generator_ajuste = OllamaGenerator(
+            modelo=args.ollama_model,
+            think=False,
+            num_predict=MAX_OLLAMA_NUM_PREDICT,
+            timeout_s=MAX_OLLAMA_TIMEOUT_S,
+        )
     else:
         return _invalida("worker_generador_no_declarado")
 
@@ -155,6 +167,7 @@ def main(
             worker_id=worker_id,
             fuente=fuente,
             generator=generator,
+            generator_ajuste=generator_ajuste,
             directorio_salida=args.salida,
             destino=destino,
             correo_para_hash=correo_para_hash,
