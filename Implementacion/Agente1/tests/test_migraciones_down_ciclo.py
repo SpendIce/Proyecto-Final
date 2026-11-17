@@ -140,6 +140,18 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "respaldo."
         ),
     ),
+    "0010_lote_certificados_web": Reversion(
+        reversible=True,
+        pierde_datos=True,
+        requiere_restaurar_respaldo=True,
+        nota=(
+            "El `down` elimina `lotes_certificados`: descarta los lotes de "
+            "certificados, su lista de cierre y la decisión registrada con "
+            "identidad, rol, origen y versión (ADR 0018). La aprobación del "
+            "lote es evidencia de validación humana y no se reconstruye "
+            "desde otro lado: con datos reales exige restaurar el respaldo."
+        ),
+    ),
 }
 
 

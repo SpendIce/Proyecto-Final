@@ -395,6 +395,32 @@ def _pdf_para_persona(
     return generar_pdf_certificado(cuerpo, borrador=borrador), traza
 
 
+def generar_pdf_muestra_lote(
+    *,
+    persona: PersonaCierre,
+    actividad: dict[str, str],
+    linea_descriptiva: str,
+    recursos_firma: RecursosFirma | None = None,
+    firmantes: tuple[Firmante, ...] = FIRMANTES_DECLARADOS,
+) -> bytes:
+    """PDF de muestra del lote para la web, siempre marcado borrador (#168).
+
+    Reusa `_pdf_para_persona` —la misma composición que el aviso de
+    aprobación de la emisión— con `borrador=True`: la web muestra el
+    certificado de muestra sin inventar un renderer paralelo.
+    """
+    pdf, _ = _pdf_para_persona(
+        persona=persona,
+        actividad=actividad,
+        linea_descriptiva=linea_descriptiva,
+        id_certificado=f"muestra-{persona.dni}",
+        firmantes=firmantes,
+        recursos_firma=recursos_firma,
+        borrador=True,
+    )
+    return pdf
+
+
 # Variables que la plantilla aprobada de un certificado puede nombrar
 # (#142): el conjunto cierra el dato que el circuito completa, así que una
 # plantilla que declare otra cosa se rechaza al cargar la corrida.
@@ -1223,6 +1249,7 @@ __all__ = [
     "RevisionLote",
     "TEMPLATE_VERSION",
     "construir_emisor_certificados",
+    "generar_pdf_muestra_lote",
     "hash_lista_cierre",
     "objeto_lote_cierre",
     "parsear_lista_cierre",
