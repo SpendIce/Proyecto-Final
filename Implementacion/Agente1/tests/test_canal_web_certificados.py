@@ -296,6 +296,18 @@ def test_pagina_del_lote_muestra_actividad_lista_hash_y_plantilla() -> None:
     assert "Firmas disponibles" in cuerpo
 
 
+def test_la_pagina_rotula_la_plantilla_con_la_que_se_dibuja_la_muestra() -> None:
+    # Un lote sembrado con 0.9.0 guardó `v1`, pero la muestra se compone
+    # siempre con la plantilla vigente: el rótulo dice la que se usa.
+    mundo = _mundo(
+        (replace(_lote(), plantilla_muestra="certificado_seu_aprobacion_v1"),)
+    )
+    _ingresar(mundo.client)
+    cuerpo = mundo.client.get("/certificados/lote-abc123").text
+    assert "Plantilla de la muestra: <code>certificado_seu_aprobacion_v2</code>" in cuerpo
+    assert "certificado_seu_aprobacion_v1" not in cuerpo
+
+
 def test_descarga_de_la_muestra_es_pdf_borrador() -> None:
     mundo = _mundo((_lote(),))
     _ingresar(mundo.client)

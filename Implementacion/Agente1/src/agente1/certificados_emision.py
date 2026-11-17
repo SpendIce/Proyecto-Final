@@ -330,6 +330,13 @@ _PLANTILLA_POR_CONDICION = {
 }
 
 
+def plantilla_de_muestra(persona: PersonaCierre) -> str:
+    """La plantilla con la que `generar_pdf_muestra_lote` dibuja hoy la
+    muestra de esta persona; el lote guarda la de su creación."""
+
+    return _PLANTILLA_POR_CONDICION[persona.condicion]
+
+
 # El certificado de aprobación se fecha con el mes de emisión, como el PDF
 # institucional de la SEU (17/11/2026), no con el fin de la actividad.
 # Argentina no tiene horario de verano: el desfase fijo alcanza.
@@ -1305,6 +1312,7 @@ __all__ = [
     "fecha_emision_lote",
     "generar_pdf_certificado_lote",
     "generar_pdf_muestra_lote",
+    "plantilla_de_muestra",
     "hash_lista_cierre",
     "objeto_lote_cierre",
     "parsear_lista_cierre",

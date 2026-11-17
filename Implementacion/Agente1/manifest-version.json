@@ -26,7 +26,7 @@
     "migrations/0011_permisos_ajuste_prosa.up.sql": "b7845abd50afb0cd41d3bea13626d12eef7018936dc947ee825e7aaed7d3acde",
     "migrations/0012_emision_certificados_durable.down.sql": "a9667a5827bcf7840aa581f82c853003504398ec4f48e865ffc7d186d834e587",
     "migrations/0012_emision_certificados_durable.up.sql": "0e234152fb49ebd77544206a4030ce1424f29d6a28919a4c8297ab2cd88b1bcc",
-    "pyproject.toml": "8cd50415d2d3e78cd30d1a76480be8d8554abae54ee653fea48c4d653856f976",
+    "pyproject.toml": "2b079b93f947b943eb9b02571615e30ecff45310ae1c53def4d787749e3d2b3a",
     "scripts/anexo1_presentacion.py": "a5043d608b242ec10a63c73b9be5c1f4387595dfe4744235e47a975e43027398",
     "scripts/anexo2_calidad.py": "6d5bc627622bf4f4904b3150f862cb0d1990a06c3662d5d13c60ebb48407df4f",
     "scripts/anexo3_seguridad.py": "f15c23b14fea0919f8da189eba35137270716ab613c3f638f8c1d1c8e92933cc",
@@ -92,7 +92,7 @@
     "src/agente1/canal_form.py": "86a79bb9cb7985bc1cf0473dc362403080f2617fcefffba3a14d928b8c8fa53c",
     "src/agente1/canal_planilla.py": "1835a3286585043dacd79f93044daadafec629319fdf333bcf0a3d715e4f3fb6",
     "src/agente1/certificados.py": "dd9e02cc77191f24fd9df796eabbee9322a9f9144d4ad8dd13b6b68ae8e661bf",
-    "src/agente1/certificados_emision.py": "5b28128f6bff3c7e8024f37a5682ae8ead886c68136a15549a895771e738dda3",
+    "src/agente1/certificados_emision.py": "146859093a82870898f9c081b6948592b3b22534e1f5dd425bc7f69c8474acbb",
     "src/agente1/certificados_plantilla_seu.py": "64da08fbd84454b9fe103c42623fecf360897c01217e1407339536c9c051be1c",
     "src/agente1/cli.py": "8c8562b7847cd66942b7f09a27188f506ab3a76383a8bc3a08c77a011b1d7cd7",
     "src/agente1/cli_insumos.py": "656d4c850e210071165beae882685e95ec7c7dcdf9c656776d9c70d90c1b88f9",
@@ -249,7 +249,7 @@
     "src/agente1/web/__init__.py": "692c8a054ff361bb6a71842ab51f0903d48e52a9795349cea9f6e96e977a9ea4",
     "src/agente1/web/ajuste.py": "49a036d4c0aed86d96823d298c995fb3c61b5dc39bb93bb75ebc5ef4601c70a7",
     "src/agente1/web/app.py": "4dfaa49920c4ee034a452edde6444adae514c6e662b954d96a7e00ab1cecac0a",
-    "src/agente1/web/certificados_web.py": "d1ce044a4d50d929d1f258622284fdebca8204d2d10873de194ef7f56b8fe4ba",
+    "src/agente1/web/certificados_web.py": "156fd4766d9a89ab0b7f96f5037594fe8aacb980eba406e0508094e203695212",
     "src/agente1/web/demo_certificados.py": "b3cb6b699a2c8f378b6949c4ae602d304339c590c49b05b75ded692bb2ec222f",
     "src/agente1/web/docs_canal.py": "713ca00d0b3f366c12834902df19bbc669c64e133bd08d13d710e041876740c9",
     "src/agente1/web/emision_certificados.py": "feade562d61dd532b97a607ec13716a69f7e07a2fdd316fc09f3ed36a0df204d",
@@ -271,7 +271,7 @@
     "src/agente1/web/plantillas/demo_vencida.html": "cea2e38b322e4ea650dff0d8a4ff4a730a9c0c9ec4e108677549872382205029",
     "src/agente1/web/plantillas/emision_certificados.html": "08484bbc7e6b9bfc308c22ebffaa326ae677d2044d159cfdbbadbda60a67dc3e",
     "src/agente1/web/plantillas/ingresar.html": "554055388dab91d582fb377460c270dd4f45df11a5329c21f99c2357b36b9d3f",
-    "src/agente1/web/plantillas/lote_certificados.html": "c86d31fbdf36ca7ce84cda347fd4ba3ee00816510baae0effc98fd03e6e55696",
+    "src/agente1/web/plantillas/lote_certificados.html": "011f7f78c1ee4e9ea6cfa764051acd2369059e0ccaa239c33ccb9b515b5ab814",
     "src/agente1/web/plantillas/nuevo_pedido.html": "0d747d09299aac2caca901434af3c60702be45ff7642a58afa2413e56905051d",
     "src/agente1/web/plantillas/pedido_certificados.html": "c879d7a550d434e527be2681a2f041aaae33847a1c591ce08d13c57efbb93eab",
     "src/agente1/web/plantillas/sin_permiso.html": "ece11c6c50315f06ef317217a15290a3bbcf390b375a26652c13e7a4ff01dc11",
@@ -284,8 +284,8 @@
     "systemd/agente1-scheduler-loop.service": "b73c70a32920ec44a47d13faba3956ba9c6feeb0c2022689600f6ae34b1854db",
     "systemd/agente1-scheduler.service": "a80a2f5735871a31f6b3a4f6daf9c694267c03b569971f69e495a1fe027fc5cb",
     "systemd/agente1-scheduler.timer": "33268d7df468209d9467ab212df0cf0caa511c7fa6b0cd9bb6beea3ba83b8ab8",
-    "uv.lock": "4e3d216d1b00fe9c0d525ba30bea8858ae9c9bdf2cf8895c1420f30bea7ce649"
+    "uv.lock": "0682107b53266c87377e0c7800560adc5c1c6a8704fc6dda240611380849767e"
   },
   "schema_version": "agente1_manifest_version_v1",
-  "version": "0.10.2"
+  "version": "0.10.3"
 }
