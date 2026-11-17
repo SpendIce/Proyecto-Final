@@ -48,6 +48,7 @@ from agente1.web.certificados_web import (
     LoteCertificados,
     RepositorioLotes,
     ResultadoDecisionLote,
+    estado_firmas,
     estado_plantillas,
 )
 from agente1.web.identidad import IdentidadVerificada, VerificadorFake
@@ -687,6 +688,11 @@ def test_aprobar_web_asienta_el_apruebo_lote_en_el_registro(tmp_path) -> None:
         generada_por_correo_hash=hash_correo(CORREO_APROBADOR),
     )
     assert revision.aprobada is True
+
+
+def test_la_asistencia_no_exige_imagenes_de_firma() -> None:
+    assert estado_firmas(None, ("asistencia",)).disponible is True
+    assert estado_firmas(None, ("aprobacion",)).disponible is False
 
 
 def test_plantilla_de_asistencia_con_aprobacion_registrada(tmp_path) -> None:

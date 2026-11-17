@@ -238,7 +238,7 @@
     "src/agente1/tipos_notificacion.py": "d66eaa86c62e514b4ca287bc2c3a020ac3b1780ba0c80114c0917b8f7851a51c",
     "src/agente1/web/__init__.py": "692c8a054ff361bb6a71842ab51f0903d48e52a9795349cea9f6e96e977a9ea4",
     "src/agente1/web/app.py": "73b53f521ebd2af1002252584829baa5c5fb4c32fbb13e081eb501a9bc32baa0",
-    "src/agente1/web/certificados_web.py": "953497d7b97ca91e2da06a41401ddb460460a897c4081a4c5bca1f8509af7365",
+    "src/agente1/web/certificados_web.py": "2b7347670bf3c92821fcec974e071d04af6f3d62395ceaa102d510682cdff750",
     "src/agente1/web/docs_canal.py": "ad0b29ecc2d4dc2c9cd4f535368759b45aa1e418d944523d43eea6d971fbe333",
     "src/agente1/web/estaticos/estilos.css": "785db9b8d7a4e87ffb34c227beaf5c1af139e092575464de8404fe4d68a93de3",
     "src/agente1/web/estaticos/fuentes/OFL-EncodeSans.txt": "b47f4d635e8c592a37e98f751627cad0a81694c56aecc603b33819a908ea9625",

@@ -215,7 +215,7 @@ class EstadoFirmas:
 
     @property
     def disponible(self) -> bool:
-        return self.configuradas and not self.faltantes
+        return not self.faltantes
 
 
 def _json(valor) -> object:
@@ -433,12 +433,12 @@ class RepositorioLotes:
         )
 
     def purgar_cerrados(self, *, ahora: datetime | None = None) -> int:
-        """Retira la lista de los lotes decididos; conserva la trazabilidad.
+        """Retira la lista y la línea de los lotes decididos.
 
-        Corre con el rol de la app en la purga diaria, como
-        `RepositorioWeb.purgar_prosa`: el lote es estado operativo y la
-        lista de personas es el único texto que retiene. La cantidad, los
-        hashes y la decisión (identidad, rol, origen y versión) quedan.
+        Corre con el rol de mantenimiento en la purga diaria, como
+        `RepositorioWeb.purgar_prosa`: la app no puede tocar el contenido
+        que la retención cerró. La cantidad, los hashes y la decisión
+        (identidad, rol, origen y versión) quedan.
         """
         ahora = ahora or datetime.now(timezone.utc)
         with self._conexion_factory() as conn:
