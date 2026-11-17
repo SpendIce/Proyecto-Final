@@ -3,8 +3,11 @@
 
 Toma las ejecuciones reservables de la base —`SELECT ... FOR UPDATE SKIP
 LOCKED` con plazo—, corre el pipeline vigente por tipo y deja el estado
-durable. Corre fuera de la respuesta HTTP, un trabajo por ciclo; ante una
-caída, la reserva vence y otra corrida retoma sin duplicar el Doc.
+durable. Las ejecuciones `clase='ajuste'` no generan desde el pedido
+original: reescriben la revisión vigente con la indicación registrada y
+crean la revisión nueva sobre el mismo Doc. Corre fuera de la respuesta
+HTTP, un trabajo por ciclo; ante una caída, la reserva vence y otra corrida
+retoma sin duplicar el Doc.
 
 Entorno:
 

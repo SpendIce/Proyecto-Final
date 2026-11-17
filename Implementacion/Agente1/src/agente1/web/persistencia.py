@@ -22,6 +22,11 @@ Decisiones que no se ven en el código:
 - **`tomar_trabajo` devuelve cuántas reservas ya hubo** contando los
   eventos `reserva_tomada` del propio registro: el límite de reintentos
   del worker no necesita otra columna ni otro estado.
+- **Un ajuste no pisa la revisión vigente.** La ejecución de clase
+  `ajuste` y la fila de `ajustes` guardan la proveniencia; al completar,
+  la revisión nueva declara su `id_borrador_base` y la indicación queda
+  enlazada a ella en la prosa transitoria. La decisión sobre la revisión
+  anterior sigue rechazándose por el mismo control de revisión vigente.
 """
 
 from __future__ import annotations
@@ -113,6 +118,7 @@ class RevisionPieza:
     head_revision_id: str | None
     creada_en: datetime
     origen: str | None = None
+    indicacion: str | None = None
 
 
 @dataclass(frozen=True)
@@ -153,6 +159,27 @@ class ResultadoDecisionWeb:
 
 
 @dataclass(frozen=True)
+class AjusteExistente:
+    """El pedido de ajuste ya encolado con esa llave de idempotencia."""
+
+    id_solicitud: str
+    id_ejecucion: str
+    id_ajuste: str
+    solicitante_hash: str
+    indicacion_hash: str
+
+
+@dataclass(frozen=True)
+class ResultadoAjuste:
+    """Lo que dejó encolar un ajuste: encolado, repetido o rechazado."""
+
+    codigo: str
+    id_ajuste: str | None = None
+    id_ejecucion: str | None = None
+    creada: bool = False
+
+
+@dataclass(frozen=True)
 class TrabajoWeb:
     id_ejecucion: str
     id_solicitud: str
@@ -164,6 +191,11 @@ class TrabajoWeb:
     campos: dict
     canal: str = CANAL_WEB
     intentos: int = 0
+    clase: str = "generacion"
+    id_ajuste: str | None = None
+    id_borrador_base: str | None = None
+    indicacion: str | None = None
+    texto_base: str | None = None
 
 
 @dataclass(frozen=True)
@@ -348,6 +380,14 @@ class RepositorioWeb:
                 " WHERE id_solicitud = %s AND texto IS NOT NULL",
                 (id_solicitud,),
             ).fetchall()
+            indicaciones = dict(
+                conn.execute(
+                    "SELECT id_borrador, texto FROM prosa_transitoria"
+                    " WHERE id_solicitud = %s AND clase = 'ajuste'"
+                    "   AND id_borrador IS NOT NULL AND texto IS NOT NULL",
+                    (id_solicitud,),
+                ).fetchall()
+            )
             revisiones = conn.execute(
                 "SELECT id_borrador, numero_revision, output_hash, doc_ref,"
                 " head_revision_id, creada_en, origen FROM borradores"
@@ -357,6 +397,7 @@ class RepositorioWeb:
             vigente = conn.execute(
                 "SELECT texto FROM prosa_transitoria"
                 " WHERE id_solicitud = %s AND id_borrador = %s"
+                "   AND clase IN ('generado', 'importado')"
                 "   AND texto IS NOT NULL",
                 (id_solicitud, fila[11]),
             ).fetchone()
@@ -372,7 +413,7 @@ class RepositorioWeb:
                 RevisionPieza(
                     id_borrador=r[0], numero_revision=r[1], output_hash=r[2],
                     doc_ref=r[3], head_revision_id=r[4], creada_en=r[5],
-                    origen=r[6],
+                    origen=r[6], indicacion=indicaciones.get(r[0]),
                 )
                 for r in revisiones
             ),
@@ -390,6 +431,198 @@ class RepositorioWeb:
                 (id_solicitud, list(CANALES_WEB)),
             ).fetchone()
         return fila[0] if fila else None
+
+    # ---------- ajuste generativo ----------
+
+    def buscar_ajuste(
+        self, *, idempotency_key: str
+    ) -> AjusteExistente | None:
+        """El ajuste ya encolado con esa llave, para el reenvío idempotente."""
+        with self._conexion_factory() as conn:
+            fila = conn.execute(
+                "SELECT a.id_solicitud, a.id_ejecucion, a.id_ajuste,"
+                " a.solicitante_hash, a.indicacion_hash"
+                " FROM ajustes a JOIN ejecuciones e"
+                "   ON e.id_ejecucion = a.id_ejecucion"
+                " WHERE e.idempotency_key = %s",
+                (idempotency_key,),
+            ).fetchone()
+        if fila is None:
+            return None
+        return AjusteExistente(
+            id_solicitud=fila[0], id_ejecucion=fila[1], id_ajuste=fila[2],
+            solicitante_hash=fila[3], indicacion_hash=fila[4],
+        )
+
+    def crear_ajuste(
+        self,
+        *,
+        idempotency_key: str,
+        id_solicitud: str,
+        id_borrador_base: str,
+        base_output_hash: str,
+        indicacion: str,
+        solicitante_hash: str,
+        rol: str,
+        origen_identidad: str,
+        version_agente: str,
+        ahora: datetime | None = None,
+    ) -> ResultadoAjuste:
+        """Encola un ajuste sobre la revisión vigente, sin sobrescribirla.
+
+        Crea la ejecución reservable (`clase='ajuste'`), la fila de `ajustes`
+        con la proveniencia del pedido y la indicación en la prosa
+        transitoria. La solicitud pasa a `AJUSTANDO`.
+
+        Códigos: `encolado`; `existente` si la llave ya estaba con la misma
+        firma (reenvío); `cerrada`, `ajuste_en_curso`, `sin_revision` o
+        `revision_obsoleta` si el estado ya no admite el pedido. La misma
+        llave con otra firma levanta `ConflictoIdempotencia`, como el pedido
+        guiado.
+        """
+        ahora = ahora or datetime.now(timezone.utc)
+        indicacion_hash = _hash(indicacion)
+        input_hash = _hash(
+            f"{idempotency_key}|{id_solicitud}|{id_borrador_base}|"
+            f"{base_output_hash}|{indicacion_hash}|{solicitante_hash}|"
+            f"{rol}|{origen_identidad}|{version_agente}"
+        )
+        id_ajuste = f"aju-{uuid.uuid4().hex[:16]}"
+        id_ejecucion = f"webe-{uuid.uuid4().hex[:16]}"
+        try:
+            with self._conexion_factory() as conn:
+                with conn.transaction():
+                    fila = conn.execute(
+                        "SELECT revision_vigente, estado_web FROM solicitudes"
+                        " WHERE id_solicitud = %s AND canal = ANY(%s)"
+                        " FOR UPDATE",
+                        (id_solicitud, list(CANALES_WEB)),
+                    ).fetchone()
+                    if fila is None:
+                        return ResultadoAjuste("inexistente")
+                    previa = conn.execute(
+                        "SELECT e.id_ejecucion, e.input_hash, a.id_ajuste,"
+                        " a.solicitante_hash FROM ejecuciones e"
+                        " JOIN ajustes a ON a.id_ejecucion = e.id_ejecucion"
+                        " WHERE e.idempotency_key = %s",
+                        (idempotency_key,),
+                    ).fetchone()
+                    if previa is not None:
+                        if (
+                            previa[1] != input_hash
+                            or previa[3] != solicitante_hash
+                        ):
+                            raise ConflictoIdempotencia()
+                        return ResultadoAjuste(
+                            "existente",
+                            id_ajuste=previa[2],
+                            id_ejecucion=previa[0],
+                            creada=False,
+                        )
+                    vigente, estado_web = fila
+                    if estado_web == "AJUSTANDO":
+                        return ResultadoAjuste("ajuste_en_curso")
+                    if estado_web != "LISTA":
+                        return ResultadoAjuste("cerrada")
+                    if vigente is None:
+                        return ResultadoAjuste("sin_revision")
+                    if vigente != id_borrador_base:
+                        return ResultadoAjuste("revision_obsoleta")
+                    hash_base = conn.execute(
+                        "SELECT output_hash FROM borradores"
+                        " WHERE id_borrador = %s",
+                        (id_borrador_base,),
+                    ).fetchone()
+                    if hash_base is None or hash_base[0] != base_output_hash:
+                        return ResultadoAjuste("revision_obsoleta")
+                    en_curso = conn.execute(
+                        "SELECT 1 FROM ajustes a JOIN ejecuciones e"
+                        "   ON e.id_ejecucion = a.id_ejecucion"
+                        " WHERE a.id_solicitud = %s"
+                        "   AND e.estado = 'INICIADA'",
+                        (id_solicitud,),
+                    ).fetchone()
+                    if en_curso is not None:
+                        return ResultadoAjuste("ajuste_en_curso")
+                    conn.execute(
+                        "INSERT INTO ejecuciones (id_ejecucion, id_solicitud,"
+                        " idempotency_key, correlation_id, hu, input_hash,"
+                        " estado, creada_en, clase) VALUES"
+                        " (%s,%s,%s,%s,'HU-010',%s,'INICIADA',%s,'ajuste')",
+                        (
+                            id_ejecucion, id_solicitud, idempotency_key,
+                            f"corr-{uuid.uuid4().hex[:16]}", input_hash,
+                            ahora,
+                        ),
+                    )
+                    conn.execute(
+                        "INSERT INTO ajustes (id_ajuste, id_solicitud,"
+                        " id_ejecucion, id_borrador_base, base_output_hash,"
+                        " indicacion_hash, solicitante_hash, rol,"
+                        " origen_identidad, version_agente, creada_en) VALUES"
+                        " (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (
+                            id_ajuste, id_solicitud, id_ejecucion,
+                            id_borrador_base, base_output_hash,
+                            indicacion_hash, solicitante_hash, rol,
+                            origen_identidad, version_agente, ahora,
+                        ),
+                    )
+                    conn.execute(
+                        "INSERT INTO prosa_transitoria (id_solicitud,"
+                        " id_ejecucion, clase, texto, texto_hash, creada_en)"
+                        " VALUES (%s,%s,'ajuste',%s,%s,%s)",
+                        (
+                            id_solicitud, id_ejecucion, indicacion,
+                            indicacion_hash, ahora,
+                        ),
+                    )
+                    conn.execute(
+                        "UPDATE solicitudes SET estado_web = 'AJUSTANDO',"
+                        " ultima_actividad_en = %s WHERE id_solicitud = %s",
+                        (ahora, id_solicitud),
+                    )
+                    conn.execute(
+                        "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
+                        " ocurrido_en, evidencia_hash) VALUES"
+                        " (%s,'ajuste_solicitado',%s,%s)",
+                        (id_ejecucion, ahora, indicacion_hash),
+                    )
+        except psycopg.errors.UniqueViolation:
+            return self._ajuste_existente(
+                idempotency_key, input_hash, solicitante_hash
+            )
+        return ResultadoAjuste(
+            "encolado",
+            id_ajuste=id_ajuste,
+            id_ejecucion=id_ejecucion,
+            creada=True,
+        )
+
+    def _ajuste_existente(
+        self,
+        idempotency_key: str,
+        input_hash: str,
+        solicitante_hash: str,
+    ) -> ResultadoAjuste:
+        with self._conexion_factory() as conn:
+            fila = conn.execute(
+                "SELECT e.id_ejecucion, e.input_hash, a.id_ajuste,"
+                " a.solicitante_hash FROM ejecuciones e"
+                " JOIN ajustes a ON a.id_ejecucion = e.id_ejecucion"
+                " WHERE e.idempotency_key = %s",
+                (idempotency_key,),
+            ).fetchone()
+        if fila is None:
+            raise RepositorioWebError("idempotency_lookup_missing")
+        if fila[1] != input_hash or fila[3] != solicitante_hash:
+            raise ConflictoIdempotencia()
+        return ResultadoAjuste(
+            "existente",
+            id_ajuste=fila[2],
+            id_ejecucion=fila[0],
+            creada=False,
+        )
 
     # ---------- trabajo del worker ----------
 
@@ -411,9 +644,20 @@ class RepositorioWeb:
             with conn.transaction():
                 fila = conn.execute(
                     "SELECT e.id_ejecucion, e.id_solicitud, s.tipo_pieza,"
-                    " s.actividad_ref, s.rol, s.solicitante_hash, s.canal"
+                    " s.actividad_ref, s.rol, s.solicitante_hash, s.canal,"
+                    " e.clase, a.id_ajuste, a.id_borrador_base,"
+                    " (SELECT p.texto FROM prosa_transitoria p"
+                    "   WHERE p.id_ejecucion = e.id_ejecucion"
+                    "     AND p.clase = 'ajuste' AND p.texto IS NOT NULL"
+                    "   LIMIT 1),"
+                    " (SELECT p.texto FROM prosa_transitoria p"
+                    "   WHERE p.id_borrador = a.id_borrador_base"
+                    "     AND p.clase IN ('generado', 'importado')"
+                    "     AND p.texto IS NOT NULL"
+                    "   LIMIT 1)"
                     " FROM ejecuciones e"
                     " JOIN solicitudes s ON s.id_solicitud = e.id_solicitud"
+                    " LEFT JOIN ajustes a ON a.id_ejecucion = e.id_ejecucion"
                     " WHERE e.estado = 'INICIADA'"
                     "   AND (e.reservada_hasta IS NULL"
                     "        OR e.reservada_hasta < %s)"
@@ -432,9 +676,12 @@ class RepositorioWeb:
                     ),
                 )
                 conn.execute(
-                    "UPDATE solicitudes SET estado_web = 'GENERANDO',"
+                    "UPDATE solicitudes SET estado_web = %s,"
                     " ultima_actividad_en = %s WHERE id_solicitud = %s",
-                    (ahora, fila[1]),
+                    (
+                        "AJUSTANDO" if fila[7] == "ajuste" else "GENERANDO",
+                        ahora, fila[1],
+                    ),
                 )
                 conn.execute(
                     "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
@@ -455,7 +702,9 @@ class RepositorioWeb:
         return TrabajoWeb(
             id_ejecucion=fila[0], id_solicitud=fila[1], tipo_pieza=fila[2],
             actividad_ref=fila[3], rol=fila[4], solicitante_hash=fila[5],
-            canal=fila[6],
+            canal=fila[6], clase=fila[7], id_ajuste=fila[8],
+            id_borrador_base=fila[9], indicacion=fila[10],
+            texto_base=fila[11],
             descripcion=descripcion, campos=campos, intentos=intentos,
         )
 
@@ -472,6 +721,9 @@ class RepositorioWeb:
         texto_documento: str | None = None,
         compartido_con_hash: str | None = None,
         permiso_no_otorgado_hash: str | None = None,
+        origen: str = "generada",
+        id_borrador_base: str | None = None,
+        id_ajuste: str | None = None,
         ahora: datetime | None = None,
     ) -> str:
         """Cierra la ejecución con su revisión de pieza, en una tx.
@@ -491,6 +743,8 @@ class RepositorioWeb:
         —el Doc ya existe— y con el hash, nunca el correo en claro.
         """
         ahora = ahora or datetime.now(timezone.utc)
+        if origen not in ("generada", "editada_docs", "ajuste_generativo"):
+            raise RepositorioWebError("origen_fuera_de_catalogo")
         output_hash = _hash(texto_generado)
         doc_hash = (
             _hash(texto_documento)
@@ -520,13 +774,13 @@ class RepositorioWeb:
                     "INSERT INTO borradores (id_borrador, id_ejecucion,"
                     " referencia_hash, output_hash, canal, estado, creada_en,"
                     " id_solicitud, numero_revision, doc_ref,"
-                    " head_revision_id, origen) VALUES"
+                    " head_revision_id, origen, id_borrador_base) VALUES"
                     " (%s,%s,%s,%s,'gacetilla','PENDIENTE_VALIDACION',%s,"
-                    " %s,%s,%s,%s,'generada')",
+                    " %s,%s,%s,%s,%s,%s)",
                     (
                         id_borrador, id_ejecucion, _hash(referencia),
                         doc_hash, ahora, id_solicitud, numero,
-                        doc_ref, head_revision_id,
+                        doc_ref, head_revision_id, origen, id_borrador_base,
                     ),
                 )
                 conn.execute(
@@ -562,6 +816,22 @@ class RepositorioWeb:
                         " ocurrido_en, evidencia_hash) VALUES"
                         " (%s,'permiso_no_otorgado',%s,%s)",
                         (id_ejecucion, ahora, permiso_no_otorgado_hash),
+                    )
+                if id_ajuste is not None:
+                    # La indicación deja de ser prosa de trabajo y queda
+                    # enlazada a la revisión que produjo: el historial de la
+                    # vista muestra qué se pidió para cada ajuste.
+                    conn.execute(
+                        "UPDATE prosa_transitoria SET id_borrador = %s"
+                        " WHERE id_ejecucion = %s AND clase = 'ajuste'"
+                        "   AND id_borrador IS NULL",
+                        (id_borrador, id_ejecucion),
+                    )
+                    conn.execute(
+                        "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
+                        " ocurrido_en, evidencia_hash) VALUES"
+                        " (%s,'ajuste_generado',%s,%s)",
+                        (id_ejecucion, ahora, doc_hash),
                     )
         return id_borrador
 

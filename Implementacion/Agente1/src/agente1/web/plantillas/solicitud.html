@@ -49,13 +49,14 @@
   <h2>Revisiones</h2>
   <table class="tabla-revisiones">
     <thead>
-      <tr><th>N.º</th><th>Origen</th><th>Fecha</th><th>Hash</th><th></th></tr>
+      <tr><th>N.º</th><th>Origen</th><th>Indicación</th><th>Fecha</th><th>Hash</th><th></th></tr>
     </thead>
     <tbody>
       {% for r in revisiones %}
       <tr{% if r.vigente %} class="revision-vigente"{% endif %}>
         <td>{{ r.numero }}</td>
         <td>{{ r.origen }}</td>
+        <td>{% if r.indicacion %}<span class="indicacion-ajuste">{{ r.indicacion }}</span>{% endif %}</td>
         <td>{{ r.creada }}</td>
         <td><code>{{ r.hash_corto }}</code></td>
         <td>{% if r.vigente %}<strong>vigente</strong>{% endif %}</td>
@@ -72,6 +73,18 @@
   <form method="post" action="/solicitudes/{{ s.id_solicitud }}/traer-cambios">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <button type="submit">Traer cambios del Doc</button>
+  </form>
+  {% endif %}
+  {% if puede_ajustar %}
+  <form method="post" action="/solicitudes/{{ s.id_solicitud }}/ajustar"
+        class="form-ajuste">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="llave" value="{{ llave_ajuste }}">
+    <label for="indicacion">Pedir ajuste</label>
+    <textarea id="indicacion" name="indicacion" required
+              minlength="3" maxlength="500" rows="2"
+              placeholder="Por ejemplo: más breve, sumá el horario, tono más formal"></textarea>
+    <button type="submit">Pedir ajuste</button>
   </form>
   {% endif %}
   {% if puede_decidir %}
@@ -132,9 +145,13 @@
   <h2>Texto vigente al cerrar</h2>
   <pre class="pieza">{{ texto_vigente }}</pre>
   {% endif %}
-  {% elif s.estado_web in ('EN_COLA', 'GENERANDO') %}
+  {% elif s.estado_web in ('EN_COLA', 'GENERANDO', 'AJUSTANDO') %}
   <p class="aviso-estado" id="aviso-estado">
+    {% if s.estado_web == 'AJUSTANDO' %}
+    El agente está ajustando la revisión vigente. Esta página se actualiza sola.
+    {% else %}
     El agente está generando el borrador. Esta página se actualiza sola.
+    {% endif %}
   </p>
   {% elif s.estado_web == 'ERROR' %}
   <p class="mensaje-error" role="alert">
@@ -190,7 +207,7 @@
 })();
 </script>
 {% endif %}
-{% if s.estado_web in ('EN_COLA', 'GENERANDO') %}
+{% if s.estado_web in ('EN_COLA', 'GENERANDO', 'AJUSTANDO') %}
 <script>
 (function () {
   var aviso = document.getElementById('aviso-estado');

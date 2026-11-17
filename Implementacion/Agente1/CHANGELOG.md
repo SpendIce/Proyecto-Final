@@ -26,6 +26,10 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+Sin cambios todavía.
+
+## [0.8.0] - 2026-11-17
+
 - **Menor — el lote de certificados se aprueba en la web (#168).** La bandeja
   suma «Lotes de certificados» y la página `/certificados/<id_lote>` muestra la
   actividad, la lista de cierre, el hash del lote, la plantilla con su estado,
@@ -41,6 +45,48 @@ Dirección. Detalle en el procedimiento.
   `scripts/demo_lote_certificados.py` para cargar un lote ficticio (`FIE-DIF-02`,
   personas «Persona Ficticia N», sin correos reales) y la purga diaria de la
   lista y la línea descriptiva con el rol de mantenimiento.
+
+## [0.7.0] - 2026-11-17
+
+- **Menor — ajuste generativo sobre la última revisión (canal web).** En la
+  solicitud con revisión vigente, quien puede revisar el Doc escribe una
+  indicación corta («más breve», «sumá el horario», «tono más formal») y el
+  agente reescribe el texto partiendo de esa revisión —incluidas las
+  correcciones humanas importadas del Doc— con un prompt nuevo
+  (`ajuste_generativo_v1`). Antes de encolar, el pedido trae los cambios del
+  Doc para que la base sea lo que se ve; la salida pasa la marca y el gate de
+  la pieza, se escribe en el mismo Doc y crea una revisión nueva con origen
+  `ajuste_generativo` y base declarada, sin sobrescribir la anterior. La
+  aprobación sigue atada al hash de la revisión vigente: decidir sobre la
+  anterior queda `revision_obsoleta`. La solicitud muestra «Ajustando…» con el
+  mismo sondeo de `/estado`, la auditoría registra quién, rol, origen de
+  identidad, indicación, hash base y versión del agente, y el historial de la
+  vista muestra la indicación de cada ajuste. Migración 0009; tests en
+  `tests/test_canal_web_ajuste.py`.
+
+## [0.6.5] - 2026-11-17
+
+- **Parche — la bandeja agrupa por estado.** Pendientes (en cola, generando,
+  en revisión) arriba, cerradas (aprobadas, descartadas) después y los pedidos
+  con error colapsados al final («Con error (n)»). No se borran: son parte de
+  la auditoría.
+
+## [0.6.4] - 2026-11-17
+
+Encontrado al generar los siete tipos en el servidor (canal web, 0.6.3).
+
+- **Parche — el saludo con idea de quien pide ya no falla por `hecho_perdido`.**
+  Con `cuerpo` cargado en el pedido, el modelo redacta su propia prosa (sin
+  fechas ni cifras, por prompt) y el gate exigía esa idea literal en la pieza.
+  El `cuerpo` de un tipo de prosa directa es la salida del modelo (contrato de
+  entrada): el gate lo controla contra lo que se imprimió.
+- **Parche — las fórmulas no duplican la puntuación.** El valor que entra en
+  medio de una frase de la forma pierde su punto final («…principal., a partir
+  del…», «…anexo..»); el control de hechos compara sin esa puntuación. El
+  renderer sube a `gacetilla_forma_declarada_v6`.
+- **Parche — el pedido guiado muestra cómo entra cada campo en la frase**
+  («Completa «Se informa a la comunidad … que …», en minúscula») en aviso,
+  convocatoria, fallecimiento y saludo.
 
 ## [0.6.3] - 2026-11-16
 

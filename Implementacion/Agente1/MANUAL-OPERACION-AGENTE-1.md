@@ -707,6 +707,25 @@ Docs`, fecha, hash corto) y los botones:
   `APROBADOR_CONTENIDO` del padrón. Aprobar **cierra** el recorrido:
   no publica, no envía correos ni aporta a Historia Viva.
 
+**Pedir ajuste (canal web).** Con una revisión vigente y el rol de
+revisión del Doc, la solicitud muestra «Pedir ajuste»: una indicación de
+3 a 500 caracteres («más breve», «sumá el horario», «tono más formal»)
+que el worker aplica sobre la revisión vigente —incluidas las
+correcciones humanas que «Traer cambios» haya importado— con un prompt
+propio y el mismo modelo local (`think=False`). Antes de encolar, el POST
+reexpone el Doc y, si cambió, importa la revisión para que la base sea lo
+que se ve. La salida pasa la marca de borrador y el gate de la pieza; si
+está vacía o no cumple, el ajuste queda en error visible y la revisión
+vigente no cambia. En éxito se escribe en el mismo Doc y se crea una
+revisión nueva con origen `ajuste_generativo` y base declarada: la
+anterior se conserva y la aprobación sigue atada al hash de la vigente,
+así que una decisión sobre la revisión vieja se rechaza
+(`revision_obsoleta`). Mientras el worker trabaja la solicitud muestra
+«Ajustando…» y se actualiza con el sondeo de `/estado`; el historial de
+revisiones muestra la indicación de cada ajuste. La auditoría registra
+quién, rol, origen de identidad (`google`/`demo`), indicación, hash de la
+revisión base y versión del agente.
+
 **Lote de certificados en la web (#168, ADR 0018).** El correo al
 aprobador del lote de HU-014 ya no se envía en producción: el lote queda
 `PENDIENTE_APROBACION` y se evalúa en la web. La bandeja suma la sección

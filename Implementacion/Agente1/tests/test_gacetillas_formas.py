@@ -493,3 +493,40 @@ def test_el_renderer_de_difusion_no_tiene_frases_institucionales_literales():
         "Fie informa",
     ):
         assert frase not in fuente, f"el renderer todavía hardcodea: {frase}"
+
+
+def test_el_saludo_con_idea_de_quien_pide_no_falla_por_hecho_perdido():
+    """Demo 17/11: con `cuerpo` cargado en el pedido, el modelo redacta su
+    propia prosa (sin fechas, por prompt) y el gate exigía la idea literal
+    → `hecho_perdido` siempre. El cuerpo del saludo es la salida del modelo
+    (contrato de entrada); el gate lo controla contra lo que se imprimió."""
+
+    pieza, errores = generar_pieza(
+        "saludo_o_efemeride",
+        {
+            "titulo": "Día de la Soberanía Nacional",
+            "cuerpo": "20 de noviembre: recordamos la Vuelta de Obligado de 1845.",
+        },
+        FakeGenerator(SALUDO),
+    )
+
+    assert errores == []
+    assert SALUDO in pieza
+    assert "1845" not in pieza
+
+
+def test_la_formula_no_duplica_la_puntuacion_de_lo_que_escribe_quien_pide():
+    """Demo 17/11: «…principal., a partir del…» y «…anexo..». El valor
+    entra en medio de una frase: el punto final del valor sobra."""
+
+    campos = dict(CASOS["aviso_de_otra_area"])
+    campos["hecho"] = "el estacionamiento para motos no estará habilitado."
+    campos["condicion"] = "hasta nuevo aviso."
+
+    pieza, errores = confirmar_pieza("aviso_de_otra_area", campos)
+
+    assert errores == []
+    assert ".," not in pieza
+    assert ".." not in pieza
+    assert "no estará habilitado, a partir del" in pieza
+    assert "hasta nuevo aviso." in pieza
