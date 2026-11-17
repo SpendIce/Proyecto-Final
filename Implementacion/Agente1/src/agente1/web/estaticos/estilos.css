@@ -230,6 +230,21 @@ h2 { font-weight: 600; font-size: 1.15rem; margin-top: 1.75rem; }
 }
 .tabla-revisiones th { font-family: var(--fuente-titulos); font-weight: 600; }
 .revision-vigente { background: #EAF3EC; }
+.indicacion-ajuste { font-style: italic; }
+.estado-ajustando { background: var(--azul-fie); color: var(--blanco); }
+.form-ajuste { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 1rem; }
+.form-ajuste label { font-family: var(--fuente-titulos); font-weight: 600; }
+.form-ajuste textarea {
+  font-family: var(--fuente-texto);
+  font-size: 1rem;
+  color: var(--neutro-oscuro);
+  background: var(--blanco);
+  border: 1px solid var(--neutro-medio);
+  border-radius: 4px;
+  padding: 0.55rem 0.7rem;
+  width: 100%;
+}
+.form-ajuste button { align-self: flex-start; }
 .acciones-decision { display: flex; gap: 0.8rem; margin-top: 1rem; }
 .acciones-decision button[name="accion"][value="descartar"] {
   background: var(--neutro-oscuro);

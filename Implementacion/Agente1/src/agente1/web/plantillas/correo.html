@@ -13,6 +13,11 @@
     El agente está generando el borrador. Esta pestaña espera la decisión
     y se actualiza sola.
   </p>
+  {% elif motivo == 'ajustando' %}
+  <p class="aviso-estado">
+    El agente está ajustando la revisión vigente. Esta pestaña espera la
+    decisión y se actualiza sola.
+  </p>
   {% elif motivo == 'en_revision' %}
   <p class="aviso-estado">
     La solicitud está en revisión: todavía no hay aprobación. Esta

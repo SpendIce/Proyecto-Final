@@ -24,6 +24,10 @@ Decisiones que no se ven en el código:
 - **El log nunca lleva prosa ni identidad**: una línea por falla con el
   código estable, el id de la ejecución y el intento — los identificadores
   ya son opacos y el detalle del motivo queda en el resultado durable.
+- **Un ajuste es una ejecución más, no una regeneración.** La ejecución
+  `clase='ajuste'` reescribe la revisión vigente con la indicación
+  registrada, la vuelca en el mismo Doc y crea la revisión nueva; si el
+  gate o el Doc fallan, la vigente queda intacta.
 """
 
 from __future__ import annotations
@@ -35,7 +39,11 @@ from pathlib import Path
 from typing import Protocol
 
 from ..canal_form import hash_correo
-from ..destinos import ReferenciaBorrador, ResultadoDestinoPorMarca
+from ..destinos import (
+    DestinoBorradoresError,
+    ReferenciaBorrador,
+    ResultadoDestinoPorMarca,
+)
 from ..fuentes import FuenteSolicitudes
 from ..gacetillas import requiere_actividad
 from ..interpretacion import (
@@ -44,6 +52,7 @@ from ..interpretacion import (
     interpretar_solicitud,
 )
 from ..procesamiento import Generator
+from .ajuste import ajustar_texto
 from .persistencia import (
     CANAL_WEB,
     CANAL_WEB_DEMO,
@@ -251,6 +260,70 @@ def _generar_pieza(
     return destino_marcado.ultimo_contenido, destino_marcado.ultimo
 
 
+def _campos_de_validacion(
+    trabajo: TrabajoWeb, *, fuente: FuenteSolicitudes
+) -> dict:
+    """Los hechos contra los que el gate evalúa la pieza ajustada.
+
+    Para los tipos con ficha, los hechos salen de la fuente institucional
+    —igual que en la generación—; para el resto, de los campos confirmados
+    del pedido. Un tipo con ficha sin actividad declarada no se puede
+    validar y cierra el ajuste como incompleto.
+    """
+    if not requiere_actividad(trabajo.tipo_pieza):
+        return {
+            str(clave): str(valor)
+            for clave, valor in trabajo.campos.get("pieza", {}).items()
+        }
+    if not trabajo.actividad_ref:
+        raise FalloGeneracion("INCOMPLETA", "datos_incompletos")
+    try:
+        return dict(fuente.obtener(trabajo.actividad_ref))
+    except Exception:
+        raise FalloGeneracion("FALLIDA", "error_generacion") from None
+
+
+def _ajustar_pieza(
+    trabajo: TrabajoWeb,
+    *,
+    fuente: FuenteSolicitudes,
+    generator: Generator,
+    destino: DestinoPorMarca,
+) -> tuple[str, ResultadoDestinoWeb]:
+    """Reescribe la revisión vigente y la vuelca en el mismo Doc.
+
+    El texto base es el que dejó la última revisión vigente, con las
+    correcciones humanas ya importadas por el pedido. Si la salida no pasa
+    el gate o el Doc no se puede escribir, no hay revisión nueva: la
+    vigente queda intacta.
+    """
+    if trabajo.texto_base is None or trabajo.indicacion is None:
+        raise FalloGeneracion("FALLIDA", "error_generacion")
+    campos = _campos_de_validacion(trabajo, fuente=fuente)
+    texto, errores = ajustar_texto(
+        texto_base=trabajo.texto_base,
+        indicacion=trabajo.indicacion,
+        tipo=trabajo.tipo_pieza,
+        campos=campos,
+        generator=generator,
+    )
+    if not texto:
+        resultado = (
+            "salida_vacia" if "salida_vacia" in errores else "salida_no_conforme"
+        )
+        raise FalloGeneracion("FALLIDA", resultado)
+    try:
+        resultado_destino = destino.buscar_o_crear(
+            marca=trabajo.id_solicitud,
+            id_solicitud=trabajo.id_solicitud,
+            contenido=texto,
+            nombre=None,
+        )
+    except DestinoBorradoresError:
+        raise FalloGeneracion("FALLIDA", "destination_failure") from None
+    return texto, resultado_destino
+
+
 def correr_una_vez(
     *,
     repositorio: RepositorioWeb,
@@ -283,14 +356,23 @@ def correr_una_vez(
     )
     if trabajo is None:
         return None
+    es_ajuste = trabajo.clase == "ajuste"
     try:
-        texto, resultado_destino = _generar_pieza(
-            trabajo,
-            fuente=fuente,
-            generator=generator,
-            directorio_salida=directorio_salida,
-            destino=destino,
-        )
+        if es_ajuste:
+            texto, resultado_destino = _ajustar_pieza(
+                trabajo,
+                fuente=fuente,
+                generator=generator,
+                destino=destino,
+            )
+        else:
+            texto, resultado_destino = _generar_pieza(
+                trabajo,
+                fuente=fuente,
+                generator=generator,
+                directorio_salida=directorio_salida,
+                destino=destino,
+            )
     except FalloGeneracion as fallo:
         logger.warning(
             "worker_fallo id_ejecucion=%s resultado=%s",
@@ -363,6 +445,9 @@ def correr_una_vez(
         texto_documento=resultado_destino.texto_documento,
         compartido_con_hash=compartido_con_hash,
         permiso_no_otorgado_hash=permiso_no_otorgado_hash,
+        origen="ajuste_generativo" if es_ajuste else "generada",
+        id_borrador_base=trabajo.id_borrador_base if es_ajuste else None,
+        id_ajuste=trabajo.id_ajuste if es_ajuste else None,
         ahora=ahora,
     )
     return trabajo

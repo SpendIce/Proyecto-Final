@@ -140,6 +140,18 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "respaldo."
         ),
     ),
+    "0009_ajuste_generativo": Reversion(
+        reversible=True,
+        pierde_datos=False,
+        requiere_restaurar_respaldo=False,
+        nota=(
+            "El `down` elimina la tabla `ajustes` y las columnas del ajuste, "
+            "pero aborta en voz alta si quedó cualquier ejecución `ajuste`, "
+            "revisión `ajuste_generativo`, indicación o solicitud "
+            "`AJUSTANDO`: sin esos datos el esquema vuelve al de 0008 y no "
+            "se descarta ninguna fila almacenada."
+        ),
+    ),
 }
 
 
