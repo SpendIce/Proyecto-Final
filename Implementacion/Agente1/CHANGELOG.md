@@ -28,6 +28,13 @@ Dirección. Detalle en el procedimiento.
 
 Sin cambios todavía.
 
+## [0.6.5] - 2026-11-17
+
+- **Parche — la bandeja agrupa por estado.** Pendientes (en cola, generando,
+  en revisión) arriba, cerradas (aprobadas, descartadas) después y los pedidos
+  con error colapsados al final («Con error (n)»). No se borran: son parte de
+  la auditoría.
+
 ## [0.6.4] - 2026-11-17
 
 Encontrado al generar los siete tipos en el servidor (canal web, 0.6.3).
