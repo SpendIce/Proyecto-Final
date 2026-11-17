@@ -75,6 +75,13 @@
     <button type="submit">Traer cambios del Doc</button>
   </form>
   {% endif %}
+  {% if s.estado_web == 'LISTA' and s.ultimo_ajuste_fallido %}
+  <p class="mensaje-error" role="alert">
+    El último ajuste no se aplicó:
+    {% if s.ultimo_ajuste_fallido == 'salida_no_conforme' %}el texto propuesto perdía un dato o no respetaba el formato de la pieza{% elif s.ultimo_ajuste_fallido == 'salida_vacia' %}el modelo no devolvió texto{% elif s.ultimo_ajuste_fallido == 'destination_failure' %}no se pudo escribir el Doc{% else %}falló el agente{% endif %}.
+    La revisión vigente no cambió: se puede pedir otro ajuste o decidir sobre esta.
+  </p>
+  {% endif %}
   {% if puede_ajustar %}
   <form method="post" action="/solicitudes/{{ s.id_solicitud }}/ajustar"
         class="form-ajuste">

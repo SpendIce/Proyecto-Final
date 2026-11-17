@@ -135,28 +135,86 @@ def _campos_de_la_base(campos: dict, texto_base: str) -> dict:
     return presentes
 
 
+# El pie institucional (después de la línea `--`) es fijo de la forma: no
+# viaja al modelo —menos tokens que el modelo pueda cortar o retocar— y se
+# repone tal cual en la salida.
+SEPARADOR_PIE = "\n--\n"
+# Un segundo intento cuando la salida no sirve: el modelo local es
+# estocástico y una salida vacía o que pierde un dato suele no repetirse.
+INTENTOS_AJUSTE = 2
+
+
+def _separar_pie(texto: str) -> tuple[str, str]:
+    """`(cuerpo, pie)`; el pie incluye el separador `--` y puede ser vacío."""
+    corte = texto.rfind(SEPARADOR_PIE)
+    if corte < 0:
+        return texto, ""
+    return texto[:corte], texto[corte:]
+
+
 def normalizar_pieza_ajustada(
     salida: str, *, tipo: str, campos: dict, texto_base: str
 ) -> tuple[str, list[str]]:
     """Normaliza la salida del modelo y la somete al gate de la pieza.
 
     La marca se conserva si el modelo la repitió y se antepone si no: es una
-    cabecera obligatoria del destino, no prosa creativa. El cuerpo se valida
-    contra el mismo `validar_pieza` que usa la generación, con los hechos de
-    la base que el ajuste debe conservar.
+    cabecera obligatoria del destino, no prosa creativa. El pie de la base
+    reemplaza al que haya escrito el modelo. El texto se valida contra el
+    mismo `validar_pieza` que usa la generación, con los hechos de la base
+    que el ajuste debe conservar.
     """
     texto = salida.strip()
     if not texto:
         return "", ["salida_vacia"]
-    cuerpo = _quitar_marca(texto)
+    cuerpo, _ = _separar_pie(_quitar_marca(texto))
+    cuerpo = cuerpo.strip()
     if not cuerpo:
         return "", ["salida_vacia"]
+    _, pie = _separar_pie(_quitar_marca(texto_base))
+    # La forma deja una línea en blanco antes del `--` del pie.
+    pieza = cuerpo + "\n" + pie.rstrip() if pie else cuerpo
     errores = validar_pieza(
-        tipo, cuerpo, _campos_de_la_base(campos, texto_base)
+        tipo, pieza, _campos_de_la_base(campos, texto_base)
     )
     if errores:
         return "", errores
-    return f"{BORRADOR_MARKER}{cuerpo}\n", []
+    return f"{BORRADOR_MARKER}{pieza}\n", []
+
+
+@dataclass(frozen=True)
+class SalidaAjuste:
+    """La pieza ajustada (o vacía), los códigos del último intento y cuántos hubo."""
+
+    texto: str
+    errores: list[str]
+    intentos: int
+
+
+def ajustar(
+    *,
+    texto_base: str,
+    indicacion: str,
+    tipo: str,
+    campos: dict,
+    generator: Generator,
+    intentos: int = INTENTOS_AJUSTE,
+) -> SalidaAjuste:
+    """Pide el ajuste sin el pie y reintenta si la salida no pasa."""
+    cuerpo_base, _ = _separar_pie(texto_base)
+    prompt = construir_prompt_ajuste(
+        texto_base=cuerpo_base.rstrip() + "\n", indicacion=indicacion
+    )
+    texto, errores = "", ["salida_vacia"]
+    for intento in range(1, intentos + 1):
+        texto, errores = normalizar_pieza_ajustada(
+            generator.generar(prompt),
+            tipo=tipo,
+            campos=campos,
+            texto_base=texto_base,
+        )
+        if texto:
+            return SalidaAjuste(texto, [], intento)
+    return SalidaAjuste("", errores, intentos)
 
 
 def ajustar_texto(
@@ -168,13 +226,14 @@ def ajustar_texto(
     generator: Generator,
 ) -> tuple[str, list[str]]:
     """Pide el ajuste al generador y devuelve la pieza normalizada o el fallo."""
-    prompt = construir_prompt_ajuste(
-        texto_base=texto_base, indicacion=indicacion
+    salida = ajustar(
+        texto_base=texto_base,
+        indicacion=indicacion,
+        tipo=tipo,
+        campos=campos,
+        generator=generator,
     )
-    salida = generator.generar(prompt)
-    return normalizar_pieza_ajustada(
-        salida, tipo=tipo, campos=campos, texto_base=texto_base
-    )
+    return salida.texto, salida.errores
 
 
 def _hash(texto: str) -> str:

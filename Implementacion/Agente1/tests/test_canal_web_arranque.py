@@ -210,3 +210,46 @@ def test_destino_docs_deja_en_stderr_el_codigo_del_token(
         destino._obtener_token()
     assert error.value.code == "workspace_auth_unavailable"
     assert "workspace_key_unreadable" in capsys.readouterr().err
+
+
+def test_worker_canal_web_ajusta_con_mas_margen_de_tokens(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """El ajuste reescribe una pieza entera: con el `num_predict` de la
+    generación (512) el modelo puede cortar la salida. Usa el techo."""
+    creados: list[dict[str, Any]] = []
+    pasado: dict[str, Any] = {}
+
+    class GeneradorFalso:
+        def __init__(self, **kwargs: Any) -> None:
+            creados.append(kwargs)
+
+    def correr(**kwargs: Any) -> None:
+        pasado.update(kwargs)
+
+    monkeypatch.setattr("agente1.ollama.OllamaGenerator", GeneradorFalso)
+    monkeypatch.setattr("agente1.web.worker.correr_una_vez", correr)
+    modulo = _cargar_script("worker_canal_web")
+
+    codigo = modulo.main(
+        [
+            "--tabla",
+            str(ROOT / "data" / "actividades_sinteticas.csv"),
+            "--salida",
+            str(tmp_path / "salida"),
+            "--ollama-model",
+            "gemma4:e4b",
+            "--destino-fake",
+            "--una-vez",
+        ],
+        environ=_entorno(tmp_path),
+    )
+
+    assert codigo == 0
+    from agente1.ollama import MAX_OLLAMA_NUM_PREDICT, MAX_OLLAMA_TIMEOUT_S
+
+    ajuste = [c for c in creados if c.get("num_predict") == MAX_OLLAMA_NUM_PREDICT]
+    assert len(ajuste) == 1
+    assert ajuste[0]["think"] is False
+    assert ajuste[0]["timeout_s"] == MAX_OLLAMA_TIMEOUT_S
+    assert pasado["generator_ajuste"] is not pasado["generator"]

@@ -139,6 +139,9 @@ class DetalleSolicitud:
     doc_ref: str | None = None
     doc_url: str | None = None
     texto_vigente: str | None = None
+    # Resultado del último ajuste si falló (`salida_no_conforme`…): la
+    # solicitud sigue en revisión y la vista avisa que no se aplicó.
+    ultimo_ajuste_fallido: str | None = None
 
 
 @dataclass(frozen=True)
@@ -401,6 +404,12 @@ class RepositorioWeb:
                 "   AND texto IS NOT NULL",
                 (id_solicitud, fila[11]),
             ).fetchone()
+            ultimo_ajuste = conn.execute(
+                "SELECT estado, resultado FROM ejecuciones"
+                " WHERE id_solicitud = %s AND clase = 'ajuste'"
+                " ORDER BY creada_en DESC LIMIT 1",
+                (id_solicitud,),
+            ).fetchone()
         descripcion, campos, generado = _prosa_de(prosas)
         return DetalleSolicitud(
             id_solicitud=fila[0], tipo_pieza=fila[1], actividad_ref=fila[2],
@@ -420,6 +429,11 @@ class RepositorioWeb:
             doc_ref=fila[9], doc_url=fila[10],
             texto_vigente=(
                 vigente[0] if vigente is not None else generado
+            ),
+            ultimo_ajuste_fallido=(
+                ultimo_ajuste[1]
+                if ultimo_ajuste is not None and ultimo_ajuste[0] == "FALLIDA"
+                else None
             ),
         )
 
@@ -843,14 +857,18 @@ class RepositorioWeb:
         resultado: str = "error_generacion",
         estado: str = "FALLIDA",
         error_code: str | None = None,
+        estado_solicitud: str = "ERROR",
         ahora: datetime | None = None,
     ) -> None:
         """Cierra la ejecución sin borrador y marca la solicitud `ERROR`.
 
         `estado` es `FALLIDA` salvo que el pipeline haya respondido
         `INCOMPLETA`: el esquema exige `resultado='datos_incompletos'` en
-        ese único caso, y acá el valor viaja con él.
+        ese único caso, y acá el valor viaja con él. Un ajuste fallido
+        pasa `estado_solicitud='LISTA'`: la revisión vigente sigue en pie.
         """
+        if estado_solicitud not in ("ERROR", "LISTA"):
+            raise ValueError(f"estado_solicitud inválido: {estado_solicitud!r}")
         ahora = ahora or datetime.now(timezone.utc)
         with self._conexion_factory() as conn:
             with conn.transaction():
@@ -861,9 +879,9 @@ class RepositorioWeb:
                     (estado, resultado, error_code, ahora, id_ejecucion),
                 )
                 conn.execute(
-                    "UPDATE solicitudes SET estado_web = 'ERROR',"
+                    "UPDATE solicitudes SET estado_web = %s,"
                     " ultima_actividad_en = %s WHERE id_solicitud = %s",
-                    (ahora, id_solicitud),
+                    (estado_solicitud, ahora, id_solicitud),
                 )
                 conn.execute(
                     "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
