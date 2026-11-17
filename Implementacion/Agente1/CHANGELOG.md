@@ -28,6 +28,30 @@ Dirección. Detalle en el procedimiento.
 
 Sin cambios todavía.
 
+## [0.10.0] - 2026-11-17
+
+- **Menor — pedido y emisión de certificados desde la web** (Refs #168).
+  Selección de actividad existente, lista de cierre CSV acotada en memoria,
+  validación completa y revisión de la línea exacta junto con el lote.
+  Aprobar y pedir la emisión son acciones separadas; las repeticiones
+  conservan el mismo pedido y los cambios de contenido se informan como
+  conflicto.
+- **Menor — emisión en segundo plano con reserva PostgreSQL**. La migración
+  aditiva 0012 conserva el origen del pedido y registra trabajos sin copiar
+  datos personales. La demostración genera un ZIP con PDF sin validez y
+  nunca envía correos ni registra aprobaciones institucionales. La emisión
+  real conserva los controles vigentes de identidad, rol, firmas,
+  plantillas aprobadas y destinatarios permitidos.
+- **Parche — resultados inciertos y restauración**. Un envío que pudo haber
+  salido no se reintenta automáticamente. La restauración reconcilia la
+  cola dentro de la misma transacción y cerca los lotes reales restaurados
+  que podrían haber sido emitidos después de la copia. El runbook exige
+  detener los servicios y reconciliar las entregas posteriores al respaldo.
+- **Operación — rollback de imagen a 0.9.0 sin ejecutar el down**. La nueva
+  migración es aditiva; el down elimina metadatos de emisión y requiere
+  respaldo. La habilitación institucional de plantillas y demás insumos
+  conserva sus decisiones pendientes; esta versión no las sustituye.
+
 ## [0.9.0] - 2026-11-17
 
 - **Parche — el ajuste puede completar su revisión con el rol del contenedor**

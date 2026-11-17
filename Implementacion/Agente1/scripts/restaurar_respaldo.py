@@ -28,11 +28,17 @@ Qué hace, en orden y siempre fail-closed:
    por definición interrumpida— y toda entrada en estado de aprobación
    (`APROBADA`, las parciales, `ENVIO_ENCOLADO`) cuya última transición es
    posterior a la marca del respaldo pasa a `ENVIO_INDETERMINADO`.
+   Con `--postgres-dsn` el volcado de la base se aplica con
+   `psql --single-transaction` y en la misma transacción todo trabajo
+   real de la cola durable de emisiones web (`emisiones_certificados`)
+   que quedó capaz de enviar pasa a `INDETERMINADA`: un respaldo
+   anterior a un envío no lo repite.
 
 Lo que quedó indeterminado no se reenvía ni se emite: es estado terminal
 para los dos pipelines. Una persona cruza cada clave contra Gmail
 Enviados (y, para certificados, contra el destino de emisión) antes de
-decidir. El informe JSON de salida trae las claves marcadas y el log
+decidir. El informe JSON de salida trae las claves marcadas, el conteo
+`emisiones_pg_indeterminadas` de la cola web y el log
 `logs/respaldo-diario.jsonl` registra la restauración con hashes.
 """
 
@@ -125,6 +131,9 @@ def main(argv: list[str] | None = None) -> int:
                 "conflictos": list(resultado.conflictos),
                 "indeterminados": len(resultado.indeterminados),
                 "claves_indeterminadas": list(resultado.indeterminados),
+                "emisiones_pg_indeterminadas": (
+                    resultado.emisiones_pg_indeterminadas
+                ),
                 "audit_path": str(resultado.audit_path),
             },
             ensure_ascii=False,

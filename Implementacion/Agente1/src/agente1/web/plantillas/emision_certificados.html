@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block titulo %}Emisión de certificados · Agente 1{% endblock %}
+{% block contenido %}
+<section aria-labelledby="t-emision">
+  <div class="seccion-cabecera">
+    <h1 id="t-emision">Emisión de certificados — {{ lote.actividad.titulo }}</h1>
+    {% if estado_visible %}
+    <span class="estado estado-{{ emision.estado|lower }}">{{ estado_visible }}</span>
+    {% endif %}
+  </div>
+
+  {% if es_demo %}
+  <p class="aviso-estado" role="status">
+    Lote de demostración: los certificados son documentos de prueba
+    marcados, sin validez institucional. Nada se envía por correo.
+  </p>
+  {% endif %}
+
+  {% if aviso %}
+  <p class="{% if aviso_error %}mensaje-error{% else %}aviso-estado{% endif %}"
+     role="alert">{{ aviso }}</p>
+  {% endif %}
+
+  <dl class="ficha">
+    <dt>Actividad</dt>
+    <dd>{{ lote.actividad.titulo }} (<code>{{ lote.id_actividad }}</code>)</dd>
+    <dt>Lote</dt><dd><code>{{ lote.id_lote }}</code></dd>
+    <dt>Hash del lote</dt><dd><code>{{ lote.objeto_lote }}</code></dd>
+    <dt>Personas</dt><dd>{{ lote.cantidad_personas }}</dd>
+  </dl>
+
+  {% if emision %}
+  <h2>Estado</h2>
+  <dl class="ficha">
+    <dt>Emisión</dt><dd>{{ estado_visible }}</dd>
+    {% if emision.codigo %}<dt>Código</dt><dd><code>{{ emision.codigo }}</code></dd>{% endif %}
+    {% if es_demo %}
+      {% if emision.generadas %}
+      <dt>Generadas</dt>
+      <dd>{{ emision.generadas }} de demostración (no enviadas)</dd>
+      {% endif %}
+    {% else %}
+      <dt>Generadas</dt><dd>{{ emision.generadas }}</dd>
+      <dt>Enviadas</dt><dd>{{ emision.enviadas }}</dd>
+      <dt>Fallidas</dt><dd>{{ emision.fallidas }}</dd>
+    {% endif %}
+  </dl>
+
+  {% if emision.estado in ('EN_COLA', 'EMITIENDO') %}
+  <p class="aviso-estado" role="status">La generación está en curso. Esta página actualiza el estado automáticamente.</p>
+  <noscript><p><a href="/certificados/{{ lote.id_lote }}/emision">Actualizar estado</a></p></noscript>
+  <script>setTimeout(function () { window.location.reload(); }, 3000);</script>
+  {% endif %}
+
+  {% if emision.estado == 'EMISION_INDETERMINADA' %}
+  <p class="mensaje-error" role="alert">
+    La emisión quedó indeterminada: la aplicación no reintenta el envío
+    en automático para no arriesgar duplicados. La operación se revisa a
+    mano.
+  </p>
+  {% endif %}
+
+  {% if bloqueos %}
+  <h2>Bloqueos</h2>
+  <ul>
+    {% for bloqueo in bloqueos %}
+    <li>
+      {% if bloqueo.texto %}{{ bloqueo.texto }}{% else %}
+      Bloqueo: <code>{{ bloqueo.codigo }}</code>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if emision.disponible %}
+  <form method="post" action="/certificados/{{ lote.id_lote }}/emision"
+        class="acciones-decision">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="hash_lote" value="{{ lote.objeto_lote }}">
+    <button type="submit" class="boton-primario">Pedir emisión</button>
+  </form>
+  <p class="ayuda">
+    La emisión se procesa en segundo plano. Podés consultar el resultado
+    en esta página; volver a pedirla conserva el mismo trabajo.
+  </p>
+  {% endif %}
+
+  {% if emision.descargable %}
+  <p>
+    <a class="boton-primario"
+       href="/certificados/{{ lote.id_lote }}/emision/descargar">
+      Descargar certificados de demostración (ZIP)
+    </a>
+  </p>
+  {% endif %}
+  {% else %}
+  <p class="aviso-estado">
+    No se pudo consultar el estado de la emisión en este despliegue.
+  </p>
+  {% endif %}
+
+  <p><a class="enlace-doc" href="/certificados/{{ lote.id_lote }}">Volver al lote</a></p>
+</section>
+{% endblock %}

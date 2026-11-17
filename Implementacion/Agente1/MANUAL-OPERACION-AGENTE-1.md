@@ -750,6 +750,55 @@ La emisión sigue siendo del circuito de certificados
 0020). La purga diaria retira la lista y la línea descriptiva de los lotes
 decididos y conserva cantidad, hashes y decisión.
 
+**Pedir el lote desde la web.** La bandeja ofrece **«Pedir lote de
+certificados»** al rol `APROBADOR_CONTENIDO`. El formulario
+(`/certificados/pedir`) pide tres cosas: la actividad del catálogo ya
+cargado en el servidor (el select muestra su ficha; si a la fila de la
+fuente le faltan horas, modalidad u otro dato institucional, el pedido se
+rechaza `actividad_datos_incompletos` sin completar con valores
+supuestos), la lista de cierre en CSV y la línea descriptiva. El CSV es
+UTF-8 con la cabecera
+`nombre;apellido;dni;mail;tratamiento;condicion` en ese orden, separador
+`;` o `,` bien delimitados, hasta 2000 filas y 512 KB;
+`GET /certificados/plantilla-lista.csv` baja una plantilla con filas
+ficticias (`@example.invalid`). La validación es toda o nada: una fila
+inválida rechaza el lote entero y el aviso dice el número de fila del
+archivo sin volcar su contenido. Crear no envía correos ni aprueba nada:
+el lote queda `PENDIENTE_APROBACION` y se decide en su página.
+
+**La identidad del lote es la lista + la actividad.** Repetir el mismo
+pedido devuelve el lote existente (`objeto_lote` único). La misma lista
+con otra línea descriptiva, otra ficha de actividad u otro generador
+responde 409 con el motivo: no se ignora la redacción nueva, no se pisa
+lo aprobado y nadie se apropia del lote ajeno. El `origen_creacion` del
+lote (`google` o `demo`) sale de la sesión, nunca del formulario; un lote
+pedido desde una sesión de demostración queda marcado demo por origen.
+
+**Aprobación explícita del pedido nuevo.** En los lotes creados por este
+pedido, el formulario de decisión exige marcar la casilla «Apruebo la
+línea descriptiva y la lista del lote»; sin ella el POST no decide y lo
+avisa. Al aprobar, además del `apruebo_lote` de siempre se asienta la
+`apruebo_contenido` sobre el objeto exacto de la línea descriptiva en el
+mismo registro: la emisión ve aprobado el texto y la lista que la página
+mostró. Los lotes sembrados por el circuito anterior conservan el
+comportamiento original (sin casilla, sólo `apruebo_lote`), porque su
+línea ya traía la aprobación previa.
+
+**Emisión durable desde la web.** Con el servicio del contrato inyectado,
+la página del lote aprobado enlaza a `/certificados/<id>/emision`. El GET
+sólo consulta el estado (sin pedido, en cola, emitiendo, emitida, emitida
+parcial, bloqueada, fallida, indeterminada o generada de demostración) y
+los bloqueos concretos (faltan firmas, plantilla sin aprobar, datos de la
+fuente incompletos): nunca encola ni toca red. El POST con CSRF y el hash
+exacto del lote es la única vía que pide la emisión; un hash viejo
+rechaza con `lote_obsoleto` y un doble POST devuelve el mismo trabajo
+durable. En demostración, tras `GENERADA_DEMO` se ofrece la descarga del
+ZIP con los certificados marcados como documento de prueba sin validez,
+y la página nunca afirma envíos. La emisión real conserva las puertas del
+circuito (línea y lote aprobados, plantilla por hash, firmas, fuente) y
+corre fuera del HTTP. Sin el servicio las rutas y el enlace no existen,
+como en los despliegues anteriores.
+
 Para la demo con datos ficticios, con el perfil `canal-web` levantado y la
 base migrada (0010), dentro del contenedor `web`:
 
@@ -859,6 +908,12 @@ Variables que lo controlan (env file del stack, nunca en el repo):
 | `drive_auth_denied` / `docs_auth_denied` | El token de Workspace no tiene permiso en Drive/Docs. | Revisar scopes y la delegación de la cuenta. |
 | `drive_response_invalid` | Drive devolvió algo que no cumple el contrato — incluye **dos Docs con la misma marca** (estado corrupto). | Reconciliar a mano los documentos marcados con `a1_solicitud`. |
 | `docs_update_failed_orphaned` | El Doc se creó pero el volcado falló: queda un Doc huérfano. | La próxima corrida lo reutiliza por la marca; el hash de referencia adjunto permite reconciliarlo a mano si persiste. |
+| `actividad_datos_incompletos` (pedido web) | La fila de la actividad en la fuente no tiene todos los datos institucionales (título, horas, modalidad, fecha de inicio, organiza). | Completar la fila en la fuente declarada (`AGENTE1_TABLA`) y volver a pedir; el lote no se crea con valores supuestos. |
+| `lista_cierre_csv_*` / `lista_cierre_*` (pedido web) | El CSV de cierre no cumple el contrato: vacío, no UTF-8, sin la cabecera de seis columnas, excede 512 KB o 2000 filas, fila incompleta, condición fuera de catálogo, mail inválido o DNI/mail duplicado. El aviso dice el número de fila, nunca su contenido. | Corregir la exportación contra la plantilla descargable y volver a pedir: la lista se valida toda o nada. |
+| `confirmacion_requerida` (decisión) | En un lote del pedido nuevo, aprobar sin marcar la casilla «Apruebo la línea descriptiva y la lista del lote». | Revisar actividad, lista y línea en la página y marcar la casilla antes de aprobar. |
+| `lote_obsoleto` (decisión/emisión) | El hash del lote del formulario no coincide con el persistido: la página quedó vieja. | Recargar la página y volver a decidir o pedir la emisión. |
+| `config_incompleta` (emisión) | El servicio durable de emisión está inyectado pero el despliegue no tiene los prerequisitos para emitir. | Revisar el env file del canal (decisiones, firmas, plantillas, fuente) antes de pedir la emisión. |
+| `emision_indeterminada` | La emisión quedó indeterminada: la aplicación no reintenta el envío en automático para no arriesgar duplicados. | Revisar la operación a mano (cola y registros) antes de volver a pedir. |
 
 ---
 

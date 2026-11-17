@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block titulo %}Pedir certificados · Agente 1{% endblock %}
+{% block contenido %}
+<section aria-labelledby="t-pedido-cert">
+  <h1 id="t-pedido-cert">Pedir lote de certificados</h1>
+  <p class="ayuda">
+    El lote queda registrado pendiente de aprobación: después se revisan
+    la actividad, la lista y la línea en la página del lote, y la
+    aprobación la hace quien lo generó. Pedir no envía correos ni
+    aprueba nada.
+  </p>
+  {% if aviso %}
+  <p class="mensaje-error" role="alert">
+    {{ aviso }}
+    {% if aviso_lote %}
+    <a class="enlace-doc" href="/certificados/{{ aviso_lote }}">
+      Ver el lote existente</a>
+    {% endif %}
+  </p>
+  {% endif %}
+  {% if errores %}
+  <p class="mensaje-error" role="alert">Revisá los campos marcados.</p>
+  {% endif %}
+  <form class="formulario" method="post" action="/certificados/pedir"
+        enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+
+    <label for="actividad">Actividad <span aria-hidden="true">*</span></label>
+    <select id="actividad" name="actividad" required>
+      <option value="">Elegí la actividad</option>
+      {% for a in actividades %}
+      <option value="{{ a.id }}"
+        data-titulo="{{ a.titulo }}"
+        data-fechas="{{ a.fechas }}"
+        data-horas="{{ a.horas }}"
+        data-modalidad="{{ a.modalidad }}"
+        data-organiza="{{ a.organiza }}"
+        {% if a.incompleta %}data-incompleta="1"{% endif %}
+        {% if valores.get('actividad') == a.id %}selected{% endif %}>
+        {{ a.titulo }} · {{ a.id }}
+      </option>
+      {% endfor %}
+    </select>
+    {% if not actividades %}
+    <p class="campo-error">
+      No hay actividades cargadas en la fuente institucional.
+    </p>
+    {% endif %}
+    <dl id="datos-actividad" class="ficha ficha-actividad" hidden>
+      <dt>Título</dt><dd data-campo="titulo"></dd>
+      <dt>Fechas</dt><dd data-campo="fechas"></dd>
+      <dt>Carga horaria</dt><dd data-campo="horas"></dd>
+      <dt>Modalidad</dt><dd data-campo="modalidad"></dd>
+      <dt>Organiza</dt><dd data-campo="organiza"></dd>
+    </dl>
+    <p id="aviso-actividad-incompleta" class="campo-error" hidden>
+      A esta actividad le faltan datos en la fuente institucional: el
+      lote no se crea con valores supuestos.
+    </p>
+    {% for mensaje in mensajes.get('actividad', ()) %}
+      <p class="campo-error">{{ mensaje }}</p>
+    {% endfor %}
+
+    <label for="lista">Lista de cierre (CSV) <span aria-hidden="true">*</span></label>
+    <input id="lista" name="lista" type="file"
+           accept=".csv,text/csv" required>
+    <p class="ayuda">
+      Exportación UTF-8 de la planilla de cierre, con la cabecera
+      <code>{{ columnas_csv }}</code>, separador «;» o «,», hasta
+      {{ max_filas }} filas y {{ max_kb }} KB.
+      <a href="/certificados/plantilla-lista.csv">Descargar plantilla</a>.
+      Si una fila no sirve, el lote entero no se crea.
+    </p>
+    {% for mensaje in mensajes.get('lista', ()) %}
+      <p class="campo-error">{{ mensaje }}</p>
+    {% endfor %}
+
+    <label for="linea">Línea descriptiva <span aria-hidden="true">*</span></label>
+    <textarea id="linea" name="linea_descriptiva" rows="2"
+              maxlength="{{ max_linea }}"
+              aria-describedby="ayuda-linea">{{ valores.get('linea_descriptiva', '') }}</textarea>
+    <p class="ayuda" id="ayuda-linea">
+      Una sola línea, sin fechas, cifras ni datos de la actividad: es la
+      frase que acompaña el nombre en el certificado. La aprobación queda
+      atada a esta redacción exacta.
+    </p>
+    {% for mensaje in mensajes.get('linea', ()) %}
+      <p class="campo-error">{{ mensaje }}</p>
+    {% endfor %}
+
+    <button class="boton-primario" type="submit">Crear lote</button>
+  </form>
+</section>
+<script>
+(function () {
+  var select = document.getElementById('actividad');
+  var datos = document.getElementById('datos-actividad');
+  var incompleta = document.getElementById('aviso-actividad-incompleta');
+  function mostrar() {
+    var op = select.options[select.selectedIndex];
+    var con = op && op.dataset.titulo;
+    datos.hidden = !con;
+    incompleta.hidden = !(con && op.dataset.incompleta === '1');
+    if (con) {
+      datos.querySelector('[data-campo="titulo"]').textContent = op.dataset.titulo;
+      datos.querySelector('[data-campo="fechas"]').textContent = op.dataset.fechas || 'sin fecha declarada';
+      datos.querySelector('[data-campo="horas"]').textContent = op.dataset.horas || 'sin dato en la fuente';
+      datos.querySelector('[data-campo="modalidad"]').textContent = op.dataset.modalidad || 'sin dato en la fuente';
+      datos.querySelector('[data-campo="organiza"]').textContent = op.dataset.organiza || 'sin dato en la fuente';
+    }
+  }
+  select.addEventListener('change', mostrar);
+  mostrar();
+})();
+</script>
+{% endblock %}

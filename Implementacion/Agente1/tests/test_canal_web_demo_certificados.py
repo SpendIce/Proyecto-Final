@@ -20,7 +20,7 @@ import importlib.util
 import os
 import uuid
 from dataclasses import dataclass, replace
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -348,6 +348,7 @@ def _aprobar(client: TestClient, mundo: Mundo, id_lote: str) -> None:
             "csrf": _csrf(mundo),
             "hash_lote": lote.objeto_lote,
             "accion": "aprobar",
+            "confirmar": "si",
         },
     )
     assert respuesta.status_code == 200
@@ -524,7 +525,7 @@ def test_la_decision_demo_no_puentea_al_registro_institucional(
     assert revision_demo.aprobada is False
 
 
-def test_un_lote_real_conserva_el_puente_al_registro(tmp_path) -> None:
+def test_sesion_demo_no_puentea_un_lote_real_al_registro(tmp_path) -> None:
     registro = RegistroDecisiones(tmp_path)
     mundo = _mundo(registro_decisiones=registro)
     real = _lote_real(mundo.lotes)
@@ -535,7 +536,7 @@ def test_un_lote_real_conserva_el_puente_al_registro(tmp_path) -> None:
         objeto_lote=real.objeto_lote,
         generada_por_correo_hash=hash_correo(CORREO_APROBADOR),
     )
-    assert revision.aprobada is True
+    assert revision.aprobada is False
 
 
 # --- aislamiento: el lote demo fuera de la demostración ----------------------
@@ -812,10 +813,10 @@ def test_ruta_demo_completa_sobre_repositorio_real(
     assert registro.procesadas() == ()
 
 
-def test_ruta_real_conserva_el_puente_sobre_repositorio_real(
+def test_sesion_demo_no_puentea_un_lote_real_sobre_postgres(
     base_pg: str, tmp_path,
 ) -> None:
-    """Un lote real, en la misma app y base, sí asienta `apruebo_lote`."""
+    """La identidad demo nunca registra aprobaciones institucionales."""
     repo = _repo(base_pg)
     registro = RegistroDecisiones(tmp_path)
     mundo = _mundo(lotes=repo, registro_decisiones=registro)
@@ -827,7 +828,7 @@ def test_ruta_real_conserva_el_puente_sobre_repositorio_real(
         objeto_lote=real.objeto_lote,
         generada_por_correo_hash=hash_correo(CORREO_APROBADOR),
     )
-    assert revision.aprobada is True
+    assert revision.aprobada is False
 
 
 def test_fuera_de_demo_no_se_decide_sobre_repositorio_real(
@@ -867,7 +868,7 @@ def test_la_marca_sobrevive_a_la_purga_en_base(base_pg: str) -> None:
     mantenimiento = RepositorioLotes(
         _fabrica(base_pg, "agente1_mantenimiento")
     )
-    assert mantenimiento.purgar_cerrados() == 1
+    assert mantenimiento.purgar_cerrados(ahora=datetime.now(timezone.utc) + timedelta(days=31)) == 1
     purgado = repo.obtener(lote.id_lote)
     assert purgado is not None
     assert purgado.personas == ()

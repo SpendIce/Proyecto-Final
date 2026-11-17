@@ -166,6 +166,7 @@ h2 { font-weight: 600; font-size: 1.15rem; margin-top: 1.75rem; }
 .formulario { display: flex; flex-direction: column; gap: 0.4rem; }
 .formulario label { font-family: var(--fuente-titulos); font-weight: 600; margin-top: 1rem; }
 .formulario input[type="text"],
+.formulario input[type="file"],
 .formulario select,
 .formulario textarea {
   font-family: var(--fuente-texto);
@@ -271,6 +272,9 @@ h2 { font-weight: 600; font-size: 1.15rem; margin-top: 1.75rem; }
 .acciones-decision button[name="accion"][value="descartar"] {
   background: var(--neutro-oscuro);
 }
+/* La confirmación explícita del pedido nuevo (línea + lista, #168) se
+   alinea con el resto de la fila de botones pero ocupa su renglón. */
+.acciones-decision .confirmacion { flex-basis: 100%; }
 
 /* Banda del modo demostración (ADR 0019): fija al pie en todas las
    páginas, declara que la identidad no se verificó y hasta cuándo corre.

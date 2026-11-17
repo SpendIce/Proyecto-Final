@@ -46,9 +46,16 @@
   {% endif %}
 </section>
 
-{% if lotes or mostrar_boton_demo %}
+{% if lotes or mostrar_boton_demo or puede_pedir_certificados %}
 <section aria-labelledby="t-lotes">
   <h2 id="t-lotes">Lotes de certificados</h2>
+  {% if puede_pedir_certificados %}
+  <p>
+    <a class="boton-primario" href="/certificados/pedir">
+      Pedir lote de certificados
+    </a>
+  </p>
+  {% endif %}
   {% if lotes %}
   <ul class="bandeja">
     {% for lote in lotes %}

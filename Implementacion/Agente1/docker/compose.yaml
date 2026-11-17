@@ -227,8 +227,16 @@ services:
       # de certificados; si se apaga la variable, la decisión queda sólo en
       # la base y la emisión no la ve.
       AGENTE1_DECISIONES_DIR: ${AGENTE1_DECISIONES_DIR:-/state/estado-decisiones}
+      # Custodia de firmas y redacciones aprobadas (#168): fuera del
+      # repo, montadas `ro` desde el host. Los defaults vacíos dejan la
+      # emisión bloqueada y visible, no caída; el stack los activa.
+      AGENTE1_CERTIFICADOS_RECURSOS_DIR: ${AGENTE1_CERTIFICADOS_RECURSOS_DIR:-}
+      AGENTE1_PLANTILLAS_APROBADAS_PATH: ${AGENTE1_PLANTILLAS_APROBADAS_PATH:-}
       AGENTE1_WEB_PORT: "8080"
       HOME: /tmp
+    volumes:
+      - ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}:${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}:ro
+      - ${AGENTE1_HOST_ESTADO:-/home/jgone/p100/estado-contenedor}:/state
     networks:
       - canal
       - salida
@@ -266,6 +274,48 @@ services:
     networks:
       - canal
       - modelo
+      - salida
+    depends_on:
+      migrador:
+        condition: service_completed_successfully
+
+  # Worker de la cola durable de certificados (#168): reclama un trabajo
+  # por ciclo con `FOR UPDATE SKIP LOCKED` y corre las barreras de
+  # dominio antes de tocar Gmail. No usa Ollama: sólo `canal` para la
+  # base y `salida` para el correo. La configuración real (padrón,
+  # decisiones, firmas, plantillas y las credenciales del env file) viene
+  # del stack, igual que en `web`; con variables vacías el servicio
+  # levanta y reporta el bloqueo en la cola, no cae en restart-loop.
+  worker-certificados:
+    <<: *endurecido
+    profiles: ["canal-web"]
+    command: ["worker-certificados"]
+    image: ${AGENTE1_IMAGEN:-ghcr.io/spendice/agente1:local}
+    user: "${AGENTE1_UID:-1003}:${AGENTE1_GID:-1003}"
+    tmpfs:
+      - /tmp
+      - /srv/p100/Implementacion/Agente1/tmp:mode=1777
+      - /srv/p100/Implementacion/Agente1/salida:mode=1777
+    mem_limit: 1g
+    pids_limit: 128
+    environment:
+      AGENTE1_ENV_FILE: ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/workspace-d2.env
+      AGENTE1_OLLAMA_UPSTREAM: ""
+      AGENTE1_ESTADO: /state
+      AGENTE1_CONTENEDOR: "si"
+      AGENTE1_POSTGRES_DSN: ${AGENTE1_POSTGRES_DSN:-}
+      AGENTE1_WORKER_ID: worker-certificados-1
+      AGENTE1_PADRON_ROLES_CSV: ${AGENTE1_PADRON_ROLES_CSV:-/state/padron_roles.csv}
+      AGENTE1_DECISIONES_DIR: ${AGENTE1_DECISIONES_DIR:-/state/estado-decisiones}
+      AGENTE1_WEB_MODO_DEMO: ${AGENTE1_WEB_MODO_DEMO:-}
+      AGENTE1_CERTIFICADOS_RECURSOS_DIR: ${AGENTE1_CERTIFICADOS_RECURSOS_DIR:-}
+      AGENTE1_PLANTILLAS_APROBADAS_PATH: ${AGENTE1_PLANTILLAS_APROBADAS_PATH:-}
+      HOME: /tmp
+    volumes:
+      - ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}:${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}:ro
+      - ${AGENTE1_HOST_ESTADO:-/home/jgone/p100/estado-contenedor}:/state
+    networks:
+      - canal
       - salida
     depends_on:
       migrador:

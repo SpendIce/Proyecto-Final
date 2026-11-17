@@ -174,6 +174,18 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "Volver a la imagen 0.8.1 no requiere ejecutar este down."
         ),
     ),
+    "0012_emision_certificados_durable": Reversion(
+        reversible=True,
+        pierde_datos=True,
+        requiere_restaurar_respaldo=True,
+        nota=(
+            "El `down` elimina `emisiones_certificados` y la columna "
+            "`origen_creacion`: descarta la cola durable, sus reservas y "
+            "resultados y la marca permanente de origen demo. Un trabajo "
+            "en vuelo se perdería sin traza: con datos reales exige "
+            "restaurar el respaldo (ADR 0018)."
+        ),
+    ),
 }
 
 

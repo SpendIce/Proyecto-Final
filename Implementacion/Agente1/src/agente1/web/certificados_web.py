@@ -48,13 +48,14 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Protocol
 
 import psycopg
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from psycopg.types.json import Jsonb
+from starlette.exceptions import HTTPException
 
 from ..canal_form import hash_correo
 from ..certificados_emision import (
@@ -75,20 +76,24 @@ from ..certificados_plantilla_seu import (
 )
 from ..confirmaciones import ROL_APROBADOR_CONTENIDO
 from ..decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
     DECISION_APRUEBO_LOTE,
     RESULTADO_REGISTRADA,
     ROL_ORIGEN_PADRON,
+    TIPO_LINEA_DESCRIPTIVA,
     TIPO_LOTE,
     DecisionesFormError,
     RegistroDecisiones,
     ResultadoDecision,
 )
+from ..linea_descriptiva import objeto_id_linea_descriptiva
 from ..plantillas_aprobadas import (
     PlantillaCorreo,
     id_version_plantilla,
     plantilla_version_registrada,
 )
-from .sesiones import Sesion
+from .formularios import leer_formulario_acotado
+from .sesiones import ORIGEN_DEMO, Sesion
 
 HU = "HU-014"
 
@@ -109,6 +114,7 @@ CODIGO_DECISION_FUERA_DE_CATALOGO = "decision_fuera_de_catalogo"
 CODIGO_ROL_NO_AUTORIZADO = "aprobador_rol_no_autorizado"
 CODIGO_NO_ES_GENERADOR = "aprobador_no_es_generador"
 CODIGO_REGISTRO_NO_DISPONIBLE = "registro_decisiones_no_disponible"
+CODIGO_CONFIRMACION_REQUERIDA = "confirmacion_requerida"
 
 _ESTADOS_VISIBLES = {
     ESTADO_PENDIENTE: "Pendiente de aprobación",
@@ -139,6 +145,10 @@ _AVISOS_DECISION = {
         "La decisión quedó registrada, pero no se pudo asentar en el "
         "registro de decisiones: la emisión no la verá hasta reconciliarlo."
     ),
+    CODIGO_CONFIRMACION_REQUERIDA: (
+        "Para aprobar, marcá la casilla que confirma la línea "
+        "descriptiva y la lista del lote."
+    ),
 }
 
 _AVISOS_ERROR = frozenset(
@@ -150,8 +160,75 @@ _AVISOS_ERROR = frozenset(
         CODIGO_ROL_NO_AUTORIZADO,
         CODIGO_NO_ES_GENERADOR,
         CODIGO_REGISTRO_NO_DISPONIBLE,
+        CODIGO_CONFIRMACION_REQUERIDA,
     }
 )
+
+_ESTADOS_EMISION = {
+    "SIN_PEDIDO": "Sin emisión pedida",
+    "EN_COLA": "En cola",
+    "EMITIENDO": "Emitiendo",
+    "GENERADA_DEMO": "Generada · demostración",
+    "EMITIDA": "Emitida · enviada",
+    "EMITIDA_PARCIAL": "Emitida parcialmente",
+    "BLOQUEADA": "Bloqueada",
+    "FALLIDA": "Fallida",
+    "EMISION_INDETERMINADA": "Emisión indeterminada",
+}
+
+# Códigos de bloqueo del servicio de emisión con su texto operativo: lo
+# que la página dice es accionable (qué insumo falta), nunca una traza.
+_BLOQUEOS_EMISION = {
+    "identidad_no_verificada": "La emisión requiere una sesión y una aprobación con identidad Google verificada.",
+    "lote_no_aprobado": "El lote todavía no está aprobado.",
+    "no_es_generador": "La emisión la pide quien generó el lote.",
+    "aprobador_no_es_generador": (
+        "La emisión la pide quien generó el lote."
+    ),
+    "signature_resources_missing": "Faltan las firmas en custodia (R2).",
+    "approved_template_missing": (
+        "Falta la plantilla aprobada (ADR 0020)."
+    ),
+    "template_version_unapproved": (
+        "La plantilla no tiene la aprobación registrada sobre su "
+        "versión (ADR 0020)."
+    ),
+    "actividad_datos_incompletos": (
+        "A la actividad le faltan datos en la fuente institucional "
+        "(horario, modalidad u otros)."
+    ),
+    "linea_descriptiva_no_aprobada": (
+        "La línea descriptiva no tiene la aprobación registrada."
+    ),
+    "personas_purgadas": (
+        "La lista del lote se retiró por retención mínima."
+    ),
+    "emision_indeterminada": (
+        "La emisión quedó indeterminada: no se reintenta en automático."
+    ),
+    "config_incompleta": (
+        "La emisión no está habilitada en este despliegue."
+    ),
+}
+
+_AVISOS_EMISION = {
+    CODIGO_LOTE_OBSOLETO: _AVISOS_DECISION[CODIGO_LOTE_OBSOLETO],
+    CODIGO_INEXISTENTE: _AVISOS_DECISION[CODIGO_INEXISTENTE],
+    "no_es_generador": "La emisión la pide quien generó el lote.",
+    "aprobador_no_es_generador": (
+        "La emisión la pide quien generó el lote."
+    ),
+    "rol_no_autorizado": "El rol no habilita a pedir la emisión.",
+    "sin_permiso": "El rol no habilita a pedir la emisión.",
+    "lote_no_aprobado": "El lote todavía no está aprobado.",
+    "duplicada": "Ya hay una emisión pedida para este lote.",
+    "lote_no_demo": (
+        "La descarga de demostración es sólo para lotes de demostración."
+    ),
+    "estado_invalido": (
+        "La emisión todavía no está en un estado que lo permite."
+    ),
+}
 
 _REQUERIDOS_ACTIVIDAD = (
     "titulo",
@@ -192,6 +269,7 @@ class LoteCertificados:
     rol_decision: str | None = None
     origen_identidad: str | None = None
     version_agente: str | None = None
+    origen_creacion: str | None = None
 
 
 @dataclass(frozen=True)
@@ -276,6 +354,7 @@ class RepositorioLotes:
         linea_descriptiva: str,
         generada_por_hash: str,
         ahora: datetime | None = None,
+        origen_creacion: str | None = None,
     ) -> LoteCertificados:
         """Crea el lote o devuelve el que ya existe para esa lista.
 
@@ -288,12 +367,17 @@ class RepositorioLotes:
         id_actividad = (id_actividad or "").strip()
         if not id_actividad:
             raise LoteCertificadosError("actividad_id_invalida")
+        if origen_creacion not in (None, "google", "demo"):
+            raise LoteCertificadosError("origen_creacion_invalido")
         datos = {
             clave: str(actividad.get(clave, "") or "").strip()
             for clave in _REQUERIDOS_ACTIVIDAD
         }
         if not all(datos.values()):
             raise LoteCertificadosError("actividad_datos_incompletos")
+        fecha_fin = str(actividad.get("fecha_fin", "") or "").strip()
+        if fecha_fin:
+            datos["fecha_fin"] = fecha_fin
         validadas = parsear_lista_cierre(
             [
                 [p.nombre, p.apellido, p.dni, p.mail, p.tratamiento, p.condicion]
@@ -319,9 +403,9 @@ class RepositorioLotes:
                     " objeto_lote, hash_lista, actividad, personas,"
                     " cantidad_personas, linea_descriptiva,"
                     " linea_descriptiva_hash, plantilla_muestra, estado,"
-                    " generada_por_hash,"
+                    " generada_por_hash, origen_creacion,"
                     " creada_en) VALUES"
-                    " (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+                    " (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
                     " ON CONFLICT (objeto_lote) DO NOTHING",
                     (
                         id_lote,
@@ -336,6 +420,7 @@ class RepositorioLotes:
                         plantilla,
                         ESTADO_PENDIENTE,
                         generada_por_hash,
+                        origen_creacion,
                         ahora,
                     ),
                 )
@@ -438,23 +523,76 @@ class RepositorioLotes:
             id_lote=id_lote,
         )
 
-    def purgar_cerrados(self, *, ahora: datetime | None = None) -> int:
+    def purgar_cerrados(
+        self,
+        *,
+        ahora: datetime | None = None,
+        abandono_dias: int = 30,
+    ) -> int:
         """Retira la lista y la línea de los lotes decididos.
 
         Corre con el rol de mantenimiento en la purga diaria, como
         `RepositorioWeb.purgar_prosa`: la app no puede tocar el contenido
         que la retención cerró. La cantidad, los hashes y la decisión
         (identidad, rol, origen y versión) quedan.
+
+        Con la cola de emisión (#168) la regla se ordena por el trabajo,
+        no por una bandera:
+
+        - Un trabajo **activo o indeterminado** (`PENDIENTE`, `RESERVADA`,
+          `ENVIANDO`, `INDETERMINADA`) retiene el snapshot siempre: la
+          ejecución o la intervención humana lo necesitan íntegro.
+        - Un trabajo **terminal** retiene hasta `retencion_hasta`: la
+          descarga demo y la auditoría del resultado viven de él.
+        - **Sin trabajo**, el lote nuevo pendiente o aprobado (`google` o
+          `demo`) se conserva `abandono_dias` desde su creación o decisión: puede
+          pedirse la emisión todavía. El legacy (`origen_creacion`
+          `NULL`) y todo `DESCARTADA` purgan en el acto, como antes: un
+          lote descartado no puede emitir nada y retenerlo no sirve.
         """
         ahora = ahora or datetime.now(timezone.utc)
+        abandono = ahora - timedelta(days=abandono_dias)
         with self._conexion_factory() as conn:
             with conn.transaction():
                 filas = conn.execute(
                     "UPDATE lotes_certificados SET personas = NULL,"
                     " linea_descriptiva = NULL, purgada_en = %s"
                     " WHERE personas IS NOT NULL"
-                    "   AND estado = ANY(%s) RETURNING id_lote",
-                    (ahora, [ESTADO_APROBADA, ESTADO_DESCARTADA]),
+                    "   AND (estado = ANY(%s) OR ("
+                    "     estado = 'PENDIENTE_APROBACION'"
+                    "     AND origen_creacion IS NOT NULL))"
+                    "   AND NOT EXISTS ("
+                    "     SELECT 1 FROM emisiones_certificados e"
+                    "     WHERE e.id_lote = lotes_certificados.id_lote"
+                    "       AND e.estado IN ("
+                    "         'PENDIENTE', 'RESERVADA', 'ENVIANDO',"
+                    "         'INDETERMINADA')"
+                    "   )"
+                    "   AND ("
+                    "     EXISTS ("
+                    "       SELECT 1 FROM emisiones_certificados e"
+                    "       WHERE e.id_lote = lotes_certificados.id_lote"
+                    "         AND e.retencion_hasta IS NOT NULL"
+                    "         AND e.retencion_hasta <= %s"
+                    "     )"
+                    "     OR ("
+                    "       NOT EXISTS ("
+                    "         SELECT 1 FROM emisiones_certificados e"
+                    "         WHERE e.id_lote = lotes_certificados.id_lote"
+                    "       )"
+                    "       AND ("
+                    "         origen_creacion IS NULL"
+                    "         OR estado = 'DESCARTADA'"
+                    "         OR COALESCE(decidida_en, creada_en) <= %s"
+                    "       )"
+                    "     )"
+                    "   ) RETURNING id_lote",
+                    (
+                        ahora,
+                        [ESTADO_APROBADA, ESTADO_DESCARTADA],
+                        ahora,
+                        abandono,
+                    ),
                 ).fetchall()
         return len(filas)
 
@@ -464,7 +602,7 @@ _SELECT = (
     " personas, cantidad_personas, linea_descriptiva, linea_descriptiva_hash,"
     " plantilla_muestra, estado, generada_por_hash, creada_en,"
     " decidida_en, decidida_por_hash,"
-    " rol_decision, origen_identidad, version_agente"
+    " rol_decision, origen_identidad, version_agente, origen_creacion"
     " FROM lotes_certificados"
 )
 
@@ -489,6 +627,7 @@ def _lote_desde_fila(fila) -> LoteCertificados:
         rol_decision=fila[15],
         origen_identidad=fila[16],
         version_agente=fila[17],
+        origen_creacion=fila[18],
     )
 
 
@@ -638,11 +777,48 @@ def registrar_aprobacion_en_registro(
     habilitaría el lote. El asiento guarda solo hashes, como el resto del
     registro. El descarte no se escribe: el catálogo de `lote` sólo tiene
     `apruebo_lote`, y un descarte no habilita ninguna emisión.
+
+    Cuando el lote nació del pedido web (`origen_creacion` declarado, no
+    del lote sembrado por el circuito anterior) la misma aprobación
+    asienta antes la `apruebo_contenido` sobre el objeto exacto de la
+    línea descriptiva: quien genera el lote aprueba con un solo gesto la
+    línea y la lista que está viendo (ADR 0018). En los lotes legacy la
+    línea ya la aprobó el circuito previo y no se toca.
     """
-    if registro is None:
+    if (
+        registro is None
+        or lote.origen_identidad == ORIGEN_DEMO
+        or getattr(lote, "origen_creacion", None) == ORIGEN_DEMO
+    ):
         return
     ahora = ahora or datetime.now(timezone.utc)
     marca = ahora.isoformat()
+    if (
+        getattr(lote, "origen_creacion", None) is not None
+        and lote.linea_descriptiva
+    ):
+        objeto_linea = objeto_id_linea_descriptiva(
+            lote.id_actividad, lote.linea_descriptiva
+        )
+        registro.registrar(
+            ResultadoDecision(
+                id_respuesta=hashlib.sha256(
+                    f"web_linea|{objeto_linea}|{validador_hash}|{marca}".encode(
+                        "utf-8"
+                    )
+                ).hexdigest(),
+                correo_hash=validador_hash,
+                rol=rol,
+                rol_origen=ROL_ORIGEN_PADRON,
+                tipo=TIPO_LINEA_DESCRIPTIVA,
+                objeto_id=objeto_linea,
+                decision=DECISION_APRUEBO_CONTENIDO,
+                resultado=RESULTADO_REGISTRADA,
+                rechazo_codigo=None,
+                marca_temporal_form=marca,
+                timestamp=marca,
+            )
+        )
     id_respuesta = hashlib.sha256(
         f"web_lote|{lote.objeto_lote}|{validador_hash}|{marca}".encode(
             "utf-8"
@@ -673,6 +849,24 @@ class RepositorioLotesPuerto(Protocol):
     def obtener(self, id_lote: str) -> LoteCertificados | None: ...
 
     def decidir(self, **datos) -> ResultadoDecisionLote: ...
+
+
+class EmisionCertificadosWebPuerto(Protocol):
+    """El servicio durable de emisión del contrato (#168).
+
+    Lo implementa `web.emision_certificados` del backend: la UI sólo lo
+    consulta (GET) y le pide emisión (POST); el trabajo corre por fuera
+    del HTTP. `ErrorEmisionWeb` del backend lleva `code` estable y se
+    reconoce por atributo.
+    """
+
+    def consultar(self, id_lote: str, *, actor) -> object: ...
+
+    def solicitar(
+        self, id_lote: str, *, hash_lote: str, actor
+    ) -> object: ...
+
+    def descargar(self, id_lote: str, *, actor) -> bytes: ...
 
 
 def lotes_para_bandeja(
@@ -724,8 +918,16 @@ def registrar_rutas_certificados(
     recursos_firma: RecursosFirma | None = None,
     registro_decisiones: RegistroDecisiones | None = None,
     plantillas_aprobadas: dict[str, PlantillaCorreo] | None = None,
+    emision_certificados: "EmisionCertificadosWebPuerto | None" = None,
 ) -> None:
-    """Cablea las rutas finas del lote; la lógica vive en este módulo."""
+    """Cablea las rutas finas del lote; la lógica vive en este módulo.
+
+    `emision_certificados` es el servicio durable del contrato (lo
+    implementa el backend): con él la página del lote enlaza a
+    `/certificados/{id}/emision`, cuyo GET sólo consulta el estado y
+    cuyo POST es la única vía que encola. Sin él (pruebas legacy) las
+    rutas y el enlace no existen.
+    """
 
     def _puede_decidir(sesion: Sesion) -> bool:
         return rol_de(sesion) == ROL_APROBADOR_CONTENIDO
@@ -786,6 +988,10 @@ def registrar_rutas_certificados(
             es_generador=generador,
             muestra_disponible=bool(lote.personas),
             registro_configurado=registro_decisiones is not None,
+            requiere_confirmacion=(
+                getattr(lote, "origen_creacion", None) is not None
+            ),
+            emision_disponible=emision_certificados is not None,
             csrf=sesion.csrf_token,
             aviso=aviso,
             aviso_error=aviso_error,
@@ -841,10 +1047,13 @@ def registrar_rutas_certificados(
         sesion = autorizar(request)
         if sesion is None:
             return destino_login()
-        form = await request.form()
-        if not csrf_ok(sesion, str(form.get("csrf", ""))):
-            return render("sin_permiso.html", request, status_code=403)
         if not _puede_decidir(sesion):
+            return render("sin_permiso.html", request, status_code=403)
+        try:
+            form = await leer_formulario_acotado(request, max_bytes=8192)
+        except HTTPException as error:
+            return Response("Formulario inválido o demasiado grande.", status_code=error.status_code)
+        if not csrf_ok(sesion, str(form.get("csrf", ""))):
             return render("sin_permiso.html", request, status_code=403)
         lote = repositorio.obtener(id_lote)
         if lote is None:
@@ -852,6 +1061,20 @@ def registrar_rutas_certificados(
         es_demo = es_lote_demo(lote)
         if es_demo and not demo_vigente():
             return render("sin_permiso.html", request, status_code=403)
+        if (
+            str(form.get("accion", "")) == ACCION_APROBAR
+            and getattr(lote, "origen_creacion", None) is not None
+            and str(form.get("confirmar", "")) != "si"
+        ):
+            # El pedido nuevo exige la confirmación explícita de la
+            # línea descriptiva y la lista antes de aprobar (ADR 0018).
+            return _render_lote(
+                request,
+                sesion,
+                lote,
+                aviso=_AVISOS_DECISION[CODIGO_CONFIRMACION_REQUERIDA],
+                aviso_error=True,
+            )
         ahora = datetime.now(timezone.utc)
         resultado = repositorio.decidir(
             id_lote=id_lote,
@@ -870,7 +1093,12 @@ def registrar_rutas_certificados(
         aviso_error = resultado.codigo in _AVISOS_ERROR
         # El puente al registro institucional es sólo para lotes reales:
         # la decisión demo vive en la fila del lote y nada más.
-        if resultado.codigo == CODIGO_APROBADA and not es_demo:
+        if (
+            resultado.codigo == CODIGO_APROBADA
+            and not es_demo
+            and sesion.origen != ORIGEN_DEMO
+            and not demo_vigente()
+        ):
             try:
                 registrar_aprobacion_en_registro(
                     registro_decisiones,
@@ -890,10 +1118,192 @@ def registrar_rutas_certificados(
             aviso_error=aviso_error,
         )
 
+    # ---------- emisión (servicio durable del contrato) ----------
+
+    if emision_certificados is not None:
+
+        def _actor(sesion: Sesion):
+            """Construye el actor desde la sesión y la configuración vigentes."""
+            from .emision_certificados import ActorCertificadosWeb
+
+            return ActorCertificadosWeb(
+                solicitante_hash=hash_correo(sesion.correo),
+                rol=rol_de(sesion) or "",
+                origen_identidad=sesion.origen,
+                modo_demo=demo_vigente(),
+            )
+
+        def _consultar_emision(
+            request: Request, sesion: Sesion, id_lote: str
+        ):
+            """Estado para la pantalla, o `None` si el servicio rechaza."""
+            try:
+                return emision_certificados.consultar(
+                    id_lote, actor=_actor(sesion)
+                )
+            except RuntimeError as error:
+                if getattr(error, "code", None) is None:
+                    raise
+                return None
+
+        def _render_emision(
+            request: Request,
+            sesion: Sesion,
+            lote: LoteCertificados,
+            estado,
+            aviso: str | None = None,
+            aviso_error: bool = False,
+            status_code: int = 200,
+        ) -> HTMLResponse:
+            return render(
+                "emision_certificados.html",
+                request,
+                sesion=sesion,
+                lote=lote,
+                emision=estado,
+                estado_visible=(
+                    _ESTADOS_EMISION.get(estado.estado, estado.estado)
+                    if estado is not None
+                    else None
+                ),
+                es_demo=(
+                    es_lote_demo(lote)
+                    or (estado.es_demo if estado is not None else False)
+                ),
+                bloqueos=(
+                    [
+                        {
+                            "codigo": codigo,
+                            "texto": _BLOQUEOS_EMISION.get(codigo),
+                        }
+                        for codigo in estado.bloqueos
+                    ]
+                    if estado is not None
+                    else []
+                ),
+                csrf=sesion.csrf_token,
+                aviso=aviso,
+                aviso_error=aviso_error,
+                status_code=status_code,
+            )
+
+        @app.get("/certificados/{id_lote}/emision", response_class=HTMLResponse)
+        def estado_emision(request: Request, id_lote: str) -> Response:
+            """La página de la emisión: sólo consulta, nunca encola."""
+            sesion = autorizar(request)
+            if sesion is None:
+                return destino_login()
+            if not _puede_decidir(sesion):
+                return render("sin_permiso.html", request, status_code=403)
+            lote = repositorio.obtener(id_lote)
+            if lote is None:
+                return render("sin_permiso.html", request, status_code=404)
+            if es_lote_demo(lote) and not demo_vigente():
+                return render("sin_permiso.html", request, status_code=403)
+            estado = _consultar_emision(request, sesion, id_lote)
+            if estado is None:
+                return render("sin_permiso.html", request, status_code=403)
+            return _render_emision(request, sesion, lote, estado)
+
+        @app.post("/certificados/{id_lote}/emision")
+        async def pedir_emision(request: Request, id_lote: str) -> Response:
+            """La única vía que encola la emisión durable.
+
+            El hash del lote viaja del formulario y se compara con el
+            persistido: pedir con el hash viejo no encola nada. Un doble
+            POST devuelve el trabajo existente: la reserva es del
+            servicio, no de esta ruta.
+            """
+            sesion = autorizar(request)
+            if sesion is None:
+                return destino_login()
+            if not _puede_decidir(sesion):
+                return render("sin_permiso.html", request, status_code=403)
+            try:
+                form = await leer_formulario_acotado(request, max_bytes=8192)
+            except HTTPException as error:
+                return Response("Formulario inválido o demasiado grande.", status_code=error.status_code)
+            if not csrf_ok(sesion, str(form.get("csrf", ""))):
+                return render("sin_permiso.html", request, status_code=403)
+            lote = repositorio.obtener(id_lote)
+            if lote is None:
+                return render("sin_permiso.html", request, status_code=404)
+            if es_lote_demo(lote) and not demo_vigente():
+                return render("sin_permiso.html", request, status_code=403)
+            if str(form.get("hash_lote", "")) != lote.objeto_lote:
+                estado = _consultar_emision(request, sesion, id_lote)
+                return _render_emision(
+                    request,
+                    sesion,
+                    lote,
+                    estado,
+                    aviso=_AVISOS_EMISION[CODIGO_LOTE_OBSOLETO],
+                    aviso_error=True,
+                    status_code=409,
+                )
+            try:
+                estado = emision_certificados.solicitar(
+                    id_lote,
+                    hash_lote=lote.objeto_lote,
+                    actor=_actor(sesion),
+                )
+            except RuntimeError as error:
+                codigo = getattr(error, "code", None)
+                if codigo is None:
+                    raise
+                estado = _consultar_emision(request, sesion, id_lote)
+                return _render_emision(
+                    request,
+                    sesion,
+                    lote,
+                    estado,
+                    aviso=_AVISOS_EMISION.get(
+                        codigo,
+                        f"No se pudo pedir la emisión ({codigo}).",
+                    ),
+                    aviso_error=True,
+                )
+            return RedirectResponse(
+                f"/certificados/{id_lote}/emision", status_code=303
+            )
+
+        @app.get("/certificados/{id_lote}/emision/descargar")
+        def descargar_emision(request: Request, id_lote: str) -> Response:
+            """El ZIP de la emisión de demostración, tras GENERADA_DEMO."""
+            sesion = autorizar(request)
+            if sesion is None:
+                return destino_login()
+            if not _puede_decidir(sesion):
+                return render("sin_permiso.html", request, status_code=403)
+            lote = repositorio.obtener(id_lote)
+            if lote is None:
+                return render("sin_permiso.html", request, status_code=404)
+            if es_lote_demo(lote) and not demo_vigente():
+                return render("sin_permiso.html", request, status_code=403)
+            try:
+                contenido = emision_certificados.descargar(
+                    id_lote, actor=_actor(sesion)
+                )
+            except RuntimeError as error:
+                if getattr(error, "code", None) is None:
+                    raise
+                return render("sin_permiso.html", request, status_code=403)
+            return Response(
+                content=contenido,
+                media_type="application/zip",
+                headers={
+                    "Content-Disposition": (
+                        "attachment; filename="
+                        f'"certificados-demo-{lote.id_lote}.zip"'
+                    )
+                },
+            )
+
 __all__ = [
     "ACCION_APROBAR",
     "ACCION_DESCARTAR",
     "CODIGO_APROBADA",
+    "CODIGO_CONFIRMACION_REQUERIDA",
     "CODIGO_DESCARTADA",
     "CODIGO_DUPLICADA",
     "CODIGO_INEXISTENTE",
@@ -903,6 +1313,7 @@ __all__ = [
     "ESTADO_APROBADA",
     "ESTADO_DESCARTADA",
     "ESTADO_PENDIENTE",
+    "EmisionCertificadosWebPuerto",
     "EstadoFirmas",
     "EstadoPlantilla",
     "LoteCertificados",
@@ -913,5 +1324,6 @@ __all__ = [
     "estado_firmas",
     "estado_plantillas",
     "lotes_para_bandeja",
+    "registrar_aprobacion_en_registro",
     "registrar_rutas_certificados",
 ]

@@ -214,6 +214,8 @@ def comando_para(argv: Sequence[str]) -> list[str] | None:
         return [python, str(ROOT / "scripts" / "servidor_web.py"), "--host", "0.0.0.0", *resto]
     if nombre == "worker":
         return [python, str(ROOT / "scripts" / "worker_canal_web.py"), *resto]
+    if nombre == "worker-certificados":
+        return [python, str(ROOT / "scripts" / "worker_certificados_web.py"), *resto]
     if nombre == "migrar":
         return [python, str(ROOT / "scripts" / "migrar_canal_web.py"), *resto]
     if nombre == "smoke":

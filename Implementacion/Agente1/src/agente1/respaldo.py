@@ -47,6 +47,11 @@ Decisiones que no se ven en el código:
   marca `ENVIO_INDETERMINADO` toda reserva —que por definición quedó
   interrumpida— y toda aprobación posterior a la marca del respaldo. Lo
   indeterminado no se reenvía: una persona lo cruza contra Gmail Enviados.
+  La misma regla corre para la cola durable de emisiones web de
+  PostgreSQL: el volcado se aplica con `psql --single-transaction` y en la
+  misma transacción todo trabajo real `PENDIENTE`/`RESERVADA`/`ENVIANDO`
+  pasa a `INDETERMINADA`, así que un respaldo anterior a un envío no lo
+  repite y ningún worker ve la cola sin reconciliar.
 - **El artefacto es localmente efímero.** Se construye en memoria y sólo
   existe el archivo subido: conservar copias locales del tar dejaría el
   texto purgado vivo fuera del registro.
@@ -1100,6 +1105,7 @@ class ResultadoRestauracion:
     indeterminados: tuple[str, ...]
     correlation_id: str
     audit_path: Path
+    emisiones_pg_indeterminadas: int | None = None
 
 
 def entorno_libpq(dsn: str) -> dict[str, str]:
@@ -1130,21 +1136,150 @@ def entorno_libpq(dsn: str) -> dict[str, str]:
     return entorno
 
 
+# Estados de la cola durable `emisiones_certificados` (migración 0012 del
+# canal web) desde los que un worker puede ejecutar el envío sin otra
+# decisión humana. Al restaurar un snapshot anterior a ese trabajo, la
+# fila vuelve a uno de estos estados pero el envío pudo ya haber salido:
+# la misma transacción que importa el volcado la declara `INDETERMINADA`
+# (la vista web lo presenta como EMISION_INDETERMINADA) y ahí queda terminal, sin reserva posible. Los demos no se
+# marcan: no tienen efectos externos y se vuelven a pedir.
+_ESTADOS_EMISION_ACTIVOS_PG = ("PENDIENTE", "RESERVADA", "ENVIANDO")
+
+# El volcado de `pg_dump` califica cada objeto con su esquema: la marca
+# sólo toca la tabla `emisiones_certificados` que el propio respaldo
+# recrea, nunca una homónima de otro esquema (la base de pruebas comparte
+# clúster) ni una fila viva que el dump no alcanzó.
+_ESQUEMA_EMISIONES_DUMP_RE = re.compile(
+    rb"^CREATE\s+(?:UNLOGGED\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?"
+    rb'(?:"((?:[^"]|"")+)"|([A-Za-z_][A-Za-z0-9_$]*))'
+    rb'\s*\.\s*"?emisiones_certificados"?\s*\('
+)
+
+_AVISO_EMISIONES_MARCADAS_RE = re.compile(
+    r"emisiones_certificados_marcadas:\s*(\d+)"
+)
+
+_SQL_MARCA_EMISIONES_RESTAURADAS = """
+DO $marca_restauracion$
+DECLARE
+    esquema text;
+    filas bigint;
+    marcadas bigint := 0;
+BEGIN
+    FOREACH esquema IN ARRAY ARRAY[__ESQUEMAS__]::text[] LOOP
+        EXECUTE format($upd$
+            UPDATE %I.emisiones_certificados
+               SET estado = 'INDETERMINADA', terminada_en = now(),
+                   reservada_por = NULL, token_reserva = NULL,
+                   reservada_hasta = NULL, retencion_hasta = NULL,
+                   actualizada_en = now()
+             WHERE modo = 'real'
+               AND estado IN (__ESTADOS__)
+        $upd$, esquema);
+        GET DIAGNOSTICS filas = ROW_COUNT;
+        marcadas := marcadas + filas;
+        -- Un trabajo pudo crearse y enviarse después del respaldo. Si sólo
+        -- volvió el lote aprobado, también se conserva la incertidumbre.
+        EXECUTE format($insert$
+            INSERT INTO %I.emisiones_certificados (
+                id_emision, id_lote, modo, estado, terminada_en, expira_en,
+                total, error_codigo, creada_en, actualizada_en
+            )
+            SELECT 'restore-' || md5(l.id_lote), l.id_lote, 'real',
+                   'INDETERMINADA', now(), now(), l.cantidad_personas,
+                   'restauracion_resultado_desconocido', now(), now()
+              FROM %I.lotes_certificados l
+             WHERE l.estado IN ('APROBADA', 'PENDIENTE_APROBACION')
+               AND COALESCE(l.origen_creacion, l.origen_identidad, 'google') <> 'demo'
+            ON CONFLICT (id_lote) DO NOTHING
+        $insert$, esquema, esquema);
+        GET DIAGNOSTICS filas = ROW_COUNT;
+        marcadas := marcadas + filas;
+    END LOOP;
+    -- El dump baja `client_min_messages` a warning: el conteo igual sale.
+    PERFORM set_config('client_min_messages', 'notice', true);
+    RAISE NOTICE 'emisiones_certificados_marcadas: %', marcadas;
+END
+$marca_restauracion$;
+"""
+
+
+def _esquemas_emisiones_dump(dump: bytes) -> tuple[str, ...]:
+    """Los esquemas donde el volcado recrea `emisiones_certificados`.
+
+    La reconciliación del restore pertenece a la misma transacción que la
+    importación: se genera un UPDATE por cada esquema que el dump declara
+    con `CREATE TABLE`, así la marca es exactamente sobre el estado
+    restaurado: ni más (un esquema ajeno con suerte igual no se toca),
+    ni menos (la tabla restaurada no puede quedar reservable).
+    """
+    esquemas: list[str] = []
+    en_copy = False
+    for linea in dump.splitlines():
+        if en_copy:
+            if linea == b"\\.":
+                en_copy = False
+            continue
+        if linea.startswith(b"COPY ") and linea.endswith(b" FROM stdin;"):
+            en_copy = True
+            continue
+        match = _ESQUEMA_EMISIONES_DUMP_RE.match(linea)
+        if match is None:
+            continue
+        citado = match.group(1)
+        nombre = (
+            citado.replace(b'""', b'"').decode("utf-8")
+            if citado is not None
+            else match.group(2).decode("ascii")
+        )
+        if nombre not in esquemas:
+            esquemas.append(nombre)
+    return tuple(esquemas)
+
+
+def _sql_marca_emisiones_restauradas(esquemas: tuple[str, ...]) -> str:
+    """El bloque que cierra la transacción del restore: marca y conteo.
+
+    El UPDATE replica el de la reconciliación de la propia cola
+    (`ENVIANDO` vencida → `INDETERMINADA`): la reserva se limpia entera,
+    `terminada_en` se asienta y `retencion_hasta` queda NULL, que es lo
+    que los CHECK de la tabla exigen para el estado indeterminado. Con la
+    lista vacía (respaldo anterior a la migración 0012) el bloque es un
+    no-op verificable: cuenta cero.
+    """
+    # El dump declara `standard_conforming_strings = on`: la barra es
+    # literal y sólo la comilla simple se escapa duplicándola.
+    lista = ", ".join(
+        "'" + esquema.replace("'", "''") + "'" for esquema in esquemas
+    )
+    estados = ", ".join(f"'{estado}'" for estado in _ESTADOS_EMISION_ACTIVOS_PG)
+    return _SQL_MARCA_EMISIONES_RESTAURADAS.replace(
+        "__ESQUEMAS__", lista
+    ).replace("__ESTADOS__", estados)
+
+
 def _restaurar_postgres_si_hay(
     dump: bytes | None, postgres_dsn: str | None
-) -> bool:
+) -> int | None:
     """Restaura el volcado del canal web con `psql`, fail-closed.
+
+    Devuelve cuántos trabajos reales de la cola durable de emisiones
+    quedaron `INDETERMINADA` (`None` cuando el artefacto no trae volcado,
+    `-1` si el conteo no se pudo leer del NOTICE del `psql`).
 
     Un artefacto con miembro `postgres/` y sin DSN declarado aborta la
     restauración entera antes de tocar la base: el operador decide dónde
-    vuelca. El `psql` corre con `ON_ERROR_STOP` y el dump en un temporal
-    `0600` que se borra siempre; el volcado del día se genera con
+    vuelca. El `psql` corre con `ON_ERROR_STOP` y `--single-transaction`:
+    el volcado y la marca de indeterminadas son una sola transacción, así
+    ningún worker ve la cola restaurada sin reconciliar y una falla a
+    mitad no deja estado parcial. El dump viaja en un temporal `0600` que
+    se borra siempre; el volcado del día se genera con
     `--clean --if-exists`, así que la restauración reemplaza el esquema
     declarado en vez de sumarle filas — es determinística sobre la base
     que el operador indique.
     """
     if dump is None:
-        return False
+        return None
     if postgres_dsn is None:
         raise RespaldoDiarioError(
             "respaldo_postgres_sin_dsn", etapa="restauracion"
@@ -1154,15 +1289,28 @@ def _restaurar_postgres_si_hay(
         raise RespaldoDiarioError(
             "respaldo_postgres_cliente_ausente", etapa="restauracion"
         )
+    marca_sql = _sql_marca_emisiones_restauradas(
+        _esquemas_emisiones_dump(dump)
+    ).encode("utf-8")
     with tempfile.NamedTemporaryFile(
         mode="wb", suffix=".pgdump", delete=False
     ) as temporal:
         temporal.write(dump)
+        temporal.write(marca_sql)
         nombre_tmp = temporal.name
     try:
         os.chmod(nombre_tmp, 0o600)
         proceso = subprocess.run(
-            [psql, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", nombre_tmp],
+            [
+                psql,
+                "-X",
+                "-q",
+                "-v",
+                "ON_ERROR_STOP=1",
+                "--single-transaction",
+                "-f",
+                nombre_tmp,
+            ],
             capture_output=True,
             text=True,
             env={**os.environ, **entorno_libpq(postgres_dsn)},
@@ -1171,9 +1319,11 @@ def _restaurar_postgres_si_hay(
             raise RespaldoDiarioError(
                 "respaldo_postgres_fallido", etapa="restauracion"
             )
+        aviso = _AVISO_EMISIONES_MARCADAS_RE.search(proceso.stderr)
+        marcadas = int(aviso.group(1)) if aviso is not None else -1
     finally:
         Path(nombre_tmp).unlink(missing_ok=True)
-    return True
+    return marcadas
 
 
 def restaurar_estado_respaldo(
@@ -1201,6 +1351,12 @@ def restaurar_estado_respaldo(
        transición es posterior a la marca del respaldo pasa a
        `ENVIO_INDETERMINADO`: lo que el snapshot no pudo afirmar no se
        reenvía hasta que una persona lo cruce contra Gmail Enviados.
+       En el volcado de PostgreSQL corre la misma regla dentro de la
+       transacción del `psql`: todo trabajo real de la cola durable de
+       emisiones web (`emisiones_certificados`, migración 0012) que el
+       snapshot dejó capaz de enviar (`PENDIENTE`, `RESERVADA`,
+       `ENVIANDO`) pasa a `INDETERMINADA`, terminal y sin reserva. Un
+       respaldo tomado antes de un envío no lo repite.
 
     Devuelve el informe y deja la línea `restauracion_respaldo` en la
     auditoría del respaldo. No descarga nada de Drive: el operador provee
@@ -1265,9 +1421,10 @@ def restaurar_estado_respaldo(
             ) from None
         restaurados += 1
 
-    restaurado_postgres = _restaurar_postgres_si_hay(
+    marcadas_pg = _restaurar_postgres_si_hay(
         miembro_postgres, postgres_dsn
     )
+    restaurado_postgres = marcadas_pg is not None
 
     indeterminados = (
         _marcar_posteriores_indeterminados(registro_base, marca_dt)
@@ -1285,6 +1442,7 @@ def restaurar_estado_respaldo(
             "conflictos": len(conflictos),
             "conflictos_hash": _hash("\n".join(conflictos)),
             "postgres_restaurado": restaurado_postgres,
+            "emisiones_pg_indeterminadas": marcadas_pg,
             "indeterminados": len(indeterminados),
             "claves_hash": _hash("\n".join(indeterminados)),
         },
@@ -1298,6 +1456,7 @@ def restaurar_estado_respaldo(
         indeterminados=indeterminados,
         correlation_id=correlation_id,
         audit_path=auditoria.path,
+        emisiones_pg_indeterminadas=marcadas_pg,
     )
 
 
