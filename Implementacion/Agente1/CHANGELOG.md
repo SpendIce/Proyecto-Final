@@ -26,6 +26,14 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+## [0.10.2] - 2026-11-17
+
+- **Parche — el certificado de aprobación se fecha con el mes de emisión**
+  (Refs #126; decisión de Juani sobre el PDF de la SEU). La línea de lugar
+  y fecha deja de usar el fin de la actividad: un lote aprobado lleva el
+  mes de su aprobación en hora argentina (el ZIP sigue reproducible) y la
+  muestra de un lote pendiente, el del día. Enmienda en el ADR 0017.
+
 ## [0.10.1] - 2026-11-17
 
 - **Parche — la semilla demo de 0.9.0 sigue visible en la demo** (Refs #168;
