@@ -26,15 +26,6 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
-- **Parche — una sesión demo no ve ni opera lotes reales** (Refs #168;
-  revisión de la rama `demo/integracion-20261117b`). La visibilidad se
-  decide en un único predicado por el origen de creación del lote: sólo
-  `demo` es de demostración y el legacy `NULL` es real. El detalle, la
-  muestra, la decisión, el pedido de emisión y la descarga del ZIP
-  responden 404 sin revelar que el lote existe; la bandeja no lista lotes
-  reales ni cuenta sus nombres. El recorrido completo con lotes demo no
-  cambia.
-
 ## [0.10.0] - 2026-11-17
 
 - **Menor — pedido y emisión de certificados desde la web** (Refs #168).
@@ -59,6 +50,29 @@ Dirección. Detalle en el procedimiento.
   dure el rollback. El down elimina metadatos de emisión y requiere
   respaldo. La habilitación institucional de plantillas y demás insumos
   conserva sus decisiones pendientes; esta versión no las sustituye.
+- **Menor — el certificado de aprobación sigue el PDF institucional de la
+  SEU** (Refs #126; rama `feat/certificado-firma-solapada`). Pedido y
+  comparación de la SEU del 17/11/2026: la firma va en una caja de 90×65 pt
+  con borde inferior en 62 pt, centrada en el firmante y emitida antes que
+  el texto, así queda casi entera sobre el nombre y sólo sus trazos
+  inferiores lo cruzan. El cuerpo va en oblicua de 15 pt con el
+  destinatario en negrita oblicua, el encabezado en una línea (17/13 pt), el
+  título se achica de 17 a 13 pt para entrar en una línea, el sustantivo
+  sigue la primera palabra del título y el DNI se imprime con separador de
+  miles. Se mantiene `certificado_seu_aprobacion_v2` porque la v2 no se
+  publicó; sin recursos, el espacio reservado sigue sin pisar el texto y la
+  variante de asistencia no cambia.
+- **Menor — interfaz del canal web refinada** (PR #180). Jerarquía,
+  estados y acceso con la identidad FIE 2026, salto al contenido y foco
+  visible; sin cambios de rutas, formularios ni de la banda del modo demo.
+- **Parche — una sesión demo no ve ni opera lotes reales** (Refs #168;
+  revisión de la rama `demo/integracion-20261117b`). La visibilidad se
+  decide en un único predicado por el origen de creación del lote: sólo
+  `demo` es de demostración y el legacy `NULL` es real. El detalle, la
+  muestra, la decisión, el pedido de emisión y la descarga del ZIP
+  responden 404 sin revelar que el lote existe; la bandeja no lista lotes
+  reales ni cuenta sus nombres. El recorrido completo con lotes demo no
+  cambia.
 
 ## [0.9.0] - 2026-11-17
 
