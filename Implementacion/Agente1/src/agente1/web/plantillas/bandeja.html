@@ -21,9 +21,9 @@
   {% if items %}
   {# Agrupada por estado: lo que espera trabajo arriba, lo cerrado después
      y los errores colapsados al final. No se borran: son auditoría. #}
-  {% set pendientes = items|selectattr("estado", "in", ["EN_COLA", "GENERANDO", "LISTA"])|list %}
+  {% set pendientes = items|selectattr("estado", "in", ["EN_COLA", "GENERANDO", "AJUSTANDO", "LISTA"])|list %}
   {% set errores = items|selectattr("estado", "equalto", "ERROR")|list %}
-  {% set cerradas = items|rejectattr("estado", "in", ["EN_COLA", "GENERANDO", "LISTA", "ERROR"])|list %}
+  {% set cerradas = items|rejectattr("estado", "in", ["EN_COLA", "GENERANDO", "AJUSTANDO", "LISTA", "ERROR"])|list %}
   {% if pendientes %}
   <h2 class="bandeja-grupo">Pendientes</h2>
   <ul class="bandeja">{% for item in pendientes %}{{ fila(item) }}{% endfor %}</ul>
@@ -46,9 +46,10 @@
   {% endif %}
 </section>
 
-{% if lotes %}
+{% if lotes or lotes_demo %}
 <section aria-labelledby="t-lotes">
   <h2 id="t-lotes">Lotes de certificados</h2>
+  {% if lotes %}
   <ul class="bandeja">
     {% for lote in lotes %}
     <li class="bandeja-item">
@@ -56,13 +57,29 @@
         <span class="bandeja-titulo">{{ lote.actividad }}</span>
         <span class="bandeja-meta">
           {{ lote.id_actividad }} · {{ lote.cantidad }} personas ·
-          {{ lote.creada }}
+          {{ lote.creada }}{% if lote.id == lote_demo_id %}
+          · demostración — sin validez{% endif %}
         </span>
       </a>
       <span class="estado estado-{{ lote.estado|lower }}">{{ lote.estado_visible }}</span>
     </li>
     {% endfor %}
   </ul>
+  {% endif %}
+  {% if lotes_demo %}
+  <form method="post" action="/demo/lote-certificados"
+        class="acciones-decision">
+    <input type="hidden" name="csrf" value="{{ sesion.csrf_token }}">
+    <button class="boton-primario" type="submit">
+      Crear lote de demostración
+    </button>
+  </form>
+  <p class="ayuda">
+    Siembra el lote ficticio de la presentación: personas y correos de
+    ejemplo (@example.invalid), sin validez institucional ni envío real.
+    Si ya existe, el botón vuelve al mismo lote.
+  </p>
+  {% endif %}
 </section>
 {% endif %}
 {% endblock %}

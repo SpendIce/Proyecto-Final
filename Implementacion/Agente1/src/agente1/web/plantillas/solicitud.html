@@ -46,24 +46,27 @@
   {% endif %}
 
   {% if revisiones %}
-  <h2>Revisiones</h2>
-  <table class="tabla-revisiones">
-    <thead>
-      <tr><th>N.º</th><th>Origen</th><th>Indicación</th><th>Fecha</th><th>Hash</th><th></th></tr>
-    </thead>
-    <tbody>
-      {% for r in revisiones %}
-      <tr{% if r.vigente %} class="revision-vigente"{% endif %}>
-        <td>{{ r.numero }}</td>
-        <td>{{ r.origen }}</td>
-        <td>{% if r.indicacion %}<span class="indicacion-ajuste">{{ r.indicacion }}</span>{% endif %}</td>
-        <td>{{ r.creada }}</td>
-        <td><code>{{ r.hash_corto }}</code></td>
-        <td>{% if r.vigente %}<strong>vigente</strong>{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <h2 id="t-revisiones">Revisiones</h2>
+  <div class="zona-tabla" role="region" aria-labelledby="t-revisiones"
+       tabindex="0">
+    <table class="tabla-revisiones">
+      <thead>
+        <tr><th>N.º</th><th>Origen</th><th>Indicación</th><th>Fecha</th><th>Hash</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in revisiones %}
+        <tr{% if r.vigente %} class="revision-vigente"{% endif %}>
+          <td>{{ r.numero }}</td>
+          <td>{{ r.origen }}</td>
+          <td class="celda-indicacion">{% if r.indicacion %}<span class="indicacion-ajuste">{{ r.indicacion }}</span>{% endif %}</td>
+          <td>{{ r.creada }}</td>
+          <td><code>{{ r.hash_corto }}</code></td>
+          <td>{% if r.vigente %}<strong>vigente</strong>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% endif %}
 
   {% if s.estado_web == 'LISTA' and texto_vigente %}

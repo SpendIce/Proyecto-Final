@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titulo %}Lote de demostración · Agente 1{% endblock %}
+{% block contenido %}
+<section class="tarjeta aviso" aria-labelledby="t-demo-lote-error">
+  <h1 id="t-demo-lote-error">No se pudo crear el lote de demostración</h1>
+  <p>{{ aviso }}</p>
+  <p class="ayuda">
+    La siembra es idempotente: si el lote ya existe, el mismo botón vuelve
+    a él. Nada de lo ficticio sale de esta pantalla.
+  </p>
+  <p><a class="nav-enlace" href="/bandeja">Volver a la bandeja</a></p>
+</section>
+{% endblock %}

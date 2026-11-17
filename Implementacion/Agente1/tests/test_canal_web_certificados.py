@@ -631,7 +631,7 @@ def _script_demo():
 
 def test_la_demo_usa_personas_ficticias_sin_correos_reales() -> None:
     modulo = _script_demo()
-    personas = modulo._personas_demo(6)
+    personas = modulo.personas_demo(6)
     assert len(personas) == 6
     assert all("Persona Ficticia" in p.nombre for p in personas)
     assert all(p.mail.endswith("@example.invalid") for p in personas)

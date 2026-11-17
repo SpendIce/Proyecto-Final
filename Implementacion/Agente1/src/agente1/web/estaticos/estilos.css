@@ -204,6 +204,13 @@ h2 { font-weight: 600; font-size: 1.15rem; margin-top: 1.75rem; }
   white-space: pre-wrap;
   font-family: var(--fuente-texto);
 }
+/* Cadenas largas sin espacios (hashes, URLs, ids) se cortan dentro de
+   su bloque en lugar de desbordar la página. */
+.prosa, .pieza, .ficha dd, code, .aviso-estado,
+.boton-primario, .enlace-doc {
+  overflow-wrap: anywhere;
+}
+.boton-primario { max-width: 100%; }
 .aviso-estado {
   background: var(--blanco);
   border-left: 4px solid var(--azul-fie);
@@ -229,8 +236,23 @@ h2 { font-weight: 600; font-size: 1.15rem; margin-top: 1.75rem; }
   border-bottom: 1px solid var(--neutro-medio);
 }
 .tabla-revisiones th { font-family: var(--fuente-titulos); font-weight: 600; }
+/* La tabla conserva sus columnas en pantallas angostas: la región la
+   scrollea en vez de desbordar la página. En la plantilla va con
+   role="region", nombre accesible y tabindex="0" para que el teclado
+   pueda recorrerla. */
+.zona-tabla { overflow-x: auto; }
+.zona-tabla:focus-visible { outline-color: var(--azul-fie); }
+/* La indicación de ajuste admite texto largo: la columna se acota para
+   no ensanchar toda la tabla y, cuando hay texto, el span le da un
+   mínimo legible. La celda vacía no fuerza ancho. */
+.tabla-revisiones .celda-indicacion { max-width: 16rem; }
 .revision-vigente { background: #EAF3EC; }
-.indicacion-ajuste { font-style: italic; }
+.indicacion-ajuste {
+  font-style: italic;
+  overflow-wrap: anywhere;
+  display: inline-block;
+  min-width: 10rem;
+}
 .estado-ajustando { background: var(--azul-fie); color: var(--blanco); }
 .form-ajuste { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 1rem; }
 .form-ajuste label { font-family: var(--fuente-titulos); font-weight: 600; }
@@ -245,7 +267,7 @@ h2 { font-weight: 600; font-size: 1.15rem; margin-top: 1.75rem; }
   width: 100%;
 }
 .form-ajuste button { align-self: flex-start; }
-.acciones-decision { display: flex; gap: 0.8rem; margin-top: 1rem; }
+.acciones-decision { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1rem; }
 .acciones-decision button[name="accion"][value="descartar"] {
   background: var(--neutro-oscuro);
 }
@@ -283,6 +305,9 @@ a { color: var(--azul-fie); }
   .bandeja-item { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
   .ficha { grid-template-columns: 1fr; }
   .banda-demo { font-size: 0.75rem; padding: 0.4rem 0.6rem; }
+  /* La banda demo ocupa 2-3 líneas en pantalla angosta: el padding del
+     body le reserva lugar para no tapar el final del contenido. */
+  body.con-demo { padding-bottom: 4rem; }
 }
 
 .bandeja-grupo { font-size: 1rem; margin: 1.5rem 0 0.5rem; color: var(--neutro-oscuro); }

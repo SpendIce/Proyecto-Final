@@ -164,6 +164,16 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "desde otro lado: con datos reales exige restaurar el respaldo."
         ),
     ),
+    "0011_permisos_ajuste_prosa": Reversion(
+        reversible=True,
+        pierde_datos=False,
+        requiere_restaurar_respaldo=False,
+        nota=(
+            "El `down` revoca UPDATE sobre id_borrador de prosa_transitoria "
+            "para agente1_app: no modifica datos ni la propiedad de la tabla. "
+            "Volver a la imagen 0.8.1 no requiere ejecutar este down."
+        ),
+    ),
 }
 
 

@@ -19,6 +19,7 @@ from agente1.ollama import (
     MAX_FORMAT_SCHEMA_BYTES,
     MAX_OLLAMA_NUM_PREDICT,
     MIN_OLLAMA_NUM_PREDICT,
+    OllamaTimeoutError,
 )
 from agente1.presupuesto import PresupuestoAgotadoError
 
@@ -388,3 +389,78 @@ def test_ollama_envia_think_false_para_modelos_con_razonamiento():
 def test_ollama_rechaza_think_no_booleano():
     with pytest.raises(ValueError):
         OllamaGenerator(modelo="qwen3.5:4b", think="no")
+
+
+class _ConexionQueAgotaDeadline:
+    """Transporte falso: el socket agota el deadline durante el request,
+    sin abrir red — el camino del timeout real del adapter."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        pass
+
+    def request(self, *args, **kwargs) -> None:
+        raise TimeoutError
+
+    def getresponse(self):  # pragma: no cover - el request ya falló
+        raise AssertionError("el request ya agotó el deadline")
+
+    def close(self) -> None:
+        pass
+
+
+class _ConexionCaida:
+    """Transporte falso: una falla de red que no es timeout."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        pass
+
+    def request(self, *args, **kwargs) -> None:
+        raise OSError("socket roto")
+
+    def getresponse(self):  # pragma: no cover - el request ya falló
+        raise AssertionError("el request ya falló")
+
+    def close(self) -> None:
+        pass
+
+
+def test_ollama_timeout_es_runtimeerror_tipado(monkeypatch):
+    """El deadline agotado sale como `OllamaTimeoutError`: subtipo de
+    `RuntimeError` —los callers que capturan el genérico no cambian—, con
+    el mismo mensaje público de siempre y sin el detalle del transporte
+    ni el prompt. El subtipo es lo que `ajustar` registra como
+    `timeout_generador`."""
+    monkeypatch.setattr(
+        "agente1.ollama.HTTPConnection", _ConexionQueAgotaDeadline
+    )
+    generator = OllamaGenerator(
+        modelo="llama3.2:3b", base_url="http://127.0.0.1:1", timeout_s=5
+    )
+
+    with pytest.raises(OllamaTimeoutError) as error:
+        generator.generar("PROMPT SECRETO")
+
+    mensaje = str(error.value)
+    assert isinstance(error.value, RuntimeError)
+    assert mensaje == "No se pudo contactar al generador local"
+    assert "PROMPT SECRETO" not in mensaje
+    assert "TimeoutError" not in mensaje
+
+
+def test_ollama_falla_de_red_sigue_siendo_runtimeerror_generico(
+    monkeypatch,
+):
+    """Sólo el deadline tiene subtipo: una falla de red sin timeout sigue
+    saliendo como `RuntimeError` genérico, no `OllamaTimeoutError`."""
+    monkeypatch.setattr(
+        "agente1.ollama.HTTPConnection", _ConexionCaida
+    )
+    generator = OllamaGenerator(
+        modelo="llama3.2:3b", base_url="http://127.0.0.1:1", timeout_s=5
+    )
+
+    with pytest.raises(RuntimeError) as error:
+        generator.generar("PROMPT SECRETO")
+
+    assert not isinstance(error.value, OllamaTimeoutError)
+    assert str(error.value) == "No se pudo contactar al generador local"

@@ -28,6 +28,28 @@ Dirección. Detalle en el procedimiento.
 
 Sin cambios todavía.
 
+## [0.9.0] - 2026-11-17
+
+- **Parche — el ajuste puede completar su revisión con el rol del contenedor**
+  (Refs #177). La migración 0011 concede únicamente UPDATE sobre
+  `prosa_transitoria.id_borrador`: conserva la restricción sobre texto y
+  auditoría. No cambia la estructura y es compatible con volver a la 0.8.1
+  sin ejecutar el down.
+- **Parche — errores del generador cierran el ajuste hacia LISTA**, conservando
+  la revisión vigente. Se registran códigos y duración por intento sin prosa;
+  el adapter distingue el timeout con un subtipo de RuntimeError. El asunto
+  vigente se conserva una sola vez y la pieza se vuelve a validar después de
+  recomponerlo. Los errores de persistencia posteriores conservan la reserva
+  para reconciliar el Doc ya escrito.
+- **Menor — lote ficticio de certificados desde la bandeja** (Refs #168).
+  Sólo en modo demostración vigente, con rol APROBADOR_CONTENIDO y CSRF;
+  siembra idempotente compartida con el script de consola, marca sin validez y
+  sin emisión ni envío real. El pedido y la emisión institucional de #168
+  siguen pendientes.
+- **Parche — detalle usable en celular**: tablas en regiones desplazables con
+  nombre y foco de teclado, textos largos contenidos y espacio para la banda
+  demo. AJUSTANDO permanece en el grupo Pendientes de la bandeja.
+
 ## [0.8.1] - 2026-11-17
 
 Encontrado al probar el ajuste generativo en el servidor con Ollama real

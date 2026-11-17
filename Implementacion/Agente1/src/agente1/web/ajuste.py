@@ -18,13 +18,17 @@ Decisiones que no se ven en el código:
   el modelo reescribe ese texto, no decide qué hacer con un pedido nuevo.
 - **La marca y el gate son los mismos de la generación.** La salida tiene
   que empezar con `# BORRADOR — NO PUBLICAR` y pasar `validar_pieza`; una
-  salida vacía o fuera de contrato cierra el ajuste en error visible y deja
-  la revisión vigente intacta.
+  salida vacía, fuera de contrato o un fallo del generador cierra el ajuste
+  en error visible y deja la revisión vigente intacta. El fallo del
+  generador no se reintenta: el adapter ya agotó su timeout y reintentarlo
+  multiplicaría la espera con la solicitud en `AJUSTANDO`.
 """
 
 from __future__ import annotations
 
 import hashlib
+import re
+import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -32,6 +36,8 @@ from importlib.resources import files
 
 from ..destinos import BORRADOR_MARKER, DestinoBorradoresError
 from ..gacetillas import fecha_larga, normalizar_texto, validar_pieza
+from ..ollama import OllamaTimeoutError
+from ..presupuesto import PresupuestoAgotadoError
 from ..procesamiento import Generator
 from .docs_canal import ExportadorDocs, aviso_exportador
 from .persistencia import (
@@ -152,6 +158,36 @@ def _separar_pie(texto: str) -> tuple[str, str]:
     return texto[:corte], texto[corte:]
 
 
+# Una línea de asunto en cualquier posición o capitalización: el modelo
+# puede moverla, duplicarla o escribir «asunto :». La línea entera se
+# descarta y se repone la de la base, canónica y única, al inicio.
+_PATRON_LINEA_ASUNTO = re.compile(r"\s*asunto\s*:", re.IGNORECASE)
+_BLANCOS_REPETIDOS = re.compile(r"\n{3,}")
+
+
+def _es_linea_asunto(linea: str) -> bool:
+    return _PATRON_LINEA_ASUNTO.match(linea) is not None
+
+
+def _fijar_asunto(pieza: str, asunto: str) -> str:
+    """Un solo `Asunto:` canónico, el de la base, en la primera línea.
+
+    El asunto es parte fija de la forma, no prosa: si se lo deja al modelo
+    lo reescribe, lo mueve tras un encabezado propio o lo repite, y el
+    gate no lo distingue cuando el título aparece también en el cuerpo.
+    Se descartan todas las líneas de asunto del modelo y se antepone la de
+    la base. Como una línea descartada podía cargar un hecho que no está
+    en otro lado, el llamador vuelve a validar la pieza recompuesta.
+    """
+    lineas = [
+        linea.rstrip()
+        for linea in pieza.splitlines()
+        if not _es_linea_asunto(linea)
+    ]
+    cuerpo = _BLANCOS_REPETIDOS.sub("\n\n", "\n".join(lineas)).strip()
+    return f"{asunto}\n\n{cuerpo}"
+
+
 def normalizar_pieza_ajustada(
     salida: str, *, tipo: str, campos: dict, texto_base: str
 ) -> tuple[str, list[str]]:
@@ -161,33 +197,77 @@ def normalizar_pieza_ajustada(
     cabecera obligatoria del destino, no prosa creativa. El pie de la base
     reemplaza al que haya escrito el modelo. El texto se valida contra el
     mismo `validar_pieza` que usa la generación, con los hechos de la base
-    que el ajuste debe conservar.
+    que el ajuste debe conservar. El asunto se repone después del gate y
+    la pieza recompuesta se valida de nuevo: descartar las líneas de
+    asunto del modelo puede llevarse un hecho que sólo vivía en ellas.
     """
     texto = salida.strip()
     if not texto:
         return "", ["salida_vacia"]
+    base = _quitar_marca(texto_base)
     cuerpo, _ = _separar_pie(_quitar_marca(texto))
     cuerpo = cuerpo.strip()
     if not cuerpo:
         return "", ["salida_vacia"]
-    _, pie = _separar_pie(_quitar_marca(texto_base))
+    _, pie = _separar_pie(base)
     # La forma deja una línea en blanco antes del `--` del pie.
     pieza = cuerpo + "\n" + pie.rstrip() if pie else cuerpo
-    errores = validar_pieza(
-        tipo, pieza, _campos_de_la_base(campos, texto_base)
-    )
+    campos_base = _campos_de_la_base(campos, texto_base)
+    errores = validar_pieza(tipo, pieza, campos_base)
     if errores:
         return "", errores
+    # El gate corre sobre lo que escribió el modelo: reponer el asunto
+    # antes dejaría pasar una salida que perdió el título. Después de
+    # recomponer se valida de nuevo por el mismo motivo: si un hecho sólo
+    # estaba en la línea de asunto descartada, la salida no se rescata.
+    asunto = base.partition("\n")[0].strip()
+    if asunto.startswith("Asunto:"):
+        pieza = _fijar_asunto(pieza, asunto)
+        errores = validar_pieza(tipo, pieza, campos_base)
+        if errores:
+            return "", errores
     return f"{BORRADOR_MARKER}{pieza}\n", []
 
 
 @dataclass(frozen=True)
+class FalloIntentoAjuste:
+    """Un intento fallido: código estable y duración, nunca el mensaje."""
+
+    intento: int
+    codigos: tuple[str, ...]
+    duracion_ms: int
+
+
+@dataclass(frozen=True)
 class SalidaAjuste:
-    """La pieza ajustada (o vacía), los códigos del último intento y cuántos hubo."""
+    """La pieza ajustada (o vacía), los códigos del último intento y el detalle.
+
+    `fallos` conserva el código y la duración de cada intento fallido, para
+    que `logs/ajustes.jsonl` explique en el servidor qué pasó sin guardar el
+    prompt, la prosa ni el mensaje del adapter.
+    """
 
     texto: str
     errores: list[str]
     intentos: int
+    duracion_ms: int = 0
+    fallos: tuple[FalloIntentoAjuste, ...] = ()
+
+
+# El adapter conserva el timeout como subtipo de `RuntimeError`
+# (`OllamaTimeoutError`); el resto de sus fallas de red o de forma llega
+# como `RuntimeError` genérico. El mensaje nunca se registra: podría
+# arrastrar el prompt.
+def _codigo_error_generador(error: Exception) -> str:
+    if isinstance(error, (TimeoutError, OllamaTimeoutError)):
+        return "timeout_generador"
+    if isinstance(error, PresupuestoAgotadoError):
+        return "presupuesto_agotado"
+    return "generador_error"
+
+
+def _transcurrido_ms(inicio: float) -> int:
+    return max(0, int((time.monotonic() - inicio) * 1000))
 
 
 def ajustar(
@@ -199,22 +279,52 @@ def ajustar(
     generator: Generator,
     intentos: int = INTENTOS_AJUSTE,
 ) -> SalidaAjuste:
-    """Pide el ajuste sin el pie y reintenta si la salida no pasa."""
+    """Pide el ajuste y reintenta sólo si la salida no pasa el gate.
+
+    Un fallo del generador no se reintenta: el adapter ya esperó su timeout y
+    otro intento sólo multiplica la espera. Devuelve el fallo con su código
+    para que el worker cierre el ajuste y la solicitud vuelva a `LISTA` de
+    inmediato, sin esperar a que venza la reserva.
+    """
     cuerpo_base, _ = _separar_pie(texto_base)
     prompt = construir_prompt_ajuste(
         texto_base=cuerpo_base.rstrip() + "\n", indicacion=indicacion
     )
+    comienzo = time.monotonic()
+    fallos: list[FalloIntentoAjuste] = []
     texto, errores = "", ["salida_vacia"]
     for intento in range(1, intentos + 1):
+        inicio = time.monotonic()
+        try:
+            salida = generator.generar(prompt)
+        except Exception as error:
+            codigo = _codigo_error_generador(error)
+            fallos.append(
+                FalloIntentoAjuste(
+                    intento, (codigo,), _transcurrido_ms(inicio)
+                )
+            )
+            return SalidaAjuste(
+                "", [codigo], intento, _transcurrido_ms(comienzo), tuple(fallos)
+            )
         texto, errores = normalizar_pieza_ajustada(
-            generator.generar(prompt),
+            salida,
             tipo=tipo,
             campos=campos,
             texto_base=texto_base,
         )
         if texto:
-            return SalidaAjuste(texto, [], intento)
-    return SalidaAjuste("", errores, intentos)
+            return SalidaAjuste(
+                texto, [], intento, _transcurrido_ms(comienzo), tuple(fallos)
+            )
+        fallos.append(
+            FalloIntentoAjuste(
+                intento, tuple(errores), _transcurrido_ms(inicio)
+            )
+        )
+    return SalidaAjuste(
+        "", errores, intentos, _transcurrido_ms(comienzo), tuple(fallos)
+    )
 
 
 def ajustar_texto(

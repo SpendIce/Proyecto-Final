@@ -7,7 +7,8 @@ hash. En producción ese lote lo crea el circuito de emisión; para la
 presentación sin Drive ni la Sheet D2, este script siembra un lote de demo
 directamente sobre la base del canal.
 
-Qué carga:
+Qué carga —el dominio vive en `agente1.lote_demo`, el mismo que usa el
+botón «Crear lote de demostración» de la bandeja—:
 
 - La actividad sale del CSV del prototipo —`AGENTE1_TABLA`, el `--tabla` o
   los datasets del repo—: `FIE-DIF-02` por defecto. Si la fila no declara
@@ -43,56 +44,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from agente1.canal_form import hash_correo  # noqa: E402
-from agente1.certificados_emision import (  # noqa: E402
-    ListaCierreError,
-    PersonaCierre,
-)
-from agente1.fuentes import (  # noqa: E402
-    CsvFuenteSolicitudes,
-    FuenteSolicitudesError,
+from agente1.certificados_emision import ListaCierreError  # noqa: E402
+from agente1.lote_demo import (  # noqa: E402
+    ACTIVIDAD_DEMO,
+    ACTIVIDADES_SINTETICAS,
+    CANTIDAD_DEMO,
+    CANTIDAD_MAXIMA,
+    CANTIDAD_MINIMA,
+    CODIGO_ACTIVIDAD_AUSENTE,
+    CORPUS_ACTIVIDADES,
+    crear_lote_demo,
+    datos_actividad,
+    fila_actividad_csv,
+    personas_demo,
 )
 from agente1.web.certificados_web import (  # noqa: E402
     LoteCertificadosError,
     RepositorioLotes,
 )
 from agente1.web.persistencia import conectar  # noqa: E402
-
-ACTIVIDAD_DEMO = "FIE-DIF-02"
-CANTIDAD_DEMO = 6
-CANTIDAD_MINIMA = 5
-CANTIDAD_MAXIMA = 8
-HORAS_DEMO = "24"
-MODALIDAD_DEMO = "presencial"
-CORPUS_ACTIVIDADES = ROOT / "data" / "corpus-fie-informa-difusiones.csv"
-ACTIVIDADES_SINTETICAS = ROOT / "data" / "actividades_sinteticas.csv"
-LINEA_DEMO = (
-    "Curso introductorio sobre herramientas de inteligencia artificial "
-    "para organizar y analizar información institucional."
-)
-_CAMPOS_ACTIVIDAD = (
-    "titulo",
-    "duracion_horas",
-    "modalidad",
-    "fecha_inicio",
-    "fecha_fin",
-    "organiza",
-)
-
-
-def _personas_demo(cantidad: int = CANTIDAD_DEMO) -> tuple[PersonaCierre, ...]:
-    """Filas ficticias, marcadas como tales y sin correos reales."""
-    return tuple(
-        PersonaCierre(
-            nombre=f"Persona Ficticia {indice}",
-            apellido="Demo",
-            dni=f"900000{indice:02d}",
-            mail=f"persona.ficticia.{indice}@example.invalid",
-            tratamiento="Sra." if indice % 2 == 0 else "Sr.",
-            condicion="aprobacion",
-        )
-        for indice in range(1, cantidad + 1)
-    )
 
 
 def _cargar_actividad(
@@ -108,23 +78,15 @@ def _cargar_actividad(
         if ruta is None or not str(ruta).strip():
             continue
         path = Path(str(ruta))
-        try:
-            fila = CsvFuenteSolicitudes(path).obtener(id_actividad)
-        except (FuenteSolicitudesError, OSError):
+        fila = fila_actividad_csv(path, id_actividad)
+        if fila is None:
             continue
-        datos = {
-            campo: str(fila.get(campo, "") or "").strip()
-            for campo in _CAMPOS_ACTIVIDAD
-        }
-        horas_demo = False
-        if not datos["duracion_horas"]:
-            datos["duracion_horas"] = HORAS_DEMO
-            horas_demo = True
-        if not datos["modalidad"]:
-            datos["modalidad"] = MODALIDAD_DEMO
-        if all(datos[campo] for campo in ("titulo", "fecha_inicio", "organiza")):
-            return datos, str(path), horas_demo
-    raise LoteCertificadosError("demo_actividad_ausente")
+        datos = datos_actividad(fila)
+        if datos is None:
+            continue
+        horas_demo = not str(fila.get("duracion_horas") or "").strip()
+        return datos, str(path), horas_demo
+    raise LoteCertificadosError(CODIGO_ACTIVIDAD_AUSENTE)
 
 
 def _invalida(code: str) -> int:
@@ -193,12 +155,12 @@ def main(
 
     repositorio = RepositorioLotes(functools.partial(conectar, dsn))
     try:
-        lote = repositorio.crear(
+        lote = crear_lote_demo(
+            repositorio,
             id_actividad=args.actividad,
             actividad=actividad,
-            personas=_personas_demo(args.cantidad),
-            linea_descriptiva=LINEA_DEMO,
-            generada_por_hash=hash_correo(generador),
+            personas=personas_demo(args.cantidad),
+            generador_correo=generador,
         )
     except (LoteCertificadosError, ListaCierreError) as error:
         return _invalida(error.code)

@@ -100,6 +100,7 @@ from ..gacetillas import (
     tipos,
 )
 from ..interpretacion import ROLES_HABILITADOS
+from ..lote_demo import ID_LOTE_DEMO, es_lote_demo
 from ..manifest_version import (
     IntegridadError,
     raiz_agente,
@@ -112,6 +113,7 @@ from .certificados_web import (
     lotes_para_bandeja,
     registrar_rutas_certificados,
 )
+from .demo_certificados import registrar_rutas_demo_certificados
 from .docs_canal import ExportadorDocs
 from .docs_canal import aviso_exportador as _aviso_exportador
 from .identidad import VerificacionIdentidadError, VerificadorIdToken
@@ -511,6 +513,7 @@ def crear_app(
     sesiones = sesiones if sesiones is not None else SesionesMemoria()
     base = Path(__file__).resolve().parent
     plantillas = Jinja2Templates(directory=str(base / "plantillas"))
+    plantillas.env.globals["es_lote_demo"] = es_lote_demo
     areas = areas_emisoras()
     publicos = publicos_destinatarios()
     fichas_por_tipo = _campos_por_tipo()
@@ -830,6 +833,12 @@ def crear_app(
                 and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
                 else []
             ),
+            lotes_demo=(
+                config.modo_demo
+                and lotes is not None
+                and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
+            ),
+            lote_demo_id=ID_LOTE_DEMO,
         )
 
     @app.get("/solicitudes/{id_solicitud}", response_class=HTMLResponse)
@@ -1462,6 +1471,21 @@ def crear_app(
             registro_decisiones=registro_decisiones,
             plantillas_aprobadas=plantillas_aprobadas,
         )
+        if config.modo_demo:
+            # La siembra del lote ficticio de la presentación (#168) sólo
+            # existe con el modo demostración activo: fuera de la demo el
+            # POST no tiene ruta y el handler revalida modo y rol igual.
+            registrar_rutas_demo_certificados(
+                app,
+                repositorio=lotes,
+                autorizar=autorizar,
+                render=render,
+                rol_de=rol_de,
+                csrf_ok=csrf_ok,
+                destino_login=destino_login,
+                actividades=actividades,
+                demo_activa=lambda: config.modo_demo and not demo_vencida(),
+            )
 
     return app
 
