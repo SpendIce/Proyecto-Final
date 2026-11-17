@@ -843,7 +843,7 @@ def crear_app(
                     lotes,
                     es_lote_demo=es_lote_demo,
                     puede_ver=lambda lote: sesion_puede_ver_lote(
-                        sesion, lote
+                        sesion, lote, es_lote_demo
                     ),
                 )
                 if lotes is not None
