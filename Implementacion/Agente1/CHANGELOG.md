@@ -26,6 +26,13 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+## [0.10.3] - 2026-11-17
+
+- **Parche — la página del lote rotula la plantilla vigente de la muestra**
+  (Refs #168). El lote guarda la plantilla de su creación (un lote de 0.9.0
+  dice `certificado_seu_aprobacion_v1`), pero la muestra se dibuja siempre
+  con la vigente: el rótulo ahora nombra la que se usa.
+
 ## [0.10.2] - 2026-11-17
 
 - **Parche — el certificado de aprobación se fecha con el mes de emisión**

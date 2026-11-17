@@ -74,6 +74,7 @@ from ..certificados_emision import (
     hash_lista_cierre,
     objeto_lote_cierre,
     parsear_lista_cierre,
+    plantilla_de_muestra,
 )
 from ..certificados_plantilla_seu import (
     FIRMANTES_SEU,
@@ -1031,6 +1032,11 @@ def registrar_rutas_certificados(
             decision_demo_bloqueada=_decision_bloqueada(lote),
             es_generador=generador,
             muestra_disponible=bool(lote.personas),
+            plantilla_muestra=(
+                plantilla_de_muestra(lote.personas[0])
+                if lote.personas
+                else lote.plantilla_muestra
+            ),
             registro_configurado=registro_decisiones is not None,
             requiere_confirmacion=(
                 getattr(lote, "origen_creacion", None) is not None
