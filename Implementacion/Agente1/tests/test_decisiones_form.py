@@ -524,6 +524,25 @@ def test_publicacion_publique_del_rgc_se_registra_con_identidad_y_fecha(
     assert CORREO_APROBADOR not in json.dumps(linea)
 
 
+def test_con_varios_roles_la_decision_se_registra_con_el_rol_que_la_habilita(
+    tmp_path: Path,
+) -> None:
+    # Pagos primero: el principal no habilita la publicación, contenido sí.
+    _declarar_publicacion(tmp_path)
+    canal, _ = _canal(
+        tmp_path,
+        values=[ENCABEZADOS_DECISIONES, fila_decision()],
+        padron=PadronRoles(
+            {CORREO_APROBADOR: ("APROBADOR_PAGOS", ROL_APROBADOR_CONTENIDO)}
+        ),
+    )
+
+    (resultado,) = canal.atender()
+
+    assert resultado.resultado == "registrada"
+    assert resultado.rol == ROL_APROBADOR_CONTENIDO
+
+
 def test_publicacion_descarte_de_rol_ajeno_se_rechaza(
     tmp_path: Path,
 ) -> None:

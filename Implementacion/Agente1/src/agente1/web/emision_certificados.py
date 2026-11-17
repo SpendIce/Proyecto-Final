@@ -213,7 +213,7 @@ class EmisionCertificadosWeb:
         correo = padron.correo_para_hash(actor.solicitante_hash)
         if correo is None:
             return None
-        return padron.rol_para(correo)
+        return padron.rol_para(correo, (ROL_APROBADOR_CONTENIDO,))
 
     def _exigir_aprobador(self, actor: ActorCertificadosWeb) -> None:
         if self._rol_actual(actor) != ROL_APROBADOR_CONTENIDO:

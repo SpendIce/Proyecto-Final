@@ -138,7 +138,7 @@ import math
 import os
 import re
 import uuid
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -576,6 +576,14 @@ def hash_correo(correo: str) -> str:
     return hashlib.sha256(normalizar_correo(correo).encode("utf-8")).hexdigest()
 
 
+def _roles_de_pedido() -> frozenset[str]:
+    """Los roles que habilitan un pedido (import diferido: evita el ciclo)."""
+
+    from .interpretacion import ROLES_HABILITADOS
+
+    return ROLES_HABILITADOS
+
+
 class PadronRoles:
     """Correo verificado → rol autorizado (ADR 0005), cargado fuera del repo.
 
@@ -587,30 +595,68 @@ class PadronRoles:
     `cargar_padron_roles_csv` o `desde_entorno`.
     """
 
-    def __init__(self, correos_roles: Mapping[str, str]) -> None:
+    def __init__(
+        self, correos_roles: Mapping[str, str | tuple[str, ...] | list[str]]
+    ) -> None:
         if not isinstance(correos_roles, Mapping):
             raise ConfiguracionWorkspaceError("padron_roles_invalid")
-        normalizados: dict[str, str] = {}
+        normalizados: dict[str, tuple[str, ...]] = {}
         try:
             items = list(correos_roles.items())
         except Exception:
             raise ConfiguracionWorkspaceError("padron_roles_invalid") from None
-        for correo, rol in items:
+        for correo, roles in items:
             correo_n = normalizar_correo(correo) if isinstance(correo, str) else ""
-            rol_n = rol.strip() if isinstance(rol, str) else ""
-            if not email_valido(correo_n) or _ROL_PADRON_RE.fullmatch(rol_n) is None:
+            crudos = (roles,) if isinstance(roles, str) else roles
+            if not isinstance(crudos, (tuple, list)) or not crudos:
                 raise ConfiguracionWorkspaceError("padron_roles_invalid")
-            normalizados[correo_n] = rol_n
+            roles_n = tuple(
+                rol.strip() if isinstance(rol, str) else "" for rol in crudos
+            )
+            if (
+                not email_valido(correo_n)
+                or any(_ROL_PADRON_RE.fullmatch(rol) is None for rol in roles_n)
+                or len(set(roles_n)) != len(roles_n)
+            ):
+                raise ConfiguracionWorkspaceError("padron_roles_invalid")
+            normalizados[correo_n] = roles_n
         if not normalizados or len(normalizados) > MAX_FILAS_PADRON:
             raise ConfiguracionWorkspaceError("padron_roles_invalid")
         self._roles = normalizados
 
-    def rol_para(self, correo: str) -> str | None:
-        """Rol autorizado de este correo, o `None` si no está en el padrón."""
+    def roles_para(self, correo: str) -> tuple[str, ...]:
+        """Todos los roles del correo, en el orden del padrón; vacío si no está."""
 
         if not isinstance(correo, str):
+            return ()
+        return self._roles.get(normalizar_correo(correo), ())
+
+    def rol_para(
+        self, correo: str, preferidos: Iterable[str] | None = None
+    ) -> str | None:
+        """El rol con el que actúa este correo, o `None` si no está.
+
+        Una persona puede tener varios roles (una fila por rol en el CSV).
+        Quien chequea una acción pasa en `preferidos` los roles que la
+        habilitan y recibe el primero que la persona tenga; si no tiene
+        ninguno, o no se pasan, el rol principal (la primera fila). Con
+        un solo rol, el resultado es siempre ese rol.
+        """
+
+        roles = self.roles_para(correo)
+        if not roles:
             return None
-        return self._roles.get(normalizar_correo(correo))
+        if preferidos is not None:
+            buscados = frozenset(preferidos)
+            for rol in roles:
+                if rol in buscados:
+                    return rol
+        return roles[0]
+
+    def tiene_rol(self, correo: str, rol: str) -> bool:
+        """¿El correo tiene este rol entre los suyos?"""
+
+        return rol in self.roles_para(correo)
 
     def correo_para_hash(self, solicitante_hash: str) -> str | None:
         """El correo del padrón cuyo SHA-256 es `solicitante_hash`.
@@ -648,7 +694,7 @@ class PadronRoles:
 
 
 def cargar_padron_roles_csv(path: Path) -> PadronRoles:
-    """Lee el padrón desde un CSV `correo,rol`. Falla por código, sin datos.
+    """Lee el padrón desde un CSV `correo,rol`, una fila por rol. Falla por código.
 
     La ruta vive fuera del repo y no se valida como identificador remoto:
     es un archivo local de configuración, como el env file. Un archivo
@@ -665,16 +711,18 @@ def cargar_padron_roles_csv(path: Path) -> PadronRoles:
                 or len(encabezados) != len(set(encabezados))
             ):
                 raise ConfiguracionWorkspaceError("padron_roles_invalid")
-            filas: dict[str, str] = {}
+            filas: dict[str, list[str]] = {}
             for fila in reader:
                 if None in fila:
                     # Más columnas de las declaradas: fila desalineada.
                     raise ConfiguracionWorkspaceError("padron_roles_invalid")
                 correo = (fila.get("correo") or "").strip().lower()
                 rol = (fila.get("rol") or "").strip()
-                if correo in filas:
+                # Una fila por rol: el mismo correo puede repetirse con
+                # roles distintos; la misma fila repetida es un error.
+                if rol in filas.get(correo, ()):
                     raise ConfiguracionWorkspaceError("padron_roles_invalid")
-                filas[correo] = rol
+                filas.setdefault(correo, []).append(rol)
             if len(filas) > MAX_FILAS_PADRON:
                 raise ConfiguracionWorkspaceError("padron_roles_invalid")
             # El padrón sólo puede declarar roles del catálogo vigente: los
@@ -699,9 +747,10 @@ def cargar_padron_roles_csv(path: Path) -> PadronRoles:
                 }
                 | {ROL_APROBADOR_CONTENIDO, ROL_APROBADOR_PAGOS}
             )
-            if any(not rol for rol in filas.values()):
+            todos = [rol for roles in filas.values() for rol in roles]
+            if any(not rol for rol in todos):
                 raise ConfiguracionWorkspaceError("padron_roles_invalid")
-            if any(rol not in roles_vigentes for rol in filas.values()):
+            if any(rol not in roles_vigentes for rol in todos):
                 raise ConfiguracionWorkspaceError("padron_rol_desconocido")
     except ConfiguracionWorkspaceError:
         raise
@@ -711,7 +760,7 @@ def cargar_padron_roles_csv(path: Path) -> PadronRoles:
         raise ConfiguracionWorkspaceError("padron_roles_missing") from None
     except (UnicodeDecodeError, csv.Error):
         raise ConfiguracionWorkspaceError("padron_roles_invalid") from None
-    return PadronRoles(filas)
+    return PadronRoles({correo: tuple(roles) for correo, roles in filas.items()})
 
 
 class LectorValoresCsv:
@@ -1214,7 +1263,10 @@ class CanalFormPedidos:
         texto = _celda(fila, COL_TEXTO)
         if not marca or not email_valido(correo):
             return None
-        rol = self._padron.rol_para(correo) or ROL_NO_EN_PADRON
+        rol = (
+            self._padron.rol_para(correo, _roles_de_pedido())
+            or ROL_NO_EN_PADRON
+        )
         return PedidoCanal(
             id_pedido=_id_pedido(marca, correo, texto),
             solicitante=IdentidadSolicitante(identificador=correo, rol=rol),
@@ -1268,7 +1320,10 @@ class CanalFormPedidos:
             else ""
         )
         texto = _celda(fila, self._columnas_hoja["pedido"])
-        rol = self._padron.rol_para(correo) or ROL_NO_EN_PADRON
+        rol = (
+            self._padron.rol_para(correo, _roles_de_pedido())
+            or ROL_NO_EN_PADRON
+        )
         # Las columnas estructuradas firman el id sólo cuando el contrato
         # de la hoja las declara: una fila v2 produce el mismo id que antes.
         partes_id = [marca, correo, tipo_crudo, actividad_cruda, area_cruda]

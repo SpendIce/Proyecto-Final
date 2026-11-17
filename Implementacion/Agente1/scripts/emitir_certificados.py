@@ -58,6 +58,7 @@ from agente1.certificados_emision import (
     procesar_emision_certificados,
     recursos_firma_opcional,
 )
+from agente1.confirmaciones import ROL_APROBADOR_CONTENIDO
 from agente1.decisiones_form import (
     EnlacesDecisiones,
     RegistroDecisiones,
@@ -259,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
         solicitante_rol = None
         try:
             solicitante_rol = PadronRoles.desde_entorno().rol_para(
-                solicitante
+                solicitante, (ROL_APROBADOR_CONTENIDO,)
             )
         except ConfiguracionWorkspaceError as exc:
             if exc.code != "padron_roles_missing":

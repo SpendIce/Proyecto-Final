@@ -809,7 +809,10 @@ class CanalFormDecisiones:
         return tuple(resultados)
 
     def _resolver(self, respuesta: _RespuestaDecision) -> ResultadoDecision:
-        rol_padron = self._padron.rol_para(respuesta.correo)
+        rol_padron = self._padron.rol_para(
+            respuesta.correo,
+            ROLES_POR_DECISION.get((respuesta.tipo, respuesta.decision), ()),
+        )
         codigo = self._codigo_rechazo(respuesta, rol_padron)
         return ResultadoDecision(
             id_respuesta=respuesta.id_respuesta,

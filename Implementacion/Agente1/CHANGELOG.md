@@ -26,6 +26,14 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+## [0.10.4] - 2026-11-17
+
+- **Menor — una persona puede tener varios roles en el padrón** (Refs #125;
+  enmienda del ADR 0005). El CSV admite una fila por rol para el mismo
+  correo; cada chequeo pide el rol que lo habilita y la decisión queda
+  registrada con ese rol. La misma fila repetida sigue invalidando el
+  padrón. Con un rol por correo nada cambia.
+
 ## [0.10.3] - 2026-11-17
 
 - **Parche — la página del lote rotula la plantilla vigente de la muestra**
