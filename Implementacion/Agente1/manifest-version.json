@@ -79,7 +79,7 @@
     "scripts/smoke_posts.sh": "523a8b09f12fa37cc107cf50fe97a4e419948aa074327ac8777d5d33ef26459f",
     "scripts/wizard-gmail-cuenta-tecnica.sh": "3f4db1ec7061e8a1e292c0933e2e02a5b3f3e8ed6442605de3f6b2cc057ad251",
     "scripts/worker_canal_web.py": "eba68550bb04f64c518ca08f1401c5aa392fd4ee041484521259a0956c5c60a6",
-    "scripts/worker_certificados_web.py": "74020b201f38b99d52dd0c92c901f71839faed45a20e7cebaecb530b5059f9da",
+    "scripts/worker_certificados_web.py": "1d64df1553e108333d0a2ce1505d9ed54bfe10a6b3681ecaa4172009fbb1afaf",
     "scripts/workspace_e2e.py": "97ca98bb9de6776dd08a03b0e9097754a4292268df0c4399f9b02299bf818913",
     "scripts/workspace_smoke.py": "edb87c402c520013d7f51799ee34ac437b5fca55a7b95ee96a250c1a65c2aa94",
     "src/agente1/__init__.py": "bc5a4b9595d46a2b9cb924a3da240dc9342dc204270635a50e0dd934026634e0",

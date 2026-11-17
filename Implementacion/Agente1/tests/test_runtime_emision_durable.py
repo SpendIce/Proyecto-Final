@@ -129,3 +129,28 @@ def test_la_fabrica_solo_conecta_cuando_un_metodo_lo_pide() -> None:
     with pytest.raises(Exception):
         servicio.consultar("lote-1", actor=actor)
     assert conexiones == [True]
+
+
+def test_daemon_sigue_despues_de_un_error_transitorio(monkeypatch, capsys) -> None:
+    import agente1.web.emision_certificados_runtime as runtime
+
+    worker = _cargar("worker_certificados_resiliente", ROOT / "scripts" / "worker_certificados_web.py")
+    llamadas = []
+    pausas = []
+
+    class ServicioConFalloTransitorio:
+        def correr_una_vez(self, **kwargs):
+            llamadas.append(kwargs)
+            if len(llamadas) == 1:
+                raise RuntimeError("detalle-sintetico-no-exponer")
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(runtime, "construir_emision_certificados_web", lambda *args, **kwargs: ServicioConFalloTransitorio())
+    monkeypatch.setattr(worker.time, "sleep", pausas.append)
+    with pytest.raises(KeyboardInterrupt):
+        worker.main(["--intervalo", "1"], environ={"AGENTE1_POSTGRES_DSN": "dsn-no-usado"})
+    salida = capsys.readouterr().out
+    assert len(llamadas) == 2
+    assert pausas == [1]
+    assert "worker_ciclo_fallido" in salida
+    assert "detalle-sintetico-no-exponer" not in salida

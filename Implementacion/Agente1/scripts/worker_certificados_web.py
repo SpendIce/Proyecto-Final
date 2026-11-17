@@ -87,7 +87,26 @@ def main(
     )
 
     while True:
-        id_emision = servicio.correr_una_vez(worker_id=worker_id)
+        try:
+            id_emision = servicio.correr_una_vez(worker_id=worker_id)
+        except Exception as exc:
+            # La reserva vence sola y `reconciliar` la recupera: un ciclo
+            # roto no mata al daemon, se reporta y se espera al próximo.
+            print(
+                json.dumps(
+                    {
+                        "status": "ERROR",
+                        "error_code": getattr(
+                            exc, "code", "worker_ciclo_fallido"
+                        ),
+                    },
+                    sort_keys=True,
+                )
+            )
+            if args.una_vez:
+                return 1
+            time.sleep(args.intervalo)
+            continue
         if args.una_vez:
             print(
                 json.dumps(
