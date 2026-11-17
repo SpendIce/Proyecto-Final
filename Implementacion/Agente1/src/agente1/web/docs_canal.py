@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from ..destinos import (
+    DestinoBorradoresError,
     ReferenciaBorrador,
     ResultadoDestinoPorMarca,
 )
@@ -27,6 +28,29 @@ class ExportadorDocs(Protocol):
     def exportar_texto(self, doc_ref: str) -> str: ...
 
     def head_revision(self, doc_ref: str) -> str | None: ...
+
+
+# Códigos del adapter que significan «el Doc no se puede interpretar», no
+# «Workspace no está disponible». El 404 de Drive se trata aparte.
+CODIGOS_EXPORTADOR_INVALIDO = frozenset(
+    {"destination_contract_invalid", "drive_response_invalid"}
+)
+
+
+def aviso_exportador(error: DestinoBorradoresError) -> str:
+    """Código de aviso para una falla del exportador, sin prosa de la API.
+
+    Un 404 de Drive es que el Doc ya no existe; un contrato o una respuesta
+    que no se puede interpretar es un fallo del Doc, no de la config; el
+    resto es Workspace no disponible. Un error que no sea del adapter no se
+    atrapa: se propaga y queda en el log del servidor en vez de mostrarse
+    como falta de config.
+    """
+    if error.code == "drive_resource_not_found":
+        return "doc_inexistente"
+    if error.code in CODIGOS_EXPORTADOR_INVALIDO:
+        return "exportador_invalido"
+    return "workspace_no_disponible"
 
 
 class DocsCanalMemoria:

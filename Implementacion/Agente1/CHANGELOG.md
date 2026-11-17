@@ -28,6 +28,24 @@ Dirección. Detalle en el procedimiento.
 
 Sin cambios todavía.
 
+## [0.7.0] - 2026-11-17
+
+- **Menor — ajuste generativo sobre la última revisión (canal web).** En la
+  solicitud con revisión vigente, quien puede revisar el Doc escribe una
+  indicación corta («más breve», «sumá el horario», «tono más formal») y el
+  agente reescribe el texto partiendo de esa revisión —incluidas las
+  correcciones humanas importadas del Doc— con un prompt nuevo
+  (`ajuste_generativo_v1`). Antes de encolar, el pedido trae los cambios del
+  Doc para que la base sea lo que se ve; la salida pasa la marca y el gate de
+  la pieza, se escribe en el mismo Doc y crea una revisión nueva con origen
+  `ajuste_generativo` y base declarada, sin sobrescribir la anterior. La
+  aprobación sigue atada al hash de la revisión vigente: decidir sobre la
+  anterior queda `revision_obsoleta`. La solicitud muestra «Ajustando…» con el
+  mismo sondeo de `/estado`, la auditoría registra quién, rol, origen de
+  identidad, indicación, hash base y versión del agente, y el historial de la
+  vista muestra la indicación de cada ajuste. Migración 0009; tests en
+  `tests/test_canal_web_ajuste.py`.
+
 ## [0.6.5] - 2026-11-17
 
 - **Parche — la bandeja agrupa por estado.** Pendientes (en cola, generando,

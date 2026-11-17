@@ -103,7 +103,9 @@ from ..manifest_version import (
     raiz_agente,
     version_desde_pyproject,
 )
+from .ajuste import ejecutar_ajuste_web
 from .docs_canal import ExportadorDocs
+from .docs_canal import aviso_exportador as _aviso_exportador
 from .identidad import VerificacionIdentidadError, VerificadorIdToken
 from .persistencia import (
     CANAL_WEB,
@@ -123,6 +125,7 @@ _DEMO_DIAS_MAX = 14
 _ESTADOS_VISIBLES = {
     "EN_COLA": "En cola",
     "GENERANDO": "Generando",
+    "AJUSTANDO": "Ajustando…",
     "LISTA": "En revisión",
     "ERROR": "Con error",
     "APROBADA": "Aprobada",
@@ -132,6 +135,7 @@ _ESTADOS_VISIBLES = {
 _ORIGEN_REVISION = {
     "generada": "generada",
     "editada_docs": "editada en Docs",
+    "ajuste_generativo": "ajuste generativo",
 }
 _AVISOS_DOC = {
     "doc_inexistente": "El Doc ya no existe.",
@@ -817,6 +821,7 @@ def crear_app(
         detalle_sol: DetalleSolicitud,
         aviso: str | None = None,
         aviso_error: bool = False,
+        status_code: int = 200,
     ) -> HTMLResponse:
         campos_pieza = detalle_sol.campos.get("pieza", {})
         campos_pedido = detalle_sol.campos.get("pedido", {})
@@ -832,20 +837,21 @@ def crear_app(
             if detalle_sol.revisiones
             else None
         )
-        puede_traer = (
+        revisable = (
             exportador is not None
             and detalle_sol.estado_web == "LISTA"
-            and detalle_sol.doc_ref is not None
             and puede_revisar_doc(sesion)
         )
+        puede_traer = revisable and detalle_sol.doc_ref is not None
         puede_decidir = (
-            puede_traer
+            revisable
             and vigente is not None
             and rol in ROLES_POR_DECISION[(TIPO_PUBLICACION, DECISION_PUBLIQUE)]
         )
         puede_correo = rol in ROLES_POR_DECISION[
             (TIPO_PUBLICACION, DECISION_PUBLIQUE)
         ]
+        puede_ajustar = revisable and vigente is not None
         correo = _contexto_correo(detalle_sol, titulo, sesion, puede_correo)
         return render(
             "solicitud.html",
@@ -871,6 +877,7 @@ def crear_app(
                     "creada": r.creada_en.strftime("%d/%m/%Y %H:%M"),
                     "hash_corto": r.output_hash[:12],
                     "vigente": r is vigente,
+                    "indicacion": r.indicacion,
                 }
                 for r in detalle_sol.revisiones
             ],
@@ -879,6 +886,8 @@ def crear_app(
             doc_url=detalle_sol.doc_url,
             puede_traer=puede_traer,
             puede_decidir=puede_decidir,
+            puede_ajustar=puede_ajustar,
+            llave_ajuste=uuid.uuid4().hex,
             correo=correo,
             correo_auto=(
                 catalogo_audiencias is not None and puede_correo
@@ -887,6 +896,7 @@ def crear_app(
             csrf=sesion.csrf_token,
             aviso=aviso,
             aviso_error=aviso_error,
+            status_code=status_code,
         )
 
     def _contexto_correo(
@@ -950,6 +960,7 @@ def crear_app(
         estados = {
             "EN_COLA": "en_cola",
             "GENERANDO": "generando",
+            "AJUSTANDO": "ajustando",
             "LISTA": "en_revision",
             "ERROR": "con_error",
             "DESCARTADA": "descartada",
@@ -1093,6 +1104,45 @@ def crear_app(
         actualizado = repositorio.obtener(id_solicitud) or detalle_sol
         return _render_detalle(
             request, sesion, actualizado, *_aviso(_AVISOS_REVISION, resultado.codigo)
+        )
+
+    @app.post("/solicitudes/{id_solicitud}/ajustar")
+    async def ajustar(request: Request, id_solicitud: str) -> Response:
+        """Encola un ajuste generativo sobre la revisión vigente."""
+        sesion = autorizar(request)
+        if sesion is None:
+            return destino_login()
+        form = await request.form()
+        if not csrf_ok(sesion, str(form.get("csrf", ""))):
+            return render("sin_permiso.html", request, status_code=403)
+        if not puede_revisar_doc(sesion):
+            return render("sin_permiso.html", request, status_code=403)
+        resultado = ejecutar_ajuste_web(
+            repositorio=repositorio,
+            exportador=exportador,
+            id_solicitud=id_solicitud,
+            indicacion=str(form.get("indicacion", "")),
+            llave=str(form.get("llave", "")),
+            solicitante_hash=_hash_solicitante(sesion),
+            rol=rol_de(sesion) or "",
+            origen_identidad=sesion.origen,
+            version_agente=version_agente,
+            ahora=datetime.now(timezone.utc),
+        )
+        if resultado.redirigir:
+            return RedirectResponse(
+                f"/solicitudes/{id_solicitud}", status_code=303
+            )
+        detalle_sol = repositorio.obtener(id_solicitud)
+        if detalle_sol is None:
+            return render("sin_permiso.html", request, status_code=404)
+        return _render_detalle(
+            request,
+            sesion,
+            detalle_sol,
+            aviso=resultado.aviso,
+            aviso_error=resultado.es_error,
+            status_code=resultado.status_code,
         )
 
     @app.post("/solicitudes/{id_solicitud}/decidir")
@@ -1372,27 +1422,6 @@ def crear_app(
         return {"estado": "ok"}
 
     return app
-
-
-_CODIGOS_EXPORTADOR_INVALIDO = frozenset(
-    {"destination_contract_invalid", "drive_response_invalid"}
-)
-
-
-def _aviso_exportador(error: DestinoBorradoresError) -> str:
-    """Código de aviso para una falla del exportador, sin prosa de la API.
-
-    Un 404 de Drive es que el Doc ya no existe; un contrato o una respuesta
-    que no se puede interpretar es un fallo del Doc, no de la config; el
-    resto es Workspace no disponible. Un error que no sea del adapter no se
-    atrapa: se propaga y queda en el log del servidor en vez de mostrarse
-    como falta de config.
-    """
-    if error.code == "drive_resource_not_found":
-        return "doc_inexistente"
-    if error.code in _CODIGOS_EXPORTADOR_INVALIDO:
-        return "exportador_invalido"
-    return "workspace_no_disponible"
 
 
 def _hash_solicitante(sesion: Sesion) -> str:
