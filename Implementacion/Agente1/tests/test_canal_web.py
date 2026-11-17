@@ -1187,3 +1187,15 @@ def test_pedido_demo_se_registra_con_canal_web_demo() -> None:
     assert solicitud["canal"] == "web-demo"
     detalle = mundo.client.get(respuesta.headers["location"])
     assert "demostración" in detalle.text
+
+
+def test_formulario_muestra_como_se_completa_la_frase_de_cada_campo(
+    mundo: Mundo,
+) -> None:
+    """Demo 17/11: «Hecho» sin más llevaba a escribir una oración entera
+    («Por tareas…») que la fórmula del aviso inserta en medio de otra."""
+
+    _ingresar(mundo.client)
+    html = mundo.client.get("/nuevo-pedido").text
+    assert "Se informa a la comunidad … que …" in html
+    assert 'aria-describedby="ayuda_hecho_aviso_de_otra_area"' in html

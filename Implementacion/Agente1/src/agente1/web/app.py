@@ -178,6 +178,47 @@ _NOMBRES_TIPOS = {
     "newsletter": "Newsletter",
 }
 _CAMPOS_AREA = {"cuerpo", "hecho", "condicion", "requisitos", "convocatoria"}
+# Cómo entra cada campo en la frase de la forma declarada del tipo. Los
+# campos de las fórmulas se escriben como fragmento (minúscula, sin punto
+# final): la fórmula pone el resto de la oración.
+_AYUDA_CAMPOS: dict[tuple[str, str], str] = {
+    ("aviso_de_otra_area", "publico"): (
+        "Completa «Se informa a la comunidad …». Ej.: educativa"
+    ),
+    ("aviso_de_otra_area", "hecho"): (
+        "Completa «Se informa a la comunidad … que …», en minúscula. "
+        "Ej.: el estacionamiento para motos no estará habilitado"
+    ),
+    ("aviso_de_otra_area", "fecha"): (
+        "Opcional: «a partir del …». Ej.: 2026-11-21"
+    ),
+    ("aviso_de_otra_area", "condicion"): (
+        "Cierra la frase. Ej.: hasta nuevo aviso"
+    ),
+    ("convocatoria_interna", "destinatarios"): (
+        "Completa «Se convoca a …». Ej.: docentes de la casa"
+    ),
+    ("convocatoria_interna", "convocatoria"): (
+        "Completa «Se convoca a … a …», en minúscula. "
+        "Ej.: acompañar como tutores a los ingresantes 2027"
+    ),
+    ("convocatoria_interna", "requisitos"): (
+        "Completa «Requisitos: …». Ej.: tener dos años de antigüedad"
+    ),
+    ("convocatoria_interna", "fecha_limite"): "Ej.: 2026-12-04",
+    ("fallecimiento", "nombre"): "Ej.: el Ing. Juan Pérez",
+    ("fallecimiento", "rol"): (
+        "Completa «quien fuera …». Ej.: docente de la casa"
+    ),
+    ("fallecimiento", "dia"): "Ej.: viernes 23 de octubre",
+    ("fallecimiento", "hora"): "Ej.: 11:00",
+    ("fallecimiento", "lugar"): (
+        "Completa «se realizará un responso … en …». Ej.: la Capilla del Instituto"
+    ),
+    ("saludo_o_efemeride", "cuerpo"): (
+        "Opcional: una idea para el saludo. El agente lo redacta sin fechas ni cifras."
+    ),
+}
 # Quién puede traer cambios del Doc: quien puede pedir una pieza o quien
 # decide sobre contenido. El resto del padrón ve la bandeja y la revisión,
 # pero no mueve la revisión vigente.
@@ -379,6 +420,7 @@ def _campos_por_tipo() -> dict[str, dict[str, Any]]:
                         "nombre": nombre,
                         "requerido": nombre in requeridos,
                         "area": nombre in _CAMPOS_AREA,
+                        "ayuda": _AYUDA_CAMPOS.get((tipo, nombre), ""),
                     }
                 )
         ficha["campos"] = campos
