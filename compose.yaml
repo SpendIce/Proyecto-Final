@@ -40,7 +40,7 @@ x-agente1: &agente1
     - /tmp
     - /srv/p100/Implementacion/Agente1/tmp:mode=1777
     - /srv/p100/Implementacion/Agente1/salida:mode=1777
-  image: ghcr.io/spendice/agente1@sha256:4a9fad1a2ca2c3f5feacd540a8328b9fcf98a9d230cdfadb236faeb46ffb6b34
+  image: ghcr.io/spendice/agente1@sha256:3f7965721c650d344c17a27e15199604d9aa30be9ff2cc4ceebbf0535e20920d
   user: "${AGENTE1_UID:-1003}:${AGENTE1_GID:-1003}"
   environment:
     AGENTE1_ENV_FILE: ${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/workspace-d2.env
@@ -221,6 +221,12 @@ services:
       # arranque de la web cierra. Sin el archivo el servicio no arranca:
       # el default asume el despliegue de producción.
       AGENTE1_AUDIENCIAS_PATH: ${AGENTE1_AUDIENCIAS_PATH:-${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/audiencias-institucionales.json}
+      # Registro JSONL de decisiones que lee la emisión (#168): aprobar un
+      # lote en la web asienta ahí el `apruebo_lote`. Vive en el estado
+      # montado, que es el mismo `--directorio` con el que corre el circuito
+      # de certificados; si se apaga la variable, la decisión queda sólo en
+      # la base y la emisión no la ve.
+      AGENTE1_DECISIONES_DIR: ${AGENTE1_DECISIONES_DIR:-/state/estado-decisiones}
       AGENTE1_WEB_PORT: "8080"
       HOME: /tmp
     networks:
