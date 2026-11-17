@@ -28,6 +28,23 @@ Dirección. Detalle en el procedimiento.
 
 Sin cambios todavía.
 
+## [0.6.4] - 2026-11-17
+
+Encontrado al generar los siete tipos en el servidor (canal web, 0.6.3).
+
+- **Parche — el saludo con idea de quien pide ya no falla por `hecho_perdido`.**
+  Con `cuerpo` cargado en el pedido, el modelo redacta su propia prosa (sin
+  fechas ni cifras, por prompt) y el gate exigía esa idea literal en la pieza.
+  El `cuerpo` de un tipo de prosa directa es la salida del modelo (contrato de
+  entrada): el gate lo controla contra lo que se imprimió.
+- **Parche — las fórmulas no duplican la puntuación.** El valor que entra en
+  medio de una frase de la forma pierde su punto final («…principal., a partir
+  del…», «…anexo..»); el control de hechos compara sin esa puntuación. El
+  renderer sube a `gacetilla_forma_declarada_v6`.
+- **Parche — el pedido guiado muestra cómo entra cada campo en la frase**
+  («Completa «Se informa a la comunidad … que …», en minúscula») en aviso,
+  convocatoria, fallecimiento y saludo.
+
 ## [0.6.3] - 2026-11-16
 
 - **Parche — el destino Docs deja en el log la causa del token.** Cuando el
