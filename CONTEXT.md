@@ -88,6 +88,18 @@ _Evitar_: aprobacion de envio, aprobacion por destinatario
 Lista de las personas que terminaron una actividad, con sus datos y su condicion (asistencia o aprobacion), que carga quien gestiona el curso al cerrarla. Es la unica fuente de quien recibe un certificado y de que tipo: el Agente 1 nunca infiere un resultado academico. Su aprobacion de lote la da quien la genera, igual que el resto de las piezas (designacion del 11/11/2026, #125); la firma institucional queda pendiente de la SEU. Cualquier cambio posterior exige aprobarla de nuevo.
 _Evitar_: padron, lista de inscriptos, acta de notas
 
+**Pedido de certificados**:
+Solicitud de una persona autorizada para preparar y emitir los certificados de una actividad sobre su lista de cierre. Incluye la revisión de los datos y de la línea descriptiva; pedir no equivale a aprobar ni a emitir.
+_Evitar_: inscripción, cierre académico automático
+
+**Generación de certificados de demostración**:
+Preparación de documentos ficticios o de prueba identificados sin validez institucional. Su aprobación no autoriza correos a titulares ni se convierte en aprobación institucional por cambiar el modo de acceso.
+_Evitar_: emisión institucional, certificados enviados
+
+**Emisión de resultado indeterminado**:
+Operación cuya entrega no puede confirmarse ni descartarse después de una interrupción o restauración. Requiere revisión humana antes de cualquier nueva entrega; no equivale a un rechazo ni a un envío pendiente que pueda repetirse automáticamente.
+_Evitar_: reintento pendiente, no enviado
+
 **Decision de publicacion**:
 Registro que deja quien publica o descarta un borrador de difusion (gacetilla, post), con su identidad y su rol. Es la validacion humana de la difusion: el Agente 1 no publica, y la decision no dispara nada en el agente.
 _Evitar_: aprobacion semantica, aprobacion utilitaria, cuando se habla de difusion

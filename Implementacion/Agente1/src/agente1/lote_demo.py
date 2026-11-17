@@ -9,6 +9,7 @@ ya creó y la marca de demostración vale para las dos.
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from pathlib import Path
@@ -65,6 +66,7 @@ class RepositorioLotesDemoPuerto(Protocol):
         personas: tuple[PersonaCierre, ...],
         linea_descriptiva: str,
         generada_por_hash: str,
+        origen_creacion: str | None = None,
         ahora: datetime | None = None,
     ) -> LoteCertificados: ...
 
@@ -158,16 +160,25 @@ _HASHES_LISTA_DEMO = frozenset(
 
 
 def es_lote_demo(lote: LoteCertificados) -> bool:
-    """Marca explícita: si el lote salió de la semilla ficticia.
+    """Marca explícita: si el lote es de demostración.
 
-    Compara el `objeto_lote` con el canónico de la `id_actividad` del
-    propio lote para cada lista demo válida —`personas_demo(5..8)`, el
-    rango del script—, así que cubre la semilla del botón y todas las
-    variantes `--actividad`/`--cantidad`. Lo que matchea son siempre los
-    datos ficticios de la semilla, no una heurística de correos, y la
-    marca sobrevive a la purga porque `id_actividad` y `objeto_lote`
-    quedan en la fila.
+    Dos marcas válidas, cualquiera de las dos alcanza:
+
+    - `origen_creacion == "demo"`: la columna que declara el origen del
+      pedido web (la escribe `RepositorioLotes.crear` con la sesión, la
+      migra 0012). Un lote pedido desde una sesión de demostración es
+      demo por origen, no por su contenido.
+    - La semilla histórica: el `objeto_lote` canónico de la
+      `id_actividad` del propio lote para cada lista demo válida
+      —`personas_demo(5..8)`, el rango del script—, que cubre la semilla
+      del botón y las variantes `--actividad`/`--cantidad` sembradas
+      antes de que existiera la columna. Lo que matchea son siempre los
+      datos ficticios de la semilla, no una heurística de correos, y la
+      marca sobrevive a la purga porque `id_actividad` y `objeto_lote`
+      quedan en la fila.
     """
+    if getattr(lote, "origen_creacion", None) == "demo":
+        return True
     return any(
         lote.objeto_lote
         == objeto_lote_cierre(lote.id_actividad, hash_lista)
@@ -189,14 +200,33 @@ def crear_lote_demo(
     `objeto_lote`—: el mismo alta repetida devuelve la misma fila sin
     tocar su estado ni su decisión. `generador_correo` identifica a
     quien siembra: es quien después lo aprueba (ADR 0018).
+
+    Cuando el puerto ya declara `origen_creacion` (la columna que
+    agrega el backend del contrato) la siembra queda marcada como
+    `demo`: los lotes sembrados antes de la columna siguen
+    reconociéndose por la semilla histórica de `es_lote_demo`.
     """
-    return repositorio.crear(
-        id_actividad=id_actividad,
-        actividad=actividad,
-        personas=personas,
-        linea_descriptiva=LINEA_DEMO,
-        generada_por_hash=hash_correo(generador_correo),
-    )
+    datos: dict[str, object] = {
+        "id_actividad": id_actividad,
+        "actividad": actividad,
+        "personas": personas,
+        "linea_descriptiva": LINEA_DEMO,
+        "generada_por_hash": hash_correo(generador_correo),
+    }
+    if _acepta_origen_creacion(repositorio):
+        datos["origen_creacion"] = "demo"
+    return repositorio.crear(**datos)
+
+
+def _acepta_origen_creacion(repositorio: RepositorioLotesDemoPuerto) -> bool:
+    """¿El `crear` del puerto ya declara el argumento del contrato?"""
+    try:
+        return (
+            "origen_creacion"
+            in inspect.signature(repositorio.crear).parameters
+        )
+    except (TypeError, ValueError):
+        return False
 
 
 __all__ = [

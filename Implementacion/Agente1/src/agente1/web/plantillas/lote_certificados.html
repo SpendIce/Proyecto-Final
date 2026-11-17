@@ -9,8 +9,8 @@
 
   {% if es_lote_demo(lote) %}
   <p class="aviso-estado" role="status">
-    Lote de demostración: personas y datos ficticios (@example.invalid),
-    sin validez institucional. No habilita emisión real.
+    Lote de demostración, sin validez institucional. Los documentos se
+    generan con marcas de prueba y no se envían por correo.
   </p>
   {% endif %}
 
@@ -20,7 +20,9 @@
   {% endif %}
 
   {% if lote.estado == 'APROBADA' %}
-    {% if puede_emitir %}
+    {% if es_lote_demo(lote) %}
+    <p class="aviso-estado">Lote aprobado para generar certificados de demostración, sin envío por correo.</p>
+    {% elif puede_emitir %}
     <p class="aviso-estado">
       Lote aprobado. La emisión, si corresponde, la ejecuta el circuito
       de certificados; esta pantalla no envía correos ni toca Drive.
@@ -40,6 +42,9 @@
     <dt>Fechas</dt>
     <dd>{{ lote.actividad.fecha_inicio }}{% if lote.actividad.fecha_fin %} al {{ lote.actividad.fecha_fin }}{% endif %}</dd>
     <dt>Organiza</dt><dd>{{ lote.actividad.organiza }}</dd>
+    {% if lote.linea_descriptiva %}
+    <dt>Línea descriptiva</dt><dd>{{ lote.linea_descriptiva }}</dd>
+    {% endif %}
     <dt>Cantidad de personas</dt><dd>{{ lote.cantidad_personas }}</dd>
     <dt>Hash del lote</dt><dd><code>{{ lote.objeto_lote }}</code></dd>
     <dt>Generado por</dt><dd><code>{{ lote.generada_por_hash[:12] }}</code></dd>
@@ -60,7 +65,7 @@
        tabindex="0">
     <table class="tabla-revisiones">
       <thead>
-        <tr><th>#</th><th>Nombre y apellido</th><th>Condición</th></tr>
+        <tr><th scope="col">#</th><th scope="col">Nombre y apellido</th><th scope="col">Condición</th></tr>
       </thead>
       <tbody>
         {% for persona in lote.personas %}
@@ -131,11 +136,17 @@
         class="acciones-decision">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="hash_lote" value="{{ lote.objeto_lote }}">
+    {% if requiere_confirmacion %}
+    <label class="opcion confirmacion">
+      <input type="checkbox" name="confirmar" value="si" required>
+      Apruebo la línea descriptiva y la lista del lote
+    </label>
+    {% endif %}
     {% if puede_aprobar %}
-    <button type="submit" name="accion" value="aprobar">Aprobar lote</button>
+    <button type="submit" name="accion" value="aprobar" class="boton-primario">Aprobar lote</button>
     {% endif %}
     {% if puede_descartar %}
-    <button type="submit" name="accion" value="descartar">Descartar lote</button>
+    <button type="submit" name="accion" value="descartar" formnovalidate class="boton-descartar">Descartar lote</button>
     {% endif %}
   </form>
   <p class="ayuda">
@@ -152,6 +163,14 @@
     contenido.{% if not es_generador %}
     La sesión actual no es la del generador.{% endif %}
     {% endif %}
+  </p>
+  {% endif %}
+
+  {% if emision_disponible and lote.estado == 'APROBADA' %}
+  <h2>Emisión</h2>
+  <p>
+    <a class="enlace-doc" href="/certificados/{{ lote.id_lote }}/emision">
+      Ver estado de la emisión de certificados</a>
   </p>
   {% endif %}
 </section>

@@ -28,3 +28,31 @@ Decidimos integrarlo como una **composición de PDF reproducible en código** (`
 - La auditoría y el registro de entregas siguen guardando sólo hashes: las rutas y los bytes de los recursos restringidos nunca entran al registro ni al correo.
 - Una corrida sin `…_RECURSOS_DIR` sale igual, con los espacios de símbolo y firma marcados: la custodia puede montar los recursos reales en D2 sin tocar el código.
 - La variante de asistencia queda explícitamente pendiente, junto con la firma digital y la emisión institucional real.
+
+## Enmienda (17/11/2026): ajuste al PDF institucional de la SEU
+
+La SEU pidió que la firma quede sobre el texto de quien firma para
+dificultar la copia y, en esa misma devolución, comparó el render contra
+su PDF institucional. La composición de `aprobacion` mantiene
+`certificado_seu_aprobacion_v2` —la v2 nunca se publicó, así que el
+ajuste no abre una v3— y corrige:
+
+- La caja de firma a 90×65 pt con borde inferior en 62 pt, centrada en el
+  `cx` del firmante y con la imagen alineada al fondo; se emite antes que
+  el texto, de modo que queda casi entera sobre el nombre y sólo sus
+  trazos inferiores lo cruzan. Sin recurso, el espacio reservado sigue
+  marcado y fuera del nombre y del cargo.
+- El sustantivo del cuerpo a la primera palabra del título (taller,
+  curso, seminario, jornada, diplomatura), con su artículo y género; sin
+  coincidencia se conserva «el mencionado curso».
+- El destinatario a «Nombre APELLIDO, DNI 12.345.678»: apellido en
+  mayúsculas y DNI con separador de miles sólo cuando son 7 u 8 dígitos.
+- El encabezado a una línea (facultad 17 pt, universidad 13 pt).
+- El título en una línea, achicándose de 17 a 13 pt y envolviéndose a 13
+  pt si no entra.
+- El cuerpo completo en Helvetica-Oblique de 15 pt y el destinatario en
+  Helvetica-BoldOblique, ambas base-14 y sin fuentes embebidas.
+
+El resto de esta decisión y el circuito no cambian; `asistencia` sigue
+con `certificado_base_provisional_v1`. La fidelidad tipográfica fina y
+la compatibilidad con Calibri quedan fuera de alcance y a revisión SEU.

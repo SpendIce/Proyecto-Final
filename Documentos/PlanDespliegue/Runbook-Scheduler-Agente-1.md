@@ -246,7 +246,18 @@ auditoría conserva el error original del paso.
 
 Restaurar es un procedimiento manual del operador, sin red: el artefacto
 se baja de Drive por el canal habitual y se repone localmente. Nada de
-esto lo dispara el agente.
+esto lo dispara el agente. El procedimiento completo (incluidas la
+reconciliación de la cola durable de emisiones web y la reaplicación de
+los `GRANT` del esquema) vive en
+`Runbook-Restauracion-Respaldo-Agente-1.md`.
+
+**Antes de restaurar se detiene el agente entero**: `scheduler`,
+`worker`, `worker-certificados` y `web` (Portainer o
+`docker compose -p agente1 stop ...`). La importación del volcado y la
+marca de indeterminadas son una sola transacción `psql`, pero un worker
+vivo podría completar un envío real durante la restauración y ese correo
+quedaría fuera del mundo restaurado: la base no lo puede cancelar. Los
+servicios no se arrancan hasta tener el informe `OK` revisado.
 
 ```bash
 cd <CHECKOUT>/Implementacion/Agente1
@@ -254,7 +265,8 @@ PYTHONPATH=src \
   python scripts/restaurar_respaldo.py \
     --artefacto agente1-respaldo-2026-10-05.tar.gz \
     --salida <directorio-salida> \
-    --registro <directorio-registro>
+    --registro <directorio-registro> \
+    --postgres-dsn <DSN-de-la-base-del-canal-web>
 ```
 
 El script valida el tar antes de escribir: manifiesto presente y
@@ -277,6 +289,13 @@ la marca `creado_en` del manifiesto:
 - Toda transición posterior a la marca que dejó el registro en estado de
   aprobación (parciales, `APROBADA`, `ENVIO_ENCOLADO`) pasa a
   `ENVIO_INDETERMINADO`.
+- En la base del canal web, todo trabajo real de la cola durable de
+  emisiones (`emisiones_certificados`, migración 0012) que el snapshot
+  dejó capaz de enviar (`PENDIENTE`, `RESERVADA`, `ENVIANDO`) pasa a
+  `INDETERMINADA` dentro de la misma transacción del `psql`: un respaldo
+  anterior a un envío no lo repite. Lo ya terminado y los demos no se
+  tocan; el informe JSON trae el conteo en
+  `emisiones_pg_indeterminadas`.
 
 **Lo indeterminado no se reenvía solo.** El operador cruza cada clave
 indeterminada contra Gmail Enviados (o el registro manual) y decide por

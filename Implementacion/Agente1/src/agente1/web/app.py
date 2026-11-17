@@ -109,14 +109,17 @@ from ..manifest_version import (
 from ..plantillas_aprobadas import PlantillaCorreo
 from .ajuste import ejecutar_ajuste_web
 from .certificados_web import (
+    EmisionCertificadosWebPuerto,
     RepositorioLotesPuerto,
     lotes_para_bandeja,
     registrar_rutas_certificados,
+    sesion_puede_ver_lote,
 )
 from .demo_certificados import registrar_rutas_demo_certificados
 from .docs_canal import ExportadorDocs
 from .docs_canal import aviso_exportador as _aviso_exportador
 from .identidad import VerificacionIdentidadError, VerificadorIdToken
+from .pedido_certificados import registrar_rutas_pedido_certificados
 from .persistencia import (
     CANAL_WEB,
     CANAL_WEB_DEMO,
@@ -460,6 +463,7 @@ def crear_app(
     recursos_firma: RecursosFirma | None = None,
     registro_decisiones: RegistroDecisiones | None = None,
     plantillas_aprobadas: dict[str, PlantillaCorreo] | None = None,
+    emision_certificados: EmisionCertificadosWebPuerto | None = None,
 ) -> FastAPI:
     """Fábrica de la app: todo servicio externo entra inyectado.
 
@@ -483,12 +487,19 @@ def crear_app(
 
     `lotes` es el repositorio del lote de certificados (#168): con él la
     bandeja muestra «Lotes de certificados» y viven las rutas
-    `/certificados/{id_lote}`. `recursos_firma` es la custodia de firmas
-    que la página consulta para informar si el lote puede emitir (R2).
-    `registro_decisiones` es el registro JSONL que lee la emisión: aprobar
-    en la web asienta ahí el `apruebo_lote` para que el circuito lo vea.
-    `plantillas_aprobadas` es el archivo de plantillas de producción, para
-    mostrar el estado real de la plantilla de asistencia (ADR 0020).
+    `/certificados/{id_lote}` y `/certificados/pedir`. `recursos_firma`
+    es la custodia de firmas que la página consulta para informar si el
+    lote puede emitir (R2). `registro_decisiones` es el registro JSONL
+    que lee la emisión: aprobar en la web asienta ahí el `apruebo_lote`
+    para que el circuito lo vea. `plantillas_aprobadas` es el archivo de
+    plantillas de producción, para mostrar el estado real de la
+    plantilla de asistencia (ADR 0020).
+
+    `emision_certificados` es el servicio durable de emisión del
+    contrato: con él viven las rutas `/certificados/{id_lote}/emision`
+    (GET de consulta, POST que encola, descarga del ZIP demo) y el
+    enlace en la página del lote. Sin él —las pruebas anteriores— las
+    vistas y los controles de emisión no aparecen.
     """
     validar_configuracion(
         config,
@@ -828,7 +839,13 @@ def crear_app(
             sesion=sesion,
             items=items,
             lotes=(
-                lotes_para_bandeja(lotes, es_lote_demo=es_lote_demo)
+                lotes_para_bandeja(
+                    lotes,
+                    es_lote_demo=es_lote_demo,
+                    puede_ver=lambda lote: sesion_puede_ver_lote(
+                        sesion, lote
+                    ),
+                )
                 if lotes is not None
                 and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
                 else []
@@ -836,6 +853,10 @@ def crear_app(
             mostrar_boton_demo=(
                 config.modo_demo
                 and lotes is not None
+                and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
+            ),
+            puede_pedir_certificados=(
+                lotes is not None
                 and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
             ),
         )
@@ -1457,6 +1478,18 @@ def crear_app(
         return {"estado": "ok"}
 
     if lotes is not None:
+        # Las rutas fijas del pedido van antes que `/certificados/
+        # {id_lote}`: si no, «pedir» resolvería como un id de lote.
+        registrar_rutas_pedido_certificados(
+            app,
+            repositorio=lotes,
+            autorizar=autorizar,
+            render=render,
+            rol_de=rol_de,
+            csrf_ok=csrf_ok,
+            destino_login=destino_login,
+            actividades=actividades,
+        )
         registrar_rutas_certificados(
             app,
             repositorio=lotes,
@@ -1471,6 +1504,7 @@ def crear_app(
             recursos_firma=recursos_firma,
             registro_decisiones=registro_decisiones,
             plantillas_aprobadas=plantillas_aprobadas,
+            emision_certificados=emision_certificados,
         )
         if config.modo_demo:
             # La siembra del lote ficticio de la presentación (#168) sólo

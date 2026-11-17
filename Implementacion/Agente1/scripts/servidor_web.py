@@ -225,6 +225,13 @@ def main(
         registro_decisiones = RegistroDecisiones(
             Path(entorno["AGENTE1_DECISIONES_DIR"])
         )
+    from agente1.web.emision_certificados_runtime import (
+        construir_emision_certificados_web,
+    )
+
+    emision_certificados = construir_emision_certificados_web(
+        entorno, conexion_factory=functools.partial(conectar, dsn)
+    )
     catalogo = None
     audiencias_path = entorno.get("AGENTE1_AUDIENCIAS_PATH")
     if audiencias_path:
@@ -284,6 +291,7 @@ def main(
             registro_decisiones=registro_decisiones,
             plantillas_aprobadas=plantillas_aprobadas,
             catalogo_audiencias=catalogo,
+            emision_certificados=emision_certificados,
         )
     except ConfiguracionInvalida as error:
         # El motivo (p. ej. los ids de públicos sin audiencia mapeada) va a

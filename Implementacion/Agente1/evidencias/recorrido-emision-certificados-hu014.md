@@ -333,8 +333,10 @@ está declarado.
 - El certificado es de prueba: `DOCUMENTO DE PRUEBA — SIN VALIDEZ` en
   todo PDF y `BORRADOR — NO EMITIR` en la muestra.
 - La aprobación compone la plantilla SEU recibida (#126,
-  `certificado_seu_aprobacion_v1`); la asistencia sigue con la
-  provisional hasta la variante institucional o su adaptación avalada.
+  `certificado_seu_aprobacion_v2`), ajustada al PDF institucional del
+  17/11/2026 en la firma, el encabezado, el título, el cuerpo oblicuo, el
+  sustantivo y el DNI; la asistencia sigue con la provisional hasta la
+  variante institucional o su adaptación avalada.
 - No hay firma digital ni imágenes de firma versionadas: el símbolo y
   las firmas viven en la carpeta restringida de la cuenta técnica
   (`AGENTE1_CERTIFICADOS_RECURSOS_DIR`) y fuera de Git.

@@ -395,6 +395,36 @@ def _pdf_para_persona(
     return generar_pdf_certificado(cuerpo, borrador=borrador), traza
 
 
+def generar_pdf_certificado_lote(
+    *,
+    persona: PersonaCierre,
+    actividad: dict[str, str],
+    linea_descriptiva: str,
+    id_certificado: str,
+    firmantes: tuple[Firmante, ...] = FIRMANTES_DECLARADOS,
+    recursos_firma: RecursosFirma | None = None,
+    borrador: bool = False,
+    marcar_prueba: bool = True,
+    plantilla_asistencia: PlantillaCorreo | None = None,
+) -> tuple[bytes, str]:
+    """Render público de un certificado del lote, con su plantilla.
+
+    Es el mismo `_pdf_para_persona` que usa la emisión: la descarga ZIP de
+    la web no tiene un renderer paralelo y sus marcas son las del circuito.
+    """
+    return _pdf_para_persona(
+        persona=persona,
+        actividad=actividad,
+        linea_descriptiva=linea_descriptiva,
+        id_certificado=id_certificado,
+        firmantes=firmantes,
+        recursos_firma=recursos_firma,
+        borrador=borrador,
+        marcar_prueba=marcar_prueba,
+        plantilla_asistencia=plantilla_asistencia,
+    )
+
+
 def generar_pdf_muestra_lote(
     *,
     persona: PersonaCierre,
@@ -1249,6 +1279,7 @@ __all__ = [
     "RevisionLote",
     "TEMPLATE_VERSION",
     "construir_emisor_certificados",
+    "generar_pdf_certificado_lote",
     "generar_pdf_muestra_lote",
     "hash_lista_cierre",
     "objeto_lote_cierre",
