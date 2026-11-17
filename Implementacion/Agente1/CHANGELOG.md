@@ -34,11 +34,13 @@ Dirección. Detalle en el procedimiento.
   (aprobar, además, la identidad del generador, ADR 0018), queda atado al hash
   del lote con `SELECT … FOR UPDATE` y registra identidad, rol, origen y versión
   del agente en `lotes_certificados` (migración 0010); duplicada y obsoleta se
-  rechazan con su código. Después de aprobar, la página informa si el lote puede
-  emitir con las reglas vigentes y, si faltan firmas, muestra «No se emite:
-  faltan firmas (R2)». No envía correos. Incluye `scripts/demo_lote_certificados.py`
-  para cargar un lote ficticio (`FIE-DIF-02`, personas «Persona Ficticia N», sin
-  correos reales) y la purga de la lista al decidir.
+  rechazan con su código. Aprobar asienta además el `apruebo_lote` en el registro
+  JSONL que lee la emisión (`AGENTE1_DECISIONES_DIR`). Después de aprobar, la
+  página informa si el lote puede emitir con las reglas vigentes y, si faltan
+  firmas, muestra «No se emite: faltan firmas (R2)». No envía correos. Incluye
+  `scripts/demo_lote_certificados.py` para cargar un lote ficticio (`FIE-DIF-02`,
+  personas «Persona Ficticia N», sin correos reales) y la purga diaria de la
+  lista y la línea descriptiva con el rol de mantenimiento.
 
 ## [0.6.3] - 2026-11-16
 

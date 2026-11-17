@@ -6,12 +6,13 @@ del respaldo, con el reparto de roles de la migración 0005:
 
 1. `agente1_app` vence: pasa a `VENCIDA` toda solicitud abierta sin
    actividad por la ventana (30 días). Es el rol que sirve la app y el
-   único que escribe el ciclo de vida. También retira la lista de cierre
-   de los lotes de certificados ya decididos (#168): conserva cantidad,
-   hashes y decisión.
+   único que escribe el ciclo de vida.
 2. `agente1_mantenimiento` purga y vacía: pone en NULL la prosa
    transitoria de toda solicitud cerrada —conservando clase, hash y
-   marcas— y corre el VACUUM de la tabla, del que es dueña.
+   marcas— y corre el VACUUM de la tabla, del que es dueña. También
+   retira la lista de cierre y la línea descriptiva de los lotes de
+   certificados ya decididos (#168), conservando cantidad, hashes y
+   decisión.
 
 Sin el DSN de mantenimiento el paso falla cerrado: una purga que corre
 con el rol de la app podría tocar el contenido que la retención ya cerró,
@@ -95,7 +96,7 @@ def main(
     )
     purgadas = repositorio_mantenimiento.purgar_prosa(ahora=ahora)
     lotes_purgados = RepositorioLotes(
-        functools.partial(conectar, dsn_app)
+        functools.partial(conectar, dsn_mantenimiento)
     ).purgar_cerrados(ahora=ahora)
     vacuum = False
     if not args.sin_vacuum:

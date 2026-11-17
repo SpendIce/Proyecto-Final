@@ -15,8 +15,8 @@
   {% if lote.estado == 'APROBADA' %}
     {% if puede_emitir %}
     <p class="aviso-estado">
-      Lote aprobado. La emisión la ejecuta el circuito de certificados;
-      esta pantalla no envía correos ni toca Drive.
+      Lote aprobado. La emisión, si corresponde, la ejecuta el circuito
+      de certificados; esta pantalla no envía correos ni toca Drive.
     </p>
     {% else %}
     <p class="mensaje-error" role="alert">
@@ -111,6 +111,8 @@
     <dt>Faltantes</dt>
     <dd>{{ firmas.faltantes|join(', ') }}</dd>
     {% endif %}
+    <dt>Registro de decisiones</dt>
+    <dd>{% if registro_configurado %}configurado{% else %}no configurado{% endif %}</dd>
   </dl>
 
   {% if puede_aprobar or puede_descartar %}

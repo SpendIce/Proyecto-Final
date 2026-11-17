@@ -720,12 +720,16 @@ además que la identidad sea la del generador (ADR 0018). La decisión queda
 atada al hash mostrado y registra identidad, rol, origen de identidad y
 versión del agente en `lotes_certificados` (migración **0010**): una
 decisión repetida se rechaza `duplicada` y un hash viejo, `lote_obsoleto`.
-La web **no emite ni envía correos**: después de aprobar informa si el
-lote puede emitir; con la custodia de firmas vacía muestra «Lote aprobado.
-No se emite: faltan firmas (R2)». La emisión sigue siendo del circuito de
-certificados (`certificados_emision`), que exige la plantilla aprobada por
-hash (ADR 0020). La purga diaria retira la lista de los lotes decididos y
-conserva cantidad, hashes y decisión.
+La vista y la muestra quedan reservadas al rol `APROBADOR_CONTENIDO`.
+Aprobar asienta además el `apruebo_lote` en el registro de decisiones
+(`AGENTE1_DECISIONES_DIR`), que es el que lee la emisión: sin ese asiento,
+el circuito no ve la aprobación. La web **no emite ni envía correos**:
+después de aprobar informa si el lote puede emitir; con la custodia de
+firmas vacía muestra «Lote aprobado. No se emite: faltan firmas (R2)».
+La emisión sigue siendo del circuito de certificados
+(`certificados_emision`), que exige la plantilla aprobada por hash (ADR
+0020). La purga diaria retira la lista y la línea descriptiva de los lotes
+decididos y conserva cantidad, hashes y decisión.
 
 Para la demo con datos ficticios, con el perfil `canal-web` levantado y la
 base migrada (0010), dentro del contenedor `web`:
@@ -783,6 +787,8 @@ Variables que lo controlan (env file del stack, nunca en el repo):
 | `AGENTE1_WEB_DOCS` | `si` hace que `servidor_web` construya el exportador de Docs real y habilite los botones; sin él los POST responden `exportador_ausente`. Con `si` y config Workspace inválida el arranque cierra con `web_workspace_config_invalid`. |
 | `AGENTE1_WEB_DOCS_COMPARTIR` | `si` da permiso `writer` al correo de quien pidió (resuelto contra `AGENTE1_PADRON_ROLES_CSV`, sin `sendNotificationEmail`) al generar el Doc, lo cree o lo reutilice; el evento `doc_compartido` audita el hash del correo. Si el permiso falla, el Doc existe y la solicitud queda `LISTA`; el evento `permiso_no_otorgado` guarda el hash del intento. Sin la variable el Doc queda sólo en la carpeta del agente. |
 | `AGENTE1_AUDIENCIAS_PATH` | Ruta del catálogo externo de audiencias (ADR 0021): habilita la preselección de públicos, «Preparar correo» y `/solicitudes/{id}/correo`. El compose lo apunta a `${AGENTE1_HOST_CONFIG}/audiencias-institucionales.json`. Si el archivo no carga el arranque cierra con `web_audiencias_invalid`, y si le falta el mapeo de un público del contrato cierra con `web_config_insegura` (el mensaje nombra el id, nunca la dirección). Sin la variable el prellenado queda apagado y `/correo` muestra el motivo. |
+| `AGENTE1_CERTIFICADOS_RECURSOS_DIR` | Carpeta restringida con el símbolo y las firmas de la plantilla SEU del certificado (#168). La página del lote la consulta para informar «faltan firmas (R2)»; sin la variable, los espacios de firma salen marcados como insumo no provisto y la muestra sigue siendo descargable. |
+| `AGENTE1_DECISIONES_DIR` | Directorio del registro JSONL de decisiones que lee la emisión (#168). Aprobar un lote en la web asienta ahí el `apruebo_lote`; el compose lo apunta a `/state/estado-decisiones`, el mismo `--directorio` con el que corre el circuito de certificados. Sin la variable, la decisión queda sólo en la base y la emisión no la ve. |
 
 | Código | Significado | Qué hacer |
 |---|---|---|

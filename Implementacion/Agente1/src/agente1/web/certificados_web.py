@@ -24,11 +24,12 @@ Decisiones que no se ven en el código:
   el del generador. Descartar sólo exige el rol: no habilita ninguna
   emisión, así que no necesita la autoría. Los códigos de rechazo son los
   mismos que enumera `revisar_aprobacion_lote`.
-- **La lista de cierre se retiene sólo mientras el lote opera.** La purga
-  diaria del canal web (`purgar_canal_web`) pone `personas` en NULL en los
-  lotes ya decididos y conserva cantidad, hashes, plantilla y la decisión
-  con identidad, rol, origen y versión del agente. La muestra se genera al
-  vuelo y no se persiste.
+- **La lista de cierre y la línea descriptiva se retienen sólo mientras el
+  lote opera.** La purga diaria del canal web (`purgar_canal_web`, con el
+  rol de mantenimiento) pone `personas` y `linea_descriptiva` en NULL en
+  los lotes ya decididos; conserva cantidad, hashes, plantilla y la
+  decisión con identidad, rol, origen y versión del agente. La muestra se
+  genera al vuelo y no se persiste.
 - **La web no emite.** Después de aprobar, la página informa si el lote
   puede emitir con las reglas vigentes —plantilla aprobada por hash (ADR
   0020) y firmas disponibles (R2 de #160)— y, si no, por qué. La emisión
@@ -38,6 +39,7 @@ Decisiones que no se ven en el código:
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -66,6 +68,20 @@ from ..certificados_plantilla_seu import (
     RecursosFirma,
 )
 from ..confirmaciones import ROL_APROBADOR_CONTENIDO
+from ..decisiones_form import (
+    DECISION_APRUEBO_LOTE,
+    RESULTADO_REGISTRADA,
+    ROL_ORIGEN_PADRON,
+    TIPO_LOTE,
+    DecisionesFormError,
+    RegistroDecisiones,
+    ResultadoDecision,
+)
+from ..plantillas_aprobadas import (
+    PlantillaCorreo,
+    id_version_plantilla,
+    plantilla_version_registrada,
+)
 from .sesiones import Sesion
 
 HU = "HU-014"
@@ -86,6 +102,7 @@ CODIGO_INEXISTENTE = "inexistente"
 CODIGO_DECISION_FUERA_DE_CATALOGO = "decision_fuera_de_catalogo"
 CODIGO_ROL_NO_AUTORIZADO = "aprobador_rol_no_autorizado"
 CODIGO_NO_ES_GENERADOR = "aprobador_no_es_generador"
+CODIGO_REGISTRO_NO_DISPONIBLE = "registro_decisiones_no_disponible"
 
 _ESTADOS_VISIBLES = {
     ESTADO_PENDIENTE: "Pendiente de aprobación",
@@ -112,6 +129,10 @@ _AVISOS_DECISION = {
         "El lote lo aprueba quien lo generó: la identidad de la sesión "
         "no coincide con la del generador."
     ),
+    CODIGO_REGISTRO_NO_DISPONIBLE: (
+        "La decisión quedó registrada, pero no se pudo asentar en el "
+        "registro de decisiones: la emisión no la verá hasta reconciliarlo."
+    ),
 }
 
 _AVISOS_ERROR = frozenset(
@@ -122,6 +143,7 @@ _AVISOS_ERROR = frozenset(
         CODIGO_DECISION_FUERA_DE_CATALOGO,
         CODIGO_ROL_NO_AUTORIZADO,
         CODIGO_NO_ES_GENERADOR,
+        CODIGO_REGISTRO_NO_DISPONIBLE,
     }
 )
 
@@ -153,7 +175,8 @@ class LoteCertificados:
     actividad: dict[str, str]
     personas: tuple[PersonaCierre, ...]
     cantidad_personas: int
-    linea_descriptiva: str
+    linea_descriptiva: str | None
+    linea_descriptiva_hash: str
     plantilla_muestra: str
     estado: str
     generada_por_hash: str
@@ -274,6 +297,7 @@ class RepositorioLotes:
         if not linea_descriptiva or not str(linea_descriptiva).strip():
             raise LoteCertificadosError("linea_descriptiva_ausente")
         linea = str(linea_descriptiva).strip()
+        hash_linea = hashlib.sha256(linea.encode("utf-8")).hexdigest()
         hash_lista = hash_lista_cierre(validadas)
         objeto = objeto_lote_cierre(id_actividad, hash_lista)
         id_lote = f"lote-{objeto[:16]}"
@@ -288,9 +312,10 @@ class RepositorioLotes:
                     "INSERT INTO lotes_certificados (id_lote, id_actividad,"
                     " objeto_lote, hash_lista, actividad, personas,"
                     " cantidad_personas, linea_descriptiva,"
-                    " plantilla_muestra, estado, generada_por_hash,"
+                    " linea_descriptiva_hash, plantilla_muestra, estado,"
+                    " generada_por_hash,"
                     " creada_en) VALUES"
-                    " (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+                    " (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
                     " ON CONFLICT (objeto_lote) DO NOTHING",
                     (
                         id_lote,
@@ -301,6 +326,7 @@ class RepositorioLotes:
                         Jsonb(_personas_a_json(validadas)),
                         len(validadas),
                         linea,
+                        hash_linea,
                         plantilla,
                         ESTADO_PENDIENTE,
                         generada_por_hash,
@@ -419,7 +445,8 @@ class RepositorioLotes:
             with conn.transaction():
                 filas = conn.execute(
                     "UPDATE lotes_certificados SET personas = NULL,"
-                    " purgada_en = %s WHERE personas IS NOT NULL"
+                    " linea_descriptiva = NULL, purgada_en = %s"
+                    " WHERE personas IS NOT NULL"
                     "   AND estado = ANY(%s) RETURNING id_lote",
                     (ahora, [ESTADO_APROBADA, ESTADO_DESCARTADA]),
                 ).fetchall()
@@ -428,8 +455,9 @@ class RepositorioLotes:
 
 _SELECT = (
     "SELECT id_lote, id_actividad, objeto_lote, hash_lista, actividad,"
-    " personas, cantidad_personas, linea_descriptiva, plantilla_muestra,"
-    " estado, generada_por_hash, creada_en, decidida_en, decidida_por_hash,"
+    " personas, cantidad_personas, linea_descriptiva, linea_descriptiva_hash,"
+    " plantilla_muestra, estado, generada_por_hash, creada_en,"
+    " decidida_en, decidida_por_hash,"
     " rol_decision, origen_identidad, version_agente"
     " FROM lotes_certificados"
 )
@@ -445,29 +473,32 @@ def _lote_desde_fila(fila) -> LoteCertificados:
         personas=_personas_desde_json(fila[5]),
         cantidad_personas=fila[6],
         linea_descriptiva=fila[7],
-        plantilla_muestra=fila[8],
-        estado=fila[9],
-        generada_por_hash=fila[10],
-        creada_en=fila[11],
-        decidida_en=fila[12],
-        decidida_por_hash=fila[13],
-        rol_decision=fila[14],
-        origen_identidad=fila[15],
-        version_agente=fila[16],
+        linea_descriptiva_hash=fila[8],
+        plantilla_muestra=fila[9],
+        estado=fila[10],
+        generada_por_hash=fila[11],
+        creada_en=fila[12],
+        decidida_en=fila[13],
+        decidida_por_hash=fila[14],
+        rol_decision=fila[15],
+        origen_identidad=fila[16],
+        version_agente=fila[17],
     )
 
 
 def estado_plantillas(
     condiciones: tuple[str, ...],
+    *,
+    plantillas_aprobadas: dict[str, PlantillaCorreo] | None = None,
+    registro_decisiones: RegistroDecisiones | None = None,
 ) -> tuple[EstadoPlantilla, ...]:
-    """Plantilla que corresponde a cada condición del lote y su estado.
+    """Plantilla de cada condición y si su versión está habilitada.
 
     `aprobacion` compone el diseño institucional recibido (ADR 0017) y no
-    depende de una decisión de contenido; `asistencia` sigue con la
-    plantilla provisional porque su variante institucional no llegó y en
-    producción exige la versión de `certificado_asistencia` aprobada por
-    hash (ADR 0020). Esta pantalla no tiene el registro de decisiones: la
-    verificación que habilita la emisión sigue siendo la del circuito.
+    depende de una decisión de contenido. `asistencia` exige la versión de
+    `certificado_asistencia` con la `apruebo_contenido` registrada sobre su
+    hash (ADR 0020): sin el archivo o sin el registro, la página informa
+    que falta. La verificación final sigue siendo la del circuito.
     """
     resultado: list[EstadoPlantilla] = []
     for condicion in sorted(set(condiciones)):
@@ -482,7 +513,9 @@ def estado_plantillas(
                     aprobada=True,
                 )
             )
-        else:
+            continue
+        plantilla = (plantillas_aprobadas or {}).get("certificado_asistencia")
+        if plantilla is None:
             resultado.append(
                 EstadoPlantilla(
                     condicion=condicion,
@@ -494,11 +527,46 @@ def estado_plantillas(
                     aprobada=False,
                 )
             )
+        elif plantilla_version_registrada(
+            registro_decisiones,
+            tipo="certificado_asistencia",
+            plantilla=plantilla,
+        ):
+            resultado.append(
+                EstadoPlantilla(
+                    condicion=condicion,
+                    nombre=id_version_plantilla(
+                        "certificado_asistencia", plantilla
+                    ),
+                    estado="Versión con aprobación registrada (ADR 0020)",
+                    aprobada=True,
+                )
+            )
+        else:
+            resultado.append(
+                EstadoPlantilla(
+                    condicion=condicion,
+                    nombre=id_version_plantilla(
+                        "certificado_asistencia", plantilla
+                    ),
+                    estado="Versión sin aprobación registrada (ADR 0020)",
+                    aprobada=False,
+                )
+            )
     return tuple(resultado)
 
 
-def estado_firmas(recursos: RecursosFirma | None) -> EstadoFirmas:
-    """Qué recursos de firma resuelve la custodia configurada (R2 de #160)."""
+def estado_firmas(
+    recursos: RecursosFirma | None, condiciones: tuple[str, ...]
+) -> EstadoFirmas:
+    """Qué recursos de firma exige el lote y cuáles faltan (R2 de #160).
+
+    La custodia de imágenes (símbolo y firmas) sólo la exige el certificado
+    de `aprobacion`, que compone el diseño SEU; el de `asistencia` lleva el
+    bloque de firmantes en el texto y no consume imágenes.
+    """
+    if "aprobacion" not in condiciones:
+        return EstadoFirmas(configuradas=recursos is not None, faltantes=())
     requeridos = set(RECURSOS_IMAGEN) | {
         f.recurso for f in FIRMANTES_SEU if f.recurso is not None
     }
@@ -513,18 +581,30 @@ def estado_firmas(recursos: RecursosFirma | None) -> EstadoFirmas:
 
 
 def diagnostico_emision(
-    lote: LoteCertificados, recursos: RecursosFirma | None
+    lote: LoteCertificados,
+    recursos: RecursosFirma | None,
+    *,
+    plantillas_aprobadas: dict[str, PlantillaCorreo] | None = None,
+    registro_decisiones: RegistroDecisiones | None = None,
 ) -> tuple[bool, str | None]:
-    """¿El lote puede emitir con las reglas vigentes y, si no, por qué?
+    """¿Esta pantalla ve algún bloqueo para emitir y, si no, cuál es?
 
-    Devuelve `(puede, motivo)` con el motivo en el vocabulario del circuito:
-    plantilla aprobada por hash (ADR 0020) y firmas disponibles (R2). No
-    emite nada: la pantalla sólo informa.
+    Revisa lo que puede verificar: firmas disponibles (R2) y la plantilla
+    de `asistencia` con su aprobación registrada (ADR 0020). No reemplaza
+    la verificación del circuito de emisión —que además exige la plantilla
+    de `correo_certificado` y la línea descriptiva aprobada—: devolver
+    `True` significa «sin bloqueo conocido acá», nunca «emitido».
     """
     if not lote.personas:
         return False, "la lista del lote se retiró por retención mínima"
+    condiciones = tuple(p.condicion for p in lote.personas)
+    firmas = estado_firmas(recursos, condiciones)
+    if not firmas.disponible:
+        return False, "faltan firmas (R2)"
     plantillas = estado_plantillas(
-        tuple(p.condicion for p in lote.personas)
+        condiciones,
+        plantillas_aprobadas=plantillas_aprobadas,
+        registro_decisiones=registro_decisiones,
     )
     sin_aprobar = [p for p in plantillas if not p.aprobada]
     if sin_aprobar:
@@ -534,10 +614,49 @@ def diagnostico_emision(
             + ", ".join(p.condicion for p in sin_aprobar)
             + " (ADR 0020)",
         )
-    firmas = estado_firmas(recursos)
-    if not firmas.disponible:
-        return False, "faltan firmas (R2)"
     return True, None
+
+
+def registrar_aprobacion_en_registro(
+    registro: RegistroDecisiones | None,
+    *,
+    lote: LoteCertificados,
+    validador_hash: str,
+    rol: str,
+    ahora: datetime | None = None,
+) -> None:
+    """Asienta la aprobación web en el registro que lee la emisión (#168).
+
+    La emisión sigue consultando `revisar_aprobacion_lote` sobre
+    `decisiones-procesadas.jsonl`: sin esta línea, aprobar en la web no
+    habilitaría el lote. El asiento guarda solo hashes, como el resto del
+    registro. El descarte no se escribe: el catálogo de `lote` sólo tiene
+    `apruebo_lote`, y un descarte no habilita ninguna emisión.
+    """
+    if registro is None:
+        return
+    ahora = ahora or datetime.now(timezone.utc)
+    marca = ahora.isoformat()
+    id_respuesta = hashlib.sha256(
+        f"web_lote|{lote.objeto_lote}|{validador_hash}|{marca}".encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    registro.registrar(
+        ResultadoDecision(
+            id_respuesta=id_respuesta,
+            correo_hash=validador_hash,
+            rol=rol,
+            rol_origen=ROL_ORIGEN_PADRON,
+            tipo=TIPO_LOTE,
+            objeto_id=lote.objeto_lote,
+            decision=DECISION_APRUEBO_LOTE,
+            resultado=RESULTADO_REGISTRADA,
+            rechazo_codigo=None,
+            marca_temporal_form=marca,
+            timestamp=marca,
+        )
+    )
 
 
 class RepositorioLotesPuerto(Protocol):
@@ -588,8 +707,13 @@ def registrar_rutas_certificados(
     destino_login: DestinoLogin,
     version_agente: str,
     recursos_firma: RecursosFirma | None = None,
+    registro_decisiones: RegistroDecisiones | None = None,
+    plantillas_aprobadas: dict[str, PlantillaCorreo] | None = None,
 ) -> None:
     """Cablea las rutas finas del lote; la lógica vive en este módulo."""
+
+    def _puede_decidir(sesion: Sesion) -> bool:
+        return rol_de(sesion) == ROL_APROBADOR_CONTENIDO
 
     def _render_lote(
         request: Request,
@@ -601,12 +725,20 @@ def registrar_rutas_certificados(
         rol = rol_de(sesion)
         generador = hash_correo(sesion.correo) == lote.generada_por_hash
         pendiente = lote.estado == ESTADO_PENDIENTE
+        condiciones = tuple(p.condicion for p in lote.personas)
         plantillas = estado_plantillas(
-            tuple(p.condicion for p in lote.personas)
+            condiciones,
+            plantillas_aprobadas=plantillas_aprobadas,
+            registro_decisiones=registro_decisiones,
         )
-        firmas = estado_firmas(recursos_firma)
+        firmas = estado_firmas(recursos_firma, condiciones)
         puede, motivo = (
-            diagnostico_emision(lote, recursos_firma)
+            diagnostico_emision(
+                lote,
+                recursos_firma,
+                plantillas_aprobadas=plantillas_aprobadas,
+                registro_decisiones=registro_decisiones,
+            )
             if lote.estado == ESTADO_APROBADA
             else (False, None)
         )
@@ -628,6 +760,7 @@ def registrar_rutas_certificados(
             ),
             es_generador=generador,
             muestra_disponible=bool(lote.personas),
+            registro_configurado=registro_decisiones is not None,
             csrf=sesion.csrf_token,
             aviso=aviso,
             aviso_error=aviso_error,
@@ -638,6 +771,8 @@ def registrar_rutas_certificados(
         sesion = autorizar(request)
         if sesion is None:
             return destino_login()
+        if not _puede_decidir(sesion):
+            return render("sin_permiso.html", request, status_code=403)
         lote = repositorio.obtener(id_lote)
         if lote is None:
             return render("sin_permiso.html", request, status_code=404)
@@ -648,10 +783,12 @@ def registrar_rutas_certificados(
         sesion = autorizar(request)
         if sesion is None:
             return destino_login()
+        if not _puede_decidir(sesion):
+            return render("sin_permiso.html", request, status_code=403)
         lote = repositorio.obtener(id_lote)
         if lote is None:
             return render("sin_permiso.html", request, status_code=404)
-        if not lote.personas:
+        if not lote.personas or lote.linea_descriptiva is None:
             return Response(
                 "La lista del lote se retiró por retención mínima.",
                 status_code=409,
@@ -682,9 +819,12 @@ def registrar_rutas_certificados(
         form = await request.form()
         if not csrf_ok(sesion, str(form.get("csrf", ""))):
             return render("sin_permiso.html", request, status_code=403)
+        if not _puede_decidir(sesion):
+            return render("sin_permiso.html", request, status_code=403)
         lote = repositorio.obtener(id_lote)
         if lote is None:
             return render("sin_permiso.html", request, status_code=404)
+        ahora = datetime.now(timezone.utc)
         resultado = repositorio.decidir(
             id_lote=id_lote,
             hash_lote=str(form.get("hash_lote", "")),
@@ -693,19 +833,32 @@ def registrar_rutas_certificados(
             rol=rol_de(sesion) or "",
             origen_identidad=sesion.origen,
             version_agente=version_agente,
-            ahora=datetime.now(timezone.utc),
+            ahora=ahora,
         )
         if resultado.codigo == CODIGO_INEXISTENTE:
             return render("sin_permiso.html", request, status_code=404)
         actualizado = repositorio.obtener(id_lote) or lote
+        aviso = _AVISOS_DECISION.get(resultado.codigo, resultado.codigo)
+        aviso_error = resultado.codigo in _AVISOS_ERROR
+        if resultado.codigo == CODIGO_APROBADA:
+            try:
+                registrar_aprobacion_en_registro(
+                    registro_decisiones,
+                    lote=actualizado,
+                    validador_hash=hash_correo(sesion.correo),
+                    rol=rol_de(sesion) or "",
+                    ahora=ahora,
+                )
+            except DecisionesFormError:
+                aviso = _AVISOS_DECISION[CODIGO_REGISTRO_NO_DISPONIBLE]
+                aviso_error = True
         return _render_lote(
             request,
             sesion,
             actualizado,
-            aviso=_AVISOS_DECISION.get(resultado.codigo, resultado.codigo),
-            aviso_error=resultado.codigo in _AVISOS_ERROR,
+            aviso=aviso,
+            aviso_error=aviso_error,
         )
-
 
 __all__ = [
     "ACCION_APROBAR",

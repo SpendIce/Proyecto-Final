@@ -31,6 +31,15 @@ from fastapi.testclient import TestClient
 from agente1.canal_form import PadronRoles, hash_correo
 from agente1.certificados_emision import PersonaCierre
 from agente1.confirmaciones import ROL_APROBADOR_CONTENIDO
+from agente1.decisiones_form import (
+    DECISION_APRUEBO_CONTENIDO,
+    RESULTADO_REGISTRADA,
+    TIPO_PLANTILLA,
+    RegistroDecisiones,
+    ResultadoDecision,
+)
+from agente1.linea_descriptiva import revisar_aprobacion_lote
+from agente1.plantillas_aprobadas import PlantillaCorreo, id_version_plantilla
 from agente1.web.app import CLIENT_ID_PRUEBA, ConfiguracionWeb, crear_app
 from agente1.web.certificados_web import (
     ESTADO_APROBADA,
@@ -39,13 +48,16 @@ from agente1.web.certificados_web import (
     LoteCertificados,
     RepositorioLotes,
     ResultadoDecisionLote,
+    estado_plantillas,
 )
 from agente1.web.identidad import IdentidadVerificada, VerificadorFake
 from agente1.web.sesiones import SesionesMemoria
 
 CORREO_APROBADOR = "aprobador@example.invalid"
 CORREO_OTRO_APROBADOR = "otra.persona@example.invalid"
+CORREO_COORDINADOR = "coordinador@example.invalid"
 TOKEN_APROBADOR = "tok-aprobador"
+TOKEN_COORDINADOR = "tok-coordinador"
 AHORA = datetime(2026, 11, 17, 9, 0, tzinfo=timezone.utc)
 MIGRACIONES = Path(__file__).resolve().parent.parent / "migrations"
 
@@ -101,6 +113,9 @@ def _lote(
         personas=personas,
         cantidad_personas=len(personas),
         linea_descriptiva=LINEA,
+        linea_descriptiva_hash=hashlib.sha256(
+            LINEA.encode("utf-8")
+        ).hexdigest(),
         plantilla_muestra="certificado_seu_aprobacion_v1",
         estado=estado,
         generada_por_hash=hash_correo(generada_por),
@@ -181,11 +196,17 @@ class Mundo:
     sesiones: SesionesMemoria
 
 
-def _mundo(lotes: tuple[LoteCertificados, ...] | None = None) -> Mundo:
+def _mundo(
+    lotes: tuple[LoteCertificados, ...] | None = None,
+    *,
+    registro_decisiones=None,
+    plantillas_aprobadas=None,
+) -> Mundo:
     padron = PadronRoles(
         {
             CORREO_APROBADOR: ROL_APROBADOR_CONTENIDO,
             CORREO_OTRO_APROBADOR: ROL_APROBADOR_CONTENIDO,
+            CORREO_COORDINADOR: "coordinador_seu",
         }
     )
     sesiones = SesionesMemoria(ahora=lambda: AHORA)
@@ -193,7 +214,10 @@ def _mundo(lotes: tuple[LoteCertificados, ...] | None = None) -> Mundo:
         {
             TOKEN_APROBADOR: IdentidadVerificada(
                 "sub-aprobador", CORREO_APROBADOR, "x.invalid"
-            )
+            ),
+            TOKEN_COORDINADOR: IdentidadVerificada(
+                "sub-coordinador", CORREO_COORDINADOR, "x.invalid"
+            ),
         }
     )
     repo_lotes = RepositorioLotesMemoria(lotes)
@@ -210,6 +234,8 @@ def _mundo(lotes: tuple[LoteCertificados, ...] | None = None) -> Mundo:
         actividades=[],
         lotes=repo_lotes,
         version_agente="0.6.3",
+        registro_decisiones=registro_decisiones,
+        plantillas_aprobadas=plantillas_aprobadas,
     )
     return Mundo(TestClient(app), repo_lotes, sesiones)
 
@@ -224,13 +250,13 @@ class _RepositorioWebVacio:
         return None
 
 
-def _ingresar(client: TestClient) -> None:
+def _ingresar(client: TestClient, token: str = TOKEN_APROBADOR) -> None:
     formulario = client.get("/ingresar")
     marca = 'name="csrf" value="'
     csrf = formulario.text.split(marca, 1)[1].split('"', 1)[0]
     respuesta = client.post(
         "/ingresar",
-        data={"credential": TOKEN_APROBADOR, "csrf": csrf},
+        data={"credential": token, "csrf": csrf},
         follow_redirects=False,
     )
     assert respuesta.status_code == 303
@@ -398,7 +424,10 @@ def test_rechazos_de_decision_muestran_su_mensaje(
 
 
 DSN = os.environ.get("AGENTE1_POSTGRES_DSN")
-CLAVES_ROLES = {"agente1_app": "prueba-lote-app"}
+CLAVES_ROLES = {
+    "agente1_app": "prueba-lote-app",
+    "agente1_mantenimiento": "prueba-lote-mant",
+}
 
 
 @pytest.fixture()
@@ -425,10 +454,12 @@ def base_pg():
         admin.close()
 
 
-def _repo(esquema: str) -> RepositorioLotes:
+def _repo(
+    esquema: str, rol: str = "agente1_app"
+) -> RepositorioLotes:
     info = psycopg.conninfo.conninfo_to_dict(DSN)
-    info["user"] = "agente1_app"
-    info["password"] = CLAVES_ROLES["agente1_app"]
+    info["user"] = rol
+    info["password"] = CLAVES_ROLES[rol]
     dsn = psycopg.conninfo.make_conninfo(**info)
     return RepositorioLotes(
         lambda: psycopg.connect(
@@ -568,14 +599,17 @@ def test_la_purga_retira_la_lista_y_conserva_hash_y_decision(
     repo = _repo(base_pg)
     lote = _crear(repo)
     _decidir(repo, lote)
-    assert repo.purgar_cerrados() == 1
+    mantenimiento = _repo(base_pg, rol="agente1_mantenimiento")
+    assert mantenimiento.purgar_cerrados() == 1
     purgado = repo.obtener(lote.id_lote)
     assert purgado is not None
     assert purgado.personas == ()
+    assert purgado.linea_descriptiva is None
+    assert purgado.linea_descriptiva_hash == lote.linea_descriptiva_hash
     assert purgado.cantidad_personas == 2
     assert purgado.objeto_lote == lote.objeto_lote
     assert purgado.decidida_por_hash == hash_correo(CORREO_APROBADOR)
-    assert repo.purgar_cerrados() == 0
+    assert mantenimiento.purgar_cerrados() == 0
 
 
 # --- script de demo -------------------------------------------------------
@@ -632,3 +666,75 @@ def test_la_demo_rechaza_una_cantidad_fuera_del_rango(capsys) -> None:
     assert codigo == 2
     salida = json.loads(capsys.readouterr().out)
     assert salida["error_code"] == "demo_cantidad_invalida"
+
+
+def test_aprobar_web_asienta_el_apruebo_lote_en_el_registro(tmp_path) -> None:
+    registro = RegistroDecisiones(tmp_path)
+    mundo = _mundo((_lote(),), registro_decisiones=registro)
+    _ingresar(mundo.client)
+    respuesta = mundo.client.post(
+        "/certificados/lote-abc123/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "hash_lote": "f" * 64,
+            "accion": "aprobar",
+        },
+    )
+    assert respuesta.status_code == 200
+    revision = revisar_aprobacion_lote(
+        registro,
+        objeto_lote="f" * 64,
+        generada_por_correo_hash=hash_correo(CORREO_APROBADOR),
+    )
+    assert revision.aprobada is True
+
+
+def test_plantilla_de_asistencia_con_aprobacion_registrada(tmp_path) -> None:
+    plantilla = PlantillaCorreo(
+        asunto="Certificado de {{nombre}}",
+        cuerpo="Certificamos que {{nombre}} {{apellido}}.\n{{bloque_firmas}}",
+    )
+    registro = RegistroDecisiones(tmp_path)
+    marca = AHORA.isoformat()
+    registro.registrar(
+        ResultadoDecision(
+            id_respuesta=hashlib.sha256(b"plantilla-asistencia").hexdigest(),
+            correo_hash=hash_correo(CORREO_APROBADOR),
+            rol=ROL_APROBADOR_CONTENIDO,
+            rol_origen="padron",
+            tipo=TIPO_PLANTILLA,
+            objeto_id=id_version_plantilla(
+                "certificado_asistencia", plantilla
+            ),
+            decision=DECISION_APRUEBO_CONTENIDO,
+            resultado=RESULTADO_REGISTRADA,
+            rechazo_codigo=None,
+            marca_temporal_form=marca,
+            timestamp=marca,
+        )
+    )
+    estados = estado_plantillas(
+        ("asistencia",),
+        plantillas_aprobadas={"certificado_asistencia": plantilla},
+        registro_decisiones=registro,
+    )
+    assert len(estados) == 1
+    assert estados[0].aprobada is True
+    assert estados[0].nombre == id_version_plantilla(
+        "certificado_asistencia", plantilla
+    )
+
+
+def test_otro_rol_no_ve_ni_decide_el_lote() -> None:
+    mundo = _mundo((_lote(),))
+    _ingresar(mundo.client, TOKEN_COORDINADOR)
+    assert (
+        mundo.client.get("/certificados/lote-abc123").status_code == 403
+    )
+    respuesta = mundo.client.post(
+        "/certificados/lote-abc123/decidir",
+        data={"csrf": _csrf(mundo), "hash_lote": "f" * 64, "accion": "aprobar"},
+    )
+    assert respuesta.status_code == 403
+    assert mundo.lotes.llamadas == []
+    assert "Lotes de certificados" not in mundo.client.get("/bandeja").text

@@ -206,6 +206,25 @@ def main(
     recursos_firma = recursos_firma_opcional(
         entorno.get("AGENTE1_CERTIFICADOS_RECURSOS_DIR")
     )
+    # La página del lote informa el estado real de la plantilla y asienta
+    # la aprobación en el registro que lee la emisión (#168). Sin las
+    # variables, la página no puede verificarlas y lo declara.
+    plantillas_aprobadas = None
+    if entorno.get("AGENTE1_PLANTILLAS_APROBADAS_PATH"):
+        from agente1.plantillas_aprobadas import cargar_plantillas_aprobadas
+        from agente1.workspace_config import ConfiguracionWorkspaceError
+
+        try:
+            plantillas_aprobadas = cargar_plantillas_aprobadas(entorno)
+        except ConfiguracionWorkspaceError:
+            plantillas_aprobadas = None
+    registro_decisiones = None
+    if entorno.get("AGENTE1_DECISIONES_DIR"):
+        from agente1.decisiones_form import RegistroDecisiones
+
+        registro_decisiones = RegistroDecisiones(
+            Path(entorno["AGENTE1_DECISIONES_DIR"])
+        )
     catalogo = None
     audiencias_path = entorno.get("AGENTE1_AUDIENCIAS_PATH")
     if audiencias_path:
@@ -262,6 +281,8 @@ def main(
             exportador=exportador,
             lotes=lotes,
             recursos_firma=recursos_firma,
+            registro_decisiones=registro_decisiones,
+            plantillas_aprobadas=plantillas_aprobadas,
             catalogo_audiencias=catalogo,
         )
     except ConfiguracionInvalida as error:

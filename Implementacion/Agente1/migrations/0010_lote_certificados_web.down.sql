@@ -6,9 +6,7 @@
 -- evidencia de la validación humana y no se reconstruye desde otro lado.
 BEGIN;
 
-REVOKE SELECT, INSERT, UPDATE ON lotes_certificados FROM agente1_app;
-REVOKE SELECT ON lotes_certificados FROM agente1_mantenimiento;
-
+-- Los grants de la tabla y de sus columnas se van con ella.
 DROP TABLE lotes_certificados;
 
 COMMIT;

@@ -90,6 +90,7 @@ from ..decisiones_form import (
     DECISION_PUBLIQUE,
     ROLES_POR_DECISION,
     TIPO_PUBLICACION,
+    RegistroDecisiones,
 )
 from ..destinos import DestinoBorradoresError
 from ..gacetillas import (
@@ -104,6 +105,7 @@ from ..manifest_version import (
     raiz_agente,
     version_desde_pyproject,
 )
+from ..plantillas_aprobadas import PlantillaCorreo
 from .certificados_web import (
     RepositorioLotesPuerto,
     lotes_para_bandeja,
@@ -408,6 +410,8 @@ def crear_app(
     catalogo_audiencias: CatalogoAudiencias | None = None,
     lotes: RepositorioLotesPuerto | None = None,
     recursos_firma: RecursosFirma | None = None,
+    registro_decisiones: RegistroDecisiones | None = None,
+    plantillas_aprobadas: dict[str, PlantillaCorreo] | None = None,
 ) -> FastAPI:
     """Fábrica de la app: todo servicio externo entra inyectado.
 
@@ -433,6 +437,10 @@ def crear_app(
     bandeja muestra «Lotes de certificados» y viven las rutas
     `/certificados/{id_lote}`. `recursos_firma` es la custodia de firmas
     que la página consulta para informar si el lote puede emitir (R2).
+    `registro_decisiones` es el registro JSONL que lee la emisión: aprobar
+    en la web asienta ahí el `apruebo_lote` para que el circuito lo vea.
+    `plantillas_aprobadas` es el archivo de plantillas de producción, para
+    mostrar el estado real de la plantilla de asistencia (ADR 0020).
     """
     validar_configuracion(
         config,
@@ -770,7 +778,12 @@ def crear_app(
             request,
             sesion=sesion,
             items=items,
-            lotes=lotes_para_bandeja(lotes) if lotes is not None else [],
+            lotes=(
+                lotes_para_bandeja(lotes)
+                if lotes is not None
+                and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
+                else []
+            ),
         )
 
     @app.get("/solicitudes/{id_solicitud}", response_class=HTMLResponse)
@@ -1354,6 +1367,8 @@ def crear_app(
             destino_login=destino_login,
             version_agente=version_agente,
             recursos_firma=recursos_firma,
+            registro_decisiones=registro_decisiones,
+            plantillas_aprobadas=plantillas_aprobadas,
         )
 
     return app

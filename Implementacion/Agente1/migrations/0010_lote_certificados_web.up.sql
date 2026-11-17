@@ -22,7 +22,8 @@ CREATE TABLE lotes_certificados (
     actividad JSONB NOT NULL,
     personas JSONB,
     cantidad_personas INTEGER NOT NULL,
-    linea_descriptiva TEXT NOT NULL,
+    linea_descriptiva TEXT,
+    linea_descriptiva_hash CHAR(64) NOT NULL,
     plantilla_muestra VARCHAR(64) NOT NULL,
     estado VARCHAR(32) NOT NULL,
     generada_por_hash CHAR(64) NOT NULL,
@@ -37,6 +38,7 @@ CREATE TABLE lotes_certificados (
     CHECK (id_actividad ~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$'),
     CHECK (objeto_lote ~ '^[0-9a-f]{64}$'),
     CHECK (hash_lista ~ '^[0-9a-f]{64}$'),
+    CHECK (linea_descriptiva_hash ~ '^[0-9a-f]{64}$'),
     CHECK (generada_por_hash ~ '^[0-9a-f]{64}$'),
     CHECK (decidida_por_hash IS NULL OR decidida_por_hash ~ '^[0-9a-f]{64}$'),
     CHECK (jsonb_typeof(actividad) = 'object'),
@@ -56,6 +58,7 @@ CREATE TABLE lotes_certificados (
         OR version_agente ~ '^[0-9A-Za-z._-]{1,64}$'
     ),
     CHECK ((personas IS NULL) = (purgada_en IS NOT NULL)),
+    CHECK ((personas IS NULL) = (linea_descriptiva IS NULL)),
     CHECK (decidida_en IS NULL OR decidida_en >= creada_en),
     CHECK (purgada_en IS NULL OR purgada_en >= creada_en),
     CHECK (
@@ -81,10 +84,17 @@ CREATE TABLE lotes_certificados (
 CREATE INDEX idx_lotes_certificados_estado
     ON lotes_certificados (estado, creada_en DESC);
 
--- La app lee, crea y decide (UPDATE del ciclo de vida del lote). La lista
--- de personas se retira con el mismo rol, como el resto del ciclo web; el
--- mantenimiento sólo la lee para el respaldo y la evidencia.
-GRANT SELECT, INSERT, UPDATE ON lotes_certificados TO agente1_app;
+-- La app lee, crea y decide: el UPDATE se limita a las columnas del ciclo
+-- de vida y la decisión, nunca a la lista ni a la línea descriptiva. El
+-- mantenimiento es el único que puede retirarlas cuando el lote ya se
+-- decidió —el reparto de 0005— y conserva hashes, cantidad y decisión.
+GRANT SELECT, INSERT ON lotes_certificados TO agente1_app;
+GRANT UPDATE (
+    estado, decidida_en, decidida_por_hash, rol_decision,
+    origen_identidad, version_agente
+) ON lotes_certificados TO agente1_app;
 GRANT SELECT ON lotes_certificados TO agente1_mantenimiento;
+GRANT UPDATE (personas, linea_descriptiva, purgada_en)
+    ON lotes_certificados TO agente1_mantenimiento;
 
 COMMIT;
