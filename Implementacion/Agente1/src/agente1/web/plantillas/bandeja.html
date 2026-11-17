@@ -25,11 +25,11 @@
   {% set errores = items|selectattr("estado", "equalto", "ERROR")|list %}
   {% set cerradas = items|rejectattr("estado", "in", ["EN_COLA", "GENERANDO", "AJUSTANDO", "LISTA", "ERROR"])|list %}
   {% if pendientes %}
-  <h2 class="bandeja-grupo">Pendientes</h2>
+  <h2 class="bandeja-grupo">Pendientes <span class="cuenta">{{ pendientes|length }}</span></h2>
   <ul class="bandeja">{% for item in pendientes %}{{ fila(item) }}{% endfor %}</ul>
   {% endif %}
   {% if cerradas %}
-  <h2 class="bandeja-grupo">Cerradas</h2>
+  <h2 class="bandeja-grupo">Cerradas <span class="cuenta">{{ cerradas|length }}</span></h2>
   <ul class="bandeja">{% for item in cerradas %}{{ fila(item) }}{% endfor %}</ul>
   {% endif %}
   {% if errores %}
@@ -48,7 +48,7 @@
 
 {% if lotes or mostrar_boton_demo or puede_pedir_certificados %}
 <section aria-labelledby="t-lotes">
-  <h2 id="t-lotes">Lotes de certificados</h2>
+  <h2 id="t-lotes" class="bandeja-grupo">Lotes de certificados{% if lotes %} <span class="cuenta">{{ lotes|length }}</span>{% endif %}</h2>
   {% if puede_pedir_certificados %}
   <p>
     <a class="boton-primario" href="/certificados/pedir">

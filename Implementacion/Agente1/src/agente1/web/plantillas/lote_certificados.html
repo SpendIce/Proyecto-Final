@@ -65,7 +65,7 @@
        tabindex="0">
     <table class="tabla-revisiones">
       <thead>
-        <tr><th>#</th><th>Nombre y apellido</th><th>Condición</th></tr>
+        <tr><th scope="col">#</th><th scope="col">Nombre y apellido</th><th scope="col">Condición</th></tr>
       </thead>
       <tbody>
         {% for persona in lote.personas %}
@@ -143,10 +143,10 @@
     </label>
     {% endif %}
     {% if puede_aprobar %}
-    <button type="submit" name="accion" value="aprobar">Aprobar lote</button>
+    <button type="submit" name="accion" value="aprobar" class="boton-primario">Aprobar lote</button>
     {% endif %}
     {% if puede_descartar %}
-    <button type="submit" name="accion" value="descartar" formnovalidate>Descartar lote</button>
+    <button type="submit" name="accion" value="descartar" formnovalidate class="boton-descartar">Descartar lote</button>
     {% endif %}
   </form>
   <p class="ayuda">

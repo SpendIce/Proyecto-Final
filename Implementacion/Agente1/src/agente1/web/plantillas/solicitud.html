@@ -50,8 +50,9 @@
   <div class="zona-tabla" role="region" aria-labelledby="t-revisiones"
        tabindex="0">
     <table class="tabla-revisiones">
+      <caption class="solo-lectores">Revisiones de la pieza. La vigente se marca en la última columna.</caption>
       <thead>
-        <tr><th>N.º</th><th>Origen</th><th>Indicación</th><th>Fecha</th><th>Hash</th><th></th></tr>
+        <tr><th scope="col">N.º</th><th scope="col">Origen</th><th scope="col">Indicación</th><th scope="col">Fecha</th><th scope="col">Hash</th><th scope="col" aria-label="Vigente"></th></tr>
       </thead>
       <tbody>
         {% for r in revisiones %}
@@ -75,7 +76,7 @@
   {% if puede_traer %}
   <form method="post" action="/solicitudes/{{ s.id_solicitud }}/traer-cambios">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <button type="submit">Traer cambios del Doc</button>
+    <button type="submit" class="boton-secundario">Traer cambios del Doc</button>
   </form>
   {% endif %}
   {% if s.estado_web == 'LISTA' and s.ultimo_ajuste_fallido %}
@@ -94,7 +95,7 @@
     <textarea id="indicacion" name="indicacion" required
               minlength="3" maxlength="500" rows="2"
               placeholder="Por ejemplo: más breve, sumá el horario, tono más formal"></textarea>
-    <button type="submit">Pedir ajuste</button>
+    <button type="submit" class="boton-secundario">Pedir ajuste</button>
   </form>
   {% endif %}
   {% if puede_decidir %}
@@ -103,8 +104,8 @@
         {% if correo_auto %}data-correo-url="/solicitudes/{{ s.id_solicitud }}/correo"{% endif %}>
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <input type="hidden" name="revision" value="{{ revision_vigente_id }}">
-    <button type="submit" name="accion" value="aprobar">Aprobar</button>
-    <button type="submit" name="accion" value="descartar">Descartar</button>
+    <button type="submit" name="accion" value="aprobar" class="boton-primario">Aprobar</button>
+    <button type="submit" name="accion" value="descartar" class="boton-descartar">Descartar</button>
   </form>
   {% endif %}
   {% elif s.estado_web in ('APROBADA', 'DESCARTADA') %}
@@ -130,7 +131,7 @@
   <p class="aviso-estado">El cuerpo no entra en el enlace: copialo con el botón y pegá el cuerpo en el correo.</p>
   <pre id="cuerpo-correo" class="pieza" hidden>{{ correo.cuerpo }}</pre>
   <p>
-    <button type="button" id="copiar-cuerpo">Copiar cuerpo</button>
+    <button type="button" id="copiar-cuerpo" class="boton-secundario">Copiar cuerpo</button>
     <span id="aviso-copiar" class="ayuda"></span>
   </p>
   {% endif %}
