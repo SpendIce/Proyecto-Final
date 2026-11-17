@@ -19,7 +19,7 @@
 | 3. Corrección humana | Editar una frase en Docs y pulsar «Traer cambios» en la web. | La revisión queda ligada al hash del contenido importado. |
 | 4. Ajuste | Pedir «más breve y con tono más formal» y revisar el resultado antes de decidir. | El ajuste parte de la revisión vigente y conserva la responsabilidad humana. Si falla, comprobar el aviso y continuar con la revisión anterior. |
 | 5. Decisión | Aprobar la revisión vigente. Abrir «Preparar correo» y mostrar el borrador de Gmail. | La aprobación corresponde a ese contenido. Gmail permite revisar destinatarios, asunto y cuerpo; finalizar la demostración antes de pulsar «Enviar». |
-| 6. Certificados | Generar el lote de demostración, abrir la lista y descargar la muestra. | Las personas son ficticias y la muestra no tiene validez. Mostrar la decisión de lote por hash; no presentarla como emisión institucional. |
+| 6. Certificados | Generar el lote de demostración, abrir la lista y descargar la muestra. | Las personas son ficticias y la muestra no tiene validez. La decisión por hash queda sólo en la demo y no habilita emisión institucional. |
 
 Para la presentación, usar una actividad del corpus como ejemplo histórico. No anunciarla como una actividad próxima si su fecha ya pasó.
 

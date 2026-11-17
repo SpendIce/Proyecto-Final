@@ -43,6 +43,7 @@ from agente1.lote_demo import (
     ID_LOTE_DEMO,
     actividad_demo,
     crear_lote_demo,
+    datos_actividad,
     es_lote_demo,
     personas_demo,
 )
@@ -209,6 +210,7 @@ def _mundo(
     actividades: list[dict[str, str]] | None = None,
     hoy: date = HOY_DEMO,
     registro_decisiones=None,
+    lotes=None,
 ) -> Mundo:
     padron = PadronRoles(
         {
@@ -219,7 +221,7 @@ def _mundo(
     )
     sesiones = SesionesMemoria()
     reloj = {"fecha": hoy}
-    repo_lotes = RepositorioLotesMemoria()
+    repo_lotes = lotes if lotes is not None else RepositorioLotesMemoria()
     config = ConfiguracionWeb(
         google_client_id="" if modo_demo else CLIENT_ID_PRUEBA,
         modo_demo=modo_demo,
@@ -294,6 +296,47 @@ def _sembrar(client: TestClient, csrf: str, **kwargs):
         "/demo/lote-certificados",
         data={"csrf": csrf, **kwargs},
         follow_redirects=False,
+    )
+
+
+def _ficha_completa() -> dict[str, str]:
+    ficha = datos_actividad(ACTIVIDAD_ROW)
+    assert ficha is not None
+    return ficha
+
+
+def _lote_demo(
+    repo,
+    correo: str = CORREO_APROBADOR,
+    *,
+    cantidad: int = 6,
+    id_actividad: str = ACTIVIDAD_DEMO,
+) -> LoteCertificados:
+    return crear_lote_demo(
+        repo,
+        id_actividad=id_actividad,
+        actividad=_ficha_completa(),
+        personas=personas_demo(cantidad),
+        generador_correo=correo,
+    )
+
+
+def _lote_real(repo) -> LoteCertificados:
+    return repo.crear(
+        id_actividad="FIE-DIF-02",
+        actividad=_ficha_completa(),
+        personas=(
+            PersonaCierre(
+                nombre="Ana",
+                apellido="Real",
+                dni="12345678",
+                mail="ana.real@fie.undef.edu.ar",
+                tratamiento="Sra.",
+                condicion="aprobacion",
+            ),
+        ),
+        linea_descriptiva="Actividad real de la SEU.",
+        generada_por_hash=hash_correo(CORREO_APROBADOR),
     )
 
 
@@ -462,28 +505,110 @@ def test_sembrar_no_asienta_nada_en_el_registro(tmp_path) -> None:
     assert registro.procesadas() == ()
 
 
-def test_aprobar_el_demo_no_habilita_ningun_otro_lote(tmp_path) -> None:
+def test_la_decision_demo_no_puentea_al_registro_institucional(
+    tmp_path,
+) -> None:
     registro = RegistroDecisiones(tmp_path)
     mundo = _mundo(registro_decisiones=registro)
     _ingresar_demo(mundo.client, CORREO_APROBADOR)
     _sembrar(mundo.client, csrf=_csrf(mundo))
     _aprobar(mundo.client, mundo, ID_LOTE_DEMO)
-    objeto_demo = lote_demo.OBJETO_LOTE_DEMO
+    # La decisión demo vive sólo en lotes_certificados: nunca una línea
+    # `apruebo_lote` en el registro que lee la emisión institucional.
+    assert registro.procesadas() == ()
     revision_demo = revisar_aprobacion_lote(
         registro,
-        objeto_lote=objeto_demo,
+        objeto_lote=lote_demo.OBJETO_LOTE_DEMO,
         generada_por_correo_hash=hash_correo(CORREO_APROBADOR),
     )
-    assert revision_demo.aprobada is True
-    # La aprobación quedó atada al objeto de la lista ficticia: un lote
-    # real, con otro objeto, sigue sin aprobación.
-    objeto_real = objeto_lote_cierre("FIE-DIF-02", "ab" * 32)
-    revision_real = revisar_aprobacion_lote(
+    assert revision_demo.aprobada is False
+
+
+def test_un_lote_real_conserva_el_puente_al_registro(tmp_path) -> None:
+    registro = RegistroDecisiones(tmp_path)
+    mundo = _mundo(registro_decisiones=registro)
+    real = _lote_real(mundo.lotes)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    _aprobar(mundo.client, mundo, real.id_lote)
+    revision = revisar_aprobacion_lote(
         registro,
-        objeto_lote=objeto_real,
+        objeto_lote=real.objeto_lote,
         generada_por_correo_hash=hash_correo(CORREO_APROBADOR),
     )
-    assert revision_real.aprobada is False
+    assert revision.aprobada is True
+
+
+# --- aislamiento: el lote demo fuera de la demostración ----------------------
+
+
+def test_fuera_de_demo_el_lote_demo_no_se_puede_decidir() -> None:
+    mundo = _mundo(modo_demo=False)
+    lote = _lote_demo(mundo.lotes)
+    _ingresar_prueba(mundo.client, TOKEN_APROBADOR)
+    respuesta = mundo.client.post(
+        f"/certificados/{lote.id_lote}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "hash_lote": lote.objeto_lote,
+            "accion": "aprobar",
+        },
+    )
+    assert respuesta.status_code == 403
+    persistido = mundo.lotes.obtener(lote.id_lote)
+    assert persistido is not None
+    assert persistido.estado == ESTADO_PENDIENTE
+    assert persistido.decidida_en is None
+
+
+def test_fuera_de_demo_la_pagina_no_ofrece_decision() -> None:
+    mundo = _mundo(modo_demo=False)
+    lote = _lote_demo(mundo.lotes)
+    _ingresar_prueba(mundo.client, TOKEN_APROBADOR)
+    pagina = mundo.client.get(f"/certificados/{lote.id_lote}")
+    assert pagina.status_code == 200
+    assert "Lote de demostración" in pagina.text
+    assert "no hay decisión" in pagina.text
+    assert "/decidir" not in pagina.text
+
+
+def test_fuera_de_demo_la_bandeja_marca_el_lote_demo() -> None:
+    mundo = _mundo(modo_demo=False)
+    _lote_demo(mundo.lotes)
+    _ingresar_prueba(mundo.client, TOKEN_APROBADOR)
+    bandeja = mundo.client.get("/bandeja")
+    assert f"/certificados/{ID_LOTE_DEMO}" in bandeja.text
+    assert "demostración — sin validez" in bandeja.text
+
+
+# --- la marca reconoce todas las variantes válidas de la semilla --------------
+
+
+def test_la_marca_cubre_cantidad_y_actividad_variantes() -> None:
+    repo = RepositorioLotesMemoria()
+    siete = _lote_demo(repo, cantidad=7)
+    assert es_lote_demo(siete) is True
+    otra_actividad = _lote_demo(repo, cantidad=5, id_actividad="SYN-002")
+    assert es_lote_demo(otra_actividad) is True
+    ocho = _lote_demo(repo, correo=CORREO_OTRO_APROBADOR, cantidad=8)
+    assert es_lote_demo(ocho) is True
+    # Un lote con otra lista —real o de otra semilla— no lleva la marca.
+    real = _lote_real(repo)
+    assert es_lote_demo(real) is False
+
+
+def test_la_marca_sobrevive_a_la_purga_de_personas() -> None:
+    repo = RepositorioLotesMemoria()
+    lote = _lote_demo(repo)
+    purgado = replace(lote, personas=(), linea_descriptiva=None)
+    assert es_lote_demo(purgado) is True
+
+
+def test_la_bandeja_marca_tambien_una_variante_de_la_semilla() -> None:
+    mundo = _mundo()
+    _lote_demo(mundo.lotes, cantidad=7)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    bandeja = mundo.client.get("/bandeja")
+    assert "demostración — sin validez" in bandeja.text
 
 
 def test_sin_la_actividad_en_la_tabla_cae_al_corpus_del_repo() -> None:
@@ -577,10 +702,6 @@ def test_sin_la_actividad_en_ningun_lado_el_error_es_declarado() -> None:
 # --- PostgreSQL real --------------------------------------------------------
 
 DSN = os.environ.get("AGENTE1_POSTGRES_DSN")
-CLAVES_ROLES = {
-    "agente1_app": "prueba-lote-app",
-    "agente1_mantenimiento": "prueba-lote-mant",
-}
 
 
 @pytest.fixture()
@@ -591,50 +712,47 @@ def base_pg():
     admin = psycopg.connect(DSN, autocommit=True)
     admin.execute(f'CREATE SCHEMA "{esquema}"')
     try:
-        with psycopg.connect(
-            DSN, options=f"-c search_path={esquema}"
-        ) as conn:
+        with psycopg.connect(DSN, autocommit=True) as conn:
+            conn.execute(f'SET search_path TO "{esquema}"')
             for up in sorted(MIGRACIONES.glob("*.up.sql")):
                 conn.execute(up.read_text(encoding="utf-8"))
-            for rol, clave in CLAVES_ROLES.items():
-                conn.execute(
-                    f'GRANT USAGE ON SCHEMA "{esquema}" TO {rol}'
-                )
-                conn.execute(f"ALTER ROLE {rol} PASSWORD '{clave}'")
+            conn.execute(
+                f'GRANT USAGE ON SCHEMA "{esquema}"'
+                " TO agente1_app, agente1_mantenimiento"
+            )
         yield esquema
     finally:
         admin.execute(f'DROP SCHEMA "{esquema}" CASCADE')
         admin.close()
 
 
-def _repo(esquema: str) -> RepositorioLotes:
-    info = psycopg.conninfo.conninfo_to_dict(DSN)
-    info["user"] = "agente1_app"
-    info["password"] = CLAVES_ROLES["agente1_app"]
-    dsn = psycopg.conninfo.make_conninfo(**info)
-    return RepositorioLotes(
-        lambda: psycopg.connect(
-            dsn, options=f"-c search_path={esquema}", autocommit=False
+def _fabrica(esquema: str, rol: str = "agente1_app"):
+    """Conexiones al esquema como rol del canal, sin tocar claves.
+
+    `SET ROLE` desde el superusuario aísla los permisos por conexión:
+    no hace falta `ALTER ROLE ... PASSWORD`, que mutaría el rol a nivel
+    clúster y podría afectar otros tests del mismo PG.
+    """
+
+    def abrir():
+        conn = psycopg.connect(
+            DSN, options=f"-c search_path={esquema}", autocommit=False
         )
-    )
+        conn.execute(f"SET ROLE {rol}")
+        conn.commit()
+        return conn
+
+    return abrir
 
 
-def _sembrar_en_base(
-    repo: RepositorioLotes, correo: str
-) -> LoteCertificados:
-    return crear_lote_demo(
-        repo,
-        id_actividad=ACTIVIDAD_DEMO,
-        actividad=actividad_demo([dict(ACTIVIDAD_ROW)]),
-        personas=personas_demo(),
-        generador_correo=correo,
-    )
+def _repo(esquema: str) -> RepositorioLotes:
+    return RepositorioLotes(_fabrica(esquema))
 
 
 def test_la_siembra_web_es_idempotente_en_la_base(base_pg: str) -> None:
     repo = _repo(base_pg)
-    primero = _sembrar_en_base(repo, CORREO_APROBADOR)
-    segundo = _sembrar_en_base(repo, CORREO_APROBADOR)
+    primero = _lote_demo(repo)
+    segundo = _lote_demo(repo)
     assert primero.id_lote == segundo.id_lote == ID_LOTE_DEMO
     assert primero.objeto_lote == segundo.objeto_lote
     assert len(repo.listar()) == 1
@@ -648,7 +766,7 @@ def test_la_siembra_web_es_idempotente_en_la_base(base_pg: str) -> None:
 
 def test_resembrar_conserva_la_decision_en_la_base(base_pg: str) -> None:
     repo = _repo(base_pg)
-    lote = _sembrar_en_base(repo, CORREO_APROBADOR)
+    lote = _lote_demo(repo)
     decidido = repo.decidir(
         id_lote=lote.id_lote,
         hash_lote=lote.objeto_lote,
@@ -661,7 +779,7 @@ def test_resembrar_conserva_la_decision_en_la_base(base_pg: str) -> None:
     assert decidido.codigo == "aprobada"
     # Reintentar la siembra —doble clic, otra sesión demo— devuelve la
     # misma fila sin tocar estado ni decisión.
-    de_nuevo = _sembrar_en_base(repo, CORREO_OTRO_APROBADOR)
+    de_nuevo = _lote_demo(repo, CORREO_OTRO_APROBADOR)
     assert de_nuevo.id_lote == lote.id_lote
     assert de_nuevo.estado == ESTADO_APROBADA
     assert de_nuevo.decidida_por_hash == hash_correo(CORREO_APROBADOR)
@@ -670,3 +788,87 @@ def test_resembrar_conserva_la_decision_en_la_base(base_pg: str) -> None:
     assert persistido.estado == ESTADO_APROBADA
     assert persistido.origen_identidad == "demo"
     assert len(repo.listar()) == 1
+
+
+def test_ruta_demo_completa_sobre_repositorio_real(
+    base_pg: str, tmp_path,
+) -> None:
+    """Login demo → siembra → decisión, sobre `RepositorioLotes` real."""
+    repo = _repo(base_pg)
+    registro = RegistroDecisiones(tmp_path)
+    mundo = _mundo(lotes=repo, registro_decisiones=registro)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    respuesta = _sembrar(mundo.client, csrf=_csrf(mundo))
+    assert respuesta.status_code == 303
+    lote = repo.obtener(ID_LOTE_DEMO)
+    assert lote is not None
+    _aprobar(mundo.client, mundo, ID_LOTE_DEMO)
+    decidido = repo.obtener(ID_LOTE_DEMO)
+    assert decidido is not None
+    assert decidido.estado == ESTADO_APROBADA
+    assert decidido.origen_identidad == "demo"
+    assert decidido.rol_decision == ROL_APROBADOR_CONTENIDO
+    # La decisión demo nunca puentea al registro institucional.
+    assert registro.procesadas() == ()
+
+
+def test_ruta_real_conserva_el_puente_sobre_repositorio_real(
+    base_pg: str, tmp_path,
+) -> None:
+    """Un lote real, en la misma app y base, sí asienta `apruebo_lote`."""
+    repo = _repo(base_pg)
+    registro = RegistroDecisiones(tmp_path)
+    mundo = _mundo(lotes=repo, registro_decisiones=registro)
+    real = _lote_real(repo)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    _aprobar(mundo.client, mundo, real.id_lote)
+    revision = revisar_aprobacion_lote(
+        registro,
+        objeto_lote=real.objeto_lote,
+        generada_por_correo_hash=hash_correo(CORREO_APROBADOR),
+    )
+    assert revision.aprobada is True
+
+
+def test_fuera_de_demo_no_se_decide_sobre_repositorio_real(
+    base_pg: str,
+) -> None:
+    repo = _repo(base_pg)
+    lote = _lote_demo(repo)
+    mundo = _mundo(modo_demo=False, lotes=repo)
+    _ingresar_prueba(mundo.client, TOKEN_APROBADOR)
+    respuesta = mundo.client.post(
+        f"/certificados/{lote.id_lote}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "hash_lote": lote.objeto_lote,
+            "accion": "aprobar",
+        },
+    )
+    assert respuesta.status_code == 403
+    persistido = repo.obtener(lote.id_lote)
+    assert persistido is not None
+    assert persistido.estado == ESTADO_PENDIENTE
+    assert persistido.decidida_en is None
+
+
+def test_la_marca_sobrevive_a_la_purga_en_base(base_pg: str) -> None:
+    repo = _repo(base_pg)
+    lote = _lote_demo(repo)
+    repo.decidir(
+        id_lote=lote.id_lote,
+        hash_lote=lote.objeto_lote,
+        accion="aprobar",
+        validador_hash=hash_correo(CORREO_APROBADOR),
+        rol=ROL_APROBADOR_CONTENIDO,
+        origen_identidad="demo",
+        version_agente="0.8.1",
+    )
+    mantenimiento = RepositorioLotes(
+        _fabrica(base_pg, "agente1_mantenimiento")
+    )
+    assert mantenimiento.purgar_cerrados() == 1
+    purgado = repo.obtener(lote.id_lote)
+    assert purgado is not None
+    assert purgado.personas == ()
+    assert es_lote_demo(purgado) is True

@@ -151,16 +151,28 @@ OBJETO_LOTE_DEMO = objeto_lote_cierre(
 )
 ID_LOTE_DEMO = f"lote-{OBJETO_LOTE_DEMO[:16]}"
 
+_HASHES_LISTA_DEMO = frozenset(
+    hash_lista_cierre(personas_demo(cantidad))
+    for cantidad in range(CANTIDAD_MINIMA, CANTIDAD_MAXIMA + 1)
+)
+
 
 def es_lote_demo(lote: LoteCertificados) -> bool:
-    """Marca explícita: si el lote es el sembrado por la vía demo.
+    """Marca explícita: si el lote salió de la semilla ficticia.
 
-    El `objeto_lote` sólo depende de la actividad y del hash canónico de
-    la lista, que en la demo son fijos: cualquier otra lista produce otro
-    objeto, así que no hay falsos positivos. La marca sobrevive a la
-    purga porque el objeto queda en la fila.
+    Compara el `objeto_lote` con el canónico de la `id_actividad` del
+    propio lote para cada lista demo válida —`personas_demo(5..8)`, el
+    rango del script—, así que cubre la semilla del botón y todas las
+    variantes `--actividad`/`--cantidad`. Lo que matchea son siempre los
+    datos ficticios de la semilla, no una heurística de correos, y la
+    marca sobrevive a la purga porque `id_actividad` y `objeto_lote`
+    quedan en la fila.
     """
-    return lote.objeto_lote == OBJETO_LOTE_DEMO
+    return any(
+        lote.objeto_lote
+        == objeto_lote_cierre(lote.id_actividad, hash_lista)
+        for hash_lista in _HASHES_LISTA_DEMO
+    )
 
 
 def crear_lote_demo(

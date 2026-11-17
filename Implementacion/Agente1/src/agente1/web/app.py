@@ -100,7 +100,7 @@ from ..gacetillas import (
     tipos,
 )
 from ..interpretacion import ROLES_HABILITADOS
-from ..lote_demo import ID_LOTE_DEMO, es_lote_demo
+from ..lote_demo import es_lote_demo
 from ..manifest_version import (
     IntegridadError,
     raiz_agente,
@@ -828,17 +828,16 @@ def crear_app(
             sesion=sesion,
             items=items,
             lotes=(
-                lotes_para_bandeja(lotes)
+                lotes_para_bandeja(lotes, es_lote_demo=es_lote_demo)
                 if lotes is not None
                 and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
                 else []
             ),
-            lotes_demo=(
+            mostrar_boton_demo=(
                 config.modo_demo
                 and lotes is not None
                 and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
             ),
-            lote_demo_id=ID_LOTE_DEMO,
         )
 
     @app.get("/solicitudes/{id_solicitud}", response_class=HTMLResponse)
@@ -1467,6 +1466,8 @@ def crear_app(
             csrf_ok=csrf_ok,
             destino_login=destino_login,
             version_agente=version_agente,
+            es_lote_demo=es_lote_demo,
+            demo_vigente=lambda: config.modo_demo and not demo_vencida(),
             recursos_firma=recursos_firma,
             registro_decisiones=registro_decisiones,
             plantillas_aprobadas=plantillas_aprobadas,

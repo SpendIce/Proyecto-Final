@@ -43,8 +43,9 @@ Sin cambios todavía.
   para reconciliar el Doc ya escrito.
 - **Menor — lote ficticio de certificados desde la bandeja** (Refs #168).
   Sólo en modo demostración vigente, con rol APROBADOR_CONTENIDO y CSRF;
-  siembra idempotente compartida con el script de consola, marca sin validez y
-  sin emisión ni envío real. El pedido y la emisión institucional de #168
+  siembra idempotente compartida con el script de consola y marca sin validez
+  para todas sus variantes. Su decisión sólo existe en la demostración y no
+  ingresa al registro institucional. Sin emisión ni envío real. El pedido y la emisión institucional de #168
   siguen pendientes.
 - **Parche — detalle usable en celular**: tablas en regiones desplazables con
   nombre y foco de teclado, textos largos contenidos y espacio para la banda

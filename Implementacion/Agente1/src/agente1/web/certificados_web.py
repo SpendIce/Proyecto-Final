@@ -35,6 +35,12 @@ Decisiones que no se ven en el código:
   0020) y firmas disponibles (R2 de #160)— y, si no, por qué. La emisión
   sigue siendo del circuito de certificados: acá no se manda ningún correo
   ni se toca Drive.
+- **Un lote de demostración queda aislado del circuito institucional.**
+  Se reconoce por el predicado inyectado `es_lote_demo` (su objeto es el
+  canónico de la semilla ficticia): fuera del modo demostración no se
+  puede decidir ni se ofrecen los controles, y su decisión vive sólo en
+  `lotes_certificados` —nunca un `apruebo_lote` en el registro que lee la
+  emisión—. Un lote real conserva el circuito y el puente de siempre.
 """
 
 from __future__ import annotations
@@ -671,6 +677,8 @@ class RepositorioLotesPuerto(Protocol):
 
 def lotes_para_bandeja(
     repositorio: RepositorioLotesPuerto,
+    *,
+    es_lote_demo: Callable[[LoteCertificados], bool] | None = None,
 ) -> list[dict[str, object]]:
     """Filas de la sección «Lotes de certificados» de la bandeja."""
     return [
@@ -684,6 +692,7 @@ def lotes_para_bandeja(
                 lote.estado, lote.estado
             ),
             "creada": lote.creada_en.strftime("%d/%m/%Y %H:%M"),
+            "demo": es_lote_demo(lote) if es_lote_demo else False,
         }
         for lote in repositorio.listar()
     ]
@@ -696,6 +705,10 @@ CsrfOk = Callable[[Sesion, str | None], bool]
 DestinoLogin = Callable[[], Response]
 
 
+EsLoteDemo = Callable[[LoteCertificados], bool]
+DemoVigente = Callable[[], bool]
+
+
 def registrar_rutas_certificados(
     app: FastAPI,
     *,
@@ -706,6 +719,8 @@ def registrar_rutas_certificados(
     csrf_ok: CsrfOk,
     destino_login: DestinoLogin,
     version_agente: str,
+    es_lote_demo: EsLoteDemo,
+    demo_vigente: DemoVigente,
     recursos_firma: RecursosFirma | None = None,
     registro_decisiones: RegistroDecisiones | None = None,
     plantillas_aprobadas: dict[str, PlantillaCorreo] | None = None,
@@ -714,6 +729,10 @@ def registrar_rutas_certificados(
 
     def _puede_decidir(sesion: Sesion) -> bool:
         return rol_de(sesion) == ROL_APROBADOR_CONTENIDO
+
+    def _decision_bloqueada(lote: LoteCertificados) -> bool:
+        """Lote demo fuera de la demostración: no se decide acá."""
+        return es_lote_demo(lote) and not demo_vigente()
 
     def _render_lote(
         request: Request,
@@ -753,11 +772,17 @@ def registrar_rutas_certificados(
             puede_emitir=puede,
             motivo_no_emite=motivo,
             puede_aprobar=(
-                pendiente and rol == ROL_APROBADOR_CONTENIDO and generador
+                pendiente
+                and rol == ROL_APROBADOR_CONTENIDO
+                and generador
+                and not _decision_bloqueada(lote)
             ),
             puede_descartar=(
-                pendiente and rol == ROL_APROBADOR_CONTENIDO
+                pendiente
+                and rol == ROL_APROBADOR_CONTENIDO
+                and not _decision_bloqueada(lote)
             ),
+            decision_demo_bloqueada=_decision_bloqueada(lote),
             es_generador=generador,
             muestra_disponible=bool(lote.personas),
             registro_configurado=registro_decisiones is not None,
@@ -824,6 +849,9 @@ def registrar_rutas_certificados(
         lote = repositorio.obtener(id_lote)
         if lote is None:
             return render("sin_permiso.html", request, status_code=404)
+        es_demo = es_lote_demo(lote)
+        if es_demo and not demo_vigente():
+            return render("sin_permiso.html", request, status_code=403)
         ahora = datetime.now(timezone.utc)
         resultado = repositorio.decidir(
             id_lote=id_lote,
@@ -840,7 +868,9 @@ def registrar_rutas_certificados(
         actualizado = repositorio.obtener(id_lote) or lote
         aviso = _AVISOS_DECISION.get(resultado.codigo, resultado.codigo)
         aviso_error = resultado.codigo in _AVISOS_ERROR
-        if resultado.codigo == CODIGO_APROBADA:
+        # El puente al registro institucional es sólo para lotes reales:
+        # la decisión demo vive en la fila del lote y nada más.
+        if resultado.codigo == CODIGO_APROBADA and not es_demo:
             try:
                 registrar_aprobacion_en_registro(
                     registro_decisiones,

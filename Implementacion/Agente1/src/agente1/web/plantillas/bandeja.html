@@ -46,7 +46,7 @@
   {% endif %}
 </section>
 
-{% if lotes or lotes_demo %}
+{% if lotes or mostrar_boton_demo %}
 <section aria-labelledby="t-lotes">
   <h2 id="t-lotes">Lotes de certificados</h2>
   {% if lotes %}
@@ -57,7 +57,7 @@
         <span class="bandeja-titulo">{{ lote.actividad }}</span>
         <span class="bandeja-meta">
           {{ lote.id_actividad }} · {{ lote.cantidad }} personas ·
-          {{ lote.creada }}{% if lote.id == lote_demo_id %}
+          {{ lote.creada }}{% if lote.demo %}
           · demostración — sin validez{% endif %}
         </span>
       </a>
@@ -66,7 +66,7 @@
     {% endfor %}
   </ul>
   {% endif %}
-  {% if lotes_demo %}
+  {% if mostrar_boton_demo %}
   <form method="post" action="/demo/lote-certificados"
         class="acciones-decision">
     <input type="hidden" name="csrf" value="{{ sesion.csrf_token }}">
@@ -77,7 +77,8 @@
   <p class="ayuda">
     Siembra el lote ficticio de la presentación: personas y correos de
     ejemplo (@example.invalid), sin validez institucional ni envío real.
-    Si ya existe, el botón vuelve al mismo lote.
+    Si el lote ya existe —aunque ya esté decidido—, el botón abre ese
+    mismo lote sin tocar su estado: lo aprueba sólo quien lo generó.
   </p>
   {% endif %}
 </section>
