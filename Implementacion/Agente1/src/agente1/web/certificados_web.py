@@ -69,6 +69,7 @@ from ..certificados_emision import (
     FIRMANTES_DECLARADOS,
     TEMPLATE_VERSION,
     PersonaCierre,
+    fecha_emision_lote,
     generar_pdf_muestra_lote,
     hash_lista_cierre,
     objeto_lote_cierre,
@@ -1074,6 +1075,7 @@ def registrar_rutas_certificados(
             linea_descriptiva=lote.linea_descriptiva,
             recursos_firma=recursos_firma,
             firmantes=FIRMANTES_DECLARADOS,
+            fecha_emision=fecha_emision_lote(lote.decidida_en),
         )
         return Response(
             content=pdf,

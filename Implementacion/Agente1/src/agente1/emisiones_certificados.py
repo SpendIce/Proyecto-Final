@@ -56,6 +56,7 @@ from .certificados_emision import (
     FIRMANTES_DECLARADOS,
     PersonaCierre,
     ResultadoEmisionCertificados,
+    fecha_emision_lote,
     generar_pdf_certificado_lote,
     procesar_emision_certificados,
     recursos_firma_opcional,
@@ -620,6 +621,9 @@ def construir_zip_certificados(
                     (plantillas_aprobadas or {}).get("certificado_asistencia")
                     if produccion and not demo
                     else None
+                ),
+                fecha_emision=fecha_emision_lote(
+                    getattr(lote, "decidida_en", None)
                 ),
             )
             info = zipfile.ZipInfo(

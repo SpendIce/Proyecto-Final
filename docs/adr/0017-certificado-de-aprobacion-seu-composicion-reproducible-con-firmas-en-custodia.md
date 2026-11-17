@@ -56,3 +56,12 @@ ajuste no abre una v3— y corrige:
 El resto de esta decisión y el circuito no cambian; `asistencia` sigue
 con `certificado_base_provisional_v1`. La fidelidad tipográfica fina y
 la compatibilidad con Calibri quedan fuera de alcance y a revisión SEU.
+
+## Enmienda del 17/11/2026 (noche): fecha de emisión
+
+El certificado de aprobación se fecha con el **mes de emisión**, como el
+PDF institucional de la SEU (un taller terminado en octubre lleva
+«noviembre de 2026»), y ya no con el fin de la actividad. Decisión de
+Juani del 17/11/2026. En el lote aprobado la fecha es la de la aprobación
+en hora argentina, así el ZIP sigue siendo reproducible; la muestra de un
+lote pendiente y la emisión por consola usan el día en que se generan.

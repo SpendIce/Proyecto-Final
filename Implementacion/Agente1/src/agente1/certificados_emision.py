@@ -84,6 +84,7 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Mapping, Protocol
 
@@ -329,6 +330,23 @@ _PLANTILLA_POR_CONDICION = {
 }
 
 
+# El certificado de aprobación se fecha con el mes de emisión, como el PDF
+# institucional de la SEU (17/11/2026), no con el fin de la actividad.
+# Argentina no tiene horario de verano: el desfase fijo alcanza.
+_HORA_ARGENTINA = timezone(timedelta(hours=-3))
+
+
+def fecha_emision_lote(decidida_en: datetime | None) -> date | None:
+    """La fecha de emisión de un lote: el día de su aprobación, en hora
+    argentina. `None` si todavía no se decidió (la muestra usa el día)."""
+
+    if decidida_en is None:
+        return None
+    if decidida_en.tzinfo is None:
+        decidida_en = decidida_en.replace(tzinfo=timezone.utc)
+    return decidida_en.astimezone(_HORA_ARGENTINA).date()
+
+
 def _pdf_para_persona(
     *,
     persona: PersonaCierre,
@@ -340,6 +358,7 @@ def _pdf_para_persona(
     borrador: bool,
     marcar_prueba: bool = True,
     plantilla_asistencia: PlantillaCorreo | None = None,
+    fecha_emision: date | None = None,
 ) -> tuple[bytes, str]:
     """El PDF de una persona con la plantilla que dicta su condición.
 
@@ -365,7 +384,7 @@ def _pdf_para_persona(
             actividad=actividad["titulo"],
             horas=horas_reloj_texto(actividad["duracion_horas"]),
             fecha=fecha_lugar_texto(
-                actividad.get("fecha_fin") or actividad["fecha_inicio"]
+                (fecha_emision or datetime.now(_HORA_ARGENTINA).date()).isoformat()
             ),
             linea_descriptiva=linea_descriptiva,
         )
@@ -406,6 +425,7 @@ def generar_pdf_certificado_lote(
     borrador: bool = False,
     marcar_prueba: bool = True,
     plantilla_asistencia: PlantillaCorreo | None = None,
+    fecha_emision: date | None = None,
 ) -> tuple[bytes, str]:
     """Render público de un certificado del lote, con su plantilla.
 
@@ -422,6 +442,7 @@ def generar_pdf_certificado_lote(
         borrador=borrador,
         marcar_prueba=marcar_prueba,
         plantilla_asistencia=plantilla_asistencia,
+        fecha_emision=fecha_emision,
     )
 
 
@@ -432,6 +453,7 @@ def generar_pdf_muestra_lote(
     linea_descriptiva: str,
     recursos_firma: RecursosFirma | None = None,
     firmantes: tuple[Firmante, ...] = FIRMANTES_DECLARADOS,
+    fecha_emision: date | None = None,
 ) -> bytes:
     """PDF de muestra del lote para la web, siempre marcado borrador (#168).
 
@@ -447,6 +469,7 @@ def generar_pdf_muestra_lote(
         firmantes=firmantes,
         recursos_firma=recursos_firma,
         borrador=True,
+        fecha_emision=fecha_emision,
     )
     return pdf
 
@@ -1279,6 +1302,7 @@ __all__ = [
     "RevisionLote",
     "TEMPLATE_VERSION",
     "construir_emisor_certificados",
+    "fecha_emision_lote",
     "generar_pdf_certificado_lote",
     "generar_pdf_muestra_lote",
     "hash_lista_cierre",
