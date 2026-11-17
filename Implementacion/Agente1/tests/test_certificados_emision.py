@@ -662,7 +662,7 @@ def test_plantillas_y_recursos_en_la_auditoria(tmp_path: Path):
         if entrada.get("evento") == "entrega"
     }
     assert plantillas == {
-        "certificado_seu_aprobacion_v1",
+        "certificado_seu_aprobacion_v2",
         "certificado_base_provisional_v1",
     }
     for artefacto in [

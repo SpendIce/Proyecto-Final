@@ -28,3 +28,13 @@ Decidimos integrarlo como una **composición de PDF reproducible en código** (`
 - La auditoría y el registro de entregas siguen guardando sólo hashes: las rutas y los bytes de los recursos restringidos nunca entran al registro ni al correo.
 - Una corrida sin `…_RECURSOS_DIR` sale igual, con los espacios de símbolo y firma marcados: la custodia puede montar los recursos reales en D2 sin tocar el código.
 - La variante de asistencia queda explícitamente pendiente, junto con la firma digital y la emisión institucional real.
+
+## Enmienda (17/11/2026): la firma se solapa sobre el nombre
+
+La SEU pidió que la firma quede sobre el texto de quien firma para
+dificultar la copia. La composición de `aprobacion` pasa a
+`certificado_seu_aprobacion_v2`: la imagen se centra en la línea
+«grado nombre», se emite antes que el texto y, sin recurso, el espacio
+reservado sigue marcado y fuera del texto. El resto de esta decisión y
+el circuito no cambian; `asistencia` sigue con
+`certificado_base_provisional_v1`.

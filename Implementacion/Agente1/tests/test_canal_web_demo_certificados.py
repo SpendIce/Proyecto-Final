@@ -137,7 +137,7 @@ class RepositorioLotesMemoria:
             linea_descriptiva_hash=hashlib.sha256(
                 linea_descriptiva.encode("utf-8")
             ).hexdigest(),
-            plantilla_muestra="certificado_seu_aprobacion_v1",
+            plantilla_muestra="certificado_seu_aprobacion_v2",
             estado=ESTADO_PENDIENTE,
             generada_por_hash=generada_por_hash,
             creada_en=ahora or AHORA,

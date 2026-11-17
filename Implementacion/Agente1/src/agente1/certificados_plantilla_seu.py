@@ -22,6 +22,9 @@ Decisiones de la integración:
 - **Sin tercer firmante.** El XML del DOCX arrastra un cuadro de texto
   con otro nombre y cargo que el render no muestra (queda fuera de la
   página): no se compone. Los únicos bloques son los dos visibles.
+- **Firma solapada.** La imagen se centra en la línea del nombre y se
+  emite antes que el texto, como pidió la SEU el 17/11/2026: los trazos
+  cruzan el nombre y el texto queda legible encima.
 - **Parámetros, no herencia.** Nombre, apellido, DNI, actividad, horas y
   fecha llegan como datos: el caso NotebookLM compone con su título y
   sus 24 horas; nada del ejemplo (Gestión Documental, 12 h) queda
@@ -58,7 +61,7 @@ from typing import Protocol
 
 from .certificados import MARCA_PRUEBA, MARCADOR_BORRADOR, _escapar_texto_pdf
 
-TEMPLATE_VERSION_SEU = "certificado_seu_aprobacion_v1"
+TEMPLATE_VERSION_SEU = "certificado_seu_aprobacion_v2"
 
 # Página A4 horizontal en puntos (297 × 210 mm).
 PAGINA_ANCHO = 841.92
@@ -444,6 +447,14 @@ def _envolver(texto: str, tamano: float, ancho_max: float) -> list[str]:
 _MARGEN_BORDE_EXT = 28.35  # 1 cm
 _MARGEN_BORDE_INT = 35.43  # 1.25 cm
 
+# Bloque de firma: caja de la imagen y líneas base del nombre y el cargo.
+# La caja se centra en la línea del nombre: los trazos la cruzan y el
+# texto, emitido después, queda por encima.
+_CAJA_FIRMA_ANCHO = 86
+_CAJA_FIRMA_ALTO = 60
+_Y_NOMBRE_FIRMANTE = 68
+_Y_CARGO_FIRMANTE = 58
+
 
 def _linea_centrada(texto: str, tamano: float, y: float, fuente: str) -> bytes:
     """Una línea centrada en la página. `fuente` es F1/F2/F3."""
@@ -607,7 +618,9 @@ def generar_pdf_certificado_seu(
     # protege la zona fija de las firmas si el contenido se estira.
     partes.append(_linea_derecha(datos.fecha.strip(), 16, max(y - 22, 150), "F1"))
 
-    # Bloques de firma: imagen arriba y texto abajo, como el original.
+    # Bloques de firma: la imagen se centra en la línea del nombre para
+    # que los trazos la crucen (pedido SEU del 17/11/2026). El texto se
+    # emite después y queda legible encima.
     centros = (PAGINA_ANCHO * 0.30, PAGINA_ANCHO * 0.62)
     for indice, firmante in enumerate(firmantes):
         cx = centros[indice] if indice < len(centros) else PAGINA_ANCHO / 2
@@ -615,7 +628,12 @@ def generar_pdf_certificado_seu(
         if imagen is not None:
             partes.append(
                 _imagen_en_caja(
-                    nombre_xobj[firmante.recurso or ""], cx, 78, 86, 64, imagen
+                    nombre_xobj[firmante.recurso or ""],
+                    cx,
+                    _Y_NOMBRE_FIRMANTE - _CAJA_FIRMA_ALTO / 2,
+                    _CAJA_FIRMA_ANCHO,
+                    _CAJA_FIRMA_ALTO,
+                    imagen,
                 )
             )
         else:
@@ -623,8 +641,12 @@ def generar_pdf_certificado_seu(
                 _caja_pendiente(cx, 84, 120, 46, "[firma: insumo restringido no provisto]")
             )
         encabezado = f"{firmante.grado} {firmante.nombre}".strip()
-        partes.append(_linea_centrada_en(encabezado, 9, 68, cx))
-        partes.append(_linea_centrada_en(firmante.cargo, 8, 58, cx))
+        partes.append(
+            _linea_centrada_en(encabezado, 9, _Y_NOMBRE_FIRMANTE, cx)
+        )
+        partes.append(
+            _linea_centrada_en(firmante.cargo, 8, _Y_CARGO_FIRMANTE, cx)
+        )
 
     partes.append(b"Q\n")
     return _ensamblar_pdf(partes, imagenes)

@@ -26,7 +26,13 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
-Sin cambios todavía.
+- **Menor — la firma del certificado de aprobación se solapa sobre el texto
+  del firmante** (Refs #126; rama `feat/certificado-firma-solapada`).
+  Pedido de la SEU del 17/11/2026: la imagen se
+  centra en la línea «grado nombre» y se emite antes que el texto, así los
+  trazos cruzan el nombre y el cargo queda legible encima. Sube la plantilla
+  a `certificado_seu_aprobacion_v2`; sin recursos, el espacio reservado sigue
+  sin pisar el texto y la variante de asistencia no cambia.
 
 ## [0.9.0] - 2026-11-17
 

@@ -9,6 +9,7 @@ sintético versionado, la ausencia del tercer firmante invisible del XML
 y la pendiente explícita de la variante de asistencia.
 """
 
+import re
 import zlib
 from pathlib import Path
 
@@ -16,6 +17,7 @@ import pytest
 
 from agente1.certificados_plantilla_seu import (
     FIRMANTES_SEU,
+    PAGINA_ANCHO,
     RECURSOS_IMAGEN,
     DatosCertificadoSeu,
     RecursosFirmaDirectorio,
@@ -166,6 +168,86 @@ def test_dos_bloques_de_firma_sin_tercer_firmante():
     assert b"DECANO" in contenido
     # El tercer firmante invisible heredado no se compone.
     assert b"DIRECTOR" not in contenido
+
+
+# --- Solapado de la firma sobre el texto del firmante -----------------------
+
+
+def _stream_contenido(pdf: bytes) -> bytes:
+    """El stream de operadores de la página, sin descomprimir."""
+
+    ini = pdf.rfind(b"\nstream\n")
+    if ini < 0:
+        raise AssertionError("el PDF no tiene stream de contenido")
+    fin = pdf.find(b"\nendstream", ini)
+    if fin < 0:
+        raise AssertionError("el stream de contenido no cierra")
+    return pdf[ini + len(b"\nstream\n") : fin]
+
+
+def _imagenes_y_textos(contenido: bytes) -> tuple[list[dict], list[dict]]:
+    """Operadores de imagen y de texto, en el orden del stream."""
+
+    imagenes: list[dict] = []
+    textos: list[dict] = []
+    for orden, linea in enumerate(contenido.splitlines()):
+        imagen = re.search(
+            rb"q ([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm /Im\d+ Do Q",
+            linea,
+        )
+        if imagen is not None:
+            ancho, alto, x, y = (float(valor) for valor in imagen.groups())
+            imagenes.append(
+                {"orden": orden, "x0": x, "x1": x + ancho, "y0": y, "y1": y + alto}
+            )
+        texto = re.search(rb"1 0 0 1 ([\d.]+) ([\d.]+) Tm \((.*)\) Tj", linea)
+        if texto is not None:
+            textos.append(
+                {"orden": orden, "y": float(texto.group(2)), "texto": texto.group(3)}
+            )
+    return imagenes, textos
+
+
+def test_firma_se_solapa_sobre_el_nombre_y_se_dibuja_antes():
+    """Pedido SEU del 17/11/2026: los trazos cruzan el nombre del firmante.
+
+    La imagen se emite antes que el texto para que nombre y cargo queden
+    legibles encima.
+    """
+
+    contenido = _stream_contenido(
+        generar_pdf_certificado_seu(_datos(), recursos=_recursos())
+    )
+    imagenes, textos = _imagenes_y_textos(contenido)
+    # Símbolo + una imagen por firmante, en el orden en que se emiten.
+    assert len(imagenes) == 1 + len(FIRMANTES_SEU)
+    firmas = imagenes[-len(FIRMANTES_SEU) :]
+    for indice, firmante in enumerate(FIRMANTES_SEU):
+        apellido = firmante.nombre.split()[-1].encode("utf-8")
+        nombre = next(t for t in textos if apellido in t["texto"])
+        cargo = next(
+            t for t in textos if firmante.cargo.split()[0].encode("utf-8") in t["texto"]
+        )
+        firma = firmas[indice]
+        # La caja dibujada cruza la línea base del nombre y el texto va encima.
+        assert firma["y0"] < nombre["y"] < firma["y1"]
+        assert firma["orden"] < nombre["orden"] < cargo["orden"]
+        cx = PAGINA_ANCHO * (0.30 if indice == 0 else 0.62)
+        assert abs((firma["x0"] + firma["x1"]) / 2 - cx) < 0.5
+
+
+def test_espacio_reservado_sin_recursos_no_pisa_el_nombre():
+    """Sin imagen no hay firma falsa: el espacio marcado queda sobre el texto."""
+
+    contenido = _stream_contenido(
+        generar_pdf_certificado_seu(_datos(), recursos=None)
+    )
+    reservados = re.findall(
+        rb"q 0\.75 G 0\.5 w [\d.]+ ([\d.]+) 120\.00 46\.00 re S Q", contenido
+    )
+    assert len(reservados) == len(FIRMANTES_SEU)
+    for y_inferior in reservados:
+        assert float(y_inferior) > 68
 
 
 # --- Recursos de firma -------------------------------------------------------

@@ -117,7 +117,7 @@ def _lote(
         linea_descriptiva_hash=hashlib.sha256(
             LINEA.encode("utf-8")
         ).hexdigest(),
-        plantilla_muestra="certificado_seu_aprobacion_v1",
+        plantilla_muestra="certificado_seu_aprobacion_v2",
         estado=estado,
         generada_por_hash=hash_correo(generada_por),
         creada_en=AHORA,
@@ -291,7 +291,7 @@ def test_pagina_del_lote_muestra_actividad_lista_hash_y_plantilla() -> None:
     assert "aprobacion" in cuerpo
     assert "2" in cuerpo  # cantidad de personas
     assert "f" * 64 in cuerpo  # hash del lote
-    assert "certificado_seu_aprobacion_v1" in cuerpo
+    assert "certificado_seu_aprobacion_v2" in cuerpo
     assert "BORRADOR" in cuerpo
     assert "Firmas disponibles" in cuerpo
 
