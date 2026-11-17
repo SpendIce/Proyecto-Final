@@ -26,7 +26,19 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
-Sin cambios todavía.
+- **Menor — el lote de certificados se aprueba en la web (#168).** La bandeja
+  suma «Lotes de certificados» y la página `/certificados/<id_lote>` muestra la
+  actividad, la lista de cierre, el hash del lote, la plantilla con su estado,
+  las firmas disponibles y un certificado de muestra descargable marcado
+  `BORRADOR — NO EMITIR`. Aprobar o descartar exige el rol `APROBADOR_CONTENIDO`
+  (aprobar, además, la identidad del generador, ADR 0018), queda atado al hash
+  del lote con `SELECT … FOR UPDATE` y registra identidad, rol, origen y versión
+  del agente en `lotes_certificados` (migración 0010); duplicada y obsoleta se
+  rechazan con su código. Después de aprobar, la página informa si el lote puede
+  emitir con las reglas vigentes y, si faltan firmas, muestra «No se emite:
+  faltan firmas (R2)». No envía correos. Incluye `scripts/demo_lote_certificados.py`
+  para cargar un lote ficticio (`FIE-DIF-02`, personas «Persona Ficticia N», sin
+  correos reales) y la purga de la lista al decidir.
 
 ## [0.6.3] - 2026-11-16
 

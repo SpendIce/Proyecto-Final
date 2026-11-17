@@ -707,6 +707,44 @@ Docs`, fecha, hash corto) y los botones:
   `APROBADOR_CONTENIDO` del padrón. Aprobar **cierra** el recorrido:
   no publica, no envía correos ni aporta a Historia Viva.
 
+**Lote de certificados en la web (#168, ADR 0018).** El correo al
+aprobador del lote de HU-014 ya no se envía en producción: el lote queda
+`PENDIENTE_APROBACION` y se evalúa en la web. La bandeja suma la sección
+**«Lotes de certificados»** y cada fila abre
+`/certificados/<id_lote>`, con la actividad, la cantidad de personas, la
+lista de cierre (nombre y condición), el certificado de muestra
+descargable marcado `BORRADOR — NO EMITIR`, el hash del lote, la plantilla
+con su estado y las firmas disponibles. **Aprobar lote** / **Descartar
+lote** exigen sesión, CSRF y el rol `APROBADOR_CONTENIDO`; aprobar exige
+además que la identidad sea la del generador (ADR 0018). La decisión queda
+atada al hash mostrado y registra identidad, rol, origen de identidad y
+versión del agente en `lotes_certificados` (migración **0010**): una
+decisión repetida se rechaza `duplicada` y un hash viejo, `lote_obsoleto`.
+La web **no emite ni envía correos**: después de aprobar informa si el
+lote puede emitir; con la custodia de firmas vacía muestra «Lote aprobado.
+No se emite: faltan firmas (R2)». La emisión sigue siendo del circuito de
+certificados (`certificados_emision`), que exige la plantilla aprobada por
+hash (ADR 0020). La purga diaria retira la lista de los lotes decididos y
+conserva cantidad, hashes y decisión.
+
+Para la demo con datos ficticios, con el perfil `canal-web` levantado y la
+base migrada (0010), dentro del contenedor `web`:
+
+```bash
+docker exec -it agente1-web-1 \
+  python scripts/demo_lote_certificados.py \
+  --actividad FIE-DIF-02 --generador <correo de AGENTE1_WEB_DEMO_CORREOS>
+```
+
+Necesita sólo la base del canal (`AGENTE1_POSTGRES_DSN`, ya en el
+contenedor) y un CSV de actividades: usa `--tabla`, si no
+`AGENTE1_TABLA`, y si no los datasets del repo (`data/`). Carga 6 personas
+«Persona Ficticia N» con correos `@example.invalid` y condición
+`aprobacion`, y es idempotente por el hash de la lista: repetirlo devuelve
+el mismo lote. La salida JSON trae `id_lote`, `hash_lote`, la `url` y el
+`generador` con el que hay que ingresar a la demo para aprobarlo. No toca
+Drive, Workspace ni el correo.
+
 **Correo prellenado al aprobar (ADR 0021, #153).** Con
 `AGENTE1_AUDIENCIAS_PATH` declarada, aprobar ofrece «Preparar correo»:
 la página muestra los públicos del pedido por nombre (con la marca

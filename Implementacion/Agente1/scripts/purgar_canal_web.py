@@ -6,7 +6,9 @@ del respaldo, con el reparto de roles de la migración 0005:
 
 1. `agente1_app` vence: pasa a `VENCIDA` toda solicitud abierta sin
    actividad por la ventana (30 días). Es el rol que sirve la app y el
-   único que escribe el ciclo de vida.
+   único que escribe el ciclo de vida. También retira la lista de cierre
+   de los lotes de certificados ya decididos (#168): conserva cantidad,
+   hashes y decisión.
 2. `agente1_mantenimiento` purga y vacía: pone en NULL la prosa
    transitoria de toda solicitud cerrada —conservando clase, hash y
    marcas— y corre el VACUUM de la tabla, del que es dueña.
@@ -40,6 +42,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from agente1.web.certificados_web import RepositorioLotes  # noqa: E402
 from agente1.web.persistencia import (  # noqa: E402
     VENTANA_VENCIMIENTO_DIAS,
     RepositorioWeb,
@@ -91,6 +94,9 @@ def main(
         functools.partial(conectar, dsn_mantenimiento)
     )
     purgadas = repositorio_mantenimiento.purgar_prosa(ahora=ahora)
+    lotes_purgados = RepositorioLotes(
+        functools.partial(conectar, dsn_app)
+    ).purgar_cerrados(ahora=ahora)
     vacuum = False
     if not args.sin_vacuum:
         RepositorioWeb.vaciar_prosa(dsn_mantenimiento)
@@ -102,6 +108,7 @@ def main(
                 "status": "OK",
                 "vencidas": vencidas,
                 "purgadas": purgadas,
+                "lotes_purgados": lotes_purgados,
                 "vacuum": vacuum,
             },
             sort_keys=True,

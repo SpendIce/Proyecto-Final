@@ -199,6 +199,13 @@ def main(
         cookie_secure=entorno.get("AGENTE1_WEB_COOKIE_SECURE", "si") != "no",
     )
     repositorio = RepositorioWeb(functools.partial(conectar, dsn))
+    from agente1.certificados_emision import recursos_firma_opcional
+    from agente1.web.certificados_web import RepositorioLotes
+
+    lotes = RepositorioLotes(functools.partial(conectar, dsn))
+    recursos_firma = recursos_firma_opcional(
+        entorno.get("AGENTE1_CERTIFICADOS_RECURSOS_DIR")
+    )
     catalogo = None
     audiencias_path = entorno.get("AGENTE1_AUDIENCIAS_PATH")
     if audiencias_path:
@@ -253,6 +260,8 @@ def main(
                 entorno.get("AGENTE1_CONTENEDOR", "").lower() == "si"
             ),
             exportador=exportador,
+            lotes=lotes,
+            recursos_firma=recursos_firma,
             catalogo_audiencias=catalogo,
         )
     except ConfiguracionInvalida as error:

@@ -83,6 +83,7 @@ from ..canal_form import (
     hash_correo,
     publicos_destinatarios,
 )
+from ..certificados_plantilla_seu import RecursosFirma
 from ..confirmaciones import ROL_APROBADOR_CONTENIDO
 from ..decisiones_form import (
     DECISION_DESCARTE,
@@ -102,6 +103,11 @@ from ..manifest_version import (
     IntegridadError,
     raiz_agente,
     version_desde_pyproject,
+)
+from .certificados_web import (
+    RepositorioLotesPuerto,
+    lotes_para_bandeja,
+    registrar_rutas_certificados,
 )
 from .docs_canal import ExportadorDocs
 from .identidad import VerificacionIdentidadError, VerificadorIdToken
@@ -400,6 +406,8 @@ def crear_app(
     exportador: ExportadorDocs | None = None,
     version_agente: str | None = None,
     catalogo_audiencias: CatalogoAudiencias | None = None,
+    lotes: RepositorioLotesPuerto | None = None,
+    recursos_firma: RecursosFirma | None = None,
 ) -> FastAPI:
     """Fábrica de la app: todo servicio externo entra inyectado.
 
@@ -420,6 +428,11 @@ def crear_app(
     motivo. Con él el arranque es fail-closed: todo id del contrato de
     públicos debe tener dirección en el catálogo — un id sin mapeo es un
     despliegue mal armado y el mensaje nombra el id, nunca la dirección.
+
+    `lotes` es el repositorio del lote de certificados (#168): con él la
+    bandeja muestra «Lotes de certificados» y viven las rutas
+    `/certificados/{id_lote}`. `recursos_firma` es la custodia de firmas
+    que la página consulta para informar si el lote puede emitir (R2).
     """
     validar_configuracion(
         config,
@@ -757,6 +770,7 @@ def crear_app(
             request,
             sesion=sesion,
             items=items,
+            lotes=lotes_para_bandeja(lotes) if lotes is not None else [],
         )
 
     @app.get("/solicitudes/{id_solicitud}", response_class=HTMLResponse)
@@ -1328,6 +1342,19 @@ def crear_app(
     @app.get("/salud")
     def salud() -> dict[str, str]:
         return {"estado": "ok"}
+
+    if lotes is not None:
+        registrar_rutas_certificados(
+            app,
+            repositorio=lotes,
+            autorizar=autorizar,
+            render=render,
+            rol_de=rol_de,
+            csrf_ok=csrf_ok,
+            destino_login=destino_login,
+            version_agente=version_agente,
+            recursos_firma=recursos_firma,
+        )
 
     return app
 
