@@ -45,4 +45,24 @@
   </p>
   {% endif %}
 </section>
+
+{% if lotes %}
+<section aria-labelledby="t-lotes">
+  <h2 id="t-lotes">Lotes de certificados</h2>
+  <ul class="bandeja">
+    {% for lote in lotes %}
+    <li class="bandeja-item">
+      <a href="/certificados/{{ lote.id }}" class="bandeja-enlace">
+        <span class="bandeja-titulo">{{ lote.actividad }}</span>
+        <span class="bandeja-meta">
+          {{ lote.id_actividad }} · {{ lote.cantidad }} personas ·
+          {{ lote.creada }}
+        </span>
+      </a>
+      <span class="estado estado-{{ lote.estado|lower }}">{{ lote.estado_visible }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 {% endblock %}

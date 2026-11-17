@@ -9,7 +9,10 @@ del respaldo, con el reparto de roles de la migración 0005:
    único que escribe el ciclo de vida.
 2. `agente1_mantenimiento` purga y vacía: pone en NULL la prosa
    transitoria de toda solicitud cerrada —conservando clase, hash y
-   marcas— y corre el VACUUM de la tabla, del que es dueña.
+   marcas— y corre el VACUUM de la tabla, del que es dueña. También
+   retira la lista de cierre y la línea descriptiva de los lotes de
+   certificados ya decididos (#168), conservando cantidad, hashes y
+   decisión.
 
 Sin el DSN de mantenimiento el paso falla cerrado: una purga que corre
 con el rol de la app podría tocar el contenido que la retención ya cerró,
@@ -40,6 +43,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from agente1.web.certificados_web import RepositorioLotes  # noqa: E402
 from agente1.web.persistencia import (  # noqa: E402
     VENTANA_VENCIMIENTO_DIAS,
     RepositorioWeb,
@@ -91,6 +95,9 @@ def main(
         functools.partial(conectar, dsn_mantenimiento)
     )
     purgadas = repositorio_mantenimiento.purgar_prosa(ahora=ahora)
+    lotes_purgados = RepositorioLotes(
+        functools.partial(conectar, dsn_mantenimiento)
+    ).purgar_cerrados(ahora=ahora)
     vacuum = False
     if not args.sin_vacuum:
         RepositorioWeb.vaciar_prosa(dsn_mantenimiento)
@@ -102,6 +109,7 @@ def main(
                 "status": "OK",
                 "vencidas": vencidas,
                 "purgadas": purgadas,
+                "lotes_purgados": lotes_purgados,
                 "vacuum": vacuum,
             },
             sort_keys=True,

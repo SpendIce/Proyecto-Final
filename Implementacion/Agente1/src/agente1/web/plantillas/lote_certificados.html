@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block titulo %}Lote de certificados · Agente 1{% endblock %}
+{% block contenido %}
+<section aria-labelledby="t-lote">
+  <div class="seccion-cabecera">
+    <h1 id="t-lote">Lote de certificados — {{ lote.actividad.titulo }}</h1>
+    <span class="estado estado-{{ lote.estado|lower }}">{{ estado_visible }}</span>
+  </div>
+
+  {% if aviso %}
+  <p class="{% if aviso_error %}mensaje-error{% else %}aviso-estado{% endif %}"
+     role="alert">{{ aviso }}</p>
+  {% endif %}
+
+  {% if lote.estado == 'APROBADA' %}
+    {% if puede_emitir %}
+    <p class="aviso-estado">
+      Lote aprobado. La emisión, si corresponde, la ejecuta el circuito
+      de certificados; esta pantalla no envía correos ni toca Drive.
+    </p>
+    {% else %}
+    <p class="mensaje-error" role="alert">
+      Lote aprobado. No se emite: {{ motivo_no_emite }}.
+    </p>
+    {% endif %}
+  {% elif lote.estado == 'DESCARTADA' %}
+  <p class="aviso-estado">Lote descartado. No se emite ningún certificado.</p>
+  {% endif %}
+
+  <dl class="ficha">
+    <dt>Actividad</dt>
+    <dd>{{ lote.actividad.titulo }} (<code>{{ lote.id_actividad }}</code>)</dd>
+    <dt>Fechas</dt>
+    <dd>{{ lote.actividad.fecha_inicio }}{% if lote.actividad.fecha_fin %} al {{ lote.actividad.fecha_fin }}{% endif %}</dd>
+    <dt>Organiza</dt><dd>{{ lote.actividad.organiza }}</dd>
+    <dt>Cantidad de personas</dt><dd>{{ lote.cantidad_personas }}</dd>
+    <dt>Hash del lote</dt><dd><code>{{ lote.objeto_lote }}</code></dd>
+    <dt>Generado por</dt><dd><code>{{ lote.generada_por_hash[:12] }}</code></dd>
+    <dt>Creado</dt><dd>{{ lote.creada_en.strftime('%d/%m/%Y %H:%M') }}</dd>
+    {% if lote.decidida_en %}
+    <dt>Decisión</dt>
+    <dd>{{ estado_visible }} · {{ lote.rol_decision }} ·
+      origen {{ lote.origen_identidad }} · agente {{ lote.version_agente }} ·
+      {{ lote.decidida_en.strftime('%d/%m/%Y %H:%M') }}</dd>
+    <dt>Identidad que decidió</dt>
+    <dd><code>{{ lote.decidida_por_hash[:12] }}</code></dd>
+    {% endif %}
+  </dl>
+
+  <h2>Lista de cierre</h2>
+  {% if lote.personas %}
+  <table class="tabla-revisiones">
+    <thead>
+      <tr><th>#</th><th>Nombre y apellido</th><th>Condición</th></tr>
+    </thead>
+    <tbody>
+      {% for persona in lote.personas %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ persona.nombre }} {{ persona.apellido }}</td>
+        <td>{{ persona.condicion }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="aviso-estado">
+    La lista de personas se retiró por retención mínima; se conserva la
+    cantidad y el hash del lote.
+  </p>
+  {% endif %}
+
+  {% if muestra_disponible %}
+  <h2>Certificado de muestra</h2>
+  <p>
+    Documento de muestra marcado <strong>BORRADOR — NO EMITIR</strong>.
+    No es el certificado que recibe el titular.
+  </p>
+  <p>
+    <a class="boton-primario"
+       href="/certificados/{{ lote.id_lote }}/muestra.pdf">
+      Descargar muestra (PDF)
+    </a>
+  </p>
+  <p class="ayuda">
+    Plantilla de la muestra: <code>{{ lote.plantilla_muestra }}</code>
+  </p>
+  {% endif %}
+
+  <h2>Plantilla y aprobación</h2>
+  {% if plantillas %}
+  <dl class="ficha">
+    {% for plantilla in plantillas %}
+    <dt>{{ plantilla.condicion }}</dt>
+    <dd>
+      <code>{{ plantilla.nombre }}</code> — {{ plantilla.estado }}
+    </dd>
+    {% endfor %}
+  </dl>
+  {% else %}
+  <p class="aviso-estado">
+    Plantilla de la muestra: <code>{{ lote.plantilla_muestra }}</code>
+  </p>
+  {% endif %}
+
+  <h2>Firmas disponibles</h2>
+  <dl class="ficha">
+    <dt>Custodia de firmas</dt>
+    <dd>{% if firmas.configuradas %}configurada{% else %}no configurada{% endif %}</dd>
+    {% if firmas.faltantes %}
+    <dt>Faltantes</dt>
+    <dd>{{ firmas.faltantes|join(', ') }}</dd>
+    {% endif %}
+    <dt>Registro de decisiones</dt>
+    <dd>{% if registro_configurado %}configurado{% else %}no configurado{% endif %}</dd>
+  </dl>
+
+  {% if puede_aprobar or puede_descartar %}
+  <h2>Decisión del lote</h2>
+  <form method="post" action="/certificados/{{ lote.id_lote }}/decidir"
+        class="acciones-decision">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="hash_lote" value="{{ lote.objeto_lote }}">
+    {% if puede_aprobar %}
+    <button type="submit" name="accion" value="aprobar">Aprobar lote</button>
+    {% endif %}
+    {% if puede_descartar %}
+    <button type="submit" name="accion" value="descartar">Descartar lote</button>
+    {% endif %}
+  </form>
+  <p class="ayuda">
+    La decisión queda atada al hash del lote. Aprobar no envía correos: la
+    emisión sigue el circuito de certificados y exige las firmas vigentes.
+  </p>
+  {% elif lote.estado == 'PENDIENTE_APROBACION' %}
+  <p class="aviso-estado">
+    Este lote lo aprueba quien lo generó, con rol de aprobador de contenido.
+    {% if not es_generador %}
+    La sesión actual no es la del generador.
+    {% endif %}
+  </p>
+  {% endif %}
+</section>
+{% endblock %}

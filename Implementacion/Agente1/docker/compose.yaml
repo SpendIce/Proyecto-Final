@@ -221,6 +221,12 @@ services:
       # arranque de la web cierra. Sin el archivo el servicio no arranca:
       # el default asume el despliegue de producción.
       AGENTE1_AUDIENCIAS_PATH: ${AGENTE1_AUDIENCIAS_PATH:-${AGENTE1_HOST_CONFIG:-/home/jgone/.config/agente1}/audiencias-institucionales.json}
+      # Registro JSONL de decisiones que lee la emisión (#168): aprobar un
+      # lote en la web asienta ahí el `apruebo_lote`. Vive en el estado
+      # montado, que es el mismo `--directorio` con el que corre el circuito
+      # de certificados; si se apaga la variable, la decisión queda sólo en
+      # la base y la emisión no la ve.
+      AGENTE1_DECISIONES_DIR: ${AGENTE1_DECISIONES_DIR:-/state/estado-decisiones}
       AGENTE1_WEB_PORT: "8080"
       HOME: /tmp
     networks:
