@@ -140,3 +140,9 @@ docker compose -p agente1 start web worker worker-certificados scheduler
 
 Los indeterminados quedan visibles para intervención humana: no vuelven a
 la cola nunca.
+
+## 8. Volver a la imagen 0.9.0
+
+El rollback conserva la migración 0012: no ejecutar su down ni borrar el registro de emisiones. Detener `worker-certificados` antes del cambio y mantenerlo apagado con la imagen anterior. Una ejecución real interrumpida exige reconciliación; no marcarla pendiente para reintentarla.
+
+Mantener también detenida la purga de certificados del scheduler antiguo: la 0.9.0 purga lotes aprobados sin conocer la cola nueva. Volver de imagen no habilita a retirar listas que una emisión activa o indeterminada todavía necesita. Si Portainer conserva servicios que ya no figuran en el compose anterior, comprobar explícitamente que `worker-certificados` siga detenido. La reversión de imagen y la restauración de un respaldo son procedimientos diferentes.

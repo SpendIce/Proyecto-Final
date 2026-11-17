@@ -48,7 +48,8 @@ Sin cambios todavía.
   que podrían haber sido emitidos después de la copia. El runbook exige
   detener los servicios y reconciliar las entregas posteriores al respaldo.
 - **Operación — rollback de imagen a 0.9.0 sin ejecutar el down**. La nueva
-  migración es aditiva; el down elimina metadatos de emisión y requiere
+  migración es aditiva; detener el worker nuevo y la purga antigua mientras
+  dure el rollback. El down elimina metadatos de emisión y requiere
   respaldo. La habilitación institucional de plantillas y demás insumos
   conserva sus decisiones pendientes; esta versión no las sustituye.
 
