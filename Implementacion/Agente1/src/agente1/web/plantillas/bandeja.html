@@ -6,9 +6,7 @@
     <h1 id="t-bandeja">Bandeja de la SEU</h1>
     <a class="boton-primario" href="/nuevo-pedido">Nuevo pedido</a>
   </div>
-  {% if items %}
-  <ul class="bandeja">
-    {% for item in items %}
+  {% macro fila(item) %}
     <li class="bandeja-item">
       <a href="/solicitudes/{{ item.id }}" class="bandeja-enlace">
         <span class="bandeja-titulo">{{ item.titulo }}</span>
@@ -19,8 +17,27 @@
       </a>
       <span class="estado estado-{{ item.estado|lower }}">{{ item.estado_visible }}</span>
     </li>
-    {% endfor %}
-  </ul>
+  {% endmacro %}
+  {% if items %}
+  {# Agrupada por estado: lo que espera trabajo arriba, lo cerrado después
+     y los errores colapsados al final. No se borran: son auditoría. #}
+  {% set pendientes = items|selectattr("estado", "in", ["EN_COLA", "GENERANDO", "LISTA"])|list %}
+  {% set errores = items|selectattr("estado", "equalto", "ERROR")|list %}
+  {% set cerradas = items|rejectattr("estado", "in", ["EN_COLA", "GENERANDO", "LISTA", "ERROR"])|list %}
+  {% if pendientes %}
+  <h2 class="bandeja-grupo">Pendientes</h2>
+  <ul class="bandeja">{% for item in pendientes %}{{ fila(item) }}{% endfor %}</ul>
+  {% endif %}
+  {% if cerradas %}
+  <h2 class="bandeja-grupo">Cerradas</h2>
+  <ul class="bandeja">{% for item in cerradas %}{{ fila(item) }}{% endfor %}</ul>
+  {% endif %}
+  {% if errores %}
+  <details class="bandeja-errores">
+    <summary>Con error ({{ errores|length }})</summary>
+    <ul class="bandeja">{% for item in errores %}{{ fila(item) }}{% endfor %}</ul>
+  </details>
+  {% endif %}
   {% else %}
   <p class="vacio">
     La bandeja está vacía. El primer pedido se hace desde

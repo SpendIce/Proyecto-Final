@@ -1199,3 +1199,35 @@ def test_formulario_muestra_como_se_completa_la_frase_de_cada_campo(
     html = mundo.client.get("/nuevo-pedido").text
     assert "Se informa a la comunidad … que …" in html
     assert 'aria-describedby="ayuda_hecho_aviso_de_otra_area"' in html
+
+
+def test_bandeja_agrupa_por_estado_y_colapsa_los_errores(mundo: Mundo) -> None:
+    """Demo 17/11: los pedidos con error quedaban mezclados con los que
+    esperan revisión. No se borran (auditoría): van agrupados al final."""
+
+    _ingresar(mundo.client)
+    for llave, titulo in (("b1", "Pieza en revisión"), ("b2", "Pieza aprobada"), ("b3", "Pieza fallida")):
+        mundo.client.post(
+            "/nuevo-pedido",
+            data={
+                "csrf": _csrf_de(mundo),
+                "llave": llave,
+                "tipo": "cronica_de_evento",
+                "campo_titulo": titulo,
+                "campo_cuerpo": "Texto confirmado.",
+                "publicos": "alumnos_ingenieria",
+            },
+            follow_redirects=False,
+        )
+    mundo.repo.solicitudes["web-0000"]["estado_web"] = "LISTA"
+    mundo.repo.solicitudes["web-0001"]["estado_web"] = "APROBADA"
+    mundo.repo.solicitudes["web-0002"]["estado_web"] = "ERROR"
+
+    html = mundo.client.get("/bandeja").text
+
+    assert html.index("Pendientes") < html.index("Pieza en revisión")
+    assert html.index("Cerradas") < html.index("Pieza aprobada")
+    errores = html.index('<details class="bandeja-errores"')
+    assert errores < html.index("Pieza fallida")
+    assert html.index("Pieza en revisión") < html.index("Pieza aprobada") < errores
+    assert "Con error (1)" in html
