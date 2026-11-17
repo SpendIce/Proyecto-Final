@@ -21,3 +21,13 @@ El padron es un recurso nuevo que alguien de la SEU tiene que mantener, y Direcc
 Los roles del padron son los que la SEU designo por escrito: el acta del 22/09 fijo el primer conjunto, que la designacion del 11/11/2026 (ADR 0018) reemplazo para los circuitos de aprobacion — una sola persona autorizada de contenido en lugar del par semantica + utilitaria, el lote de certificados aprobado por quien lo genera y los lotes de pagos aprobados por su responsable. El sistema no asigna roles a partir de una lectura del organigrama.
 
 Las evidencias producidas por este canal acreditan identidad verificada y autorizacion por padron declarado. Los otros canales (planilla offline, prototipo web) siguen bajo el ADR 0002.
+
+## Enmienda del 17/11/2026: varios roles por persona
+
+La SEU designó a una misma persona para aprobar contenido y pagos. El
+padrón pasa a admitir **una fila por rol**: el mismo correo puede
+repetirse con roles distintos (la misma fila repetida sigue invalidando el
+padrón). Cada chequeo pide el rol que habilita la acción y la persona actúa
+—y queda registrada— con ese rol; sin rol preferido rige el de la primera
+fila. Con un solo rol por correo el comportamiento no cambia. Decisión de
+Juani del 17/11/2026.

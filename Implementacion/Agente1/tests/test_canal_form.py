@@ -534,7 +534,7 @@ def test_cargar_padron_csv_lee_correo_rol(tmp_path: Path) -> None:
         "email,rol\na@example.invalid,coordinador_seu\n",
         "correo,rol,extra\na@example.invalid,coordinador_seu,x\n",
         # Correo duplicado: una línea pisaría a la otra en silencio.
-        "correo,rol\na@example.invalid,coordinador_seu\na@example.invalid,auxiliar_seu\n",
+        "correo,rol\na@example.invalid,coordinador_seu\na@example.invalid,coordinador_seu\n",
         # Rol vacío.
         "correo,rol\na@example.invalid,\n",
         # Correo inválido.

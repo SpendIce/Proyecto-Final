@@ -1097,8 +1097,15 @@ def test_login_demo_correo_sin_rol_en_padron_da_403() -> None:
                 CORREO_LECTOR: "lector_seu",
             }
 
-        def rol_para(self, correo: str) -> str | None:
+        def roles_para(self, correo: str) -> tuple[str, ...]:
+            rol = self.roles.get(correo)
+            return (rol,) if rol else ()
+
+        def rol_para(self, correo: str, preferidos=None) -> str | None:
             return self.roles.get(correo)
+
+        def tiene_rol(self, correo: str, rol: str) -> bool:
+            return self.roles.get(correo) == rol
 
     padron_vivo = PadronVivo()
     repo = RepositorioMemoria()

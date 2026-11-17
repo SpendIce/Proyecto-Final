@@ -934,7 +934,7 @@ def ejecutar_trabajo_emision(
             codigo=CODIGO_IDENTIDAD_NO_DISPONIBLE,
             ahora=momento,
         )
-    if padron.rol_para(correo) != ROL_APROBADOR_CONTENIDO:
+    if not padron.tiene_rol(correo, ROL_APROBADOR_CONTENIDO):
         return _finalizar_fallo(
             repositorio,
             trabajo,
@@ -1152,7 +1152,7 @@ def ejecutar_trabajo_demo(
                 codigo=CODIGO_IDENTIDAD_NO_DISPONIBLE,
                 ahora=momento,
             )
-        if padron.rol_para(correo) != ROL_APROBADOR_CONTENIDO:
+        if not padron.tiene_rol(correo, ROL_APROBADOR_CONTENIDO):
             return _finalizar_fallo(
                 repositorio,
                 trabajo,

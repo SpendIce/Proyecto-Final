@@ -56,7 +56,7 @@ import hmac
 import logging
 import secrets
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -240,6 +240,14 @@ _AYUDA_CAMPOS: dict[tuple[str, str], str] = {
 # decide sobre contenido. El resto del padrón ve la bandeja y la revisión,
 # pero no mueve la revisión vigente.
 _ROLES_REVISION_DOC = ROLES_HABILITADOS | {ROL_APROBADOR_CONTENIDO}
+# Roles que deciden la publicación de una pieza: con varios roles, la
+# persona actúa con el que habilita la decisión (ADR 0005).
+_ROLES_PUBLICACION = frozenset(
+    rol
+    for (tipo, _decision), roles in ROLES_POR_DECISION.items()
+    if tipo == TIPO_PUBLICACION
+    for rol in roles
+)
 _HOSTS_LOCALES = frozenset({"127.0.0.1", "localhost"})
 CLIENT_ID_PRUEBA = "modo-prueba"
 
@@ -624,14 +632,22 @@ def crear_app(
             return None
         return sesion
 
-    def rol_de(sesion: Sesion) -> str | None:
-        return padron.rol_para(sesion.correo)
+    def rol_de(
+        sesion: Sesion, preferidos: Iterable[str] | None = None
+    ) -> str | None:
+        return padron.rol_para(sesion.correo, preferidos)
+
+    def tiene_rol(sesion: Sesion, rol: str) -> bool:
+        return padron.tiene_rol(sesion.correo, rol)
+
+    def rol_de_certificados(sesion: Sesion) -> str | None:
+        return rol_de(sesion, (ROL_APROBADOR_CONTENIDO,))
 
     def puede_pedir(sesion: Sesion) -> bool:
-        return rol_de(sesion) in ROLES_HABILITADOS
+        return rol_de(sesion, ROLES_HABILITADOS) in ROLES_HABILITADOS
 
     def puede_revisar_doc(sesion: Sesion) -> bool:
-        return rol_de(sesion) in _ROLES_REVISION_DOC
+        return rol_de(sesion, _ROLES_REVISION_DOC) in _ROLES_REVISION_DOC
 
     def destino_login() -> RedirectResponse:
         return RedirectResponse("/ingresar", status_code=303)
@@ -683,7 +699,10 @@ def crear_app(
             error=error,
             csrf_login=csrf_login,
             identidades_demo=[
-                {"correo": correo, "rol": padron.rol_para(correo)}
+                {
+                    "correo": correo,
+                    "rol": " · ".join(padron.roles_para(correo)) or None,
+                }
                 for correo in config.demo_correos
             ],
         )
@@ -847,17 +866,17 @@ def crear_app(
                     ),
                 )
                 if lotes is not None
-                and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
+                and tiene_rol(sesion, ROL_APROBADOR_CONTENIDO)
                 else []
             ),
             mostrar_boton_demo=(
                 config.modo_demo
                 and lotes is not None
-                and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
+                and tiene_rol(sesion, ROL_APROBADOR_CONTENIDO)
             ),
             puede_pedir_certificados=(
                 lotes is not None
-                and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
+                and tiene_rol(sesion, ROL_APROBADOR_CONTENIDO)
             ),
         )
 
@@ -887,7 +906,7 @@ def crear_app(
             or (actividad or {}).get("titulo")
             or _NOMBRES_TIPOS.get(detalle_sol.tipo_pieza)
         )
-        rol = rol_de(sesion)
+        rol = rol_de(sesion, _ROLES_PUBLICACION)
         vigente = (
             detalle_sol.revisiones[-1]
             if detalle_sol.revisiones
@@ -1044,7 +1063,7 @@ def crear_app(
         detalle_sol = repositorio.obtener(id_solicitud)
         if detalle_sol is None:
             return render("sin_permiso.html", request, status_code=404)
-        if rol_de(sesion) not in ROLES_POR_DECISION[
+        if rol_de(sesion, _ROLES_PUBLICACION) not in ROLES_POR_DECISION[
             (TIPO_PUBLICACION, DECISION_PUBLIQUE)
         ]:
             return render("sin_permiso.html", request, status_code=403)
@@ -1180,7 +1199,7 @@ def crear_app(
             indicacion=str(form.get("indicacion", "")),
             llave=str(form.get("llave", "")),
             solicitante_hash=_hash_solicitante(sesion),
-            rol=rol_de(sesion) or "",
+            rol=rol_de(sesion, _ROLES_REVISION_DOC) or "",
             origen_identidad=sesion.origen,
             version_agente=version_agente,
             ahora=datetime.now(timezone.utc),
@@ -1212,7 +1231,7 @@ def crear_app(
         detalle_sol = repositorio.obtener(id_solicitud)
         if detalle_sol is None:
             return render("sin_permiso.html", request, status_code=404)
-        rol = rol_de(sesion)
+        rol = rol_de(sesion, _ROLES_PUBLICACION)
         accion = str(form.get("accion", ""))
         decision = {
             "aprobar": DECISION_PUBLIQUE,
@@ -1424,7 +1443,7 @@ def crear_app(
         form = await request.form()
         if not csrf_ok(sesion, str(form.get("csrf", ""))):
             return render("sin_permiso.html", request, status_code=403)
-        rol = rol_de(sesion)
+        rol = rol_de(sesion, ROLES_HABILITADOS)
         if rol not in ROLES_HABILITADOS:
             return render("sin_permiso.html", request, status_code=403)
         llave = str(form.get("llave", "")).strip() or uuid.uuid4().hex
@@ -1485,7 +1504,7 @@ def crear_app(
             repositorio=lotes,
             autorizar=autorizar,
             render=render,
-            rol_de=rol_de,
+            rol_de=rol_de_certificados,
             csrf_ok=csrf_ok,
             destino_login=destino_login,
             actividades=actividades,
@@ -1495,7 +1514,7 @@ def crear_app(
             repositorio=lotes,
             autorizar=autorizar,
             render=render,
-            rol_de=rol_de,
+            rol_de=rol_de_certificados,
             csrf_ok=csrf_ok,
             destino_login=destino_login,
             version_agente=version_agente,
@@ -1515,7 +1534,7 @@ def crear_app(
                 repositorio=lotes,
                 autorizar=autorizar,
                 render=render,
-                rol_de=rol_de,
+                rol_de=rol_de_certificados,
                 csrf_ok=csrf_ok,
                 destino_login=destino_login,
                 actividades=actividades,

@@ -202,10 +202,11 @@ def _mundo(
     *,
     registro_decisiones=None,
     plantillas_aprobadas=None,
+    roles_aprobador: str | tuple[str, ...] = ROL_APROBADOR_CONTENIDO,
 ) -> Mundo:
     padron = PadronRoles(
         {
-            CORREO_APROBADOR: ROL_APROBADOR_CONTENIDO,
+            CORREO_APROBADOR: roles_aprobador,
             CORREO_OTRO_APROBADOR: ROL_APROBADOR_CONTENIDO,
             CORREO_COORDINADOR: "coordinador_seu",
         }
@@ -306,6 +307,36 @@ def test_la_pagina_rotula_la_plantilla_con_la_que_se_dibuja_la_muestra() -> None
     cuerpo = mundo.client.get("/certificados/lote-abc123").text
     assert "Plantilla de la muestra: <code>certificado_seu_aprobacion_v2</code>" in cuerpo
     assert "certificado_seu_aprobacion_v1" not in cuerpo
+
+
+def test_con_varios_roles_el_aprobador_de_contenido_ve_y_aprueba_el_lote(
+    tmp_path,
+) -> None:
+    # Pagos como rol principal: el lote igual se abre y se aprueba con el
+    # rol de contenido, que es el que la decisión registra.
+    registro = RegistroDecisiones(tmp_path)
+    mundo = _mundo(
+        (_lote(),),
+        registro_decisiones=registro,
+        roles_aprobador=("APROBADOR_PAGOS", ROL_APROBADOR_CONTENIDO),
+    )
+    _ingresar(mundo.client)
+    assert "lote-abc123" in mundo.client.get("/bandeja").text
+    assert mundo.client.get("/certificados/lote-abc123").status_code == 200
+    respuesta = mundo.client.post(
+        "/certificados/lote-abc123/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "hash_lote": "f" * 64,
+            "accion": "aprobar",
+            "confirmar": "si",
+        },
+    )
+    assert respuesta.status_code in (200, 303)
+    lote = mundo.lotes.obtener("lote-abc123")
+    assert lote is not None
+    assert lote.estado == ESTADO_APROBADA
+    assert lote.rol_decision == ROL_APROBADOR_CONTENIDO
 
 
 def test_descarga_de_la_muestra_es_pdf_borrador() -> None:
