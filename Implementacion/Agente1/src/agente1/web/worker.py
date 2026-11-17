@@ -17,23 +17,30 @@ Decisiones que no se ven en el código:
 - **El límite de reintentos se mide por reservas tomadas.** Una falla
   reportada por el pipeline (gate rechazado, datos incompletos, tipo no
   disponible) cierra la ejecución de inmediato: no tiene sentido volver a
-  intentar lo mismo. Una excepción no prevista sí reintenta, pero con
-  tope `MAX_INTENTOS`: al agotarse, la ejecución queda `FALLIDA` con
-  `error_generacion` y la solicitud `ERROR`, visible en la bandeja, en
-  vez de colgar para siempre.
+  intentar lo mismo. En la generación, una excepción no prevista sí
+  reintenta, pero con tope `MAX_INTENTOS`: al agotarse, la ejecución
+  queda `FALLIDA` con `error_generacion` y la solicitud `ERROR`, visible
+  en la bandeja, en vez de colgar para siempre. En el ajuste no aplica:
+  cualquier excepción dentro del tramo de generación y destino cierra el
+  intento directo a `LISTA`; un fallo de persistencia posterior, fuera
+  de ese tramo, sigue el camino de reserva.
 - **El log nunca lleva prosa ni identidad**: una línea por falla con el
   código estable, el id de la ejecución y el intento — los identificadores
   ya son opacos y el detalle del motivo queda en el resultado durable.
 - **Un ajuste es una ejecución más, no una regeneración.** La ejecución
   `clase='ajuste'` reescribe la revisión vigente con la indicación
   registrada, la vuelca en el mismo Doc y crea la revisión nueva; si el
-  gate o el Doc fallan, la vigente queda intacta.
+  gate o el Doc fallan, la vigente queda intacta. Un fallo de
+  persistencia posterior no entra en esa regla: sigue el camino de
+  reserva, porque el Doc ya puede estar escrito y cerrar a `LISTA` sin
+  reconciliar declararía vigente una revisión que el Doc ya no muestra.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import time
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -53,7 +60,7 @@ from ..interpretacion import (
     interpretar_solicitud,
 )
 from ..procesamiento import Generator
-from .ajuste import ajustar
+from .ajuste import FalloIntentoAjuste, SalidaAjuste, ajustar
 from .persistencia import (
     CANAL_WEB,
     CANAL_WEB_DEMO,
@@ -88,11 +95,15 @@ class FalloGeneracion(RuntimeError):
         *,
         errores: tuple[str, ...] = (),
         intentos: int = 1,
+        fallos: tuple[FalloIntentoAjuste, ...] = (),
+        duracion_ms: int = 0,
     ) -> None:
         self.estado = estado
         self.resultado = resultado
         self.errores = errores
         self.intentos = intentos
+        self.fallos = fallos
+        self.duracion_ms = duracion_ms
         super().__init__(resultado)
 
 
@@ -103,12 +114,16 @@ def _registrar_ajuste(
     resultado: str,
     errores: tuple[str, ...] = (),
     intentos: int = 1,
+    fallos: tuple[FalloIntentoAjuste, ...] = (),
+    duracion_ms: int = 0,
 ) -> None:
     """Una línea por ajuste en `logs/ajustes.jsonl`: códigos, sin prosa.
 
     Es lo que permite saber en el servidor por qué un ajuste no se aplicó
-    (qué control del gate falló) sin abrir la base ni los logs del
-    contenedor. Si no se puede escribir, el ajuste sigue igual.
+    (qué control del gate falló, si el generador se cayó o tardó) sin abrir
+    la base ni los logs del contenedor. `fallos` guarda, por intento, sólo
+    códigos y duración: nunca el prompt ni el texto. Si no se puede
+    escribir, el ajuste sigue igual.
     """
     registro = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -119,6 +134,15 @@ def _registrar_ajuste(
         "resultado": resultado,
         "errores": list(errores),
         "intentos": intentos,
+        "duracion_ms": duracion_ms,
+        "fallos": [
+            {
+                "intento": fallo.intento,
+                "codigos": list(fallo.codigos),
+                "duracion_ms": fallo.duracion_ms,
+            }
+            for fallo in fallos
+        ],
     }
     try:
         logs = directorio_salida / "logs"
@@ -326,19 +350,38 @@ def _campos_de_validacion(
         raise FalloGeneracion("FALLIDA", "error_generacion") from None
 
 
+# Códigos del generador que, para el esquema durable, cierran como
+# `error_generacion`: el detalle accionable queda en `logs/ajustes.jsonl`.
+_CODIGOS_GENERADOR = frozenset(
+    {"timeout_generador", "presupuesto_agotado", "generador_error"}
+)
+
+
+def _resultado_fallo_ajuste(errores: list[str]) -> str:
+    if any(codigo in _CODIGOS_GENERADOR for codigo in errores):
+        return "error_generacion"
+    if "salida_vacia" in errores:
+        return "salida_vacia"
+    return "salida_no_conforme"
+
+
 def _ajustar_pieza(
     trabajo: TrabajoWeb,
     *,
     fuente: FuenteSolicitudes,
     generator: Generator,
     destino: DestinoPorMarca,
-) -> tuple[str, ResultadoDestinoWeb, int]:
+) -> tuple[str, ResultadoDestinoWeb, SalidaAjuste]:
     """Reescribe la revisión vigente y la vuelca en el mismo Doc.
 
     El texto base es el que dejó la última revisión vigente, con las
     correcciones humanas ya importadas por el pedido. Si la salida no pasa
     el gate o el Doc no se puede escribir, no hay revisión nueva: la
-    vigente queda intacta.
+    vigente queda intacta. Un fallo del generador vuelve como
+    `FalloGeneracion`, no como excepción suelta: así el worker cierra el
+    ajuste de inmediato en vez de reintentarlo por reserva. El cierre
+    cubre sólo este tramo —generación y destino—; la persistencia de
+    `completar_trabajo` corre después y sigue el camino de reserva.
     """
     if trabajo.texto_base is None or trabajo.indicacion is None:
         raise FalloGeneracion("FALLIDA", "error_generacion")
@@ -352,16 +395,13 @@ def _ajustar_pieza(
     )
     texto = salida.texto
     if not texto:
-        resultado = (
-            "salida_vacia"
-            if "salida_vacia" in salida.errores
-            else "salida_no_conforme"
-        )
         raise FalloGeneracion(
             "FALLIDA",
-            resultado,
+            _resultado_fallo_ajuste(salida.errores),
             errores=tuple(salida.errores),
             intentos=salida.intentos,
+            fallos=salida.fallos,
+            duracion_ms=salida.duracion_ms,
         )
     try:
         resultado_destino = destino.buscar_o_crear(
@@ -376,8 +416,10 @@ def _ajustar_pieza(
             "destination_failure",
             errores=("destination_failure",),
             intentos=salida.intentos,
+            fallos=salida.fallos,
+            duracion_ms=salida.duracion_ms,
         ) from None
-    return texto, resultado_destino, salida.intentos
+    return texto, resultado_destino, salida
 
 
 def correr_una_vez(
@@ -414,9 +456,10 @@ def correr_una_vez(
     if trabajo is None:
         return None
     es_ajuste = trabajo.clase == "ajuste"
+    inicio_ajuste = time.monotonic()
     try:
         if es_ajuste:
-            texto, resultado_destino, intentos_ajuste = _ajustar_pieza(
+            texto, resultado_destino, salida_ajuste = _ajustar_pieza(
                 trabajo,
                 fuente=fuente,
                 generator=generator_ajuste or generator,
@@ -453,12 +496,52 @@ def correr_una_vez(
                 resultado=fallo.resultado,
                 errores=fallo.errores,
                 intentos=fallo.intentos,
+                fallos=fallo.fallos,
+                duracion_ms=fallo.duracion_ms,
             )
         return trabajo
     except Exception:
-        # Error de infraestructura o caída: la reserva vence y otra corrida
-        # retoma sin duplicar el Doc, hasta el tope de reintentos; después
-        # la ejecución queda cerrada y la solicitud visible «Con error».
+        # Un ajuste que no se pudo completar en este tramo —generación o
+        # destino— no se reintenta por reserva: la revisión vigente sigue
+        # en pie y la persona puede pedirlo de nuevo. La recuperación es
+        # sólo acá: un fallo de persistencia posterior, como el
+        # `InsufficientPrivilege` observado en `completar_trabajo` cuando
+        # el Doc ya puede estar escrito, sigue el camino de reserva para
+        # reconciliar — cerrarlo a LISTA dejaría la revisión vieja
+        # declarada vigente sobre un Doc ya modificado.
+        if es_ajuste:
+            duracion_ms = int((time.monotonic() - inicio_ajuste) * 1000)
+            logger.warning(
+                "worker_ajuste_error_no_previsto id_ejecucion=%s",
+                trabajo.id_ejecucion,
+            )
+            repositorio.fallar_trabajo(
+                id_ejecucion=trabajo.id_ejecucion,
+                id_solicitud=trabajo.id_solicitud,
+                resultado="error_generacion",
+                ahora=ahora,
+                estado_solicitud="LISTA",
+            )
+            _registrar_ajuste(
+                directorio_salida,
+                trabajo,
+                resultado="error_generacion",
+                errores=("error_no_previsto",),
+                intentos=trabajo.intentos,
+                fallos=(
+                    FalloIntentoAjuste(
+                        max(1, trabajo.intentos),
+                        ("error_no_previsto",),
+                        duracion_ms,
+                    ),
+                ),
+                duracion_ms=duracion_ms,
+            )
+            return trabajo
+        # Error de infraestructura o caída de una generación: la reserva
+        # vence y otra corrida retoma sin duplicar el Doc, hasta el tope de
+        # reintentos; después la ejecución queda cerrada y la solicitud
+        # visible «Con error».
         if trabajo.intentos >= max_intentos:
             logger.warning(
                 "worker_sin_reintento id_ejecucion=%s intentos=%s",
@@ -470,16 +553,7 @@ def correr_una_vez(
                 id_solicitud=trabajo.id_solicitud,
                 resultado="error_generacion",
                 ahora=ahora,
-                **({"estado_solicitud": "LISTA"} if es_ajuste else {}),
             )
-            if es_ajuste:
-                _registrar_ajuste(
-                    directorio_salida,
-                    trabajo,
-                    resultado="error_generacion",
-                    errores=("error_no_previsto",),
-                    intentos=trabajo.intentos,
-                )
         else:
             logger.warning(
                 "worker_error_no_previsto id_ejecucion=%s intento=%s",
@@ -532,6 +606,8 @@ def correr_una_vez(
             directorio_salida,
             trabajo,
             resultado="borrador_generado",
-            intentos=intentos_ajuste,
+            intentos=salida_ajuste.intentos,
+            fallos=salida_ajuste.fallos,
+            duracion_ms=salida_ajuste.duracion_ms,
         )
     return trabajo

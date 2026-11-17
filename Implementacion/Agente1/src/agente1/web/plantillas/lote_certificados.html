@@ -7,6 +7,13 @@
     <span class="estado estado-{{ lote.estado|lower }}">{{ estado_visible }}</span>
   </div>
 
+  {% if es_lote_demo(lote) %}
+  <p class="aviso-estado" role="status">
+    Lote de demostración: personas y datos ficticios (@example.invalid),
+    sin validez institucional. No habilita emisión real.
+  </p>
+  {% endif %}
+
   {% if aviso %}
   <p class="{% if aviso_error %}mensaje-error{% else %}aviso-estado{% endif %}"
      role="alert">{{ aviso }}</p>
@@ -47,22 +54,25 @@
     {% endif %}
   </dl>
 
-  <h2>Lista de cierre</h2>
+  <h2 id="t-lista-cierre">Lista de cierre</h2>
   {% if lote.personas %}
-  <table class="tabla-revisiones">
-    <thead>
-      <tr><th>#</th><th>Nombre y apellido</th><th>Condición</th></tr>
-    </thead>
-    <tbody>
-      {% for persona in lote.personas %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ persona.nombre }} {{ persona.apellido }}</td>
-        <td>{{ persona.condicion }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="zona-tabla" role="region" aria-labelledby="t-lista-cierre"
+       tabindex="0">
+    <table class="tabla-revisiones">
+      <thead>
+        <tr><th>#</th><th>Nombre y apellido</th><th>Condición</th></tr>
+      </thead>
+      <tbody>
+        {% for persona in lote.personas %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ persona.nombre }} {{ persona.apellido }}</td>
+          <td>{{ persona.condicion }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <p class="aviso-estado">
     La lista de personas se retiró por retención mínima; se conserva la
@@ -134,9 +144,13 @@
   </p>
   {% elif lote.estado == 'PENDIENTE_APROBACION' %}
   <p class="aviso-estado">
-    Este lote lo aprueba quien lo generó, con rol de aprobador de contenido.
-    {% if not es_generador %}
-    La sesión actual no es la del generador.
+    {% if decision_demo_bloqueada %}
+    Lote de demostración: su decisión se toma sólo en la instancia de
+    demostración. En esta instancia no hay decisión.
+    {% else %}
+    Este lote lo aprueba quien lo generó, con rol de aprobador de
+    contenido.{% if not es_generador %}
+    La sesión actual no es la del generador.{% endif %}
     {% endif %}
   </p>
   {% endif %}

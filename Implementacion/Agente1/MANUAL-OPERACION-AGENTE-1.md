@@ -768,6 +768,39 @@ el mismo lote. La salida JSON trae `id_lote`, `hash_lote`, la `url` y el
 `generador` con el que hay que ingresar a la demo para aprobarlo. No toca
 Drive, Workspace ni el correo.
 
+**Vía web.** Con el modo demo vigente, la sección «Lotes de
+certificados» de la bandeja ofrece el botón **Crear lote de
+demostración** (`POST /demo/lote-certificados`), visible sólo para
+`APROBADOR_CONTENIDO`: siembra el mismo lote ficticio y abre su página.
+Si el lote ya existe —aunque esté aprobado o descartado—, el botón vuelve
+a ese lote sin tocar su estado ni resetear la auditoría. Para mostrar la
+decisión en vivo, el lote debe quedar `PENDIENTE_APROBACION` y la
+aprobación debe hacerla **la misma identidad demo que lo generó** (ADR
+0018): si otra persona del padrón demo lo sembró, sólo ella lo puede
+aprobar.
+
+**Aislamiento del lote ficticio.** Todo lote reconocido como
+demostración —la semilla por defecto y las variantes del script
+(`--cantidad` 5 a 8, otra `--actividad`), identificadas por su
+`objeto_lote` canónico, no por los correos— queda fuera del circuito
+institucional:
+
+- Fuera de modo demo su página sigue
+  visible con la marca «demostración — sin validez», pero no ofrece
+  controles de decisión y `POST /certificados/<id>/decidir` responde 403
+  sin tocar la fila.
+- Si vence la demostración, el middleware bloquea el canal completo con
+  503, incluida la consulta del lote (ADR 0019).
+- En modo demo, aprobar o descartar actualiza `lotes_certificados`
+  con `origen_identidad: demo` como cualquier decisión, pero **nunca**
+  asienta `apruebo_lote` en el registro de decisiones
+  (`AGENTE1_DECISIONES_DIR`): `revisar_aprobacion_lote` no lo ve y la
+  emisión no puede habilitarse por un lote ficticio.
+- Nunca emite certificados ni envía mensajes, ni en demo ni fuera.
+
+Los lotes reales conservan el circuito completo: aprobar sí asienta el
+`apruebo_lote` que lee la emisión.
+
 **Correo prellenado al aprobar (ADR 0021, #153).** Con
 `AGENTE1_AUDIENCIAS_PATH` declarada, aprobar ofrece «Preparar correo»:
 la página muestra los públicos del pedido por nombre (con la marca

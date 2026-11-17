@@ -1201,7 +1201,10 @@ def test_formulario_muestra_como_se_completa_la_frase_de_cada_campo(
     assert 'aria-describedby="ayuda_hecho_aviso_de_otra_area"' in html
 
 
-def test_bandeja_agrupa_por_estado_y_colapsa_los_errores(mundo: Mundo) -> None:
+@pytest.mark.parametrize("estado_pendiente", ["LISTA", "AJUSTANDO"])
+def test_bandeja_agrupa_por_estado_y_colapsa_los_errores(
+    mundo: Mundo, estado_pendiente: str
+) -> None:
     """Demo 17/11: los pedidos con error quedaban mezclados con los que
     esperan revisión. No se borran (auditoría): van agrupados al final."""
 
@@ -1219,7 +1222,7 @@ def test_bandeja_agrupa_por_estado_y_colapsa_los_errores(mundo: Mundo) -> None:
             },
             follow_redirects=False,
         )
-    mundo.repo.solicitudes["web-0000"]["estado_web"] = "LISTA"
+    mundo.repo.solicitudes["web-0000"]["estado_web"] = estado_pendiente
     mundo.repo.solicitudes["web-0001"]["estado_web"] = "APROBADA"
     mundo.repo.solicitudes["web-0002"]["estado_web"] = "ERROR"
 

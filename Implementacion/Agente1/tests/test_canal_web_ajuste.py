@@ -30,6 +30,7 @@ from fastapi.testclient import TestClient
 from agente1.canal_form import PadronRoles
 from agente1.destinos import BORRADOR_MARKER, DestinoBorradoresError
 from agente1.gacetillas import renderizar
+from agente1.presupuesto import PresupuestoAgotadoError
 from agente1.procesamiento import FakeGenerator
 from agente1.web.ajuste import (
     ajustar_texto,
@@ -61,6 +62,51 @@ CAMPOS = {
 TEXTO_VALIDO = (
     BORRADOR_MARKER + renderizar("cronica_de_evento", CAMPOS) + "\n"
 )
+
+CAMPOS_SIETE_TIPOS = {
+    "difusion_de_actividad": {
+        "titulo": "Curso sintético de extensión",
+        "bajada": "La Secretaría de Extensión Universitaria abre la inscripción.",
+        "cuerpo": "La actividad se dicta en la sede de la facultad.",
+        "fecha_inicio": "2026-11-20",
+        "contacto": "extension@example.invalid",
+    },
+    "cronica_de_evento": dict(CAMPOS),
+    "aviso_de_otra_area": {
+        "titulo": "Estacionamiento de motos",
+        "publico": "educativa",
+        "hecho": "el estacionamiento para motos no estará habilitado",
+        "fecha": "2026-11-02",
+        "condicion": "hasta nuevo aviso",
+        "area_emisora": "Facultad de Ingeniería del Ejército",
+    },
+    "convocatoria_interna": {
+        "titulo": "Convocatoria interna de tutores",
+        "destinatarios": "docentes de la casa",
+        "convocatoria": "la convocatoria interna de tutores",
+        "requisitos": "tener dos años de antigüedad",
+        "fecha_limite": "2026-11-15",
+        "area_emisora": "Secretaría Académica",
+        "contacto": "doe@example.invalid",
+    },
+    "saludo_o_efemeride": {
+        "titulo": "Día del Ingeniero",
+        "cuerpo": "Saludamos a quienes ejercen la profesión con compromiso.",
+    },
+    "fallecimiento": {
+        "titulo": "Informar fallecimiento",
+        "nombre": "María Ejemplo",
+        "rol": "docente de la casa",
+        "dia": "viernes 23 de octubre",
+        "hora": "11:00",
+        "lugar": "Capilla del Instituto",
+    },
+    "newsletter": {
+        "titulo": "Boletín del Observatorio",
+        "enlace_adjunto": "https://example.invalid/boletin",
+        "area_emisora": "Secretaría de Extensión Universitaria",
+    },
+}
 
 
 def _sha(texto: str) -> str:
@@ -112,6 +158,25 @@ def test_ajuste_valido_conserva_la_marca_y_pasa_el_gate() -> None:
     assert cuerpo_ajustado in texto
 
 
+@pytest.mark.parametrize("tipo", CAMPOS_SIETE_TIPOS)
+def test_el_ajuste_sigue_sirviendo_para_los_siete_tipos(tipo: str) -> None:
+    """La normalización y el gate no pierden ninguno de los siete tipos."""
+    campos = CAMPOS_SIETE_TIPOS[tipo]
+    base = BORRADOR_MARKER + renderizar(tipo, campos) + "\n"
+
+    texto, errores = ajustar_texto(
+        texto_base=base,
+        indicacion="tono más formal",
+        tipo=tipo,
+        campos=campos,
+        generator=FakeGenerator(base),
+    )
+
+    assert errores == [], (tipo, errores)
+    assert texto.startswith(BORRADOR_MARKER)
+    assert "Asunto:" in texto
+
+
 def test_la_base_con_correccion_humana_del_titulo_pasa_el_gate() -> None:
     """Si la persona corrigió el título en el Doc, el ajuste parte de esa
     corrección y el gate no le exige el título viejo del pedido."""
@@ -147,6 +212,31 @@ def test_la_base_con_correccion_humana_del_titulo_pasa_el_gate() -> None:
 
     assert errores == []
     assert titulo_corregido in texto
+
+
+def test_el_asunto_de_la_base_no_lo_reescribe_el_modelo() -> None:
+    """El asunto es fijo de la forma: aunque el modelo lo cambie, se repone
+    el de la base para que el Doc no pierda el título confirmado."""
+    salida = _texto_ajustado("La jornada reunió a la comunidad.")
+    lineas = salida.splitlines()
+    indice = next(
+        posicion
+        for posicion, linea in enumerate(lineas)
+        if linea.startswith("Asunto:")
+    )
+    lineas[indice] = "Asunto: Jornada sintética de extensión — reescrito"
+    texto, errores = ajustar_texto(
+        texto_base=TEXTO_VALIDO,
+        indicacion="más breve",
+        tipo="cronica_de_evento",
+        campos=CAMPOS,
+        generator=FakeGenerator("\n".join(lineas)),
+    )
+
+    assert errores == []
+    assert texto.count("Asunto:") == 1
+    assert "Asunto: Jornada sintética de extensión\n" in texto
+    assert "— reescrito" not in texto
 
 
 def test_la_marca_repetida_no_se_duplica() -> None:
@@ -510,7 +600,19 @@ class DestinoQueFalla:
         pass
 
 
-def _trabajo_ajuste(texto_base: str = TEXTO_VALIDO) -> TrabajoWeb:
+class DestinoQueRompe:
+    """Un error no previsto del adapter del Doc, fuera del contrato del puerto."""
+
+    def buscar_o_crear(self, **_kwargs):
+        raise ValueError("falla inesperada del adapter")
+
+    def compartir(self, doc_ref: str, correo: str) -> None:
+        pass
+
+
+def _trabajo_ajuste(
+    texto_base: str = TEXTO_VALIDO, *, intentos: int = 0
+) -> TrabajoWeb:
     return TrabajoWeb(
         id_ejecucion="webe-a1",
         id_solicitud="web-a1",
@@ -525,6 +627,7 @@ def _trabajo_ajuste(texto_base: str = TEXTO_VALIDO) -> TrabajoWeb:
         id_borrador_base="borr-1",
         indicacion="más breve",
         texto_base=texto_base,
+        intentos=intentos,
     )
 
 
@@ -867,6 +970,86 @@ class GeneradorSecuencia:
         return self._respuestas.pop(0) if self._respuestas else ""
 
 
+class GeneradorQueFalla:
+    """Levanta el error del adapter, como un Ollama caído o agotado."""
+
+    modelo = "fake-falla"
+    num_predict = None
+
+    def __init__(self, error: Exception) -> None:
+        self._error = error
+        self.llamadas = 0
+
+    def generar(self, prompt: str) -> str:
+        self.llamadas += 1
+        raise self._error
+
+
+class RepoAjusteConReintento(RepoWorkerFalso):
+    """Devuelve el mismo ajuste hasta que el worker lo cierra.
+
+    Emula la reserva: si el worker no falla el trabajo, otra corrida lo
+    vuelve a tomar. Sirve para comprobar que un fallo del generador no se
+    reintenta tres veces por reserva.
+    """
+
+    def tomar_trabajo(self, **_kwargs) -> TrabajoWeb | None:
+        return None if self.fallado is not None else self._trabajo
+
+
+@pytest.mark.parametrize(
+    ("error", "codigo"),
+    [
+        # TimeoutError es el contrato del puerto; el adapter de Ollama
+        # convierte timeout y red en RuntimeError.
+        (TimeoutError("agotado"), "timeout_generador"),
+        (
+            RuntimeError("No se pudo contactar al generador local"),
+            "generador_error",
+        ),
+        (
+            PresupuestoAgotadoError("El presupuesto no alcanzó"),
+            "presupuesto_agotado",
+        ),
+    ],
+)
+def test_worker_ajuste_con_fallo_del_generador_vuelve_a_lista_sin_reintento(
+    tmp_path: Path, error: Exception, codigo: str
+) -> None:
+    """El adapter que falla no deja la solicitud AJUSTANDO: el primer fallo
+    cierra el ajuste, vuelve a LISTA y se registra una sola vez."""
+    trabajo = _trabajo_ajuste(intentos=1)
+    repo = RepoAjusteConReintento(trabajo)
+    generador = GeneradorQueFalla(error)
+
+    for _ in range(3):
+        correr_una_vez(
+            repositorio=repo,
+            worker_id="w1",
+            fuente=FuenteVacia(),
+            generator=generador,
+            directorio_salida=tmp_path,
+            destino=DestinoEspia(),
+        )
+
+    assert generador.llamadas == 1
+    assert repo.completado is None
+    assert repo.fallado is not None
+    assert repo.fallado["estado_solicitud"] == "LISTA"
+    assert repo.fallado["resultado"] == "error_generacion"
+
+    lineas = (tmp_path / "logs" / "ajustes.jsonl").read_text().splitlines()
+    assert len(lineas) == 1
+    registro = json.loads(lineas[0])
+    assert registro["resultado"] == "error_generacion"
+    assert registro["intentos"] == 1
+    assert registro["duracion_ms"] >= 0
+    assert registro["fallos"][0]["intento"] == 1
+    assert registro["fallos"][0]["codigos"] == [codigo]
+    assert "más breve" not in lineas[0]
+    assert str(error) not in lineas[0]
+
+
 def _sin_pie(texto: str) -> str:
     return texto[: texto.rindex("\n--\n")] + "\n"
 
@@ -947,8 +1130,88 @@ def test_worker_ajuste_fallido_vuelve_a_lista_y_deja_registro(
     assert registro["resultado"] == "salida_vacia"
     assert registro["errores"] == ["salida_vacia"]
     assert registro["intentos"] == 2
+    assert registro["duracion_ms"] >= 0
+    assert [fallo["intento"] for fallo in registro["fallos"]] == [1, 2]
+    assert [fallo["codigos"] for fallo in registro["fallos"]] == [
+        ["salida_vacia"],
+        ["salida_vacia"],
+    ]
+    assert all(fallo["duracion_ms"] >= 0 for fallo in registro["fallos"])
     assert registro["id_solicitud"] == "web-a1"
     assert "más breve" not in lineas[-1]
+
+
+class GeneradorFallaEnElSegundoIntento:
+    """Primera salida inválida y después el timeout real del adapter."""
+
+    modelo = "fake-falla-segundo"
+    num_predict = None
+
+    def __init__(self) -> None:
+        self.llamadas = 0
+
+    def generar(self, prompt: str) -> str:
+        self.llamadas += 1
+        if self.llamadas == 1:
+            return ""
+        raise TimeoutError("agotado")
+
+
+def test_worker_ajuste_con_error_no_previsto_tambien_vuelve_a_lista(
+    tmp_path: Path,
+) -> None:
+    """Un fallo fuera del contrato del generador no reintenta por reserva y
+    deja duración y código por intento en el registro."""
+    repo = RepoWorkerFalso(_trabajo_ajuste(intentos=1))
+
+    correr_una_vez(
+        repositorio=repo,
+        worker_id="w1",
+        fuente=FuenteVacia(),
+        generator=FakeGenerator(
+            _texto_ajustado("La jornada reunió a la comunidad.")
+        ),
+        directorio_salida=tmp_path,
+        destino=DestinoQueRompe(),
+    )
+
+    assert repo.fallado is not None
+    assert repo.fallado["estado_solicitud"] == "LISTA"
+    assert repo.fallado["resultado"] == "error_generacion"
+    lineas = (tmp_path / "logs" / "ajustes.jsonl").read_text().splitlines()
+    registro = json.loads(lineas[-1])
+    assert registro["duracion_ms"] >= 0
+    assert registro["fallos"][0]["codigos"] == ["error_no_previsto"]
+    assert "falla inesperada" not in lineas[-1]
+
+
+def test_un_timeout_en_el_segundo_intento_no_se_reintenta_de_nuevo(
+    tmp_path: Path,
+) -> None:
+    repo = RepoWorkerFalso(_trabajo_ajuste(intentos=1))
+    generador = GeneradorFallaEnElSegundoIntento()
+
+    correr_una_vez(
+        repositorio=repo,
+        worker_id="w1",
+        fuente=FuenteVacia(),
+        generator=generador,
+        directorio_salida=tmp_path,
+        destino=DestinoEspia(),
+    )
+
+    assert generador.llamadas == 2
+    assert repo.fallado is not None
+    assert repo.fallado["estado_solicitud"] == "LISTA"
+    assert repo.fallado["resultado"] == "error_generacion"
+    lineas = (tmp_path / "logs" / "ajustes.jsonl").read_text().splitlines()
+    registro = json.loads(lineas[-1])
+    assert registro["intentos"] == 2
+    assert [fallo["codigos"] for fallo in registro["fallos"]] == [
+        ["salida_vacia"],
+        ["timeout_generador"],
+    ]
+    assert "agotado" not in lineas[-1]
 
 
 def test_worker_usa_el_generador_de_ajuste_si_lo_hay(tmp_path: Path) -> None:
@@ -967,6 +1230,33 @@ def test_worker_usa_el_generador_de_ajuste_si_lo_hay(tmp_path: Path) -> None:
 
     assert repo.completado is not None
     assert len(ajuste.prompts) == 1
+
+
+def test_worker_ajuste_con_timeout_deja_lista_en_la_base(
+    base: str, tmp_path: Path
+) -> None:
+    """Con la persistencia real, el fallo del generador cierra la ejecución
+    y devuelve la solicitud a LISTA sin crear una revisión nueva."""
+    repo = RepositorioWeb(_fabrica(base))
+    id_solicitud, id_base = _solicitud_en_lista(repo)
+    _ajustar(repo, id_solicitud, id_base)
+
+    correr_una_vez(
+        repositorio=repo,
+        worker_id="w-ajuste",
+        fuente=FuenteVacia(),
+        generator=GeneradorQueFalla(TimeoutError("agotado")),
+        directorio_salida=tmp_path,
+        destino=DestinoEspia(),
+        ahora=AHORA,
+    )
+
+    detalle = repo.obtener(id_solicitud)
+    assert detalle is not None
+    assert detalle.estado_web == "LISTA"
+    assert len(detalle.revisiones) == 1
+    lineas = (tmp_path / "logs" / "ajustes.jsonl").read_text().splitlines()
+    assert json.loads(lineas[-1])["resultado"] == "error_generacion"
 
 
 def test_ajuste_fallido_deja_la_solicitud_en_lista_con_aviso(base: str) -> None:

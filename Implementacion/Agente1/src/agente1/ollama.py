@@ -18,7 +18,9 @@ Decisiones que no se ven en el código:
 - **Todo error de red o de forma se colapsa a un `RuntimeError` genérico.** El
   pipeline sólo necesita saber que el generador no entregó algo utilizable, y
   un mensaje detallado podría arrastrar el prompt —que contiene datos de la
-  actividad— hacia el log.
+  actividad— hacia el log. La única excepción es el deadline agotado: sale
+  como `OllamaTimeoutError`, un subtipo de `RuntimeError`, para que quien
+  registra distinga el timeout sin leer el mensaje.
 """
 
 from __future__ import annotations
@@ -63,6 +65,16 @@ MIN_OLLAMA_NUM_PREDICT = 32
 MAX_OLLAMA_NUM_PREDICT = 1024
 MAX_RESPONSE_BYTES = 1_048_576
 MAX_FORMAT_SCHEMA_BYTES = 65_536
+
+
+class OllamaTimeoutError(RuntimeError):
+    """Deadline del adapter agotado: `RuntimeError` con el mensaje público.
+
+    Subtipar `RuntimeError` deja intacto a todo caller que captura el
+    error genérico, y a la vez le da a quien registra (el ajuste web) una
+    clase estable para distinguir el timeout de otras fallas de transporte
+    sin parsear ni exponer el detalle —que podría arrastrar el prompt—.
+    """
 
 
 class OllamaGenerator:
@@ -163,7 +175,14 @@ class OllamaGenerator:
                 if not chunk:
                     break
                 cuerpo.extend(chunk)
-        except (HTTPException, OSError, TimeoutError, _TransportError):
+        except TimeoutError:
+            # El deadline agotado conserva su tipo propio (el ajuste lo
+            # registra como `timeout_generador`); el mensaje público es el
+            # mismo de siempre, sin el detalle del transporte.
+            raise OllamaTimeoutError(
+                "No se pudo contactar al generador local"
+            ) from None
+        except (HTTPException, OSError, _TransportError):
             raise RuntimeError("No se pudo contactar al generador local") from None
         finally:
             if connection is not None:
