@@ -809,6 +809,27 @@ def test_un_lote_legacy_con_origen_null_es_real_para_la_sesion_demo() -> None:
     assert persistido.estado == ESTADO_PENDIENTE
 
 
+def test_la_semilla_sembrada_antes_de_la_columna_sigue_visible_en_la_demo() -> None:
+    # La siembra es idempotente por contenido: en un servidor que ya tenía
+    # la semilla de 0.9.0 (origen NULL), el botón devuelve esa misma fila.
+    mundo = _mundo()
+    semilla = mundo.lotes.crear(
+        id_actividad=ACTIVIDAD_DEMO,
+        actividad=_ficha_completa(),
+        personas=personas_demo(6),
+        linea_descriptiva=lote_demo.LINEA_DEMO,
+        generada_por_hash=hash_correo(CORREO_APROBADOR),
+    )
+    assert semilla.origen_creacion is None
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    assert mundo.client.get(f"/certificados/{semilla.id_lote}").status_code == 200
+    assert (
+        mundo.client.get(f"/certificados/{semilla.id_lote}/muestra.pdf")
+        .content.startswith(b"%PDF")
+    )
+    assert f"/certificados/{semilla.id_lote}" in mundo.client.get("/bandeja").text
+
+
 # --- la marca reconoce todas las variantes válidas de la semilla --------------
 
 

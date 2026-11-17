@@ -26,6 +26,16 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+## [0.10.1] - 2026-11-17
+
+- **Parche — la semilla demo de 0.9.0 sigue visible en la demo** (Refs #168;
+  verificación en el servidor). La siembra es idempotente por contenido y en
+  un servidor con la semilla previa devuelve esa fila, con
+  `origen_creacion` nulo: la regla de aislamiento de 0.10.0 la trataba como
+  real y la propia sesión demo recibía 404. La visibilidad ahora usa
+  `es_lote_demo`, que reconoce la columna y la semilla histórica; un lote
+  real legacy sigue respondiendo 404.
+
 ## [0.10.0] - 2026-11-17
 
 - **Menor — pedido y emisión de certificados desde la web** (Refs #168).

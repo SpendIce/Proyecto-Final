@@ -42,8 +42,9 @@ Decisiones que no se ven en el código:
   `lotes_certificados` —nunca un `apruebo_lote` en el registro que lee la
   emisión—. Un lote real conserva el circuito y el puente de siempre.
 - **Una sesión demo no ve lotes reales.** La visibilidad la decide sólo
-  `sesion_puede_ver_lote`: lo que no nació con `origen_creacion = 'demo'`
-  es real —incluido el legacy `NULL`— y la sesión demo recibe 404, sin
+  `sesion_puede_ver_lote`: lo que `es_lote_demo` no reconoce como demo
+  es real —incluido un legacy `NULL` que no es la semilla— y la sesión
+  demo recibe 404, sin
   distinguir un lote ajeno de uno inexistente. La bandeja usa el mismo
   predicado, así que tampoco lista sus nombres ni su cuenta.
 """
@@ -874,19 +875,24 @@ class EmisionCertificadosWebPuerto(Protocol):
     def descargar(self, id_lote: str, *, actor) -> bytes: ...
 
 
-def sesion_puede_ver_lote(sesion: Sesion, lote: LoteCertificados) -> bool:
+def sesion_puede_ver_lote(
+    sesion: Sesion,
+    lote: LoteCertificados,
+    es_lote_demo: Callable[[LoteCertificados], bool],
+) -> bool:
     """¿Esta sesión puede ver y operar este lote? (ADR 0019)
 
-    Una sesión demo sólo accede a lotes nacidos en la demo: el único valor
-    de `origen_creacion` que los identifica es `demo` (migración 0012).
-    Cualquier otro valor —incluido `NULL`, el lote legacy— es real y queda
-    fuera del alcance de la sesión demo, que ni siquiera debe saber que
-    existe. Una sesión con identidad verificada no cambia: ve todos los
-    lotes y el gobierno del lote demo sigue en la página.
+    Una sesión demo sólo accede a lotes de demostración según
+    `es_lote_demo`: `origen_creacion = 'demo'` (migración 0012) o la
+    semilla histórica sembrada antes de la columna, que la siembra
+    idempotente vuelve a devolver. Todo lo demás —incluido un lote
+    legacy `NULL` con datos que no son la semilla— es real y queda fuera
+    del alcance de la sesión demo, que ni siquiera debe saber que existe.
+    Una sesión con identidad verificada no cambia: ve todos los lotes.
     """
     if sesion.origen != ORIGEN_DEMO:
         return True
-    return lote.origen_creacion == ORIGEN_DEMO
+    return es_lote_demo(lote)
 
 
 def lotes_para_bandeja(
@@ -965,7 +971,7 @@ def registrar_rutas_certificados(
         distingue un lote real de uno inexistente (ADR 0019).
         """
         lote = repositorio.obtener(id_lote)
-        if lote is None or not sesion_puede_ver_lote(sesion, lote):
+        if lote is None or not sesion_puede_ver_lote(sesion, lote, es_lote_demo):
             return None
         return lote
 
