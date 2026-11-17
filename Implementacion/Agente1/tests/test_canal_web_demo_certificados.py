@@ -22,6 +22,7 @@ import uuid
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import psycopg
@@ -110,6 +111,7 @@ class RepositorioLotesMemoria:
         personas: tuple[PersonaCierre, ...],
         linea_descriptiva: str,
         generada_por_hash: str,
+        origen_creacion: str | None = None,
         ahora: datetime | None = None,
     ) -> LoteCertificados:
         self.llamadas_crear.append(
@@ -141,6 +143,7 @@ class RepositorioLotesMemoria:
             estado=ESTADO_PENDIENTE,
             generada_por_hash=generada_por_hash,
             creada_en=ahora or AHORA,
+            origen_creacion=origen_creacion,
         )
         self._lotes[id_lote] = lote
         return lote
@@ -196,6 +199,42 @@ class _RepositorioWebVacio:
         return None
 
 
+class EmisionFalsa:
+    """El puerto de emisión durable, para probar que no se consulta."""
+
+    def __init__(self) -> None:
+        self.consultas: list[str] = []
+        self.solicitudes: list[str] = []
+        self.descargas: list[str] = []
+
+    def _estado(self) -> SimpleNamespace:
+        return SimpleNamespace(
+            estado="SIN_PEDIDO",
+            codigo=None,
+            bloqueos=(),
+            generadas=0,
+            enviadas=0,
+            fallidas=0,
+            es_demo=False,
+            disponible=False,
+            descargable=False,
+        )
+
+    def consultar(self, id_lote: str, *, actor) -> SimpleNamespace:
+        self.consultas.append(id_lote)
+        return self._estado()
+
+    def solicitar(
+        self, id_lote: str, *, hash_lote: str, actor
+    ) -> SimpleNamespace:
+        self.solicitudes.append(id_lote)
+        return self._estado()
+
+    def descargar(self, id_lote: str, *, actor) -> bytes:
+        self.descargas.append(id_lote)
+        return b"PK\x03\x04-demo"
+
+
 @dataclass
 class Mundo:
     client: TestClient
@@ -211,6 +250,7 @@ def _mundo(
     hoy: date = HOY_DEMO,
     registro_decisiones=None,
     lotes=None,
+    emision=None,
 ) -> Mundo:
     padron = PadronRoles(
         {
@@ -256,6 +296,7 @@ def _mundo(
         hoy=lambda: reloj["fecha"],
         version_agente="0.8.1",
         registro_decisiones=registro_decisiones,
+        emision_certificados=emision,
     )
     base_url = "https://testserver" if modo_demo else "http://testserver"
     return Mundo(
@@ -321,16 +362,24 @@ def _lote_demo(
     )
 
 
-def _lote_real(repo) -> LoteCertificados:
+def _lote_real(
+    repo,
+    *,
+    id_actividad: str = "FIE-DIF-02",
+    titulo: str | None = None,
+) -> LoteCertificados:
+    actividad = _ficha_completa()
+    if titulo is not None:
+        actividad["titulo"] = titulo
     return repo.crear(
-        id_actividad="FIE-DIF-02",
-        actividad=_ficha_completa(),
+        id_actividad=id_actividad,
+        actividad=actividad,
         personas=(
             PersonaCierre(
                 nombre="Ana",
                 apellido="Real",
                 dni="12345678",
-                mail="ana.real@fie.undef.edu.ar",
+                mail="ana.real@example.invalid",
                 tratamiento="Sra.",
                 condicion="aprobacion",
             ),
@@ -530,7 +579,21 @@ def test_sesion_demo_no_puentea_un_lote_real_al_registro(tmp_path) -> None:
     mundo = _mundo(registro_decisiones=registro)
     real = _lote_real(mundo.lotes)
     _ingresar_demo(mundo.client, CORREO_APROBADOR)
-    _aprobar(mundo.client, mundo, real.id_lote)
+    respuesta = mundo.client.post(
+        f"/certificados/{real.id_lote}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "hash_lote": real.objeto_lote,
+            "accion": "aprobar",
+            "confirmar": "si",
+        },
+    )
+    # La sesión demo ni siquiera ve el lote real: 404 y nada cambia.
+    assert respuesta.status_code == 404
+    persistido = mundo.lotes.obtener(real.id_lote)
+    assert persistido is not None
+    assert persistido.estado == ESTADO_PENDIENTE
+    assert persistido.decidida_en is None
     revision = revisar_aprobacion_lote(
         registro,
         objeto_lote=real.objeto_lote,
@@ -579,6 +642,171 @@ def test_fuera_de_demo_la_bandeja_marca_el_lote_demo() -> None:
     bandeja = mundo.client.get("/bandeja")
     assert f"/certificados/{ID_LOTE_DEMO}" in bandeja.text
     assert "demostración — sin validez" in bandeja.text
+
+
+# --- aislamiento: la sesión demo no ve lotes reales (B1 y B2) ----------------
+#
+# Un lote es demo sólo si `origen_creacion == "demo"`; cualquier otro valor,
+# incluido `NULL` (el lote legacy), es real. La sesión demo responde 404 —no
+# 403— para no revelar que el lote existe, no toca la fila y no escribe en el
+# registro institucional.
+
+
+def test_sesion_demo_no_ve_el_detalle_de_un_lote_real() -> None:
+    mundo = _mundo()
+    real = _lote_real(mundo.lotes, titulo="Actividad real del detalle")
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    respuesta = mundo.client.get(f"/certificados/{real.id_lote}")
+    assert respuesta.status_code == 404
+    assert "Actividad real del detalle" not in respuesta.text
+    assert real.personas[0].mail not in respuesta.text
+    persistido = mundo.lotes.obtener(real.id_lote)
+    assert persistido is not None
+    assert persistido.estado == ESTADO_PENDIENTE
+
+
+def test_sesion_demo_no_descarga_la_muestra_de_un_lote_real() -> None:
+    mundo = _mundo()
+    real = _lote_real(mundo.lotes)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    respuesta = mundo.client.get(f"/certificados/{real.id_lote}/muestra.pdf")
+    assert respuesta.status_code == 404
+    assert not respuesta.content.startswith(b"%PDF")
+    assert real.personas[0].mail not in respuesta.text
+
+
+def test_sesion_demo_no_aprueba_un_lote_real(tmp_path) -> None:
+    registro = RegistroDecisiones(tmp_path)
+    mundo = _mundo(registro_decisiones=registro)
+    real = _lote_real(mundo.lotes)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    respuesta = mundo.client.post(
+        f"/certificados/{real.id_lote}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "hash_lote": real.objeto_lote,
+            "accion": "aprobar",
+            "confirmar": "si",
+        },
+    )
+    assert respuesta.status_code == 404
+    persistido = mundo.lotes.obtener(real.id_lote)
+    assert persistido is not None
+    assert persistido.estado == ESTADO_PENDIENTE
+    assert persistido.decidida_en is None
+    assert registro.procesadas() == ()
+
+
+def test_sesion_demo_no_descarta_un_lote_real(tmp_path) -> None:
+    registro = RegistroDecisiones(tmp_path)
+    mundo = _mundo(registro_decisiones=registro)
+    real = _lote_real(mundo.lotes)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    respuesta = mundo.client.post(
+        f"/certificados/{real.id_lote}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "hash_lote": real.objeto_lote,
+            "accion": "descartar",
+        },
+    )
+    assert respuesta.status_code == 404
+    persistido = mundo.lotes.obtener(real.id_lote)
+    assert persistido is not None
+    assert persistido.estado == ESTADO_PENDIENTE
+    assert persistido.decidida_en is None
+    assert registro.procesadas() == ()
+
+
+def test_sesion_demo_no_consulta_la_emision_de_un_lote_real() -> None:
+    emision = EmisionFalsa()
+    mundo = _mundo(emision=emision)
+    real = _lote_real(mundo.lotes)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    respuesta = mundo.client.get(
+        f"/certificados/{real.id_lote}/emision"
+    )
+    assert respuesta.status_code == 404
+    assert emision.consultas == []
+
+
+def test_sesion_demo_no_pide_la_emision_de_un_lote_real() -> None:
+    emision = EmisionFalsa()
+    mundo = _mundo(emision=emision)
+    real = _lote_real(mundo.lotes)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    respuesta = mundo.client.post(
+        f"/certificados/{real.id_lote}/emision",
+        data={"csrf": _csrf(mundo), "hash_lote": real.objeto_lote},
+    )
+    assert respuesta.status_code == 404
+    assert emision.solicitudes == []
+
+
+def test_sesion_demo_no_descarga_el_zip_de_un_lote_real() -> None:
+    emision = EmisionFalsa()
+    mundo = _mundo(emision=emision)
+    real = _lote_real(mundo.lotes)
+    decidido = mundo.lotes.decidir(
+        id_lote=real.id_lote,
+        hash_lote=real.objeto_lote,
+        accion="aprobar",
+        validador_hash=hash_correo(CORREO_APROBADOR),
+        rol=ROL_APROBADOR_CONTENIDO,
+        origen_identidad="google",
+        version_agente="0.8.1",
+    )
+    assert decidido.codigo == "aprobada"
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    respuesta = mundo.client.get(
+        f"/certificados/{real.id_lote}/emision/descargar"
+    )
+    assert respuesta.status_code == 404
+    assert not respuesta.content.startswith(b"PK")
+    assert emision.descargas == []
+
+
+def test_sesion_demo_no_lista_lotes_reales_en_la_bandeja() -> None:
+    mundo = _mundo()
+    real = _lote_real(
+        mundo.lotes,
+        id_actividad="FIE-REAL-01",
+        titulo="Actividad real que no debe verse",
+    )
+    demo = _lote_demo(mundo.lotes)
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    bandeja = mundo.client.get("/bandeja")
+    assert f"/certificados/{real.id_lote}" not in bandeja.text
+    assert "Actividad real que no debe verse" not in bandeja.text
+    assert f"/certificados/{demo.id_lote}" in bandeja.text
+    # La cuenta de la sección sale de la misma lista filtrada: con un lote
+    # demo visible no puede decir 2.
+    assert '<span class="cuenta">1</span>' in bandeja.text
+    assert '<span class="cuenta">2</span>' not in bandeja.text
+
+
+def test_un_lote_legacy_con_origen_null_es_real_para_la_sesion_demo() -> None:
+    mundo = _mundo()
+    legacy = _lote_real(mundo.lotes)
+    assert legacy.origen_creacion is None
+    _ingresar_demo(mundo.client, CORREO_APROBADOR)
+    assert mundo.client.get(
+        f"/certificados/{legacy.id_lote}"
+    ).status_code == 404
+    bandeja = mundo.client.get("/bandeja")
+    assert f"/certificados/{legacy.id_lote}" not in bandeja.text
+    respuesta = mundo.client.post(
+        f"/certificados/{legacy.id_lote}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "hash_lote": legacy.objeto_lote,
+            "accion": "descartar",
+        },
+    )
+    assert respuesta.status_code == 404
+    persistido = mundo.lotes.obtener(legacy.id_lote)
+    assert persistido is not None
+    assert persistido.estado == ESTADO_PENDIENTE
 
 
 # --- la marca reconoce todas las variantes válidas de la semilla --------------
@@ -679,7 +907,7 @@ def test_la_marca_reconoce_el_lote_que_siembra_el_script() -> None:
     assert lote is not None
     assert es_lote_demo(lote) is True
     # Otro lote, con otra lista, no lleva la marca.
-    otro = replace(lote, objeto_lote="0" * 64)
+    otro = replace(lote, objeto_lote="0" * 64, origen_creacion=None)
     assert es_lote_demo(otro) is False
 
 
@@ -816,13 +1044,26 @@ def test_ruta_demo_completa_sobre_repositorio_real(
 def test_sesion_demo_no_puentea_un_lote_real_sobre_postgres(
     base_pg: str, tmp_path,
 ) -> None:
-    """La identidad demo nunca registra aprobaciones institucionales."""
+    """La identidad demo no ve un lote real ni registra su aprobación."""
     repo = _repo(base_pg)
     registro = RegistroDecisiones(tmp_path)
     mundo = _mundo(lotes=repo, registro_decisiones=registro)
     real = _lote_real(repo)
     _ingresar_demo(mundo.client, CORREO_APROBADOR)
-    _aprobar(mundo.client, mundo, real.id_lote)
+    respuesta = mundo.client.post(
+        f"/certificados/{real.id_lote}/decidir",
+        data={
+            "csrf": _csrf(mundo),
+            "hash_lote": real.objeto_lote,
+            "accion": "aprobar",
+            "confirmar": "si",
+        },
+    )
+    assert respuesta.status_code == 404
+    persistido = repo.obtener(real.id_lote)
+    assert persistido is not None
+    assert persistido.estado == ESTADO_PENDIENTE
+    assert persistido.decidida_en is None
     revision = revisar_aprobacion_lote(
         registro,
         objeto_lote=real.objeto_lote,

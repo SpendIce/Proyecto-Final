@@ -737,7 +737,10 @@ def test_aprobar_lote_google_en_demo_no_registra_decisiones(tmp_path) -> None:
     )
     _ingresar_demo(mundo.client, CORREO_APROBADOR)
     respuesta = _decidir(mundo, confirmar="si")
-    assert respuesta.status_code == 200
+    # La sesión demo no ve el lote real: 404 y el lote no cambia.
+    assert respuesta.status_code == 404
+    lote = mundo.lotes.obtener("lote-abc123")
+    assert lote is not None and lote.estado == ESTADO_PENDIENTE
     assert registro.procesadas() == ()
 
 @pytest.mark.parametrize("accion", ["emision", "decidir"])

@@ -113,6 +113,7 @@ from .certificados_web import (
     RepositorioLotesPuerto,
     lotes_para_bandeja,
     registrar_rutas_certificados,
+    sesion_puede_ver_lote,
 )
 from .demo_certificados import registrar_rutas_demo_certificados
 from .docs_canal import ExportadorDocs
@@ -838,7 +839,13 @@ def crear_app(
             sesion=sesion,
             items=items,
             lotes=(
-                lotes_para_bandeja(lotes, es_lote_demo=es_lote_demo)
+                lotes_para_bandeja(
+                    lotes,
+                    es_lote_demo=es_lote_demo,
+                    puede_ver=lambda lote: sesion_puede_ver_lote(
+                        sesion, lote
+                    ),
+                )
                 if lotes is not None
                 and rol_de(sesion) == ROL_APROBADOR_CONTENIDO
                 else []

@@ -41,6 +41,11 @@ Decisiones que no se ven en el código:
   puede decidir ni se ofrecen los controles, y su decisión vive sólo en
   `lotes_certificados` —nunca un `apruebo_lote` en el registro que lee la
   emisión—. Un lote real conserva el circuito y el puente de siempre.
+- **Una sesión demo no ve lotes reales.** La visibilidad la decide sólo
+  `sesion_puede_ver_lote`: lo que no nació con `origen_creacion = 'demo'`
+  es real —incluido el legacy `NULL`— y la sesión demo recibe 404, sin
+  distinguir un lote ajeno de uno inexistente. La bandeja usa el mismo
+  predicado, así que tampoco lista sus nombres ni su cuenta.
 """
 
 from __future__ import annotations
@@ -869,12 +874,31 @@ class EmisionCertificadosWebPuerto(Protocol):
     def descargar(self, id_lote: str, *, actor) -> bytes: ...
 
 
+def sesion_puede_ver_lote(sesion: Sesion, lote: LoteCertificados) -> bool:
+    """¿Esta sesión puede ver y operar este lote? (ADR 0019)
+
+    Una sesión demo sólo accede a lotes nacidos en la demo: el único valor
+    de `origen_creacion` que los identifica es `demo` (migración 0012).
+    Cualquier otro valor —incluido `NULL`, el lote legacy— es real y queda
+    fuera del alcance de la sesión demo, que ni siquiera debe saber que
+    existe. Una sesión con identidad verificada no cambia: ve todos los
+    lotes y el gobierno del lote demo sigue en la página.
+    """
+    if sesion.origen != ORIGEN_DEMO:
+        return True
+    return lote.origen_creacion == ORIGEN_DEMO
+
+
 def lotes_para_bandeja(
     repositorio: RepositorioLotesPuerto,
     *,
     es_lote_demo: Callable[[LoteCertificados], bool] | None = None,
+    puede_ver: Callable[[LoteCertificados], bool] | None = None,
 ) -> list[dict[str, object]]:
     """Filas de la sección «Lotes de certificados» de la bandeja."""
+    lotes = repositorio.listar()
+    if puede_ver is not None:
+        lotes = [lote for lote in lotes if puede_ver(lote)]
     return [
         {
             "id": lote.id_lote,
@@ -888,7 +912,7 @@ def lotes_para_bandeja(
             "creada": lote.creada_en.strftime("%d/%m/%Y %H:%M"),
             "demo": es_lote_demo(lote) if es_lote_demo else False,
         }
-        for lote in repositorio.listar()
+        for lote in lotes
     ]
 
 
@@ -931,6 +955,19 @@ def registrar_rutas_certificados(
 
     def _puede_decidir(sesion: Sesion) -> bool:
         return rol_de(sesion) == ROL_APROBADOR_CONTENIDO
+
+    def _lote_visible(
+        sesion: Sesion, id_lote: str
+    ) -> LoteCertificados | None:
+        """El lote, o `None` si no existe o la sesión no puede verlo.
+
+        Las rutas devuelven el mismo 404 en ambos casos: la sesión demo no
+        distingue un lote real de uno inexistente (ADR 0019).
+        """
+        lote = repositorio.obtener(id_lote)
+        if lote is None or not sesion_puede_ver_lote(sesion, lote):
+            return None
+        return lote
 
     def _decision_bloqueada(lote: LoteCertificados) -> bool:
         """Lote demo fuera de la demostración: no se decide acá."""
@@ -1004,7 +1041,7 @@ def registrar_rutas_certificados(
             return destino_login()
         if not _puede_decidir(sesion):
             return render("sin_permiso.html", request, status_code=403)
-        lote = repositorio.obtener(id_lote)
+        lote = _lote_visible(sesion, id_lote)
         if lote is None:
             return render("sin_permiso.html", request, status_code=404)
         return _render_lote(request, sesion, lote)
@@ -1016,7 +1053,7 @@ def registrar_rutas_certificados(
             return destino_login()
         if not _puede_decidir(sesion):
             return render("sin_permiso.html", request, status_code=403)
-        lote = repositorio.obtener(id_lote)
+        lote = _lote_visible(sesion, id_lote)
         if lote is None:
             return render("sin_permiso.html", request, status_code=404)
         if not lote.personas or lote.linea_descriptiva is None:
@@ -1049,15 +1086,15 @@ def registrar_rutas_certificados(
             return destino_login()
         if not _puede_decidir(sesion):
             return render("sin_permiso.html", request, status_code=403)
+        lote = _lote_visible(sesion, id_lote)
+        if lote is None:
+            return render("sin_permiso.html", request, status_code=404)
         try:
             form = await leer_formulario_acotado(request, max_bytes=8192)
         except HTTPException as error:
             return Response("Formulario inválido o demasiado grande.", status_code=error.status_code)
         if not csrf_ok(sesion, str(form.get("csrf", ""))):
             return render("sin_permiso.html", request, status_code=403)
-        lote = repositorio.obtener(id_lote)
-        if lote is None:
-            return render("sin_permiso.html", request, status_code=404)
         es_demo = es_lote_demo(lote)
         if es_demo and not demo_vigente():
             return render("sin_permiso.html", request, status_code=403)
@@ -1195,7 +1232,7 @@ def registrar_rutas_certificados(
                 return destino_login()
             if not _puede_decidir(sesion):
                 return render("sin_permiso.html", request, status_code=403)
-            lote = repositorio.obtener(id_lote)
+            lote = _lote_visible(sesion, id_lote)
             if lote is None:
                 return render("sin_permiso.html", request, status_code=404)
             if es_lote_demo(lote) and not demo_vigente():
@@ -1219,15 +1256,15 @@ def registrar_rutas_certificados(
                 return destino_login()
             if not _puede_decidir(sesion):
                 return render("sin_permiso.html", request, status_code=403)
+            lote = _lote_visible(sesion, id_lote)
+            if lote is None:
+                return render("sin_permiso.html", request, status_code=404)
             try:
                 form = await leer_formulario_acotado(request, max_bytes=8192)
             except HTTPException as error:
                 return Response("Formulario inválido o demasiado grande.", status_code=error.status_code)
             if not csrf_ok(sesion, str(form.get("csrf", ""))):
                 return render("sin_permiso.html", request, status_code=403)
-            lote = repositorio.obtener(id_lote)
-            if lote is None:
-                return render("sin_permiso.html", request, status_code=404)
             if es_lote_demo(lote) and not demo_vigente():
                 return render("sin_permiso.html", request, status_code=403)
             if str(form.get("hash_lote", "")) != lote.objeto_lote:
@@ -1275,7 +1312,7 @@ def registrar_rutas_certificados(
                 return destino_login()
             if not _puede_decidir(sesion):
                 return render("sin_permiso.html", request, status_code=403)
-            lote = repositorio.obtener(id_lote)
+            lote = _lote_visible(sesion, id_lote)
             if lote is None:
                 return render("sin_permiso.html", request, status_code=404)
             if es_lote_demo(lote) and not demo_vigente():
@@ -1326,4 +1363,5 @@ __all__ = [
     "lotes_para_bandeja",
     "registrar_aprobacion_en_registro",
     "registrar_rutas_certificados",
+    "sesion_puede_ver_lote",
 ]

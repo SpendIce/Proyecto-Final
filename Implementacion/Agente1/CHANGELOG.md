@@ -26,7 +26,14 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
-Sin cambios todavía.
+- **Parche — una sesión demo no ve ni opera lotes reales** (Refs #168;
+  revisión de la rama `demo/integracion-20261117b`). La visibilidad se
+  decide en un único predicado por el origen de creación del lote: sólo
+  `demo` es de demostración y el legacy `NULL` es real. El detalle, la
+  muestra, la decisión, el pedido de emisión y la descarga del ZIP
+  responden 404 sin revelar que el lote existe; la bandeja no lista lotes
+  reales ni cuenta sus nombres. El recorrido completo con lotes demo no
+  cambia.
 
 ## [0.10.0] - 2026-11-17
 
