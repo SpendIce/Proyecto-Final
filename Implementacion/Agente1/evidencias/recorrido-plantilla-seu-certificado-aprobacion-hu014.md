@@ -3,12 +3,19 @@
 ## Qué demuestra
 
 - Que la emisión de `aprobacion` compone el diseño recibido de la SEU —
-  A4 horizontal, doble borde, símbolo FIE centrado arriba, denominación de
-  facultad y universidad, título de la actividad, texto de aprobación con
-  el destinatario en negrita, lugar/fecha y los dos bloques visibles de
-  firma (Secretario de Extensión Universitaria y Decano)— como composición
-  reproducible de `certificados_plantilla_seu.py`
-  (`certificado_seu_aprobacion_v2`), no como transformación del DOCX.
+  A4 horizontal, doble borde, símbolo FIE centrado arriba, encabezado
+  institucional en una línea, título de la actividad, cuerpo de aprobación
+  en oblicua con el destinatario en negrita oblicua, lugar/fecha y los dos
+  bloques visibles de firma (Secretario de Extensión Universitaria y
+  Decano)— como composición reproducible de
+  `certificados_plantilla_seu.py` (`certificado_seu_aprobacion_v2`), no
+  como transformación del DOCX.
+- Que la composición se ajustó al PDF institucional del 17/11/2026: caja de
+  firma de 90×65 pt apoyada en y=62, encabezado en una línea (facultad 17
+  pt, universidad 13 pt), título achicado de 17 a 13 pt para entrar en una
+  línea, cuerpo completo en Helvetica-Oblique de 15 pt con el destinatario
+  en Helvetica-BoldOblique, sustantivo del cuerpo según la primera palabra
+  del título y DNI con separador de miles.
 - Que el tercer firmante heredado del XML del DOCX —un textbox anclado
   fuera de página que el render de la SEU no muestra— no se compone: la
   plantilla declara únicamente los dos bloques visibles.
@@ -21,9 +28,11 @@
   ningún PDF parece firmado sin estarlo, porque un recurso faltante deja
   su espacio marcado «insumo restringido no provisto».
 - Que la firma se solapa sobre el texto del firmante (pedido SEU del
-  17/11/2026): la imagen se centra en la línea «grado nombre», los trazos
-  la cruzan y el texto se emite después para quedar legible encima. El
-  espacio reservado de un recurso ausente no pisa el texto.
+  17/11/2026): la imagen va en una caja de 90×65 pt con borde inferior en
+  62 pt, alineada al fondo y centrada en el firmante; queda casi entera
+  sobre el nombre, sólo sus trazos inferiores lo cruzan y el texto se
+  emite después para quedar legible encima. El espacio reservado de un
+  recurso ausente no pisa nombre ni cargo.
 - Que el PDF es determinista byte a byte para los mismos datos y
   recursos, así que `pdf_hash` en la auditoría es estable.
 - Que el circuito no cambia: mismo parseo estricto de la lista, misma
@@ -111,21 +120,27 @@ título en dos líneas sin desborde, destinatario en negrita dentro de la
 frase de aprobación, línea descriptiva en oblicua, lugar/fecha a la
 derecha y los dos bloques de firma con su imagen.
 
-## Muestra del solapado (v2)
+## Muestra del ajuste al PDF de la SEU (v2)
 
-La composición `certificado_seu_aprobacion_v2` se generó fuera del repo
-con los recursos sintéticos de `tests/fixtures/recursos-firma/` para la
-revisión visual:
+La composición `certificado_seu_aprobacion_v2` se generó fuera del repo con
+los recursos sintéticos de `tests/fixtures/recursos-firma/` para la
+revisión visual. Datos de la muestra: nombre «Ana María», apellido
+«Prueba», DNI «30222333», el título del taller del PDF de la SEU y 14 horas
+reloj.
 
-- `/tmp/firma-solapada-muestra.pdf` — A4 horizontal, 7453 bytes, sha256
-  `6a7470db342b81c577b52b274df3f18ccbde696d8f6b95e0e1278b09c72225a2`.
-- `/tmp/firma-solapada-muestra.png` — la misma página rasterizada con
-  `pdftoppm -r 80 -png`.
+- `/dev/shm/firma-muestra-v2.pdf` — A4 horizontal, 7513 bytes, sha256
+  `f66323123900bceece139875d11aeaa719e07783e248999c7ddcbaea9ca43449`.
+- `/dev/shm/firma-muestra-v2.png` — la misma página rasterizada a 80 dpi
+  con `pdftoppm -r 80 -png`, 936×662 px.
 
-Se reproduce con el `_datos()` de
-`tests/test_certificados_plantilla_seu.py` y
-`RecursosFirmaDirectorio("tests/fixtures/recursos-firma")`; la geometría
-la cubre `test_firma_se_solapa_sobre_el_nombre_y_se_dibuja_antes`.
+Se reproduce con `generar_pdf_certificado_seu` y
+`RecursosFirmaDirectorio("tests/fixtures/recursos-firma")`. La geometría y
+la tipografía las cubren
+`test_firma_se_solapa_sobre_el_nombre_y_se_dibuja_antes`,
+`test_encabezado_institucional_en_una_sola_linea`,
+`test_titulo_largo_en_una_linea_achicado_hasta_quince`,
+`test_titulo_que_no_entra_a_trece_se_envuelve` y
+`test_cuerpo_en_oblicua_y_destinatario_en_negrita_oblicua`, entre otros.
 
 La corrida auditada de arriba queda como evidencia de v1; con v2 el evento
 `entrega` asienta `certificado_seu_aprobacion_v2` y el `pdf_hash` del
@@ -136,8 +151,8 @@ adjunto cambia con la composición.
 - Variante de **asistencia**: plantilla SEU entregada o adaptación
   avalada de la de aprobación (verbo y texto); hoy sigue la provisional.
 - Firma digital y emisión institucional real (`PENDIENTE_SEU`).
-- Revisión SEU de la fidelidad visual del render, incluido el espaciado
-  del encabezado observado como irregular en el render del original y el
-  solapado de la firma sobre el nombre.
+- Revisión SEU de la fidelidad visual del render: encabezado en una
+  línea, título achicado, cuerpo oblicuo y solapado de la firma sobre el
+  nombre.
 - Compatibilidad con el manual visual 2026 (Encode Sans/Roboto), sin
   rediseño automático por esa diferencia.

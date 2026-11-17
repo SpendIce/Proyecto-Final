@@ -26,13 +26,18 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
-- **Menor — la firma del certificado de aprobación se solapa sobre el texto
-  del firmante** (Refs #126; rama `feat/certificado-firma-solapada`).
-  Pedido de la SEU del 17/11/2026: la imagen se
-  centra en la línea «grado nombre» y se emite antes que el texto, así los
-  trazos cruzan el nombre y el cargo queda legible encima. Sube la plantilla
-  a `certificado_seu_aprobacion_v2`; sin recursos, el espacio reservado sigue
-  sin pisar el texto y la variante de asistencia no cambia.
+- **Menor — el certificado de aprobación sigue el PDF institucional de la
+  SEU** (Refs #126; rama `feat/certificado-firma-solapada`). Pedido y
+  comparación de la SEU del 17/11/2026: la firma va en una caja de 90×65 pt
+  con borde inferior en 62 pt, centrada en el firmante y emitida antes que
+  el texto, así queda casi entera sobre el nombre y sólo sus trazos
+  inferiores lo cruzan. El cuerpo va en oblicua de 15 pt con el
+  destinatario en negrita oblicua, el encabezado en una línea (17/13 pt), el
+  título se achica de 17 a 13 pt para entrar en una línea, el sustantivo
+  sigue la primera palabra del título y el DNI se imprime con separador de
+  miles. Se mantiene `certificado_seu_aprobacion_v2` porque la v2 no se
+  publicó; sin recursos, el espacio reservado sigue sin pisar el texto y la
+  variante de asistencia no cambia.
 
 ## [0.9.0] - 2026-11-17
 

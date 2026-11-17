@@ -22,9 +22,18 @@ Decisiones de la integración:
 - **Sin tercer firmante.** El XML del DOCX arrastra un cuadro de texto
   con otro nombre y cargo que el render no muestra (queda fuera de la
   página): no se compone. Los únicos bloques son los dos visibles.
-- **Firma solapada.** La imagen se centra en la línea del nombre y se
-  emite antes que el texto, como pidió la SEU el 17/11/2026: los trazos
-  cruzan el nombre y el texto queda legible encima.
+- **Firma solapada.** La imagen va en una caja de 90×65 pt con el borde
+  inferior en 62 pt, alineada al fondo y centrada en el firmante, y se
+  emite antes que el texto, como pidió la SEU el 17/11/2026: queda casi
+  entera sobre el nombre y sólo sus trazos inferiores lo cruzan; el cargo
+  queda debajo y el texto se lee encima.
+- **Ajuste al PDF del 17/11/2026.** El encabezado va en una línea
+  (facultad 17 pt, universidad 13 pt), el título se achica desde 17 hasta
+  13 pt para entrar en una línea y el cuerpo va en oblicua de 15 pt con el
+  destinatario en negrita oblicua. El sustantivo del cuerpo sigue la
+  primera palabra del título (taller, curso, seminario, jornada,
+  diplomatura) y el DNI se imprime con separador de miles cuando son 7 u
+  8 dígitos.
 - **Parámetros, no herencia.** Nombre, apellido, DNI, actividad, horas y
   fecha llegan como datos: el caso NotebookLM compone con su título y
   sus 24 horas; nada del ejemplo (Gestión Documental, 12 h) queda
@@ -35,12 +44,12 @@ Decisiones de la integración:
 - **Sólo aprobación.** La SEU no entregó la variante de asistencia:
   este renderer no la implementa (`condicion` `asistencia` sigue por la
   plantilla provisional, declarada pendiente de definición SEU).
-- **Espaciado propio.** El render LibreOffice del cierre mostró un
-  encabezado con espaciado irregular del DOCX; acá cada línea se compone
-  con posición declarada, sin heredar esa irregularidad ni rediseñar el
-  documento. La compatibilidad tipográfica final (manual visual Encode
-  Sans/Roboto vs. Calibri/Arial del archivo) queda a la revisión SEU:
-  se usa Helvetica base-14 como sustituta estándar y se documenta.
+- **Espaciado propio.** Cada línea se compone con posición declarada, sin
+  heredar el espaciado del DOCX ni rediseñar el documento. La
+  compatibilidad tipográfica final (manual visual Encode Sans/Roboto vs.
+  Calibri/Arial del archivo) queda a la revisión SEU: se usa Helvetica
+  base-14 como sustituta estándar y se documenta. Calibri queda fuera de
+  alcance por licencia.
 - **Determinismo.** Sin timestamps ni IDs de documento, imágenes
   embebidas con compresión fija: mismos datos y mismos recursos,
   mismos bytes. El `pdf_hash` de la auditoría sigue siendo reproducible.
@@ -54,6 +63,7 @@ from __future__ import annotations
 
 import re
 import struct
+import unicodedata
 import zlib
 from dataclasses import dataclass
 from pathlib import Path
@@ -243,6 +253,61 @@ def horas_reloj_texto(horas: str) -> str:
     return _numero_en_palabras(numero)
 
 
+# --- Destinatario y tipo de actividad ----------------------------------------
+
+# La primera palabra del título decide cómo nombra el cuerpo a la
+# actividad. Sin coincidencia se conserva «el mencionado curso».
+_SUSTANTIVOS_ACTIVIDAD = {
+    "taller": ("el", "taller"),
+    "curso": ("el", "curso"),
+    "seminario": ("el", "seminario"),
+    "jornada": ("la", "jornada"),
+    "diplomatura": ("la", "diplomatura"),
+}
+
+
+def _sin_diacriticos(texto: str) -> str:
+    return "".join(
+        caracter
+        for caracter in unicodedata.normalize("NFKD", texto)
+        if not unicodedata.combining(caracter)
+    )
+
+
+def _mencion_actividad_texto(actividad: str) -> str:
+    """«el mencionado taller», «la mencionada jornada», etc.
+
+    Sólo la primera palabra del título decide el sustantivo; se compara
+    sin mayúsculas ni tildes. Si no es un tipo conocido, se mantiene el
+    texto histórico «el mencionado curso».
+    """
+
+    palabras = (actividad or "").strip().split()
+    if not palabras:
+        return "el mencionado curso"
+    primera = re.sub(r"^[^\w]+|[^\w]+$", "", palabras[0])
+    clave = _sin_diacriticos(primera).lower()
+    articulo, sustantivo = _SUSTANTIVOS_ACTIVIDAD.get(clave, ("el", "curso"))
+    mencionado = "mencionada" if articulo == "la" else "mencionado"
+    return f"{articulo} {mencionado} {sustantivo}"
+
+
+def _dni_texto(dni: str) -> str:
+    """El DNI con separador de miles si son 7 u 8 dígitos; si no, tal cual.
+
+    Acepta el número con o sin puntos y espacios. Un pasaporte o cualquier
+    otro formato se imprime como llegó: la plantilla no lo interpreta.
+    """
+
+    crudo = (dni or "").strip()
+    digitos = re.sub(r"[\s.]", "", crudo)
+    if not re.fullmatch(r"\d{7,8}", digitos):
+        return crudo
+    if len(digitos) == 7:
+        return f"{digitos[0]}.{digitos[1:4]}.{digitos[4:]}"
+    return f"{digitos[:2]}.{digitos[2:5]}.{digitos[5:]}"
+
+
 # --- Decodificación de imágenes (stdlib) --------------------------------------
 
 
@@ -400,31 +465,37 @@ def _cargar_imagen(nombre: str, datos: bytes) -> _Imagen:
 # para centrar una línea y envolver sin derramar del borde (el ajuste de
 # fidelidad fina queda a la revisión SEU).
 _ANCHOS = {
-    "ijlI.,;:!|'’´`¡íì": 260,
-    "fjrt()[]{}\"": 330,
-    "mwMW": 850,
-    "JFLTZ-–—/\\": 450,
+    "ijlI.,;:!|'’´`¡íì": 278,
+    "fjrt()[]{}\"“”": 333,
+    "mwMW": 861,
+    "JFLTZ-–—/\\": 540,
     " ": 278,
 }
 
 
-def _ancho_caracter(caracter: str) -> int:
+def _ancho_caracter(caracter: str, *, negrita: bool) -> int:
     for clase, ancho in _ANCHOS.items():
         if caracter in clase:
             return ancho
-    if caracter.isupper() or caracter.isdigit():
+    if caracter.isdigit():
+        return 556
+    if caracter.isupper():
         return 700
-    return 520
+    return 570 if negrita else 556
 
 
-def _ancho_texto(texto: str, tamano: float) -> float:
+def _ancho_texto(texto: str, tamano: float, *, negrita: bool = False) -> float:
     """Ancho estimado de una línea en puntos, para centrar/envolver."""
 
-    unidades = sum(_ancho_caracter(caracter) for caracter in texto)
+    unidades = sum(
+        _ancho_caracter(caracter, negrita=negrita) for caracter in texto
+    )
     return unidades / 1000 * tamano
 
 
-def _envolver(texto: str, tamano: float, ancho_max: float) -> list[str]:
+def _envolver(
+    texto: str, tamano: float, ancho_max: float, *, negrita: bool = False
+) -> list[str]:
     """Corta un texto en líneas que no superen `ancho_max` (estimado)."""
 
     lineas: list[str] = []
@@ -433,7 +504,10 @@ def _envolver(texto: str, tamano: float, ancho_max: float) -> list[str]:
         actual = ""
         for palabra in palabras:
             candidata = f"{actual} {palabra}".strip()
-            if actual and _ancho_texto(candidata, tamano) > ancho_max:
+            if (
+                actual
+                and _ancho_texto(candidata, tamano, negrita=negrita) > ancho_max
+            ):
                 lineas.append(actual)
                 actual = palabra
             else:
@@ -442,24 +516,64 @@ def _envolver(texto: str, tamano: float, ancho_max: float) -> list[str]:
     return lineas or [""]
 
 
+def _envolver_unidades(
+    unidades: list[str], tamano: float, ancho_max: float
+) -> list[str]:
+    """Como `_envolver`, pero una unidad nunca se parte entre líneas."""
+
+    lineas: list[str] = []
+    actual = ""
+    for unidad in unidades:
+        candidata = f"{actual} {unidad}".strip()
+        if actual and _ancho_texto(candidata, tamano) > ancho_max:
+            lineas.append(actual)
+            actual = unidad
+        else:
+            actual = candidata
+    lineas.append(actual)
+    return lineas
+
+
+def _titulo_actividad_lineas(actividad: str) -> list[tuple[str, float]]:
+    """El título en una línea, achicado; a 13 pt se envuelve si no entra."""
+
+    texto = (actividad or "").strip()
+    for tamano in _TAMANOS_TITULO:
+        if _ancho_texto(texto, tamano, negrita=True) <= _ANCHO_UTIL_TITULO:
+            return [(texto, float(tamano))]
+    return [
+        (linea, 13.0)
+        for linea in _envolver(
+            texto, 13, _ANCHO_UTIL_TITULO, negrita=True
+        )
+    ]
+
+
 # --- Composición de la página --------------------------------------------------
 
 _MARGEN_BORDE_EXT = 28.35  # 1 cm
 _MARGEN_BORDE_INT = 35.43  # 1.25 cm
 
 # Bloque de firma: caja de la imagen y líneas base del nombre y el cargo.
-# La caja se centra en la línea del nombre: los trazos la cruzan y el
-# texto, emitido después, queda por encima.
-_CAJA_FIRMA_ANCHO = 86
-_CAJA_FIRMA_ALTO = 60
+# La caja se apoya en 62 pt —casi entera sobre el nombre en 68— y la
+# imagen se alinea a su fondo; el texto, emitido después, queda encima.
+_CAJA_FIRMA_ANCHO = 90
+_CAJA_FIRMA_ALTO = 65
+_Y_CAJA_FIRMA_INFERIOR = 62
 _Y_NOMBRE_FIRMANTE = 68
 _Y_CARGO_FIRMANTE = 58
 
+# El título entra en una línea achicándose desde 17 pt; a 13 pt, si no
+# entra, se envuelve. El ancho útil deja aire dentro del doble borde.
+_ANCHO_UTIL_TITULO = 620
+_TAMANOS_TITULO = (17, 16, 15, 14, 13)
+
 
 def _linea_centrada(texto: str, tamano: float, y: float, fuente: str) -> bytes:
-    """Una línea centrada en la página. `fuente` es F1/F2/F3."""
+    """Una línea centrada en la página. `fuente` es F1/F2/F3/F4."""
 
-    x = max(_MARGEN_BORDE_INT + 6, (PAGINA_ANCHO - _ancho_texto(texto, tamano)) / 2)
+    ancho = _ancho_texto(texto, tamano, negrita=fuente == "F2")
+    x = max(_MARGEN_BORDE_INT + 6, (PAGINA_ANCHO - ancho) / 2)
     return (
         f"BT /{fuente} {tamano} Tf 1 0 0 1 {x:.2f} {y:.2f} Tm ".encode("ascii")
         + b"("
@@ -479,15 +593,27 @@ def _linea_derecha(texto: str, tamano: float, y: float, fuente: str) -> bytes:
 
 
 def _imagen_en_caja(
-    nombre_xobject: str, cx: float, y_inferior: float, caja_ancho: float, caja_alto: float, img: _Imagen
+    nombre_xobject: str,
+    cx: float,
+    y_inferior: float,
+    caja_ancho: float,
+    caja_alto: float,
+    img: _Imagen,
+    *,
+    alinear_al_fondo: bool = False,
 ) -> bytes:
-    """Escala la imagen conservando proporción, centrada en su caja."""
+    """Escala la imagen conservando proporción, centrada en su caja.
+
+    Con `alinear_al_fondo` la imagen apoya en el borde inferior de la caja;
+    así la firma queda casi entera sobre el nombre, sin deformarla.
+    """
 
     escala = min(caja_ancho / img.ancho, caja_alto / img.alto)
     ancho, alto = img.ancho * escala, img.alto * escala
     x = cx - ancho / 2
+    y = y_inferior if alinear_al_fondo else y_inferior + (caja_alto - alto) / 2
     return (
-        f"q {ancho:.2f} 0 0 {alto:.2f} {x:.2f} {y_inferior + (caja_alto - alto) / 2:.2f} cm "
+        f"q {ancho:.2f} 0 0 {alto:.2f} {x:.2f} {y:.2f} cm "
         f"/{nombre_xobject} Do Q\n"
     ).encode("ascii")
 
@@ -581,30 +707,53 @@ def generar_pdf_certificado_seu(
             )
         )
 
-    # Encabezado institucional y título de la actividad.
+    # Encabezado institucional en una línea, como el PDF del 17/11/2026.
     y = y_simbolo - 16
-    partes.append(_linea_centrada("Facultad de Ingeniería del Ejército", 22, y, "F2"))
-    y -= 25
-    partes.append(_linea_centrada("“Grl Div Manuel Nicolás Savio”", 20, y, "F2"))
-    y -= 25
-    partes.append(_linea_centrada("Universidad de la Defensa Nacional", 16, y, "F2"))
-    y -= 28
-    for linea in _envolver(datos.actividad.strip(), 19, 660):
-        partes.append(_linea_centrada(linea, 19, y, "F2"))
-        y -= 22
-
-    # Cuerpo: el destinatario en negrita dentro de la frase, como el DOCX.
-    y -= 12
-    destinatario = f"{datos.nombre.strip()} {datos.apellido.strip()}, DNI {datos.dni.strip()}"
-    frase = (
-        "Se extiende el presente CERTIFICADO a "
-        + destinatario
-        + f" por APROBAR el mencionado curso, de {datos.horas.strip()} "
-        "horas reloj de duración."
+    partes.append(
+        _linea_centrada(
+            "Facultad de Ingeniería del Ejército "
+            "“Grl Div Manuel Nicolás Savio”",
+            17,
+            y,
+            "F2",
+        )
     )
-    for cruda in _envolver(frase, 17, 700):
-        partes.append(_linea_centrada_mixta(cruda, 17, y, destinatario))
-        y -= 20
+    y -= 20
+    partes.append(
+        _linea_centrada("Universidad de la Defensa Nacional", 13, y, "F2")
+    )
+    y -= 26
+    for linea, tamano in _titulo_actividad_lineas(datos.actividad):
+        partes.append(_linea_centrada(linea, tamano, y, "F2"))
+        y -= tamano + 3
+
+    # Cuerpo en oblicua; el destinatario en negrita oblicua, como el DOCX.
+    y -= 12
+    destinatario = (
+        f"{datos.nombre.strip()} {datos.apellido.strip().upper()}, "
+        f"DNI {_dni_texto(datos.dni)}"
+    )
+    mencion = _mencion_actividad_texto(datos.actividad)
+    unidades = (
+        "Se extiende el presente CERTIFICADO a".split()
+        + [destinatario]
+        + (
+            f"por APROBAR {mencion}, de {datos.horas.strip()} "
+            "horas reloj de duración."
+        ).split()
+    )
+    for cruda in _envolver_unidades(unidades, 15, 700):
+        partes.append(
+            _linea_centrada_mixta(
+                cruda,
+                15,
+                y,
+                destinatario,
+                fuente_normal="F3",
+                fuente_negrita="F4",
+            )
+        )
+        y -= 17
 
     # Línea descriptiva aprobada (#74), más chica y en oblicua.
     linea = datos.linea_descriptiva.strip()
@@ -630,10 +779,11 @@ def generar_pdf_certificado_seu(
                 _imagen_en_caja(
                     nombre_xobj[firmante.recurso or ""],
                     cx,
-                    _Y_NOMBRE_FIRMANTE - _CAJA_FIRMA_ALTO / 2,
+                    _Y_CAJA_FIRMA_INFERIOR,
                     _CAJA_FIRMA_ANCHO,
                     _CAJA_FIRMA_ALTO,
                     imagen,
+                    alinear_al_fondo=True,
                 )
             )
         else:
@@ -662,29 +812,42 @@ def _linea_centrada_en(texto: str, tamano: float, y: float, cx: float) -> bytes:
     )
 
 
-def _linea_centrada_mixta(texto: str, tamano: float, y: float, segmento_negrita: str) -> bytes:
-    """Línea centrada con `segmento_negrita` impreso en F2 dentro del texto."""
+def _linea_centrada_mixta(
+    texto: str,
+    tamano: float,
+    y: float,
+    segmento_negrita: str,
+    *,
+    fuente_normal: str = "F1",
+    fuente_negrita: str = "F2",
+) -> bytes:
+    """Línea centrada con `segmento_negrita` en la fuente de negrita."""
 
-    ancho_total = _ancho_texto(texto, tamano)
+    extra = 0.0
+    if segmento_negrita and segmento_negrita in texto:
+        extra = _ancho_texto(
+            segmento_negrita, tamano, negrita=True
+        ) - _ancho_texto(segmento_negrita, tamano)
+    ancho_total = _ancho_texto(texto, tamano) + extra
     x = max(_MARGEN_BORDE_INT + 8, (PAGINA_ANCHO - ancho_total) / 2)
     salida = bytearray(f"BT {tamano} TL 1 0 0 1 {x:.2f} {y:.2f} Tm ".encode("ascii"))
     resto = texto
     while resto:
         indice = resto.find(segmento_negrita) if segmento_negrita else -1
         if indice < 0:
-            tramo, fuente, resto = resto, "F1", ""
+            tramo, fuente, resto = resto, fuente_normal, ""
         elif indice == 0:
-            tramo, fuente = segmento_negrita, "F2"
+            tramo, fuente = segmento_negrita, fuente_negrita
             resto = resto[len(segmento_negrita) :]
         else:
-            tramo, fuente, resto = resto[:indice], "F1", resto[indice:]
+            tramo, fuente, resto = resto[:indice], fuente_normal, resto[indice:]
         salida += f"/{fuente} {tamano} Tf ".encode("ascii")
         salida += b"(" + _escapar_texto_pdf(tramo) + b") Tj "
     return bytes(salida) + b"ET\n"
 
 
 def _ensamblar_pdf(partes: list[bytes], imagenes: dict[str, _Imagen]) -> bytes:
-    """Arma el PDF: catálogo, página, 3 fuentes, XObjects y contenido.
+    """Arma el PDF: catálogo, página, 4 fuentes, XObjects y contenido.
 
     Misma estructura determinista que `generar_pdf_certificado`: objetos
     en orden fijo, xref calculado sobre los bytes emitidos, sin fechas
@@ -693,18 +856,19 @@ def _ensamblar_pdf(partes: list[bytes], imagenes: dict[str, _Imagen]) -> bytes:
 
     contenido = b"".join(partes)
     nombres = sorted(imagenes)
-    xobjects = "".join(f" /Im{i} {7 + i} 0 R" for i in range(len(nombres)))
+    xobjects = "".join(f" /Im{i} {8 + i} 0 R" for i in range(len(nombres)))
     objetos = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
         (
             f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PAGINA_ANCHO} {PAGINA_ALTO}] "
-            "/Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >>"
-            f" /XObject <<{xobjects} >> >> /Contents {7 + len(nombres)} 0 R >>"
+            "/Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R /F4 7 0 R >>"
+            f" /XObject <<{xobjects} >> >> /Contents {8 + len(nombres)} 0 R >>"
         ).encode("ascii"),
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-BoldOblique /Encoding /WinAnsiEncoding >>",
     ]
     for nombre in nombres:
         objetos.append(imagenes[nombre].objeto)

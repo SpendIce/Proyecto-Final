@@ -27,7 +27,7 @@
 
 - El slice por documento no tiene adapter de emisión real: ni carpeta de Drive, ni registro institucional, ni transporte alguno. La emisión del lote de cierre es el otro circuito (`certificados_emision.py`), acotado a Gmail con lista de prueba y aprobaciones por el Form de decisiones.
 - No hay firma digital: el enunciado la menciona, pero el DoD no la exige y no existe infraestructura de firma; el PDF lo declara en su propio texto.
-- La plantilla de aprobación recibida de la SEU quedó integrada como composición reproducible (#126, `certificado_seu_aprobacion_v2`); la variante de asistencia y las definiciones finales (firma digital, manual visual 2026) quedan `PENDIENTE_SEU`.
+- La plantilla de aprobación recibida de la SEU quedó integrada como composición reproducible (#126, `certificado_seu_aprobacion_v2`) y ajustada al PDF institucional del 17/11/2026: firma de 90×65 pt con borde inferior en 62 pt, encabezado en una línea, título achicado de 17 a 13 pt, cuerpo oblicuo de 15 pt con el destinatario en negrita oblicua, sustantivo según el título y DNI con separador de miles. La variante de asistencia y las definiciones finales (firma digital, manual visual 2026) quedan `PENDIENTE_SEU`.
 - No se probó validez del PDF contra un lector institucional ni accesibilidad; es un artefacto de texto mínimo para verificar el pipeline.
 - Las aprobaciones utilizadas en tests y matriz son simuladas y no institucionales.
 - No existe lista institucional de titulares ni fuente live conectada (el trigger por estado "Aprobado" es HU-015/HU-016, fuera de este slice).

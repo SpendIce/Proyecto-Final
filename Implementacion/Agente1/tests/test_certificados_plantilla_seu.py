@@ -29,6 +29,11 @@ from agente1.certificados_plantilla_seu import (
 
 FIXTURES = Path(__file__).parent / "fixtures" / "recursos-firma"
 
+TITULO_SEU = (
+    "Taller “DevSecOps Unlocked. Del modelado de amenazas a la "
+    "criptografía del futuro”"
+)
+
 
 def _datos(**cambios) -> DatosCertificadoSeu:
     base = {
@@ -113,8 +118,8 @@ def test_parametros_en_el_documento_sin_herencia_del_ejemplo():
 
     pdf = generar_pdf_certificado_seu(_datos(), recursos=_recursos())
     contenido = _contenido(pdf)
-    assert b"Bruno Prueba Dos" in contenido
-    assert b"30222333" in contenido
+    assert b"Bruno PRUEBA DOS" in contenido
+    assert b"30.222.333" in contenido
     assert b"NOTEBOOKLM" in contenido
     assert b"VEINTICUATRO" in contenido
     assert b"octubre de 2026" in contenido
@@ -135,7 +140,7 @@ def test_otro_caso_compone_otros_datos():
     contenido = _contenido(
         generar_pdf_certificado_seu(datos, recursos=_recursos())
     )
-    assert b"Ana Prueba Uno" in contenido
+    assert b"Ana PRUEBA UNO" in contenido
     assert b"DOCE" in contenido
     assert b"VEINTICUATRO" not in contenido
 
@@ -208,6 +213,75 @@ def _imagenes_y_textos(contenido: bytes) -> tuple[list[dict], list[dict]]:
     return imagenes, textos
 
 
+def _decodificar_literal_pdf(bruto: bytes) -> str:
+    """Deshace los escapes octales del string literal del stream."""
+
+    salida = bytearray()
+    i = 0
+    while i < len(bruto):
+        byte = bruto[i]
+        if byte == 0x5C and i + 1 < len(bruto):
+            siguiente = bruto[i + 1]
+            if 0x30 <= siguiente <= 0x37:
+                j = i + 1
+                while j < len(bruto) and j < i + 4 and 0x30 <= bruto[j] <= 0x37:
+                    j += 1
+                salida.append(int(bruto[i + 1 : j], 8))
+                i = j
+                continue
+            salida.append(siguiente)
+            i += 2
+            continue
+        salida.append(byte)
+        i += 1
+    return salida.decode("cp1252")
+
+
+_SEGMENTO_TJ_RE = re.compile(
+    rb"/(F\d) ([\d.]+) Tf "
+    rb"(?:1 0 0 1 [\d.]+ [\d.]+ Tm )?"
+    rb"\((.*?)\) Tj",
+    re.S,
+)
+
+
+def _segmentos_texto(contenido: bytes) -> list[dict]:
+    """Cada `Tf`/`Tj` del stream, en orden, con fuente, tamaño y texto."""
+
+    return [
+        {
+            "fuente": fuente.decode("ascii"),
+            "tamano": float(tamano),
+            "texto": _decodificar_literal_pdf(texto),
+        }
+        for fuente, tamano, texto in _SEGMENTO_TJ_RE.findall(contenido)
+    ]
+
+
+def _texto_plano(segmentos: list[dict]) -> str:
+    """El texto de los segmentos como una sola línea, sin espacios de borde."""
+
+    return re.sub(r"\s+", " ", " ".join(s["texto"] for s in segmentos)).strip()
+
+
+def _lineas_titulo(segmentos: list[dict]) -> list[dict]:
+    """Los segmentos F2 entre el encabezado y el comienzo del cuerpo."""
+
+    inicio = next(
+        i
+        for i, s in enumerate(segmentos)
+        if "Universidad de la Defensa Nacional" in s["texto"]
+    )
+    fin = next(
+        i
+        for i, s in enumerate(segmentos)
+        if "Se extiende el presente CERTIFICADO" in s["texto"]
+    )
+    return [
+        s for s in segmentos[inicio + 1 : fin] if s["fuente"] == "F2"
+    ]
+
+
 def test_firma_se_solapa_sobre_el_nombre_y_se_dibuja_antes():
     """Pedido SEU del 17/11/2026: los trazos cruzan el nombre del firmante.
 
@@ -229,7 +303,12 @@ def test_firma_se_solapa_sobre_el_nombre_y_se_dibuja_antes():
             t for t in textos if firmante.cargo.split()[0].encode("utf-8") in t["texto"]
         )
         firma = firmas[indice]
-        # La caja dibujada cruza la línea base del nombre y el texto va encima.
+        # Caja de 90×65 con borde inferior en 62: la firma queda casi
+        # entera por encima del nombre y sólo sus trazos inferiores lo
+        # cruzan. La imagen se alinea al fondo de la caja.
+        assert 60 <= firma["y0"] <= 64
+        assert abs((firma["x1"] - firma["x0"]) - 90) < 0.5
+        assert firma["y1"] <= 62 + 65 + 0.5
         assert firma["y0"] < nombre["y"] < firma["y1"]
         assert firma["orden"] < nombre["orden"] < cargo["orden"]
         cx = PAGINA_ANCHO * (0.30 if indice == 0 else 0.62)
@@ -248,6 +327,145 @@ def test_espacio_reservado_sin_recursos_no_pisa_el_nombre():
     assert len(reservados) == len(FIRMANTES_SEU)
     for y_inferior in reservados:
         assert float(y_inferior) > 68
+
+
+# --- Fidelidad con el PDF institucional del 17/11/2026 -----------------------
+
+
+@pytest.mark.parametrize(
+    ("actividad", "esperado"),
+    [
+        ("Taller “DevSecOps Unlocked”", "el mencionado taller"),
+        ("Jornada de actualización docente", "la mencionada jornada"),
+        ("DIPLOMATURA EN SEGURIDAD DE LA INFORMACIÓN", "la mencionada diplomatura"),
+        ("Seminario de posgrado", "el mencionado seminario"),
+        ("Curso de gestión documental", "el mencionado curso"),
+        # Sin una primera palabra conocida se mantiene el texto de siempre.
+        ("Introducción a la inteligencia artificial", "el mencionado curso"),
+    ],
+)
+def test_el_cuerpo_nombra_el_tipo_de_actividad(actividad: str, esperado: str):
+    pdf = generar_pdf_certificado_seu(
+        _datos(actividad=actividad), recursos=_recursos()
+    )
+    texto = _texto_plano(_segmentos_texto(_stream_contenido(pdf)))
+    assert esperado in texto
+
+
+def test_destinatario_apellido_en_mayusculas_y_dni_con_puntos():
+    pdf = generar_pdf_certificado_seu(
+        _datos(nombre="Ana María", apellido="Pérez Muñoz", dni="30222333"),
+        recursos=_recursos(),
+    )
+    texto = _texto_plano(_segmentos_texto(_stream_contenido(pdf)))
+    assert "Ana María PÉREZ MUÑOZ, DNI 30.222.333" in texto
+
+
+@pytest.mark.parametrize(
+    ("dni", "esperado"),
+    [
+        ("30222333", "30.222.333"),
+        ("30.222.333", "30.222.333"),
+        ("30 222 333", "30.222.333"),
+        ("1234567", "1.234.567"),
+        ("AB123456", "AB123456"),
+        ("PASAPORTE 123", "PASAPORTE 123"),
+        ("123456789", "123456789"),
+    ],
+)
+def test_el_dni_se_formatea_solo_si_son_siete_u_ocho_digitos(dni, esperado):
+    pdf = generar_pdf_certificado_seu(
+        _datos(nombre="Ana", apellido="Prueba", dni=dni), recursos=_recursos()
+    )
+    texto = _texto_plano(_segmentos_texto(_stream_contenido(pdf)))
+    assert f"Ana PRUEBA, DNI {esperado}" in texto
+
+
+def test_encabezado_institucional_en_una_sola_linea():
+    pdf = generar_pdf_certificado_seu(_datos(), recursos=_recursos())
+    segmentos = _segmentos_texto(_stream_contenido(pdf))
+
+    encabezados = [
+        s
+        for s in segmentos
+        if "Facultad de Ingeniería del Ejército" in s["texto"]
+    ]
+    assert len(encabezados) == 1
+    assert "Grl Div Manuel Nicolás Savio" in encabezados[0]["texto"]
+    assert encabezados[0]["fuente"] == "F2"
+    assert encabezados[0]["tamano"] == 17
+
+    universidad = [
+        s
+        for s in segmentos
+        if s["texto"].strip() == "Universidad de la Defensa Nacional"
+    ]
+    assert len(universidad) == 1
+    assert universidad[0]["fuente"] == "F2"
+    assert universidad[0]["tamano"] == 13
+
+
+def test_titulo_largo_en_una_linea_achicado_hasta_quince():
+    pdf = generar_pdf_certificado_seu(
+        _datos(actividad=TITULO_SEU), recursos=_recursos()
+    )
+    lineas = _lineas_titulo(_segmentos_texto(_stream_contenido(pdf)))
+    assert len(lineas) == 1
+    assert lineas[0]["texto"] == TITULO_SEU
+    assert 13 <= lineas[0]["tamano"] <= 15
+
+
+def test_titulo_que_no_entra_a_trece_se_envuelve():
+    relleno = (
+        "Criptografía poscuántica y amenazas emergentes en "
+        "infraestructuras críticas"
+    )
+    actividad = f"Taller “{relleno} {relleno} {relleno}”"
+    pdf = generar_pdf_certificado_seu(
+        _datos(actividad=actividad), recursos=_recursos()
+    )
+    lineas = _lineas_titulo(_segmentos_texto(_stream_contenido(pdf)))
+    assert len(lineas) > 1
+    assert all(linea["tamano"] == 13 for linea in lineas)
+    assert " ".join(linea["texto"] for linea in lineas) == actividad
+
+
+def test_cuerpo_en_oblicua_y_destinatario_en_negrita_oblicua():
+    pdf = generar_pdf_certificado_seu(
+        _datos(
+            nombre="Ana María",
+            apellido="Prueba",
+            dni="30222333",
+            actividad=TITULO_SEU,
+            horas=horas_reloj_texto("14"),
+        ),
+        recursos=_recursos(),
+    )
+    segmentos = _segmentos_texto(_stream_contenido(pdf))
+
+    inicio = next(
+        s
+        for s in segmentos
+        if s["texto"].startswith("Se extiende el presente CERTIFICADO a")
+    )
+    assert inicio["fuente"] == "F3"
+    assert inicio["tamano"] == 15
+
+    destinatario = [
+        s
+        for s in segmentos
+        if "Ana María PRUEBA" in s["texto"] and "DNI" in s["texto"]
+    ]
+    assert len(destinatario) == 1
+    assert destinatario[0]["fuente"] == "F4"
+    assert destinatario[0]["tamano"] == 15
+
+    resto = [s for s in segmentos if "por APROBAR" in s["texto"]]
+    assert resto
+    assert all(s["fuente"] == "F3" and s["tamano"] == 15 for s in resto)
+
+    assert b"/BaseFont /Helvetica-BoldOblique" in pdf
+    assert b"/FontFile" not in pdf
 
 
 # --- Recursos de firma -------------------------------------------------------

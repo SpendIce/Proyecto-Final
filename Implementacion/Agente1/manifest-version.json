@@ -90,7 +90,7 @@
     "src/agente1/canal_planilla.py": "1835a3286585043dacd79f93044daadafec629319fdf333bcf0a3d715e4f3fb6",
     "src/agente1/certificados.py": "dd9e02cc77191f24fd9df796eabbee9322a9f9144d4ad8dd13b6b68ae8e661bf",
     "src/agente1/certificados_emision.py": "39d7374641755fc06fbeb277ac069aa732766dc14be9f6b69a6e6a48a0c9d092",
-    "src/agente1/certificados_plantilla_seu.py": "0c3f2f46cee7978c6b80ce668ffbef4bd3cb772c0e9fe8b66372de31282e23f5",
+    "src/agente1/certificados_plantilla_seu.py": "64da08fbd84454b9fe103c42623fecf360897c01217e1407339536c9c051be1c",
     "src/agente1/cli.py": "8c8562b7847cd66942b7f09a27188f506ab3a76383a8bc3a08c77a011b1d7cd7",
     "src/agente1/cli_insumos.py": "656d4c850e210071165beae882685e95ec7c7dcdf9c656776d9c70d90c1b88f9",
     "src/agente1/cli_pagos.py": "e3086a4b2da7454bdb9632efac8adb8df643739c097bc7e25811f1fc8a0050bb",
