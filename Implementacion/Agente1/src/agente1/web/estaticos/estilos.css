@@ -284,3 +284,7 @@ a { color: var(--azul-fie); }
   .ficha { grid-template-columns: 1fr; }
   .banda-demo { font-size: 0.75rem; padding: 0.4rem 0.6rem; }
 }
+
+.bandeja-grupo { font-size: 1rem; margin: 1.5rem 0 0.5rem; color: var(--neutro-oscuro); }
+.bandeja-errores { margin-top: 1.5rem; }
+.bandeja-errores summary { cursor: pointer; color: var(--neutro-oscuro); font-size: 0.95rem; }

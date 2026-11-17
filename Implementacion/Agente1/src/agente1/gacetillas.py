@@ -241,7 +241,9 @@ def _formatear_plantilla(
     agrega informacion.
     """
 
-    datos = dict(valores)
+    # El valor entra en medio de una frase de la forma: su puntuación final
+    # sobra («…principal., a partir del…»). La fórmula pone la suya.
+    datos = {campo: _sin_puntuacion_final(valor) for campo, valor in valores.items()}
     fechas = forma.get("fechas", ())
     for campo in fechas if isinstance(fechas, (list, tuple)) else ():
         valor = datos.get(str(campo), "")
@@ -413,8 +415,12 @@ def _campos_referenciados(
     return referencias
 
 
+def _sin_puntuacion_final(valor: str) -> str:
+    return valor.strip().rstrip(".;,").rstrip() if isinstance(valor, str) else valor
+
+
 def _hecho_presente(valor: str, pieza_normalizada: str) -> bool:
-    if normalizar_texto(valor) in pieza_normalizada:
+    if normalizar_texto(_sin_puntuacion_final(valor)) in pieza_normalizada:
         return True
     fecha = fecha_larga(valor)
     return fecha is not None and normalizar_texto(fecha) in pieza_normalizada
@@ -567,8 +573,12 @@ def generar_pieza(
     errores = _validar_prosa_directa(forma, salida)
     if errores:
         return "", errores
-    pieza = renderizar(tipo, campos, prosa={"cuerpo": salida.strip()})
-    return pieza, validar_pieza(tipo, pieza, campos)
+    prosa = {"cuerpo": salida.strip()}
+    pieza = renderizar(tipo, campos, prosa=prosa)
+    # El cuerpo de un tipo de prosa directa es la salida del modelo (contrato
+    # de entrada); lo que haya escrito quien pide es una idea, no un hecho a
+    # copiar literal. El gate compara contra lo que se imprimió.
+    return pieza, validar_pieza(tipo, pieza, {**campos, **prosa})
 
 
 def confirmar_pieza(tipo: str, campos: Mapping[str, str]) -> tuple[str, list[str]]:

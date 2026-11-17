@@ -112,7 +112,7 @@ _FORMA_DIFUSION = cargar_forma(TIPO_DIFUSION)
 # ejecuciones de la misma fila dieron textos distintos.
 PROMPT_VERSION = str(_FORMA_DIFUSION["salida_modelo"]["prompt_version"])
 CONTRACT_VERSION = str(cargar_entrada(TIPO_DIFUSION)["x-contract-version"])
-RENDERER_VERSION = "gacetilla_forma_declarada_v5"
+RENDERER_VERSION = "gacetilla_forma_declarada_v6"
 MAX_BORRADOR_CHARS = _MAX_BORRADOR_CHARS
 # Prefijo del nombre del Doc del borrador. El título del Doc no lleva la marca
 # completa (`BORRADOR_MARKER`, que va en el cuerpo): lleva este prefijo, para

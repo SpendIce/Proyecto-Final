@@ -64,13 +64,16 @@
         {{ campo.nombre|replace('_', ' ')|capitalize }}
         {% if campo.requerido %}<span aria-hidden="true">*</span>{% endif %}
       </label>
+      {% if campo.ayuda %}<p class="ayuda" id="ayuda_{{ campo.nombre }}_{{ tipo_id }}">{{ campo.ayuda }}</p>{% endif %}
       {% if campo.area %}
       <textarea id="campo_{{ campo.nombre }}_{{ tipo_id }}"
                 name="campo_{{ campo.nombre }}" rows="4"
+                {% if campo.ayuda %}aria-describedby="ayuda_{{ campo.nombre }}_{{ tipo_id }}"{% endif %}
                 {{ 'required' if campo.requerido else '' }}>{{ valores.get('campo_' ~ campo.nombre, '') }}</textarea>
       {% else %}
       <input id="campo_{{ campo.nombre }}_{{ tipo_id }}" type="text"
              name="campo_{{ campo.nombre }}"
+             {% if campo.ayuda %}aria-describedby="ayuda_{{ campo.nombre }}_{{ tipo_id }}"{% endif %}
              value="{{ valores.get('campo_' ~ campo.nombre, '') }}"
              {{ 'required' if campo.requerido else '' }}>
       {% endif %}
