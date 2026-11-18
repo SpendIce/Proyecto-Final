@@ -1118,6 +1118,15 @@ def test_detalle_muestra_enlace_doc_y_revisiones() -> None:
     assert "editada en Docs" not in respuesta.text  # aún no hay
     assert "generada" in respuesta.text
     assert "vigente" in respuesta.text
+    # Dos columnas con ficha y acciones, y el hash de la revisión fuera
+    # de la tabla, dentro de «Detalles técnicos» (#194).
+    assert 'class="detalle-pieza"' in respuesta.text
+    assert 'class="detalle-lateral"' in respuesta.text
+    assert "Detalles técnicos" in respuesta.text
+    assert '<th scope="col">Hash</th>' not in respuesta.text
+    detalle = mundo.repo.obtener(sid)
+    assert detalle.revisiones[-1].output_hash[:12] in respuesta.text
+    assert detalle.creada_en.strftime("%d/%m/%Y %H:%M") in respuesta.text
 
 
 def test_aprobar_con_hash_vigente_cierra() -> None:

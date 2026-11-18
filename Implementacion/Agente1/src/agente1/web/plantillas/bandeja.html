@@ -1,93 +1,183 @@
 {% extends "base.html" %}
 {% block titulo %}Bandeja · Agente 1{% endblock %}
 {% block contenido %}
+{% macro fila(item) %}
+  <li class="bandeja-item">
+    <a href="/solicitudes/{{ item.id }}" class="bandeja-enlace">
+      <span class="bandeja-titulo">{{ item.titulo }}</span>
+      <span class="bandeja-meta">
+        {{ item.tipo }}{% if item.actividad %} · {{ item.actividad }}{% endif %}
+        · {{ item.creada }}
+      </span>
+    </a>
+    <span class="estado estado-{{ item.estado|lower }}">{{ item.estado_visible }}</span>
+  </li>
+{% endmacro %}
+{% set pendientes = items|selectattr("estado", "in", ["EN_COLA", "GENERANDO", "AJUSTANDO", "LISTA"])|list %}
+{% set errores = items|selectattr("estado", "equalto", "ERROR")|list %}
+{% set cerradas = items|rejectattr("estado", "in", ["EN_COLA", "GENERANDO", "AJUSTANDO", "LISTA", "ERROR"])|list %}
+{% set en_revision = pendientes|selectattr("estado", "equalto", "LISTA")|list %}
+{% set lotes_por_aprobar = lotes|selectattr("estado", "equalto", "PENDIENTE_APROBACION")|list %}
+{% set hay_certificados = lotes or mostrar_boton_demo or puede_pedir_certificados %}
 <section aria-labelledby="t-bandeja">
   <div class="seccion-cabecera">
     <h1 id="t-bandeja">Bandeja de la SEU</h1>
-    <a class="boton-primario" href="/nuevo-pedido">Nuevo pedido</a>
   </div>
-  {% macro fila(item) %}
-    <li class="bandeja-item">
-      <a href="/solicitudes/{{ item.id }}" class="bandeja-enlace">
-        <span class="bandeja-titulo">{{ item.titulo }}</span>
-        <span class="bandeja-meta">
-          {{ item.tipo }}{% if item.actividad %} · {{ item.actividad }}{% endif %}
-          · {{ item.creada }}
-        </span>
+
+  <nav class="resumen" aria-label="Resumen de la bandeja">
+    <a class="resumen-tarjeta resumen-revision" href="#piezas">
+      <span class="resumen-numero">{{ en_revision|length }}</span>
+      <span class="resumen-etiqueta">Piezas en revisión</span>
+    </a>
+    <a class="resumen-tarjeta resumen-lotes"
+       href="{{ '#certificados' if hay_certificados else '#piezas' }}">
+      <span class="resumen-numero">{{ lotes_por_aprobar|length }}</span>
+      <span class="resumen-etiqueta">Lotes por aprobar</span>
+    </a>
+    <a class="resumen-tarjeta resumen-errores" href="#errores">
+      <span class="resumen-numero">{{ errores|length }}</span>
+      <span class="resumen-etiqueta">Con error</span>
+    </a>
+  </nav>
+
+  <nav class="pestanas" aria-label="Secciones de la bandeja">
+    <a class="pestana pestana-activa" href="#piezas" data-panel="piezas">
+      Piezas <span class="cuenta">{{ items|length }}</span>
+    </a>
+    {% if hay_certificados %}
+    <a class="pestana" href="#certificados" data-panel="certificados">
+      Certificados <span class="cuenta">{{ lotes|length }}</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <div id="piezas" class="panel-pestana" data-panel="piezas">
+    <div class="panel-cabecera">
+      <h2>Piezas</h2>
+      <a class="boton-primario" href="/nuevo-pedido">Nuevo pedido</a>
+    </div>
+
+    {% if items %}
+    {# Agrupada por estado: lo que espera trabajo arriba, lo cerrado después
+       y los errores colapsados al final. No se borran: son auditoría. #}
+    {% if pendientes %}
+    <h3 class="bandeja-grupo">Pendientes <span class="cuenta">{{ pendientes|length }}</span></h3>
+    <ul class="bandeja">{% for item in pendientes %}{{ fila(item) }}{% endfor %}</ul>
+    {% endif %}
+    {% if cerradas %}
+    <h3 class="bandeja-grupo">Cerradas <span class="cuenta">{{ cerradas|length }}</span></h3>
+    <ul class="bandeja">{% for item in cerradas %}{{ fila(item) }}{% endfor %}</ul>
+    {% endif %}
+    {% if errores %}
+    <details class="bandeja-errores" id="errores">
+      <summary>
+        <span class="chevron" aria-hidden="true"></span>
+        Con error ({{ errores|length }})
+      </summary>
+      <ul class="bandeja">{% for item in errores %}{{ fila(item) }}{% endfor %}</ul>
+    </details>
+    {% endif %}
+    {% else %}
+    <p class="vacio">
+      La bandeja está vacía. El primer pedido se hace desde
+      <a href="/nuevo-pedido">Nuevo pedido</a>.
+    </p>
+    {% endif %}
+  </div>
+
+  {% if hay_certificados %}
+  <div id="certificados" class="panel-pestana" data-panel="certificados">
+    <div class="panel-cabecera">
+      <h2 id="t-lotes" class="bandeja-grupo">
+        Lotes de certificados{% if lotes %} <span class="cuenta">{{ lotes|length }}</span>{% endif %}
+      </h2>
+      {% if puede_pedir_certificados %}
+      <a class="boton-primario" href="/certificados/pedir">
+        Pedir lote de certificados
       </a>
-      <span class="estado estado-{{ item.estado|lower }}">{{ item.estado_visible }}</span>
-    </li>
-  {% endmacro %}
-  {% if items %}
-  {# Agrupada por estado: lo que espera trabajo arriba, lo cerrado después
-     y los errores colapsados al final. No se borran: son auditoría. #}
-  {% set pendientes = items|selectattr("estado", "in", ["EN_COLA", "GENERANDO", "AJUSTANDO", "LISTA"])|list %}
-  {% set errores = items|selectattr("estado", "equalto", "ERROR")|list %}
-  {% set cerradas = items|rejectattr("estado", "in", ["EN_COLA", "GENERANDO", "AJUSTANDO", "LISTA", "ERROR"])|list %}
-  {% if pendientes %}
-  <h2 class="bandeja-grupo">Pendientes <span class="cuenta">{{ pendientes|length }}</span></h2>
-  <ul class="bandeja">{% for item in pendientes %}{{ fila(item) }}{% endfor %}</ul>
-  {% endif %}
-  {% if cerradas %}
-  <h2 class="bandeja-grupo">Cerradas <span class="cuenta">{{ cerradas|length }}</span></h2>
-  <ul class="bandeja">{% for item in cerradas %}{{ fila(item) }}{% endfor %}</ul>
-  {% endif %}
-  {% if errores %}
-  <details class="bandeja-errores">
-    <summary>Con error ({{ errores|length }})</summary>
-    <ul class="bandeja">{% for item in errores %}{{ fila(item) }}{% endfor %}</ul>
-  </details>
-  {% endif %}
-  {% else %}
-  <p class="vacio">
-    La bandeja está vacía. El primer pedido se hace desde
-    <a href="/nuevo-pedido">Nuevo pedido</a>.
-  </p>
+      {% endif %}
+    </div>
+
+    {% if lotes %}
+    <ul class="bandeja">
+      {% for lote in lotes %}
+      <li class="bandeja-item">
+        <a href="/certificados/{{ lote.id }}" class="bandeja-enlace">
+          <span class="bandeja-titulo">{{ lote.actividad }}</span>
+          <span class="bandeja-meta">
+            {{ lote.id_actividad }} · {{ lote.cantidad }} personas ·
+            {{ lote.creada }}{% if lote.demo %}
+            · demostración — sin validez{% endif %}
+          </span>
+        </a>
+        <span class="estado estado-{{ lote.estado|lower }}">{{ lote.estado_visible }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="vacio">Todavía no hay lotes de certificados.</p>
+    {% endif %}
+
+    {% if mostrar_boton_demo %}
+    <form method="post" action="/demo/lote-certificados"
+          class="acciones-decision">
+      <input type="hidden" name="csrf" value="{{ sesion.csrf_token }}">
+      <button class="boton-primario" type="submit">
+        Crear lote de demostración
+      </button>
+    </form>
+    <p class="ayuda">
+      Siembra el lote ficticio de la presentación: personas y correos de
+      ejemplo (@example.invalid), sin validez institucional ni envío real.
+      Si el lote ya existe —aunque ya esté decidido—, el botón abre ese
+      mismo lote sin tocar su estado: lo aprueba sólo quien lo generó.
+    </p>
+    {% endif %}
+  </div>
   {% endif %}
 </section>
 
-{% if lotes or mostrar_boton_demo or puede_pedir_certificados %}
-<section aria-labelledby="t-lotes">
-  <h2 id="t-lotes" class="bandeja-grupo">Lotes de certificados{% if lotes %} <span class="cuenta">{{ lotes|length }}</span>{% endif %}</h2>
-  {% if puede_pedir_certificados %}
-  <p>
-    <a class="boton-primario" href="/certificados/pedir">
-      Pedir lote de certificados
-    </a>
-  </p>
-  {% endif %}
-  {% if lotes %}
-  <ul class="bandeja">
-    {% for lote in lotes %}
-    <li class="bandeja-item">
-      <a href="/certificados/{{ lote.id }}" class="bandeja-enlace">
-        <span class="bandeja-titulo">{{ lote.actividad }}</span>
-        <span class="bandeja-meta">
-          {{ lote.id_actividad }} · {{ lote.cantidad }} personas ·
-          {{ lote.creada }}{% if lote.demo %}
-          · demostración — sin validez{% endif %}
-        </span>
-      </a>
-      <span class="estado estado-{{ lote.estado|lower }}">{{ lote.estado_visible }}</span>
-    </li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-  {% if mostrar_boton_demo %}
-  <form method="post" action="/demo/lote-certificados"
-        class="acciones-decision">
-    <input type="hidden" name="csrf" value="{{ sesion.csrf_token }}">
-    <button class="boton-primario" type="submit">
-      Crear lote de demostración
-    </button>
-  </form>
-  <p class="ayuda">
-    Siembra el lote ficticio de la presentación: personas y correos de
-    ejemplo (@example.invalid), sin validez institucional ni envío real.
-    Si el lote ya existe —aunque ya esté decidido—, el botón abre ese
-    mismo lote sin tocar su estado: lo aprueba sólo quien lo generó.
-  </p>
-  {% endif %}
-</section>
-{% endif %}
+<script>
+(function () {
+  var pestanas = document.querySelectorAll('.pestana');
+  if (!pestanas.length) return;
+  var paneles = document.querySelectorAll('.panel-pestana');
+  function activar(nombre) {
+    var encontrado = false;
+    paneles.forEach(function (panel) {
+      var activo = panel.dataset.panel === nombre;
+      panel.hidden = !activo;
+      if (activo) encontrado = true;
+    });
+    if (!encontrado) return false;
+    pestanas.forEach(function (pestana) {
+      var activo = pestana.dataset.panel === nombre;
+      pestana.classList.toggle('pestana-activa', activo);
+      if (activo) pestana.setAttribute('aria-current', 'location');
+      else pestana.removeAttribute('aria-current');
+    });
+    return true;
+  }
+  function desdeHash() {
+    var hash = window.location.hash.replace('#', '');
+    if (hash === 'errores') {
+      activar('piezas');
+      var detalle = document.getElementById('errores');
+      if (detalle) {
+        detalle.open = true;
+        detalle.scrollIntoView({ block: 'start' });
+      }
+      return;
+    }
+    if (!activar(hash || 'piezas')) activar('piezas');
+  }
+  pestanas.forEach(function (pestana) {
+    pestana.addEventListener('click', function () {
+      activar(pestana.dataset.panel);
+    });
+  });
+  window.addEventListener('hashchange', desdeHash);
+  desdeHash();
+})();
+</script>
 {% endblock %}

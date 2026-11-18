@@ -61,19 +61,44 @@
       <p class="campo-error">{{ mensaje }}</p>
     {% endfor %}
 
-    <label for="lista">Lista de cierre (CSV) <span aria-hidden="true">*</span></label>
+    <label for="lista">Lista de aprobados (Excel o CSV) <span aria-hidden="true">*</span></label>
     <input id="lista" name="lista" type="file"
-           accept=".csv,text/csv" required>
+           accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+           required>
     <p class="ayuda">
-      Exportación UTF-8 de la planilla de cierre, con la cabecera
+      CSV con la plantilla, o el Excel de la SEU tal como lo mandan (hoja
+      de aprobados + hoja de inscripción). El CSV es UTF-8 con la cabecera
       <code>{{ columnas_csv }}</code>, separador «;» o «,», hasta
-      {{ max_filas }} filas y {{ max_kb }} KB.
-      <a href="/certificados/plantilla-lista.csv">Descargar plantilla</a>.
-      Si una fila no sirve, el lote entero no se crea.
+      {{ max_filas }} filas y {{ max_kb }} KB. El Excel admite hasta
+      {{ max_xlsx_mb }} MB. En la planilla de la SEU la hoja de aprobados
+      y la de inscripción se cruzan por mail: si falta una o una persona
+      no aparece, el lote entero no se crea.
+      <a href="/certificados/plantilla-lista.csv">Descargar plantilla CSV</a>.
     </p>
     {% for mensaje in mensajes.get('lista', ()) %}
       <p class="campo-error">{{ mensaje }}</p>
     {% endfor %}
+
+    <label for="tratamiento">Tratamiento</label>
+    <input id="tratamiento" name="tratamiento" type="text"
+           value="{{ valores.get('tratamiento', 'Sr./Sra.') }}">
+
+    <label for="condicion">Condición</label>
+    <select id="condicion" name="condicion">
+      <option value="aprobacion"
+        {% if valores.get('condicion', 'aprobacion') == 'aprobacion' %}selected{% endif %}>
+        Aprobación
+      </option>
+      <option value="asistencia"
+        {% if valores.get('condicion') == 'asistencia' %}selected{% endif %}>
+        Asistencia
+      </option>
+    </select>
+    <p class="ayuda">
+      El tratamiento y la condición se aplican a todas las personas cuando
+      el archivo es el Excel de la SEU; con el CSV o la plantilla se usan
+      las columnas del archivo.
+    </p>
 
     <label for="linea">Línea descriptiva <span aria-hidden="true">*</span></label>
     <textarea id="linea" name="linea_descriptiva" rows="2"

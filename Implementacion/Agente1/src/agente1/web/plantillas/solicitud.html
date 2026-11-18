@@ -7,171 +7,196 @@
     <span class="estado estado-{{ s.estado_web|lower }}"
           data-estado="{{ s.estado_web }}">{{ estado_visible }}</span>
   </div>
-  <dl class="ficha">
-    <dt>Tipo de pieza</dt><dd>{{ tipo }}</dd>
-    <dt>Pedido</dt><dd><code>{{ s.id_solicitud }}</code></dd>
-    {% if actividad %}
-    <dt>Actividad</dt><dd>{{ actividad.titulo }}</dd>
-    <dt>Fechas</dt><dd>{{ actividad.fecha_inicio }}{% if actividad.fecha_fin %} al {{ actividad.fecha_fin }}{% endif %}</dd>
-    <dt>Organiza</dt><dd>{{ actividad.organiza }}</dd>
-    {% elif s.actividad_ref %}
-    <dt>Actividad</dt><dd>{{ s.actividad_ref }}</dd>
-    {% endif %}
-    {% if campos_pieza.get('titulo') and not actividad %}<dt>Título</dt><dd>{{ campos_pieza['titulo'] }}</dd>{% endif %}
-    {% if publicos %}<dt>Públicos</dt><dd>{{ publicos|join(', ') }}</dd>{% endif %}
-    <dt>Creada</dt><dd>{{ s.creada_en.strftime('%d/%m/%Y %H:%M') }}</dd>
-    <dt>Última actividad</dt><dd>{{ s.ultima_actividad_en.strftime('%d/%m/%Y %H:%M') }}</dd>
-    {% if s.canal == 'web-demo' %}
-    <dt>Origen</dt><dd>Modo demostración · identidad sin verificar</dd>
-    {% endif %}
-  </dl>
 
-  {% if s.descripcion %}
-  <h2>Descripción del pedido</h2>
-  <p class="prosa">{{ s.descripcion }}</p>
-  {% endif %}
+  <div class="detalle-pieza">
+    <div class="detalle-principal">
+      {% if aviso %}
+      <p class="{% if aviso_error %}mensaje-error{% else %}aviso-estado{% endif %}"
+         role="alert">{{ aviso }}</p>
+      {% endif %}
 
-  {% if aviso %}
-  <p class="{% if aviso_error %}mensaje-error{% else %}aviso-estado{% endif %}"
-     role="alert">{{ aviso }}</p>
-  {% endif %}
+      {% if s.descripcion %}
+      <h2>Descripción del pedido</h2>
+      <p class="prosa">{{ s.descripcion }}</p>
+      {% endif %}
 
-  {% if doc_url %}
-  <h2>Documento</h2>
-  <p>
-    <a class="enlace-doc" href="{{ doc_url }}" target="_blank" rel="noopener">
-      Editar en Google Docs ↗
-    </a>
-  </p>
-  {% endif %}
+      {% if revisiones %}
+      <h2 id="t-revisiones">Revisiones</h2>
+      <div class="zona-tabla" role="region" aria-labelledby="t-revisiones"
+           tabindex="0">
+        <table class="tabla-revisiones">
+          <caption class="solo-lectores">Revisiones de la pieza. La vigente se marca en la última columna.</caption>
+          <thead>
+            <tr><th scope="col">N.º</th><th scope="col">Origen</th><th scope="col">Indicación</th><th scope="col">Fecha</th><th scope="col" aria-label="Vigente"></th></tr>
+          </thead>
+          <tbody>
+            {% for r in revisiones %}
+            <tr{% if r.vigente %} class="revision-vigente"{% endif %}>
+              <td>{{ r.numero }}</td>
+              <td>{{ r.origen }}</td>
+              <td class="celda-indicacion">{% if r.indicacion %}<span class="indicacion-ajuste">{{ r.indicacion }}</span>{% endif %}</td>
+              <td>{{ r.creada|fecha }}</td>
+              <td>{% if r.vigente %}<strong>vigente</strong>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <details class="detalles-tecnicos">
+        <summary>
+          <span class="chevron" aria-hidden="true"></span>
+          Detalles técnicos
+        </summary>
+        <div class="detalles-contenido">
+          <h3>Hash de cada revisión</h3>
+          <dl class="ficha ficha-tecnica">
+            {% for r in revisiones %}
+            <dt>Revisión {{ r.numero }}</dt>
+            <dd><code>{{ r.hash_corto }}</code></dd>
+            {% endfor %}
+          </dl>
+        </div>
+      </details>
+      {% endif %}
 
-  {% if revisiones %}
-  <h2 id="t-revisiones">Revisiones</h2>
-  <div class="zona-tabla" role="region" aria-labelledby="t-revisiones"
-       tabindex="0">
-    <table class="tabla-revisiones">
-      <caption class="solo-lectores">Revisiones de la pieza. La vigente se marca en la última columna.</caption>
-      <thead>
-        <tr><th scope="col">N.º</th><th scope="col">Origen</th><th scope="col">Indicación</th><th scope="col">Fecha</th><th scope="col">Hash</th><th scope="col" aria-label="Vigente"></th></tr>
-      </thead>
-      <tbody>
-        {% for r in revisiones %}
-        <tr{% if r.vigente %} class="revision-vigente"{% endif %}>
-          <td>{{ r.numero }}</td>
-          <td>{{ r.origen }}</td>
-          <td class="celda-indicacion">{% if r.indicacion %}<span class="indicacion-ajuste">{{ r.indicacion }}</span>{% endif %}</td>
-          <td>{{ r.creada }}</td>
-          <td><code>{{ r.hash_corto }}</code></td>
-          <td>{% if r.vigente %}<strong>vigente</strong>{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+      {% if s.estado_web == 'LISTA' and texto_vigente %}
+      <h2>Borrador vigente</h2>
+      <pre class="pieza">{{ texto_vigente }}</pre>
+      {% if s.estado_web == 'LISTA' and s.ultimo_ajuste_fallido %}
+      <p class="mensaje-error" role="alert">
+        El último ajuste no se aplicó:
+        {% if s.ultimo_ajuste_fallido == 'salida_no_conforme' %}el texto propuesto perdía un dato o no respetaba el formato de la pieza{% elif s.ultimo_ajuste_fallido == 'salida_vacia' %}el modelo no devolvió texto{% elif s.ultimo_ajuste_fallido == 'destination_failure' %}no se pudo escribir el Doc{% else %}falló el agente{% endif %}.
+        La revisión vigente no cambió: se puede pedir otro ajuste o decidir sobre esta.
+      </p>
+      {% endif %}
+      {% elif s.estado_web in ('APROBADA', 'DESCARTADA') %}
+      <p class="aviso-estado">
+        La pieza quedó {{ estado_visible|lower }}. El recorrido de difusión
+        está cerrado.
+      </p>
+      {% if s.estado_web == 'APROBADA' and correo %}
+      <h2>Preparar correo</h2>
+      <dl class="ficha">
+        <dt>Destinatarios (Cco)</dt>
+        <dd>
+          <ul class="lista-destinatarios">
+            {% for d in correo.destinatarios %}
+            <li>{{ d.nombre }}{% if d.pendiente %}
+              <span class="marca-pendiente">pendiente de aprobación SEU</span>{% endif %}</li>
+            {% endfor %}
+          </ul>
+        </dd>
+        <dt>Asunto</dt><dd>{{ correo.asunto }}</dd>
+      </dl>
+      {% if not correo.cuerpo_en_url %}
+      <p class="aviso-estado">El cuerpo no entra en el enlace: copialo con el botón y pegá el cuerpo en el correo.</p>
+      <pre id="cuerpo-correo" class="pieza" hidden>{{ correo.cuerpo }}</pre>
+      <p>
+        <button type="button" id="copiar-cuerpo" class="boton-secundario">Copiar cuerpo</button>
+        <span id="aviso-copiar" class="ayuda"></span>
+      </p>
+      {% endif %}
+      <p class="acciones-correo">
+        <a class="boton-primario"
+           href="/solicitudes/{{ s.id_solicitud }}/correo?cuenta=sesion"
+           target="_blank" rel="noopener">
+          Abrir con la cuenta {{ correo.correo_sesion }}
+        </a>
+        <a class="enlace-doc"
+           href="/solicitudes/{{ s.id_solicitud }}/correo"
+           target="_blank" rel="noopener">
+          Elegir otra cuenta
+        </a>
+      </p>
+      <p class="ayuda">
+        El agente no envía nada: se abre Gmail con el correo prellenado y la
+        persona revisa y envía ella.
+      </p>
+      {% endif %}
+      {% if texto_vigente %}
+      <h2>Texto vigente al cerrar</h2>
+      <pre class="pieza">{{ texto_vigente }}</pre>
+      {% endif %}
+      {% elif s.estado_web in ('EN_COLA', 'GENERANDO', 'AJUSTANDO') %}
+      <p class="aviso-estado" id="aviso-estado">
+        {% if s.estado_web == 'AJUSTANDO' %}
+        El agente está ajustando la revisión vigente. Esta página se actualiza sola.
+        {% else %}
+        El agente está generando el borrador. Esta página se actualiza sola.
+        {% endif %}
+      </p>
+      {% elif s.estado_web == 'ERROR' %}
+      <p class="mensaje-error" role="alert">
+        La generación falló. El pedido quedó registrado; se puede volver a
+        intentar con un pedido nuevo.
+      </p>
+      {% elif s.estado_web == 'VENCIDA' %}
+      <p class="aviso-estado">La solicitud quedó vencida por inactividad.</p>
+      {% endif %}
+    </div>
+
+    <aside class="detalle-lateral" aria-label="Ficha y acciones de la pieza">
+      <dl class="ficha">
+        <dt>Tipo de pieza</dt><dd>{{ tipo }}</dd>
+        <dt>Pedido</dt><dd><code>{{ s.id_solicitud }}</code></dd>
+        {% if actividad %}
+        <dt>Actividad</dt><dd>{{ actividad.titulo }}</dd>
+        <dt>Fechas</dt><dd>{{ actividad.fecha_inicio|fecha }}{% if actividad.fecha_fin %} al {{ actividad.fecha_fin|fecha }}{% endif %}</dd>
+        <dt>Organiza</dt><dd>{{ actividad.organiza }}</dd>
+        {% elif s.actividad_ref %}
+        <dt>Actividad</dt><dd>{{ s.actividad_ref }}</dd>
+        {% endif %}
+        {% if campos_pieza.get('titulo') and not actividad %}<dt>Título</dt><dd>{{ campos_pieza['titulo'] }}</dd>{% endif %}
+        {% if publicos %}<dt>Públicos</dt><dd>{{ publicos|join(', ') }}</dd>{% endif %}
+        <dt>Creada</dt><dd>{{ s.creada_en|fecha }}</dd>
+        <dt>Última actividad</dt><dd>{{ s.ultima_actividad_en|fecha }}</dd>
+        {% if s.canal == 'web-demo' %}
+        <dt>Origen</dt><dd>Modo demostración · identidad sin verificar</dd>
+        {% endif %}
+      </dl>
+
+      {% if doc_url %}
+      <h2>Documento</h2>
+      <p>
+        <a class="enlace-doc" href="{{ doc_url }}" target="_blank" rel="noopener">
+          Editar en Google Docs ↗
+        </a>
+      </p>
+      {% endif %}
+
+      {% if puede_traer %}
+      <form method="post" action="/solicitudes/{{ s.id_solicitud }}/traer-cambios"
+            class="accion-lateral">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="boton-secundario">Traer cambios del Doc</button>
+      </form>
+      {% endif %}
+
+      {% if puede_ajustar %}
+      <form method="post" action="/solicitudes/{{ s.id_solicitud }}/ajustar"
+            class="form-ajuste">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="llave" value="{{ llave_ajuste }}">
+        <label for="indicacion">Pedir ajuste</label>
+        <textarea id="indicacion" name="indicacion" required
+                  minlength="3" maxlength="500" rows="2"
+                  placeholder="Por ejemplo: más breve, sumá el horario, tono más formal"></textarea>
+        <button type="submit" class="boton-secundario">Pedir ajuste</button>
+      </form>
+      {% endif %}
+
+      {% if puede_decidir %}
+      <form method="post" action="/solicitudes/{{ s.id_solicitud }}/decidir"
+            class="acciones-decision" id="form-decidir"
+            {% if correo_auto %}data-correo-url="/solicitudes/{{ s.id_solicitud }}/correo"{% endif %}>
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="revision" value="{{ revision_vigente_id }}">
+        <button type="submit" name="accion" value="aprobar" class="boton-primario">Aprobar</button>
+        <button type="submit" name="accion" value="descartar" class="boton-descartar">Descartar</button>
+      </form>
+      {% endif %}
+    </aside>
   </div>
-  {% endif %}
-
-  {% if s.estado_web == 'LISTA' and texto_vigente %}
-  <h2>Borrador vigente</h2>
-  <pre class="pieza">{{ texto_vigente }}</pre>
-  {% if puede_traer %}
-  <form method="post" action="/solicitudes/{{ s.id_solicitud }}/traer-cambios">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <button type="submit" class="boton-secundario">Traer cambios del Doc</button>
-  </form>
-  {% endif %}
-  {% if s.estado_web == 'LISTA' and s.ultimo_ajuste_fallido %}
-  <p class="mensaje-error" role="alert">
-    El último ajuste no se aplicó:
-    {% if s.ultimo_ajuste_fallido == 'salida_no_conforme' %}el texto propuesto perdía un dato o no respetaba el formato de la pieza{% elif s.ultimo_ajuste_fallido == 'salida_vacia' %}el modelo no devolvió texto{% elif s.ultimo_ajuste_fallido == 'destination_failure' %}no se pudo escribir el Doc{% else %}falló el agente{% endif %}.
-    La revisión vigente no cambió: se puede pedir otro ajuste o decidir sobre esta.
-  </p>
-  {% endif %}
-  {% if puede_ajustar %}
-  <form method="post" action="/solicitudes/{{ s.id_solicitud }}/ajustar"
-        class="form-ajuste">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <input type="hidden" name="llave" value="{{ llave_ajuste }}">
-    <label for="indicacion">Pedir ajuste</label>
-    <textarea id="indicacion" name="indicacion" required
-              minlength="3" maxlength="500" rows="2"
-              placeholder="Por ejemplo: más breve, sumá el horario, tono más formal"></textarea>
-    <button type="submit" class="boton-secundario">Pedir ajuste</button>
-  </form>
-  {% endif %}
-  {% if puede_decidir %}
-  <form method="post" action="/solicitudes/{{ s.id_solicitud }}/decidir"
-        class="acciones-decision" id="form-decidir"
-        {% if correo_auto %}data-correo-url="/solicitudes/{{ s.id_solicitud }}/correo"{% endif %}>
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <input type="hidden" name="revision" value="{{ revision_vigente_id }}">
-    <button type="submit" name="accion" value="aprobar" class="boton-primario">Aprobar</button>
-    <button type="submit" name="accion" value="descartar" class="boton-descartar">Descartar</button>
-  </form>
-  {% endif %}
-  {% elif s.estado_web in ('APROBADA', 'DESCARTADA') %}
-  <p class="aviso-estado">
-    La pieza quedó {{ estado_visible|lower }}. El recorrido de difusión
-    está cerrado.
-  </p>
-  {% if s.estado_web == 'APROBADA' and correo %}
-  <h2>Preparar correo</h2>
-  <dl class="ficha">
-    <dt>Destinatarios (Cco)</dt>
-    <dd>
-      <ul class="lista-destinatarios">
-        {% for d in correo.destinatarios %}
-        <li>{{ d.nombre }}{% if d.pendiente %}
-          <span class="marca-pendiente">pendiente de aprobación SEU</span>{% endif %}</li>
-        {% endfor %}
-      </ul>
-    </dd>
-    <dt>Asunto</dt><dd>{{ correo.asunto }}</dd>
-  </dl>
-  {% if not correo.cuerpo_en_url %}
-  <p class="aviso-estado">El cuerpo no entra en el enlace: copialo con el botón y pegá el cuerpo en el correo.</p>
-  <pre id="cuerpo-correo" class="pieza" hidden>{{ correo.cuerpo }}</pre>
-  <p>
-    <button type="button" id="copiar-cuerpo" class="boton-secundario">Copiar cuerpo</button>
-    <span id="aviso-copiar" class="ayuda"></span>
-  </p>
-  {% endif %}
-  <p class="acciones-correo">
-    <a class="boton-primario"
-       href="/solicitudes/{{ s.id_solicitud }}/correo?cuenta=sesion"
-       target="_blank" rel="noopener">
-      Abrir con la cuenta {{ correo.correo_sesion }}
-    </a>
-    <a class="enlace-doc"
-       href="/solicitudes/{{ s.id_solicitud }}/correo"
-       target="_blank" rel="noopener">
-      Elegir otra cuenta
-    </a>
-  </p>
-  <p class="ayuda">
-    El agente no envía nada: se abre Gmail con el correo prellenado y la
-    persona revisa y envía ella.
-  </p>
-  {% endif %}
-  {% if texto_vigente %}
-  <h2>Texto vigente al cerrar</h2>
-  <pre class="pieza">{{ texto_vigente }}</pre>
-  {% endif %}
-  {% elif s.estado_web in ('EN_COLA', 'GENERANDO', 'AJUSTANDO') %}
-  <p class="aviso-estado" id="aviso-estado">
-    {% if s.estado_web == 'AJUSTANDO' %}
-    El agente está ajustando la revisión vigente. Esta página se actualiza sola.
-    {% else %}
-    El agente está generando el borrador. Esta página se actualiza sola.
-    {% endif %}
-  </p>
-  {% elif s.estado_web == 'ERROR' %}
-  <p class="mensaje-error" role="alert">
-    La generación falló. El pedido quedó registrado; se puede volver a
-    intentar con un pedido nuevo.
-  </p>
-  {% elif s.estado_web == 'VENCIDA' %}
-  <p class="aviso-estado">La solicitud quedó vencida por inactividad.</p>
-  {% endif %}
 </section>
 {% if correo_auto %}
 <script>

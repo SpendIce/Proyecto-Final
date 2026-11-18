@@ -4,12 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agente1-poc"
-version = "0.10.4"
+version = "0.11.0"
 requires-python = ">=3.11"
 dependencies = [
+    "defusedxml>=0.7.1",
     "fastapi>=0.162.4",
     "google-auth>=2.62.2",
     "jinja2>=3.1.6",
+    "openpyxl>=3.1.5",
     "psycopg[binary]>=3.3.8",
     "pyjwt>=2.15.1",
     "python-multipart>=0.0.33",

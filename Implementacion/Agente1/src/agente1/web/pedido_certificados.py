@@ -50,6 +50,7 @@ from starlette.exceptions import HTTPException
 from ..canal_form import hash_correo
 from ..certificados_emision import (
     COLUMNAS_LISTA_CIERRE,
+    MAX_FILAS_LISTA_CIERRE,
     ListaCierreError,
     PersonaCierre,
     parsear_lista_cierre,
@@ -59,6 +60,11 @@ from ..linea_descriptiva import (
     hash_linea_descriptiva,
     normalizar_linea,
     validar_linea_descriptiva,
+)
+from ..lista_cierre_xlsx import (
+    MAX_FILAS_INSCRIPCION,
+    MAX_XLSX_BYTES,
+    parsear_xlsx_lista_cierre,
 )
 from .certificados_web import (
     _REQUERIDOS_ACTIVIDAD,
@@ -74,8 +80,8 @@ from .formularios import leer_formulario_acotado
 from .sesiones import Sesion
 
 MAX_CSV_BYTES = 512 * 1024
-MAX_FORM_BYTES = MAX_CSV_BYTES + 16 * 1024
-MAX_CSV_FILAS = 2000
+MAX_CSV_FILAS = MAX_FILAS_LISTA_CIERRE
+MAX_FORM_BYTES = MAX_XLSX_BYTES + 16 * 1024
 MAX_LINEA_CARACTERES = 300
 
 COLUMNAS_CSV = " · ".join(COLUMNAS_LISTA_CIERRE)
@@ -119,7 +125,7 @@ _MENSAJES_CAMPO = {
     "actividad_id_invalida": "La actividad elegida no es válida.",
     "linea_descriptiva_ausente": "Escribí la línea descriptiva.",
     "linea_descriptiva_invalida": "La línea descriptiva no sirve.",
-    "lista_cierre_csv_ausente": "Subí la lista de cierre en CSV.",
+    "lista_cierre_csv_ausente": "Subí la lista de cierre en CSV o Excel.",
     "lista_cierre_csv_vacia": "El archivo está vacío.",
     "lista_cierre_csv_grande": (
         "El archivo supera el máximo de {max_kb} KB."
@@ -135,9 +141,51 @@ _MENSAJES_CAMPO = {
         "«nombre;apellido;dni;mail;tratamiento;condicion», con «;» o «,» "
         "bien delimitados."
     ),
+    "lista_cierre_xlsx_vacia": "El archivo Excel está vacío.",
+    "lista_cierre_xlsx_grande": (
+        "El archivo Excel supera el máximo de {max_xlsx_mb} MB."
+    ),
+    "lista_cierre_xlsx_invalido": (
+        "El archivo no es un Excel válido (.xlsx)."
+    ),
+    "lista_cierre_xlsx_comprimido": (
+        "El Excel descomprimido supera el máximo permitido."
+    ),
+    "lista_cierre_xlsx_macros": (
+        "El Excel tiene macros: no se aceptan archivos con macros."
+    ),
+    "lista_cierre_xlsx_formato": (
+        "No se reconoce el formato del Excel: usá la plantilla de seis "
+        "columnas o el Excel de la SEU con hoja de aprobados y de "
+        "inscripción."
+    ),
+    "lista_cierre_xlsx_sin_aprobados": (
+        "El Excel no tiene una hoja de aprobados reconocible."
+    ),
+    "lista_cierre_xlsx_sin_inscripcion": (
+        "El Excel de la SEU no tiene hoja de inscripción."
+    ),
+    "lista_cierre_xlsx_sin_cruce": (
+        "La fila {fila} de aprobados no tiene una fila de inscripción con "
+        "el mismo mail."
+    ),
+    "lista_cierre_xlsx_dni": (
+        "La fila {fila} de aprobados no tiene un DNI de 7 u 8 dígitos."
+    ),
+    "lista_cierre_xlsx_inscripcion_invalida": (
+        "La inscripción no tiene «Apellido(s), Nombre(s)» en la fila "
+        "{fila}."
+    ),
+    "lista_cierre_xlsx_filas": (
+        "La hoja de aprobados supera el máximo de {max_filas} filas."
+    ),
+    "lista_cierre_xlsx_inscripcion_filas": (
+        "La hoja de inscripción supera el máximo de "
+        "{max_filas_inscripcion} filas."
+    ),
     "lista_cierre_vacia": "La lista no tiene ninguna persona.",
     "lista_cierre_fila_invalida": (
-        "La fila {fila} del CSV no sirve: tiene que tener las seis "
+        "La fila {fila} de la lista no sirve: tiene que tener las seis "
         "columnas completas y un mail válido."
     ),
     "lista_cierre_condicion_vacia": (
@@ -247,6 +295,13 @@ def parsear_csv_lista_cierre(contenido: bytes) -> tuple[PersonaCierre, ...]:
     return parsear_lista_cierre(filas)
 
 
+def _es_xlsx(nombre: str, contenido: bytes) -> bool:
+    """El Excel se reconoce por magia zip + extensión, nunca por MIME."""
+    return nombre.casefold().endswith(".xlsx") and contenido.startswith(
+        b"PK\x03\x04"
+    )
+
+
 def _filas_delimitadas(texto: str) -> list[list[str]]:
     """Filas del CSV con el delimitador que deja la cabecera contractual.
 
@@ -274,7 +329,7 @@ def _filas_delimitadas(texto: str) -> list[list[str]]:
 async def _formulario_acotado(request: Request) -> FormData:
     try:
         return await leer_formulario_acotado(
-            request, max_bytes=MAX_FORM_BYTES, max_files=1, max_fields=3
+            request, max_bytes=MAX_FORM_BYTES, max_files=1, max_fields=5
         )
     except HTTPException as error:
         codigo = (
@@ -355,7 +410,9 @@ def registrar_rutas_pedido_certificados(
             aviso=aviso,
             aviso_lote=aviso_lote,
             max_kb=MAX_CSV_BYTES // 1024,
+            max_xlsx_mb=MAX_XLSX_BYTES // (1024 * 1024),
             max_filas=MAX_CSV_FILAS,
+            max_filas_inscripcion=MAX_FILAS_INSCRIPCION,
             max_linea=MAX_LINEA_CARACTERES,
             columnas_csv=COLUMNAS_CSV,
             status_code=status_code,
@@ -385,7 +442,9 @@ def registrar_rutas_pedido_certificados(
                         detalles.get("actividad_faltantes", ())
                     ),
                     max_kb=MAX_CSV_BYTES // 1024,
+                    max_xlsx_mb=MAX_XLSX_BYTES // (1024 * 1024),
                     max_filas=MAX_CSV_FILAS,
+                    max_filas_inscripcion=MAX_FILAS_INSCRIPCION,
                 )
             ]
         return mensajes
@@ -438,6 +497,8 @@ def registrar_rutas_pedido_certificados(
             "linea_descriptiva": str(
                 form.get("linea_descriptiva", "")
             ).strip(),
+            "tratamiento": str(form.get("tratamiento", "")).strip(),
+            "condicion": str(form.get("condicion", "")).strip(),
         }
         errores: dict[str, str] = {}
         detalles: dict[str, object] = {}
@@ -481,9 +542,16 @@ def registrar_rutas_pedido_certificados(
         if not isinstance(upload, UploadFile) or not upload.filename:
             errores["lista"] = "lista_cierre_csv_ausente"
         else:
-            contenido = await upload.read(MAX_CSV_BYTES + 1)
+            contenido = await upload.read(MAX_XLSX_BYTES + 1)
             try:
-                personas = parsear_csv_lista_cierre(contenido)
+                if _es_xlsx(upload.filename, contenido):
+                    personas = parsear_xlsx_lista_cierre(
+                        contenido,
+                        tratamiento=valores["tratamiento"],
+                        condicion=valores["condicion"],
+                    )
+                else:
+                    personas = parsear_csv_lista_cierre(contenido)
             except ListaCierreError as error:
                 errores["lista"] = error.code
                 if error.fila is not None:
@@ -572,6 +640,7 @@ __all__ = [
     "MAX_CSV_BYTES",
     "MAX_CSV_FILAS",
     "MAX_LINEA_CARACTERES",
+    "MAX_XLSX_BYTES",
     "RepositorioPedidoPuerto",
     "parsear_csv_lista_cierre",
     "registrar_rutas_pedido_certificados",

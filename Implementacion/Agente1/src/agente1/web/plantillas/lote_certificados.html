@@ -37,27 +37,65 @@
   {% endif %}
 
   <dl class="ficha">
-    <dt>Actividad</dt>
-    <dd>{{ lote.actividad.titulo }} (<code>{{ lote.id_actividad }}</code>)</dd>
+    <dt>Actividad</dt><dd>{{ lote.actividad.titulo }}</dd>
     <dt>Fechas</dt>
-    <dd>{{ lote.actividad.fecha_inicio }}{% if lote.actividad.fecha_fin %} al {{ lote.actividad.fecha_fin }}{% endif %}</dd>
+    <dd>{{ lote.actividad.fecha_inicio|fecha }}{% if lote.actividad.fecha_fin %} al {{ lote.actividad.fecha_fin|fecha }}{% endif %}</dd>
     <dt>Organiza</dt><dd>{{ lote.actividad.organiza }}</dd>
     {% if lote.linea_descriptiva %}
     <dt>Línea descriptiva</dt><dd>{{ lote.linea_descriptiva }}</dd>
     {% endif %}
     <dt>Cantidad de personas</dt><dd>{{ lote.cantidad_personas }}</dd>
-    <dt>Hash del lote</dt><dd><code>{{ lote.objeto_lote }}</code></dd>
-    <dt>Generado por</dt><dd><code>{{ lote.generada_por_hash[:12] }}</code></dd>
-    <dt>Creado</dt><dd>{{ lote.creada_en.strftime('%d/%m/%Y %H:%M') }}</dd>
-    {% if lote.decidida_en %}
-    <dt>Decisión</dt>
-    <dd>{{ estado_visible }} · {{ lote.rol_decision }} ·
-      origen {{ lote.origen_identidad }} · agente {{ lote.version_agente }} ·
-      {{ lote.decidida_en.strftime('%d/%m/%Y %H:%M') }}</dd>
-    <dt>Identidad que decidió</dt>
-    <dd><code>{{ lote.decidida_por_hash[:12] }}</code></dd>
-    {% endif %}
+    <dt>Creado</dt><dd>{{ lote.creada_en|fecha }}</dd>
   </dl>
+
+  <details class="detalles-tecnicos">
+    <summary>
+      <span class="chevron" aria-hidden="true"></span>
+      Detalles técnicos
+    </summary>
+    <div class="detalles-contenido">
+      <dl class="ficha ficha-tecnica">
+        <dt>Id de actividad</dt><dd><code>{{ lote.id_actividad }}</code></dd>
+        <dt>Hash del lote</dt><dd><code>{{ lote.objeto_lote }}</code></dd>
+        <dt>Generado por</dt><dd><code>{{ lote.generada_por_hash[:12] }}</code></dd>
+        {% if lote.decidida_en %}
+        <dt>Decisión</dt>
+        <dd>{{ estado_visible }} · {{ lote.rol_decision }} ·
+          origen {{ lote.origen_identidad }} · agente {{ lote.version_agente }} ·
+          {{ lote.decidida_en|fecha }}</dd>
+        <dt>Identidad que decidió</dt>
+        <dd><code>{{ lote.decidida_por_hash[:12] }}</code></dd>
+        {% endif %}
+      </dl>
+
+      <h3>Plantilla y aprobación</h3>
+      {% if plantillas %}
+      <dl class="ficha">
+        {% for plantilla in plantillas %}
+        <dt>{{ plantilla.condicion|condicion_legible }}</dt>
+        <dd>
+          <code>{{ plantilla.nombre }}</code> — {{ plantilla.estado }}
+        </dd>
+        {% endfor %}
+      </dl>
+      {% endif %}
+      <p class="ayuda">
+        Plantilla de la muestra: <code>{{ plantilla_muestra }}</code>
+      </p>
+
+      <h3>Firmas disponibles</h3>
+      <dl class="ficha">
+        <dt>Custodia de firmas</dt>
+        <dd>{% if firmas.configuradas %}configurada{% else %}no configurada{% endif %}</dd>
+        {% if firmas.faltantes %}
+        <dt>Faltantes</dt>
+        <dd>{{ firmas.faltantes|join(', ') }}</dd>
+        {% endif %}
+        <dt>Registro de decisiones</dt>
+        <dd>{% if registro_configurado %}configurado{% else %}no configurado{% endif %}</dd>
+      </dl>
+    </div>
+  </details>
 
   <h2 id="t-lista-cierre">Lista de cierre</h2>
   {% if lote.personas %}
@@ -72,7 +110,7 @@
         <tr>
           <td>{{ loop.index }}</td>
           <td>{{ persona.nombre }} {{ persona.apellido }}</td>
-          <td>{{ persona.condicion }}</td>
+          <td>{{ persona.condicion|condicion_legible }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -97,73 +135,59 @@
       Descargar muestra (PDF)
     </a>
   </p>
-  <p class="ayuda">
-    Plantilla de la muestra: <code>{{ plantilla_muestra }}</code>
-  </p>
   {% endif %}
 
-  <h2>Plantilla y aprobación</h2>
-  {% if plantillas %}
-  <dl class="ficha">
-    {% for plantilla in plantillas %}
-    <dt>{{ plantilla.condicion }}</dt>
-    <dd>
-      <code>{{ plantilla.nombre }}</code> — {{ plantilla.estado }}
-    </dd>
-    {% endfor %}
-  </dl>
-  {% else %}
-  <p class="aviso-estado">
-    Plantilla de la muestra: <code>{{ plantilla_muestra }}</code>
-  </p>
-  {% endif %}
-
-  <h2>Firmas disponibles</h2>
-  <dl class="ficha">
-    <dt>Custodia de firmas</dt>
-    <dd>{% if firmas.configuradas %}configurada{% else %}no configurada{% endif %}</dd>
-    {% if firmas.faltantes %}
-    <dt>Faltantes</dt>
-    <dd>{{ firmas.faltantes|join(', ') }}</dd>
-    {% endif %}
-    <dt>Registro de decisiones</dt>
-    <dd>{% if registro_configurado %}configurado{% else %}no configurado{% endif %}</dd>
-  </dl>
-
-  {% if puede_aprobar or puede_descartar %}
-  <h2>Decisión del lote</h2>
-  <form method="post" action="/certificados/{{ lote.id_lote }}/decidir"
-        class="acciones-decision">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <input type="hidden" name="hash_lote" value="{{ lote.objeto_lote }}">
-    {% if requiere_confirmacion %}
-    <label class="opcion confirmacion">
-      <input type="checkbox" name="confirmar" value="si" required>
-      Apruebo la línea descriptiva y la lista del lote
-    </label>
-    {% endif %}
-    {% if puede_aprobar %}
-    <button type="submit" name="accion" value="aprobar" class="boton-primario">Aprobar lote</button>
-    {% endif %}
-    {% if puede_descartar %}
-    <button type="submit" name="accion" value="descartar" formnovalidate class="boton-descartar">Descartar lote</button>
-    {% endif %}
-  </form>
-  <p class="ayuda">
-    La decisión queda atada al hash del lote. Aprobar no envía correos: la
-    emisión sigue el circuito de certificados y exige las firmas vigentes.
-  </p>
-  {% elif lote.estado == 'PENDIENTE_APROBACION' %}
-  <p class="aviso-estado">
-    {% if decision_demo_bloqueada %}
-    Lote de demostración: su decisión se toma sólo en la instancia de
-    demostración. En esta instancia no hay decisión.
+  {% if lote.estado == 'PENDIENTE_APROBACION' %}
+    {% if puede_aprobar or puede_descartar %}
+    <section class="tarjeta-decision" aria-labelledby="t-decision">
+      <h2 id="t-decision">Decisión del lote</h2>
+      {% if not es_generador %}
+      <p class="aviso-decision" role="status">
+        Este lote lo aprueba quien lo generó. Podés descartarlo o pedir tu
+        propio lote.
+      </p>
+      {% endif %}
+      <form method="post" action="/certificados/{{ lote.id_lote }}/decidir"
+            class="acciones-decision">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="hash_lote" value="{{ lote.objeto_lote }}">
+        {% if requiere_confirmacion and puede_aprobar %}
+        <label class="opcion confirmacion">
+          <input type="checkbox" name="confirmar" value="si" required>
+          Apruebo la línea descriptiva y la lista del lote
+        </label>
+        {% endif %}
+        {% if puede_aprobar %}
+        <button type="submit" name="accion" value="aprobar" class="boton-primario">Aprobar lote</button>
+        {% endif %}
+        {% if puede_descartar %}
+        <button type="submit" name="accion" value="descartar" formnovalidate class="boton-descartar">Descartar lote</button>
+        {% endif %}
+      </form>
+      {% if puede_aprobar %}
+      <p class="ayuda">
+        La decisión queda atada al hash del lote. Aprobar no envía correos: la
+        emisión sigue el circuito de certificados y exige las firmas vigentes.
+      </p>
+      {% else %}
+      <p class="ayuda">
+        Descartar cierra el lote sin emitir certificados. La decisión queda
+        atada al hash del lote.
+      </p>
+      {% endif %}
+    </section>
     {% else %}
-    Este lote lo aprueba quien lo generó, con rol de aprobador de
-    contenido.{% if not es_generador %}
-    La sesión actual no es la del generador.{% endif %}
+    <p class="aviso-estado">
+      {% if decision_demo_bloqueada %}
+      Lote de demostración: su decisión se toma sólo en la instancia de
+      demostración. En esta instancia no hay decisión.
+      {% else %}
+      Este lote lo aprueba quien lo generó, con rol de aprobador de
+      contenido.{% if not es_generador %}
+      La sesión actual no es la del generador.{% endif %}
+      {% endif %}
+    </p>
     {% endif %}
-  </p>
   {% endif %}
 
   {% if emision_disponible and lote.estado == 'APROBADA' %}

@@ -25,9 +25,13 @@
   {% if sesion %}
   <nav class="nav" aria-label="Navegación principal">
     <a class="nav-enlace" href="/bandeja"
-       {% if ruta.startswith('/bandeja') or ruta.startswith('/solicitudes') or ruta.startswith('/certificados') %}aria-current="page"{% endif %}>Bandeja</a>
+       {% if ruta.startswith('/bandeja') or ruta.startswith('/solicitudes') or (ruta.startswith('/certificados') and not ruta.startswith('/certificados/pedir')) %}aria-current="page"{% endif %}>Bandeja</a>
     <a class="nav-primario" href="/nuevo-pedido"
        {% if ruta.startswith('/nuevo-pedido') %}aria-current="page"{% endif %}>Nuevo pedido</a>
+    {% if nav_puede_pedir_certificados(sesion) %}
+    <a class="nav-enlace" href="/certificados/pedir"
+       {% if ruta.startswith('/certificados/pedir') %}aria-current="page"{% endif %}>Pedir certificados</a>
+    {% endif %}
     <form class="salir" method="post" action="/salir">
       <input type="hidden" name="csrf" value="{{ sesion.csrf_token }}">
       <button class="nav-enlace" type="submit">Salir</button>

@@ -26,6 +26,24 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+## [0.11.0] - 2026-11-17
+
+- **Menor — el pedido de certificados acepta el Excel de la SEU** (Refs #193).
+  `/certificados/pedir` suma el `.xlsx` además del CSV: reconoce la plantilla
+  de seis columnas o la planilla de la SEU (aprobados + inscripción), cruza
+  por mail, prefiere el nombre corregido de aprobados y pasa las filas por la
+  misma validación del circuito. El upload tiene tope de 2 MB, se inspecciona
+  el zip antes de abrir openpyxl y se rechazan macros y bombas de
+  descompresión. La barra principal expone «Pedir certificados» al rol que ya
+  veía el botón de la bandeja; tratamiento y condición se eligen en el
+  formulario para la planilla de la SEU.
+- **Menor — interfaz más clara para la SEU** (Refs #194). Bandeja con
+  resumen y pestañas Piezas/Certificados; estados con color propio; datos
+  técnicos del lote y de la pieza en «Detalles técnicos»; aviso de que el
+  lote lo aprueba quien lo generó; pieza en dos columnas con acciones fijas;
+  ingreso demo con roles legibles; fechas dd/mm/aaaa. Sin cambios de rutas,
+  campos, permisos ni lógica.
+
 ## [0.10.4] - 2026-11-17
 
 - **Menor — una persona puede tener varios roles en el padrón** (Refs #125;

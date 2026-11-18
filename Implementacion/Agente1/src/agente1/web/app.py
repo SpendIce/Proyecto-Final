@@ -145,6 +145,57 @@ _ESTADOS_VISIBLES = {
     "DESCARTADA": "Descartada",
     "VENCIDA": "Vencida",
 }
+_ROLES_LEGIBLES = {
+    "APROBADOR_CONTENIDO": "Aprobación de contenido",
+    "APROBADOR_PAGOS": "Aprobación de pagos",
+    "coordinador_seu": "Coordinación SEU",
+    "auxiliar_seu": "Auxiliar SEU",
+}
+_CONDICIONES_LEGIBLES = {
+    "aprobacion": "Aprobación",
+    "asistencia": "Asistencia",
+}
+
+
+def fecha_legible(valor: object) -> str:
+    """Fecha para la SEU: dd/mm/aaaa, con hora sólo si el dato la trae."""
+    if valor is None:
+        return ""
+    if isinstance(valor, datetime):
+        return valor.strftime("%d/%m/%Y %H:%M")
+    if isinstance(valor, date):
+        return valor.strftime("%d/%m/%Y")
+    if not isinstance(valor, str):
+        return str(valor)
+    texto = valor.strip()
+    try:
+        return date.fromisoformat(texto).strftime("%d/%m/%Y")
+    except ValueError:
+        pass
+    try:
+        return datetime.fromisoformat(texto).strftime("%d/%m/%Y %H:%M")
+    except ValueError:
+        return valor
+
+
+def roles_legibles(valor: object) -> str:
+    """Traduce los roles del padrón a nombres que entiende la SEU."""
+    if valor is None:
+        return ""
+    partes = [parte.strip() for parte in str(valor).split(" · ")]
+    return " · ".join(
+        _ROLES_LEGIBLES.get(parte, parte) for parte in partes if parte
+    )
+
+
+def condicion_legible(valor: object) -> str:
+    """Nombre visible de la condición de cierre del certificado."""
+    if valor is None:
+        return ""
+    texto = str(valor).strip()
+    return _CONDICIONES_LEGIBLES.get(texto.lower(), texto)
+
+
 _ORIGEN_REVISION = {
     "generada": "generada",
     "editada_docs": "editada en Docs",
@@ -533,6 +584,9 @@ def crear_app(
     base = Path(__file__).resolve().parent
     plantillas = Jinja2Templates(directory=str(base / "plantillas"))
     plantillas.env.globals["es_lote_demo"] = es_lote_demo
+    plantillas.env.filters["fecha"] = fecha_legible
+    plantillas.env.filters["roles_legibles"] = roles_legibles
+    plantillas.env.filters["condicion_legible"] = condicion_legible
     areas = areas_emisoras()
     publicos = publicos_destinatarios()
     fichas_por_tipo = _campos_por_tipo()
@@ -639,6 +693,16 @@ def crear_app(
 
     def tiene_rol(sesion: Sesion, rol: str) -> bool:
         return padron.tiene_rol(sesion.correo, rol)
+
+    def puede_pedir_certificados(sesion: Sesion) -> bool:
+        """La misma regla del botón de la bandeja, para la barra global."""
+        return lotes is not None and tiene_rol(
+            sesion, ROL_APROBADOR_CONTENIDO
+        )
+
+    plantillas.env.globals["nav_puede_pedir_certificados"] = (
+        puede_pedir_certificados
+    )
 
     def rol_de_certificados(sesion: Sesion) -> str | None:
         return rol_de(sesion, (ROL_APROBADOR_CONTENIDO,))
@@ -874,10 +938,7 @@ def crear_app(
                 and lotes is not None
                 and tiene_rol(sesion, ROL_APROBADOR_CONTENIDO)
             ),
-            puede_pedir_certificados=(
-                lotes is not None
-                and tiene_rol(sesion, ROL_APROBADOR_CONTENIDO)
-            ),
+            puede_pedir_certificados=puede_pedir_certificados(sesion),
         )
 
     @app.get("/solicitudes/{id_solicitud}", response_class=HTMLResponse)
