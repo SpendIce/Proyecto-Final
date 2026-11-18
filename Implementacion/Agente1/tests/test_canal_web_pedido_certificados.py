@@ -978,3 +978,33 @@ def test_nav_pedir_certificados_no_visible_para_otro_rol() -> None:
     otra_pagina = mundo.client.get("/nuevo-pedido")
     assert otra_pagina.status_code == 200
     assert "Pedir certificados" not in otra_pagina.text
+
+
+# --- volver y logo -----------------------------------------------------------
+
+
+def test_el_logo_lleva_al_inicio_en_todas_las_pantallas() -> None:
+    mundo = _mundo()
+    _ingresar(mundo.client)
+
+    for ruta in ("/bandeja", "/nuevo-pedido", "/certificados/pedir"):
+        pagina = mundo.client.get(ruta)
+        assert pagina.status_code == 200
+        assert re.search(r'<a class="cabecera-marca" href="/"', pagina.text)
+
+
+def test_volver_aparece_fuera_de_la_bandeja() -> None:
+    mundo = _mundo()
+    _ingresar(mundo.client)
+
+    bandeja = mundo.client.get("/bandeja")
+    assert 'class="volver"' not in bandeja.text
+
+    formulario = mundo.client.get("/certificados/pedir")
+    assert re.search(
+        r'<a class="volver" href="/bandeja#certificados">', formulario.text
+    )
+    assert "Volver a la bandeja" in formulario.text
+
+    pedido = mundo.client.get("/nuevo-pedido")
+    assert re.search(r'<a class="volver" href="/bandeja">', pedido.text)

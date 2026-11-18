@@ -26,6 +26,15 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+## [0.11.2] - 2026-11-18
+
+- **Parche — volver y logo en la cabecera** (Refs #194). Fuera de la bandeja
+  cada pantalla muestra «← Volver» hacia su pantalla madre (la pieza vuelve a
+  la bandeja, el correo a la pieza, el lote y el pedido de certificados a la
+  pestaña Certificados, la emisión al lote). Volver no usa el historial del
+  navegador, que tras un envío de formulario puede devolver al formulario. El
+  logo de la cabecera lleva al inicio.
+
 ## [0.11.1] - 2026-11-18
 
 - **Parche — formularios y cabecera en el celular** (Refs #194). El atributo
