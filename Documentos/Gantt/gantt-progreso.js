@@ -29,7 +29,7 @@ window.GANTT_PROGRESS = {
   // servidor en PR #178 y el despliegue de 0.11.1 verificado en labredesfie.
   // No se marca ninguna tarea nueva: el canal web y los certificados en la web
   // avanzan m5 y m6, pero ninguno cumple su DoD completo (ver notas).
-  "m5": {"done": false, "nota": "17/11: canal web de A1 implementado y desplegado en labredesfie (0.6.0-0.9.0, Tailscale): bandeja, pedido guiado de 7 tipos de pieza, Doc real en Drive, «Traer cambios», ajuste generativo sobre la última revisión, aprobar/descartar atado al hash y «Preparar correo» en Gmail sin envío. Persistencia en PostgreSQL con worker y auditoría (#151, ADR 0016). E2E en el servidor el 17/11: generación 43,8 s y ajuste 57,7 s (PR #178). Usabilidad del prototipo aceptada por la SEU el 04/11 (s5d). Falta para el DoD: login Google institucional (DSI, #62/#149; hoy modo demostración sin verificar identidad, vence el 20/11) y padrón real de la SEU (provisorio; desde 0.10.4 admite varios roles por persona, #125). 18/11: interfaz pulida en 0.11.1 (resumen y pestañas en la bandeja, estados con color, detalles técnicos plegados) y «Pedir certificados» en la barra principal."},
+  "m5": {"done": false, "nota": "17/11: canal web de A1 implementado y desplegado en labredesfie (0.6.0-0.9.0, Tailscale): bandeja, pedido guiado de 7 tipos de pieza, Doc real en Drive, «Traer cambios», ajuste generativo sobre la última revisión, aprobar/descartar atado al hash y «Preparar correo» en Gmail sin envío. Persistencia en PostgreSQL con worker y auditoría (#151, ADR 0016). E2E en el servidor el 17/11: generación 43,8 s y ajuste 57,7 s (PR #178). Usabilidad del prototipo aceptada por la SEU el 04/11 (s5d). Falta para el DoD: login Google institucional (DSI, #62/#149; es criterio del canal y por eso vive en m5, aunque HU-012 y HU-014 lo usan a través de la web; hoy modo demostración sin verificar identidad, vence el 20/11) y padrón real de la SEU (provisorio; desde 0.10.4 admite varios roles por persona, #125). 18/11: interfaz pulida en 0.11.1 (resumen y pestañas en la bandeja, estados con color, detalles técnicos plegados) y «Pedir certificados» en la barra principal."},
   // 04/11: aceptación cualitativa SEU del prototipo y gacetillas; sin puntajes inferidos.
   "s1e": {"done": true, "at": "2026-11-04", "nota": "Validación cualitativa de gacetillas aceptada por SEU en recorrido guiado por Juani con Juan Manuel y Leandro. Acta: Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md. No se infieren puntajes 1-4 ni conformidad del set formal; su medición sigue en #112. No incluye posts."},
   "s5d": {"done": true, "at": "2026-11-04", "nota": "Regresión técnica existente y recorrido guiado del prototipo con Juan Manuel y Leandro, facilitado por Juani. SEU eligió interfaz A (bandeja y pieza) y aceptó la generación mostrada. Acta: Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md. No acredita login Google, permisos Docs ni persistencia reales."},
@@ -83,6 +83,7 @@ window.GANTT_PROGRESS = {
   "s6b": { done: true, at: "2026-09-21", nota: "PDF determinista generado con stdlib pura (sin dependencias nuevas): el borrador lleva la marca BORRADOR - NO EMITIR y el emitido no; bytes reproducibles verificados en regresion" },
   "s6c": { done: true, at: "2026-09-21", nota: "Emision bloqueada sin las dos aprobaciones registradas (mismo circuito que HU-012); el destino es DestinoCertificadosFake y la emision real sigue pendiente de SEU/DSI" },
   "s6d": { done: true, at: "2026-09-21", nota: "62 pruebas nuevas cubren datos faltantes, rechazo, rol invalido, duplicados, recuperacion durable y emision simulada controlada (matriz_conformidad_hu014_v1, 12 casos)" },
+  "m6": {"done": true, "at": "2026-11-17", "nota": "HU-014 operativa (decisión de Juani, 18/11). Plantilla institucional de aprobación integrada (#126) y aprobada por la SEU el 17/11 con un único ajuste, la firma solapada (plantilla v2). Firmas reales de la SEU en el servidor, fuera del repo, con uso autorizado al entregarlas. El lote se pide desde una actividad del catálogo y se emite desde la web en segundo plano (0.10.0, #168); lo aprueba quien lo genera (ADR 0018) y el ZIP salió en el servidor con las firmas reales. Desde 0.11.0 el pedido acepta directamente el Excel de aprobados de la SEU (#193), probado con una lista real. La variante de asistencia no aplica: la SEU definió que todos los de la lista son aprobados. Queda como prueba operativa, no como función faltante, el envío por correo de un lote real. Operar con identidad verificada depende del login institucional, que se sigue en m5."},
   "s6e": { done: true, at: "2026-09-21", nota: "Log de emision con hashes (pdf_hash) sin datos personales en claro, reconciliacion de EMISION_RESERVADA hacia EMISION_INDETERMINADA y doc de limites en evidencias/limites-hu014-offline.md" },
   "m7":  { done: true, at: "2026-10-20", nota: "Suite local 2377 passed / 8 skipped; cobertura 90% registrada. CI de main verde en el run 39455797467 (f2dfbf6). Regresion al 17/11 (0.9.0): 2935 passed / 8 skipped con PostgreSQL, Ruff y CI verdes (PR #178)" },
   "s7c": { done: true, at: "2026-10-21", nota: "E2E live en labredesfie con gemma4:e4b y una actividad real del corpus (FIE-DIF-08), con la cuenta de servicio. 21/10: gacetilla PENDIENTE_VALIDACION en 64,2 s, HU-014 y HU-012, y la consola visual en la presentacion de avance. 23/10, ya en contenedores (runtime oficial, ADR 0013, version 0.5.3): corrida unica completa (gacetilla, HU-014 con 2 certificados EMITIDA, HU-012/HU-013 con lote ENVIO_ENCOLADO), posts de Instagram y LinkedIn en vivo, modelo en HU-014 6/6, HU-012 4/4 y canal 8/8, scheduler con el insumo de A3, respaldo y restauracion, vuelta atras de version y recuperacion ante caida. Gmail y Forms reales de HU-012/HU-014 siguen sin configurar (destinos de prueba). Suite 2444 passed / 8 skipped y CI verde, tambien dentro de la imagen. Evidencia: Implementacion/Agente1/evidencias/contenedores-servidor-2026-10-23.md" },
@@ -126,33 +127,23 @@ window.GANTT_PROGRESS = {
   //        servidor el aislamiento de los contenedores (Ollama sin egreso,
   //        agente sin root ni capacidades, arranque fail-closed). El 30/10
   //        la revision de laboratorio aprobo la seguridad: se marca.
-  // m6   - "HU-014 operativa con DoD": el slice offline esta hecho (s6a-s6e).
-  //        Al 18/11: plantilla SEU de aprobacion integrada (#126); el lote lo
-  //        aprueba quien lo genera (Juani 11/11, ADR 0018); el lote se aprueba
-  //        en la web atado al hash con muestra BORRADOR (0.8.0). Desde 0.10.0
-  //        el lote se pide desde una actividad del catalogo y se emite desde
-  //        la web en segundo plano (#168); desde 0.11.0 el pedido acepta
-  //        directamente el Excel de aprobados de la SEU (#193), probado en el
-  //        servidor con una lista real. En modo demostracion el lote queda
-  //        marcado de prueba, con BORRADOR, y no se envia. Falta para el DoD
-  //        (#142): las imagenes de firma de la SEU (sin ellas no se emite
-  //        institucionalmente, R2), la variante institucional de asistencia,
-  //        el login institucional (m5) y el envio Gmail fuera de la lista de
-  //        prueba. No se declara emision institucional.
-  // s4e  - duplicados y destinatario invalido probados, y desde el 2026-09-21
-  //        el envio exige las dos aprobaciones del circuito (semantica RGC +
-  //        utilitaria Coordinador, DEF-A1-016 cerrado como RESUELTO_TECNICO,
-  //        issue #28, suite 757). Falta la validacion SEU del mismo item.
-  //        El 22/09 la bible amplio HU-012 a notificaciones de participacion,
-  //        situacion de pagos y aprobacion: extension implementada y mergeada
-  //        el mismo 22/09 (issue #33, catalogo tipos_notificacion_v1) con
-  //        situacion_pagos bloqueada fail-closed; la fuente de datos de pagos
-  //        sigue DESCONOCIDO hasta respuesta SEU. El 19/10 no hubo validacion
-  //        SEU del item; #125 cambia la aprobacion a una sola persona y
-  //        requiere adaptacion.
-  // m4   - el adapter Gmail existe con lista de prueba y modo produccion
-  //        (#141); lo que falta es que los renderers compongan el cuerpo de
-  //        la plantilla aprobada por tipo y la lista real de la SEU.
+  // m6   - completado el 17/11; ver la entrada arriba. El login institucional
+  //        se sigue en m5.
+  // s4e  - duplicados y destinatario invalido probados. La doble aprobacion
+  //        del 21/09 (#28) fue reemplazada por la aprobacion unica de quien
+  //        genera (#125, ADR 0018, 0.6.0). El 22/09 la bible amplio HU-012 a
+  //        participacion, situacion de pagos y aprobacion (#33); desde el
+  //        catalogo tipos_notificacion_v2 (hoy v3) la situacion de pagos ya
+  //        no esta bloqueada: se deriva del plan de pago de la inscripcion a
+  //        una actividad arancelada, el padron, el buzon propio y las
+  //        novedades. Falta la validacion SEU del item.
+  // m4   - renderers en modo produccion sin marcas de borrador (#142, 0.6.0)
+  //        y adapter Gmail con lista de prueba. Falta: recibir los inscriptos
+  //        del SIU (la integracion con SIU no se trabajo; fuera por decision
+  //        del 17/11), la prueba en vivo del control de pagos (#47), integrar
+  //        el buzon de cursos complementarios (lectura de comprobantes y envio;
+  //        DSI aprobo la cuenta de servicio, rama sin mergear) y el envio
+  //        Gmail fuera de la lista de prueba.
   //
   // Sprint 5 (HU-013) arranca el 2026-09-15. El diseno esta cerrado y
   // especificado (issue #18 con ocho tickets, #19 a #26). Al corte del
