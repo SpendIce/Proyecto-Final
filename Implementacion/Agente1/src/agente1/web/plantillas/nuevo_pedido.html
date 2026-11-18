@@ -13,7 +13,11 @@
     <input type="hidden" name="llave" value="{{ llave }}">
 
     <label for="tipo">Tipo de pieza</label>
-    <select id="tipo" name="tipo" required>
+    <p class="ayuda" id="ayuda-tipo">
+      Elegí qué pieza querés pedir; el formulario muestra sólo los datos que
+      ese tipo necesita.
+    </p>
+    <select id="tipo" name="tipo" required aria-describedby="ayuda-tipo">
       <option value="">Elegí un tipo</option>
       {% for t in tipos %}
       <option value="{{ t.id }}"
@@ -35,7 +39,10 @@
 
     <div id="bloque-actividad" class="bloque" hidden>
       <label for="actividad">Actividad</label>
-      <select id="actividad" name="actividad">
+      <p class="ayuda" id="ayuda-actividad">
+        Elegí la actividad del calendario; sus datos completan la pieza.
+      </p>
+      <select id="actividad" name="actividad" aria-describedby="ayuda-actividad">
         <option value="">Elegí la actividad</option>
         {% for a in actividades %}
         <option value="{{ a.id_actividad }}"
@@ -122,11 +129,19 @@
     </div>
 
     <label for="descripcion">Descripción e indicaciones</label>
+    <p class="ayuda" id="ayuda-descripcion">
+      Contá qué comunica la pieza, para quién es y qué tono conviene.
+    </p>
     <textarea id="descripcion" name="descripcion" rows="5"
+      aria-describedby="ayuda-descripcion"
       placeholder="Qué comunica la pieza y con qué propósito">{{ valores.get('descripcion', '') }}</textarea>
 
     <label for="asunto">Asunto <span class="opcional">(opcional)</span></label>
+    <p class="ayuda" id="ayuda-asunto">
+      Sólo si la pieza necesita un asunto editorial; puede quedar vacío.
+    </p>
     <input id="asunto" name="asunto" type="text"
+           aria-describedby="ayuda-asunto"
            value="{{ valores.get('asunto', '') }}"
            placeholder="Queda vacío si no hace falta un asunto editorial">
 

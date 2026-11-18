@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import time
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -1021,16 +1022,24 @@ def test_modo_demo_puede_correr_en_contenedor_y_red_interna() -> None:
 # --- ingreso por elección de identidad del padrón ---
 
 
-def test_login_demo_ofrece_select_con_roles_del_padron() -> None:
+def test_login_demo_ofrece_tarjetas_radio_con_roles_del_padron() -> None:
     mundo = _mundo_demo()
     respuesta = mundo.client.get("/ingresar")
     assert respuesta.status_code == 200
     assert "Entrar como" in respuesta.text
     assert CORREO_SEU in respuesta.text
     assert CORREO_LECTOR in respuesta.text
-    # El rol mostrado sale del padrón, no del navegador.
-    assert "coordinador_seu" in respuesta.text
+    # El rol mostrado sale del padrón, no del navegador, y se lee en
+    # lenguaje de la SEU.
+    assert "Coordinación SEU" in respuesta.text
     assert "lector_seu" in respuesta.text
+    # Mismo campo, mismos valores y la primera identidad marcada.
+    assert 'type="radio" name="correo"' in respuesta.text
+    assert 'value="' + CORREO_SEU + '"' in respuesta.text
+    assert 'value="' + CORREO_LECTOR + '"' in respuesta.text
+    assert "checked" in respuesta.text
+    assert "required" in respuesta.text
+    assert "<select" not in respuesta.text
     # Sin el script de Google en esta página.
     assert "accounts.google.com/gsi/client" not in respuesta.text
 
@@ -1241,3 +1250,45 @@ def test_bandeja_agrupa_por_estado_y_colapsa_los_errores(
     assert errores < html.index("Pieza fallida")
     assert html.index("Pieza en revisión") < html.index("Pieza aprobada") < errores
     assert "Con error (1)" in html
+
+
+def test_bandeja_muestra_resumen_y_errores_desplegables(mundo: Mundo) -> None:
+    _ingresar(mundo.client)
+    for llave, titulo in (
+        ("b1", "Pieza en revisión"),
+        ("b2", "Pieza aprobada"),
+        ("b3", "Pieza fallida"),
+    ):
+        mundo.client.post(
+            "/nuevo-pedido",
+            data={
+                "csrf": _csrf_de(mundo),
+                "llave": llave,
+                "tipo": "cronica_de_evento",
+                "campo_titulo": titulo,
+                "campo_cuerpo": "Texto confirmado.",
+                "publicos": "alumnos_ingenieria",
+            },
+            follow_redirects=False,
+        )
+    mundo.repo.solicitudes["web-0000"]["estado_web"] = "LISTA"
+    mundo.repo.solicitudes["web-0001"]["estado_web"] = "APROBADA"
+    mundo.repo.solicitudes["web-0002"]["estado_web"] = "ERROR"
+
+    html = mundo.client.get("/bandeja").text
+
+    tarjetas = re.findall(
+        r'class="resumen-tarjeta[^"]*"[^>]*>\s*'
+        r'<span class="resumen-numero">(\d+)</span>\s*'
+        r'<span class="resumen-etiqueta">([^<]+)</span>',
+        html,
+    )
+    assert tarjetas == [
+        ("1", "Piezas en revisión"),
+        ("0", "Lotes por aprobar"),
+        ("1", "Con error"),
+    ]
+    assert 'id="errores"' in html
+    assert re.search(r'<details class="bandeja-errores" id="errores">\s*'
+                     r'<summary>\s*<span class="chevron"', html)
+    assert 'href="#errores"' in html

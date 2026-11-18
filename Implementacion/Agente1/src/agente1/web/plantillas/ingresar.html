@@ -27,16 +27,24 @@
     {% endif %}
     {% if error %}<p class="mensaje-error" role="alert">{{ error }}</p>{% endif %}
     {% if config.modo_demo %}
-    <form method="post" action="/ingresar" class="formulario">
+    <form method="post" action="/ingresar" class="formulario formulario-ingreso">
       <input type="hidden" name="csrf" value="{{ csrf_login }}">
-      <label for="correo">Entrar como</label>
-      <select id="correo" name="correo" required>
+      <fieldset class="identidades">
+        <legend>Entrar como</legend>
+        <p class="ayuda">Elegí el correo y el rol con el que querés recorrer la demostración.</p>
         {% for identidad in identidades_demo %}
-        <option value="{{ identidad.correo }}">
-          {{ identidad.correo }} · {{ identidad.rol }}
-        </option>
+        <label class="identidad">
+          <input type="radio" name="correo" value="{{ identidad.correo }}"
+                 required {% if loop.first %}checked{% endif %}>
+          <span class="identidad-texto">
+            <span class="identidad-correo">{{ identidad.correo }}</span>
+            {% if identidad.rol %}
+            <span class="identidad-rol">{{ identidad.rol|roles_legibles }}</span>
+            {% endif %}
+          </span>
+        </label>
         {% endfor %}
-      </select>
+      </fieldset>
       <button class="boton-primario" type="submit">Ingresar</button>
     </form>
     {% elif config.modo_prueba %}

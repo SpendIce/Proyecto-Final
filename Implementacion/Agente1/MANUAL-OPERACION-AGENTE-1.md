@@ -750,13 +750,15 @@ La emisión sigue siendo del circuito de certificados
 0020). La purga diaria retira la lista y la línea descriptiva de los lotes
 decididos y conserva cantidad, hashes y decisión.
 
-**Pedir el lote desde la web.** La bandeja ofrece **«Pedir lote de
-certificados»** al rol `APROBADOR_CONTENIDO`. El formulario
-(`/certificados/pedir`) pide tres cosas: la actividad del catálogo ya
+**Pedir el lote desde la web.** La bandeja y la barra principal ofrecen
+**«Pedir lote de certificados»** / **«Pedir certificados»** al rol
+`APROBADOR_CONTENIDO`. El formulario
+(`/certificados/pedir`) pide la actividad del catálogo ya
 cargado en el servidor (el select muestra su ficha; si a la fila de la
 fuente le faltan horas, modalidad u otro dato institucional, el pedido se
 rechaza `actividad_datos_incompletos` sin completar con valores
-supuestos), la lista de cierre en CSV y la línea descriptiva. El CSV es
+supuestos), la lista de aprobados (CSV o Excel), el tratamiento, la
+condición y la línea descriptiva. El CSV es
 UTF-8 con la cabecera
 `nombre;apellido;dni;mail;tratamiento;condicion` en ese orden, separador
 `;` o `,` bien delimitados, hasta 2000 filas y 512 KB;
@@ -765,6 +767,18 @@ ficticias (`@example.invalid`). La validación es toda o nada: una fila
 inválida rechaza el lote entero y el aviso dice el número de fila del
 archivo sin volcar su contenido. Crear no envía correos ni aprueba nada:
 el lote queda `PENDIENTE_APROBACION` y se decide en su página.
+
+**Excel de la SEU.** El mismo formulario acepta el `.xlsx` que manda la
+SEU tal como llega: una hoja de aprobados (cuatro celdas por fila) y una
+hoja de inscripción (cinco celdas), sin depender del nombre de las hojas.
+El cruce es por mail y el nombre corregido de aprobados manda sobre el
+tipeado en la inscripción; el tratamiento y la condición elegidos en el
+formulario se aplican a todas las personas. Sin hoja de inscripción o sin
+cruce para un aprobado el lote no se crea y el aviso dice la fila de
+aprobados. El Excel tiene tope de 2 MB y se rechazan las macros y los
+archivos que se descomprimen por encima del límite. También se acepta la
+plantilla CSV guardada como Excel: en ese caso mandan las seis columnas
+del archivo y los campos del formulario se ignoran.
 
 **La identidad del lote es la lista + la actividad.** Repetir el mismo
 pedido devuelve el lote existente (`objeto_lote` único). La misma lista

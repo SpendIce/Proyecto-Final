@@ -58,6 +58,7 @@ CORREO_APROBADOR = "aprobador@example.invalid"
 CORREO_OTRO_APROBADOR = "otra.persona@example.invalid"
 CORREO_COORDINADOR = "coordinador@example.invalid"
 TOKEN_APROBADOR = "tok-aprobador"
+TOKEN_OTRO_APROBADOR = "tok-otro-aprobador"
 TOKEN_COORDINADOR = "tok-coordinador"
 AHORA = datetime(2026, 11, 17, 9, 0, tzinfo=timezone.utc)
 MIGRACIONES = Path(__file__).resolve().parent.parent / "migrations"
@@ -103,6 +104,7 @@ def _lote(
     id_lote: str = "lote-abc123",
     estado: str = ESTADO_PENDIENTE,
     generada_por: str = CORREO_APROBADOR,
+    origen_creacion: str | None = None,
 ) -> LoteCertificados:
     personas = _personas()
     return LoteCertificados(
@@ -126,6 +128,7 @@ def _lote(
         rol_decision=None,
         origen_identidad=None,
         version_agente=None,
+        origen_creacion=origen_creacion,
     )
 
 
@@ -217,6 +220,9 @@ def _mundo(
             TOKEN_APROBADOR: IdentidadVerificada(
                 "sub-aprobador", CORREO_APROBADOR, "x.invalid"
             ),
+            TOKEN_OTRO_APROBADOR: IdentidadVerificada(
+                "sub-otro-aprobador", CORREO_OTRO_APROBADOR, "x.invalid"
+            ),
             TOKEN_COORDINADOR: IdentidadVerificada(
                 "sub-coordinador", CORREO_COORDINADOR, "x.invalid"
             ),
@@ -307,6 +313,53 @@ def test_la_pagina_rotula_la_plantilla_con_la_que_se_dibuja_la_muestra() -> None
     cuerpo = mundo.client.get("/certificados/lote-abc123").text
     assert "Plantilla de la muestra: <code>certificado_seu_aprobacion_v2</code>" in cuerpo
     assert "certificado_seu_aprobacion_v1" not in cuerpo
+
+
+def test_bandeja_tiene_resumen_y_pestanas_de_piezas_y_certificados() -> None:
+    mundo = _mundo((_lote(),))
+    _ingresar(mundo.client)
+    html = mundo.client.get("/bandeja").text
+
+    assert 'class="resumen"' in html
+    assert "Piezas en revisión" in html
+    assert "Lotes por aprobar" in html
+    assert "Con error" in html
+    assert html.count('class="resumen-tarjeta') == 3
+    assert 'href="#piezas"' in html
+    assert 'href="#certificados"' in html
+    assert 'data-panel="piezas"' in html
+    assert 'data-panel="certificados"' in html
+
+
+def test_lote_pendiente_del_generador_muestra_tarjeta_de_decision() -> None:
+    mundo = _mundo((_lote(origen_creacion="google"),))
+    _ingresar(mundo.client)
+    pagina = mundo.client.get("/certificados/lote-abc123").text
+
+    assert 'class="tarjeta-decision"' in pagina
+    assert "Decisión del lote" in pagina
+    assert "Apruebo la línea descriptiva y la lista del lote" in pagina
+    assert 'value="aprobar"' in pagina
+    assert 'value="descartar"' in pagina
+    # Los datos técnicos siguen en la página, dentro del bloque colapsado.
+    assert '<details class="detalles-tecnicos">' in pagina
+    assert pagina.index("Detalles técnicos") < pagina.index("f" * 64)
+    assert "25/06/2026" in pagina
+    assert "Aprobación" in pagina
+
+
+def test_lote_pendiente_de_otra_persona_avisa_y_no_ofrece_aprobar() -> None:
+    mundo = _mundo((_lote(),))
+    _ingresar(mundo.client, TOKEN_OTRO_APROBADOR)
+    pagina = mundo.client.get("/certificados/lote-abc123").text
+
+    assert (
+        "Este lote lo aprueba quien lo generó. Podés descartarlo o pedir"
+        in pagina
+    )
+    assert "Apruebo la línea descriptiva y la lista del lote" not in pagina
+    assert 'value="aprobar"' not in pagina
+    assert 'value="descartar"' in pagina
 
 
 def test_con_varios_roles_el_aprobador_de_contenido_ve_y_aprueba_el_lote(

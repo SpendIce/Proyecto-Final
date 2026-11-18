@@ -146,6 +146,10 @@ COLUMNAS_LISTA_CIERRE = (
     "condicion",
 )
 
+# Tope de filas de la lista de cierre. El CSV y la hoja de aprobados del
+# Excel de la SEU comparten el mismo límite (#193).
+MAX_FILAS_LISTA_CIERRE = 2000
+
 _MAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\Z")
 
 
@@ -1303,6 +1307,7 @@ __all__ = [
     "LectorListaCierre",
     "ListaCierreError",
     "MARCA_PRUEBA",
+    "MAX_FILAS_LISTA_CIERRE",
     "PersonaCierre",
     "POLICY_STATUS",
     "ResultadoEmisionCertificados",

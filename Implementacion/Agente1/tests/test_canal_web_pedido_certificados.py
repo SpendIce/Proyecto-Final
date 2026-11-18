@@ -15,12 +15,15 @@ Dos niveles, como el resto del canal web:
 from __future__ import annotations
 
 import hashlib
+import io
+import re
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from openpyxl import Workbook
 
 from agente1.canal_form import PadronRoles, hash_correo
 from agente1.certificados_emision import (
@@ -766,3 +769,212 @@ def test_pedido_rechaza_linea_con_dos_renglones() -> None:
     assert respuesta.status_code == 400
     assert mundo.lotes.llamadas_crear == []
     assert "una sola línea" in respuesta.text
+
+
+# --- pedido con Excel de la SEU (#193) ------------------------------------
+
+MIME_XLSX = (
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+
+def _libro_xlsx(hojas: dict[str, list[list[object]]]) -> bytes:
+    libro = Workbook()
+    libro.remove(libro.active)
+    for nombre, filas in hojas.items():
+        hoja = libro.create_sheet(nombre)
+        for fila in filas:
+            hoja.append(fila)
+    destino = io.BytesIO()
+    libro.save(destino)
+    return destino.getvalue()
+
+
+def _xlsx_seu_pedido() -> bytes:
+    aprobados = [
+        [None, None, None, None],
+        [
+            "DE LA FUENTE Ana",
+            "DE LA FUENTE Ana",
+            "DNI 30.123.456",
+            "ANA.PRUEBA@EXAMPLE.INVALID",
+        ],
+    ]
+    inscripcion = [
+        [None, "De la Fuente, Ana", "DNI 30.123.456", None, "ana.prueba@example.invalid"],
+    ]
+    return _libro_xlsx({"Hoja 1": aprobados, "Worksheet": inscripcion})
+
+
+def _xlsx_plantilla_pedido() -> bytes:
+    return _libro_xlsx(
+        {
+            "Hoja 1": [
+                [
+                    "nombre",
+                    "apellido",
+                    "dni",
+                    "mail",
+                    "tratamiento",
+                    "condicion",
+                ],
+                [
+                    "Ana",
+                    "Prueba",
+                    "11111111",
+                    "ana.prueba@example.invalid",
+                    "Sra.",
+                    "aprobacion",
+                ],
+                [
+                    "Luis",
+                    "Ejemplo",
+                    "22222222",
+                    "luis.ejemplo@example.invalid",
+                    "Sr.",
+                    "asistencia",
+                ],
+            ]
+        }
+    )
+
+
+def _post_pedir_xlsx(
+    mundo: Mundo,
+    contenido: bytes,
+    *,
+    nombre_archivo: str = "aprobados.xlsx",
+    **extra: str,
+):
+    datos = {
+        "csrf": _csrf(mundo),
+        "actividad": "FIE-DIF-02",
+        "linea_descriptiva": LINEA,
+    }
+    datos.update(extra)
+    return mundo.client.post(
+        "/certificados/pedir",
+        data=datos,
+        files={"lista": (nombre_archivo, contenido, MIME_XLSX)},
+        follow_redirects=False,
+    )
+
+
+def test_pedir_xlsx_de_la_seu_crea_el_lote_pendiente() -> None:
+    mundo = _mundo()
+    _ingresar(mundo.client)
+
+    respuesta = _post_pedir_xlsx(
+        mundo,
+        _xlsx_seu_pedido(),
+        tratamiento="Sra.",
+        condicion="asistencia",
+    )
+
+    assert respuesta.status_code == 303
+    llamada = mundo.lotes.llamadas_crear[-1]
+    assert llamada["personas"] == (
+        PersonaCierre(
+            nombre="Ana",
+            apellido="DE LA FUENTE",
+            dni="30123456",
+            mail="ana.prueba@example.invalid",
+            tratamiento="Sra.",
+            condicion="asistencia",
+        ),
+    )
+    lote = mundo.lotes.obtener(
+        respuesta.headers["location"].rsplit("/", 1)[-1]
+    )
+    assert lote is not None
+    assert lote.estado == ESTADO_PENDIENTE
+
+
+def test_pedir_xlsx_plantilla_ignora_los_campos_del_formulario() -> None:
+    mundo = _mundo()
+    _ingresar(mundo.client)
+
+    respuesta = _post_pedir_xlsx(
+        mundo,
+        _xlsx_plantilla_pedido(),
+        tratamiento="Dr.",
+        condicion="asistencia",
+    )
+
+    assert respuesta.status_code == 303
+    assert mundo.lotes.llamadas_crear[-1]["personas"] == _personas_csv()
+
+
+def test_pedir_xlsx_sin_inscripcion_no_crea_lote() -> None:
+    mundo = _mundo()
+    _ingresar(mundo.client)
+    solo_aprobados = _libro_xlsx(
+        {
+            "Hoja 1": [
+                [
+                    "PEREZ Ana",
+                    "PEREZ Ana",
+                    "DNI 30123456",
+                    "ana.perez@example.invalid",
+                ]
+            ]
+        }
+    )
+
+    respuesta = _post_pedir_xlsx(
+        mundo,
+        solo_aprobados,
+        tratamiento="Sra.",
+        condicion="aprobacion",
+    )
+
+    assert respuesta.status_code == 400
+    assert "no tiene hoja de inscripción" in respuesta.text
+    assert mundo.lotes.llamadas_crear == []
+
+
+def test_el_csv_existente_sigue_creando_el_lote() -> None:
+    mundo = _mundo()
+    _ingresar(mundo.client)
+
+    respuesta = _post_pedir(mundo, csv_bytes=CSV_OK.encode())
+
+    assert respuesta.status_code == 303
+    assert len(mundo.lotes.listar()) == 1
+
+
+# --- navegación principal --------------------------------------------------
+
+
+def test_nav_pedir_certificados_visible_para_el_aprobador() -> None:
+    mundo = _mundo()
+    _ingresar(mundo.client)
+
+    bandeja = mundo.client.get("/bandeja")
+    assert bandeja.status_code == 200
+    assert "Pedir certificados" in bandeja.text
+    assert 'href="/certificados/pedir"' in bandeja.text
+
+    otra_pagina = mundo.client.get("/nuevo-pedido")
+    assert otra_pagina.status_code == 200
+    assert "Pedir certificados" in otra_pagina.text
+
+    formulario = mundo.client.get("/certificados/pedir")
+    assert re.search(
+        r'href="/certificados/pedir"\s+aria-current="page"',
+        formulario.text,
+    )
+
+
+def test_nav_pedir_certificados_no_visible_para_otro_rol() -> None:
+    mundo = _mundo()
+    _ingresar(mundo.client, TOKEN_COORDINADOR)
+
+    bandeja = mundo.client.get("/bandeja")
+    assert bandeja.status_code == 200
+    assert "Pedir certificados" not in bandeja.text
+    assert 'href="/certificados/pedir"' not in bandeja.text
+
+    otra_pagina = mundo.client.get("/nuevo-pedido")
+    assert otra_pagina.status_code == 200
+    assert "Pedir certificados" not in otra_pagina.text
