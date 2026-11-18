@@ -926,8 +926,9 @@ details[open] > summary .chevron { transform: rotate(45deg); }
   overflow-wrap: anywhere;
 }
 
-/* Pieza: borrador a la izquierda y ficha/acciones fijas a la derecha en
-   pantallas anchas; apilado en el resto. */
+/* Pieza: borrador a la izquierda y ficha/acciones a la derecha en
+   pantallas anchas; apilado en el resto. La columna derecha no tiene
+   scroll propio: toda la página se desplaza junta. */
 .detalle-pieza { display: grid; gap: 2rem; align-items: start; }
 .detalle-principal { min-width: 0; }
 .detalle-principal .pieza,
@@ -949,13 +950,6 @@ details[open] > summary .chevron { transform: rotate(45deg); }
 @media (min-width: 64rem) {
   .detalle-pieza {
     grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
-  }
-  .detalle-lateral {
-    position: sticky;
-    top: calc(var(--alto-cabecera) + 1rem);
-    max-height: calc(100vh - var(--alto-cabecera) - 2rem);
-    overflow-y: auto;
-    padding-right: 0.25rem;
   }
 }
 

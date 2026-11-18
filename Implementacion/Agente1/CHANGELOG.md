@@ -26,6 +26,13 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+## [0.11.3] - 2026-11-18
+
+- **Parche — la pieza se desplaza en un solo scroll** (Refs #194). En
+  pantallas anchas la columna de ficha y acciones tenía scroll propio y
+  quedaba fija: para llegar a «Aprobar» había que desplazar esa columna
+  aparte del borrador. Ahora la página entera se desplaza junta.
+
 ## [0.11.2] - 2026-11-18
 
 - **Parche — volver y logo en la cabecera** (Refs #194). Fuera de la bandeja
