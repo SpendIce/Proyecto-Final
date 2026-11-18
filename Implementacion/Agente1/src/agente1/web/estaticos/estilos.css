@@ -69,6 +69,9 @@
 }
 
 * { box-sizing: border-box; }
+/* El atributo `hidden` gana siempre: reglas como `.ficha { display: grid }`
+   lo pisaban y mostraban la ficha vacía antes de elegir la actividad. */
+[hidden] { display: none !important; }
 
 html { -webkit-text-size-adjust: 100%; }
 
@@ -1072,7 +1075,9 @@ body.con-demo { padding-bottom: var(--alto-banda-demo); }
 @media (max-width: 46rem) {
   h1 { font-size: 1.65rem; }
   h2 { font-size: 1.15rem; margin-top: 1.75rem; }
-  .cabecera { padding: 0.6rem 1rem; min-height: 0; }
+  /* En el celular la cabecera ocupa tres renglones: fija tapaba un quinto
+     de la pantalla, así que acá vuelve a desplazarse con la página. */
+  .cabecera { padding: 0.6rem 1rem; min-height: 0; position: static; }
   .cabecera-marca { width: 100%; }
   .logo { height: 2.05rem; }
   .cabecera-servicio { display: none; }
