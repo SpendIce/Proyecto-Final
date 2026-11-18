@@ -26,6 +26,14 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+## [0.11.1] - 2026-11-18
+
+- **Parche — formularios y cabecera en el celular** (Refs #194). El atributo
+  `hidden` gana siempre sobre las reglas de `display`: la ficha vacía de la
+  actividad ya no se ve antes de elegirla en «Pedir certificados» ni en
+  «Nuevo pedido». En pantallas angostas la cabecera deja de ser fija (ocupaba
+  tres renglones).
+
 ## [0.11.0] - 2026-11-17
 
 - **Menor — el pedido de certificados acepta el Excel de la SEU** (Refs #193).
