@@ -17,11 +17,11 @@
 </div>
 {% endif %}
 <header class="cabecera">
-  <div class="cabecera-marca">
+  <a class="cabecera-marca" href="/" aria-label="Ir al inicio">
     <img class="logo" src="/estaticos/img/imagotipo-fie-blanco.png"
          alt="Facultad de Ingeniería del Ejército">
     <span class="cabecera-servicio">Agente 1 · Comunicación institucional</span>
-  </div>
+  </a>
   {% if sesion %}
   <nav class="nav" aria-label="Navegación principal">
     <a class="nav-enlace" href="/bandeja"
@@ -40,6 +40,10 @@
   {% endif %}
 </header>
 <main class="contenido" id="contenido" tabindex="-1">
+{% set volver = destino_volver(ruta) if sesion else none %}
+{% if volver %}
+<a class="volver" href="{{ volver[0] }}"><span aria-hidden="true">←</span> {{ volver[1] }}</a>
+{% endif %}
 {% block contenido %}{% endblock %}
 </main>
 </body>

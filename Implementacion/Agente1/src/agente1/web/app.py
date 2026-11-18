@@ -119,6 +119,7 @@ from .demo_certificados import registrar_rutas_demo_certificados
 from .docs_canal import ExportadorDocs
 from .docs_canal import aviso_exportador as _aviso_exportador
 from .identidad import VerificacionIdentidadError, VerificadorIdToken
+from .navegacion import destino_volver
 from .pedido_certificados import registrar_rutas_pedido_certificados
 from .persistencia import (
     CANAL_WEB,
@@ -584,6 +585,7 @@ def crear_app(
     base = Path(__file__).resolve().parent
     plantillas = Jinja2Templates(directory=str(base / "plantillas"))
     plantillas.env.globals["es_lote_demo"] = es_lote_demo
+    plantillas.env.globals["destino_volver"] = destino_volver
     plantillas.env.filters["fecha"] = fecha_legible
     plantillas.env.filters["roles_legibles"] = roles_legibles
     plantillas.env.filters["condicion_legible"] = condicion_legible
