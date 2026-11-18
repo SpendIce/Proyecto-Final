@@ -186,6 +186,20 @@ REVERSIBILIDAD: dict[str, Reversion] = {
             "restaurar el respaldo (ADR 0018)."
         ),
     ),
+    "0013_bandeja_archivar_y_eliminar": Reversion(
+        reversible=True,
+        pierde_datos=True,
+        requiere_restaurar_respaldo=True,
+        nota=(
+            "El `down` elimina las columnas `archivada_en` y "
+            "`eliminada_en`: descarta las marcas registradas de qué se "
+            "archivó y qué se eliminó — evidencia de una decisión humana "
+            "(ADR 0023) — y todo archivado vuelve a la vista por defecto "
+            "y todo eliminado reaparece. El ciclo de vida, la prosa y la "
+            "auditoría no cambian: con datos reales, la reversión exige "
+            "restaurar el respaldo."
+        ),
+    ),
 }
 
 

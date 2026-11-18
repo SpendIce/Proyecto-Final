@@ -97,8 +97,14 @@ class RepositorioLotesMemoria:
         self._lotes: dict[str, LoteCertificados] = {}
         self.llamadas_crear: list[dict[str, Any]] = []
 
-    def listar(self) -> list[LoteCertificados]:
-        return list(self._lotes.values())
+    def listar(
+        self, *, incluir_archivados: bool = False
+    ) -> list[LoteCertificados]:
+        return [
+            lote for lote in self._lotes.values()
+            if incluir_archivados
+            or getattr(lote, "archivada_en", None) is None
+        ]
 
     def obtener(self, id_lote: str) -> LoteCertificados | None:
         return self._lotes.get(id_lote)

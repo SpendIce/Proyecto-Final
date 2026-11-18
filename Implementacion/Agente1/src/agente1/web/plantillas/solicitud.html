@@ -15,6 +15,17 @@
          role="alert">{{ aviso }}</p>
       {% endif %}
 
+      {% if s.eliminada_en %}
+      <p class="aviso-estado">
+        Esta pieza fue eliminada de la bandeja por quien la creó. Queda
+        como auditoría: el registro y sus hashes no se borran.
+      </p>
+      {% elif s.archivada_en %}
+      <p class="aviso-estado">
+        Esta pieza está archivada: no aparece en la bandeja por defecto.
+      </p>
+      {% endif %}
+
       {% if s.descripcion %}
       <h2>Descripción del pedido</h2>
       <p class="prosa">{{ s.descripcion }}</p>
@@ -127,9 +138,20 @@
       </p>
       {% elif s.estado_web == 'ERROR' %}
       <p class="mensaje-error" role="alert">
-        La generación falló. El pedido quedó registrado; se puede volver a
-        intentar con un pedido nuevo.
+        La generación falló{{ motivo_fallo }}.
       </p>
+      {% if reintentos_agotados %}
+      <p class="aviso-estado">
+        La pieza agotó sus reintentos: hay que hacer un
+        <a href="/nuevo-pedido">pedido nuevo</a>, si hace falta con otra
+        descripción.
+      </p>
+      {% elif not puede_reintentar and s.reintentos > 1 %}
+      <p class="aviso-estado">
+        Se puede volver a intentar con un
+        <a href="/nuevo-pedido">pedido nuevo</a>.
+      </p>
+      {% endif %}
       {% elif s.estado_web == 'VENCIDA' %}
       <p class="aviso-estado">La solicitud quedó vencida por inactividad.</p>
       {% endif %}
@@ -162,6 +184,26 @@
           Editar en Google Docs ↗
         </a>
       </p>
+      {% endif %}
+
+      {% if puede_reintentar %}
+      <form method="post" action="/solicitudes/{{ s.id_solicitud }}/reintentar"
+            class="accion-lateral">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="boton-primario">Reintentar</button>
+      </form>
+      <p class="ayuda">
+        Vuelve a encolar el mismo pedido. La ejecución fallida queda en el
+        historial y esta página se actualiza sola.
+      </p>
+      {% endif %}
+
+      {% if puede_desarchivar %}
+      <form method="post" action="/solicitudes/{{ s.id_solicitud }}/desarchivar"
+            class="accion-lateral">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="boton-secundario">Desarchivar</button>
+      </form>
       {% endif %}
 
       {% if puede_traer %}

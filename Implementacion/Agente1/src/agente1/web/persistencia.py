@@ -44,6 +44,16 @@ import psycopg
 HU_WEB = "HU-010"
 ESTADOS_ABIERTOS = ("EN_COLA", "GENERANDO", "LISTA", "ERROR")
 ESTADOS_CIERRE = ("APROBADA", "DESCARTADA", "VENCIDA")
+# Estados desde los que la bandeja permite archivar o eliminar (ADR 0023):
+# todo lo cerrado más el error de generación, que no va a moverse solo.
+# Nada en curso entra: ni `EN_COLA`/`GENERANDO`/`AJUSTANDO` ni una `LISTA`
+# esperando decisión — esconder lo que está vivo es mentirle a la bandeja.
+ESTADOS_ARCHIVABLES = ("APROBADA", "DESCARTADA", "VENCIDA", "ERROR")
+# Tope de reintentos manuales por solicitud: cada reintento es una
+# ejecución `generacion` nueva sobre el mismo pedido, y castigar al modelo
+# en un bucle sobre los mismos campos no compra nada. Agotado el tope, la
+# salida honesta es un pedido nuevo, quizá con otra descripción.
+MAX_REINTENTOS = 3
 VENTANA_VENCIMIENTO_DIAS = 30
 
 # Canales del canal web (ADR 0019): `web` es la entrada con identidad
@@ -107,6 +117,12 @@ class ItemBandeja:
     titulo: str | None
     creada_en: datetime
     ultima_actividad_en: datetime
+    # La bandeja es compartida: el dueño de cada fila lo decide la interfaz
+    # comparando `solicitante_hash` con el hash de la sesión, y el modo
+    # demo con `canal`. `archivada_en` particiona la vista (ADR 0023).
+    canal: str = CANAL_WEB
+    solicitante_hash: str = ""
+    archivada_en: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -142,6 +158,14 @@ class DetalleSolicitud:
     # Resultado del último ajuste si falló (`salida_no_conforme`…): la
     # solicitud sigue en revisión y la vista avisa que no se aplicó.
     ultimo_ajuste_fallido: str | None = None
+    # Marcas de visibilidad de la bandeja (ADR 0023) y lo que la vista de
+    # error necesita: el `resultado` durable de la última generación
+    # fallida (vía legible al motivo, sin abrir el log del worker) y
+    # cuántas ejecuciones de generación hubo — 1 + reintentos manuales.
+    archivada_en: datetime | None = None
+    eliminada_en: datetime | None = None
+    resultado_fallido: str | None = None
+    reintentos: int = 0
 
 
 @dataclass(frozen=True)
@@ -344,16 +368,25 @@ class RepositorioWeb:
     # ---------- lectura para la interfaz ----------
 
     def bandeja(self) -> list[ItemBandeja]:
+        """Todas las piezas vivas de la bandeja, con su marca de archivo.
+
+        Las eliminadas no salen: quien las creó las retiró y ninguna vista
+        las recupera (ADR 0023). Las archivadas sí viajan, con su marca,
+        para que la interfaz las muestre sólo bajo el filtro «Archivadas»
+        y conserve el conteo de ese filtro en la misma consulta.
+        """
         with self._conexion_factory() as conn:
             filas = conn.execute(
                 "SELECT s.id_solicitud, s.tipo_pieza, s.actividad_ref,"
                 " s.estado_web, s.creada_en, s.ultima_actividad_en,"
+                " s.canal, s.solicitante_hash, s.archivada_en,"
                 " (SELECT p.texto::jsonb -> 'pieza' ->> 'titulo'"
                 "   FROM prosa_transitoria p"
                 "   WHERE p.id_solicitud = s.id_solicitud"
                 "     AND p.clase = 'campos' AND p.texto IS NOT NULL"
                 "   LIMIT 1) AS titulo"
-                " FROM solicitudes s WHERE s.canal = ANY(%s)"
+                " FROM solicitudes s"
+                " WHERE s.canal = ANY(%s) AND s.eliminada_en IS NULL"
                 " ORDER BY s.ultima_actividad_en DESC",
                 (list(CANALES_WEB),),
             ).fetchall()
@@ -361,7 +394,8 @@ class RepositorioWeb:
             ItemBandeja(
                 id_solicitud=f[0], tipo_pieza=f[1], actividad_ref=f[2],
                 estado_web=f[3], creada_en=f[4], ultima_actividad_en=f[5],
-                titulo=f[6],
+                canal=f[6], solicitante_hash=f[7], archivada_en=f[8],
+                titulo=f[9],
             )
             for f in filas
         ]
@@ -371,7 +405,8 @@ class RepositorioWeb:
             fila = conn.execute(
                 "SELECT id_solicitud, tipo_pieza, actividad_ref, estado_web,"
                 " rol, solicitante_hash, canal, creada_en,"
-                " ultima_actividad_en, doc_ref, doc_url, revision_vigente"
+                " ultima_actividad_en, doc_ref, doc_url, revision_vigente,"
+                " archivada_en, eliminada_en"
                 " FROM solicitudes"
                 " WHERE id_solicitud = %s AND canal = ANY(%s)",
                 (id_solicitud, list(CANALES_WEB)),
@@ -410,6 +445,21 @@ class RepositorioWeb:
                 " ORDER BY creada_en DESC LIMIT 1",
                 (id_solicitud,),
             ).fetchone()
+            # El motivo legible del error: el `resultado` durable de la
+            # última generación fallida, que ya distingue destino de
+            # contenido sin abrir el log del worker (ADR 0023).
+            fallida = conn.execute(
+                "SELECT resultado FROM ejecuciones"
+                " WHERE id_solicitud = %s AND clase = 'generacion'"
+                "   AND estado IN ('FALLIDA', 'INCOMPLETA')"
+                " ORDER BY creada_en DESC LIMIT 1",
+                (id_solicitud,),
+            ).fetchone()
+            generaciones = conn.execute(
+                "SELECT COUNT(*) FROM ejecuciones"
+                " WHERE id_solicitud = %s AND clase = 'generacion'",
+                (id_solicitud,),
+            ).fetchone()[0]
         descripcion, campos, generado = _prosa_de(prosas)
         return DetalleSolicitud(
             id_solicitud=fila[0], tipo_pieza=fila[1], actividad_ref=fila[2],
@@ -435,6 +485,10 @@ class RepositorioWeb:
                 if ultimo_ajuste is not None and ultimo_ajuste[0] == "FALLIDA"
                 else None
             ),
+            archivada_en=fila[12],
+            eliminada_en=fila[13],
+            resultado_fallido=fallida[0] if fallida is not None else None,
+            reintentos=generaciones,
         )
 
     def estado_de(self, id_solicitud: str) -> str | None:
@@ -445,6 +499,123 @@ class RepositorioWeb:
                 (id_solicitud, list(CANALES_WEB)),
             ).fetchone()
         return fila[0] if fila else None
+
+    def encabezado_de(self, id_solicitud: str) -> tuple[str, str] | None:
+        """Canal y dueño de la pieza, para decidir permisos sin el detalle.
+
+        Las acciones de bandeja (ADR 0023) autorizan con esto: comparan el
+        hash de la sesión contra `solicitante_hash` y cierran el paso demo
+        mirando `canal`. Devuelve `None` si la pieza no existe.
+        """
+        with self._conexion_factory() as conn:
+            fila = conn.execute(
+                "SELECT canal, solicitante_hash FROM solicitudes"
+                " WHERE id_solicitud = %s AND canal = ANY(%s)",
+                (id_solicitud, list(CANALES_WEB)),
+            ).fetchone()
+        return (fila[0], fila[1]) if fila else None
+
+    # ---------- visibilidad de la bandeja (ADR 0023) ----------
+
+    def archivar_solicitud(
+        self, *, id_solicitud: str, ahora: datetime | None = None
+    ) -> str:
+        """Saca la pieza de la vista por defecto, sin tocar el ciclo.
+
+        Marca `archivada_en`: la pieza sigue existiendo con su prosa, su
+        auditoría y su `estado_web`, y vuelve con el filtro «Archivadas».
+        Sólo marca estados ya resueltos (`ESTADOS_ARCHIVABLES`): lo que está
+        en curso o esperando decisión se queda a la vista.
+
+        Códigos: `archivada`; `ya_archivada` si la marca ya estaba (el
+        reenvío es idempotente); `no_archivable` si el estado sigue vivo;
+        `inexistente`.
+        """
+        ahora = ahora or datetime.now(timezone.utc)
+        with self._conexion_factory() as conn:
+            with conn.transaction():
+                fila = conn.execute(
+                    "SELECT estado_web, archivada_en FROM solicitudes"
+                    " WHERE id_solicitud = %s AND canal = ANY(%s)"
+                    " FOR UPDATE",
+                    (id_solicitud, list(CANALES_WEB)),
+                ).fetchone()
+                if fila is None:
+                    return "inexistente"
+                estado_web, archivada_en = fila
+                if archivada_en is not None:
+                    return "ya_archivada"
+                if estado_web not in ESTADOS_ARCHIVABLES:
+                    return "no_archivable"
+                conn.execute(
+                    "UPDATE solicitudes SET archivada_en = %s"
+                    " WHERE id_solicitud = %s",
+                    (ahora, id_solicitud),
+                )
+        return "archivada"
+
+    def desarchivar_solicitud(self, *, id_solicitud: str) -> str:
+        """Devuelve la pieza archivada a la vista por defecto.
+
+        La marca de archivo es lo único que toca: no mueve el estado ni la
+        actividad, así que una pieza desarchivada sigue donde el ciclo la
+        dejó. Códigos: `desarchivada`; `sin_marca` si no estaba archivada;
+        `inexistente`.
+        """
+        with self._conexion_factory() as conn:
+            with conn.transaction():
+                fila = conn.execute(
+                    "SELECT archivada_en FROM solicitudes"
+                    " WHERE id_solicitud = %s AND canal = ANY(%s)"
+                    " FOR UPDATE",
+                    (id_solicitud, list(CANALES_WEB)),
+                ).fetchone()
+                if fila is None:
+                    return "inexistente"
+                if fila[0] is None:
+                    return "sin_marca"
+                conn.execute(
+                    "UPDATE solicitudes SET archivada_en = NULL"
+                    " WHERE id_solicitud = %s",
+                    (id_solicitud,),
+                )
+        return "desarchivada"
+
+    def eliminar_solicitud(
+        self, *, id_solicitud: str, ahora: datetime | None = None
+    ) -> str:
+        """Retira la pieza de toda vista de la bandeja, sin borrar nada.
+
+        Es la puerta del dueño para sus piezas de prueba (ADR 0023):
+        escribe `eliminada_en`, la bandeja deja de devolverla en cualquier
+        filtro y la vista de detalle lo explica. La fila, su auditoría y
+        sus hashes quedan — la app no tiene permiso de borrar la traza
+        (0005) — y la purga diaria vacía su prosa como la de lo cerrado.
+        Códigos: `eliminada`; `ya_eliminada`; `no_eliminable` si el estado
+        sigue vivo; `inexistente`.
+        """
+        ahora = ahora or datetime.now(timezone.utc)
+        with self._conexion_factory() as conn:
+            with conn.transaction():
+                fila = conn.execute(
+                    "SELECT estado_web, eliminada_en FROM solicitudes"
+                    " WHERE id_solicitud = %s AND canal = ANY(%s)"
+                    " FOR UPDATE",
+                    (id_solicitud, list(CANALES_WEB)),
+                ).fetchone()
+                if fila is None:
+                    return "inexistente"
+                estado_web, eliminada_en = fila
+                if eliminada_en is not None:
+                    return "ya_eliminada"
+                if estado_web not in ESTADOS_ARCHIVABLES:
+                    return "no_eliminable"
+                conn.execute(
+                    "UPDATE solicitudes SET eliminada_en = %s"
+                    " WHERE id_solicitud = %s",
+                    (ahora, id_solicitud),
+                )
+        return "eliminada"
 
     # ---------- ajuste generativo ----------
 
@@ -637,6 +808,97 @@ class RepositorioWeb:
             id_ejecucion=fila[0],
             creada=False,
         )
+
+    def reintentar_solicitud(
+        self, *, id_solicitud: str, ahora: datetime | None = None
+    ) -> str:
+        """Encola una ejecución `generacion` nueva para la pieza fallida.
+
+        Vuelve la solicitud a `EN_COLA` con el mismo pedido: la prosa sigue
+        intacta — una pieza `ERROR` nunca cerró y la purga sólo toca estados
+        de cierre — y la ejecución fallida queda en el historial. El worker
+        la toma como cualquier otra: `tomar_trabajo` no distingue un
+        reintento de un pedido nuevo.
+
+        El doble clic no encola dos veces: el segundo POST ve la solicitud
+        ya `EN_COLA` y sale con `en_curso`, porque todo corre bajo el
+        `FOR UPDATE` de la fila. La clave de idempotencia —
+        `web-reintento:{id}:{n}`, con `n` la cantidad de ejecuciones de
+        generación que ya había — es el cinturón de la carrera que el lock
+        ya cierra: si dos corridas llegan igual, el UNIQUE de la clave
+        absorbe la segunda como `encolado`.
+
+        El tope `MAX_REINTENTOS` cuenta ejecuciones de generación (1 del
+        pedido original + una por reintento): agotado, la salida honesta es
+        un pedido nuevo. Códigos: `encolado`; `en_curso`; `no_reintentable`
+        (no está en `ERROR`); `limite_reintentos`; `sin_prosa` si la
+        retención ya vació el pedido; `inexistente`.
+        """
+        ahora = ahora or datetime.now(timezone.utc)
+        id_ejecucion = f"webe-{uuid.uuid4().hex[:16]}"
+        with self._conexion_factory() as conn:
+            try:
+                with conn.transaction():
+                    fila = conn.execute(
+                        "SELECT estado_web, input_hash FROM solicitudes"
+                        " WHERE id_solicitud = %s AND canal = ANY(%s)"
+                        " FOR UPDATE",
+                        (id_solicitud, list(CANALES_WEB)),
+                    ).fetchone()
+                    if fila is None:
+                        return "inexistente"
+                    estado_web, input_hash = fila
+                    if estado_web != "ERROR":
+                        if estado_web in (
+                            "EN_COLA", "GENERANDO", "AJUSTANDO"
+                        ):
+                            return "en_curso"
+                        return "no_reintentable"
+                    n = conn.execute(
+                        "SELECT COUNT(*) FROM ejecuciones"
+                        " WHERE id_solicitud = %s AND clase = 'generacion'",
+                        (id_solicitud,),
+                    ).fetchone()[0]
+                    if n > MAX_REINTENTOS:
+                        return "limite_reintentos"
+                    prosa = conn.execute(
+                        "SELECT 1 FROM prosa_transitoria"
+                        " WHERE id_solicitud = %s AND clase = 'campos'"
+                        "   AND texto IS NOT NULL",
+                        (id_solicitud,),
+                    ).fetchone()
+                    if prosa is None:
+                        return "sin_prosa"
+                    nuevo_hash = _hash(f"{input_hash}|reintento|{n}")
+                    conn.execute(
+                        "INSERT INTO ejecuciones (id_ejecucion,"
+                        " id_solicitud, idempotency_key, correlation_id,"
+                        " hu, input_hash, estado, creada_en, clase) VALUES"
+                        " (%s,%s,%s,%s,%s,%s,'INICIADA',%s,'generacion')",
+                        (
+                            id_ejecucion, id_solicitud,
+                            f"web-reintento:{id_solicitud}:{n}",
+                            f"corr-{uuid.uuid4().hex[:16]}", HU_WEB,
+                            nuevo_hash, ahora,
+                        ),
+                    )
+                    conn.execute(
+                        # El reintento también desarchiva: una pieza en
+                        # marcha no puede quedar escondida en el filtro.
+                        "UPDATE solicitudes SET estado_web = 'EN_COLA',"
+                        " archivada_en = NULL, ultima_actividad_en = %s"
+                        " WHERE id_solicitud = %s",
+                        (ahora, id_solicitud),
+                    )
+                    conn.execute(
+                        "INSERT INTO eventos_ejecucion (id_ejecucion, tipo,"
+                        " ocurrido_en, evidencia_hash) VALUES"
+                        " (%s,'reintento_encolado',%s,%s)",
+                        (id_ejecucion, ahora, nuevo_hash),
+                    )
+            except psycopg.errors.UniqueViolation:
+                return "encolado"
+        return "encolado"
 
     # ---------- trabajo del worker ----------
 
@@ -1273,6 +1535,11 @@ class RepositorioWeb:
         un solo evento `prosa_purgada` por solicitud. `evidencia_hash`
         compromete la cantidad de filas purgadas de esa solicitud. El
         VACUUM corre aparte, con `vaciar_prosa`.
+
+        Desde 0013 también purga lo eliminado de la bandeja (ADR 0023): la
+        eliminación es una marca de visibilidad, no un borrado, y su
+        contenido se vacía con la retención como el de lo cerrado — el
+        botón nunca escribe prosa él mismo.
         """
         ahora = ahora or datetime.now(timezone.utc)
         with self._conexion_factory() as conn:
@@ -1283,7 +1550,8 @@ class RepositorioWeb:
                     " WHERE p.id_solicitud = s.id_solicitud"
                     "   AND p.purgada_en IS NULL"
                     "   AND s.canal = ANY(%s)"
-                    "   AND s.estado_web = ANY(%s)"
+                    "   AND (s.estado_web = ANY(%s)"
+                    "        OR s.eliminada_en IS NOT NULL)"
                     " RETURNING p.secuencia, p.id_solicitud",
                     (ahora, list(CANALES_WEB), list(ESTADOS_CIERRE)),
                 ).fetchall()
