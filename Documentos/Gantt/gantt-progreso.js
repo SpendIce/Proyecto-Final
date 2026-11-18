@@ -23,6 +23,20 @@
 // "Guardar progreso" del visor, que reescribe este mismo archivo.
 
 window.GANTT_PROGRESS = {
+  // Corte 18/11 (día de la presentación de cursada). Contrastado contra
+  // origin/main (agente1-v0.11.1, a27cfdf), CHANGELOG 0.6.0-0.11.1, issues
+  // #57, #125, #126, #149, #151, #153, #168, #177 y #193, la evidencia del
+  // servidor en PR #178 y el despliegue de 0.11.1 verificado en labredesfie.
+  // No se marca ninguna tarea nueva: el canal web y los certificados en la web
+  // avanzan m5 y m6, pero ninguno cumple su DoD completo (ver notas).
+  "m5": {"done": false, "nota": "17/11: canal web de A1 implementado y desplegado en labredesfie (0.6.0-0.9.0, Tailscale): bandeja, pedido guiado de 7 tipos de pieza, Doc real en Drive, «Traer cambios», ajuste generativo sobre la última revisión, aprobar/descartar atado al hash y «Preparar correo» en Gmail sin envío. Persistencia en PostgreSQL con worker y auditoría (#151, ADR 0016). E2E en el servidor el 17/11: generación 43,8 s y ajuste 57,7 s (PR #178). Usabilidad del prototipo aceptada por la SEU el 04/11 (s5d). Falta para el DoD: login Google institucional (DSI, #62/#149; hoy modo demostración sin verificar identidad, vence el 20/11) y padrón real de la SEU (provisorio; desde 0.10.4 admite varios roles por persona, #125). 18/11: interfaz pulida en 0.11.1 (resumen y pestañas en la bandeja, estados con color, detalles técnicos plegados) y «Pedir certificados» en la barra principal."},
+  // 04/11: aceptación cualitativa SEU del prototipo y gacetillas; sin puntajes inferidos.
+  "s1e": {"done": true, "at": "2026-11-04", "nota": "Validación cualitativa de gacetillas aceptada por SEU en recorrido guiado por Juani con Juan Manuel y Leandro. Acta: Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md. No se infieren puntajes 1-4 ni conformidad del set formal; su medición sigue en #112. No incluye posts."},
+  "s5d": {"done": true, "at": "2026-11-04", "nota": "Regresión técnica existente y recorrido guiado del prototipo con Juan Manuel y Leandro, facilitado por Juani. SEU eligió interfaz A (bandeja y pieza) y aceptó la generación mostrada. Acta: Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md. No acredita login Google, permisos Docs ni persistencia reales."},
+  "m1": {"done": true, "at": "2026-11-04", "nota": "HU-010 operativa con DoD: s1a-s1e completas; validación humana registrada por la aceptación cualitativa SEU del 04/11 (Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md), cerrada por decisión de Juani. Siguen aparte, sin bloquear el hito: la medición puntuada del set (#112) y la carpeta institucional en la unidad compartida (#100)."},
+  "m2": {"done": true, "at": "2026-11-04", "nota": "MVP de cursada redefinido el 03/11 con Dirección (B14): Instagram pasa a la presentación Final y LinkedIn a continuidad, así que HU-011 deja de ser condición. HU-010 operativa y validada (m1). Cerrado por decisión de Juani; el criterio formal del Gate (B19, DEF-A1-006) se sigue en #69 y no se declara un TRL por este cierre."},
+  "c1": {"done": false, "nota": "Evento cualitativo SEU realizado y aceptado el 04/11 con Juan Manuel y Leandro; trazabilidad en Documentos/Reuniones/SEU-2026-11-04/Acta-Validacion-Interfaz-y-Gacetillas-A1.md. No se informaron puntajes del checklist 1-4; no se fabrica un ≥3/4. Medición formal en #112 y revisión de posts para Final en #14."},
+
   // Corte de revision: 2026-10-19 (noche), ampliado el 2026-10-21 con el E2E
   // del Plan B. El plan (.mmd) no se toca: no hay rebaseline ni estados
   // nuevos. Contrastado contra: git log desde 2026-09-20; los issues abiertos
@@ -65,22 +79,23 @@ window.GANTT_PROGRESS = {
 
   "s4d": { done: true, at: "2026-09-21", nota: "Cola de envio propia sin Celery/Redis (merge feature/s4d-envio-asincrono): estado ENVIO_ENCOLADO tras la doble aprobacion, ColaEnviosMemoria y ColaEnviosArchivo con encolado idempotente y orden FIFO, worker drenar_envios con un intento por item por corrida y presupuesto de reintentos (3) hacia FALLIDA. Sigue sin broker; el destino de prueba es el fake y el adapter Gmail existe con lista de prueba. Desde #141 tiene modo produccion opt-in. 28 pruebas nuevas" },
 
-  "s6a": { done: true, at: "2026-09-21", nota: "Slice offline de HU-014 (issue #29, merge feature/hu014-certificados): plantilla provisional de certificado y maquina de estados HITL con el mismo circuito de doble aprobacion de HU-012 (semantica + utilitaria). El 19/10 llego la plantilla institucional de aprobacion (issue #126), pero no esta integrada; la variante de asistencia sigue pendiente" },
+  "s6a": { done: true, at: "2026-09-21", nota: "Slice offline de HU-014 (issue #29, merge feature/hu014-certificados): plantilla provisional de certificado y maquina de estados HITL con el mismo circuito de doble aprobacion de HU-012 (semantica + utilitaria). La plantilla institucional de aprobacion llego el 19/10 y quedo integrada sin versionar firmas (#126, cerrado 11/11); la variante institucional de asistencia no se recibio y sigue la provisional" },
   "s6b": { done: true, at: "2026-09-21", nota: "PDF determinista generado con stdlib pura (sin dependencias nuevas): el borrador lleva la marca BORRADOR - NO EMITIR y el emitido no; bytes reproducibles verificados en regresion" },
   "s6c": { done: true, at: "2026-09-21", nota: "Emision bloqueada sin las dos aprobaciones registradas (mismo circuito que HU-012); el destino es DestinoCertificadosFake y la emision real sigue pendiente de SEU/DSI" },
   "s6d": { done: true, at: "2026-09-21", nota: "62 pruebas nuevas cubren datos faltantes, rechazo, rol invalido, duplicados, recuperacion durable y emision simulada controlada (matriz_conformidad_hu014_v1, 12 casos)" },
   "s6e": { done: true, at: "2026-09-21", nota: "Log de emision con hashes (pdf_hash) sin datos personales en claro, reconciliacion de EMISION_RESERVADA hacia EMISION_INDETERMINADA y doc de limites en evidencias/limites-hu014-offline.md" },
-  "m7":  { done: true, at: "2026-10-20", nota: "Suite local 2377 passed / 8 skipped; cobertura 90% registrada. CI de main verde en el run 39455797467 (f2dfbf6)" },
+  "m7":  { done: true, at: "2026-10-20", nota: "Suite local 2377 passed / 8 skipped; cobertura 90% registrada. CI de main verde en el run 39455797467 (f2dfbf6). Regresion al 17/11 (0.9.0): 2935 passed / 8 skipped con PostgreSQL, Ruff y CI verdes (PR #178)" },
   "s7c": { done: true, at: "2026-10-21", nota: "E2E live en labredesfie con gemma4:e4b y una actividad real del corpus (FIE-DIF-08), con la cuenta de servicio. 21/10: gacetilla PENDIENTE_VALIDACION en 64,2 s, HU-014 y HU-012, y la consola visual en la presentacion de avance. 23/10, ya en contenedores (runtime oficial, ADR 0013, version 0.5.3): corrida unica completa (gacetilla, HU-014 con 2 certificados EMITIDA, HU-012/HU-013 con lote ENVIO_ENCOLADO), posts de Instagram y LinkedIn en vivo, modelo en HU-014 6/6, HU-012 4/4 y canal 8/8, scheduler con el insumo de A3, respaldo y restauracion, vuelta atras de version y recuperacion ante caida. Gmail y Forms reales de HU-012/HU-014 siguen sin configurar (destinos de prueba). Suite 2444 passed / 8 skipped y CI verde, tambien dentro de la imagen. Evidencia: Implementacion/Agente1/evidencias/contenedores-servidor-2026-10-23.md" },
+  "s7d": { done: true, at: "2026-10-30", nota: "Revision de seguridad del laboratorio aprobada en la prueba presencial del 30/10 (agente1 0.5.9 en contenedores en labredesfie). Base: suite de inyeccion en canal y fallback, auditoria D2, aislamiento de contenedores verificado el 23/10 y Anexo 3. La revision de laboratorio iLab/rLab quedo aprobada y #57 se cerro el 11/11." },
 
   // Sin marcar a proposito. Cada linea dice que falta exactamente, para no
   // arrastrar tareas bloqueadas junto con otras que si estan hechas.
   //
-  // s1e  - validacion SEU de gacetillas: BLOQUEADO_EXTERNO (DEF-A1-005). Paquete de nueve muestras listo, acta pendiente. La visita del 19/10 no reviso muestras ni hubo Juan Manuel; JOS-P5 sigue pendiente.
-  // m1   - el DoD de HU-010 incluye Sheets, Docs, plantilla y validacion
-  //        humana: Sheets, Docs y la forma FIE INFORMA estan; falta la
-  //        validacion SEU de las muestras (s1e).
-  // s2d  - validacion SEU de posts y criterios definitivos por canal: la mitad
+  // s1e  - completada el 04/11 por aceptación cualitativa de gacetillas; ver acta. La medición puntuada no se presume.
+  // m1   - completada el 04/11 por decisión de Juani; ver la entrada arriba.
+  // s2d  - DIFERIDA (Dirección 03/11, B14): Instagram para la presentación Final,
+  //        LinkedIn para continuidad. No bloquea el MVP de cursada. Historial:
+  //        validacion SEU de posts y criterios definitivos por canal: la mitad
   //        tecnica se hizo el 22/09 — la SEU confirmo los criterios por canal
   //        (acta) y se implementaron el mismo dia (politica v1 con 17 reglas
   //        activas, prompts v4, catalogo v3, paquete regenerado). La mitad
@@ -97,7 +112,7 @@ window.GANTT_PROGRESS = {
   //        y mistral:7b da 0/6 - el modelo concreto importa, no solo el
   //        tamano. El 19/10 no hubo revision de muestras (JOS-P5 pendiente);
   //        los criterios por canal del 22/09 siguen vigentes.
-  // m2   - Gate TRL 3 PENDIENTE: falta criterio formal (DEF-A1-006, BLOQUEADO_EXTERNO) y validacion SEU.
+  // m2   - completado el 04/11 por decisión de Juani (MVP sin HU-011); criterio del Gate sigue en #69.
   // s3a  - D2 provisionado y verificado live el 28/09. Desde el 21/10 la
   //        identidad definitiva (cuenta de servicio de DSI, #99) opera en el
   //        servidor y la OAuth se dio de baja el 23/10. Desde el 23/10 el host
@@ -109,14 +124,21 @@ window.GANTT_PROGRESS = {
   // s7d  - seguridad, permisos y prompt injection: la suite cubre la
   //        inyeccion en el canal y el fallback, y el 23/10 se verifico en el
   //        servidor el aislamiento de los contenedores (Ollama sin egreso,
-  //        agente sin root ni capacidades, arranque fail-closed). Falta la
-  //        revision de laboratorio, que es la que evalua seguridad.
-  // m6   - "HU-014 operativa con DoD": el slice offline esta hecho (s6a-s6e),
-  //        pero el DoD exige plantilla institucional de la SEU y validacion
-  //        humana real. El 19/10 llego la plantilla de aprobacion (ficha de
-  //        la SEU, issue #126), pero no esta integrada; la variante de
-  //        asistencia y el aprobador final del lote siguen pendientes. No se
-  //        declara emision institucional por recibir el archivo.
+  //        agente sin root ni capacidades, arranque fail-closed). El 30/10
+  //        la revision de laboratorio aprobo la seguridad: se marca.
+  // m6   - "HU-014 operativa con DoD": el slice offline esta hecho (s6a-s6e).
+  //        Al 18/11: plantilla SEU de aprobacion integrada (#126); el lote lo
+  //        aprueba quien lo genera (Juani 11/11, ADR 0018); el lote se aprueba
+  //        en la web atado al hash con muestra BORRADOR (0.8.0). Desde 0.10.0
+  //        el lote se pide desde una actividad del catalogo y se emite desde
+  //        la web en segundo plano (#168); desde 0.11.0 el pedido acepta
+  //        directamente el Excel de aprobados de la SEU (#193), probado en el
+  //        servidor con una lista real. En modo demostracion el lote queda
+  //        marcado de prueba, con BORRADOR, y no se envia. Falta para el DoD
+  //        (#142): las imagenes de firma de la SEU (sin ellas no se emite
+  //        institucionalmente, R2), la variante institucional de asistencia,
+  //        el login institucional (m5) y el envio Gmail fuera de la lista de
+  //        prueba. No se declara emision institucional.
   // s4e  - duplicados y destinatario invalido probados, y desde el 2026-09-21
   //        el envio exige las dos aprobaciones del circuito (semantica RGC +
   //        utilitaria Coordinador, DEF-A1-016 cerrado como RESUELTO_TECNICO,
@@ -189,38 +211,32 @@ window.GANTT_PROGRESS = {
   //                  Con este ticket s5b queda completa y se marca arriba.
   //                  Suite 702 -> 749.
   //
-  // Con #26 cerrado, HU-013 tiene sus ocho tickets integrados. Quedan
-  // marcadas s5a, s5b y s5c; s5c se reformulo el 2026-09-21 porque el plan
-  // original ("persistir transcript") contradecia la spec de HU-013. s5d
-  // sigue sin marca porque la prueba guiada con la SEU no se hizo:
+  // Con #26 cerrado existe la regresión técnica de HU-013. El 04/11 se
+  // realizó el recorrido guiado SEU con Juan Manuel y Leandro: s5d completa.
+  // m5 sigue sin completar por los controles del canal web real pendientes.
   //
-  // s5d  - renombrada el 2026-09-21 a "Regresion de solicitudes y prueba
-  //        guiada de usabilidad con SEU". La mitad automatizable ya existe:
-  //        las solicitudes validas y las fuera de alcance tienen cobertura de
-  //        regresion desde los tickets #19-#26. La mitad humana tenia fecha
-  //        para el viernes 25/09 (instrumento de sesion en el issue #32),
-  //        pero la prueba no se hizo: JOS-P4 sigue pendiente y no hay fecha
-  //        nueva. El recorrido quedo documentado en #24
-  //        (evidencias/recorrido-prueba-guiada-canal-planilla.md).
-  // m5   - "HU-013 operativa con DoD": depende de s5d; s5a esta completo
-  //        con el canal Form y la identidad por correo verificado.
-  //
-  // Sprint 7 y cierre: el 20/10 se suma m7 con el CI verde; s7c, s7d y el cierre siguen abiertos.
+  // Sprint 7 y cierre: m7 desde el 20/10, s7c desde el 21/10 y s7d desde el
+  // 30/10; el cierre sigue abierto.
   //
   // s7a  - contratos y mocks con A3-A5 y puerto A2 con fakes; el contrato
   //        con Historia Viva (#17) sigue abierto, asi que no cubre A2-A5
   //        completo. Evidencia: Contrato-Candidato-Insumos-A2-A5-Agente-1.md,
   //        contracts/insumos/a3_evento_gacetilla_v1.schema.json, ADR 0008.
   // s7b  - integracion progresiva: depende de s7a y del contrato #17.
-  // s7d  - auditoria de seguridad D2/D3 y pruebas de prompt injection como
-  //        dato, offline; permisos y revocacion reales siguen pendientes.
-  // c1   - validacion con usuarios SEU: sin sesion agendada; JOS-D5 registra
-  //        que nadie de la SEU asistira al 18/11.
-  // c2   - sin defectos CRITICA abiertos, pero hay ALTA bloqueados.
-  // c3   - el tag agente1-v0.1.0 existe, pero al corte no hay release
-  //        candidate con paquete de evidencias cerrado.
+  // c1   - aceptación cualitativa realizada el 04/11; el checklist 1-4 no tiene puntajes informados. La ausencia prevista para el 18/11 no cancela este evento.
+  //        La presentación de cursada del 18/11 (con la SEU presente) es una demo, no la medición del checklist.
+  // c2   - al 18/11 regresion completa verde con 0.11.1 (3164 passed /
+  //        8 skipped, Ruff y CI verdes, PR #196). Segun el registro al 17/11
+  //        no hay defectos CRITICA abiertos; siguen ALTA bloqueados externamente: DEF-A1-002
+  //        (plantilla de gacetilla), DEF-A1-006 (criterio del Gate, Cesar) y
+  //        DEF-A1-007 (revision editorial de posts).
+  // c3   - agente1-v0.11.1 desplegado y verificado en el servidor el 18/11
+  //        (servicios sin reinicios), sobre la evidencia de 0.9.0 en PR #178
+  //        y el respaldo de vuelta atras (demo-respaldo-2026-11-17). No es
+  //        una release candidata con paquete de evidencias cerrado.
   // c4   - depende de c1-c3.
-  // m8   - depende de c1-c4 y del Gate TRL 4.
+  // m8   - depende de c1-c4, del DoD de la bible para TRL 3-4 y del OK de
+  //        Cesar (criterio en #69, DEF-A1-006).
   //
   // Nota de alcance: cerrar los ocho tickets NO acredita validacion
   // institucional ni nivel TRL, como dice #18 explicitamente. La evidencia es
