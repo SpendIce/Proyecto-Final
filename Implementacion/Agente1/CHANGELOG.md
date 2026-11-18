@@ -26,6 +26,23 @@ Dirección. Detalle en el procedimiento.
 
 ## [Sin publicar]
 
+## [0.12.0] - 2026-11-18
+
+- **Menor — archivar, eliminar y reintentar en la bandeja** (ADR 0023,
+  Refs #194). La bandeja deja de crecer sin límite: «Archivar» saca de la
+  vista por defecto a la pieza o lote resuelto (y vuelve con el filtro
+  «Archivadas»), «Eliminar» —sólo quien creó la pieza— la retira de toda
+  vista sin borrar auditoría, y su prosa la vacía la purga diaria. Nada en
+  curso se archiva ni se elimina, y la sesión demo sólo opera lo suyo
+  (ADR 0019). Migración 0013 con las columnas `archivada_en`/`eliminada_en`
+  y su permiso puntual sobre `lotes_certificados`.
+- **Menor — reintentar la pieza fallida** (ADR 0023, Refs #194). La pieza
+  con error muestra el motivo legible del `resultado` durable —Drive no
+  respondió o el texto no pasó los controles— y ofrece «Reintentar»: una
+  ejecución `generacion` nueva sobre el mismo pedido, tope de tres
+  reintentos por pieza, idempotente al doble clic; la ejecución fallida
+  queda en el historial y el worker toma la nueva sin cambios.
+
 ## [0.11.3] - 2026-11-18
 
 - **Parche — la pieza se desplaza en un solo scroll** (Refs #194). En

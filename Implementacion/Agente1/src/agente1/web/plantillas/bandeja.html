@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block titulo %}Bandeja · Agente 1{% endblock %}
 {% block contenido %}
-{% macro fila(item) %}
+{% macro fila(item, csrf) %}
   <li class="bandeja-item">
     <a href="/solicitudes/{{ item.id }}" class="bandeja-enlace">
       <span class="bandeja-titulo">{{ item.titulo }}</span>
@@ -11,6 +11,27 @@
       </span>
     </a>
     <span class="estado estado-{{ item.estado|lower }}">{{ item.estado_visible }}</span>
+    {% if item.puede_eliminar %}
+    <form method="post" action="/solicitudes/{{ item.id }}/eliminar"
+          class="bandeja-accion">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="boton-descartar">Eliminar</button>
+    </form>
+    {% endif %}
+    {% if item.puede_archivar %}
+    <form method="post" action="/solicitudes/{{ item.id }}/archivar"
+          class="bandeja-accion">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="boton-secundario">Archivar</button>
+    </form>
+    {% endif %}
+    {% if item.puede_desarchivar %}
+    <form method="post" action="/solicitudes/{{ item.id }}/desarchivar"
+          class="bandeja-accion">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="boton-secundario">Desarchivar</button>
+    </form>
+    {% endif %}
   </li>
 {% endmacro %}
 {% set pendientes = items|selectattr("estado", "in", ["EN_COLA", "GENERANDO", "AJUSTANDO", "LISTA"])|list %}
@@ -23,6 +44,10 @@
   <div class="seccion-cabecera">
     <h1 id="t-bandeja">Bandeja de la SEU</h1>
   </div>
+
+  {% if aviso %}
+  <p class="mensaje-error" role="alert">{{ aviso }}</p>
+  {% endif %}
 
   <nav class="resumen" aria-label="Resumen de la bandeja">
     <a class="resumen-tarjeta resumen-revision" href="#piezas">
@@ -42,7 +67,8 @@
 
   <nav class="pestanas" aria-label="Secciones de la bandeja">
     <a class="pestana pestana-activa" href="#piezas" data-panel="piezas">
-      Piezas <span class="cuenta">{{ items|length }}</span>
+      {% if ver_archivadas %}Archivadas{% else %}Piezas{% endif %}
+      <span class="cuenta">{{ items|length }}</span>
     </a>
     {% if hay_certificados %}
     <a class="pestana" href="#certificados" data-panel="certificados">
@@ -53,20 +79,31 @@
 
   <div id="piezas" class="panel-pestana" data-panel="piezas">
     <div class="panel-cabecera">
-      <h2>Piezas</h2>
-      <a class="boton-primario" href="/nuevo-pedido">Nuevo pedido</a>
+      <h2>{% if ver_archivadas %}Piezas archivadas{% else %}Piezas{% endif %}</h2>
+      <div class="panel-acciones">
+        {% if ver_archivadas %}
+        <a class="enlace-volver" href="/bandeja">← Bandeja</a>
+        {% elif archivadas_total %}
+        <a class="enlace-volver" href="/bandeja?archivadas=1">
+          Archivadas <span class="cuenta">{{ archivadas_total }}</span>
+        </a>
+        {% endif %}
+        <a class="boton-primario" href="/nuevo-pedido">Nuevo pedido</a>
+      </div>
     </div>
 
     {% if items %}
     {# Agrupada por estado: lo que espera trabajo arriba, lo cerrado después
-       y los errores colapsados al final. No se borran: son auditoría. #}
+       y los errores colapsados al final. No se borran: son auditoría.
+       «Archivar» las saca de esta vista; «Eliminar» (sólo el dueño) las
+       retira de todas y la prosa la purga la retención diaria. #}
     {% if pendientes %}
     <h3 class="bandeja-grupo">Pendientes <span class="cuenta">{{ pendientes|length }}</span></h3>
-    <ul class="bandeja">{% for item in pendientes %}{{ fila(item) }}{% endfor %}</ul>
+    <ul class="bandeja">{% for item in pendientes %}{{ fila(item, sesion.csrf_token) }}{% endfor %}</ul>
     {% endif %}
     {% if cerradas %}
     <h3 class="bandeja-grupo">Cerradas <span class="cuenta">{{ cerradas|length }}</span></h3>
-    <ul class="bandeja">{% for item in cerradas %}{{ fila(item) }}{% endfor %}</ul>
+    <ul class="bandeja">{% for item in cerradas %}{{ fila(item, sesion.csrf_token) }}{% endfor %}</ul>
     {% endif %}
     {% if errores %}
     <details class="bandeja-errores" id="errores">
@@ -74,13 +111,17 @@
         <span class="chevron" aria-hidden="true"></span>
         Con error ({{ errores|length }})
       </summary>
-      <ul class="bandeja">{% for item in errores %}{{ fila(item) }}{% endfor %}</ul>
+      <ul class="bandeja">{% for item in errores %}{{ fila(item, sesion.csrf_token) }}{% endfor %}</ul>
     </details>
     {% endif %}
     {% else %}
     <p class="vacio">
+      {% if ver_archivadas %}
+      No hay piezas archivadas.
+      {% else %}
       La bandeja está vacía. El primer pedido se hace desde
       <a href="/nuevo-pedido">Nuevo pedido</a>.
+      {% endif %}
     </p>
     {% endif %}
   </div>
@@ -111,14 +152,34 @@
           </span>
         </a>
         <span class="estado estado-{{ lote.estado|lower }}">{{ lote.estado_visible }}</span>
+        {% if lote.puede_archivar %}
+        <form method="post" action="/certificados/{{ lote.id }}/archivar"
+              class="bandeja-accion">
+          <input type="hidden" name="csrf" value="{{ sesion.csrf_token }}">
+          <button type="submit" class="boton-secundario">Archivar</button>
+        </form>
+        {% endif %}
+        {% if lote.puede_desarchivar %}
+        <form method="post" action="/certificados/{{ lote.id }}/desarchivar"
+              class="bandeja-accion">
+          <input type="hidden" name="csrf" value="{{ sesion.csrf_token }}">
+          <button type="submit" class="boton-secundario">Desarchivar</button>
+        </form>
+        {% endif %}
       </li>
       {% endfor %}
     </ul>
     {% else %}
-    <p class="vacio">Todavía no hay lotes de certificados.</p>
+    <p class="vacio">
+      {% if ver_archivadas %}
+      No hay lotes archivados.
+      {% else %}
+      Todavía no hay lotes de certificados.
+      {% endif %}
+    </p>
     {% endif %}
 
-    {% if mostrar_boton_demo %}
+    {% if mostrar_boton_demo and not ver_archivadas %}
     <form method="post" action="/demo/lote-certificados"
           class="acciones-decision">
       <input type="hidden" name="csrf" value="{{ sesion.csrf_token }}">

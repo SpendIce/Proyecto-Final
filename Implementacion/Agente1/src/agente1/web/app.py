@@ -124,6 +124,8 @@ from .pedido_certificados import registrar_rutas_pedido_certificados
 from .persistencia import (
     CANAL_WEB,
     CANAL_WEB_DEMO,
+    ESTADOS_ARCHIVABLES,
+    MAX_REINTENTOS,
     ConflictoIdempotencia,
     DetalleSolicitud,
     RepositorioWeb,
@@ -155,6 +157,28 @@ _ROLES_LEGIBLES = {
 _CONDICIONES_LEGIBLES = {
     "aprobacion": "Aprobación",
     "asistencia": "Asistencia",
+}
+# Vía legible al motivo del error de generación (ADR 0023): el `resultado`
+# durable ya distingue transporte de contenido sin abrir el log del worker.
+# Son códigos del esquema (`ejecuciones.resultado`), nunca prosa.
+_MOTIVOS_FALLO = {
+    "destination_failure": (
+        " y el documento en Drive no respondió: suele ser pasajero, se "
+        "puede reintentar"
+    ),
+    "salida_no_conforme": (
+        " porque el texto no pasó los controles de contenido: revisá la "
+        "ficha de la actividad o probá con más detalle en la descripción"
+    ),
+    "salida_vacia": " y el modelo no devolvió texto",
+    "datos_incompletos": (
+        " porque la actividad no tiene los datos obligatorios completos"
+    ),
+    "source_invalid": (
+        " y los datos de la actividad no sirvieron para generar"
+    ),
+    "source_failure": " y no se pudieron leer los datos de la actividad",
+    "error_generacion": " de forma inesperada",
 }
 
 
@@ -896,11 +920,60 @@ def crear_app(
 
     # ---------- bandeja y detalle ----------
 
+    def _puede_operar_pieza(
+        sesion: Sesion,
+        *,
+        canal: str,
+        solicitante_hash: str,
+        solo_dueno: bool,
+    ) -> bool:
+        """Regla de permisos de las acciones de bandeja (ADR 0023).
+
+        Archivar, desarchivar y reintentar son del dueño o del aprobador
+        de contenido; eliminar, sólo del dueño — nadie retira de la vista
+        una pieza que no pidió. El modo demo no toca lo real: una sesión
+        demo sólo opera piezas `web-demo`, la misma puerta que B1/B2
+        cerraron para los lotes, porque una marca escrita desde la demo
+        cambiaría la bandeja de todos.
+        """
+        if sesion.origen == ORIGEN_DEMO and canal != CANAL_WEB_DEMO:
+            return False
+        es_dueno = hash_correo(sesion.correo) == solicitante_hash
+        if solo_dueno:
+            return es_dueno
+        return es_dueno or tiene_rol(sesion, ROL_APROBADOR_CONTENIDO)
+
+    # Avisos de las acciones de bandeja: textos cerrados por código, nunca
+    # se repite lo que trae el query string.
+    _AVISOS_BANDEJA = {
+        "no_archivable": (
+            "No se archivó: la pieza o el lote sigue en curso o pendiente "
+            "de decisión."
+        ),
+        "ya_archivada": "La pieza ya estaba archivada.",
+        "ya_archivado": "El lote ya estaba archivado.",
+        "no_eliminable": (
+            "No se eliminó: la pieza sigue en curso o esperando decisión."
+        ),
+        "ya_eliminada": "La pieza ya estaba eliminada.",
+        "sin_marca": "El elemento no estaba archivado.",
+        "inexistente": "El elemento ya no está en la bandeja.",
+    }
+
     @app.get("/bandeja", response_class=HTMLResponse)
-    def bandeja(request: Request) -> Response:
+    def bandeja(
+        request: Request, archivadas: bool = False, aviso: str = ""
+    ) -> Response:
         sesion = autorizar(request)
         if sesion is None:
             return destino_login()
+        es_aprobador = tiene_rol(sesion, ROL_APROBADOR_CONTENIDO)
+        todas = repositorio.bandeja()
+        en_vista = [
+            i for i in todas
+            if (i.archivada_en is not None) == archivadas
+        ]
+        archivadas_total = sum(1 for i in todas if i.archivada_en is not None)
         items = [
             {
                 "id": i.id_solicitud,
@@ -915,14 +988,58 @@ def crear_app(
                 )
                 or _NOMBRES_TIPOS.get(i.tipo_pieza, i.tipo_pieza),
                 "creada": i.creada_en.strftime("%d/%m/%Y %H:%M"),
+                "puede_operar": _puede_operar_pieza(
+                    sesion,
+                    canal=i.canal,
+                    solicitante_hash=i.solicitante_hash,
+                    solo_dueno=False,
+                ),
+                "es_dueno": _puede_operar_pieza(
+                    sesion,
+                    canal=i.canal,
+                    solicitante_hash=i.solicitante_hash,
+                    solo_dueno=True,
+                ),
+                "archivable": i.estado_web in ESTADOS_ARCHIVABLES,
+                "puede_archivar": (
+                    not archivadas
+                    and i.estado_web in ESTADOS_ARCHIVABLES
+                    and _puede_operar_pieza(
+                        sesion,
+                        canal=i.canal,
+                        solicitante_hash=i.solicitante_hash,
+                        solo_dueno=False,
+                    )
+                ),
+                "puede_eliminar": (
+                    i.estado_web in ESTADOS_ARCHIVABLES
+                    and _puede_operar_pieza(
+                        sesion,
+                        canal=i.canal,
+                        solicitante_hash=i.solicitante_hash,
+                        solo_dueno=True,
+                    )
+                ),
+                "puede_desarchivar": (
+                    archivadas
+                    and _puede_operar_pieza(
+                        sesion,
+                        canal=i.canal,
+                        solicitante_hash=i.solicitante_hash,
+                        solo_dueno=False,
+                    )
+                ),
             }
-            for i in repositorio.bandeja()
+            for i in en_vista
         ]
         return render(
             "bandeja.html",
             request,
             sesion=sesion,
             items=items,
+            ver_archivadas=archivadas,
+            archivadas_total=archivadas_total,
+            aviso=_AVISOS_BANDEJA.get(aviso, ""),
             lotes=(
                 lotes_para_bandeja(
                     lotes,
@@ -930,15 +1047,21 @@ def crear_app(
                     puede_ver=lambda lote: sesion_puede_ver_lote(
                         sesion, lote, es_lote_demo
                     ),
+                    incluir_archivados=archivadas,
+                    puede_operar=(
+                        lambda lote: es_aprobador
+                        and sesion_puede_ver_lote(
+                            sesion, lote, es_lote_demo
+                        )
+                    ),
                 )
-                if lotes is not None
-                and tiene_rol(sesion, ROL_APROBADOR_CONTENIDO)
+                if lotes is not None and es_aprobador
                 else []
             ),
             mostrar_boton_demo=(
                 config.modo_demo
                 and lotes is not None
-                and tiene_rol(sesion, ROL_APROBADOR_CONTENIDO)
+                and es_aprobador
             ),
             puede_pedir_certificados=puede_pedir_certificados(sesion),
         )
@@ -991,6 +1114,25 @@ def crear_app(
         ]
         puede_ajustar = revisable and vigente is not None
         correo = _contexto_correo(detalle_sol, titulo, sesion, puede_correo)
+        # Reintento y visibilidad (ADR 0023): el botón sólo aparece cuando
+        # todo el repositorio dejaría pasar el POST — dueño o aprobador,
+        # pieza con error, tope no agotado y pedido con sus campos — para
+        # no ofrecer una acción que la base rechaza igual.
+        puede_operar_pieza = _puede_operar_pieza(
+            sesion,
+            canal=detalle_sol.canal,
+            solicitante_hash=detalle_sol.solicitante_hash,
+            solo_dueno=False,
+        )
+        puede_reintentar = (
+            detalle_sol.estado_web == "ERROR"
+            and detalle_sol.reintentos <= MAX_REINTENTOS
+            and bool(detalle_sol.campos)
+            and puede_operar_pieza
+        )
+        puede_desarchivar = (
+            detalle_sol.archivada_en is not None and puede_operar_pieza
+        )
         return render(
             "solicitud.html",
             request,
@@ -1025,6 +1167,15 @@ def crear_app(
             puede_traer=puede_traer,
             puede_decidir=puede_decidir,
             puede_ajustar=puede_ajustar,
+            puede_reintentar=puede_reintentar,
+            reintentos_agotados=(
+                detalle_sol.estado_web == "ERROR"
+                and detalle_sol.reintentos > MAX_REINTENTOS
+            ),
+            motivo_fallo=_MOTIVOS_FALLO.get(
+                detalle_sol.resultado_fallido or "", ""
+            ),
+            puede_desarchivar=puede_desarchivar,
             llave_ajuste=uuid.uuid4().hex,
             correo=correo,
             correo_auto=(
@@ -1378,6 +1529,158 @@ def crear_app(
             actualizado,
             aviso=aviso,
             aviso_error=es_error,
+        )
+
+    # ---------- visibilidad y reintento de la pieza (ADR 0023) ----------
+
+    async def _accion_pieza(
+        request: Request,
+        id_solicitud: str,
+        *,
+        solo_dueno: bool,
+    ) -> Sesion | Response:
+        """Puerta común de los POST de bandeja: sesión, CSRF y dueño.
+
+        Devuelve la sesión viva o una `Response` de rechazo. La regla es
+        la de `_puede_operar_pieza`: dueño para eliminar, dueño o
+        aprobador para el resto, y la demo no toca lo real.
+        """
+        sesion = autorizar(request)
+        if sesion is None:
+            return destino_login()
+        form = await request.form()
+        if not csrf_ok(sesion, str(form.get("csrf", ""))):
+            return render("sin_permiso.html", request, status_code=403)
+        encabezado = repositorio.encabezado_de(id_solicitud)
+        if encabezado is None:
+            return render("sin_permiso.html", request, status_code=404)
+        canal, solicitante_hash = encabezado
+        if not _puede_operar_pieza(
+            sesion,
+            canal=canal,
+            solicitante_hash=solicitante_hash,
+            solo_dueno=solo_dueno,
+        ):
+            return render("sin_permiso.html", request, status_code=403)
+        return sesion
+
+    @app.post("/solicitudes/{id_solicitud}/archivar")
+    async def archivar_pieza(
+        request: Request, id_solicitud: str
+    ) -> Response:
+        """Saca la pieza de la vista por defecto; nada se borra (ADR 0023)."""
+        puerta = await _accion_pieza(
+            request, id_solicitud, solo_dueno=False
+        )
+        if isinstance(puerta, Response):
+            return puerta
+        codigo = repositorio.archivar_solicitud(
+            id_solicitud=id_solicitud, ahora=datetime.now(timezone.utc)
+        )
+        if codigo == "inexistente":
+            return render("sin_permiso.html", request, status_code=404)
+        if codigo == "archivada":
+            return RedirectResponse("/bandeja", 303)
+        return RedirectResponse(f"/bandeja?aviso={codigo}", 303)
+
+    @app.post("/solicitudes/{id_solicitud}/desarchivar")
+    async def desarchivar_pieza(
+        request: Request, id_solicitud: str
+    ) -> Response:
+        """Devuelve la pieza archivada a la vista por defecto."""
+        puerta = await _accion_pieza(
+            request, id_solicitud, solo_dueno=False
+        )
+        if isinstance(puerta, Response):
+            return puerta
+        codigo = repositorio.desarchivar_solicitud(
+            id_solicitud=id_solicitud
+        )
+        if codigo == "inexistente":
+            return render("sin_permiso.html", request, status_code=404)
+        if codigo == "desarchivada":
+            return RedirectResponse("/bandeja?archivadas=1", 303)
+        return RedirectResponse(
+            f"/bandeja?archivadas=1&aviso={codigo}", 303
+        )
+
+    @app.post("/solicitudes/{id_solicitud}/eliminar")
+    async def eliminar_pieza(
+        request: Request, id_solicitud: str
+    ) -> Response:
+        """Retira la pieza del dueño de toda vista de la bandeja.
+
+        Es la puerta de las piezas de prueba: marca `eliminada_en`, no
+        borra — la auditoría queda y la purga diaria vacía la prosa.
+        Sólo quien la creó; ni el aprobador retira de la vista lo que
+        pidió otra persona.
+        """
+        puerta = await _accion_pieza(
+            request, id_solicitud, solo_dueno=True
+        )
+        if isinstance(puerta, Response):
+            return puerta
+        codigo = repositorio.eliminar_solicitud(
+            id_solicitud=id_solicitud, ahora=datetime.now(timezone.utc)
+        )
+        if codigo == "inexistente":
+            return render("sin_permiso.html", request, status_code=404)
+        if codigo == "eliminada":
+            return RedirectResponse("/bandeja", 303)
+        return RedirectResponse(f"/bandeja?aviso={codigo}", 303)
+
+    # Textos cerrados del reintento, por código del repositorio.
+    _AVISOS_REINTENTO = {
+        "en_curso": (
+            "La pieza ya está en la cola del agente: esta página se "
+            "actualiza sola."
+        ),
+        "no_reintentable": (
+            "Sólo se reintenta una pieza que quedó con error de generación."
+        ),
+        "sin_prosa": (
+            "El pedido ya no conserva sus campos por la retención: hay que "
+            "hacer un pedido nuevo."
+        ),
+        "limite_reintentos": (
+            "La pieza agotó sus reintentos: hacé un pedido nuevo, si hace "
+            "falta con otra descripción."
+        ),
+    }
+
+    @app.post("/solicitudes/{id_solicitud}/reintentar")
+    async def reintentar_pieza(
+        request: Request, id_solicitud: str
+    ) -> Response:
+        """Vuelve a encolar la pieza fallida con el mismo pedido (ADR 0023).
+
+        La ejecución fallida queda en el historial y la nueva corre por
+        el worker como cualquier generación: al volver, la pieza muestra
+        el estado en vivo.
+        """
+        puerta = await _accion_pieza(
+            request, id_solicitud, solo_dueno=False
+        )
+        if isinstance(puerta, Response):
+            return puerta
+        codigo = repositorio.reintentar_solicitud(
+            id_solicitud=id_solicitud, ahora=datetime.now(timezone.utc)
+        )
+        if codigo == "encolado":
+            return RedirectResponse(f"/solicitudes/{id_solicitud}", 303)
+        detalle_sol = repositorio.obtener(id_solicitud)
+        if detalle_sol is None:
+            return render("sin_permiso.html", request, status_code=404)
+        aviso = _AVISOS_REINTENTO.get(codigo)
+        if aviso is None:
+            return RedirectResponse(f"/solicitudes/{id_solicitud}", 303)
+        return _render_detalle(
+            request,
+            puerta,
+            detalle_sol,
+            aviso=aviso,
+            aviso_error=True,
+            status_code=409,
         )
 
     # ---------- pedido guiado ----------

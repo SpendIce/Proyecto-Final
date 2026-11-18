@@ -108,6 +108,15 @@ HU = "HU-014"
 ESTADO_PENDIENTE = "PENDIENTE_APROBACION"
 ESTADO_APROBADA = "APROBADA"
 ESTADO_DESCARTADA = "DESCARTADA"
+# Estados del trabajo de emisión (0012) que deciden si un lote aprobado se
+# puede archivar: mientras haya uno activo o indeterminado el lote está en
+# marcha, y uno que nunca se emitió puede pedirse todavía (ADR 0022/0023).
+EMISION_ACTIVA = (
+    "PENDIENTE", "RESERVADA", "ENVIANDO", "INDETERMINADA",
+)
+EMISION_TERMINAL = (
+    "EMITIDA", "EMITIDA_PARCIAL", "FALLIDA", "EXPIRADA", "GENERADA_DEMO",
+)
 
 ACCION_APROBAR = "aprobar"
 ACCION_DESCARTAR = "descartar"
@@ -278,6 +287,9 @@ class LoteCertificados:
     origen_identidad: str | None = None
     version_agente: str | None = None
     origen_creacion: str | None = None
+    # Marca de visibilidad de la bandeja (ADR 0023): el lote archivado
+    # sigue operable por su página, sólo deja de listarse por defecto.
+    archivada_en: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -445,13 +457,98 @@ class RepositorioLotes:
             ).fetchone()
         return _lote_desde_fila(fila) if fila is not None else None
 
-    def listar(self) -> list[LoteCertificados]:
+    def listar(self, *, incluir_archivados: bool = False) -> list[LoteCertificados]:
+        """Lotes para la bandeja: los archivados van sólo si se los pide.
+
+        El orden no cambia: lo pendiente de aprobación arriba siempre —
+        archivar un lote pendiente no se puede, así que nunca se esconde
+        detrás del filtro.
+        """
+        predicado = "" if incluir_archivados else " WHERE archivada_en IS NULL"
         with self._conexion_factory() as conn:
             filas = conn.execute(
-                f"{_SELECT} ORDER BY"
+                f"{_SELECT}{predicado} ORDER BY"
                 " (estado = 'PENDIENTE_APROBACION') DESC, creada_en DESC"
             ).fetchall()
         return [_lote_desde_fila(fila) for fila in filas]
+
+    def archivar_lote(
+        self, *, id_lote: str, ahora: datetime | None = None
+    ) -> str:
+        """Marca el lote archivado; la decisión y la lista quedan intactas.
+
+        La regla sigue al trabajo, como la retención de 0012: un lote
+        `DESCARTADA` se archiva siempre — no puede emitir nada—; un lote
+        `APROBADA` sólo con la emisión terminada, porque mientras haya un
+        trabajo activo o indeterminado el lote sigue en marcha, y uno que
+        nunca se emitió puede pedirse todavía (ADR 0022). Lo pendiente de
+        aprobación jamás: esconder una decisión esperando es mentirle a la
+        bandeja.
+
+        Códigos: `archivado`; `ya_archivado`; `no_archivable`;
+        `inexistente`.
+        """
+        ahora = ahora or datetime.now(timezone.utc)
+        with self._conexion_factory() as conn:
+            with conn.transaction():
+                fila = conn.execute(
+                    "SELECT estado, archivada_en FROM lotes_certificados"
+                    " WHERE id_lote = %s FOR UPDATE",
+                    (id_lote,),
+                ).fetchone()
+                if fila is None:
+                    return "inexistente"
+                estado, archivada_en = fila
+                if archivada_en is not None:
+                    return "ya_archivado"
+                if estado == ESTADO_DESCARTADA:
+                    pass
+                elif estado == ESTADO_APROBADA:
+                    activa = conn.execute(
+                        "SELECT 1 FROM emisiones_certificados"
+                        " WHERE id_lote = %s AND estado = ANY(%s)",
+                        (id_lote, list(EMISION_ACTIVA)),
+                    ).fetchone()
+                    if activa is not None:
+                        return "no_archivable"
+                    terminada = conn.execute(
+                        "SELECT 1 FROM emisiones_certificados"
+                        " WHERE id_lote = %s AND estado = ANY(%s)",
+                        (id_lote, list(EMISION_TERMINAL)),
+                    ).fetchone()
+                    if terminada is None:
+                        return "no_archivable"
+                else:
+                    return "no_archivable"
+                conn.execute(
+                    "UPDATE lotes_certificados SET archivada_en = %s"
+                    " WHERE id_lote = %s",
+                    (ahora, id_lote),
+                )
+        return "archivado"
+
+    def desarchivar_lote(self, *, id_lote: str) -> str:
+        """Devuelve el lote archivado a la vista por defecto.
+
+        Códigos: `desarchivado`; `sin_marca`; `inexistente`.
+        """
+        with self._conexion_factory() as conn:
+            with conn.transaction():
+                fila = conn.execute(
+                    "SELECT archivada_en FROM lotes_certificados"
+                    " WHERE id_lote = %s FOR UPDATE",
+                    (id_lote,),
+                ).fetchone()
+                if fila is None:
+                    return "inexistente"
+                if fila[0] is None:
+                    return "sin_marca"
+                conn.execute(
+                    "UPDATE lotes_certificados SET archivada_en = NULL"
+                    " WHERE id_lote = %s",
+                    (id_lote,),
+                )
+        return "desarchivado"
 
     def _por_objeto(self, objeto_lote: str) -> LoteCertificados | None:
         with self._conexion_factory() as conn:
@@ -610,7 +707,8 @@ _SELECT = (
     " personas, cantidad_personas, linea_descriptiva, linea_descriptiva_hash,"
     " plantilla_muestra, estado, generada_por_hash, creada_en,"
     " decidida_en, decidida_por_hash,"
-    " rol_decision, origen_identidad, version_agente, origen_creacion"
+    " rol_decision, origen_identidad, version_agente, origen_creacion,"
+    " archivada_en"
     " FROM lotes_certificados"
 )
 
@@ -636,6 +734,7 @@ def _lote_desde_fila(fila) -> LoteCertificados:
         origen_identidad=fila[16],
         version_agente=fila[17],
         origen_creacion=fila[18],
+        archivada_en=fila[19],
     )
 
 
@@ -852,11 +951,19 @@ def registrar_aprobacion_en_registro(
 class RepositorioLotesPuerto(Protocol):
     """Lo que la app necesita del repositorio; el fake de pruebas lo cumple."""
 
-    def listar(self) -> list[LoteCertificados]: ...
+    def listar(
+        self, *, incluir_archivados: bool = False
+    ) -> list[LoteCertificados]: ...
 
     def obtener(self, id_lote: str) -> LoteCertificados | None: ...
 
     def decidir(self, **datos) -> ResultadoDecisionLote: ...
+
+    def archivar_lote(
+        self, *, id_lote: str, ahora: datetime | None = None
+    ) -> str: ...
+
+    def desarchivar_lote(self, *, id_lote: str) -> str: ...
 
 
 class EmisionCertificadosWebPuerto(Protocol):
@@ -902,9 +1009,18 @@ def lotes_para_bandeja(
     *,
     es_lote_demo: Callable[[LoteCertificados], bool] | None = None,
     puede_ver: Callable[[LoteCertificados], bool] | None = None,
+    incluir_archivados: bool = False,
+    puede_operar: Callable[[LoteCertificados], bool] | None = None,
 ) -> list[dict[str, object]]:
-    """Filas de la sección «Lotes de certificados» de la bandeja."""
-    lotes = repositorio.listar()
+    """Filas de la sección «Lotes de certificados» de la bandeja.
+
+    `puede_operar` decide qué filas muestran «Archivar»/«Desarchivar»: la
+    ruta la arma con la regla de dueño-o-aprobador y el cierre demo
+    (ADR 0023). El botón de un lote aprobado es una aproximación honesta
+    — el POST vuelve a exigir que la emisión haya terminado y explica si
+    no — porque la bandeja no consulta el estado de la cola.
+    """
+    lotes = repositorio.listar(incluir_archivados=incluir_archivados)
     if puede_ver is not None:
         lotes = [lote for lote in lotes if puede_ver(lote)]
     return [
@@ -919,6 +1035,16 @@ def lotes_para_bandeja(
             ),
             "creada": lote.creada_en.strftime("%d/%m/%Y %H:%M"),
             "demo": es_lote_demo(lote) if es_lote_demo else False,
+            "archivada": lote.archivada_en is not None,
+            "puede_archivar": (
+                lote.archivada_en is None
+                and lote.estado in (ESTADO_APROBADA, ESTADO_DESCARTADA)
+                and (puede_operar is None or puede_operar(lote))
+            ),
+            "puede_desarchivar": (
+                lote.archivada_en is not None
+                and (puede_operar is None or puede_operar(lote))
+            ),
         }
         for lote in lotes
     ]
@@ -1167,6 +1293,64 @@ def registrar_rutas_certificados(
             actualizado,
             aviso=aviso,
             aviso_error=aviso_error,
+        )
+
+    # ---------- visibilidad de la bandeja (ADR 0023) ----------
+
+    @app.post("/certificados/{id_lote}/archivar")
+    async def archivar_lote(request: Request, id_lote: str) -> Response:
+        """Saca el lote de la bandeja por defecto; la decisión queda.
+
+        La vista del lote sigue operable por su página: archivar sólo
+        decide qué lista la bandeja. Al igual que el resto de las rutas
+        del lote, es cosa del aprobador de contenido y la sesión demo no
+        ve lotes reales (ADR 0019).
+        """
+        sesion = autorizar(request)
+        if sesion is None:
+            return destino_login()
+        if not _puede_decidir(sesion):
+            return render("sin_permiso.html", request, status_code=403)
+        lote = _lote_visible(sesion, id_lote)
+        if lote is None:
+            return render("sin_permiso.html", request, status_code=404)
+        form = await request.form()
+        if not csrf_ok(sesion, str(form.get("csrf", ""))):
+            return render("sin_permiso.html", request, status_code=403)
+        codigo = repositorio.archivar_lote(
+            id_lote=id_lote, ahora=datetime.now(timezone.utc)
+        )
+        if codigo == "inexistente":
+            return render("sin_permiso.html", request, status_code=404)
+        if codigo == "archivado":
+            return RedirectResponse("/bandeja#certificados", 303)
+        return RedirectResponse(
+            f"/bandeja?aviso={codigo}#certificados", 303
+        )
+
+    @app.post("/certificados/{id_lote}/desarchivar")
+    async def desarchivar_lote(request: Request, id_lote: str) -> Response:
+        """Devuelve el lote archivado a la bandeja por defecto."""
+        sesion = autorizar(request)
+        if sesion is None:
+            return destino_login()
+        if not _puede_decidir(sesion):
+            return render("sin_permiso.html", request, status_code=403)
+        lote = _lote_visible(sesion, id_lote)
+        if lote is None:
+            return render("sin_permiso.html", request, status_code=404)
+        form = await request.form()
+        if not csrf_ok(sesion, str(form.get("csrf", ""))):
+            return render("sin_permiso.html", request, status_code=403)
+        codigo = repositorio.desarchivar_lote(id_lote=id_lote)
+        if codigo == "inexistente":
+            return render("sin_permiso.html", request, status_code=404)
+        if codigo == "desarchivado":
+            return RedirectResponse(
+                "/bandeja?archivadas=1#certificados", 303
+            )
+        return RedirectResponse(
+            f"/bandeja?archivadas=1&aviso={codigo}#certificados", 303
         )
 
     # ---------- emisión (servicio durable del contrato) ----------
